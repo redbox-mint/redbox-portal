@@ -1,3 +1,9 @@
 {
-  "original_config_sha256": "6047917701fe5866d1ba31491dfd9dcc80e731d6ad9e60a30863797bd5e67134"
+  "original_config_sha256": "6047917701fe5866d1ba31491dfd9dcc80e731d6ad9e60a30863797bd5e67134",
+  "paired_workflow_jobs": [
+    "build-mocha-failure-rehearsal",
+    "test-mocha-failure-rehearsal",
+    "test-mocha-failure-rehearsal-control",
+    "validation-complete-mocha-failure-rehearsal"
+  ]
 }

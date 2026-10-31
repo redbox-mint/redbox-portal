@@ -1,24 +1,33 @@
-# Default-off Mocha compilation-removal failure rehearsal
+# Default-off Mocha failure rehearsal and same-image green control
 
-Implementation is ready for review; **the live rehearsal is still required**.
-Local tests use controlled commands and synthetic reports/API responses. They
-are not successful integration runs, CircleCI results, coverage equivalence,
-proof of artifact ingestion, or acceptance evidence for widening the pilot.
-No CircleCI pipeline, upload, publication, commit or push is needed for the
-local checks below. Do not record live results until they actually exist.
+The four-job paired experiment is implemented; **its live behavior remains
+unverified**. Local checks use controlled commands and synthetic API responses,
+plus the installed Mocha JUnit reporter on small simulated tests. They do not
+run the application integration suite or establish coverage equivalence,
+CircleCI ingestion, upload processing or publication isolation.
 
-This implements the deliberate-failure experiment required by
-[`ci-mocha-pilot.md`](ci-mocha-pilot.md), using the existing image-backed
-`portal` profile, test-image archive, complete integration suite, bootstrap,
-1800-second suite timeout and 30-minute no-output timeout. It omits the same
-seven host compiles as the candidate. It does not enable the prebuilt-image
-override, asset reuse, mount profile, alternate test paths or live-service
-settings. Existing uncommitted Docker/image work is outside this change.
+The historical three-job rehearsal is recorded in
+[`mocha-failure-rehearsal-13587.json`](../specs/circleci-performance/mocha-failure-rehearsal-13587.json).
+Its comparison green job used a different image ID/archive hash. That record
+is not evidence for the new same-image comparison. Historical verification
+remains available without `--paired`; its sentinel checks still accept terminal
+`not_run` entries with populated timestamps, reject duplicate job identities,
+and require the exact success-only dependency on the failed job.
 
-## Isolation and authorization
+This extends the deliberate-failure experiment in
+[`ci-mocha-pilot.md`](ci-mocha-pilot.md). Both consumers use the existing
+image-backed `portal`/`redboxportal` profile, complete ordinary integration suite,
+bootstrap, `npm run test:mocha:ci` command with a 1,800-second process-group
+deadline and 35-minute no-output timeout. Both omit the candidate's seven host compiles. Neither enables asset
+reuse, prebuilt-image overrides, mounted application packages, selected test
+paths or live-service testing. Unrelated Docker/image work is outside this change.
 
-The new pipeline Boolean `ci_mocha_failure_rehearsal` defaults to `false`.
-Only this exact combination enables `mocha_failure_rehearsal`:
+## Isolation and scheduling
+
+`ci_mocha_failure_rehearsal` still defaults to `false`. The same explicit opt-in
+now schedules the green control as the fourth job; there is no separately
+scheduled control or ordinary-workflow dependency. Only this exact combination
+can enable `mocha_failure_rehearsal`, with no tag:
 
 ```json
 {
@@ -31,217 +40,320 @@ Only this exact combination enables `mocha_failure_rehearsal`:
 }
 ```
 
-There must be no tag. Suffixes, prefixes, nested branches, trailing newlines,
-master/develop/support, Dependabot, release/RC tags and either publication mode
-cannot schedule the rehearsal. Every invocation also has an exact branch
-filter and rejects tags. The test helper independently checks the opt-in,
-CircleCI/CI environment, branch/tag, modes and selected image before injection,
-and again before execution and report capture. It rejects test-selection,
-Compose and prebuilt/debug overrides. It refuses existing fixture, LCOV,
-JUnit or evidence paths without deleting/overwriting them.
+All four invocations also require the exact branch filter and reject all tags.
+The runtime helper independently checks CircleCI/CI, opt-in, branch/tag, modes,
+job/workflow identity, selected image and forbidden test/Compose/debug/live
+and reporter overrides before authorization and suite preparation. Each consumer's
+`authorize` action records job/workflow-bound authority and an exclusive, read-only snapshot
+of the Compose definition in a sibling `-authorization` directory. This happens
+before image/input validation; it grants only diagnostic capture and teardown,
+never permission to execute an unvalidated suite. It refuses
+existing fixture, report or evidence paths without deleting/overwriting them.
 
-The workflow has only these jobs:
+The workflow contains exactly:
 
-1. `build-mocha-failure-rehearsal`: an alias of the existing **build-only** job;
-   produces the ordinary test-image archive in this workflow's own workspace.
-2. `test-mocha-failure-rehearsal`: loads that archive, runs safeguard tests,
-   adds the intentional failure and runs the full suite without host compiles.
-3. `validation-complete-mocha-failure-rehearsal`: an invocation of the existing
-   validation sentinel, with a success-only requirement on the failing job.
-   This sentinel must remain blocked/not run.
+1. `build-mocha-failure-rehearsal`: the ordinary build-only steps with additional
+   authorization and producer identity capture. It saves the ordinary image
+   archive and a producer receipt into this workflow's workspace.
+2. `test-mocha-failure-rehearsal`: requires that producer's success, loads its
+   archive, independently verifies identity, injects the deliberate failure and
+   runs the complete suite. It retains the ordinary fatal Codecov upload.
+3. `test-mocha-failure-rehearsal-control`: independently requires the **same**
+   producer's success, loads its archive, verifies identity and runs the ordinary
+   complete suite **without injection**. It normalizes and retains coverage but
+   does not install Codecov or upload another report.
+4. `validation-complete-mocha-failure-rehearsal`: the existing disposable
+   sentinel invocation. Its unchanged success-only dependency is solely on
+   `test-mocha-failure-rehearsal`. It must remain blocked/not run even when the
+   control succeeds. The control has no edge to the sentinel or publication.
 
 There are no publication jobs, contexts, SSH keys or publication commands in
-this workflow. Under the eligible event, existing npm, Docker, manifest, wiki
-and documentation publishers are also excluded by their unchanged workflow
-conditions, branch/tag filters and dependency scheduling. Existing Dependabot
-deploy invocations have every dependency filtered out on the chore event, so
-CircleCI does not execute them; the new contract checks that entire dependency
-set, rather than assuming a single filtered dependency blocks a job. Passing publication parameters disables
-this rehearsal; it does **not** alter or disable the existing manual/beta
-publication workflows. An invalid rehearsal opt-in on another event is not a
-global publication interlock.
+this workflow. Ordinary workflows, required status names, Mocha/baseline jobs,
+validation gates and publication dependencies/filters remain unchanged. Under
+the eligible event, existing npm, Docker/manifest, wiki and documentation
+publishers are excluded by their existing conditions, filters and dependency
+scheduling. Contracts check the complete dependency set of the existing
+Dependabot deploy invocations. Publication parameters disable this experiment;
+they do not change existing manual/beta publication workflows. An invalid
+rehearsal opt-in on another event is not a global publication interlock.
 
-Ordinary workflows still run alongside an enabled rehearsal, in their own
-workspaces/runners. `test-mocha`, the baseline comparison, `validation-complete`,
-their dependencies and required status names remain unchanged. The ordinary
-gate can pass; the corresponding **rehearsal** gate must block and the rehearsal
-workflow must fail. No branch protection changes are required. This experiment
-tests CircleCI's existing success-dependency behavior on a disposable sentinel;
-it does not claim a live failure of the production publication gate. The
-existing gate's complete Mocha dependency and publication edges remain covered
-by the existing contracts. Do not treat the failing rehearsal as a green
-baseline/candidate comparison sample.
+Ordinary workflows may run alongside the experiment in their own workspaces.
+Their gate may pass; the rehearsal workflow must fail and its own sentinel must
+block. This tests a disposable success dependency, not a live failure of the
+production publication gate. It is not a new baseline/candidate timing sample
+or authorization to widen the compilation-removal pilot.
 
-## Failure and evidence handling
+## Independent producer and consumer identity
 
-`ci-mocha-failure-rehearsal.fixture.txt` lives outside normal discovery and is
-never copied by normal startup. The authorized helper copies it with exclusive
-creation to
-`test/integration/services/ci-mocha-failure-rehearsal.generated.test.ts` only in the
-disposable runner. The default full-suite glob picks it up, alongside all
-ordinary tests and the unchanged bootstrap. It first checks that Sails lifted
-and the image-backed RecordsService loaded, then fails an assertion containing
+After saving the image, the producer measures its clean checked-out revision,
+Git tree, `sha256sum` of the saved archive, and Docker image ID. It records
+schema version 2, workflow ID, job ID/name/number, event, trusted fixture hash,
+and actual relevant input hashes. Inputs include Dockerfile/.dockerignore,
+Node version file, config, package/lock/TypeScript files, the helper/wrapper,
+and tracked tests, TypeScript, config, integration/unit support and bootstrap
+data. Git cleanliness rejects tracked modifications and untracked source files.
+Ignored generated build outputs are not a complete filesystem attestation.
+
+Producer evidence is stored as
+`ci-mocha-failure-rehearsal-producer/identity.json`; identical bytes are persisted
+alongside the archive as `docker-images/test/mocha-rehearsal-producer.json`.
+
+Each consumer independently measures its own checkout/tree, input hashes,
+archive SHA-256 and **loaded** image ID and compares them with the receipt.
+Missing evidence or mismatches stop execution. Consumers must have distinct
+job IDs/numbers from the producer; the paired verifier checks uniqueness across
+all three identities. Both retain their own Node/npm/Compose versions, a copy
+of `producer.json` and its SHA-256. The helper remeasures inputs and image
+identity before execution and when recording status/reports. Validation failure
+blocks execution, but previously authorized diagnostic capture continues with
+`validation.valid: false` and the error retained. Those commands still fail;
+retained bytes do not become accepted evidence. The failure consumer verifies
+the generated fixture; the control refuses its presence.
+
+## Failure, status, reports and teardown
+
+`ci-mocha-failure-rehearsal.fixture.txt` remains outside normal discovery. Only
+the authorized failure consumer copies it, with exclusive creation, to
+`test/integration/services/ci-mocha-failure-rehearsal.generated.test.ts`. The
+ordinary full-suite glob discovers it. It first requires successful Sails
+bootstrap and the image-backed RecordsService, then fails with
 `CI_MOCHA_FAILURE_REHEARSAL_2026: intentional integration assertion`.
-Bootstrap failure or a matching test name without this assertion is insufficient.
+A matching marker with a bootstrap error is insufficient.
 
-The shell wrapper runs the actual `timeout 1800s npm run test:mocha:ci` command.
-That npm script retains Compose `up` status across `down`. The wrapper captures
-both `PIPESTATUS` entries after `tee`, records the original suite status and
-returns that same nonzero status, including timeout status. Unexpected zero
-also fails the job, while the retained zero makes verification reject the run.
-It never translates the deliberate failure into success. Cancellation or
-infrastructure failure may prevent evidence capture and is not acceptance.
+The wrapper invokes a Node supervisor outside the detached npm/tee process
+group. On ordinary completion it retains both `PIPESTATUS` entries and records
+the actual suite and logging status even when post-suite validation fails. A
+preflight rejection records null statuses, meaning the suite and tee never ran.
+Both roles return the original nonzero suite status. The control returns zero
+only after successful suite/status/log capture and process-group completion.
+Unexpected zero still fails the failure consumer. The supervisor bounds the
+**complete** npm/output group at 1,800 seconds, sends SIGTERM, then SIGKILL after
+five seconds, including workers whose leader already exited. Both rehearsal suite steps use a 35-minute CircleCI inactivity limit, leaving time beyond the supervisor deadline for escalation and status capture. Timeout records
+suite exit 124; if killing the pipeline prevented `PIPESTATUS` capture, the
+logging exit is null rather than invented. `suite-status.json` retains deadline,
+leader exit/signal, surviving descendants, remaining group state, authorized
+project/hash and post-run validation. Paired verification requires successful
+supervision in addition to the original suite/report checks. Historical report
+verification still accepts the original timeout-command evidence.
 
-After a failure, `when: always` steps independently retain raw reports, run
-the unchanged coverage normalization/upload command (`--fail-on-error`,
-`backend-mocha`, same LCOV path), and retain prepared reports. The rehearsal
-therefore attempts a real Codecov upload during its later authorized live run;
-the local checks never upload. It does not weaken coverage thresholds, swallow
-upload failures or replace normal uploads. A normalization/upload error remains
-fatal. Prepared-path retention alone does not prove normalization succeeded;
-independent verification also requires that coverage action to succeed.
+The existing npm command preserves Compose `up` status across its `down`.
+Within the rehearsal only, a PATH adapter routes **both** operations through
+the authorized snapshot and pinned `integration-testing` project, with the
+original project directory/profile and ordinary up/down arguments. This leaves
+the npm script and ordinary jobs unchanged. The adapter rechecks authority on
+every call. It strips Compose overrides and disables `.env` loading, so checkout
+changes during `up` cannot redirect the built-in `down` or change its project.
+Both consumers additionally run an always-run bounded
+`docker compose --project-name integration-testing --project-directory
+./support/integration-testing --profile portal -f <authorized-snapshot> down -v
+--remove-orphans --timeout 180` using the same definition/project/environment
+policy. Preparation binds the snapshot hash to the measured Compose input;
+paired verification checks that hash and project in suite and teardown evidence.
+Identity/input validation runs **after** the cleanup attempt, so its failure
+cannot suppress cleanup or its log/status. Missing or changed authorization
+permits no Docker cleanup.
 
-CircleCI `store_artifacts` follows these always-run steps and
-`store_test_results` retains the ordinary `.tmp/junit` ingestion path. Under
-artifact destination `ci-mocha-failure-rehearsal`, retain:
+Standalone cleanup has a 240-second deadline, five-second SIGTERM grace period,
+process-group SIGKILL and at most one second to observe completion. Output goes
+directly to `teardown.log`. Leader exit alone is insufficient: live group members
+trigger TERM/KILL and a failed teardown, even after leader exit zero.
+`teardown-status.json` retains exit, signal, spawn errors, timeout, surviving
+workers, remaining group state and validation. These failures remain fatal
+independently of the suite status. The Linux `/proc` check excludes dead zombies
+awaiting init reaping; tests require each recorded process to be gone or dead.
+The bound covers descendants in the supervised process group; deliberately
+escaped sessions and uninterruptible kernel tasks are outside that guarantee.
+A still-live group after escalation is explicitly recorded and fails validation.
+Identity subprocesses also have 30-second SIGKILL deadlines.
+Cancellation/infrastructure failure that kills the supervisor can prevent
+capture and is not acceptance evidence.
 
-- `identity.json`: source revision/tree, workflow/job identity, image ID/archive
-  hash, tool versions, fixture hash and relevant input hashes.
-- `injected-fixture.txt`, `suite.log` (including Compose output/teardown) and
-  `suite-status.json` (actual suite and tee statuses).
-- `raw-lcov.info`, `raw-backend-mocha.xml`, `raw.json` before normalization.
-- `prepared-lcov.info`, `prepared-backend-mocha.xml`, `prepared.json` afterward.
+After execution, always-run steps independently copy raw JUnit/LCOV, run
+coverage preparation, and copy prepared JUnit/LCOV. The failure job's ordinary
+upload command is unchanged (`--fail-on-error`, `backend-mocha`, same LCOV path)
+and still attempts one real upload during a later authorized live run. The
+control only normalizes; normalization errors remain fatal. Neither role
+repairs missing reports or manufactures empty ones. Each independent copy is
+exclusive and checksummed; a missing report is recorded in the manifest and
+fails capture while retaining the other report if available. Authorized raw and
+prepared copies continue after validation failure, marking each manifest invalid
+and returning nonzero. No identity or report is repaired to make evidence pass.
 
-Missing reports do not prevent the other report from being copied; their
-manifest records the error and the capture step fails. No empty report is
-manufactured. Reports are copied exclusively and checksummed, never repaired
-to make verification pass. The generated fixture is left in the discarded
-runner for diagnosis, and is never persisted to another workflow/workspace.
+Both jobs retain `.tmp/junit` via `store_test_results` and artifact directories:
 
-## Local verification (offline, no containers started)
+- Failure: `ci-mocha-failure-rehearsal`.
+- Control: `ci-mocha-failure-rehearsal-control`.
 
-Run with installed root dependencies, Node, Bash, GNU timeout, Python 3 and
-Docker Compose v2. Compose is used only to render the existing mount contract;
-the wrapper tests replace Docker with controlled commands in temporary trees.
+Each directory contains `identity.json`, `producer.json`, `suite-status.json`,
+`suite.log`, `teardown-status.json`, `teardown.log`, `raw.json`, `prepared.json`,
+`raw-lcov.info`, `prepared-lcov.info`, `raw-backend-mocha.xml` and
+`prepared-backend-mocha.xml`. Only the failure directory also contains
+`injected-fixture.txt`. The fixture stays in its discarded runner and is never
+persisted to another consumer/workflow.
+
+## Local and configuration verification
+
+Use installed dependencies, Node from `.nvmrc`, Bash, Linux `/proc`, Python 3,
+Docker Compose v2 (rendering only) and the CircleCI CLI:
 
 ```bash
 bash -n support/build/ci-mocha-failure-rehearsal.sh
 node --test support/build/ci-mocha-failure-rehearsal.test.cjs support/build/ci-mocha-pilot.test.cjs support/build/ci-mocha-baseline.test.cjs support/build/circleci-config.test.cjs support/build/ci-performance.test.cjs support/build/ci-arm64-pilot.test.cjs
+node support/build/ci-mocha-failure-rehearsal.validate.cjs
+circleci config validate .circleci/config.yml
+circleci config process .circleci/config.yml > /tmp/mocha-rehearsal-default.processed.yml
+circleci config process .circleci/config.yml --pipeline-parameters 'ci_mocha_failure_rehearsal: true' > /tmp/mocha-rehearsal-enabled.processed.yml
 ```
 
-The new tests independently remove the two new job declarations, parameter and
-workflow and require the **entire parsed original config** to match its pre-edit
-SHA-256 contract. The YAML build anchor has no semantic effect. This checks all
-ordinary jobs, workflows, parameters, filters, status names, gate edges and
-publication behavior without refreshing existing contracts. Other checks cover
-all branch/tag/mode/opt-in combinations, runtime refusal, exclusive injection,
-test failure with both successful/failed teardown, unexpected suite success,
-timeout status, fatal normalization/upload failures, report corruption and
-independent verifier rejection of a successful sentinel or any publisher.
-Synthetic evidence exists only in temporary test directories.
+Validation/processing can resolve public orbs over the network; they do not
+start CircleCI runs. Local tests start no application containers and perform
+no uploads, commits, pushes or publication. Controlled Docker commands exercise
+the real npm/Compose shell flow, and real Compose rendering checks every
+cleanup after project/source/`.env` mutation. Real child processes exercise
+SIGTERM resistance, leader exit with surviving workers, and output-worker
+timeouts with final status capture. Compose rendering starts no services. Small simulated suites exercise the installed
+Mocha reporter, including duplicate emitted identities and omitted pending
+tests; they are not successful application integration runs.
 
-The contract digest is a pre-edit snapshot, not a generated expected result
-from the implementation. For a later intentional unrelated config change,
-review the reconstructed config against the original and explicitly update
-this rehearsal-specific digest; never update it to silence an unexplained
-failure. Existing pilot/baseline contracts must not change for this rehearsal.
+Contracts remove only the three rehearsal job declarations, parameter and
+workflow and require the entire parsed ordinary config to retain its original
+SHA-256. The original digest is unchanged. The contract also lists the exact
+four paired invocation names and checks original producer build steps,
+consumer setup, sentinel dependency, branch/tag/mode combinations, publication
+isolation and absence of an extra control upload. Existing pilot/baseline
+contracts must not be refreshed for this change. The read-only validator processes
+ten explicit event/parameter cohorts, verifies the paired dependencies and
+compares each complete ordinary expansion with the reconstructed original
+config. Its fixtures and outputs stay in a temporary directory. Any unrelated future digest
+change needs separate review; never update it to silence an unexplained failure.
 
 ## Required later live run and independent verification
 
-These are instructions for a separately authorized run, **not executed results**.
+These are instructions, **not executed results**.
 
-1. Use a fresh disposable CircleCI checkout on the exact chore branch containing
-   the reviewed files. First validate/process the configuration with CircleCI,
-   retaining the expanded YAML and source revision. CLI processing may resolve
-   public orbs over the network; it was intentionally not run as part of this
-   offline implementation task. Check that the normal statuses retain their
-   names and that the new sentinel requires the failing rehearsal job.
-2. Explicitly trigger the parameter combination above on that revision, without
-   overrides. Record pipeline/workflow URLs, tested revision, archive hash and
-   image ID. Confirm the build-only producer succeeded and the job selected
-   `portal`/`redboxportal`, not mounted host code or prebuilt overrides. Inspect
-   logs for bootstrap completion, complete discovery and the intentional
-   assertion. Compare ordinary test identities/counts/skips with a green full
-   suite at the same application/test/image identity (accounting for exactly
-   one extra failing test). No widening or suite-equivalence claim follows
-   from this failure run alone.
-3. Confirm the suite action and job are failed with the retained nonzero code
-   after successful teardown; reject timeout, cancellation, bootstrap failure
-   or unrelated failing tests as acceptance evidence. Inspect the suite log
-   and teardown output. Confirm raw capture, always-run normalization/Codecov
-   upload, prepared capture, JUnit ingestion and artifact storage all ran.
-   An upload failure is still fatal, but investigate it before accepting the
-   complete live rehearsal. Preserve its action log and upload receipt.
-4. Inspect the actual workflow graph/UI and API: rehearsal workflow failed;
-   `validation-complete-mocha-failure-rehearsal` blocked/not run, with a
-   success-only dependency on the failed job; no publication job. CircleCI may
-   populate timestamps on a terminal `not_run` entry. Inspect **every other workflow in the pipeline**
-   to confirm no npm, Docker/manifest, wiki or docs publication was scheduled.
-   Preserve the processed graph and relevant API responses. Do not infer
-   live scheduling/ingestion from local contracts or a report file alone.
-5. Download the artifact directory without renaming its files. Run the separate
-   Python verifier (stdlib XML parser, independent of the Node writer):
+1. In a fresh disposable CircleCI checkout of the reviewed revision on the exact
+   chore branch, validate/process config and retain expanded YAML. Confirm the
+   default is off, ordinary statuses/edges are unchanged, both consumers require
+   one producer and the sentinel still requires only the failed suite's success.
+2. Separately authorize/trigger the opt-in combination above. Retain pipeline,
+   workflow and job URLs and revision. Inspect all three measured identities,
+   image/archive hashes and inputs. Confirm the correct image/profile, bootstrap
+   and complete discovery in both consumers. Require a green control and exactly
+   the intended assertion failure, with ordinary nonzero exit (not timeout,
+   cancellation, bootstrap failure or unrelated failing tests).
+3. Inspect suite/teardown logs, both raw and prepared captures, successful cleanup
+   statuses, the failure job's successful normalization/upload and its receipt,
+   the control's successful normalization with no upload, JUnit ingestion and
+   artifacts. A queued Codecov receipt does not establish later processing.
+4. Inspect the actual workflow graph/UI/API: producer/control succeed, failure
+   job/workflow fail, sentinel blocked/not run with the exact success dependency.
+   `not_run` may have timestamps. Preserve the processed graph and inspect **all
+   other workflows in the pipeline** for publication absence; supplied local
+   config and the rehearsal's graph alone are insufficient.
+5. Download all three artifact directories without renaming their files. Use
+   the reviewed independent Python verifier and matching trusted fixture:
 
    ```bash
-   python3 support/build/ci-mocha-failure-rehearsal.verify.py /path/to/downloaded/ci-mocha-failure-rehearsal
+   python3 support/build/ci-mocha-failure-rehearsal.verify.py /evidence/ci-mocha-failure-rehearsal \
+     --paired \
+     --control-directory /evidence/ci-mocha-failure-rehearsal-control \
+     --producer-directory /evidence/ci-mocha-failure-rehearsal-producer
    ```
 
-   This checks recorded status, fixture/report hashes, parseable JUnit, exactly
-   one intended assertion failure, unchanged JUnit across preparation and real
-   application LCOV records. Reports-only success explicitly leaves live
-   scheduling, ingestion, gate blocking and uploads **unverified**.
-6. Independently fetch and retain actual CircleCI API responses, using the
-   workflow ID and job number in `identity.json`. Store these JSON files in a
-   separate evidence directory (substitute the actual project slug/IDs):
+   Explicit paired mode requires both directories and schema-2 producer and
+   consumer evidence; it never falls back to historical checks when data are
+   missing. It validates distinct role/job identities, equal workflow/revision/
+   tree/image/archive/input hashes, matching producer receipt bytes/hashes,
+   matching consumer tools, retained statuses, reports/hashes, application LCOV,
+   unchanged raw/prepared JUnit, explicit successful validation of suite/status,
+   raw/prepared manifests and teardown, and successful non-timeout teardown.
+   The injected fixture
+   hash must match the reviewed local template and its recorded input hash.
 
-   | File | Read-only CircleCI endpoint |
+   It requires the exact deliberate suite/classname/full testcase title and
+   exactly one assertion failure. Removing that one authenticated case must
+   leave an **exact multiset** of emitted suite name/file, testcase
+   classname/name/file and outcomes equal to the green report, including
+   duplicate multiplicities. Each suite's declared tests, failures, errors and
+   explicit skipped metadata must reconcile with its own emitted cases; totals
+   cannot compensate for contradictory suites. When suite skipped metadata is
+   absent, the verifier infers omitted pending counts from that suite's declared
+   tests. Inferred/declared skipped counts and failures must sum to root totals;
+   paired skipped totals must match. Contradictory testcase outcomes also fail.
+   The reporter omits skipped
+   testcase identities by default: **skipped identities remain unverified**.
+   Equal counts are not proof of those identities or complete discovery.
+   LCOV presence is checked; numerical coverage equivalence is not established.
+6. Independently fetch actual API evidence into a separate directory. Existing
+   failure/workflow filenames remain unchanged:
+
+   | File | Read-only endpoint |
    | --- | --- |
    | `workflow.json` | `GET /api/v2/workflow/{workflow-id}` |
    | `workflow-jobs.json` | `GET /api/v2/workflow/{workflow-id}/job` |
-   | `job-details.json` | `GET /api/v1.1/project/{vcs}/{org}/{repo}/{job-number}` |
-   | `artifacts.json` | `GET /api/v2/project/{project-slug}/{job-number}/artifacts` |
-   | `tests.json` | `GET /api/v2/project/{project-slug}/{job-number}/tests` |
+   | `job-details.json` | `GET /api/v1.1/project/{vcs}/{org}/{repo}/{failure-job-number}` |
+   | `artifacts.json`, `tests.json` | `GET /api/v2/project/{project-slug}/{failure-job-number}/{artifacts\|tests}` |
+   | `control-job-details.json`, `producer-job-details.json` | Same job-details endpoint, corresponding job number |
+   | `control-artifacts.json`, `producer-artifacts.json` | Same artifacts endpoint, corresponding job number |
+   | `control-tests.json` | Same tests endpoint, control job number |
 
-   Fetch every page; combine `items` arrays and clear `next_page_token` only
-   once all pages have been retained. Never synthesize a blocked gate entry
-   if the API omits it: preserve the UI/graph evidence and investigate the
-   actual API representation before extending the verifier. Missing fields or
-   unexpected statuses fail closed. Keep authentication secrets outside the
-   evidence. Also preserve individual step logs and all pipeline workflows;
-   the verifier does not fetch anything or attest that input JSON came from
-   CircleCI.
+   Fetch every page, retain originals, combine `items` and clear
+   `next_page_token` only after retaining all pages. Never synthesize omitted
+   gate/dependency fields. Unexpected/missing data fail closed; investigate the
+   API representation before extending verification. Keep secrets out of the
+   evidence. Retain individual action logs and all pipeline workflows too.
 
    ```bash
-   python3 support/build/ci-mocha-failure-rehearsal.verify.py /path/to/downloaded/ci-mocha-failure-rehearsal --circle-evidence /path/to/circle-api-evidence
+   python3 support/build/ci-mocha-failure-rehearsal.verify.py /evidence/ci-mocha-failure-rehearsal \
+     --paired \
+     --control-directory /evidence/ci-mocha-failure-rehearsal-control \
+     --producer-directory /evidence/ci-mocha-failure-rehearsal-producer \
+     --circle-evidence /evidence/circle-api
    ```
 
-   Require an independent reviewer to check API provenance, source/image
-   identity, complete test discovery, coverage upload receipt, processed config,
-   original required status names and publication absence across the pipeline.
-   The Python check validates the supplied failed job/workflow, original exit
-   code, successful always-run coverage action, blocked sentinel, artifact
-   listings and CircleCI-ingested intentional JUnit failure. It cannot prove
-   provenance, all-pipeline publication isolation or a registry's remote state
-   from supplied files. Keep the live checklist open until that review is done.
+   Paired API checks require exactly four unique jobs/numbers/IDs, both consumers'
+   success-only dependencies on the recorded producer, matching source/job API
+   identities, successful producer/control, failed suite/original exit,
+   successful captures/cleanup/normalization/upload actions, expected artifact
+   listings and ingested JUnit. Duplicate job names/IDs are rejected before
+   indexing, and the sentinel's complete requires/dependencies maps are checked.
+
+   An independent reviewer must still authenticate supplied API/artifact/log
+   provenance, source/image measurements, complete discovery, processed config,
+   coverage upload receipt/processing, UI graph and publication absence across
+   the whole pipeline. The verifier fetches nothing and cannot authenticate
+   arbitrary supplied JSON, attest remote registry state, verify skipped
+   identities or prove coverage equivalence. Keep these acceptance items open
+   until observed. Reports-only success explicitly leaves live behavior open.
+
+For **historical three-job evidence only**, retain the original command:
+
+```bash
+python3 support/build/ci-mocha-failure-rehearsal.verify.py /historical/ci-mocha-failure-rehearsal --circle-evidence /historical/circle-api
+```
+
+Omit `--circle-evidence` for historical reports-only checks. Neither historical
+mode nor the old live record establishes the new same-image comparison. A
+four-job API response cannot pass historical mode, and a three-job response
+cannot pass paired mode.
 
 ## Disable and rollback
 
-For immediate disablement, omit `ci_mocha_failure_rehearsal` or pass `false` on
-future pipelines. It is already default-off. Cancel any already-enabled run
-separately; changing a future parameter does not cancel running jobs.
+Omit `ci_mocha_failure_rehearsal` or pass `false` on future pipelines to disable
+both consumers. Cancel any already-enabled run separately.
 
-For complete removal, delete `workflows.mocha_failure_rehearsal`,
-`parameters.ci_mocha_failure_rehearsal`, `jobs.build-mocha-failure-rehearsal`
-and `jobs.test-mocha-failure-rehearsal`; remove only the
-`&ciMochaFailureRehearsalBuild` anchor from the existing `build:` declaration.
-Delete the new `support/build/ci-mocha-failure-rehearsal.*` files once evidence
-has been archived. Run the existing config/pilot/baseline contracts and validate
-the config. This restores the complete parsed pre-edit config; no normal job,
-coverage upload, gate, publication filter, Dockerfile, Compose file, image
-helper or package file needs editing. This rollback does not undo the original
-compilation-removal pilot, whose separate rollback remains in its own runbook.
+To remove only this paired extension, restore the previous rehearsal producer
+alias, remove the control declaration/invocation, restore the previous helper,
+wrapper, verifier, rehearsal tests/contract/runbook from the pre-extension
+revision. Preserve all pre-existing committed verifier fixes and historical
+records. Re-run existing contracts and CircleCI validation.
 
-If manually inspecting a failed disposable runner, retain its evidence first.
-Remove only the generated fixture named above after confirming its contents
-match the template; discard that runner afterward. Never run the injector,
-cleanup or integration suite in a shared working tree with uncommitted changes.
+To remove the entire experiment, delete its workflow, parameter, all three job
+declarations and only the `&ciMochaFailureRehearsalBuild` anchor on ordinary
+`build:`. Archive evidence before removing `ci-mocha-failure-rehearsal.*` files.
+This restores the original parsed ordinary config; no ordinary gate, publication
+filter, Dockerfile, Compose or package edit is needed. The compilation-removal
+pilot has a separate rollback in its own runbook.
+
+Never run the injector/cleanup/integration suite in a shared dirty working tree.
+Retain failed runner evidence first; discard the disposable runner afterward.

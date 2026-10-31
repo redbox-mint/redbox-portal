@@ -1346,7 +1346,76 @@ jobs:
 
             git -C "$wiki_dir" commit -m "[ci skip] Update wiki docs from ${CIRCLE_SHA1}"
             git -C "$wiki_dir" push origin HEAD
-  build-mocha-failure-rehearsal: *ciMochaFailureRehearsalBuild
+  build-mocha-failure-rehearsal:
+    docker:
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+    resource_class: large
+    environment:
+      CI_RESOURCE_CLASS: large
+      RBPORTAL_IMAGE: redbox-portal:test
+      CI_MOCHA_FAILURE_REHEARSAL_OPT_IN: << pipeline.parameters.ci_mocha_failure_rehearsal >>
+      CI_MOCHA_FAILURE_REHEARSAL_NPM_MODE: << pipeline.parameters.npm_publish_mode >>
+      CI_MOCHA_FAILURE_REHEARSAL_DOCKER_MODE: << pipeline.parameters.docker_publish_mode >>
+    steps:
+      - checkout-validation-source
+      - run:
+          name: Authorize isolated Mocha failure rehearsal producer
+          command: node support/build/ci-mocha-failure-rehearsal.cjs guard
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Run lint
+          command: npm run lint
+      - run:
+          name: Test npm publish version handling
+          command: bash support/build/npm-publish-backend-packages.test.sh
+      - run:
+          name: Test Docker tag handling
+          command: bash support/build/docker-build-vars.test.sh
+      - run:
+          name: Test CI scheduling and measurement contracts
+          command: node --test support/build/circleci-config.test.cjs support/build/ci-performance.test.cjs support/build/ci-arm64-pilot.test.cjs
+      - save_cache:
+          key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+      - setup_remote_docker
+      - run:
+          name: Build test image via Dockerfile
+          no_output_timeout: 30m
+          command: |
+            node support/build/ci-performance.cjs run docker-build -- docker build \
+              --progress plain \
+              --target test \
+              --tag redbox-portal:test \
+              .
+      - run:
+          name: Save Docker image
+          command: |
+            mkdir -p /tmp/docker-images/test
+            node support/build/ci-performance.cjs run docker-save --artifact /tmp/docker-images/test/redbox-portal-test.tar -- \
+              docker save -o /tmp/docker-images/test/redbox-portal-test.tar redbox-portal:test
+      - run:
+          name: Record independently measured rehearsal producer identity
+          command: node support/build/ci-mocha-failure-rehearsal.cjs producer
+      - store_artifacts:
+          path: .tmp/ci-mocha-failure-rehearsal-producer
+          destination: ci-mocha-failure-rehearsal-producer
+      - store_artifacts:
+          path: .tmp/ci-performance
+          destination: ci-performance
+      # Concurrent image producers persist disjoint files and directories.
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - docker-images/test/redbox-portal-test.tar
+            - docker-images/test/mocha-rehearsal-producer.json
   test-mocha-failure-rehearsal:
     machine:
       image: ubuntu-2404:current
@@ -1360,7 +1429,7 @@ jobs:
       - checkout
       - run:
           name: Authorize isolated Mocha failure rehearsal
-          command: node support/build/ci-mocha-failure-rehearsal.cjs guard
+          command: node support/build/ci-mocha-failure-rehearsal.cjs authorize
       - run:
           name: Use patched Node.js from .nvmrc
           command: |
@@ -1435,8 +1504,12 @@ jobs:
             sudo chmod -R 777 .
       - run:
           name: Run deliberately failing Mocha integration suite
-          no_output_timeout: 30m
+          no_output_timeout: 35m
           command: bash support/build/ci-mocha-failure-rehearsal.sh
+      - run:
+          name: Tear down rehearsal containers and retain status
+          when: always
+          command: node support/build/ci-mocha-failure-rehearsal.cjs teardown
       - run:
           name: Retain raw failure reports before coverage preparation
           when: always
@@ -1458,6 +1531,89 @@ jobs:
       - store_artifacts:
           path: .tmp/ci-mocha-failure-rehearsal
           destination: ci-mocha-failure-rehearsal
+      - store_test_results:
+          path: .tmp/junit
+  test-mocha-failure-rehearsal-control:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
+    environment:
+      RBPORTAL_IMAGE: redbox-portal:test
+      CI_MOCHA_FAILURE_REHEARSAL_OPT_IN: << pipeline.parameters.ci_mocha_failure_rehearsal >>
+      CI_MOCHA_FAILURE_REHEARSAL_NPM_MODE: << pipeline.parameters.npm_publish_mode >>
+      CI_MOCHA_FAILURE_REHEARSAL_DOCKER_MODE: << pipeline.parameters.docker_publish_mode >>
+    steps:
+      - checkout
+      - run:
+          name: Authorize isolated Mocha failure rehearsal
+          command: node support/build/ci-mocha-failure-rehearsal.cjs authorize
+      - run:
+          name: Use patched Node.js from .nvmrc
+          command: |
+            # Keep download options scoped to nvm and avoid a source build on network failure.
+            (
+              curl() {
+                command curl --http1.1 --connect-timeout 20 --max-time 60 \
+                  --retry 2 --retry-delay 3 --retry-all-errors "$@"
+              }
+              nvm install -b
+            )
+            nvm use
+            printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
+      - attach_workspace:
+          at: /tmp
+      - use-refreshed-revision
+      - run:
+          name: Load Docker image
+          command: docker load -i /tmp/docker-images/test/redbox-portal-test.tar
+      - run:
+          name: Point compose at tested image
+          command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - v1-npm-cache-{{ arch }}-{{ .Branch }}
+            - v1-npm-cache-
+      - run:
+          name: Install npm dependencies
+          command: npm ci --ignore-scripts --strict-peer-deps
+      - run:
+          name: Verify isolated Mocha failure rehearsal safeguards
+          command: node --test support/build/ci-mocha-failure-rehearsal.test.cjs
+      - run:
+          name: Prepare same-image green control without injection
+          command: node support/build/ci-mocha-failure-rehearsal.cjs prepare
+      - run:
+          name: Setup test directories
+          command: |
+            sudo mkdir -p .tmp/junit/backend-mocha
+            sudo mkdir -p .tmp/attachments/staging
+            sudo chmod -R 777 .
+      - run:
+          name: Run ordinary Mocha green control suite
+          no_output_timeout: 35m
+          command: bash support/build/ci-mocha-failure-rehearsal.sh
+      - run:
+          name: Tear down rehearsal containers and retain status
+          when: always
+          command: node support/build/ci-mocha-failure-rehearsal.cjs teardown
+      - run:
+          name: Retain raw control reports before coverage preparation
+          when: always
+          command: node support/build/ci-mocha-failure-rehearsal.cjs raw
+      - run:
+          name: Normalize Mocha control coverage without upload
+          when: always
+          command: |
+            sudo chmod -R a+rwX ./coverage
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/mocha/lcov.info"
+      - run:
+          name: Retain prepared control reports and evidence
+          when: always
+          command: node support/build/ci-mocha-failure-rehearsal.cjs prepared
+      - store_artifacts:
+          path: .tmp/ci-mocha-failure-rehearsal-control
+          destination: ci-mocha-failure-rehearsal-control
       - store_test_results:
           path: .tmp/junit
 orbs:
@@ -1518,6 +1674,14 @@ workflows:
             tags:
               ignore: /.*/
       - test-mocha-failure-rehearsal:
+          requires:
+            - build-mocha-failure-rehearsal
+          filters:
+            branches:
+              only: chore/circleci-performance
+            tags:
+              ignore: /.*/
+      - test-mocha-failure-rehearsal-control:
           requires:
             - build-mocha-failure-rehearsal
           filters:
