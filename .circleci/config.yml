@@ -29,7 +29,7 @@ jobs:
           name: Test Docker tag handling
           command: |
             bash support/build/docker-build-vars.test.sh
-            node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs
+            node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs support/build/docker-registry.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -47,12 +47,17 @@ jobs:
                 name: Stage the runtime base and verify the tested layer prefix
                 command: bash support/build/docker-staging.sh stage-tested runtime amd64
       - run:
-          name: Publish test image hand-off (registry or fork workspace)
-          command: bash support/build/docker-test-handoff.sh publish
+          name: Save test-only workspace image
+          command: |
+            mkdir -p /tmp/ci-staging-status
+            bash support/build/docker-test-handoff.sh publish
       - persist_to_workspace:
           root: /tmp
           paths:
             - docker-images
+      - store_artifacts:
+          path: /tmp/ci-staging-status
+          destination: ci-staging-status
   verify-image-equivalence:
     machine:
       image: ubuntu-2404:current
@@ -205,7 +210,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Receive and verify tested image (digest pull or fork load)
+          name: Load and verify tested workspace image
           command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
@@ -292,7 +297,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Receive and verify tested image (digest pull or fork load)
+          name: Load and verify tested workspace image
           command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
@@ -350,7 +355,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Receive and verify tested image (digest pull or fork load)
+          name: Load and verify tested workspace image
           command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
@@ -408,7 +413,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Receive and verify tested image (digest pull or fork load)
+          name: Load and verify tested workspace image
           command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
@@ -470,7 +475,7 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Receive and verify tested image (digest pull or fork load)
+          name: Load and verify tested workspace image
           command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
@@ -984,6 +989,9 @@ jobs:
           name: Build and push workflow-specific amd64 staging image
           no_output_timeout: 30m
           command: bash support/build/docker-staging.sh build << parameters.variant >> amd64
+      - store_artifacts:
+          path: /tmp/ci-staging-status
+          destination: ci-staging-status
   stage-image-arm64:
     parameters:
       variant:
@@ -1000,6 +1008,9 @@ jobs:
           name: Build and push workflow-specific arm64 staging image
           no_output_timeout: 30m
           command: bash support/build/docker-staging.sh build << parameters.variant >> arm64
+      - store_artifacts:
+          path: /tmp/ci-staging-status
+          destination: ci-staging-status
   promote-staging-image:
     parameters:
       variant:

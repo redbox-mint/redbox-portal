@@ -7,11 +7,8 @@ const { spawnSync } = require('node:child_process');
 
 const script = join(__dirname, 'docker-test-handoff.sh');
 const id = `sha256:${'a'.repeat(64)}`;
-const digest = `sha256:${'b'.repeat(64)}`;
-const pinned = `example/portal@${digest}`;
 const sha = 'c'.repeat(40);
 const pipeline = '12345678-1234-1234-1234-123456789abc';
-const staging = `example/portal:ci-staging-${sha}-test-amd64-${pipeline}`;
 
 function run(action, overrides = {}, metadata) {
   const dir = mkdtempSync(join(tmpdir(), 'test-handoff-'));
@@ -23,17 +20,8 @@ printf '%s\\n' "$*" >> "$TEST_CALLS"
 case "$1 $2" in
   'login --username') cat >/dev/null ;;
   'image inspect') echo "\${PULLED_ID:-${id}}" ;;
-  'manifest inspect')
-    if [[ "\${PREFLIGHT:-missing}" == existing ]]; then echo '{}'
-    elif [[ "\${PREFLIGHT:-missing}" == missing ]]; then echo 'manifest unknown' >&2; exit 1
-    else echo 'registry unavailable' >&2; exit 1; fi ;;
-  'buildx imagetools')
-    if [[ "\${FAIL_INSPECT:-}" == 1 ]]; then exit 1; fi
-    if [[ "$*" == *--raw* ]]; then printf '{"config":{"digest":"%s"}}\\n' "\${CONFIG_ID:-${id}}"
-    else printf '{"digest":"%s"}\\n' "\${MANIFEST_DIGEST:-${digest}}"; fi ;;
   'save -o') touch "$3" ;;
 esac
-if [[ "$1" == pull && "\${FAIL_PULL:-}" == 1 ]]; then exit 1; fi
 `, { mode: 0o755 });
   try {
     const result = spawnSync('bash', [script, action, dir], {
@@ -49,84 +37,36 @@ if [[ "$1" == pull && "\${FAIL_PULL:-}" == 1 ]]; then exit 1; fi
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-test('publishes immutable staging, verifies pinned config ID and persists digest metadata without a tar', () => {
-  const result = run('publish');
-  assert.equal(result.status, 0, result.stderr);
-  assert.ok(result.calls.includes(`push ${staging}`));
-  assert.ok(result.calls.includes(`buildx imagetools inspect --raw ${pinned}`));
-  assert.equal(result.metadata, `registry\n${id}\n${pinned}\n`);
-  assert.equal(result.archive, false);
-  assert.ok(result.calls.every(c => !c.startsWith('save ')));
-});
-
-test('reruns reuse test tags only with identical config; registry errors fail closed', () => {
-  const existing = run('publish', { PREFLIGHT: 'existing' });
-  assert.equal(existing.status, 0, existing.stderr);
-  assert.ok(existing.calls.every(c => !c.startsWith('push ') && !c.startsWith('tag ')));
-  for (const overrides of [{ PREFLIGHT: 'error' }, { MANIFEST_DIGEST: 'invalid' },
-    { CONFIG_ID: `sha256:${'d'.repeat(64)}`, PREFLIGHT: 'existing' }, { FAIL_INSPECT: '1' },
-    { CIRCLE_SHA1: 'bad' }, { STAGING_RUN_ID: 'bad' }]) {
-    const result = run('publish', overrides, 'stale metadata');
-    assert.notEqual(result.status, 0, JSON.stringify(overrides));
-    assert.equal(result.metadata, undefined);
-    assert.ok(result.calls.every(c => !c.startsWith('save ')));
-    if (overrides.PREFLIGHT) assert.ok(result.calls.every(c => !c.startsWith('push ')));
-  }
-});
-
-test('forks missing either credential save only test and verify its identity after load', () => {
-  for (const creds of [{ DOCKER_USER: '' }, { DOCKER_PASS: '' }, { DOCKER_USER: '', DOCKER_PASS: '' }]) {
-    const result = run('publish', creds);
+test('all branches save only test regardless of credentials, and verify the loaded identity', () => {
+  for (const overrides of [{}, { DOCKER_USER: '' }, { DOCKER_PASS: '' }, { CIRCLE_BRANCH: 'develop' }]) {
+    const result = run('publish', overrides);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.metadata, `workspace\n${id}\n-\n`);
+    assert.equal(result.metadata, `${id}\n`);
     assert.equal(result.archive, true);
-    const save = result.calls.find(c => c.startsWith('save '));
-    assert.match(save, /redbox-portal-test.tar redbox-portal:test$/);
-    assert.ok(result.calls.every(c => !c.startsWith('login ') && !c.startsWith('push ')));
-    const received = run('receive', creds, result.metadata);
+    assert.match(result.calls.find(c => c.startsWith('save ')), /redbox-portal-test.tar redbox-portal:test$/);
+    assert.ok(result.calls.every(c => !/^(login|push|pull|manifest|buildx) /.test(c)));
+    const received = run('receive', overrides, result.metadata);
     assert.equal(received.status, 0, received.stderr);
     assert.ok(received.calls.some(c => c.startsWith('load -i ')));
-    assert.ok(received.calls.every(c => !c.startsWith('pull ')));
-    assert.notEqual(run('receive', { ...creds, PULLED_ID: 'invalid' }, result.metadata).status, 0);
-    for (const branch of ['master', 'develop', 'support/5.x']) {
-      assert.notEqual(run('publish', { ...creds, CIRCLE_BRANCH: branch }).status, 0);
-    }
+    assert.notEqual(run('receive', { ...overrides, PULLED_ID: 'invalid' }, result.metadata).status, 0);
   }
 });
 
-test('authenticated receive pulls only by digest and verifies both pulled and compose image IDs', () => {
-  const result = run('receive', {}, `registry\n${id}\n${pinned}\n`);
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.calls, [
-    'login --username test-user --password-stdin', `pull ${pinned}`,
-    `image inspect --format {{.Id}} ${pinned}`, `tag ${pinned} redbox-portal:test`,
-    'image inspect --format {{.Id}} redbox-portal:test',
-  ]);
-  for (const overrides of [{ PULLED_ID: `sha256:${'e'.repeat(64)}` }, { FAIL_PULL: '1' }, { DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
-    const failed = run('receive', overrides, `registry\n${id}\n${pinned}\n`);
-    assert.notEqual(failed.status, 0);
-    assert.ok(failed.calls.every(c => !c.startsWith('tag ') && !c.startsWith('load ')));
-  }
-});
-
-test('malformed metadata, mutable tags, other repositories and missing metadata fail before Docker', () => {
-  for (const metadata of [undefined, '', `registry\n${id}\nexample/portal:latest\n`,
-    `registry\n${id}\nother/portal@${digest}\n`, `registry\ninvalid\n${pinned}\n`,
-    `workspace\n${id}\n${pinned}\n`, `unknown\n${id}\n-\n`,
-    `registry\n${id}\n${pinned}\nextra\n`]) {
+test('malformed/missing metadata fails before Docker, and failed producers remove stale metadata', () => {
+  for (const metadata of [undefined, '', 'invalid\n', `${id}\nextra\n`, `$(touch /tmp/unsafe)\n`]) {
     const result = run('receive', {}, metadata);
-    assert.notEqual(result.status, 0, metadata);
+    assert.notEqual(result.status, 0);
     assert.deepEqual(result.calls, []);
   }
+  const failed = run('publish', { PULLED_ID: 'invalid' }, 'stale metadata');
+  assert.notEqual(failed.status, 0);
+  assert.equal(failed.metadata, undefined);
 });
 
-test('v tags retain the runtime archive for legacy deployment with either transport', () => {
-  const registry = run('publish', { CIRCLE_TAG: 'v5.0.0', CIRCLE_BRANCH: '' });
-  assert.equal(registry.status, 0, registry.stderr);
-  assert.match(registry.calls.find(c => c.startsWith('save ')), /redbox-portal-test.tar redbox-portal:runtime$/);
-  const fork = run('publish', { CIRCLE_TAG: 'v5.0.0', CIRCLE_BRANCH: '', DOCKER_USER: '' });
-  assert.equal(fork.status, 0, fork.stderr);
-  assert.match(fork.calls.find(c => c.startsWith('save ')), /redbox-portal:test redbox-portal:runtime$/);
+test('v tags retain test and pristine runtime for legacy deployment', () => {
+  const result = run('publish', { CIRCLE_TAG: 'v5.0.0', CIRCLE_BRANCH: '' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.calls.find(c => c.startsWith('save ')), /redbox-portal:test redbox-portal:runtime$/);
 });
 
 test('decoupled jobs retain workflow filters and only image consumers wait for build', () => {

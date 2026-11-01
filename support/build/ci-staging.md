@@ -3,14 +3,12 @@
 The automatic `build_test_gendocs_and_deploy` workflow stages publishable images
 at workflow start. `build` uses one `docker buildx bake` invocation to solve the
 shared runtime/test graph and load both images. It pushes the pristine **runtime**
-as amd64 staging. With Docker credentials, it also pushes test to an immutable
-staging tag and persists only the digest and tested image ID. Integration jobs
-log in, pull by digest, verify the image ID, and tag it `redbox-portal:test`.
-Registry inspection/push/pull or identity failures fail closed; they never select
-the workspace fallback. Without either credential, non-release branches instead
-save only test to the workspace tar and verify its ID after loading. Release
-branches require credentials. `v*` builds additionally save runtime at the legacy
-archive path for deploy; manual publishing is unchanged.
+as amd64 staging. It saves only **test** to the workspace tar for branch tests;
+runtime's layers are already included in test. Each integration job loads the tar
+and verifies the image ID against the producer's data-only metadata. No test
+image is pushed or pulled. This path also works without credentials on forks.
+`v*` builds additionally save the pristine runtime tag for legacy deploy; manual
+publishing is unchanged. Release branches still require staging credentials.
 
 | Variant | Architecture | Dockerfile target | Final tag |
 | --- | --- | --- | --- |
@@ -32,12 +30,12 @@ and test rootfs layer diff_ids. After pushing, or reusing a staging tag on a
 workflow rerun, resolve its manifest digest, inspect that pinned image's config,
 and require its nonempty rootfs diff_ids to be an exact, strict prefix of the
 local tested image's diff_ids. Empty, malformed, reordered, unrelated, equal or
-longer layer lists fail closed. Registry errors fail closed. No layer downloads
-are needed for this comparison. Logs record the tested image ID, pinned runtime
+longer layer lists fail closed. Non-quota registry errors and all release-branch
+errors fail closed. No layer downloads are needed for this comparison. Logs record the tested image ID, pinned runtime
 digest, prefix lengths, and saved workspace image ID.
 
 Staging tags are
-`ci-staging-<full SHA>-<runtime|pdfgen|test>-<amd64|arm64>-<pipeline UUID>`.
+`ci-staging-<full SHA>-<runtime|pdfgen>-<amd64|arm64>-<pipeline UUID>`.
 The SHA and pipeline UUID prevent cross-commit and cross-pipeline selection.
 Workflow reruns retain the UUID. Existing tags are never overwritten: only a
 definite missing-manifest response permits a build/push. The tested runtime is
@@ -56,8 +54,14 @@ pipeline's staging sources, never mutable architecture tags.
 
 Only exact `master`, `develop`, and `support/*` names enable real automatic
 promotion and Nexus upload. Other branches (including unset names) dry-run.
-Dry runs inspect real staging references, anonymously if credentials are missing,
-and print commands without writes. Missing references fail even during dry runs.
+Dry runs resolve real staging references by HEAD, anonymously if credentials are
+missing, and print digest-pinned commands without writes. Missing references fail
+unless that exact producer has a `quota-skipped` artifact matching this SHA and
+pipeline UUID. This exception is only for non-release dry runs; real publication
+never accepts a skipped identity check. Confirmed Docker Hub quota errors skip
+optional non-release staging with a clear log. Authentication, network, malformed
+metadata, and identity failures still fail. Small status artifacts avoid attaching
+the large test workspace to promotion jobs.
 As before, an older successful workflow can finish later and replace a branch
 tag with its own complete image set. Wiki/documentation publishing is unchanged.
 
@@ -76,6 +80,22 @@ tag or `local` when no branch exists. Runtime/pdfgen share an architecture cache
 concurrent last-writer wins can reduce cache coverage but cannot change build
 correctness. Exports use registry `mode=max`, OCI media types and image manifests.
 Bake's test target alone exports cache because its graph contains runtime too.
+Cache preflight uses non-counting HEAD requests and omits missing caches. On a
+non-release branch, zero allowance/HTTP 429 disables registry cache inputs and
+exports with an explicit uncached-build log. A quota race during cache access
+retries the solve once without cache inputs/exports; application failures remain
+failures. Non-release cache exports use `ignore-error=true` because exporting
+cache is optional. Release cache errors may fail; release staging and promotion
+identity checks always fail closed.
+
+`buildkitd.toml` configures `mirror.gcr.io` for Docker Hub base/frontend reads;
+the BuildKit bootstrap image also comes from that cache. Missing mirror content
+falls back to Hub inside BuildKit. Cache imports/exports and staging remain in
+the configured Docker Hub repository and retain their existing branch scopes.
+Tag existence and promotion digest resolution use registry HEAD requests. The
+staged runtime identity check fetches its pinned manifest once and its config
+blob once, verifies both content hashes, and applies the existing strict-prefix
+check. Promotion no longer refetches the same manifest for display/config logs.
 
 `manifests` copies root and local-package manifests/locks and the exact patched
 Agenda tarball before installation. The install steps bind-mount the root
@@ -100,16 +120,45 @@ that browser entry before webpack, just as the original root compile did, then
 uses the shared dependency graph after Angular npm ci for bundling. Both Angular and webpack can reuse cache on unrelated backend
 changes; backend compilation proceeds independently of the asset stages.
 
+## Docker Hub quota audit
+
+`docker-registry.cjs` logs method, path, status, and Docker Hub allowance headers
+without tokens or credentials. Authentication, manifest HEAD, config/blob GET,
+and pushes do not spend pull allowance. Successful manifest GETs can spend it;
+GET retries and multi-architecture resolution can add requests. Mirror hits do
+not spend this account's allowance. Mirror misses can still reach Docker Hub.
+
+For a fresh ordinary branch pipeline, the A/B code at pipeline 13621 made 20
+explicit manifest-fetch invocations: two for tested-runtime verification, nine
+across four architecture promotions, and nine across two multi-arch dry runs.
+The new code makes one: the required pinned runtime identity inspection.
+Existence checks and dry-run digest resolution now use HEAD, and repeated config
+logging is removed. Real release publication still fetches pinned manifests
+inside `imagetools create`; those writes never run on this measurement branch.
+
+A planning budget for the authenticated A/B paths is **40 → 5 pull units**:
+20 → 1 explicit inspections; 4 → 4 branch-cache imports (develop caches were
+absent in 13621); 16 → 0 public build inputs (two Node bases, Dockerfile frontend,
+and BuildKit bootstrap on each of four builders), assuming Google mirror hits.
+If both branch and develop caches exist, use 9 instead of 5. At the observed
+200 allowance this models **5 → 40 pipelines per quota window**, or 22 with both
+cache scopes present, before other users of that account. Real release writes
+need an additional eight pinned source fetches on the no-retry path: plan for
+13 units / 15 pipelines with only branch caches. These are budgets, not measured
+billing totals: 13621 did not log quota counters, BuildKit can deduplicate or
+retry, and mirror/cache misses change consumption. Public test dependencies and
+CircleCI executor pulls may use separate anonymous/shared-IP quotas; they are
+not included in this authenticated-account budget. The final timing report
+records observed allowance deltas and any concurrent activity separately.
+
 ## Test dependency registry cache
 
 The five image-consuming test machines and the core MongoDB integration job
 configure Google's `mirror.gcr.io` Docker Hub cache before pulling images. They
 preserve existing daemon options/mirrors and restart Docker before any workload
 starts. Pinned auxiliary image digests remain unchanged; cache misses fall back
-to Docker Hub. The portal hand-off still authenticates and verifies its pinned
-image ID. This avoids shared CircleCI IP pull-quota failures for public test
-dependencies, observed even after successful Docker login. Build/publish
-executors and BuildKit cache write scopes are unchanged.
+to Docker Hub. The portal test image comes from the workspace and its image ID is verified after loading. This avoids shared CircleCI IP pull-quota failures for public test
+dependencies, observed even after successful Docker login. BuildKit cache write scopes are unchanged.
 
 ## Independent jobs and test scheduling
 
@@ -169,7 +218,7 @@ For API retention:
    from any `ci-staging-*` immutability policy.
 
 Deleting staging tags leaves final image tags intact. After retention expiry,
-start a new pipeline rather than rerunning old deploy jobs. Five staging tags (runtime and pdfgen for both architectures, test for amd64) per
+start a new pipeline rather than rerunning old deploy jobs. Four staging tags (runtime and pdfgen for both architectures) per
 pipeline and branch/architecture cache tags accumulate until retention is set up.
 
 ## Executor cost and focused verification
@@ -181,7 +230,7 @@ Independent staging jobs still run if tests later fail.
 ```sh
 circleci config validate .circleci/config.yml
 bash support/build/docker-build-vars.test.sh
-node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs
+node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs support/build/docker-registry.test.cjs
 bash -n support/build/docker-{staging,build-cache,build-ci,test-handoff}.sh support/build/compare-ci-images.sh
 ```
 

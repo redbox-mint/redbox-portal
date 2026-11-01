@@ -65,11 +65,30 @@ elif [[ "$action" == build && "$variant/$arch" == runtime/amd64 ]]; then
   exit 1
 fi
 
-manifest_config_id() {
-  node -e 'const fs = require("node:fs"); const id = JSON.parse(fs.readFileSync(0, "utf8")).config?.digest;
-    if (!/^sha256:[a-f0-9]{64}$/.test(id)) throw new Error("Expected a single-platform image config digest");
-    console.log(id);'
-}
+# Capture quota failures without hiding other failures. Each producer contributes
+# a distinct marker artifact, so later dry runs can distinguish skipped
+# quota-limited staging from an unexpectedly missing image. Real releases never
+# accept these markers as a substitute for registry/identity verification.
+if [[ "${CI_STAGING_QUOTA_GUARD:-}" != 1 ]]; then
+  log="$(mktemp)"
+  set +e
+  CI_STAGING_QUOTA_GUARD=1 bash "$0" "$@" 2>&1 | tee "$log"
+  status=${PIPESTATUS[0]}
+  set -e
+  state=verified
+  if ((status != 0)) && ! is_release_branch &&
+      tail -n 1 "$log" | grep -Eqi 'toomanyrequests|too many requests|pull (rate |quota|limit)|HTTP 429|429 Too Many Requests'; then
+    echo 'Docker Hub quota: skipping optional non-release staging/dry-run; build and tests can continue'
+    state=quota-skipped
+    status=0
+  fi
+  rm -f "$log"
+  if [[ "$action" == build || "$action" == stage-tested ]] && ((status == 0)); then
+    mkdir -p "${TMPDIR:-/tmp}/ci-staging-status"
+    printf '%s\n%s\n%s\n' "$CIRCLE_SHA1" "$STAGING_RUN_ID" "$state" >"${TMPDIR:-/tmp}/ci-staging-status/$variant-$arch"
+  fi
+  exit "$status"
+fi
 
 if [[ "$action" == build || "$action" == stage-tested ]]; then
   target=runtime
@@ -87,17 +106,18 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
   # Only a definite missing manifest permits a build; auth/network errors fail closed.
   inspection_error="$(mktemp)"
   trap 'rm -f "$inspection_error" "$inspection_error.runtime" "$inspection_error.test"' EXIT
-  if docker manifest inspect "$image" >/dev/null 2>"$inspection_error"; then
+  if digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$image" 2>"$inspection_error")"; then
     echo "Reusing existing staging image $image"
     if [[ "$action" == build ]]; then
       exit 0
     fi
     existing=true
   else
+    status=$?
     existing=false
   fi
-  if ! "$existing" && ! grep -Eqi 'no such manifest|manifest unknown|manifest_unknown' "$inspection_error"; then
-    cat "$inspection_error" >&2
+  cat "$inspection_error" >&2
+  if ! "$existing" && ((status != 3)); then
     exit 1
   fi
   if ! "$existing"; then
@@ -109,17 +129,19 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
     else
       source "$SCRIPT_DIR/docker-build-cache.sh"
       setup_build_cache
-      docker buildx build --progress plain --platform "linux/$arch" --target "$target" \
-        --provenance=false "${CACHE_FROM[@]}" "${CACHE_TO[@]}" --tag "$image" --push .
+      build_image() {
+        docker buildx build --progress plain --platform "linux/$arch" --target "$target" \
+          --provenance=false "${CACHE_FROM[@]}" "${CACHE_TO[@]}" --tag "$image" --push .
+      }
+      run_cached_build build_image
     fi
     if [[ "$action" == stage-tested ]]; then docker push "$image"; fi
   fi
   if [[ "$action" == stage-tested ]]; then
-    digest="$(docker buildx imagetools inspect --format '{{json .Manifest}}' "$image" |
-      node -e 'console.log(JSON.parse(require("node:fs").readFileSync(0, "utf8")).digest)')"
+    if ! "$existing"; then digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$image")"; fi
     [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
     pinned_image="${REPO}@${digest}"
-    docker buildx imagetools inspect --format '{{json .Image}}' "$pinned_image" >"$inspection_error.runtime"
+    node "$SCRIPT_DIR/docker-registry.cjs" config "$pinned_image" >"$inspection_error.runtime"
     docker image inspect --format '{{json .}}' redbox-portal:test >"$inspection_error.test"
     node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test"
     echo "Verified staged runtime base of tested amd64 image: $tested_id ($pinned_image)"
@@ -153,17 +175,24 @@ else
 fi
 pinned_sources=()
 for source_image in "${sources[@]}"; do
-  docker buildx imagetools inspect "$source_image"
-  digest="$(docker buildx imagetools inspect --format '{{json .Manifest}}' "$source_image" |
-    node -e 'console.log(JSON.parse(require("node:fs").readFileSync(0, "utf8")).digest)')"
+  if digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$source_image")"; then
+    :
+  else
+    status=$?
+    if ((status == 3)) && ! "$real_promotion"; then
+      source_arch=amd64
+      if [[ "$source_image" == "$(staging_image arm64)" ]]; then source_arch=arm64; fi
+      if node "$SCRIPT_DIR/staging-quota-status.cjs" "$variant" "$source_arch"; then
+        echo "DRY RUN: source staging was skipped due to quota in this pipeline: $source_image; no promotion"
+        exit 0
+      fi
+    fi
+    exit "$status"
+  fi
   [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
   pinned_source="${REPO}@${digest}"
   pinned_sources+=("$pinned_source")
   echo "Promotion source: $source_image -> $pinned_source"
-  if [[ "$variant" == runtime && "$source_image" == "$(staging_image amd64)" ]]; then
-    config_id="$(docker buildx imagetools inspect --raw "$pinned_source" | manifest_config_id)"
-    echo "Promotion amd64 image config digest: $config_id"
-  fi
 done
 command=(docker buildx imagetools create)
 if [[ "$action" == promote ]]; then

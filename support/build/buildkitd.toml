@@ -1,0 +1,4 @@
+# Reuse Google's public Docker Hub cache for frontend/base-image pulls. Cache
+# misses fall back to Hub; application cache/staging stay in the configured repo.
+[registry."docker.io"]
+  mirrors = ["mirror.gcr.io"]
