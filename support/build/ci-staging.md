@@ -112,6 +112,13 @@ and retain their build dependency. Lint stays in build; all automatic promotions
 still require every test plus build (directly or through image-consuming tests)
 and generated API docs. Release-tag filters and manual publishing remain intact.
 
+Mocha no longer compiles packages on the host before starting CI compose. That
+service mounts test/support/TypeScript source and configuration, but uses the
+compiled packages and dependencies already built into the verified test image.
+The removed host outputs were never mounted or consumed. Coverage preparation,
+Codecov uploads, JUnit results and Playwright artifacts retain their existing
+paths and consumers.
+
 ## Filesystem equivalence evidence
 
 The opt-in `image_equivalence` workflow (`verify_image_equivalence: true` pipeline
