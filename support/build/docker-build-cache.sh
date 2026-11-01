@@ -11,14 +11,14 @@ setup_build_cache() {
   local scope fallback
   scope="$(cache_scope "${CIRCLE_BRANCH:-${CIRCLE_TAG:-local}}")"
   fallback="$(cache_scope develop)"
-  CACHE_FROM=(--cache-from "type=registry,ref=${REPO}:buildcache-${scope}-${arch}")
+  CACHE_FROM=(--cache-from "type=registry,ref=${REPO}:buildcache-v1-${scope}-${arch}")
   if [[ "$scope" != "$fallback" ]]; then
-    CACHE_FROM+=(--cache-from "type=registry,ref=${REPO}:buildcache-${fallback}-${arch}")
+    CACHE_FROM+=(--cache-from "type=registry,ref=${REPO}:buildcache-v1-${fallback}-${arch}")
   fi
   CACHE_TO=()
   if [[ -n "${DOCKER_USER:-}" && -n "${DOCKER_PASS:-}" ]]; then
     echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
-    CACHE_TO=(--cache-to "type=registry,mode=max,image-manifest=true,oci-mediatypes=true,ref=${REPO}:buildcache-${scope}-${arch}")
+    CACHE_TO=(--cache-to "type=registry,mode=max,image-manifest=true,oci-mediatypes=true,ref=${REPO}:buildcache-v1-${scope}-${arch}")
   else
     echo 'Registry cache is read-only: Docker push credentials unavailable'
   fi

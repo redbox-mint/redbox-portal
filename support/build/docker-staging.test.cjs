@@ -102,9 +102,9 @@ test('staging builds preserve each published Docker target and push only the sta
     const build = result.calls.find(call => call.startsWith('buildx build '));
     assert.ok(build.includes(`--platform linux/${arch} --target ${target}`));
     assert.ok(build.includes(`--tag ${staging(variant, arch)} --push .`));
-    assert.match(build, /--cache-from type=registry,ref=example\/portal:buildcache-chore-ci-build-speed-[a-f0-9]{12}-/);
+    assert.match(build, /--cache-from type=registry,ref=example\/portal:buildcache-v1-chore-ci-build-speed-[a-f0-9]{12}-/);
     assert.ok(build.includes('--cache-to type=registry,mode=max'));
-    assert.ok(build.includes(`--cache-from type=registry,ref=example/portal:buildcache-develop-`));
+    assert.ok(build.includes(`--cache-from type=registry,ref=example/portal:buildcache-v1-develop-`));
   }
 });
 
@@ -303,7 +303,7 @@ test('Buildx uses one Bake graph, isolated branch cache writes, develop fallback
   }
   const weird = run([], { CIRCLE_BRANCH: 'Feature/Foo:bar with spaces?' }, ciBuild);
   const collision = run([], { CIRCLE_BRANCH: 'Feature-Foo-bar-with-spaces' }, ciBuild);
-  assert.match(weird.calls.at(-1), /buildcache-feature-foo-bar-with-spaces-[a-f0-9]{12}-amd64/);
+  assert.match(weird.calls.at(-1), /buildcache-v1-feature-foo-bar-with-spaces-[a-f0-9]{12}-amd64/);
   assert.notEqual(weird.calls.at(-1), collision.calls.at(-1));
   const develop = run([], { CIRCLE_BRANCH: 'develop' }, ciBuild);
   assert.equal((develop.calls.at(-1).match(/cache-from/g) || []).length, 1);

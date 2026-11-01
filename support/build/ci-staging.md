@@ -62,7 +62,7 @@ executors. All staging builds read registry cache from the current branch and
 fall back to develop. Only builds with both Docker credentials export cache;
 forks/no-creds builds are read-only. Each build writes its current branch only.
 
-Cache tags are `buildcache-<scope>-<amd64|arm64>`, where scope is the lowercase,
+Cache tags are `buildcache-v1-<scope>-<amd64|arm64>` (v1 versions the cache layout), where scope is the lowercase,
 Docker-safe branch name truncated to 64 characters, followed by `-` and the first
 12 hex characters of SHA-256 of the original branch. The hash avoids collisions
 between names such as `feature/a` and `feature-a`. Tags fall back to the release
@@ -78,7 +78,9 @@ application source. After source is copied, script-free npm
 rebuild restores local CLI bin links that npm skips when their targets are absent. `dev-deps` and `prod-deps` are independent.
 The latter installs a clean production graph while compilation proceeds, removing
 the old node_modules snapshot/reinstall sequence. Runtime copies only production
-dependencies; test copies unpruned builder dependencies directly.
+dependencies; test copies unpruned builder dependencies directly. For
+`sails-ng-common`, test takes the final dependency graph from the Angular stage,
+matching the old snapshot after Angular npm ci applied its own lockfile.
 
 `angular-builder` reads `angular/`, shared `sails-ng-common` source/manifests,
 shared TypeScript base config, the manifest-only root/local dependency layer
@@ -120,7 +122,7 @@ For API retention:
    `DELETE https://hub.docker.com/v2/repositories/<namespace>/<repository>/tags/<tag>/`.
    Never delete registry manifests/digests: final tags/indexes may reference them.
 4. Separately expire `buildcache-*` tags for deleted/inactive branches after
-   30 days without updates. Retain develop and active release-branch caches and
+   30 days without updates (including tag/local scopes and obsolete cache versions). Retain develop and active release-branch caches and
    caches used by running pipelines. Deleting a cache tag is safe for image
    contents; the next build is cold. Cache tags are mutable and should be excluded
    from any `ci-staging-*` immutability policy.

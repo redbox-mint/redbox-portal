@@ -242,7 +242,9 @@ USER root
 COPY --from=runtime-files --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-backend/node_modules ./packages/agenda-sqs-backend/node_modules
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
+# Angular npm ci owns the final shared-package dev graph (its lockfile differs
+# from the standalone package lock), matching the pre-refactor test snapshot.
+COPY --from=angular-builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
