@@ -36,7 +36,8 @@ test('A02 selects dates and record type and downloads real JSON and CSV exports'
   await app.locator('#before').press('Tab');
   await app.getByLabel('Record type', { exact: true }).selectOption(type);
   for (const format of ['json', 'csv'] as const) {
-    await app.getByLabel(format.toUpperCase(), { exact: true }).check();
+    await app.locator(`label[for="format-${format}"]`).click();
+    await expect(app.getByLabel(format.toUpperCase(), { exact: true })).toBeChecked();
     let download: Download;
     if (format === 'json') {
       const pending = adminPage.waitForEvent('download');
