@@ -83,6 +83,9 @@ COPY assets ./assets
 COPY typescript/assets ./typescript/assets
 COPY typescript/styles.d.ts ./typescript/
 RUN npx tsc --project tsconfig.json
+# The original webpack ran after Angular npm ci updated this shared graph.
+RUN rm -rf packages/sails-ng-common/node_modules
+COPY --from=angular-builder /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
 COPY --from=angular-builder /opt/redbox-portal/assets/angular ./assets/angular
 RUN npm run webpack
 

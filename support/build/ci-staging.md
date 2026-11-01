@@ -90,7 +90,8 @@ assets feed `assets-builder`, which runs the existing webpack wrapper against
 only its hook/config sources (using the wrapper's existing ts-node fallback),
 the Sails type declarations, shared logger, TypeScript config, vendor dependencies,
 static assets and the browser TypeScript entry/style declarations. It compiles
-that browser entry before webpack, just as the original root compile did. Both Angular and webpack can reuse cache on unrelated backend
+that browser entry before webpack, just as the original root compile did, then
+uses the shared dependency graph after Angular npm ci for bundling. Both Angular and webpack can reuse cache on unrelated backend
 changes; backend compilation proceeds independently of the asset stages.
 
 ## Filesystem equivalence evidence
