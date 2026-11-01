@@ -267,8 +267,8 @@ test('workflow stages the saved test image and removes the independent runtime a
   const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
   const build = config.split('  generate-api-docs:')[0];
   assert.match(build, /STAGING_RUN_ID: << pipeline.id >>/);
-  assert.ok(build.indexOf('docker-staging.sh stage-tested runtime amd64') < build.indexOf('docker save -o'));
-  assert.match(build, /docker save -o \/tmp\/docker-images\/redbox-portal-test.tar redbox-portal:test redbox-portal:runtime/);
+  assert.ok(build.indexOf('docker-staging.sh stage-tested runtime amd64') < build.indexOf('docker-test-handoff.sh publish'));
+  assert.match(build, /docker-test-handoff.sh publish/);
   assert.match(build, /persist_to_workspace:/);
   assert.doesNotMatch(config, /stage-runtime-amd64/);
   assert.match(build, /stage_tested_image:\n        type: boolean\n        default: false/);

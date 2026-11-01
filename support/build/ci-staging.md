@@ -3,8 +3,14 @@
 The automatic `build_test_gendocs_and_deploy` workflow stages publishable images
 at workflow start. `build` uses one `docker buildx bake` invocation to solve the
 shared runtime/test graph and load both images. It pushes the pristine **runtime**
-as amd64 staging, then saves runtime and test together in the existing workspace
-tar. Integration jobs continue to run `redbox-portal:test`.
+as amd64 staging. With Docker credentials, it also pushes test to an immutable
+staging tag and persists only the digest and tested image ID. Integration jobs
+log in, pull by digest, verify the image ID, and tag it `redbox-portal:test`.
+Registry inspection/push/pull or identity failures fail closed; they never select
+the workspace fallback. Without either credential, non-release branches instead
+save only test to the workspace tar and verify its ID after loading. Release
+branches require credentials. `v*` builds additionally save runtime at the legacy
+archive path for deploy; manual publishing is unchanged.
 
 | Variant | Architecture | Dockerfile target | Final tag |
 | --- | --- | --- | --- |
@@ -31,7 +37,7 @@ are needed for this comparison. Logs record the tested image ID, pinned runtime
 digest, prefix lengths, and saved workspace image ID.
 
 Staging tags are
-`ci-staging-<full SHA>-<runtime|pdfgen>-<amd64|arm64>-<pipeline UUID>`.
+`ci-staging-<full SHA>-<runtime|pdfgen|test>-<amd64|arm64>-<pipeline UUID>`.
 The SHA and pipeline UUID prevent cross-commit and cross-pipeline selection.
 Workflow reruns retain the UUID. Existing tags are never overwritten: only a
 definite missing-manifest response permits a build/push. The tested runtime is
@@ -94,6 +100,17 @@ that browser entry before webpack, just as the original root compile did, then
 uses the shared dependency graph after Angular npm ci for bundling. Both Angular and webpack can reuse cache on unrelated backend
 changes; backend compilation proceeds independently of the asset stages.
 
+## Independent jobs and test scheduling
+
+The 19 Angular matrix jobs, sails-ng-common, redbox-core, agenda-sqs-backend,
+rva-registry, redbox-dev-tools-cli, storage-mongo, and generate-api-docs install
+and compile from their own checkouts. They consume no build outputs and start
+at workflow entry. The unused sails-ng-common and redbox-core workspace mounts
+are removed. Bruno general/OIDC/S3, Mocha and Playwright require the tested image
+and retain their build dependency. Lint stays in build; all automatic promotions
+still require every test plus build (directly or through image-consuming tests)
+and generated API docs. Release-tag filters and manual publishing remain intact.
+
 ## Filesystem equivalence evidence
 
 The opt-in `image_equivalence` workflow (`verify_image_equivalence: true` pipeline
@@ -133,7 +150,7 @@ For API retention:
    from any `ci-staging-*` immutability policy.
 
 Deleting staging tags leaves final image tags intact. After retention expiry,
-start a new pipeline rather than rerunning old deploy jobs. Four staging tags per
+start a new pipeline rather than rerunning old deploy jobs. Five staging tags (runtime and pdfgen for both architectures, test for amd64) per
 pipeline and branch/architecture cache tags accumulate until retention is set up.
 
 ## Executor cost and focused verification
@@ -145,8 +162,8 @@ Independent staging jobs still run if tests later fail.
 ```sh
 circleci config validate .circleci/config.yml
 bash support/build/docker-build-vars.test.sh
-node --test support/build/docker-staging.test.cjs
-bash -n support/build/docker-{staging,build-cache,build-ci}.sh support/build/compare-ci-images.sh
+node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs
+bash -n support/build/docker-{staging,build-cache,build-ci,test-handoff}.sh support/build/compare-ci-images.sh
 ```
 
 Mocked Docker tests cover gates, staging isolation/immutability, pinned promotion,

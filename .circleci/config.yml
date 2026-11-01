@@ -29,7 +29,7 @@ jobs:
           name: Test Docker tag handling
           command: |
             bash support/build/docker-build-vars.test.sh
-            node --test support/build/docker-staging.test.cjs
+            node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -47,15 +47,12 @@ jobs:
                 name: Stage the runtime base and verify the tested layer prefix
                 command: bash support/build/docker-staging.sh stage-tested runtime amd64
       - run:
-          name: Save Docker image
-          command: |
-            mkdir -p /tmp/docker-images
-            docker image inspect --format 'Test workspace image ID: {{.Id}}' redbox-portal:test
-            docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test redbox-portal:runtime
+          name: Publish test image hand-off (registry or fork workspace)
+          command: bash support/build/docker-test-handoff.sh publish
       - persist_to_workspace:
           root: /tmp
           paths:
-            - docker-images/redbox-portal-test.tar
+            - docker-images
   verify-image-equivalence:
     machine:
       image: ubuntu-2404:current
@@ -200,8 +197,8 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Receive and verify tested image (digest pull or fork load)
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -286,8 +283,8 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Receive and verify tested image (digest pull or fork load)
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -343,8 +340,8 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Receive and verify tested image (digest pull or fork load)
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -400,8 +397,8 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Receive and verify tested image (digest pull or fork load)
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -461,8 +458,8 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Receive and verify tested image (digest pull or fork load)
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -561,8 +558,6 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
-      - attach_workspace:
-          at: /tmp
       - run:
           <<: *installCodecov
       - run:
@@ -606,8 +601,6 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
-      - attach_workspace:
-          at: /tmp
       - run:
           name: Start MongoDB for core integration tests
           command: |
@@ -1315,8 +1308,6 @@ workflows:
             branches:
               ignore: /^dependabot.*/
       - generate-api-docs:
-          requires:
-            - build
           filters:
             branches:
               ignore: /^dependabot.*/
@@ -1378,29 +1369,15 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
-      - test-sails-ng-common:
-          requires:
-            - build
+      - test-sails-ng-common
       # - lint-redbox-core:
       #     requires:
       #       - build
-      - test-redbox-core:
-          requires:
-            - build
-      - test-agenda-sqs-backend:
-          requires:
-            - build
-      - test-rva-registry:
-          requires:
-            - build
-      - test-redbox-dev-tools-cli:
-          requires:
-            - build
-      - test-storage-mongo:
-          requires:
-            - build
+      - test-redbox-core
+      - test-agenda-sqs-backend
+      - test-rva-registry
+      - test-redbox-dev-tools-cli
+      - test-storage-mongo
       - promote-staging-image:
           name: deploy-arm64
           variant: runtime
@@ -1517,8 +1494,6 @@ workflows:
             tags:
               ignore: /.*/
       - generate-api-docs:
-          requires:
-            - build
           filters:
             branches:
               only: /^dependabot.*/
@@ -1564,26 +1539,12 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
-      - test-sails-ng-common:
-          requires:
-            - build
-      - test-redbox-core:
-          requires:
-            - build
-      - test-agenda-sqs-backend:
-          requires:
-            - build
-      - test-rva-registry:
-          requires:
-            - build
-      - test-redbox-dev-tools-cli:
-          requires:
-            - build
-      - test-storage-mongo:
-          requires:
-            - build
+      - test-sails-ng-common
+      - test-redbox-core
+      - test-agenda-sqs-backend
+      - test-rva-registry
+      - test-redbox-dev-tools-cli
+      - test-storage-mongo
       - deploy-arm64:
           requires:
             - test-bruno-general
@@ -1627,8 +1588,6 @@ workflows:
             branches:
               ignore: /.*/
       - generate-api-docs:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
@@ -1699,56 +1658,42 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-sails-ng-common:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-redbox-core:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-agenda-sqs-backend:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-rva-registry:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-redbox-dev-tools-cli:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-storage-mongo:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
