@@ -325,7 +325,7 @@ function requireRecordSaveContext(context: RecordSaveContext | undefined): Recor
 }
 
 // Save codes are an internal RecordsService-to-RecordSaveResponse mapping, not
-// a supported package export. Package callers consume issue codes from RecordSaveResponse.
+// a supported package export. Public clients consume the resulting issue code.
 const RECORD_VALIDATION_SAVE_CODES = {
   failed: 'record-validation-failed',
   formResolution: 'record-validation-form-resolution-failed',
