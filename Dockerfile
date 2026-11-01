@@ -23,78 +23,90 @@ RUN bash -lc "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/inst
 WORKDIR /opt/redbox-portal
 SHELL ["bash", "-o", "pipefail", "-c"]
 
-FROM base AS builder
+FROM base AS manifests
 
-COPY . .
+# Local file dependencies need their manifests and the patched Agenda tarball.
+COPY package.json package-lock.json ./
+COPY packages/agenda-sqs-backend/package.json packages/agenda-sqs-backend/package-lock.json ./packages/agenda-sqs-backend/
+COPY packages/sails-ng-common/package.json packages/sails-ng-common/package-lock.json ./packages/sails-ng-common/
+COPY packages/raido/package.json packages/raido/package-lock.json ./packages/raido/
+COPY packages/rva-registry/package.json packages/rva-registry/package-lock.json ./packages/rva-registry/
+COPY packages/redbox-core/package.json packages/redbox-core/package-lock.json ./packages/redbox-core/
+COPY packages/sails-hook-redbox-storage-mongo/package.json packages/sails-hook-redbox-storage-mongo/package-lock.json ./packages/sails-hook-redbox-storage-mongo/
+COPY packages/redbox-dev-tools/package.json packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/
+COPY packages/redbox-hook-dev/package.json packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/
+COPY packages/sails-hook-redbox-pdfgen/package.json packages/sails-hook-redbox-pdfgen/package-lock.json ./packages/sails-hook-redbox-pdfgen/
+COPY packages/agenda-patched/*.tgz ./packages/agenda-patched/
 
+FROM manifests AS prod-deps
+# A clean production graph, independent of compilation and its dev dependencies.
+RUN npm ci --omit=dev --no-audit \
+ && find packages -mindepth 2 -maxdepth 2 -type f -delete
+
+FROM manifests AS dev-deps
 RUN npm ci --no-audit \
  && (cd packages/agenda-sqs-backend && npm ci --no-audit) \
  && (cd packages/sails-ng-common && npm ci --no-audit) \
  && (cd packages/raido && npm ci --no-audit) \
  && (cd packages/rva-registry && npm ci --no-audit) \
  && (cd packages/redbox-core && npm install --no-save --no-audit) \
- && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit)
+ && (cd packages/sails-hook-redbox-storage-mongo && npm ci --no-audit) \
+ && (cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit) \
+ && (cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit) \
+ && (cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit)
+
+# Angular reads its own workspace and the shared sails-ng-common package only.
+# No redbox-core/backend source enters this stage's cache key.
+FROM base AS angular-builder
+COPY packages/sails-ng-common/package*.json ./packages/sails-ng-common/
+COPY packages/redbox-dev-tools/config/tsconfig.base.json ./packages/redbox-dev-tools/config/
+COPY packages/sails-ng-common/tsconfig*.json ./packages/sails-ng-common/
+RUN cd packages/sails-ng-common && npm ci --no-audit
+COPY packages/sails-ng-common/src ./packages/sails-ng-common/src
+RUN cd packages/sails-ng-common && npm run compile
+COPY angular ./angular
+COPY support/build/compileProductionAngular.sh ./support/build/
+RUN bash support/build/compileProductionAngular.sh
+
+FROM dev-deps AS builder
+COPY . .
+COPY --from=dev-deps /opt/redbox-portal/packages/agenda-sqs-backend/package-lock.json ./packages/agenda-sqs-backend/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/sails-ng-common/package-lock.json ./packages/sails-ng-common/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/raido/package-lock.json ./packages/raido/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/rva-registry/package-lock.json ./packages/rva-registry/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/redbox-core/package-lock.json ./packages/redbox-core/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/package-lock.json ./packages/sails-hook-redbox-storage-mongo/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/package-lock.json
+COPY --from=dev-deps /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/package-lock.json ./packages/sails-hook-redbox-pdfgen/package-lock.json
 
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
-RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit && npm run build
+RUN cd packages/redbox-dev-tools && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
 # Build its dist so the optional `test` image (below) can load it. It is pruned
 # from node_modules for the pristine runtime image.
-RUN cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit && npm run build
+RUN cd packages/redbox-hook-dev && npm run build
 # Build the optional PDF hook from this checkout. The pdfgen runtime target
 # installs this local package, so it does not depend on a separately released
 # portal-core-compatible npm version.
-RUN cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit && npm run compile
+RUN cd packages/sails-hook-redbox-pdfgen && npm run compile
 
 RUN npx tsc --project tsconfig.json
 
-RUN chmod +x support/build/compileProductionAngular.sh \
- && support/build/compileProductionAngular.sh
 
+COPY --from=angular-builder /opt/redbox-portal/assets/angular ./assets/angular
 RUN npm run webpack
+RUN bash support/build/api-descriptors/generateAPIDescriptors.sh
 
-RUN chmod +x support/build/api-descriptors/generateAPIDescriptors.sh \
- && support/build/api-descriptors/generateAPIDescriptors.sh
-
-RUN cp -a node_modules /tmp/test-node_modules \
- && mkdir -p /tmp/test-package-node-modules/packages \
- && for package_path in \
-      packages/agenda-sqs-backend \
-      packages/raido \
-      packages/rva-registry \
-      packages/sails-ng-common \
-      packages/redbox-core \
-      packages/redbox-dev-tools \
-      packages/sails-hook-redbox-storage-mongo \
-      packages/redbox-hook-dev \
-      packages/sails-hook-redbox-pdfgen; do \
-      if [ -d "$package_path/node_modules" ]; then \
-        mkdir -p "/tmp/test-package-node-modules/$package_path"; \
-        cp -a "$package_path/node_modules" "/tmp/test-package-node-modules/$package_path/node_modules"; \
-      fi; \
-    done
-
-# Reinstall the production graph after compilation. Removing nested dependency
-# directories after npm prunes them also removes required runtime versions.
-RUN rm -rf \
-    packages/agenda-sqs-backend/node_modules \
-    packages/redbox-core/node_modules \
-    packages/redbox-dev-tools/node_modules \
-    packages/sails-ng-common/node_modules \
-    packages/raido/node_modules \
-    packages/rva-registry/node_modules \
-    packages/redbox-hook-dev/node_modules \
-    packages/sails-hook-redbox-storage-mongo/node_modules \
-    packages/sails-hook-redbox-pdfgen/node_modules \
-    angular/node_modules \
-    angular-legacy/node_modules \
-    support/build/api-descriptors/node_modules \
- && npm ci --omit=dev --no-audit
+FROM builder AS runtime-files
+# Drop per-package dev dependencies without snapshotting them into another layer.
+RUN find packages -type d -name node_modules -prune -exec rm -rf '{}' +
+COPY --from=prod-deps /opt/redbox-portal/packages ./packages
 
 FROM node:26.12.1-bookworm-slim AS runtime
 
@@ -120,10 +132,10 @@ COPY --from=builder --chown=node:node /opt/redbox-portal/.tmp/public ./.tmp/publ
 COPY --from=builder --chown=node:node /opt/redbox-portal/config ./config
 COPY --from=builder --chown=node:node /opt/redbox-portal/bootstrap-data ./bootstrap-data
 COPY --from=builder --chown=node:node /opt/redbox-portal/language-defaults ./language-defaults
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages ./packages
+COPY --from=runtime-files --chown=node:node /opt/redbox-portal/packages ./packages
 RUN rm -rf packages/redbox-hook-dev packages/sails-hook-redbox-pdfgen
 COPY --from=builder --chown=node:node /opt/redbox-portal/views ./views
-COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
+COPY --from=prod-deps --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 
 EXPOSE 1337
 
@@ -188,7 +200,7 @@ ENV PUPPETEER_SKIP_DOWNLOAD=1
 USER node
 
 FROM runtime_puppeteer_base AS runtime_pdfgen
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
+COPY --from=runtime-files --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen ./packages/sails-hook-redbox-pdfgen
 RUN npm install --omit=dev --ignore-scripts --save --package-lock=true --no-audit \
     ./packages/sails-hook-redbox-pdfgen
 RUN node -e "require('@researchdatabox/redbox-core'); require('@researchdatabox/sails-hook-redbox-pdfgen')"
@@ -206,9 +218,17 @@ USER node
 # redbox-loader discovers it (it was pruned from node_modules for `runtime`).
 FROM runtime AS test
 USER root
-COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
-COPY --from=builder --chown=node:node /tmp/test-node_modules ./node_modules
-COPY --from=builder --chown=node:node /tmp/test-package-node-modules/packages ./packages
+COPY --from=runtime-files --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
+COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-backend/node_modules ./packages/agenda-sqs-backend/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-ng-common/node_modules ./packages/sails-ng-common/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/raido/node_modules ./packages/raido/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/rva-registry/node_modules ./packages/rva-registry/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-core/node_modules ./packages/redbox-core/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-storage-mongo/node_modules ./packages/sails-hook-redbox-storage-mongo/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-dev-tools/node_modules ./packages/redbox-dev-tools/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev/node_modules ./packages/redbox-hook-dev/node_modules
+COPY --from=builder --chown=node:node /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/node_modules ./packages/sails-hook-redbox-pdfgen/node_modules
 RUN ln -sfn ../packages/redbox-hook-dev node_modules/redbox-hook-dev \
  && chown -h node:node node_modules/redbox-hook-dev
 USER node

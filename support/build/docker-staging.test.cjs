@@ -7,6 +7,8 @@ const { spawnSync } = require('node:child_process');
 
 const script = join(__dirname, 'docker-staging.sh');
 const sha = 'a'.repeat(40);
+const layer = `sha256:${'1'.repeat(64)}`;
+const testLayer = `sha256:${'2'.repeat(64)}`;
 const testedId = `sha256:${'c'.repeat(64)}`;
 const manifestDigest = `sha256:${'d'.repeat(64)}`;
 const pinned = `example/portal@${manifestDigest}`;
@@ -14,13 +16,17 @@ const pipeline = '12345678-1234-1234-1234-123456789abc';
 const staging = (variant, arch, commit = sha, run = pipeline) =>
   `example/portal:ci-staging-${commit}-${variant}-${arch}-${run}`;
 
-function run(args, overrides = {}) {
+function run(args, overrides = {}, scriptPath = script) {
   const directory = mkdtempSync(join(tmpdir(), 'docker-staging-'));
   const log = join(directory, 'calls');
   writeFileSync(join(directory, 'docker'), `#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$DOCKER_TEST_LOG"
 if [[ "$1" == login ]]; then cat >/dev/null; fi
-if [[ "$1 $2" == 'image inspect' ]]; then echo '${testedId}'; fi
+if [[ "$1 $2" == 'image inspect' ]]; then
+  if [[ "$*" == *'{{.Id}}'* ]]; then echo '${testedId}'
+  elif [[ "$*" == *redbox-portal:runtime* ]]; then printf '%s\\n' '{"RootFS":{"Layers":["${layer}"]}}'
+  else printf '%s\\n' '{"RootFS":{"Layers":["${layer}","${testLayer}"]}}'; fi
+fi
 if [[ "$1" == push ]]; then touch "$DOCKER_TEST_LOG.pushed"; fi
 if [[ "$1 $2" == 'manifest inspect' ]]; then
   if [[ "\${FAIL_PREFLIGHT:-}" == 1 ]]; then echo 'registry connection failed' >&2; exit 1; fi
@@ -32,6 +38,10 @@ if [[ "$1 $2" == 'manifest inspect' ]]; then
   exit 1
 fi
 if [[ "$*" == *'imagetools inspect'* && "\${FAIL_INSPECT:-}" == 1 ]]; then exit 1; fi
+if [[ "$*" == *'imagetools inspect --format {{json .Image}}'* ]]; then
+  printf '{"rootfs":{"diff_ids":%s}}\\n' "\${STAGED_LAYERS:-[\\\"${layer}\\\"]}"
+  exit 0
+fi
 if [[ "$*" == *'imagetools inspect --format'* ]]; then
   printf '{"digest":"%s"}\\n' "\${MANIFEST_DIGEST:-${manifestDigest}}"
 fi
@@ -44,7 +54,7 @@ if [[ "$*" == *'imagetools create'* && "\${FAIL_CREATE_ONCE:-}" == 1 && ! -f "$D
 fi
 `, { mode: 0o755 });
   try {
-    const result = spawnSync('bash', [script, ...args], {
+    const result = spawnSync('bash', [scriptPath, ...args], {
       encoding: 'utf8',
       env: {
         ...process.env,
@@ -88,12 +98,13 @@ test('staging builds preserve each published Docker target and push only the sta
   ]) {
     const result = run(['build', variant, arch]);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.calls, [
-      'login --username test-user --password-stdin',
-      `manifest inspect ${staging(variant, arch)}`,
-      `build --progress plain --platform linux/${arch} --target ${target} --tag ${staging(variant, arch)} .`,
-      `push ${staging(variant, arch)}`,
-    ]);
+    assert.ok(result.calls.includes('buildx create --name ci-cache --driver docker-container --use'));
+    const build = result.calls.find(call => call.startsWith('buildx build '));
+    assert.ok(build.includes(`--platform linux/${arch} --target ${target}`));
+    assert.ok(build.includes(`--tag ${staging(variant, arch)} --push .`));
+    assert.match(build, /--cache-from type=registry,ref=example\/portal:buildcache-chore-ci-build-speed-[a-f0-9]{12}-/);
+    assert.ok(build.includes('--cache-to type=registry,mode=max'));
+    assert.ok(build.includes(`--cache-from type=registry,ref=example/portal:buildcache-develop-`));
   }
 });
 
@@ -118,7 +129,7 @@ test('staging tags isolate commits and separate pipelines of the same commit', (
   const third = run(['build', 'pdfgen', 'amd64'], { STAGING_RUN_ID: otherPipeline });
   assert.notEqual(first.calls.at(-1), second.calls.at(-1));
   assert.notEqual(first.calls.at(-1), third.calls.at(-1));
-  assert.equal(third.calls.at(-1), `push ${staging('pdfgen', 'amd64', sha, otherPipeline)}`);
+  assert.ok(third.calls.at(-1).includes(`--tag ${staging('pdfgen', 'amd64', sha, otherPipeline)} --push .`));
   assert.ok(staging('runtime', 'amd64').split(':')[1].length <= 128);
 });
 
@@ -183,29 +194,23 @@ test('transient registry creation failures are retried', () => {
   assert.equal(result.calls.filter(call => call.includes('imagetools create')).length, 2);
 });
 
-test('tested-image staging pushes the local image by ID and verifies the registry config', () => {
+test('staging pushes runtime and verifies the digest-pinned registry layer prefix', () => {
   const result = run(['stage-tested', 'runtime', 'amd64']);
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.calls, [
-    'image inspect --format {{.Id}} redbox-portal:test',
-    'login --username test-user --password-stdin',
-    `manifest inspect ${staging('runtime', 'amd64')}`,
-    `tag ${testedId} ${staging('runtime', 'amd64')}`,
-    `push ${staging('runtime', 'amd64')}`,
-    `manifest inspect ${staging('runtime', 'amd64')}`,
-  ]);
-  assert.ok(result.stdout.includes(`Verified tested/staged amd64 image identity: ${testedId}`));
+  assert.ok(result.calls.includes(`tag redbox-portal:runtime ${staging('runtime', 'amd64')}`));
+  assert.ok(result.calls.includes(`push ${staging('runtime', 'amd64')}`));
+  assert.ok(result.calls.includes(`buildx imagetools inspect --format {{json .Image}} ${pinned}`));
+  assert.match(result.stdout, /Verified runtime rootfs prefix: 1 of 2 tested layers/);
   const rebuilt = run(['build', 'runtime', 'amd64']);
   assert.notEqual(rebuilt.status, 0);
   assert.deepEqual(rebuilt.calls, []);
 });
 
-test('tested-image staging reruns reject a different image and never overwrite an existing tag', () => {
-  for (const existing of ['', '1']) {
-    const mismatch = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: existing, STAGED_ID: `sha256:${'e'.repeat(64)}` });
-    assert.notEqual(mismatch.status, 0);
-    assert.match(mismatch.stderr, /differs from the tested image/);
-    if (existing) assert.ok(mismatch.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+test('staging reruns reject unrelated, reordered, equal, longer, empty or malformed layers without overwriting tags', () => {
+  for (const layers of [[], ['invalid'], [testLayer], [testLayer, layer], [layer, testLayer], [layer, testLayer, layer], null]) {
+    const mismatch = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: '1', STAGED_LAYERS: JSON.stringify(layers) });
+    assert.notEqual(mismatch.status, 0, JSON.stringify(layers));
+    assert.ok(mismatch.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
   }
   const reused = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: '1' });
   assert.equal(reused.status, 0, reused.stderr);
@@ -213,6 +218,9 @@ test('tested-image staging reruns reject a different image and never overwrite a
   const uncertain = run(['stage-tested', 'runtime', 'amd64'], { FAIL_PREFLIGHT: '1' });
   assert.notEqual(uncertain.status, 0);
   assert.ok(uncertain.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+  for (const overrides of [{ STAGED_LAYERS: JSON.stringify([testLayer]) }, { MANIFEST_DIGEST: 'invalid' }, { FAIL_INSPECT: '1' }]) {
+    assert.notEqual(run(['stage-tested', 'runtime', 'amd64'], overrides).status, 0);
+  }
 });
 
 test('builds without either Docker credential skip staging so forks can test', () => {
@@ -260,7 +268,7 @@ test('workflow stages the saved test image and removes the independent runtime a
   const build = config.split('  generate-api-docs:')[0];
   assert.match(build, /STAGING_RUN_ID: << pipeline.id >>/);
   assert.ok(build.indexOf('docker-staging.sh stage-tested runtime amd64') < build.indexOf('docker save -o'));
-  assert.match(build, /docker save -o \/tmp\/docker-images\/redbox-portal-test.tar redbox-portal:test/);
+  assert.match(build, /docker save -o \/tmp\/docker-images\/redbox-portal-test.tar redbox-portal:test redbox-portal:runtime/);
   assert.match(build, /persist_to_workspace:/);
   assert.doesNotMatch(config, /stage-runtime-amd64/);
   assert.match(build, /stage_tested_image:\n        type: boolean\n        default: false/);
@@ -270,4 +278,33 @@ test('workflow stages the saved test image and removes the independent runtime a
   assert.match(automatic, /- build:\n          stage_tested_image: true/);
   const release = config.split('  release_build_test_gendocs_and_deploy:')[1];
   assert.doesNotMatch(release, /stage_tested_image: true/);
+});
+
+test('tag releases publish saved runtime; manual releases keep their runtime target', () => {
+  const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
+  assert.match(config, /docker tag redbox-portal:runtime "\$\{REPO\}:\$\{DEPLOY_TAG\}-amd64"/);
+  assert.doesNotMatch(config, /docker tag redbox-portal:test/);
+  assert.match(config, /docker-publish-amd64-variant.sh runtime ""/);
+});
+
+test('Buildx uses one Bake graph, isolated branch cache writes, develop fallback and read-only operation without credentials', () => {
+  const ciBuild = join(__dirname, 'docker-build-ci.sh');
+  const normal = run([], {}, ciBuild);
+  assert.equal(normal.status, 0, normal.stderr);
+  assert.equal(normal.calls.filter(call => call.startsWith('buildx bake ')).length, 1);
+  assert.ok(normal.calls.includes('buildx create --name ci-cache --driver docker-container --use'));
+  assert.match(normal.calls.at(-1), /test.cache-to=type=registry,mode=max/);
+  for (const credentials of [{ DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
+    const readonly = run([], credentials, ciBuild);
+    assert.equal(readonly.status, 0, readonly.stderr);
+    assert.ok(readonly.calls.every(call => !call.startsWith('login ')));
+    assert.match(readonly.calls.at(-1), /cache-from/);
+    assert.doesNotMatch(readonly.calls.at(-1), /cache-to/);
+  }
+  const weird = run([], { CIRCLE_BRANCH: 'Feature/Foo:bar with spaces?' }, ciBuild);
+  const collision = run([], { CIRCLE_BRANCH: 'Feature-Foo-bar-with-spaces' }, ciBuild);
+  assert.match(weird.calls.at(-1), /buildcache-feature-foo-bar-with-spaces-[a-f0-9]{12}-amd64/);
+  assert.notEqual(weird.calls.at(-1), collision.calls.at(-1));
+  const develop = run([], { CIRCLE_BRANCH: 'develop' }, ciBuild);
+  assert.equal((develop.calls.at(-1).match(/cache-from/g) || []).length, 1);
 });

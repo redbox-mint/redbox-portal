@@ -39,27 +39,36 @@ jobs:
           name: Build test image via Dockerfile
           no_output_timeout: 30m
           command: |
-            docker build \
-              --progress plain \
-              --target test \
-              --tag redbox-portal:test \
-              .
+            bash support/build/docker-build-ci.sh
       - when:
           condition: << parameters.stage_tested_image >>
           steps:
             - run:
-                name: Stage the exact test image when Docker credentials are available
+                name: Stage the runtime base and verify the tested layer prefix
                 command: bash support/build/docker-staging.sh stage-tested runtime amd64
       - run:
           name: Save Docker image
           command: |
             mkdir -p /tmp/docker-images
             docker image inspect --format 'Test workspace image ID: {{.Id}}' redbox-portal:test
-            docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test
+            docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test redbox-portal:runtime
       - persist_to_workspace:
           root: /tmp
           paths:
             - docker-images/redbox-portal-test.tar
+  verify-image-equivalence:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
+    steps:
+      - checkout
+      - run:
+          name: Compare old and new runtime and test filesystems
+          no_output_timeout: 30m
+          command: bash support/build/compare-ci-images.sh
+      - store_artifacts:
+          path: /tmp/image-equivalence
+          destination: image-equivalence
   generate-api-docs:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
@@ -1071,7 +1080,7 @@ jobs:
             docker load -i /tmp/docker-images/redbox-portal-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
             source support/build/docker-build-vars.sh
-            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
+            docker tag redbox-portal:runtime "${REPO}:${DEPLOY_TAG}-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
   publish-runtime-amd64:
     docker:
@@ -1279,6 +1288,10 @@ workflows:
         - equal: [none, << pipeline.parameters.npm_publish_mode >>]
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
+      - verify-image-equivalence:
+          filters:
+            branches:
+              only: chore/ci-build-speed
       - stage-image-arm64:
           name: stage-runtime-arm64
           variant: runtime

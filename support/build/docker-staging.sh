@@ -86,7 +86,7 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
   # Reuse a pipeline's staging tag on reruns rather than replacing its contents.
   # Only a definite missing manifest permits a build; auth/network errors fail closed.
   inspection_error="$(mktemp)"
-  trap 'rm -f "$inspection_error"' EXIT
+  trap 'rm -f "$inspection_error" "$inspection_error.runtime" "$inspection_error.test"' EXIT
   if docker manifest inspect "$image" >/dev/null 2>"$inspection_error"; then
     echo "Reusing existing staging image $image"
     if [[ "$action" == build ]]; then
@@ -102,17 +102,27 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
   fi
   if ! "$existing"; then
     if [[ "$action" == stage-tested ]]; then
-      docker tag "$tested_id" "$image"
+      docker image inspect --format '{{json .}}' redbox-portal:runtime >"$inspection_error.runtime"
+      docker image inspect --format '{{json .}}' redbox-portal:test >"$inspection_error.test"
+      node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test"
+      docker tag redbox-portal:runtime "$image"
     else
-      docker build --progress plain --platform "linux/$arch" --target "$target" --tag "$image" .
+      source "$SCRIPT_DIR/docker-build-cache.sh"
+      setup_build_cache
+      docker buildx build --progress plain --platform "linux/$arch" --target "$target" \
+        --provenance=false "${CACHE_FROM[@]}" "${CACHE_TO[@]}" --tag "$image" --push .
     fi
-    docker push "$image"
+    if [[ "$action" == stage-tested ]]; then docker push "$image"; fi
   fi
   if [[ "$action" == stage-tested ]]; then
-    staged_id="$(docker manifest inspect "$image" | manifest_config_id)"
-    echo "Staged amd64 image config digest: $staged_id"
-    [[ "$staged_id" == "$tested_id" ]] || { echo 'Staging image differs from the tested image; refusing promotion' >&2; exit 1; }
-    echo "Verified tested/staged amd64 image identity: $tested_id ($image)"
+    digest="$(docker buildx imagetools inspect --format '{{json .Manifest}}' "$image" |
+      node -e 'console.log(JSON.parse(require("node:fs").readFileSync(0, "utf8")).digest)')"
+    [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
+    pinned_image="${REPO}@${digest}"
+    docker buildx imagetools inspect --format '{{json .Image}}' "$pinned_image" >"$inspection_error.runtime"
+    docker image inspect --format '{{json .}}' redbox-portal:test >"$inspection_error.test"
+    node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test"
+    echo "Verified staged runtime base of tested amd64 image: $tested_id ($pinned_image)"
   fi
   exit 0
 fi
