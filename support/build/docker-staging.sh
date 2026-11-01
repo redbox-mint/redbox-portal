@@ -51,6 +51,12 @@ if [[ "$action" == stage-tested ]]; then
   [[ "$variant/$arch" == runtime/amd64 ]] || { echo 'Only runtime/amd64 can stage the tested image' >&2; exit 1; }
   # Forks and ordinary branches must still be able to build/test without secrets.
   if [[ -z "${DOCKER_USER:-}" || -z "${DOCKER_PASS:-}" ]]; then
+    # Release branches must always verify the staged image matches this build; a skipped
+    # check could let a rerun promote an earlier staging image that these tests never ran.
+    if is_release_branch; then
+      echo 'DOCKER_USER/DOCKER_PASS are required to stage the tested image on release branches' >&2
+      exit 1
+    fi
     echo 'Skipping tested-image staging push: DOCKER_USER/DOCKER_PASS unavailable; build and tests can continue'
     exit 0
   fi

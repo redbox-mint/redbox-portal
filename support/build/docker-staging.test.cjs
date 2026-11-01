@@ -224,6 +224,16 @@ test('builds without either Docker credential skip staging so forks can test', (
   }
 });
 
+test('release branches fail tested-image staging without credentials instead of skipping verification', () => {
+  for (const branch of ['develop', 'master', 'support/5.x']) {
+    const result = run(['stage-tested', 'runtime', 'amd64'], { CIRCLE_BRANCH: branch, DOCKER_USER: '', DOCKER_PASS: '' });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /required to stage the tested image on release branches/);
+    assert.doesNotMatch(result.stdout, /Skipping tested-image staging push/);
+    assert.deepEqual(result.calls, []);
+  }
+});
+
 test('credential-free dry runs inspect anonymously and print commands; writes still require credentials', () => {
   for (const args of [['promote', 'runtime', 'amd64'], ['manifest', 'runtime'], ['promote', 'pdfgen', 'arm64']]) {
     const result = run(args, { DOCKER_USER: '', DOCKER_PASS: '' });
