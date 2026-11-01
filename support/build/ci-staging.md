@@ -100,6 +100,17 @@ that browser entry before webpack, just as the original root compile did, then
 uses the shared dependency graph after Angular npm ci for bundling. Both Angular and webpack can reuse cache on unrelated backend
 changes; backend compilation proceeds independently of the asset stages.
 
+## Test dependency registry cache
+
+The five image-consuming test machines and the core MongoDB integration job
+configure Google's `mirror.gcr.io` Docker Hub cache before pulling images. They
+preserve existing daemon options/mirrors and restart Docker before any workload
+starts. Pinned auxiliary image digests remain unchanged; cache misses fall back
+to Docker Hub. The portal hand-off still authenticates and verifies its pinned
+image ID. This avoids shared CircleCI IP pull-quota failures for public test
+dependencies, observed even after successful Docker login. Build/publish
+executors and BuildKit cache write scopes are unchanged.
+
 ## Independent jobs and test scheduling
 
 The 19 Angular matrix jobs, sails-ng-common, redbox-core, agenda-sqs-backend,

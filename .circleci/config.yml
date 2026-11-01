@@ -53,41 +53,6 @@ jobs:
           root: /tmp
           paths:
             - docker-images
-  diagnose-compose-auth:
-    machine:
-      image: ubuntu-2404:current
-    resource_class: medium
-    steps:
-      - checkout
-      - run:
-          name: Diagnose Docker CLI and compose authentication (no secrets printed)
-          command: |
-            echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
-            docker version --format '{{.Client.Version}}'
-            docker compose version
-            docker info --format 'Registry mirrors: {{json .RegistryConfig.Mirrors}}'
-            node -e 'const fs = require("fs"); const p = (process.env.DOCKER_CONFIG || process.env.HOME + "/.docker") + "/config.json"; const c = JSON.parse(fs.readFileSync(p)); console.log("Config path:", p, "Registry keys:", Object.keys(c.auths || {}), "Helper configured:", Boolean(c.credsStore));'
-            image='axllent/mailpit:latest@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387'
-            docker pull "$image" || true
-            docker compose -f support/integration-testing/docker-compose.mocha.yml pull email || true
-      - run:
-          name: Inspect registry authentication scope and quota without exposing tokens
-          command: |
-            node \<<'NODE'
-            (async () => {
-              for (const repository of ['qcifengineering/redbox-portal', 'axllent/mailpit', 'library/node']) {
-                const authorization = 'Basic ' + Buffer.from(process.env.DOCKER_USER + ':' + process.env.DOCKER_PASS).toString('base64');
-                const response = await fetch('https://auth.docker.io/token?service=registry.docker.io&scope=' + encodeURIComponent('repository:' + repository + ':pull'), {headers: {authorization}});
-                const data = await response.json();
-                const token = data.token || data.access_token;
-                if (!token) { console.log(repository, 'token request status', response.status); continue; }
-                const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
-                console.log(repository, 'authenticated subject:', Boolean(claims.sub), 'granted access:', JSON.stringify(claims.access));
-                const manifest = await fetch('https://registry-1.docker.io/v2/' + repository + '/manifests/latest', {method: 'HEAD', headers: {authorization: 'Bearer ' + token, accept: 'application/vnd.docker.distribution.manifest.list.v2+json'}});
-                console.log(repository, 'manifest status:', manifest.status, 'quota:', manifest.headers.get('ratelimit-limit'), 'remaining:', manifest.headers.get('ratelimit-remaining'));
-              }
-            })().catch(error => { console.error(error.message); process.exit(1); });
-            NODE
   verify-image-equivalence:
     machine:
       image: ubuntu-2404:current
@@ -229,6 +194,14 @@ jobs:
             )
             nvm use
             printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
+      - run: &testRegistryMirror
+          name: Use Docker Hub cache for test dependencies
+          command: |
+            # Preserve machine defaults and any existing mirrors. Digest-pinned
+            # images retain the same identity; cache misses fall back to Hub.
+            sudo python3 -c 'import json, pathlib; p = pathlib.Path("/etc/docker/daemon.json"); c = json.loads(p.read_text()) if p.exists() else {}; c["registry-mirrors"] = ["https://mirror.gcr.io"] + [m for m in c.get("registry-mirrors", []) if m != "https://mirror.gcr.io"]; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps(c))'
+            sudo systemctl restart docker
+            docker info --format 'Registry mirrors: {{json .RegistryConfig.Mirrors}}'
       - attach_workspace:
           at: /tmp
       - run:
@@ -315,6 +288,7 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
@@ -372,6 +346,7 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
@@ -429,6 +404,7 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
@@ -490,6 +466,7 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
@@ -634,6 +611,7 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - run:
           name: Start MongoDB for core integration tests
           command: |
@@ -1321,10 +1299,6 @@ workflows:
         - equal: [none, << pipeline.parameters.npm_publish_mode >>]
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
-      - diagnose-compose-auth:
-          filters:
-            branches:
-              only: chore/ci-build-speed
       - stage-image-arm64:
           name: stage-runtime-arm64
           variant: runtime
