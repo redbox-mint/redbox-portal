@@ -72,7 +72,9 @@ correctness. Exports use registry `mode=max`, OCI media types and image manifest
 Bake's test target alone exports cache because its graph contains runtime too.
 
 `manifests` copies root and local-package manifests/locks and the exact patched
-Agenda tarball before installation. After source is copied, script-free npm
+Agenda tarball before installation. The install steps bind-mount the root
+`.npmrc` as a cache input to preserve lifecycle/peer settings without copying
+application source. After source is copied, script-free npm
 rebuild restores local CLI bin links that npm skips when their targets are absent. `dev-deps` and `prod-deps` are independent.
 The latter installs a clean production graph while compilation proceeds, removing
 the old node_modules snapshot/reinstall sequence. Runtime copies only production

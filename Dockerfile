@@ -40,11 +40,12 @@ COPY packages/agenda-patched/*.tgz ./packages/agenda-patched/
 
 FROM manifests AS prod-deps
 # A clean production graph, independent of compilation and its dev dependencies.
-RUN npm ci --omit=dev --no-audit \
+# npm configuration is an install input too; mount it without copying source.
+RUN --mount=type=bind,source=.npmrc,target=/opt/redbox-portal/.npmrc npm ci --omit=dev --no-audit \
  && find packages -mindepth 2 -maxdepth 2 -type f -delete
 
 FROM manifests AS dev-deps
-RUN npm ci --no-audit \
+RUN --mount=type=bind,source=.npmrc,target=/opt/redbox-portal/.npmrc npm ci --no-audit \
  && (cd packages/agenda-sqs-backend && npm ci --no-audit) \
  && (cd packages/sails-ng-common && npm ci --no-audit) \
  && (cd packages/raido && npm ci --no-audit) \
@@ -60,7 +61,7 @@ FROM dev-deps AS shared-builder
 COPY packages/sails-ng-common/package*.json ./packages/sails-ng-common/
 COPY packages/redbox-dev-tools/config/tsconfig.base.json ./packages/redbox-dev-tools/config/
 COPY packages/sails-ng-common/tsconfig*.json ./packages/sails-ng-common/
-RUN cd packages/sails-ng-common && npm ci --no-audit
+RUN --mount=type=bind,source=.npmrc,target=/opt/redbox-portal/.npmrc cd packages/sails-ng-common && npm ci --no-audit
 COPY packages/sails-ng-common/src ./packages/sails-ng-common/src
 RUN cd packages/sails-ng-common && npm run compile
 # No redbox-core/backend source enters this stage's cache key.
