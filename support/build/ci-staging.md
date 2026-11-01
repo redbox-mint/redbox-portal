@@ -72,13 +72,15 @@ correctness. Exports use registry `mode=max`, OCI media types and image manifest
 Bake's test target alone exports cache because its graph contains runtime too.
 
 `manifests` copies root and local-package manifests/locks and the exact patched
-Agenda tarball before installation. `dev-deps` and `prod-deps` are independent.
+Agenda tarball before installation. After source is copied, script-free npm
+rebuild restores local CLI bin links that npm skips when their targets are absent. `dev-deps` and `prod-deps` are independent.
 The latter installs a clean production graph while compilation proceeds, removing
 the old node_modules snapshot/reinstall sequence. Runtime copies only production
 dependencies; test copies unpruned builder dependencies directly.
 
 `angular-builder` reads `angular/`, shared `sails-ng-common` source/manifests,
-shared TypeScript base config and `compileProductionAngular.sh`. There is no
+shared TypeScript base config, the manifest-only root/local dependency layer
+(required to resolve that config), and `compileProductionAngular.sh`. There is no
 angular-legacy workspace. Backend-only edits do not invalidate Angular. Its
 assets feed `assets-builder`, which runs the existing webpack wrapper against
 only its hook/config sources (using the wrapper's existing ts-node fallback),

@@ -94,6 +94,12 @@ COPY --from=dev-deps /opt/redbox-portal/packages/redbox-dev-tools/package-lock.j
 COPY --from=dev-deps /opt/redbox-portal/packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/package-lock.json
 COPY --from=dev-deps /opt/redbox-portal/packages/sails-hook-redbox-pdfgen/package-lock.json ./packages/sails-hook-redbox-pdfgen/package-lock.json
 
+# npm skips local-package bin links while only their manifests exist. Re-link
+# after source arrives, without lifecycle scripts or a second dependency install.
+RUN npm rebuild --ignore-scripts \
+ && (cd packages/redbox-hook-dev && npm rebuild --ignore-scripts) \
+ && (cd packages/sails-hook-redbox-pdfgen && npm rebuild --ignore-scripts)
+
 RUN cd packages/agenda-sqs-backend && npm run build
 RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
