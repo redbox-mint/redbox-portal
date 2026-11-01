@@ -128,3 +128,25 @@ test('v tags retain the runtime archive for legacy deployment with either transp
   assert.equal(fork.status, 0, fork.stderr);
   assert.match(fork.calls.find(c => c.startsWith('save ')), /redbox-portal:test redbox-portal:runtime$/);
 });
+
+test('decoupled jobs retain workflow filters and only image consumers wait for build', () => {
+  const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
+  const independent = ['generate-api-docs', 'test-angular', 'test-sails-ng-common', 'test-redbox-core',
+    'test-agenda-sqs-backend', 'test-rva-registry', 'test-redbox-dev-tools-cli', 'test-storage-mongo'];
+  for (const [workflow, end, filter] of [
+    ['build_test_gendocs_and_deploy', 'build_test_dependabot', 'normalBranchFilters'],
+    ['build_test_dependabot', 'release_build_test_gendocs_and_deploy', 'dependabotFilters'],
+  ]) {
+    const body = config.split(`  ${workflow}:`)[1].split(`  ${end}:`)[0];
+    for (const name of independent) {
+      const job = body.match(new RegExp(`^      - ${name}:\\n([\\s\\S]*?)(?=^      - |$(?![\\s\\S]))`, 'm'))?.[1];
+      assert.ok(job, `${workflow}/${name}`);
+      assert.ok(job.includes(`filters: *${filter}`), `${workflow}/${name} filter`);
+      assert.doesNotMatch(job, /^            - build$/m);
+      if (filter === 'dependabotFilters') assert.match(job, /- refresh-dependabot-package-locks/);
+    }
+    for (const name of ['test-mocha', 'test-playwright', 'test-bruno-general', 'test-bruno-oidc', 'test-bruno-s3']) {
+      assert.ok(body.includes(`      - ${name}:\n          requires:\n            - build\n`));
+    }
+  }
+});

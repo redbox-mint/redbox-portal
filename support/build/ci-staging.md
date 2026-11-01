@@ -105,7 +105,8 @@ changes; backend compilation proceeds independently of the asset stages.
 The 19 Angular matrix jobs, sails-ng-common, redbox-core, agenda-sqs-backend,
 rva-registry, redbox-dev-tools-cli, storage-mongo, and generate-api-docs install
 and compile from their own checkouts. They consume no build outputs and start
-at workflow entry. The unused sails-ng-common and redbox-core workspace mounts
+at workflow entry (Dependabot jobs still wait for lock refresh). Explicit branch
+filters preserve the separation between ordinary and Dependabot workflows. The unused sails-ng-common and redbox-core workspace mounts
 are removed. Bruno general/OIDC/S3, Mocha and Playwright require the tested image
 and retain their build dependency. Lint stays in build; all automatic promotions
 still require every test plus build (directly or through image-consuming tests)

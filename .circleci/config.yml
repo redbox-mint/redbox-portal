@@ -1304,13 +1304,11 @@ workflows:
           filters: *stagingBranchFilters
       - build:
           stage_tested_image: true
-          filters:
+          filters: &normalBranchFilters
             branches:
               ignore: /^dependabot.*/
       - generate-api-docs:
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+          filters: *normalBranchFilters
       - publish-wiki:
           requires:
             - deploy
@@ -1369,15 +1367,22 @@ workflows:
                 - branding
                 - translation
                 - record-search
-      - test-sails-ng-common
+          filters: *normalBranchFilters
+      - test-sails-ng-common:
+          filters: *normalBranchFilters
       # - lint-redbox-core:
       #     requires:
       #       - build
-      - test-redbox-core
-      - test-agenda-sqs-backend
-      - test-rva-registry
-      - test-redbox-dev-tools-cli
-      - test-storage-mongo
+      - test-redbox-core:
+          filters: *normalBranchFilters
+      - test-agenda-sqs-backend:
+          filters: *normalBranchFilters
+      - test-rva-registry:
+          filters: *normalBranchFilters
+      - test-redbox-dev-tools-cli:
+          filters: *normalBranchFilters
+      - test-storage-mongo:
+          filters: *normalBranchFilters
       - promote-staging-image:
           name: deploy-arm64
           variant: runtime
@@ -1480,7 +1485,7 @@ workflows:
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
-          filters:
+          filters: &dependabotFilters
             branches:
               only: /^dependabot.*/
             tags:
@@ -1494,11 +1499,9 @@ workflows:
             tags:
               ignore: /.*/
       - generate-api-docs:
-          filters:
-            branches:
-              only: /^dependabot.*/
-            tags:
-              ignore: /.*/
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-bruno-general:
           requires:
             - build
@@ -1539,12 +1542,33 @@ workflows:
                 - branding
                 - translation
                 - record-search
-      - test-sails-ng-common
-      - test-redbox-core
-      - test-agenda-sqs-backend
-      - test-rva-registry
-      - test-redbox-dev-tools-cli
-      - test-storage-mongo
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
+      - test-sails-ng-common:
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
+      - test-redbox-core:
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
+      - test-agenda-sqs-backend:
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
+      - test-rva-registry:
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
+      - test-redbox-dev-tools-cli:
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
+      - test-storage-mongo:
+          requires:
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - deploy-arm64:
           requires:
             - test-bruno-general
