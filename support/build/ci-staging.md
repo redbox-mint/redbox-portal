@@ -80,9 +80,11 @@ dependencies; test copies unpruned builder dependencies directly.
 `angular-builder` reads `angular/`, shared `sails-ng-common` source/manifests,
 shared TypeScript base config and `compileProductionAngular.sh`. There is no
 angular-legacy workspace. Backend-only edits do not invalidate Angular. Its
-assets are merged into the backend builder before webpack. Webpack still uses
-the compiled core hook/config, shared logger, root/vendor dependencies and merged
-assets, so it remains after backend compilation to preserve that behavior.
+assets feed `assets-builder`, which runs the existing webpack wrapper against
+only its hook/config sources (using the wrapper's existing ts-node fallback),
+the Sails type declarations, shared logger, TypeScript config, vendor dependencies
+and static assets. Both Angular and webpack can reuse cache on unrelated backend
+changes; backend compilation proceeds independently of the asset stages.
 
 ## Filesystem equivalence evidence
 

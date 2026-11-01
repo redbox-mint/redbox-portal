@@ -55,18 +55,32 @@ RUN npm ci --no-audit \
  && (cd packages/redbox-hook-dev && npm install --no-save --ignore-scripts --no-audit) \
  && (cd packages/sails-hook-redbox-pdfgen && npm install --include=dev --no-save --ignore-scripts --legacy-peer-deps --no-audit)
 
-# Angular reads its own workspace and the shared sails-ng-common package only.
-# No redbox-core/backend source enters this stage's cache key.
-FROM dev-deps AS angular-builder
+# Compile the only shared package imported by Angular and the asset wrapper.
+FROM dev-deps AS shared-builder
 COPY packages/sails-ng-common/package*.json ./packages/sails-ng-common/
 COPY packages/redbox-dev-tools/config/tsconfig.base.json ./packages/redbox-dev-tools/config/
 COPY packages/sails-ng-common/tsconfig*.json ./packages/sails-ng-common/
 RUN cd packages/sails-ng-common && npm ci --no-audit
 COPY packages/sails-ng-common/src ./packages/sails-ng-common/src
 RUN cd packages/sails-ng-common && npm run compile
+# No redbox-core/backend source enters this stage's cache key.
+FROM shared-builder AS angular-builder
 COPY angular ./angular
 COPY support/build/compileProductionAngular.sh ./support/build/
 RUN bash support/build/compileProductionAngular.sh
+
+# The existing wrapper supports loading these hook/config sources with ts-node.
+# Keep its exact webpack behavior while excluding unrelated backend sources.
+FROM shared-builder AS assets-builder
+COPY tsconfig.json ./
+COPY packages/redbox-core/tsconfig.json ./packages/redbox-core/
+COPY packages/redbox-core/src/config/webpack.config.ts ./packages/redbox-core/src/config/
+COPY packages/redbox-core/src/hooks/webpack.ts ./packages/redbox-core/src/hooks/
+COPY packages/redbox-core/src/sails.ts ./packages/redbox-core/src/
+COPY packages/redbox-dev-tools/bin/wrapper-webpack.js ./packages/redbox-dev-tools/bin/
+COPY assets ./assets
+COPY --from=angular-builder /opt/redbox-portal/assets/angular ./assets/angular
+RUN npm run webpack
 
 FROM dev-deps AS builder
 COPY . .
@@ -99,8 +113,8 @@ RUN cd packages/sails-hook-redbox-pdfgen && npm run compile
 RUN npx tsc --project tsconfig.json
 
 
-COPY --from=angular-builder /opt/redbox-portal/assets/angular ./assets/angular
-RUN npm run webpack
+COPY --from=assets-builder /opt/redbox-portal/assets ./assets
+COPY --from=assets-builder /opt/redbox-portal/.tmp/public ./.tmp/public
 RUN bash support/build/api-descriptors/generateAPIDescriptors.sh
 
 FROM builder AS runtime-files
