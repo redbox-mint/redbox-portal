@@ -11,7 +11,7 @@ declare const HarvestRunService: HarvestRunServiceContract;
 
 export namespace Controllers {
   export class HarvestRun extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = ['listRuns', 'getRun', 'listRunEvents'];
+    protected override _exportedMethods: string[] = ['listRuns', 'getRun', 'listRunEvents', 'listRunChunks'];
 
     private parsePageSize(value: unknown): number {
       return Math.min(this.parsePositiveInt(value, 'pageSize') ?? 20, 100);
@@ -106,6 +106,52 @@ export namespace Controllers {
       }
     }
 
+    public async listRunChunks(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+        const validated = getValidatedApiRequest(req);
+        const runId = String(validated.params.id ?? '').trim();
+        if (_.isEmpty(runId)) {
+          return this.sendResp(req, res, {
+            status: 400,
+            displayErrors: [{ detail: 'Run id is required.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+
+        const runExists = await HarvestRunService.runExists(brand, runId);
+        if (!runExists) {
+          return this.sendResp(req, res, {
+            status: 404,
+            displayErrors: [{ detail: 'Harvest run not found.' }],
+            headers: this.getNoCacheHeaders(),
+          });
+        }
+
+        const { query } = validated;
+        const page = this.parsePositiveInt(query.page, 'page') ?? 1;
+        const pageSize = this.parsePageSize(query.pageSize);
+        const result = await HarvestRunService.listRunChunks(brand, runId, {
+          page,
+          pageSize,
+        });
+
+        const response = new ListAPIResponse<typeof result.rows[number]>();
+        response.summary.numFound = result.total;
+        response.summary.page = page;
+        response.summary.start = (page - 1) * pageSize;
+        response.records = result.rows;
+        return this.sendResp(req, res, { data: response, status: 200, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        const errorResponse = error instanceof APIErrorResponse ? error : new APIErrorResponse(error instanceof Error ? error.message : String(error));
+        return this.sendResp(req, res, {
+          status: error instanceof APIErrorResponse ? 400 : 500,
+          displayErrors: [{ detail: errorResponse.message }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
+    }
+
     public async listRunEvents(req: Sails.Req, res: Sails.Res) {
       try {
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
@@ -134,6 +180,7 @@ export namespace Controllers {
         const result = await HarvestRunService.listRunEvents(brand, runId, {
           runId,
           brandId: String(brand.id ?? ''),
+          chunkId: query.chunkId as string | undefined,
           outcome: query.outcome as string | undefined,
           operation: query.operation as string | undefined,
           harvestId: query.harvestId as string | undefined,

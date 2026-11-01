@@ -23,7 +23,7 @@ function trackReport(api: PortalApi, resources: ResourceLedger, name: string): v
   } });
 }
 
-test('A02 selects dates and record type and downloads real JSON and CSV exports', async ({ adminPage, records, resources }) => {
+test('A02 selects dates and record type and downloads real JSON and CSV exports', async ({ adminPage, adminCsrfToken, records, resources }) => {
   const type = 'e2e-initialisation-modes';
   const title = resources.name('A02', 'export');
   const record = await records.create(type, { title, translated: 'Owned export content' });
@@ -34,18 +34,44 @@ test('A02 selects dates and record type and downloads real JSON and CSV exports'
   await app.locator('#after').press('Tab');
   await app.locator('#before').fill('31/12/2099');
   await app.locator('#before').press('Tab');
-  await app.getByRole('button', { name: 'Toggle Dropdown', exact: true }).click();
-  await app.locator('.dropdown-menu a').filter({ hasText: type }).click();
+  await app.getByLabel('Record type', { exact: true }).selectOption(type);
   for (const format of ['json', 'csv'] as const) {
-    await app.getByLabel(format.toUpperCase(), { exact: true }).check();
-    const pending = adminPage.waitForEvent('download');
-    await app.locator('button').filter({ hasText: type }).click();
-    const download = await pending;
+    await app.locator(`label[for="format-${format}"]`).click();
+    await expect(app.getByLabel(format.toUpperCase(), { exact: true })).toBeChecked();
+    let download: Download;
+    if (format === 'json') {
+      const pending = adminPage.waitForEvent('download');
+      await app.getByRole('button', { name: 'Download JSON', exact: true }).click();
+      download = await pending;
+      const url = new URL(download.url());
+      expect(url.searchParams.get('recType')).toBe(type);
+      expect(url.searchParams.get('after')).toContain('2019-12-31T14:00:00');
+      expect(url.searchParams.get('before')).toContain('2099-12-31T13:59:59');
+    } else {
+      const created = adminPage.waitForResponse(response => response.request().method() === 'POST'
+        && new URL(response.url()).pathname === '/default/rdmp/export/jobs');
+      await app.getByRole('button', { name: 'Prepare export', exact: true }).click();
+      const response = await created;
+      const job = await apiData<{ id: string; recordType: string; modifiedAfter: string; modifiedBefore: string }>(response);
+      const api = new PortalApi(adminPage.request, adminCsrfToken);
+      resources.track({ kind: 'export-job', id: job.id, cleanup: async () => {
+        const removed = await api.mutate('delete', `export/jobs/${encodeURIComponent(job.id)}`, undefined,
+          { 'X-ReDBox-Api-Version': '2.0' });
+        expect(removed.ok()).toBeTruthy();
+      } });
+      expect(response.status()).toBe(202);
+      expect(job.recordType).toBe(type);
+      expect(job.modifiedAfter).toContain('2019-12-31T14:00:00');
+      expect(job.modifiedBefore).toContain('2099-12-31T13:59:59');
+      const link = app.getByRole('link', { name: 'Download CSV', exact: true })
+        .and(app.locator(`a[href$="/export/jobs/${job.id}/download"]`));
+      await expect(link).toBeVisible();
+      const pending = adminPage.waitForEvent('download');
+      await link.click();
+      download = await pending;
+      expect(new URL(download.url()).pathname).toBe(`/default/rdmp/export/jobs/${job.id}/download`);
+    }
     expect(download.suggestedFilename()).toMatch(new RegExp(`\\.${format}$`));
-    const url = new URL(download.url());
-    expect(url.searchParams.get('recType')).toBe(type);
-    expect(url.searchParams.get('after')).toContain('2019-12-31T14:00:00');
-    expect(url.searchParams.get('before')).toContain('2099-12-31T13:59:59');
     const text = await downloadText(download);
     expect(text).not.toContain(excluded.oid);
     expect(text).not.toContain(excluded.metadata.title as string);

@@ -1,72 +1,235 @@
 @if (loadError) {
-  <div class="alert alert-danger" role="alert">
-    {{ loadError }}
-    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+  <div class="alert alert-danger ex-load-error" role="alert">
+    <span>{{ loadError }}</span>
+    <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="loadPending" (click)="retryLoad()">
+      <i class="fa fa-refresh" aria-hidden="true"></i>
+      {{ 'export-refresh' | i18next }}
+    </button>
+  </div>
+} @else if (!isReady) {
+  <div class="ex-loading ex-loading--page" role="status">
+    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+    <span>{{ 'export-loading' | i18next }}</span>
   </div>
 }
-<!-- ngIf is needed so init completes and view has all the information it needs -->
 @if (isReady) {
-  <div class="row">
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
-      <div class="form-horizontal">
-        <div class="form-group">
-          <label class="col-xs-2 control-label" for="after">{{ 'export-modified-after' | i18next }}</label>
-          <span class="col-xs-2">
-            <input type="text" id="after"
-              [bsConfig]="datePickerOpts"
-              [placeholder] = "datePickerPlaceHolder"
-              [(ngModel)] = "modAfter"
-              bsDatepicker />
-          </span>
-        </div>
-        <div class="form-group">
-          <label class="col-xs-2 control-label" for="before">{{ 'export-modified-before' | i18next }}</label>
-          <span class="col-xs-2">
-            <input type="text" id="before"
-              [bsConfig]="datePickerOpts"
-              [placeholder] = "datePickerPlaceHolder"
-              [(ngModel)] = "modBefore"
-              bsDatepicker />
-          </span>
-        </div>
-        <div class="form-group">
-          <label class="col-xs-2 control-label">{{ 'export-format' | i18next }} </label>
-          <span class="col-xs-2">
-            @for (recExportFormat of getExportFormatNames(); track recExportFormat) {
-              <div  >
-                <input [checked]="recExportFormat.checked" (change)="setExportFormat(recExportFormat.id, $event)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" >
-                <label for="format-{{recExportFormat.id}}" >&nbsp;{{ recExportFormat.name }}</label>
-              </div>
-            }
-          </span>
-        </div>
-        <div class="form-group">
-          <div class="col-xs-2"></div>
-          <div class="col-xs-10 padding-remove">
-            <span class="btn-group">
-              <button (click)="download()" class="btn btn-primary text-nowrap" type="button">
-                {{ 'export-' + record_type  | i18next }}
-              </button>
-              <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="visually-hidden">Toggle Dropdown</span>
-              </button>
-              <ul class="dropdown-menu">
-                @for (recTypeName of getRecordTypeNames(); track recTypeName) {
-                  <li>
-                    <a class="dropdown-item" href="#" (click)="setRecordType(recTypeName, $event)">
-                      {{ 'export-'+ recTypeName  | i18next }}
-                    </a>
-                  </li>
-                }
-              </ul>
-            </span>
+  <div class="container-fluid py-3 export-app">
+
+    <!-- Request form -->
+    <section class="panel panel-default ex-panel" aria-labelledby="export-form-title">
+      <div class="panel-heading ex-panel__heading">
+        <strong id="export-form-title">
+          <i class="fa fa-file-export" aria-hidden="true"></i>
+          {{ 'export-heading' | i18next }}
+        </strong>
+      </div>
+      <div class="panel-body">
+        <form class="ex-form" (ngSubmit)="download()" novalidate>
+          <div class="ex-field">
+            <label for="export-record-type">{{ 'export-record-type' | i18next }}</label>
+            <select class="form-select" id="export-record-type" name="recordType" [(ngModel)]="record_type">
+              @for (recTypeName of getRecordTypeNames(); track recTypeName) {
+                <option [value]="recTypeName">{{ recTypeName + '-title' | i18next }}</option>
+              }
+            </select>
           </div>
+
+          <fieldset class="ex-field" aria-describedby="export-range-help">
+            <legend>{{ 'export-field-modification-range' | i18next }}</legend>
+            <div class="ex-range">
+              <div class="ex-range__part">
+                <label class="ex-range__label" for="after">{{ 'export-field-date-from' | i18next }}</label>
+                <input type="text" class="form-control" id="after" name="modAfter" autocomplete="off"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modAfter" bsDatepicker />
+              </div>
+              <div class="ex-range__part">
+                <label class="ex-range__label" for="before">{{ 'export-field-date-to' | i18next }}</label>
+                <input type="text" class="form-control" id="before" name="modBefore" autocomplete="off"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modBefore" bsDatepicker />
+              </div>
+            </div>
+            <small class="ex-help" id="export-range-help">{{ 'export-date-range-help' | i18next }}</small>
+          </fieldset>
+
+          @if (getExportFormatNames().length > 1) {
+            <fieldset class="ex-field">
+              <legend>{{ 'export-field-format' | i18next }}</legend>
+              <div class="btn-group ex-format" role="group">
+                @for (recExportFormat of getExportFormatNames(); track recExportFormat.id) {
+                  <input class="btn-check" type="radio" name="export-format-radio" id="format-{{recExportFormat.id}}"
+                    [checked]="export_format === recExportFormat.id" (change)="setExportFormat(recExportFormat.id)" />
+                  <label class="btn btn-outline-secondary" for="format-{{recExportFormat.id}}">{{ recExportFormat.name }}</label>
+                }
+              </div>
+            </fieldset>
+          }
+
+          @if (submissionErrorKey) {
+            <div class="alert alert-danger ex-alert" role="alert">
+              <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+              {{ submissionErrorKey | i18next }}
+            </div>
+          }
+
+          <div class="ex-submit">
+            <button type="submit" class="btn btn-primary" [disabled]="mutationPending || !record_type">
+              @if (createPending) {
+                <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+                {{ 'export-submitting' | i18next }}
+              } @else if (export_format === 'csv') {
+                <i class="fa fa-gears" aria-hidden="true"></i>
+                {{ 'export-prepare' | i18next }}
+              } @else {
+                <i class="fa fa-download" aria-hidden="true"></i>
+                {{ 'export-download-format' | i18next: { format: getSelectedFormatName() } }}
+              }
+            </button>
+          </div>
+
+          <p class="ex-hint">
+            <i class="fa fa-info-circle" aria-hidden="true"></i>
+            <span>{{ (export_format === 'csv' ? 'export-background-hint' : 'export-direct-hint') | i18next }}</span>
+          </p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Recent exports -->
+    <section class="panel panel-default ex-panel" aria-labelledby="export-recent-title" [attr.aria-busy]="jobsLoading">
+      <div class="panel-heading ex-panel__heading">
+        <strong id="export-recent-title">
+          <i class="fa fa-clock-rotate-left" aria-hidden="true"></i>
+          {{ 'export-recent-title' | i18next }}
+        </strong>
+        <div class="ex-panel__tools">
+          @if (isUpdatingAutomatically()) {
+            <small class="ex-auto-refresh">
+              <span class="fa fa-circle-notch fa-spin" aria-hidden="true"></span>
+              {{ 'export-auto-refresh' | i18next }}
+            </small>
+          } @else if (jobs.length) {
+            <small>{{ 'export-count' | i18next: { count: jobs.length } }}</small>
+          }
+          <button type="button" class="btn btn-light btn-sm" [disabled]="jobsLoading || mutationPending" (click)="refreshJobs()">
+            <i class="fa fa-refresh" [class.fa-spin]="jobsLoading" aria-hidden="true"></i>
+            {{ (jobsLoading ? 'export-refreshing' : 'export-refresh') | i18next }}
+          </button>
         </div>
       </div>
-    </div>
-    <div class="col-xs-1">
-    </div>
+      <div class="panel-body">
+        @if (jobsErrorKey) {
+          <div class="alert alert-warning ex-alert" role="alert">
+            <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+            {{ jobsErrorKey | i18next }}
+          </div>
+        }
+        @if (deleteErrorKey) {
+          <div class="alert alert-danger ex-alert" role="alert">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            {{ deleteErrorKey | i18next }}
+          </div>
+        }
+
+        @if (!jobs.length && !jobsErrorKey) {
+          <div class="ex-empty">
+            <i class="fa fa-inbox" aria-hidden="true"></i>
+            <p class="mb-0">{{ 'export-no-jobs' | i18next }}</p>
+            <small class="text-muted">{{ 'export-no-jobs-hint' | i18next }}</small>
+          </div>
+        }
+        @if (jobs.length) {
+          <div class="ex-table-wrap">
+            <table class="ex-table">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'export-record-type' | i18next }}</th>
+                  <th scope="col">{{ 'export-date-range' | i18next }}</th>
+                  <th scope="col">{{ 'export-requested' | i18next }}</th>
+                  <th scope="col">{{ 'export-status' | i18next }}</th>
+                  <th scope="col">{{ 'export-expires' | i18next }}</th>
+                  <th scope="col" class="text-end">{{ 'export-actions' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (job of jobs; track job.id) {
+                  @let status = getStatus(job);
+                  <tr [class.ex-row--muted]="status === 'expired'">
+                    <th scope="row">
+                      <div>{{ job.recordType + '-title' | i18next }}</div>
+                      @if (status === 'ready' && job.filename) {
+                        <div class="ex-subtext" [title]="job.filename">
+                          <span>{{ job.filename }}</span>
+                          @if (formatSize(job.byteLength); as size) {
+                            <span class="text-nowrap"> · {{ size }}</span>
+                          }
+                        </div>
+                      }
+                    </th>
+                    <td>
+                      @if (job.modifiedAfter && job.modifiedBefore) {
+                        <span class="text-nowrap">{{ job.modifiedAfter | date:'mediumDate' }}</span>
+                        <span class="ex-range-sep" aria-hidden="true">–</span>
+                        <span class="visually-hidden">{{ 'export-range-to' | i18next }}</span>
+                        <span class="text-nowrap">{{ job.modifiedBefore | date:'mediumDate' }}</span>
+                      } @else if (job.modifiedAfter) {
+                        {{ 'export-range-from' | i18next: { date: (job.modifiedAfter | date:'mediumDate') } }}
+                      } @else if (job.modifiedBefore) {
+                        {{ 'export-range-until' | i18next: { date: (job.modifiedBefore | date:'mediumDate') } }}
+                      } @else {
+                        <span class="text-muted">{{ 'export-all-dates' | i18next }}</span>
+                      }
+                    </td>
+                    <td class="text-nowrap">{{ job.createdAt | date:'medium' }}</td>
+                    <td aria-live="polite" aria-atomic="true">
+                      <span [class]="getStatusBadgeClass(status)">
+                        @if (status === 'queued' || status === 'running') {
+                          <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+                        }
+                        {{ 'export-status-' + status | i18next }}
+                      </span>
+                      @if (status === 'failed') {
+                        <div class="ex-error-text">{{ job.errorMessage || ('export-failed-hint' | i18next) }}</div>
+                      }
+                    </td>
+                    <td class="text-nowrap">
+                      @if (job.expiresAt && (status === 'ready' || status === 'expired')) {
+                        {{ job.expiresAt | date:'medium' }}
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
+                    <td class="text-end">
+                      <div class="ex-actions">
+                        @if (getDownloadUrl(job); as downloadUrl) {
+                          <a class="btn btn-primary btn-sm" [href]="downloadUrl" [attr.download]="job.filename">
+                            <i class="fa fa-download" aria-hidden="true"></i>
+                            {{ 'export-download' | i18next }}
+                          </a>
+                        } @else if (status === 'failed' || status === 'expired') {
+                          <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="mutationPending" (click)="prepareAgain(job)">
+                            <i class="fa fa-redo" aria-hidden="true"></i>
+                            {{ 'export-prepare-again' | i18next }}
+                          </button>
+                        }
+                        @if (canDelete(job)) {
+                          <button class="btn btn-outline-danger btn-sm" type="button" [disabled]="mutationPending" (click)="deleteJob(job)">
+                            @if (deletePendingId === job.id) {
+                              <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+                            } @else {
+                              <i class="fa fa-trash" aria-hidden="true"></i>
+                            }
+                            {{ (deletePendingId === job.id ? 'export-deleting' : 'export-delete') | i18next }}
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
   </div>
 }

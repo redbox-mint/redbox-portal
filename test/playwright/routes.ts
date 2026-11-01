@@ -118,7 +118,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'export',
-    requiredSelectors: ['export input#after', 'export button.dropdown-toggle'],
+    requiredSelectors: ['export input#after', 'export select#export-record-type'],
     fallbackSelectors: ['export img[src$="/images/loading.svg"]'],
     requiredAssetIncludes: [
       '/angular/export/browser/main',
