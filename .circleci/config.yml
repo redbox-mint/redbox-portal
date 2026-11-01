@@ -53,6 +53,33 @@ jobs:
           root: /tmp
           paths:
             - docker-images
+  diagnose-compose-auth:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Diagnose Docker CLI and compose authentication (no secrets printed)
+          command: |
+            echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
+            docker version --format '{{.Client.Version}}'
+            docker compose version
+            docker info --format 'Registry mirrors: {{json .RegistryConfig.Mirrors}}'
+            node -e 'const fs = require("fs"); const p = (process.env.DOCKER_CONFIG || process.env.HOME + "/.docker") + "/config.json"; const c = JSON.parse(fs.readFileSync(p)); console.log("Config path:", p, "Registry keys:", Object.keys(c.auths || {}), "Helper configured:", Boolean(c.credsStore));'
+            image='axllent/mailpit:latest@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+    pull_policy: 'always'
+    expose:
+      - '1025'
+      - '8025'
+    e'
+            docker pull "$image" || true
+            docker compose -f support/integration-testing/docker-compose.mocha.yml pull email || true
+      - run:
+          name: Diagnose Docker credentials in the next run step
+          command: |
+            node -e 'const fs = require("fs"); const p = (process.env.DOCKER_CONFIG || process.env.HOME + "/.docker") + "/config.json"; const c = JSON.parse(fs.readFileSync(p)); console.log("Config path:", p, "Registry keys:", Object.keys(c.auths || {}));'
+            docker compose -f support/integration-testing/docker-compose.mocha.yml pull email || true
   verify-image-equivalence:
     machine:
       image: ubuntu-2404:current
@@ -1286,6 +1313,10 @@ workflows:
         - equal: [none, << pipeline.parameters.npm_publish_mode >>]
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
+      - diagnose-compose-auth:
+          filters:
+            branches:
+              only: chore/ci-build-speed
       - stage-image-arm64:
           name: stage-runtime-arm64
           variant: runtime
