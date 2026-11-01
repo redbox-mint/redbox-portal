@@ -1,16 +1,10 @@
 /// <reference path="../sails.ts" />
 import { Attr, Entity, toWaterlineModelDef } from '../decorators';
+import { HARVEST_EVENT_INDEXES } from '../utilities/HarvestRunIndexes';
 import { HarvestOperation, HarvestOutcome } from '../model/storage/HarvestRunModel';
 
 @Entity('harvestrecordevent', {
-  indexes: [
-    { attributes: { runId: 1, brandId: 1, createdAt: -1 } },
-    { attributes: { runId: 1, brandId: 1, outcome: 1, createdAt: -1 } },
-    { attributes: { runId: 1, brandId: 1, operation: 1, createdAt: -1 } },
-    { attributes: { runId: 1, brandId: 1, chunkId: 1, createdAt: 1 } },
-    { attributes: { harvestId: 1, recordType: 1, brandId: 1 } },
-    { attributes: { oid: 1 } },
-  ],
+  indexes: HARVEST_EVENT_INDEXES.map(({ key, ...options }) => ({ attributes: key, ...options })),
 })
 export class HarvestRecordEventClass {
   @Attr({ type: 'string', required: true })

@@ -12,7 +12,7 @@
   "dependencies": {
     "@angular/animations": "22.2.0",
     "@angular/cdk": "22.2.0",
-    "@angular/cli": "22.2.3",
+    "@angular/cli": "22.2.4",
     "@angular/common": "22.2.0",
     "@angular/compiler": "22.2.0",
     "@angular/core": "22.2.0",
@@ -47,7 +47,7 @@
     "dompurify": "3.4.17",
     "esbuild": "0.28.2",
     "handlebars": "4.7.9",
-    "i18next": "26.5.5",
+    "i18next": "26.5.6",
     "i18next-browser-languagedetector": "8.2.1",
     "i18next-http-backend": "4.0.4",
     "lodash-es": "4.18.1",

@@ -1,0 +1,27 @@
+meta {
+  name: Background Exports - Unknown export
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/export/jobs/00000000-0000-0000-0000-000000000000/download
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Unknown downloads are concealed", function () {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getHeader("content-disposition")).to.equal(undefined);
+  });
+}

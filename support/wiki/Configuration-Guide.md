@@ -21,6 +21,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
 8. [`recordValidation`](Server-Side-Form-Validation-Operations) controls authoritative form-validation timeout, bounded shadow reporting, and global/operation rollout modes
 9. [`recordSchema`](Record-Schema-Contract-Operations) controls the default-disabled record-schema contract feature, unknown-property policy, compiler/cache limits, retention, and integration pins
+10. [Background admin CSV exports](Admin-CSV-Exports) configures the StorageManager disk, download retention, generation deadline, and cleanup for admin exports
 
 ## Configuration Defaults (redbox-core)
 

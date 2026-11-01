@@ -64,6 +64,14 @@ export const storage: StorageConfig = {
   primaryDisk: 'primary',
   keyPrefix: 'attachments/',
   disks: {
+    exports: {
+      driver: 'gridfs',
+      config: {
+        datastore: 'mongodb',
+        bucketName: 'adminExports',
+        visibility: 'private',
+      },
+    },
     staging: {
       driver: 'fs',
       config: {

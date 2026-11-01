@@ -10,6 +10,7 @@
     "redbox-loader-templates"
   ],
   "scripts": {
+    "harvest:indexes:preflight": "node scripts/harvest-indexes-preflight.cjs",
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
     "test:record-contracts": "prettier --check \"scripts/verify-record-contract-coverage.ts\" && npm run typecheck:record-contracts && npm run typecheck:record-schema-tests && TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-contract-coverage.ts",
     "test:record-schema-rollout": "npm run test:record-schema-rollout:format && npm run typecheck:record-contracts && npm run test:record-schema-rollout:unit && npm run test:record-schema-rollout:disabled && npm run test:record-schema-rollout:runtime && npm run test:record-schema-rollout:evidence",
@@ -108,7 +109,7 @@
     "rxjs": "7.8.2",
     "sails": "1.5.18",
     "sails-mongo": "2.1.2",
-    "sass": "1.105.1",
+    "sass": "1.106.1",
     "sass-loader": "17.0.1",
     "skipper": "0.9.8",
     "skipper-gridfs": "1.0.2",
@@ -118,7 +119,7 @@
     "url-pattern": "1.0.3",
     "uuid": "14.0.3",
     "wawoff2": "2.0.1",
-    "webpack": "5.112.0",
+    "webpack": "5.112.1",
     "wkt-parser-helper": "7.1.0",
     "yaml": "2.9.1",
     "zod": "4.6.7",
