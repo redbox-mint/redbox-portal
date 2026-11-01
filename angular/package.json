@@ -12,7 +12,7 @@
   "dependencies": {
     "@angular/animations": "20.3.34",
     "@angular/cdk": "20.2.14",
-    "@angular/cli": "22.2.3",
+    "@angular/cli": "22.2.4",
     "@angular/common": "20.3.34",
     "@angular/compiler": "20.3.34",
     "@angular/core": "20.3.34",
