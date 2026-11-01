@@ -57,7 +57,7 @@ RUN npm ci --no-audit \
 
 # Angular reads its own workspace and the shared sails-ng-common package only.
 # No redbox-core/backend source enters this stage's cache key.
-FROM base AS angular-builder
+FROM dev-deps AS angular-builder
 COPY packages/sails-ng-common/package*.json ./packages/sails-ng-common/
 COPY packages/redbox-dev-tools/config/tsconfig.base.json ./packages/redbox-dev-tools/config/
 COPY packages/sails-ng-common/tsconfig*.json ./packages/sails-ng-common/
