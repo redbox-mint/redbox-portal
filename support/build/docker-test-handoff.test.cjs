@@ -90,3 +90,24 @@ test('decoupled jobs retain workflow filters and only image consumers wait for b
     }
   }
 });
+
+test('all automatic Docker release gates include every test and docs; manual publication retains its human gate', () => {
+  const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
+  for (const [workflow, end] of [
+    ['build_test_gendocs_and_deploy', 'build_test_dependabot'],
+    ['build_test_dependabot', 'release_build_test_gendocs_and_deploy'],
+    ['release_build_test_gendocs_and_deploy', 'docker_manual_publish'],
+  ]) {
+    const body = config.split(`  ${workflow}:`)[1].split(`  ${end}:`)[0];
+    const tests = [...body.matchAll(/^      - (test-[^:]+):/gm)].map(match => match[1]);
+    for (const deploy of body.matchAll(/^      - (deploy[^:]*):\n          requires:\n([\s\S]*?)(?=          filters:)/gm)) {
+      for (const required of [...tests, 'generate-api-docs']) {
+        assert.ok(deploy[2].includes(`            - ${required}\n`), `${workflow}/${deploy[1]} needs ${required}`);
+      }
+    }
+  }
+  const manual = config.split('  docker_manual_publish:')[1].split('  npm_beta_publish:')[0];
+  assert.doesNotMatch(manual, /test-|generate-api-docs|            - build/);
+  assert.match(manual, /- publish-runtime-amd64\n            - publish-runtime-arm64/);
+  assert.match(manual, /- publish-runtime-pdfgen-amd64\n            - publish-runtime-pdfgen-arm64/);
+});

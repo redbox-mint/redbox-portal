@@ -20,8 +20,11 @@ publishing is unchanged. Release branches still require staging credentials.
 This intentionally changes automatic amd64 publishing: development dependencies
 and the demo hook are now restricted to the test image. The `v*` release `deploy`
 job also tags the saved runtime image. Manual publishing already builds runtime
-and retains its existing path. Tag/manual filters, gates and final names are
-unchanged. Multi-architecture tags remain `<branch>` and `<branch>-pdfgen`.
+and retains its existing path. Release-tag deploy jobs and their manifests require build, every test (including
+Playwright, RVA registry and the dev-tools CLI), and generated API docs. Manual
+Docker publication intentionally retains its human-triggered gating: each
+manifest waits only for its two architecture publishers, without build/test/docs
+gates. Final names are unchanged. Multi-architecture tags remain `<branch>` and `<branch>-pdfgen`.
 
 ## Proving the published runtime was tested
 
@@ -72,15 +75,19 @@ executors. All staging builds read registry cache from the current branch and
 fall back to develop. Only builds with both Docker credentials export cache;
 forks/no-creds builds are read-only. Each build writes its current branch only.
 
-Cache tags are `buildcache-v1-<scope>-<amd64|arm64>` (v1 versions the cache layout), where scope is the lowercase,
-Docker-safe branch name truncated to 64 characters, followed by `-` and the first
-12 hex characters of SHA-256 of the original branch. The hash avoids collisions
-between names such as `feature/a` and `feature-a`. Tags fall back to the release
-tag or `local` when no branch exists. Runtime/pdfgen share an architecture cache;
-concurrent last-writer wins can reduce cache coverage but cannot change build
-correctness. Exports use registry `mode=max`, OCI media types and image manifests.
-Bake's test target alone exports cache because its graph contains runtime too.
-Cache preflight uses non-counting HEAD requests and omits missing caches. On a
+Cache tags are `buildcache-v2-<scope>-<amd64|arm64>-<test|runtime|pdfgen>`
+(v2 versions the per-target layout), where scope is the lowercase, Docker-safe
+branch name truncated to 64 characters, followed by `-` and the first 12 hex
+characters of SHA-256 of the original branch. This avoids branch-name collisions.
+Tags fall back to the release tag or `local` when no branch exists. The `build`
+Bake writes only `test`; standalone staging writes only its runtime/pdfgen ref.
+Independent targets never overwrite one another's records. Exports use registry
+`mode=max`, OCI media types and image manifests. Imports try the own target first,
+then sibling targets, then the same order on develop, stopping at the first
+available cache because mode=max includes its ancestors. HEAD preflight logs the
+selected manifest digest and imports that immutable digest. This avoids redundant
+manifest GETs and makes concurrent writes diagnosable. Missing caches are omitted.
+On a
 non-release branch, zero allowance/HTTP 429 disables registry cache inputs and
 exports with an explicit uncached-build log. A quota race during cache access
 retries the solve once without cache inputs/exports; application failures remain
@@ -89,7 +96,12 @@ cache is optional. Release cache errors may fail; release staging and promotion
 identity checks always fail closed.
 
 `buildkitd.toml` configures `mirror.gcr.io` for Docker Hub base/frontend reads;
-the BuildKit bootstrap image also comes from that cache. Missing mirror content
+the BuildKit bootstrap image also comes from that cache. Both Node bases and
+the bootstrap image are pinned by multi-platform index digest, like the frontend.
+Mirror and Hub fallback therefore resolve the same content. The existing daily
+Docker ecosystem entry for `/` in `.github/dependabot.yml` covers Node digest
+updates; bootstrap pins in the shell helper need deliberate updates (Dependabot
+does not inspect arbitrary shell image arguments). Missing mirror content
 falls back to Hub inside BuildKit. Cache imports/exports and staging remain in
 the configured Docker Hub repository and retain their existing branch scopes.
 Tag existence and promotion digest resolution use registry HEAD requests. The
@@ -119,6 +131,33 @@ static assets and the browser TypeScript entry/style declarations. It compiles
 that browser entry before webpack, just as the original root compile did, then
 uses the shared dependency graph after Angular npm ci for bundling. Both Angular and webpack can reuse cache on unrelated backend
 changes; backend compilation proceeds independently of the asset stages.
+
+## Context diagnostics and host setup audit
+
+The build job fingerprints checkout before host setup and again immediately
+before Bake. Each staging build fingerprints immediately before its solve.
+`docker-context-fingerprint.cjs` applies `.dockerignore` (or Dockerfile-specific
+ignore rules), sorts paths, and hashes file contents, modes, directory entries
+and symlink targets, ignoring mtimes. The log prints one SHA-256 fingerprint;
+`ci-build-context` artifacts retain `inventory.jsonl` and Git status for exact
+comparisons. Fingerprints/inventories are diagnostic, not BuildKit cache keys.
+Their outputs are under `/tmp/ci-build-context`, never inside the checkout.
+
+Before the build solve: checkout writes source and `.git`; npm ci writes root
+and local-package `node_modules`; lint is read-only; npm publication tests build
+fixtures/tarballs under mktemp directories; Docker tag/staging/handoff/registry
+unit tests also use mktemp fixtures (staging mocks have an isolated cwd).
+Cache setup performs login (`~/.docker/config.json`) and uses the committed
+`buildkitd.toml` directly without copying it. Registry metadata is returned on
+stdout. Quota/retry logs use mktemp; producer markers use `/tmp/ci-staging-status`
+after the solve, and image handoff uses `/tmp/docker-images` afterwards.
+Standalone staging has checkout, login, mktemp inspection/quota logs, cache
+setup and the fingerprint before Docker; no npm installation or host compilation.
+`.dockerignore` already excludes `.git`, `.tmp`, `.circleci`, `.github`, all
+`node_modules`, `dist`, Angular cache, coverage, and root log files.
+No generated quota marker, registry output, config copy or metric belongs in
+the source context. Local npm setup reproduced no included path/content/mode
+changes. The paired CI inventories establish whether CI differs from that audit.
 
 ## Docker Hub quota audit
 
@@ -158,7 +197,7 @@ configure Google's `mirror.gcr.io` Docker Hub cache before pulling images. They
 preserve existing daemon options/mirrors and restart Docker before any workload
 starts. Pinned auxiliary image digests remain unchanged; cache misses fall back
 to Docker Hub. The portal test image comes from the workspace and its image ID is verified after loading. This avoids shared CircleCI IP pull-quota failures for public test
-dependencies, observed even after successful Docker login. BuildKit cache write scopes are unchanged.
+dependencies, observed even after successful Docker login. BuildKit cache writes are isolated by branch, architecture and target.
 
 ## Independent jobs and test scheduling
 
@@ -212,14 +251,14 @@ For API retention:
    `DELETE https://hub.docker.com/v2/repositories/<namespace>/<repository>/tags/<tag>/`.
    Never delete registry manifests/digests: final tags/indexes may reference them.
 4. Separately expire `buildcache-*` tags for deleted/inactive branches after
-   30 days without updates (including tag/local scopes and obsolete cache versions). Retain develop and active release-branch caches and
+   30 days without updates (including tag/local scopes, all three target suffixes, and obsolete v1 caches). Retain develop and active release-branch caches and
    caches used by running pipelines. Deleting a cache tag is safe for image
    contents; the next build is cold. Cache tags are mutable and should be excluded
    from any `ci-staging-*` immutability policy.
 
 Deleting staging tags leaves final image tags intact. After retention expiry,
 start a new pipeline rather than rerunning old deploy jobs. Four staging tags (runtime and pdfgen for both architectures) per
-pipeline and branch/architecture cache tags accumulate until retention is set up.
+pipeline and branch/architecture/target cache tags accumulate until retention is set up.
 
 ## Executor cost and focused verification
 
@@ -230,7 +269,7 @@ Independent staging jobs still run if tests later fail.
 ```sh
 circleci config validate .circleci/config.yml
 bash support/build/docker-build-vars.test.sh
-node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs support/build/docker-registry.test.cjs
+node --test support/build/*.test.cjs
 bash -n support/build/docker-{staging,build-cache,build-ci,test-handoff}.sh support/build/compare-ci-images.sh
 ```
 

@@ -128,7 +128,8 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
       docker tag redbox-portal:runtime "$image"
     else
       source "$SCRIPT_DIR/docker-build-cache.sh"
-      setup_build_cache
+      setup_build_cache "$variant"
+      node "$SCRIPT_DIR/docker-context-fingerprint.cjs" . /tmp/ci-build-context
       build_image() {
         docker buildx build --progress plain --platform "linux/$arch" --target "$target" \
           --provenance=false "${CACHE_FROM[@]}" "${CACHE_TO[@]}" --tag "$image" --push .

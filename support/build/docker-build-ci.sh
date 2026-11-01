@@ -4,7 +4,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/docker-build-vars.sh"
 source "$SCRIPT_DIR/docker-build-cache.sh"
 arch=amd64
-setup_build_cache
+setup_build_cache test
+node "$SCRIPT_DIR/docker-context-fingerprint.cjs" . /tmp/ci-build-context
 build_image() {
   # One Bake invocation solves the shared graph once and exports both targets.
   local args=(--set '*.platform=linux/amd64' --set '*.attest=type=provenance,disabled=true')

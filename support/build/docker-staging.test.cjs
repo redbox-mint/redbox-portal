@@ -49,6 +49,7 @@ if [[ "$1" == *docker-registry.cjs ]]; then
   printf 'registry %s %s\\n' "$2" "$3" >> "$DOCKER_TEST_LOG"
   if [[ "$2" == cache ]]; then
     if [[ "\${QUOTA_CACHE:-}" == 1 ]]; then echo 'Docker Hub pull quota exhausted' >&2; exit 4; fi
+    if [[ "\${MISSING_TEST_CACHE:-}" == 1 && "$3" == *-test ]]; then exit 3; fi
     echo '${manifestDigest}'; exit 0
   fi
   if [[ "\${QUOTA_STAGE:-}" == 1 ]]; then echo 'Docker Hub pull quota exhausted' >&2; exit 4; fi
@@ -69,6 +70,7 @@ exec '${process.execPath}' "$@"
   try {
     const result = spawnSync('bash', [scriptPath, ...args], {
       encoding: 'utf8',
+      cwd: directory,
       env: {
         ...process.env,
         PATH: `${directory}:${process.env.PATH}`,
@@ -117,9 +119,11 @@ test('staging builds preserve each published Docker target and push only the sta
     const build = result.calls.find(call => call.startsWith('buildx build '));
     assert.ok(build.includes(`--platform linux/${arch} --target ${target}`));
     assert.ok(build.includes(`--tag ${staging(variant, arch)} --push .`));
-    assert.match(build, /--cache-from type=registry,ref=example\/portal:buildcache-v1-chore-ci-build-speed-[a-f0-9]{12}-/);
+    assert.ok(build.includes(`--cache-from type=registry,ref=${pinned}`));
+    assert.match(result.stdout, /Registry cache import: example\/portal:buildcache-v2-chore-ci-build-speed/);
     assert.ok(build.includes('--cache-to type=registry,mode=max'));
-    assert.ok(build.includes(`--cache-from type=registry,ref=example/portal:buildcache-v1-develop-`));
+    const cache = build.match(/--cache-to (\S+)/)[1];
+    assert.ok(cache.includes(`-${arch}-${variant},`));
   }
 });
 
@@ -317,10 +321,10 @@ test('Buildx uses one Bake graph, isolated branch cache writes, develop fallback
   }
   const weird = run([], { CIRCLE_BRANCH: 'Feature/Foo:bar with spaces?' }, ciBuild);
   const collision = run([], { CIRCLE_BRANCH: 'Feature-Foo-bar-with-spaces' }, ciBuild);
-  assert.match(weird.calls.at(-1), /buildcache-v1-feature-foo-bar-with-spaces-[a-f0-9]{12}-amd64/);
+  assert.match(weird.calls.at(-1), /buildcache-v2-feature-foo-bar-with-spaces-[a-f0-9]{12}-amd64-test/);
   assert.notEqual(weird.calls.at(-1), collision.calls.at(-1));
   const develop = run([], { CIRCLE_BRANCH: 'develop' }, ciBuild);
-  assert.equal((develop.calls.at(-1).match(/cache-from/g) || []).length, 1);
+  assert.equal(develop.calls.filter(call => call.startsWith('registry cache ')).length, 1);
 });
 
 test('non-release staging quota skips are explicit; releases and non-quota failures remain closed', () => {
@@ -370,4 +374,27 @@ test('missing sources require matching quota evidence on dry runs; release branc
   assert.match(skipped.stdout, /source staging was skipped due to quota/);
   assert.notEqual(run(args, { MISSING_PROMOTION: '1' }).status, 0);
   assert.notEqual(run(args, { MISSING_PROMOTION: '1', QUOTA_MARKER: '1', CIRCLE_BRANCH: 'develop' }).status, 0);
+});
+
+test('cache exports are distinct per target, and import preflight orders own target before siblings and develop', () => {
+  for (const target of ['test', 'runtime', 'pdfgen']) {
+    const result = target === 'test' ? run([], {}, join(__dirname, 'docker-build-ci.sh')) : run(['build', target, 'arm64']);
+    assert.equal(result.status, 0, result.stderr);
+    const refs = result.calls.filter(call => call.startsWith('registry cache '));
+    assert.equal(refs.length, 1);
+    assert.ok(refs[0].endsWith(`-${target}`));
+    const build = result.calls.find(call => /^buildx (build|bake) /.test(call));
+    assert.match(build, new RegExp(`cache-to[^ ]*.*ref=example/portal:buildcache-v2-chore-ci-build-speed-[a-f0-9]{12}-(amd64|arm64)-${target},`));
+    assert.doesNotMatch(build, /cache-from[^ ]*,ref=example\/portal:buildcache-v2/);
+  }
+});
+
+test('a missing own cache falls back to a sibling without sharing its export ref', () => {
+  const result = run([], { MISSING_TEST_CACHE: '1' }, join(__dirname, 'docker-build-ci.sh'));
+  assert.equal(result.status, 0, result.stderr);
+  const refs = result.calls.filter(call => call.startsWith('registry cache '));
+  assert.equal(refs.length, 2);
+  assert.ok(refs[0].endsWith('-test'));
+  assert.ok(refs[1].endsWith('-runtime'));
+  assert.match(result.calls.at(-1), /ref=example\/portal:buildcache-v2-[^ ]+-amd64-test,/);
 });

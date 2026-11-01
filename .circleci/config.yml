@@ -11,6 +11,9 @@ jobs:
       STAGING_RUN_ID: << pipeline.id >>
     steps:
       - checkout
+      - run:
+          name: Fingerprint checkout before host setup
+          command: node support/build/docker-context-fingerprint.cjs . /tmp/ci-build-context/checkout
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -29,7 +32,7 @@ jobs:
           name: Test Docker tag handling
           command: |
             bash support/build/docker-build-vars.test.sh
-            node --test support/build/docker-staging.test.cjs support/build/docker-test-handoff.test.cjs support/build/docker-registry.test.cjs
+            node --test support/build/*.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -58,6 +61,9 @@ jobs:
       - store_artifacts:
           path: /tmp/ci-staging-status
           destination: ci-staging-status
+      - store_artifacts:
+          path: /tmp/ci-build-context
+          destination: ci-build-context
   verify-image-equivalence:
     machine:
       image: ubuntu-2404:current
@@ -992,6 +998,9 @@ jobs:
       - store_artifacts:
           path: /tmp/ci-staging-status
           destination: ci-staging-status
+      - store_artifacts:
+          path: /tmp/ci-build-context
+          destination: ci-build-context
   stage-image-arm64:
     parameters:
       variant:
@@ -1011,6 +1020,9 @@ jobs:
       - store_artifacts:
           path: /tmp/ci-staging-status
           destination: ci-staging-status
+      - store_artifacts:
+          path: /tmp/ci-build-context
+          destination: ci-build-context
   promote-staging-image:
     parameters:
       variant:
@@ -1593,6 +1605,9 @@ workflows:
           filters: *dependabotFilters
       - deploy-arm64:
           requires:
+            - generate-api-docs
+            - test-rva-registry
+            - test-playwright
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1608,6 +1623,9 @@ workflows:
               ignore: /^dependabot.*/
       - deploy:
           requires:
+            - generate-api-docs
+            - test-rva-registry
+            - test-playwright
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1664,6 +1682,14 @@ workflows:
             branches:
               ignore: /.*/
       - test-bruno-s3:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-playwright:
           requires:
             - build
           filters:
@@ -1747,6 +1773,10 @@ workflows:
               ignore: /.*/
       - deploy-arm64:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1763,6 +1793,10 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1788,6 +1822,10 @@ workflows:
               ignore: /.*/
       - deploy-runtime-pdfgen:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
@@ -1805,6 +1843,10 @@ workflows:
               ignore: /.*/
       - deploy-runtime-pdfgen-arm64:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc

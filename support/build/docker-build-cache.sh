@@ -8,17 +8,25 @@ cache_scope() {
 }
 
 setup_build_cache() {
-  local scope fallback ref status i
+  local scope fallback ref status i digest cache_target candidate target_ref
+  cache_target="${1:?expected cache target: test, runtime, or pdfgen}"
+  case "$cache_target" in test|runtime|pdfgen) ;; *) return 1 ;; esac
   scope="$(cache_scope "${CIRCLE_BRANCH:-${CIRCLE_TAG:-local}}")"
   fallback="$(cache_scope develop)"
-  CACHE_FROM=(--cache-from "type=registry,ref=${REPO}:buildcache-v1-${scope}-${arch}")
-  if [[ "$scope" != "$fallback" ]]; then
-    CACHE_FROM+=(--cache-from "type=registry,ref=${REPO}:buildcache-v1-${fallback}-${arch}")
-  fi
+  CACHE_FROM=()
+  # Own cache first. Siblings can seed common ancestors without competing exports.
+  for candidate in "$scope" "$fallback"; do
+    for target_ref in "$cache_target" test runtime pdfgen; do
+      ref="${REPO}:buildcache-v2-${candidate}-${arch}-${target_ref}"
+      if [[ " ${CACHE_FROM[*]} " != *"ref=${ref} "* ]]; then
+        CACHE_FROM+=(--cache-from "type=registry,ref=$ref")
+      fi
+    done
+  done
   CACHE_TO=()
   if [[ -n "${DOCKER_USER:-}" && -n "${DOCKER_PASS:-}" ]]; then
     echo "$DOCKER_PASS" | docker login --username "$DOCKER_USER" --password-stdin
-    CACHE_TO=(--cache-to "type=registry,mode=max,image-manifest=true,oci-mediatypes=true,ref=${REPO}:buildcache-v1-${scope}-${arch}")
+    CACHE_TO=(--cache-to "type=registry,mode=max,image-manifest=true,oci-mediatypes=true,ref=${REPO}:buildcache-v2-${scope}-${arch}-${cache_target}")
   else
     echo 'Registry cache is read-only: Docker push credentials unavailable'
   fi
@@ -27,8 +35,12 @@ setup_build_cache() {
   local available=()
   for ((i=1; i<${#CACHE_FROM[@]}; i+=2)); do
     ref="${CACHE_FROM[i]#type=registry,ref=}"
-    if node "$SCRIPT_DIR/docker-registry.cjs" cache "$ref" >/dev/null; then
-      available+=(--cache-from "${CACHE_FROM[i]}")
+    if digest="$(node "$SCRIPT_DIR/docker-registry.cjs" cache "$ref")"; then
+      echo "Registry cache import: $ref -> $digest"
+      available+=(--cache-from "type=registry,ref=${REPO}@${digest}")
+      # mode=max carries all ancestors. One available cache avoids spending Hub
+      # allowance on redundant sibling/develop manifest GETs on warm builds.
+      break
     else
       status=$?
       if ((status == 3)); then
@@ -48,7 +60,7 @@ setup_build_cache() {
     CACHE_TO[1]+=,ignore-error=true
   fi
   # docker-container supports registry mode=max on remote Docker and machine executors.
-  docker buildx create --name ci-cache --driver docker-container --driver-opt image=mirror.gcr.io/moby/buildkit:buildx-stable-1 --use --buildkitd-config "$SCRIPT_DIR/buildkitd.toml"
+  docker buildx create --name ci-cache --driver docker-container --driver-opt image=mirror.gcr.io/moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea --use --buildkitd-config "$SCRIPT_DIR/buildkitd.toml"
   docker buildx inspect --bootstrap
 }
 
@@ -58,9 +70,6 @@ run_cached_build() {
   local log status
   log="$(mktemp)"
   if "$@" 2>&1 | tee "$log"; then
-    if grep -Eqi 'toomanyrequests|too many requests|pull (rate |quota|limit)|429 Too Many Requests' "$log"; then
-      echo 'Docker Hub quota on optional registry cache: build completed without the unavailable cache reads/writes'
-    fi
     rm -f "$log"
     return 0
   else
