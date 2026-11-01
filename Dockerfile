@@ -80,6 +80,9 @@ COPY packages/redbox-core/src/hooks/webpack.ts ./packages/redbox-core/src/hooks/
 COPY packages/redbox-core/src/sails.ts ./packages/redbox-core/src/
 COPY packages/redbox-dev-tools/bin/wrapper-webpack.js ./packages/redbox-dev-tools/bin/
 COPY assets ./assets
+COPY typescript/assets ./typescript/assets
+COPY typescript/styles.d.ts ./typescript/
+RUN npx tsc --project tsconfig.json
 COPY --from=angular-builder /opt/redbox-portal/assets/angular ./assets/angular
 RUN npm run webpack
 
