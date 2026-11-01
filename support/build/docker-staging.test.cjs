@@ -398,3 +398,12 @@ test('a missing own cache falls back to a sibling without sharing its export ref
   assert.ok(refs[1].endsWith('-runtime'));
   assert.match(result.calls.at(-1), /ref=example\/portal:buildcache-v2-[^ ]+-amd64-test,/);
 });
+
+test('every setup_build_cache caller names its cache target', () => {
+  for (const file of ['compare-ci-images.sh', 'docker-build-ci.sh', 'docker-staging.sh']) {
+    const calls = readFileSync(join(__dirname, file), 'utf8').split('\n')
+      .filter(line => /^\s*setup_build_cache\b/.test(line));
+    assert.ok(calls.length > 0, `${file} should call setup_build_cache`);
+    for (const call of calls) assert.match(call, /setup_build_cache\s+\S+/, `${file}: ${call.trim()}`);
+  }
+});

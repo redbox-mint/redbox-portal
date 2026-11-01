@@ -7,7 +7,7 @@ mkdir -p /tmp/image-equivalence
 source "$SCRIPT_DIR/docker-build-vars.sh"
 source "$SCRIPT_DIR/docker-build-cache.sh"
 arch=amd64
-setup_build_cache
+setup_build_cache test
 # Build/export one graph at a time to bound memory and disk use.
 for implementation in old new; do
   dockerfile=Dockerfile
