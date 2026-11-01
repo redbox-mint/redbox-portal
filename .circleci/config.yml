@@ -1062,7 +1062,7 @@ jobs:
                   npm pack
                   PACKAGE_VERSION=$(node -p 'require("./package.json").version')
                   RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-                  curl -v -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+                  curl --fail --silent --show-error -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
       - run:
           name: Promote staging image (dry run outside release branches)
           command: bash support/build/docker-staging.sh promote << parameters.variant >> << parameters.arch >>
@@ -1100,7 +1100,7 @@ jobs:
             | awk -F: '{ print $2 }' \
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-            curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+            curl --fail --silent --show-error -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
       - run:
           name: Publish amd64 runtime image
           command: |

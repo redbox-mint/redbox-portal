@@ -29,13 +29,13 @@ esac
 
 [[ "${CIRCLE_SHA1:-}" =~ ^[a-f0-9]{40}$ ]] || { echo 'CIRCLE_SHA1 must be a full commit SHA' >&2; exit 1; }
 # A pipeline ID prevents different pipelines for the same SHA from sharing staging tags.
-# It stays the same on workflow reruns, allowing failed-job reruns to reuse staging images.
+# Producer job numbers additionally isolate overlapping rerun attempts.
 [[ "${STAGING_RUN_ID:-}" =~ ^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$ ]] || { echo 'STAGING_RUN_ID must be the pipeline UUID' >&2; exit 1; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/docker-build-vars.sh"
 
 staging_image() {
-  printf '%s:ci-staging-%s-%s-%s-%s' "$REPO" "$CIRCLE_SHA1" "$variant" "$1" "$STAGING_RUN_ID"
+  printf '%s:ci-staging-%s-%s-%s-%s' "$REPO" "$CIRCLE_SHA1" "$variant" "$1" "$STAGING_RUN_ID-$CIRCLE_BUILD_NUM"
 }
 
 login() {
@@ -83,7 +83,7 @@ if [[ "${CI_STAGING_QUOTA_GUARD:-}" != 1 ]]; then
     status=0
   fi
   rm -f "$log"
-  if [[ "$action" == build || "$action" == stage-tested ]] && ((status == 0)); then
+  if [[ "$action" == build || "$action" == stage-tested ]] && ((status == 0)) && [[ "$state" == quota-skipped ]]; then
     mkdir -p "${TMPDIR:-/tmp}/ci-staging-status"
     printf '%s\n%s\n%s\n' "$CIRCLE_SHA1" "$STAGING_RUN_ID" "$state" >"${TMPDIR:-/tmp}/ci-staging-status/$variant-$arch"
   fi
@@ -91,6 +91,7 @@ if [[ "${CI_STAGING_QUOTA_GUARD:-}" != 1 ]]; then
 fi
 
 if [[ "$action" == build || "$action" == stage-tested ]]; then
+  [[ "${CIRCLE_BUILD_NUM:-}" =~ ^[0-9]+$ ]] || { echo 'CIRCLE_BUILD_NUM must identify the producer attempt' >&2; exit 1; }
   target=runtime
   if [[ "$variant" == pdfgen ]]; then
     target=runtime_pdfgen
@@ -102,15 +103,12 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
   fi
   login
   image="$(staging_image "$arch")"
-  # Reuse a pipeline's staging tag on reruns rather than replacing its contents.
+  # A tag belongs to this producer attempt, never another workflow rerun.
   # Only a definite missing manifest permits a build; auth/network errors fail closed.
   inspection_error="$(mktemp)"
-  trap 'rm -f "$inspection_error" "$inspection_error.runtime" "$inspection_error.test"' EXIT
+  trap 'rm -f "$inspection_error" "$inspection_error.runtime" "$inspection_error.test" "$inspection_error.local"' EXIT
   if digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$image" 2>"$inspection_error")"; then
     echo "Reusing existing staging image $image"
-    if [[ "$action" == build ]]; then
-      exit 0
-    fi
     existing=true
   else
     status=$?
@@ -124,7 +122,7 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
     if [[ "$action" == stage-tested ]]; then
       docker image inspect --format '{{json .}}' redbox-portal:runtime >"$inspection_error.runtime"
       docker image inspect --format '{{json .}}' redbox-portal:test >"$inspection_error.test"
-      node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test"
+      node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test" "$inspection_error.runtime"
       docker tag redbox-portal:runtime "$image"
     else
       source "$SCRIPT_DIR/docker-build-cache.sh"
@@ -138,15 +136,18 @@ if [[ "$action" == build || "$action" == stage-tested ]]; then
     fi
     if [[ "$action" == stage-tested ]]; then docker push "$image"; fi
   fi
+  if ! "$existing"; then digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$image")"; fi
+  [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
+  pinned_image="${REPO}@${digest}"
   if [[ "$action" == stage-tested ]]; then
-    if ! "$existing"; then digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$image")"; fi
-    [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
-    pinned_image="${REPO}@${digest}"
     node "$SCRIPT_DIR/docker-registry.cjs" config "$pinned_image" >"$inspection_error.runtime"
     docker image inspect --format '{{json .}}' redbox-portal:test >"$inspection_error.test"
-    node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test"
+    docker image inspect --format '{{json .}}' redbox-portal:runtime >"$inspection_error.local"
+    node "$SCRIPT_DIR/verify-runtime-prefix.cjs" "$inspection_error.runtime" "$inspection_error.test" "$inspection_error.local"
     echo "Verified staged runtime base of tested amd64 image: $tested_id ($pinned_image)"
   fi
+  mkdir -p "${TMPDIR:-/tmp}/ci-staging-status"
+  printf '%s\n%s\nverified\n%s\n' "$CIRCLE_SHA1" "$STAGING_RUN_ID" "$digest" >"${TMPDIR:-/tmp}/ci-staging-status/$variant-$arch"
   exit 0
 fi
 
@@ -159,12 +160,11 @@ fi
 
 sources=()
 if [[ "$action" == promote ]]; then
-  sources+=("$(staging_image "$arch")")
+  sources+=("$arch")
   destination="${REPO}:${DEPLOY_TAG}${suffix}-${arch}"
 else
-  # Read workflow-specific staging tags, never the mutable per-arch release tags.
-  # Overlapping workflows therefore cannot mix architectures from different commits.
-  sources+=("$(staging_image amd64)" "$(staging_image arm64)")
+  # Both architectures consume the successful producers' digest artifacts.
+  sources+=(amd64 arm64)
   destination="${REPO}:${DEPLOY_TAG}${suffix}"
 fi
 
@@ -175,25 +175,18 @@ else
   echo 'DRY RUN: inspecting public staging images anonymously (no Docker push credentials)'
 fi
 pinned_sources=()
-for source_image in "${sources[@]}"; do
-  if digest="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$source_image")"; then
-    :
-  else
-    status=$?
-    if ((status == 3)) && ! "$real_promotion"; then
-      source_arch=amd64
-      if [[ "$source_image" == "$(staging_image arm64)" ]]; then source_arch=arm64; fi
-      if node "$SCRIPT_DIR/staging-quota-status.cjs" "$variant" "$source_arch"; then
-        echo "DRY RUN: source staging was skipped due to quota in this pipeline: $source_image; no promotion"
-        exit 0
-      fi
-    fi
-    exit "$status"
+for source_arch in "${sources[@]}"; do
+  digest="$(node "$SCRIPT_DIR/staging-quota-status.cjs" "$variant" "$source_arch")"
+  if [[ "$digest" == quota-skipped ]] && ! "$real_promotion"; then
+    echo 'DRY RUN: source staging was skipped due to quota in this pipeline; no promotion'
+    exit 0
   fi
-  [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid staging manifest digest' >&2; exit 1; }
+  [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid producer staging digest' >&2; exit 1; }
   pinned_source="${REPO}@${digest}"
+  resolved="$(node "$SCRIPT_DIR/docker-registry.cjs" head "$pinned_source")"
+  [[ "$resolved" == "$digest" ]] || { echo 'Registry returned a different pinned digest' >&2; exit 1; }
   pinned_sources+=("$pinned_source")
-  echo "Promotion source: $source_image -> $pinned_source"
+  echo "Promotion source: $variant/$source_arch -> $pinned_source"
 done
 command=(docker buildx imagetools create)
 if [[ "$action" == promote ]]; then

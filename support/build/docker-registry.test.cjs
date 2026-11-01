@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 const { run } = require('./docker-registry.cjs');
-const { skipped } = require('./staging-quota-status.cjs');
+const { skipped, result } = require('./staging-quota-status.cjs');
 const digest = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const config = JSON.stringify({ rootfs: { diff_ids: [`sha256:${'a'.repeat(64)}`] } });
 const configId = digest(config);
@@ -31,7 +31,7 @@ test('tag resolution uses HEAD only, with no pull-counting manifest GET', async 
 
 test('runtime inspection GETs a pinned manifest once and verifies manifest and config content digests', async () => {
   const mock = registry();
-  assert.equal(await run('config', `example/portal@${id}`, mock.fetcher, () => {}), config);
+  assert.deepEqual(JSON.parse(await run('config', `example/portal@${id}`, mock.fetcher, () => {})), { ...JSON.parse(config), Id: configId });
   assert.deepEqual(mock.calls.slice(1).map(call => call.url.split('/portal/')[1]), [`manifests/${id}`, `blobs/${configId}`]);
   for (const overrides of [{ corruptManifest: true }, { corruptConfig: true }]) {
     await assert.rejects(run('config', `example/portal@${id}`, registry(overrides).fetcher, () => {}), /pinned digest/);
@@ -60,4 +60,42 @@ test('only exact successful-producer artifacts from this pipeline justify a miss
     assert.equal(await skipped('runtime', 'amd64', env, fetcher(text)), false);
   }
   assert.equal(await skipped('pdfgen', 'arm64', env, fetcher(marker)), false);
+});
+
+test('verified producer artifacts carry only an exact digest for the matching commit and pipeline', async () => {
+  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline' };
+  const marker = `${env.CIRCLE_SHA1}\n${env.STAGING_RUN_ID}\nverified\n${id}\n`;
+  const fetcher = text => async url => {
+    if (url.includes('/workflow/')) return Response.json({ items: [{ name: 'build-1', status: 'success', job_number: 2 }] });
+    if (url.includes('/artifacts')) { assert.match(url, /\/2\/artifacts$/); return Response.json({ items: [{ path: 'ci-staging-status/runtime-amd64', url: 'https://example.com/marker' }] }); }
+    return new Response(text);
+  };
+  assert.deepEqual(await result('runtime', 'amd64', env, fetcher(marker)), { state: 'verified', digest: id });
+  for (const text of [marker.replace(env.CIRCLE_SHA1, 'b'.repeat(40)), marker.replace('pipeline', 'old'), marker.replace(id, 'bad'), marker + 'extra']) {
+    assert.equal(await result('runtime', 'amd64', env, fetcher(text)), null);
+  }
+});
+
+test('producer lookup follows pagination and uses the newest successful attempt in this workflow', async () => {
+  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline' };
+  const calls = [];
+  const fetcher = async url => {
+    calls.push(url);
+    if (url.includes('/workflow/')) {
+      if (!url.includes('page-token=')) return Response.json({ items: [{ name: 'stage-pdfgen-arm64', status: 'success', job_number: 1 }], next_page_token: 'next page' });
+      assert.match(url, /page-token=next%20page/);
+      return Response.json({ items: [
+        { name: 'stage-pdfgen-arm64', status: 'failed', job_number: 4 },
+        { name: 'stage-pdfgen-arm64', status: 'success', job_number: 3 },
+      ] });
+    }
+    if (url.includes('/artifacts')) {
+      assert.match(url, /\/3\/artifacts/);
+      if (!url.includes('page-token=')) return Response.json({ items: [], next_page_token: 'artifacts' });
+      return Response.json({ items: [{ path: 'ci-staging-status/pdfgen-arm64', url: 'https://example.com/result' }] });
+    }
+    return new Response(`${env.CIRCLE_SHA1}\n${env.STAGING_RUN_ID}\nverified\n${id}\n`);
+  };
+  assert.deepEqual(await result('pdfgen', 'arm64', env, fetcher), { state: 'verified', digest: id });
+  assert.equal(calls.length, 5);
 });

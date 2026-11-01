@@ -1,5 +1,5 @@
 const fs = require('node:fs');
-const [runtimePath, testPath] = process.argv.slice(2);
+const [runtimePath, testPath, localRuntimePath] = process.argv.slice(2);
 function layers(path) {
   const config = JSON.parse(fs.readFileSync(path, 'utf8'));
   const ids = config.rootfs?.diff_ids ?? config.RootFS?.Layers;
@@ -7,6 +7,11 @@ function layers(path) {
     throw new Error(`Invalid or empty rootfs diff_ids: ${path}`);
   }
   return ids;
+}
+const staged = JSON.parse(fs.readFileSync(runtimePath, 'utf8'));
+const local = JSON.parse(fs.readFileSync(localRuntimePath, 'utf8'));
+if (!/^sha256:[a-f0-9]{64}$/.test(local.Id) || staged.Id !== local.Id) {
+  throw new Error('Staged runtime config digest differs from the locally built runtime; refusing promotion');
 }
 const runtime = layers(runtimePath);
 const tested = layers(testPath);

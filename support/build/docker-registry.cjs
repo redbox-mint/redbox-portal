@@ -62,7 +62,7 @@ async function run(action, value, fetcher, log) {
   const manifest = await verifiedJson(await request(`manifests/${version}`), version);
   const config = manifest.config?.digest;
   if (!digestPattern.test(config)) throw new RegistryError('Expected a single-platform image manifest');
-  return JSON.stringify(await verifiedJson(await request(`blobs/${config}`), config));
+  return JSON.stringify({ ...await verifiedJson(await request(`blobs/${config}`), config), Id: config });
 }
 
 module.exports = { run, RegistryError };

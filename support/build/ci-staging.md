@@ -28,23 +28,25 @@ gates. Final names are unchanged. Multi-architecture tags remain `<branch>` and 
 
 ## Proving the published runtime was tested
 
-`test` remains `FROM runtime`. Before staging a new image, compare local runtime
-and test rootfs layer diff_ids. After pushing, or reusing a staging tag on a
-workflow rerun, resolve its manifest digest, inspect that pinned image's config,
-and require its nonempty rootfs diff_ids to be an exact, strict prefix of the
-local tested image's diff_ids. Empty, malformed, reordered, unrelated, equal or
-longer layer lists fail closed. Non-quota registry errors and all release-branch
-errors fail closed. No layer downloads are needed for this comparison. Logs record the tested image ID, pinned runtime
-digest, prefix lengths, and saved workspace image ID.
+`test` remains `FROM runtime`. Before staging, compare local runtime and test
+rootfs layer diff_ids. After pushing, resolve the attempt tag once and inspect
+that pinned manifest and config. The registry client verifies both content
+digests and exposes the config digest as `Id`. Require that digest to equal the
+local `redbox-portal:runtime` image ID, then independently verify that the runtime
+layers are an exact prefix of the test image. This rejects shorter ancestors and
+changes to CMD, ENV, USER or any other image configuration. Release branches fail
+closed on registry errors or missing credentials.
 
-Staging tags are
-`ci-staging-<full SHA>-<runtime|pdfgen>-<amd64|arm64>-<pipeline UUID>`.
-The SHA and pipeline UUID prevent cross-commit and cross-pipeline selection.
-Workflow reruns retain the UUID. Existing tags are never overwritten: only a
-definite missing-manifest response permits a build/push. The tested runtime is
-verified again on reruns. If its layers no longer match, rerun tests with their
-original workspace or start a new pipeline. Docker Hub tag immutability for
-`ci-staging-*` can additionally enforce write-once tags.
+Staging tags include both pipeline UUID and producer job number:
+`ci-staging-<full SHA>-<runtime|pdfgen>-<amd64|arm64>-<pipeline UUID>-<job number>`.
+Each rerun attempt uploads to its own tag, so overlapping reruns cannot overwrite
+one another. Each producer publishes its verified manifest digest in its
+`ci-staging-status/<variant>-<arch>` artifact, alongside the commit and pipeline
+UUID. Promotion and manifest jobs read the successful producer's artifact through
+the current workflow's CircleCI API, validate its identity, and use only
+`repository@digest`. They never resolve a staging tag again. Workflow and artifact
+list requests follow pagination; when the API includes multiple successful
+attempts, the newest job number supplies the artifact.
 
 The three independent staging jobs run on `master`, `develop`, `support/*` and
 `chore/ci-build-speed`. Tested-runtime staging is enabled by the automatic branch
@@ -57,7 +59,7 @@ pipeline's staging sources, never mutable architecture tags.
 
 Only exact `master`, `develop`, and `support/*` names enable real automatic
 promotion and Nexus upload. Other branches (including unset names) dry-run.
-Dry runs resolve real staging references by HEAD, anonymously if credentials are
+Dry runs verify producer-pinned digests by HEAD, anonymously if credentials are
 missing, and print digest-pinned commands without writes. Missing references fail
 unless that exact producer has a `quota-skipped` artifact matching this SHA and
 pipeline UUID. This exception is only for non-release dry runs; real publication
@@ -245,8 +247,7 @@ For API retention:
 
 1. List `GET https://hub.docker.com/v2/repositories/<namespace>/<repository>/tags/?page_size=100`
    and follow every `next` page.
-2. Select `ci-staging-*` tags older than seven days. Check the trailing pipeline
-   UUID using `GET https://circleci.com/api/v2/pipeline/<UUID>/workflow`.
+2. Select `ci-staging-*` tags older than seven days. Read the pipeline UUID before the final job number and check it using `GET https://circleci.com/api/v2/pipeline/<UUID>/workflow`.
 3. Delete selected **tags** through
    `DELETE https://hub.docker.com/v2/repositories/<namespace>/<repository>/tags/<tag>/`.
    Never delete registry manifests/digests: final tags/indexes may reference them.
@@ -257,8 +258,9 @@ For API retention:
    from any `ci-staging-*` immutability policy.
 
 Deleting staging tags leaves final image tags intact. After retention expiry,
-start a new pipeline rather than rerunning old deploy jobs. Four staging tags (runtime and pdfgen for both architectures) per
-pipeline and branch/architecture/target cache tags accumulate until retention is set up.
+start a new pipeline rather than rerunning old deploy jobs. Each pipeline attempt creates four staging tags (runtime and pdfgen for both
+architectures). These and branch/architecture/target cache tags accumulate until
+retention is set up.
 
 ## Executor cost and focused verification
 
