@@ -1259,6 +1259,9 @@ orbs:
   docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
+  verify_image_equivalence:
+    type: boolean
+    default: false
   npm_publish_mode:
     type: enum
     enum:
@@ -1282,16 +1285,16 @@ parameters:
       - manual
     default: none
 workflows:
+  image_equivalence:
+    when: << pipeline.parameters.verify_image_equivalence >>
+    jobs:
+      - verify-image-equivalence
   build_test_gendocs_and_deploy:
     when:
       and:
         - equal: [none, << pipeline.parameters.npm_publish_mode >>]
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
-      - verify-image-equivalence:
-          filters:
-            branches:
-              only: chore/ci-build-speed
       - stage-image-arm64:
           name: stage-runtime-arm64
           variant: runtime

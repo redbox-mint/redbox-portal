@@ -96,7 +96,8 @@ changes; backend compilation proceeds independently of the asset stages.
 
 ## Filesystem equivalence evidence
 
-On the measurement branch `verify-image-equivalence` builds the pre-change
+The opt-in `image_equivalence` workflow (`verify_image_equivalence: true` pipeline
+parameter, default false) runs `verify-image-equivalence`. It builds the pre-change
 Dockerfile (`support/build/Dockerfile.before-cache`) and current Dockerfile against
 the **same source checkout**, one at a time on a CircleCI machine. It inventories
 all regular files under `/opt/redbox-portal` (path, size, SHA-256), plus symlink
@@ -104,7 +105,9 @@ targets, ignoring mtimes. It also captures `npm ls --all --omit=dev --json`, std
 and exit status for runtime and test. It stores old/new inventories and unified
 diffs as `image-equivalence` artifacts and fails on any inventory, npm tree or
 npm status difference. Existing npm errors are preserved rather than hidden.
-No full portal builds run on the small development host.
+The rollout comparison runs are retained as CircleCI artifacts. Normal builds
+do not run this extra old/new build. No full portal builds run on the small
+development host.
 
 ## Cleanup
 
