@@ -9,7 +9,7 @@ import { RequestChronicleSettings, resolveRequestChronicleSettings } from './Req
 export { defaultRequestChronicleSettings, type RequestChronicleSettings } from './RequestChronicleSettings';
 
 /**
- * What happened to the request.
+ * The final outcome of the request lifecycle.
  * - success: the response was sent with a status below 400, and no errors were recorded.
  * - failure: the response was sent with a 4xx or 5xx status, or errors were recorded.
  * - aborted: the connection closed before the response was completely sent.
