@@ -1,0 +1,6 @@
+# Reuse Google's public Docker Hub cache for frontend/base-image pulls. Cache
+# Node bases, frontend and the bootstrap image (docker-build-cache.sh) use index
+# digests, so a stale mirror cannot select different content. Cache
+# misses fall back to Hub; application cache/staging stay in the configured repo.
+[registry."docker.io"]
+  mirrors = ["mirror.gcr.io"]
