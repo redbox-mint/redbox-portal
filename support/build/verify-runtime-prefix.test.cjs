@@ -31,6 +31,8 @@ test('staged identity must match local runtime independently of the tested layer
     }
     // Even a matching config ID cannot waive the separate prefix check.
     fs.writeFileSync(path.join(directory, 'test'), JSON.stringify({ RootFS: { Layers: [layer('d'), layer('b'), layer('c')] } }));
-    assert.match(check(config).stderr, /not an exact prefix/);
+    const mismatch = check(config);
+    assert.notEqual(mismatch.status, 0);
+    assert.match(mismatch.stderr, /not an exact prefix/);
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });

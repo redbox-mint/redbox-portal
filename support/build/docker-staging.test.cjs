@@ -231,6 +231,23 @@ test('transient registry creation failures are retried', () => {
   assert.equal(result.calls.filter(call => call.includes('imagetools create')).length, 2);
 });
 
+test('invalid release retry settings fail without publishing', () => {
+  for (const action of [['promote', 'runtime', 'amd64'], ['manifest', 'pdfgen']]) {
+    for (const value of ['0', '-1', '1.5', 'invalid', '01', '99999999999999999999']) {
+      const result = run(action, { CIRCLE_BRANCH: 'develop', DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS: value });
+      assert.notEqual(result.status, 0, value);
+      assert.match(result.stdout + result.stderr, /MAX_ATTEMPTS must be a positive integer/);
+      assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+    }
+    for (const value of ['-1', 'invalid', '01', '99999999999999999999']) {
+      const result = run(action, { CIRCLE_BRANCH: 'develop', DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS: value });
+      assert.notEqual(result.status, 0, value);
+      assert.match(result.stdout + result.stderr, /BASE_DELAY_SECONDS must be a nonnegative integer/);
+      assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+    }
+  }
+});
+
 test('staging pushes runtime and verifies the digest-pinned registry layer prefix', () => {
   const result = run(['stage-tested', 'runtime', 'amd64']);
   assert.equal(result.status, 0, result.stderr);

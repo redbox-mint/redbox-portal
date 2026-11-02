@@ -130,7 +130,9 @@ application source. After source is copied, script-free npm
 rebuild restores local CLI bin links that npm skips when their targets are absent. `dev-deps` and `prod-deps` are independent.
 The latter installs a clean production graph while compilation proceeds, removing
 the old node_modules snapshot/reinstall sequence. Runtime copies only production
-dependencies; test copies unpruned builder dependencies directly. For
+dependencies and rebuilds executable links without lifecycle scripts after the
+compiled local packages arrive; its build verifies the three local CLI links are
+executable. Test copies unpruned builder dependencies directly. For
 `sails-ng-common`, test takes the final dependency graph from the Angular stage,
 matching the old snapshot after Angular npm ci applied its own lockfile.
 

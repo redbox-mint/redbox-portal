@@ -171,6 +171,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
 
 USER node
 
+# Repair links in the assembled production graph, independently of the builder.
+RUN npm rebuild --ignore-scripts \
+ && test -x node_modules/.bin/redbox-dev-tools \
+ && test -x node_modules/.bin/redbox-hook-mocha \
+ && test -x node_modules/.bin/redbox-hook-tsc
+
 RUN node -e "const { createRequire } = require('module'); const corePath = require.resolve('@researchdatabox/redbox-core'); require(corePath); createRequire(corePath)('@uppy/companion')"
 
 CMD ["node", "app.js"]

@@ -200,6 +200,9 @@ if "$real_promotion"; then
   # Keep the registry retry behavior used by the existing manifest publisher.
   max_attempts="${DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS:-5}"
   base_delay="${DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS:-60}"
+  # Bound both operands so retry/delay arithmetic cannot overflow or parse octal.
+  [[ "$max_attempts" =~ ^[1-9][0-9]{0,8}$ ]] || { echo 'DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS must be a positive integer of at most 9 digits' >&2; exit 1; }
+  [[ "$base_delay" =~ ^(0|[1-9][0-9]{0,8})$ ]] || { echo 'DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS must be a nonnegative integer of at most 9 digits' >&2; exit 1; }
   for ((attempt = 1; attempt <= max_attempts; attempt++)); do
     if "${command[@]}"; then
       exit 0
