@@ -62,6 +62,7 @@ COPY packages/redbox-dev-tools/config/tsconfig.base.json ./packages/redbox-dev-t
 COPY packages/sails-ng-common/tsconfig*.json ./packages/sails-ng-common/
 RUN --mount=type=bind,source=.npmrc,target=/opt/redbox-portal/.npmrc cd packages/sails-ng-common && npm ci --no-audit
 COPY packages/sails-ng-common/src ./packages/sails-ng-common/src
+COPY packages/sails-ng-common/scripts ./packages/sails-ng-common/scripts
 RUN cd packages/sails-ng-common && npm run compile
 # No redbox-core/backend source enters this stage's cache key.
 FROM shared-builder AS angular-builder
