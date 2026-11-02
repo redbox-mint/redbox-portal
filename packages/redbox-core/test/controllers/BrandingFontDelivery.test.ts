@@ -414,10 +414,11 @@ describe('Branding public font delivery and layouts', function () {
     }
   });
 
-  it('recognises public font paths as static assets with same-origin font CSP', function () {
+  it('leaves font caching to the font controller and allows same-origin font CSP', function () {
     const httpConfig = require('../../src/config/http.config');
     const sha = 'a'.repeat(64);
-    expect(httpConfig.isImmutableAssetPath(`/fonts/branding/default/${sha}.woff2`)).to.equal(true);
+    // Font delivery verifies the hash and sets its own immutable cache headers.
+    expect(httpConfig.isImmutableAssetPath(`/fonts/branding/default/${sha}.woff2`)).to.equal(false);
     const { csp } = require('../../src/config/csp.config');
     expect(csp.directives['font-src']).to.include("'self'");
   });

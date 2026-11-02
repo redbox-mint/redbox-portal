@@ -578,13 +578,14 @@ jobs:
     environment:
       FIGSHARE_TEST_MONGO_URI: mongodb://127.0.0.1:27028
       NAMED_QUERY_TEST_MONGO_URL: mongodb://127.0.0.1:27028
+      HARVEST_MONGO_TEST_URL: mongodb://127.0.0.1:27028
     steps:
       - checkout
       - run: *usePatchedNode
       - attach_workspace:
           at: /tmp
       - run:
-          name: Start MongoDB for Figshare worker tests
+          name: Start MongoDB for core integration tests
           command: |
             docker run -d --name figshare-test-mongo -p 127.0.0.1:27028:27017 mongo:7.0
             for attempt in $(seq 1 30); do

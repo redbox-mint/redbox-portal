@@ -2,6 +2,7 @@ export * from './AttachmentAccessAudit';
 export * from './AttachmentMetadata';
 export * from './AppConfig';
 export * from './AsynchProgress';
+export * from './ExportJob';
 export * from './BrandingConfig';
 export * from './BrandingConfigHistory';
 export * from './CacheEntry';
@@ -42,6 +43,7 @@ import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
 import { AttachmentMetadataWLDef } from './AttachmentMetadata';
 import { AppConfigWLDef } from './AppConfig';
 import { AsynchProgressWLDef } from './AsynchProgress';
+import { ExportJobWLDef } from './ExportJob';
 import { BrandingConfigWLDef } from './BrandingConfig';
 import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
@@ -85,6 +87,7 @@ export const WaterlineModels = {
   AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,
   AsynchProgress: AsynchProgressWLDef,
+  ExportJob: ExportJobWLDef,
   BrandingConfig: BrandingConfigWLDef,
   BrandingConfigHistory: BrandingConfigHistoryWLDef,
   CacheEntry: CacheEntryWLDef,

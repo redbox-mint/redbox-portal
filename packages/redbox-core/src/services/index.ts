@@ -5,6 +5,7 @@
 
 // Import all service modules and re-export
 import * as AgendaQueueServiceModule from './AgendaQueueService';
+import * as ExportServiceModule from './ExportService';
 import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
 import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
@@ -62,6 +63,7 @@ import { RecordContractContributorRegistry, type RecordContractContributorDiscov
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
+export { ExportServiceModule as ExportService };
 export { AttachmentMetadataServiceModule as AttachmentMetadataService };
 export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
@@ -169,6 +171,9 @@ function getOrCreateService(name: string, factory: () => unknown): unknown {
 }
 
 export const ServiceExports = {
+  get ExportService() {
+    return getOrCreateService('ExportService', () => new ExportServiceModule.Services.Export().exports());
+  },
   get AgendaQueueService() {
     return getOrCreateService('AgendaQueueService', () =>
       new AgendaQueueServiceModule.Services.AgendaQueue().exports()
