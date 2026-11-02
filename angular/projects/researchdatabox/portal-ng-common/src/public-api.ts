@@ -8,6 +8,8 @@ export * from './lib/logger.service';
 export * from './lib/utility.service';
 export * from './lib/translation.service';
 export * from './lib/i18next.pipe';
+export * from './lib/label-to-plain-text';
+export * from './lib/plain-text-label.pipe';
 export * from './lib/portal-i18n.providers';
 
 export * from './lib/csrf.interceptor';
