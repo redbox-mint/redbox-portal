@@ -48,6 +48,14 @@ the current workflow's CircleCI API, validate its identity, and use only
 list requests follow pagination; when the API includes multiple successful
 attempts, the newest job number supplies the artifact.
 
+Configure `CIRCLE_TOKEN` as a masked CircleCI project environment variable with
+read access to this project's workflow jobs and artifacts. Both
+`promote-staging-image` and `publish-staging-manifest` inherit this project secret;
+keep secret access restricted to trusted builds and do not enable secret sharing
+with fork builds. The evidence helper sends it in the `Circle-Token` header for
+every API and artifact-download request, including paginated requests. Missing
+tokens and authentication failures stop promotion before evidence is accepted.
+
 The three independent staging jobs run on `master`, `develop`, `support/*` and
 `chore/ci-build-speed`. Tested-runtime staging is enabled by the automatic branch
 workflow only; ordinary branches without credentials skip the staging push and

@@ -4,8 +4,12 @@ async function result(variant, arch, env = process.env, fetcher = fetch) {
   const project = 'gh/redbox-mint/redbox-portal';
   if (!/^(runtime|pdfgen)$/.test(variant) || !/^(amd64|arm64)$/.test(arch) ||
       !/^[a-f0-9-]{36}$/.test(env.CIRCLE_WORKFLOW_ID ?? '')) return null;
+  if (!env.CIRCLE_TOKEN) throw new Error('CIRCLE_TOKEN is required to retrieve staging producer evidence');
   const get = async url => {
-    const response = await fetcher(url, { signal: AbortSignal.timeout(30000) });
+    const response = await fetcher(url, {
+      headers: { 'Circle-Token': env.CIRCLE_TOKEN },
+      signal: AbortSignal.timeout(30000),
+    });
     if (!response.ok) throw new Error(`Staging producer evidence unavailable: HTTP ${response.status}`);
     return response;
   };

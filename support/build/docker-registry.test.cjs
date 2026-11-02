@@ -48,7 +48,7 @@ test('HEAD works at zero allowance; cache preflight and HTTP 429 distinguish quo
 });
 
 test('only exact successful-producer artifacts from this pipeline justify a missing dry-run source', async () => {
-  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline' };
+  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline', CIRCLE_TOKEN: 'test-circle-token' };
   const marker = `${env.CIRCLE_SHA1}\n${env.STAGING_RUN_ID}\nquota-skipped\n`;
   const fetcher = text => async url => {
     if (url.includes('/workflow/')) return Response.json({ items: [{ name: 'build-1', status: 'success', job_number: 1 }] });
@@ -70,7 +70,7 @@ test('only exact successful-producer artifacts from this pipeline justify a miss
 });
 
 test('verified producer artifacts carry only an exact digest for the matching commit and pipeline', async () => {
-  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline' };
+  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline', CIRCLE_TOKEN: 'test-circle-token' };
   const marker = `${env.CIRCLE_SHA1}\n${env.STAGING_RUN_ID}\nverified\n${id}\n`;
   const fetcher = text => async url => {
     if (url.includes('/workflow/')) return Response.json({ items: [{ name: 'build-1', status: 'success', job_number: 2 }] });
@@ -84,9 +84,11 @@ test('verified producer artifacts carry only an exact digest for the matching co
 });
 
 test('producer lookup follows pagination and uses the newest successful attempt in this workflow', async () => {
-  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline' };
+  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc', CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline', CIRCLE_TOKEN: 'test-circle-token' };
   const calls = [];
-  const fetcher = async url => {
+  const fetcher = async (url, options) => {
+    assert.deepEqual(options.headers, { 'Circle-Token': env.CIRCLE_TOKEN });
+    assert.ok(options.signal instanceof AbortSignal);
     calls.push(url);
     if (url.includes('/workflow/')) {
       if (!url.includes('page-token=')) return Response.json({ items: [{ name: 'stage-pdfgen-arm64', status: 'success', job_number: 1 }], next_page_token: 'next page' });
@@ -105,4 +107,26 @@ test('producer lookup follows pagination and uses the newest successful attempt 
   };
   assert.deepEqual(await result('pdfgen', 'arm64', env, fetcher), { state: 'verified', digest: id });
   assert.equal(calls.length, 5);
+});
+
+test('staging evidence requires a token before making requests and rejects authentication failures', async () => {
+  const env = { CIRCLE_WORKFLOW_ID: '12345678-1234-1234-1234-123456789abc',
+    CIRCLE_SHA1: 'a'.repeat(40), STAGING_RUN_ID: 'pipeline' };
+  for (const token of [undefined, '']) {
+    await assert.rejects(result('runtime', 'amd64', { ...env, CIRCLE_TOKEN: token }, async () => {
+      assert.fail('missing credentials must fail before fetch');
+    }), /CIRCLE_TOKEN is required/);
+  }
+  for (const status of [401, 403]) {
+    for (const failedRequest of [1, 2, 3]) {
+      let requests = 0;
+      await assert.rejects(result('runtime', 'amd64', { ...env, CIRCLE_TOKEN: 'test-circle-token' }, async (url, options) => {
+        assert.deepEqual(options.headers, { 'Circle-Token': 'test-circle-token' });
+        if (++requests === failedRequest) return new Response(null, { status });
+        if (url.includes('/workflow/')) return Response.json({ items: [{ name: 'build-1', status: 'success', job_number: 1 }] });
+        return Response.json({ items: [{ path: 'ci-staging-status/runtime-amd64', url: 'https://example.com/marker' }] });
+      }), new RegExp(`Staging producer evidence unavailable: HTTP ${status}`));
+      assert.equal(requests, failedRequest);
+    }
+  }
 });
