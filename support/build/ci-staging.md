@@ -107,13 +107,16 @@ cache is optional. Release cache errors may fail; release staging and promotion
 identity checks always fail closed.
 
 `buildkitd.toml` configures `mirror.gcr.io` for Docker Hub base/frontend reads;
-the BuildKit bootstrap image also comes from that cache. Both Node bases and
+the BuildKit bootstrap image is pulled from that cache before builder creation,
+with an explicit retry at `docker.io/moby/buildkit` using the same digest if the
+mirror pull fails. Builder creation uses the successfully pulled reference;
+if both pulls fail, the build stops. Both Node bases and
 the bootstrap image are pinned by multi-platform index digest, like the frontend.
 Mirror and Hub fallback therefore resolve the same content. The existing daily
 Docker ecosystem entry for `/` in `.github/dependabot.yml` covers Node digest
 updates; bootstrap pins in the shell helper need deliberate updates (Dependabot
 does not inspect arbitrary shell image arguments). Missing mirror content
-falls back to Hub inside BuildKit. Cache imports/exports and staging remain in
+for base/frontend images falls back to Hub inside BuildKit. Cache imports/exports and staging remain in
 the configured Docker Hub repository and retain their existing branch scopes.
 Tag existence and promotion digest resolution use registry HEAD requests. The
 staged runtime identity check fetches its pinned manifest once and its config

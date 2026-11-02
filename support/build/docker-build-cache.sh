@@ -60,7 +60,15 @@ setup_build_cache() {
     CACHE_TO[1]+=,ignore-error=true
   fi
   # docker-container supports registry mode=max on remote Docker and machine executors.
-  docker buildx create --name ci-cache --driver docker-container --driver-opt image=mirror.gcr.io/moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea --use --buildkitd-config "$SCRIPT_DIR/buildkitd.toml"
+  # Bootstrap runs before buildkitd.toml can provide mirror fallback.
+  local buildkit_ref='moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea'
+  local buildkit_image="mirror.gcr.io/$buildkit_ref"
+  if ! docker pull "$buildkit_image"; then
+    echo 'BuildKit bootstrap mirror unavailable; retrying the same digest on Docker Hub'
+    buildkit_image="docker.io/$buildkit_ref"
+    docker pull "$buildkit_image" || return $?
+  fi
+  docker buildx create --name ci-cache --driver docker-container --driver-opt "image=$buildkit_image" --use --buildkitd-config "$SCRIPT_DIR/buildkitd.toml"
   docker buildx inspect --bootstrap
 }
 

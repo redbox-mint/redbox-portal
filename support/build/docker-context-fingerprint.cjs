@@ -51,7 +51,8 @@ function inventory(root) {
       let excluded = false;
       for (const rule of ignores) if (rule.match.test(file)) excluded = !rule.include;
       const stat = fs.lstatSync(path.join(root, file));
-      if (!excluded) {
+      // Docker consumes these control files even when ignore rules exclude them.
+      if (!excluded || file === 'Dockerfile' || file === ignoreFile) {
         const type = stat.isSymbolicLink() ? 'link' : stat.isDirectory() ? 'dir' : 'file';
         const content = type === 'file' ? sha(fs.readFileSync(path.join(root, file))) : type === 'link' ? fs.readlinkSync(path.join(root, file)) : '';
         rows.push([file, type, (stat.mode & 0o7777).toString(8), content]);

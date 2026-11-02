@@ -32,6 +32,22 @@ test('ordered Docker patterns are root relative, support **, parent exclusions a
     ['.dockerignore', 'exclude/keep.txt', 'nested/a.log']);
 }));
 
+for (const ignoreFile of ['.dockerignore', 'Dockerfile.dockerignore']) {
+  test(`excluded Dockerfile and active ${ignoreFile} still affect the fingerprint`, () => fixture((dir, write) => {
+    write(ignoreFile, 'Dockerfile\n.dockerignore\nDockerfile.dockerignore\n');
+    if (ignoreFile === 'Dockerfile.dockerignore') write('.dockerignore', '*\n');
+    write('Dockerfile', 'FROM scratch\n');
+    write('source.ts');
+    assert.deepEqual(inventory(dir).map(row => row[0]), [ignoreFile, 'Dockerfile', 'source.ts'].sort());
+    const first = fingerprint(dir);
+    write('Dockerfile', 'FROM scratch\nENV CHANGED=1\n');
+    const changed = fingerprint(dir);
+    assert.notEqual(changed, first);
+    write(ignoreFile, 'Dockerfile\n.dockerignore\nDockerfile.dockerignore\n# changed\n');
+    assert.notEqual(fingerprint(dir), changed);
+  }));
+}
+
 test('fingerprint is stable across mtimes/ignored files, but detects content, modes, links, and empty directories', () => fixture((dir, write) => {
   write('.dockerignore', '.git\n.tmp\n'); write('source.ts');
   const first = fingerprint(dir);

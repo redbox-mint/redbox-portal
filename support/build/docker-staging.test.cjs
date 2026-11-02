@@ -23,6 +23,12 @@ function run(args, overrides = {}, scriptPath = script) {
   writeFileSync(join(directory, 'docker'), `#!/usr/bin/env bash
 printf '%s\\n' "$*" >> "$DOCKER_TEST_LOG"
 if [[ "$1" == login ]]; then cat >/dev/null; fi
+if [[ "$1" == pull && "$2" == *moby/buildkit:* ]]; then
+  if [[ "\${FAIL_BOOTSTRAP_BOTH:-}" == 1 || ( "$2" == mirror.gcr.io/* && "\${FAIL_BOOTSTRAP_MIRROR:-}" == 1 ) ]]; then
+    echo 'bootstrap image unavailable' >&2
+    exit 1
+  fi
+fi
 if [[ "$1 $2" == 'image inspect' ]]; then
   if [[ "$*" == *'{{.Id}}'* ]]; then echo '${testedId}'
   elif [[ "$*" == *redbox-portal:runtime* ]]; then printf '%s\\n' '{"Id":"${runtimeId}","RootFS":{"Layers":["${layer}"]}}'
@@ -422,6 +428,24 @@ test('a missing own cache falls back to a sibling without sharing its export ref
   assert.ok(refs[0].endsWith('-test'));
   assert.ok(refs[1].endsWith('-runtime'));
   assert.match(result.calls.at(-1), /ref=example\/portal:buildcache-v2-[^ ]+-amd64-test,/);
+});
+
+test('BuildKit bootstrap falls back to the same Hub digest before creating the builder', () => {
+  const ciBuild = join(__dirname, 'docker-build-ci.sh');
+  const ref = 'moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea';
+  for (const mirrorFails of [false, true]) {
+    const result = run([], { FAIL_BOOTSTRAP_MIRROR: mirrorFails ? '1' : '' }, ciBuild);
+    assert.equal(result.status, 0, result.stderr);
+    const pulls = result.calls.filter(call => call.startsWith('pull '));
+    assert.deepEqual(pulls, [`pull mirror.gcr.io/${ref}`, ...(mirrorFails ? [`pull docker.io/${ref}`] : [])]);
+    const create = result.calls.find(call => call.startsWith('buildx create '));
+    assert.ok(create.includes(`--driver-opt image=${mirrorFails ? 'docker.io' : 'mirror.gcr.io'}/${ref}`));
+    assert.ok(result.calls.indexOf(pulls.at(-1)) < result.calls.indexOf(create));
+  }
+  const failed = run([], { FAIL_BOOTSTRAP_BOTH: '1' }, ciBuild);
+  assert.notEqual(failed.status, 0);
+  assert.equal(failed.calls.filter(call => call.startsWith('pull ')).length, 2);
+  assert.ok(failed.calls.every(call => !/^buildx (create|inspect|bake) /.test(call)));
 });
 
 test('every setup_build_cache caller names its cache target', () => {
