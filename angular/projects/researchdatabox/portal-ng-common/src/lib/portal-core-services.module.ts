@@ -11,6 +11,7 @@ import { UserService } from './user.service';
 import { LoggerService } from './logger.service';
 import { TranslationService } from './translation.service';
 import { I18NextPipe } from './i18next.pipe';
+import { PlainTextLabelPipe } from './plain-text-label.pipe';
 
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -43,10 +44,12 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   ],
   imports: [
     HttpClientModule,
-    I18NextPipe
+    I18NextPipe,
+    PlainTextLabelPipe
   ],
   exports: [
     I18NextPipe,
+    PlainTextLabelPipe,
   ]
 })
 export class RedboxPortalCoreServicesModule { }

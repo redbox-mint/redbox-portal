@@ -38,7 +38,6 @@ import {
 import { DateTime } from 'luxon';
 import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
-import { default as checkDiskSpace } from 'check-disk-space';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
@@ -1945,6 +1944,12 @@ export namespace Controllers {
 
     protected tusServer: TusServer | null = null;
 
+    protected async checkDiskSpace(root: string) {
+      // v4 is ESM-only; retain import() when this controller is compiled to CommonJS.
+      const { checkDiskSpace } = await import('check-disk-space');
+      return checkDiskSpace(root);
+    }
+
     protected initTusServer() {
       if (this.tusServer) {
         return;
@@ -2229,7 +2234,7 @@ export namespace Controllers {
         const diskSpaceThreshold = sails.config.record.diskSpaceThreshold;
         const stagingDiskConfig = StorageManagerService.getStagingDiskConfig();
         if (stagingDiskConfig.driver === 'fs' && !_.isUndefined(uploadFileSize) && !_.isUndefined(diskSpaceThreshold)) {
-          const diskSpace = await checkDiskSpace(stagingDiskConfig.config.root);
+          const diskSpace = await this.checkDiskSpace(stagingDiskConfig.config.root);
           //set diskSpaceThreshold to a reasonable amount of space on disk that will be left free as a safety buffer
           const thresholdAppliedFileSize = _.toInteger(uploadFileSize) + diskSpaceThreshold;
           sails.log.verbose('Total File Size ' + thresholdAppliedFileSize + ' Total Free Space ' + diskSpace.free);
