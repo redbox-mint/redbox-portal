@@ -1087,18 +1087,6 @@ jobs:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Upload package to Nexus
-          command: |
-            echo $CIRCLE_BRANCH
-            npm pack
-            PACKAGE_VERSION=$(cat package.json \
-            | grep version \
-            | head -1 \
-            | awk -F: '{ print $2 }' \
-            | sed 's/[", \t]//g')
-            RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-            curl --fail --silent --show-error -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
-      - run:
           name: Publish amd64 runtime image
           command: |
             docker load -i /tmp/docker-images/redbox-portal-test.tar
