@@ -14,15 +14,14 @@ function fixture(callback) {
   try { callback(dir, write); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
-test('context excludes Git, transient CI outputs and nested dependency/build directories, with tarball exceptions', () => fixture((dir, write) => {
+test('context excludes Git, transient CI outputs, npm pack tarballs and nested dependency/build directories', () => fixture((dir, write) => {
   write('.dockerignore', fs.readFileSync(join(__dirname, '../../.dockerignore')));
   for (const file of ['.git/HEAD', '.tmp/quota', '.circleci/config.yml', 'node_modules/a',
     'packages/a/node_modules/b', 'packages/a/dist/a.js', 'angular/.angular/cache/a',
     'no.tgz', 'build.log', 'test/result']) write(file);
-  const tarball = 'packages/agenda-patched/agenda-6.2.6-redbox.1.tgz';
-  write(tarball); write('api/service.ts');
+  write('api/service.ts');
   const files = inventory(dir).filter(row => row[1] === 'file').map(row => row[0]);
-  assert.deepEqual(files, ['.dockerignore', 'api/service.ts', tarball]);
+  assert.deepEqual(files, ['.dockerignore', 'api/service.ts']);
 }));
 
 test('ordered Docker patterns are root relative, support **, parent exclusions and negation', () => fixture((dir, write) => {

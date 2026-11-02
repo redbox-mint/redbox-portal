@@ -123,8 +123,8 @@ staged runtime identity check fetches its pinned manifest once and its config
 blob once, verifies both content hashes, and applies the existing strict-prefix
 check. Promotion no longer refetches the same manifest for display/config logs.
 
-`manifests` copies root and local-package manifests/locks and the exact patched
-Agenda tarball before installation. The install steps bind-mount the root
+`manifests` copies root and local-package manifests/locks before installation.
+Agenda is installed from npm at its pinned upstream version. The install steps bind-mount the root
 `.npmrc` as a cache input to preserve lifecycle/peer settings without copying
 application source. After source is copied, script-free npm
 rebuild restores local CLI bin links that npm skips when their targets are absent. `dev-deps` and `prod-deps` are independent.

@@ -25,7 +25,7 @@ SHELL ["bash", "-o", "pipefail", "-c"]
 
 FROM base AS manifests
 
-# Local file dependencies need their manifests and the patched Agenda tarball.
+# Local file dependencies need their manifests before dependency installation.
 COPY package.json package-lock.json ./
 COPY packages/agenda-sqs-backend/package.json packages/agenda-sqs-backend/package-lock.json ./packages/agenda-sqs-backend/
 COPY packages/sails-ng-common/package.json packages/sails-ng-common/package-lock.json ./packages/sails-ng-common/
@@ -36,7 +36,6 @@ COPY packages/sails-hook-redbox-storage-mongo/package.json packages/sails-hook-r
 COPY packages/redbox-dev-tools/package.json packages/redbox-dev-tools/package-lock.json ./packages/redbox-dev-tools/
 COPY packages/redbox-hook-dev/package.json packages/redbox-hook-dev/package-lock.json ./packages/redbox-hook-dev/
 COPY packages/sails-hook-redbox-pdfgen/package.json packages/sails-hook-redbox-pdfgen/package-lock.json ./packages/sails-hook-redbox-pdfgen/
-COPY packages/agenda-patched/*.tgz ./packages/agenda-patched/
 
 FROM manifests AS prod-deps
 # A clean production graph, independent of compilation and its dev dependencies.
