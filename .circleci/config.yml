@@ -1028,9 +1028,6 @@ jobs:
       arch:
         type: enum
         enum: [amd64, arm64]
-      upload_nexus:
-        type: boolean
-        default: false
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     environment:
@@ -1046,20 +1043,6 @@ jobs:
               --output ~/.docker/cli-plugins/docker-buildx
             echo '55838fdd095084e158e06a63635a07fe8a8bc6cb4db507f203394dc1ffa7fb8b  '"$HOME/.docker/cli-plugins/docker-buildx" | sha256sum -c -
             chmod +x ~/.docker/cli-plugins/docker-buildx
-      - when:
-          condition: << parameters.upload_nexus >>
-          steps:
-            - run:
-                name: Upload package to Nexus (release branches only)
-                command: |
-                  if ! bash support/build/docker-staging.sh can-promote; then
-                    echo 'DRY RUN: skipping Nexus package upload'
-                    exit 0
-                  fi
-                  npm pack
-                  PACKAGE_VERSION=$(node -p 'require("./package.json").version')
-                  RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-                  curl --fail --silent --show-error -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
       - run:
           name: Promote staging image (dry run outside release branches)
           command: bash support/build/docker-staging.sh promote << parameters.variant >> << parameters.arch >>
@@ -1426,7 +1409,6 @@ workflows:
           name: deploy
           variant: runtime
           arch: amd64
-          upload_nexus: true
           requires:
             - build
             - generate-api-docs

@@ -66,7 +66,7 @@ with `buildx imagetools create`; multi-architecture publishing uses the same
 pipeline's staging sources, never mutable architecture tags.
 
 Only exact `master`, `develop`, and `support/*` names enable real automatic
-promotion and Nexus upload. Other branches (including unset names) dry-run.
+promotion. Other branches (including unset names) dry-run.
 Dry runs verify producer-pinned digests by HEAD, anonymously if credentials are
 missing, and print digest-pinned commands without writes. Missing references fail
 unless that exact producer has a `quota-skipped` or `credential-skipped` artifact
