@@ -49,20 +49,21 @@ print_command() {
 
 if [[ "$action" == stage-tested ]]; then
   [[ "$variant/$arch" == runtime/amd64 ]] || { echo 'Only runtime/amd64 can stage the tested image' >&2; exit 1; }
-  # Forks and ordinary branches must still be able to build/test without secrets.
-  if [[ -z "${DOCKER_USER:-}" || -z "${DOCKER_PASS:-}" ]]; then
-    # Release branches must always verify the staged image matches this build; a skipped
-    # check could let a rerun promote an earlier staging image that these tests never ran.
-    if is_release_branch; then
-      echo 'DOCKER_USER/DOCKER_PASS are required to stage the tested image on release branches' >&2
-      exit 1
-    fi
-    echo 'Skipping tested-image staging push: DOCKER_USER/DOCKER_PASS unavailable; build and tests can continue'
-    exit 0
-  fi
 elif [[ "$action" == build && "$variant/$arch" == runtime/amd64 ]]; then
   echo 'Use stage-tested for runtime/amd64; rebuilding would publish an untested image' >&2
   exit 1
+fi
+
+if [[ "$action" == build || "$action" == stage-tested ]] &&
+    [[ -z "${DOCKER_USER:-}" || -z "${DOCKER_PASS:-}" ]]; then
+  if is_release_branch; then
+    echo 'DOCKER_USER/DOCKER_PASS are required to stage images on release branches' >&2
+    exit 1
+  fi
+  echo 'Skipping staging image push: DOCKER_USER/DOCKER_PASS unavailable; build and tests can continue'
+  mkdir -p "${TMPDIR:-/tmp}/ci-staging-status"
+  printf '%s\n%s\ncredential-skipped\n' "$CIRCLE_SHA1" "$STAGING_RUN_ID" >"${TMPDIR:-/tmp}/ci-staging-status/$variant-$arch"
+  exit 0
 fi
 
 # Capture quota failures without hiding other failures. Each producer contributes
@@ -177,8 +178,8 @@ fi
 pinned_sources=()
 for source_arch in "${sources[@]}"; do
   digest="$(node "$SCRIPT_DIR/staging-quota-status.cjs" "$variant" "$source_arch")"
-  if [[ "$digest" == quota-skipped ]] && ! "$real_promotion"; then
-    echo 'DRY RUN: source staging was skipped due to quota in this pipeline; no promotion'
+  if [[ "$digest" == quota-skipped || "$digest" == credential-skipped ]] && ! "$real_promotion"; then
+    echo "DRY RUN: source staging was skipped ($digest) in this pipeline; no promotion"
     exit 0
   fi
   [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Invalid producer staging digest' >&2; exit 1; }

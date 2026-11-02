@@ -61,8 +61,9 @@ Only exact `master`, `develop`, and `support/*` names enable real automatic
 promotion and Nexus upload. Other branches (including unset names) dry-run.
 Dry runs verify producer-pinned digests by HEAD, anonymously if credentials are
 missing, and print digest-pinned commands without writes. Missing references fail
-unless that exact producer has a `quota-skipped` artifact matching this SHA and
-pipeline UUID. This exception is only for non-release dry runs; real publication
+unless that exact producer has a `quota-skipped` or `credential-skipped` artifact
+matching this SHA and pipeline UUID. Missing credentials skip non-release staging
+with a distinct `credential-skipped` marker. This exception is only for non-release dry runs; real publication
 never accepts a skipped identity check. Confirmed Docker Hub quota errors skip
 optional non-release staging with a clear log. Authentication, network, malformed
 metadata, and identity failures still fail. Small status artifacts avoid attaching

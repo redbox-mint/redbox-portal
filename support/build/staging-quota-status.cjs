@@ -1,5 +1,5 @@
 // Carry the successful producer attempt's verified digest to downstream jobs.
-// Only dry runs may accept its explicit quota-skipped result.
+// Only dry runs may accept its explicit quota or credential skip result.
 async function result(variant, arch, env = process.env, fetcher = fetch) {
   const project = 'gh/redbox-mint/redbox-portal';
   if (!/^(runtime|pdfgen)$/.test(variant) || !/^(amd64|arm64)$/.test(arch) ||
@@ -30,7 +30,7 @@ async function result(variant, arch, env = process.env, fetcher = fetch) {
   const fields = text.split('\n');
   const [sha, run, state, digest, end] = fields;
   if (sha !== env.CIRCLE_SHA1 || run !== env.STAGING_RUN_ID) return null;
-  if (state === 'quota-skipped' && digest === '' && fields.length === 4) return { state };
+  if (['quota-skipped', 'credential-skipped'].includes(state) && digest === '' && fields.length === 4) return { state };
   if (state === 'verified' && fields.length === 5 && /^sha256:[a-f0-9]{64}$/.test(digest) && end === '') return { state, digest };
   return null;
 }
@@ -39,7 +39,7 @@ module.exports = { skipped, result };
 if (require.main === module) {
   result(...process.argv.slice(2)).then(value => {
     if (!value) throw new Error('Missing or invalid successful-producer staging artifact');
-    console.log(value.state === 'quota-skipped' ? 'quota-skipped' : value.digest);
+    console.log(value.state === 'verified' ? value.digest : value.state);
   }).catch(error => {
     console.error(error.message); process.exitCode = 1;
   });

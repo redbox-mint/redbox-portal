@@ -100,9 +100,16 @@ test('all automatic Docker release gates include every test and docs; manual pub
   ]) {
     const body = config.split(`  ${workflow}:`)[1].split(`  ${end}:`)[0];
     const tests = [...body.matchAll(/^      - (test-[^:]+):/gm)].map(match => match[1]);
-    for (const deploy of body.matchAll(/^      - (deploy[^:]*):\n          requires:\n([\s\S]*?)(?=          filters:)/gm)) {
+    const entries = body.split(/^      - (?=\S)/m).slice(1);
+    const deploys = entries.map(entry => ({
+      entry,
+      key: entry.match(/^([^:\n]+):/)[1],
+      name: entry.match(/^\s+name: (\S+)/m)?.[1],
+    })).filter(({ key, name }) => key.startsWith('deploy') || name?.startsWith('deploy'));
+    assert.ok(deploys.length > 0, `${workflow} has deploy gates`);
+    for (const { entry, key, name } of deploys) {
       for (const required of [...tests, 'generate-api-docs']) {
-        assert.ok(deploy[2].includes(`            - ${required}\n`), `${workflow}/${deploy[1]} needs ${required}`);
+        assert.ok(entry.includes(`            - ${required}\n`), `${workflow}/${name ?? key} needs ${required}`);
       }
     }
   }

@@ -56,6 +56,13 @@ test('only exact successful-producer artifacts from this pipeline justify a miss
     return new Response(text);
   };
   assert.equal(await skipped('runtime', 'amd64', env, fetcher(marker)), true);
+  const credentialMarker = marker.replace('quota-skipped', 'credential-skipped');
+  assert.deepEqual(await result('runtime', 'amd64', env, fetcher(credentialMarker)), { state: 'credential-skipped' });
+  for (const text of [credentialMarker.replace(env.CIRCLE_SHA1, 'b'.repeat(40)),
+    credentialMarker.replace('pipeline', 'old-pipeline'), credentialMarker + 'extra',
+    credentialMarker.trimEnd(), credentialMarker.replace('credential-skipped', 'unknown-skipped')]) {
+    assert.equal(await result('runtime', 'amd64', env, fetcher(text)), null);
+  }
   for (const text of [marker.replace(env.CIRCLE_SHA1, 'b'.repeat(40)), marker.replace('pipeline', 'old-pipeline'), marker.replace('quota-skipped', 'verified'), '']) {
     assert.equal(await skipped('runtime', 'amd64', env, fetcher(text)), false);
   }

@@ -67,6 +67,7 @@ if [[ "$1" == *docker-registry.cjs ]]; then
 fi
 if [[ "$1" == *staging-quota-status.cjs ]]; then
   if [[ "\${QUOTA_MARKER:-}" == 1 ]]; then echo quota-skipped
+  elif [[ "\${CREDENTIAL_MARKER:-}" == 1 ]]; then echo credential-skipped
   elif [[ "\${MISSING_ARTIFACT:-}" == 1 ]]; then exit 1
   else echo "\${PRODUCER_DIGEST:-${manifestDigest}}"; fi
   exit 0
@@ -254,22 +255,33 @@ test('staging reruns reject unrelated, reordered, equal, longer, empty or malfor
   }
 });
 
-test('builds without either Docker credential skip staging so forks can test', () => {
-  for (const credentials of [{ DOCKER_USER: '', DOCKER_PASS: '' }, { DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
-    const result = run(['stage-tested', 'runtime', 'amd64'], credentials);
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /Skipping tested-image staging push/);
-    assert.deepEqual(result.calls, []);
+test('non-release staging without either Docker credential records a distinct skip', () => {
+  for (const args of [['stage-tested', 'runtime', 'amd64'], ['build', 'runtime', 'arm64'],
+    ['build', 'pdfgen', 'amd64'], ['build', 'pdfgen', 'arm64']]) {
+    for (const credentials of [{ DOCKER_USER: '', DOCKER_PASS: '' }, { DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
+      const result = run(args, credentials);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /Skipping staging image push/);
+      assert.equal(result.artifact, `${sha}\n${pipeline}\ncredential-skipped\n`);
+      assert.deepEqual(result.calls, []);
+      const rebuilt = run(['build', 'runtime', 'amd64'], credentials);
+      assert.notEqual(rebuilt.status, 0);
+      assert.match(rebuilt.stderr, /Use stage-tested/);
+      assert.equal(rebuilt.artifact, undefined);
+    }
   }
 });
 
-test('release branches fail tested-image staging without credentials instead of skipping verification', () => {
+test('release branches fail staging without credentials instead of recording a skip', () => {
   for (const branch of ['develop', 'master', 'support/5.x']) {
-    const result = run(['stage-tested', 'runtime', 'amd64'], { CIRCLE_BRANCH: branch, DOCKER_USER: '', DOCKER_PASS: '' });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /required to stage the tested image on release branches/);
-    assert.doesNotMatch(result.stdout, /Skipping tested-image staging push/);
-    assert.deepEqual(result.calls, []);
+    for (const args of [['stage-tested', 'runtime', 'amd64'], ['build', 'runtime', 'arm64'],
+      ['build', 'pdfgen', 'amd64'], ['build', 'pdfgen', 'arm64']]) {
+      const result = run(args, { CIRCLE_BRANCH: branch, DOCKER_USER: '', DOCKER_PASS: '' });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /required to stage images on release branches/);
+      assert.equal(result.artifact, undefined);
+      assert.deepEqual(result.calls, []);
+    }
   }
 });
 
@@ -384,7 +396,7 @@ test('missing sources require matching quota evidence on dry runs; release branc
   const args = ['promote', 'runtime', 'amd64'];
   const skipped = run(args, { MISSING_ARTIFACT: '1', QUOTA_MARKER: '1' });
   assert.equal(skipped.status, 0, skipped.stderr);
-  assert.match(skipped.stdout, /source staging was skipped due to quota/);
+  assert.match(skipped.stdout, /source staging was skipped \(quota-skipped\)/);
   assert.notEqual(run(args, { MISSING_ARTIFACT: '1' }).status, 0);
   assert.notEqual(run(args, { MISSING_ARTIFACT: '1', QUOTA_MARKER: '1', CIRCLE_BRANCH: 'develop' }).status, 0);
 });
@@ -434,4 +446,17 @@ test('promotion consumes the producer digest even when another attempt changes a
   assert.ok(result.calls.includes(`registry head ${pinned}`));
   assert.ok(result.calls.every(call => !call.includes(':ci-staging-') && !call.includes('imagetools create')));
   assert.notEqual(run(['promote', 'runtime', 'amd64'], { MISSING_ARTIFACT: '1' }).status, 0);
+});
+
+test('credential skips allow only non-release promotion and manifest dry runs', () => {
+  for (const args of [['promote', 'runtime', 'amd64'], ['manifest', 'runtime'],
+    ['promote', 'pdfgen', 'arm64'], ['manifest', 'pdfgen']]) {
+    const skipped = run(args, { CREDENTIAL_MARKER: '1', DOCKER_USER: '', DOCKER_PASS: '' });
+    assert.equal(skipped.status, 0, skipped.stderr);
+    assert.match(skipped.stdout, /source staging was skipped \(credential-skipped\)/);
+    assert.deepEqual(skipped.calls, []);
+    for (const branch of ['develop', 'master', 'support/5.x']) {
+      assert.notEqual(run(args, { CREDENTIAL_MARKER: '1', CIRCLE_BRANCH: branch }).status, 0);
+    }
+  }
 });
