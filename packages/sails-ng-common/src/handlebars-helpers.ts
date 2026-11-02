@@ -258,6 +258,41 @@ function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding:
   return `/${[prefix, path].filter(Boolean).join('/')}`;
 }
 
+function contributorDisplayName(
+  value: unknown,
+  fullOrOptions?: string[],
+  honorificOrOptions?: string[],
+  givenOrOptions?: string[],
+  familyOrOptions?: string[]
+) {
+  if (!_isPlainObject(value)) {
+    return '';
+  }
+  const pathOptions = function (provided: unknown, defaultValue: string[]) {
+    return Array.isArray(provided) ? provided : typeof provided === 'string' ? [provided] : defaultValue;
+  };
+  const getPath = function (value: unknown, paths: string[]) {
+    for (const path of paths) {
+      const raw = _get(value, path);
+      const result = String(raw ?? '').trim();
+      if (result) {
+        return result;
+      }
+    }
+    return '';
+  };
+
+  const fullPath = pathOptions(fullOrOptions, ['full_name_honorific', 'text_full_name', 'full_name', 'fullName']);
+  const honorificPath = pathOptions(honorificOrOptions, ['honorific']);
+  const givenPath = pathOptions(givenOrOptions, ['given_name', 'givenName']);
+  const familyPath = pathOptions(familyOrOptions, ['family_name', 'familyName']);
+
+  return (
+    getPath(value, fullPath) ||
+    [getPath(value, honorificPath), getPath(value, givenPath), getPath(value, familyPath)].join(' ').trim()
+  );
+}
+
 /**
  * Shared Handlebars helper definitions for use in both server and client contexts.
  * These helpers provide CSP-safe alternatives to lodash template expressions.
@@ -539,6 +574,16 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
+   * Trim leading and trailing whitespace from each string item in an array.
+   * @example {{trimArray ['  value ', 0]}} -> ['value', 0]
+   * @example {{trimArray {aProp: ['value']}}} -> {aProp: ['value']}
+   * @param value
+   */
+  trimArray: function (value: unknown): string[] | unknown {
+    return Array.isArray(value) ? value.map(item => (typeof item === 'string' ? item.trim() : item)) : value;
+  },
+
+  /**
    * Convert a value to lowercase text.
    *
    * @example {{toLower value}}
@@ -749,6 +794,7 @@ export const handlebarsHelperDefinitions = {
    *
    * @example {{asArray ['value']}} -> ['value]
    * @example {{asArray 'value'}} -> ['value']
+   * @example {{asArray {aProp: 'value'}}} -> [{aProp: 'value'}]
    * @param value The value to get as an array.
    */
   asArray: function (value: unknown): unknown[] {
@@ -759,12 +805,18 @@ export const handlebarsHelperDefinitions = {
    * Remove undefined, null, and empty trimmed strings from an array.
    * When provided a non-array value, returns it unchanged.
    *
-   * @example {{filterArray ['one', '', undefined, null, {}]}} -> ['one', {}]
+   * @example {{filterArray ['one', '  ', undefined, null, {}]}} -> ['one', {}]
+   * @example {{filterArray undefined}} -> undefined
    * @param value The array to filter.
    */
   filterArray: function (value: unknown): unknown[] | unknown {
     return Array.isArray(value)
-      ? value.filter(value => value !== undefined && value !== null && typeof value == 'string' && value.trim())
+      ? value.filter(item => {
+          if (typeof item == 'string' && !item.trim()) {
+            return false;
+          }
+          return !(item === undefined || item === null);
+        })
       : value;
   },
 
@@ -787,28 +839,44 @@ export const handlebarsHelperDefinitions = {
     givenOrOptions?: string[],
     familyOrOptions?: string[]
   ): string {
-    if (!_isPlainObject(value)) {
-      return '';
-    }
-    const pathOptions = function (provided: unknown, defaultValue: string[]) {
-      return Array.isArray(provided) ? provided : typeof provided === 'string' ? [provided] : defaultValue;
-    };
-    const getPath = function (value: unknown, paths: string[]) {
-      for (const path of paths) {
-        const result = String(_get(value, path, '')).trim();
-        if (result) {
-          return result;
-        }
-      }
-      return '';
-    };
+    return contributorDisplayName(value, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions);
+  },
 
-    const fullPath = pathOptions(fullOrOptions, ['full_name_honorific', 'text_full_name', 'full_name', 'fullName']);
-    const honorificPath = pathOptions(honorificOrOptions, ['honorific']);
-    const givenPath = pathOptions(givenOrOptions, ['given_name', 'givenName']);
-    const familyPath = pathOptions(familyOrOptions, ['family_name', 'familyName']);
+  /**
+   * Build a display name from a contributor object for each item in an array.
+   * Returns empty string if the value is not a plain object.
+   * The provided path options will be checked in order, and the first that has a truthy value will be used.
+   * @example {{displayNameArray [{text_full_name: 'My Name'}] }} -> ['My Name']
+   * @example {{displayNameArray [{given_name: 'given', family_name: 'family'}] }} -> ['given family']
+   * @param value Array of contributor objects.
+   * @param fullOrOptions Paths to use as full name.
+   * @param honorificOrOptions Paths to use as honorific.
+   * @param givenOrOptions Paths to use as given name.
+   * @param familyOrOptions Paths to use as family name.
+   */
+  displayNameArray: function (
+    value: unknown,
+    fullOrOptions?: string[],
+    honorificOrOptions?: string[],
+    givenOrOptions?: string[],
+    familyOrOptions?: string[]
+  ): string[] | unknown {
+    return Array.isArray(value)
+      ? value.map(item =>
+          contributorDisplayName(item, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions)
+        )
+      : value;
+  },
 
-    return getPath(value, fullPath) || [honorificPath, givenPath, familyPath].join(' ').trim();
+  /**
+   * Create a new array with items sorted.
+   * Returns a non-array without changes.
+   * @example {{sort ['value2', 'value1']}} -> ['value1', 'value2']
+   * @example {{sort {text_full_name: 'My Name'} }} -> {text_full_name: 'My Name'}
+   * @param value
+   */
+  sort: function (value: unknown): any[] | unknown {
+    return Array.isArray(value) ? value.toSorted() : value;
   },
 };
 
