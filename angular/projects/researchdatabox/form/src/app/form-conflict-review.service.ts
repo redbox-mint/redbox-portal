@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   FormFieldCompMapEntry,
   ITranslationOptions,
+  labelToPlainText,
   TranslationService,
 } from '@researchdatabox/portal-ng-common';
 import {
@@ -177,7 +178,7 @@ export class FormConflictReviewService {
     const componentConfig = this.asRecord(entry?.compConfigJson?.component?.config);
     const configured = layoutConfig?.['label'] ?? componentConfig?.['label'];
     if (typeof configured === 'string' && configured.trim().length > 0) {
-      return this.translate(configured.trim());
+      return labelToPlainText(this.translate(configured.trim()));
     }
     const entryName = entry?.compConfigJson?.name?.trim();
     const fallbackSegment = [...path].reverse().find(segment => typeof segment === 'string');
