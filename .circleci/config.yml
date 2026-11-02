@@ -1,10 +1,19 @@
 jobs:
   build:
+    parameters:
+      stage_tested_image:
+        type: boolean
+        default: false
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
     resource_class: large
+    environment:
+      STAGING_RUN_ID: << pipeline.id >>
     steps:
       - checkout
+      - run:
+          name: Fingerprint checkout before host setup
+          command: node support/build/docker-context-fingerprint.cjs . /tmp/ci-build-context/checkout
       - restore_cache:
           keys:
             - v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
@@ -21,10 +30,9 @@ jobs:
           command: bash support/build/npm-publish-backend-packages.test.sh
       - run:
           name: Test Docker tag handling
-          command: bash support/build/docker-build-vars.test.sh
-      - run:
-          name: Test Angular bundle stats accounting
-          command: node --test support/build/angular-bundle-stats.test.cjs
+          command: |
+            bash support/build/docker-build-vars.test.sh
+            node --test support/build/*.test.cjs
       - save_cache:
           key: v1-npm-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
@@ -34,20 +42,41 @@ jobs:
           name: Build test image via Dockerfile
           no_output_timeout: 30m
           command: |
-            docker build \
-              --progress plain \
-              --target test \
-              --tag redbox-portal:test \
-              .
+            bash support/build/docker-build-ci.sh
+      - when:
+          condition: << parameters.stage_tested_image >>
+          steps:
+            - run:
+                name: Stage the runtime base and verify the tested layer prefix
+                command: bash support/build/docker-staging.sh stage-tested runtime amd64
       - run:
-          name: Save Docker image
+          name: Save test-only workspace image
           command: |
-            mkdir -p /tmp/docker-images
-            docker save -o /tmp/docker-images/redbox-portal-test.tar redbox-portal:test
+            mkdir -p /tmp/ci-staging-status
+            bash support/build/docker-test-handoff.sh publish
       - persist_to_workspace:
           root: /tmp
           paths:
-            - docker-images/redbox-portal-test.tar
+            - docker-images
+      - store_artifacts:
+          path: /tmp/ci-staging-status
+          destination: ci-staging-status
+      - store_artifacts:
+          path: /tmp/ci-build-context
+          destination: ci-build-context
+  verify-image-equivalence:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: large
+    steps:
+      - checkout
+      - run:
+          name: Compare old and new runtime and test filesystems
+          no_output_timeout: 30m
+          command: bash support/build/compare-ci-images.sh
+      - store_artifacts:
+          path: /tmp/image-equivalence
+          destination: image-equivalence
   generate-api-docs:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
@@ -176,11 +205,19 @@ jobs:
             )
             nvm use
             printf 'export PATH=%q:$PATH\n' "$(dirname "$(command -v node)")" >> "$BASH_ENV"
+      - run: &testRegistryMirror
+          name: Use Docker Hub cache for test dependencies
+          command: |
+            # Preserve machine defaults and any existing mirrors. Digest-pinned
+            # images retain the same identity; cache misses fall back to Hub.
+            sudo python3 -c 'import json, pathlib; p = pathlib.Path("/etc/docker/daemon.json"); c = json.loads(p.read_text()) if p.exists() else {}; c["registry-mirrors"] = ["https://mirror.gcr.io"] + [m for m in c.get("registry-mirrors", []) if m != "https://mirror.gcr.io"]; p.parent.mkdir(parents=True, exist_ok=True); p.write_text(json.dumps(c))'
+            sudo systemctl restart docker
+            docker info --format 'Registry mirrors: {{json .RegistryConfig.Mirrors}}'
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Load and verify tested workspace image
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -261,11 +298,12 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Load and verify tested workspace image
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -318,11 +356,12 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Load and verify tested workspace image
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -375,11 +414,12 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Load and verify tested workspace image
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -454,11 +494,12 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
+      - run: *testRegistryMirror
       - attach_workspace:
           at: /tmp
       - run:
-          name: Load Docker image
-          command: docker load -i /tmp/docker-images/redbox-portal-test.tar
+          name: Load and verify tested workspace image
+          command: bash support/build/docker-test-handoff.sh receive
       - run:
           name: Point compose at tested image
           command: echo 'export RBPORTAL_IMAGE=redbox-portal:test' >> "$BASH_ENV"
@@ -472,10 +513,8 @@ jobs:
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
           <<: *installCodecov
-      - run:
-          name: Install required ReDBox dependencies
-          command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+      # CI compose uses compiled packages from the tested image. Host package
+      # outputs are not mounted; compiling them here cannot affect these tests.
       - run:
           name: Setup test directories
           command: |
@@ -557,8 +596,6 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
-      - attach_workspace:
-          at: /tmp
       - run:
           <<: *installCodecov
       - run:
@@ -604,8 +641,7 @@ jobs:
     steps:
       - checkout
       - run: *usePatchedNode
-      - attach_workspace:
-          at: /tmp
+      - run: *testRegistryMirror
       - run:
           name: Start MongoDB for core integration tests
           command: |
@@ -821,9 +857,6 @@ jobs:
             npm run compile:agenda-sqs
             npm run compile:core
       - run:
-          name: Test Agenda watchdog cleanup with real MongoDB and SQS repository jobs
-          command: AGENDA_TEST_MONGO_URL="$MONGO_TEST_URL/agenda_watchdog" npm run test:agenda-watchdog
-      - run:
           name: Run storage-mongo package tests with coverage
           command: |
             cd ./packages/sails-hook-redbox-storage-mongo
@@ -960,6 +993,110 @@ jobs:
             NPM_PUBLISH_VERSION="<< parameters.release_version >>" \
             NPM_DIST_TAG="<< parameters.dist_tag >>" \
             bash support/build/npm-publish-backend-packages.sh
+  # Build the remaining variants in parallel with the tested amd64 image.
+  stage-image-amd64:
+    parameters:
+      variant:
+        type: enum
+        enum: [pdfgen]
+    docker:
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+    resource_class: large
+    environment:
+      STAGING_RUN_ID: << pipeline.id >>
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push workflow-specific amd64 staging image
+          no_output_timeout: 30m
+          command: bash support/build/docker-staging.sh build << parameters.variant >> amd64
+      - store_artifacts:
+          path: /tmp/ci-staging-status
+          destination: ci-staging-status
+      - store_artifacts:
+          path: /tmp/ci-build-context
+          destination: ci-build-context
+  stage-image-arm64:
+    parameters:
+      variant:
+        type: enum
+        enum: [runtime, pdfgen]
+    machine:
+      image: ubuntu-2404:current
+    resource_class: arm.medium
+    environment:
+      STAGING_RUN_ID: << pipeline.id >>
+    steps:
+      - checkout
+      - run:
+          name: Build and push workflow-specific arm64 staging image
+          no_output_timeout: 30m
+          command: bash support/build/docker-staging.sh build << parameters.variant >> arm64
+      - store_artifacts:
+          path: /tmp/ci-staging-status
+          destination: ci-staging-status
+      - store_artifacts:
+          path: /tmp/ci-build-context
+          destination: ci-build-context
+  promote-staging-image:
+    parameters:
+      variant:
+        type: enum
+        enum: [runtime, pdfgen]
+      arch:
+        type: enum
+        enum: [amd64, arm64]
+      upload_nexus:
+        type: boolean
+        default: false
+    docker:
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+    environment:
+      STAGING_RUN_ID: << pipeline.id >>
+    steps:
+      - checkout
+      - run: &installRegistryBuildx
+          name: Install registry-only Buildx client (no Docker daemon needed)
+          command: |
+            mkdir -p ~/.docker/cli-plugins
+            curl --fail --location --silent --show-error --retry 3 \
+              https://github.com/docker/buildx/releases/download/v0.23.0/buildx-v0.23.0.linux-amd64 \
+              --output ~/.docker/cli-plugins/docker-buildx
+            echo '55838fdd095084e158e06a63635a07fe8a8bc6cb4db507f203394dc1ffa7fb8b  '"$HOME/.docker/cli-plugins/docker-buildx" | sha256sum -c -
+            chmod +x ~/.docker/cli-plugins/docker-buildx
+      - when:
+          condition: << parameters.upload_nexus >>
+          steps:
+            - run:
+                name: Upload package to Nexus (release branches only)
+                command: |
+                  if ! bash support/build/docker-staging.sh can-promote; then
+                    echo 'DRY RUN: skipping Nexus package upload'
+                    exit 0
+                  fi
+                  npm pack
+                  PACKAGE_VERSION=$(node -p 'require("./package.json").version')
+                  RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
+                  curl --fail --silent --show-error -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+      - run:
+          name: Promote staging image (dry run outside release branches)
+          command: bash support/build/docker-staging.sh promote << parameters.variant >> << parameters.arch >>
+  publish-staging-manifest:
+    parameters:
+      variant:
+        type: enum
+        enum: [runtime, pdfgen]
+    docker:
+      - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
+    environment:
+      STAGING_RUN_ID: << pipeline.id >>
+    steps:
+      - checkout
+      - run: *installRegistryBuildx
+      - run:
+          name: Publish manifest from this pipeline's staging images (dry run outside release branches)
+          command: bash support/build/docker-staging.sh manifest << parameters.variant >>
   deploy:
     docker:
       - image: 'cimg/node:24.22.1@sha256:af46387c805de6dc3bc101a66de590daf4d01d5565ea66a99cf438fba323a055'
@@ -979,14 +1116,14 @@ jobs:
             | awk -F: '{ print $2 }' \
             | sed 's/[", \t]//g')
             RBPORTAL_FILENAME=$(ls redbox-portal-*.tgz)
-            curl -v -u $MAVEN_USER:$MAVEN_PASSWORD --upload-file $RBPORTAL_FILENAME "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
+            curl --fail --silent --show-error -u "$MAVEN_USER:$MAVEN_PASSWORD" --upload-file "$RBPORTAL_FILENAME" "https://nexus-prod.redboxresearchdata.com.au/nexus/repository/maven-snapshots/au/edu/qcif/redbox-portal/${PACKAGE_VERSION}-SNAPSHOT/redbox-portal-${PACKAGE_VERSION}-SNAPSHOT.tgz"
       - run:
           name: Publish amd64 runtime image
           command: |
             docker load -i /tmp/docker-images/redbox-portal-test.tar
             echo "${DOCKER_PASS}" | docker login --username "${DOCKER_USER}" --password-stdin
             source support/build/docker-build-vars.sh
-            docker tag redbox-portal:test "${REPO}:${DEPLOY_TAG}-amd64"
+            docker tag redbox-portal:runtime "${REPO}:${DEPLOY_TAG}-amd64"
             docker push "${REPO}:${DEPLOY_TAG}-amd64"
   publish-runtime-amd64:
     docker:
@@ -1165,6 +1302,9 @@ orbs:
   docker: circleci/docker@3.0.1
 version: 2.1
 parameters:
+  verify_image_equivalence:
+    type: boolean
+    default: false
   npm_publish_mode:
     type: enum
     enum:
@@ -1188,22 +1328,37 @@ parameters:
       - manual
     default: none
 workflows:
+  image_equivalence:
+    when: << pipeline.parameters.verify_image_equivalence >>
+    jobs:
+      - verify-image-equivalence
   build_test_gendocs_and_deploy:
     when:
       and:
         - equal: [none, << pipeline.parameters.npm_publish_mode >>]
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
+      - stage-image-arm64:
+          name: stage-runtime-arm64
+          variant: runtime
+          filters: &stagingBranchFilters
+            branches:
+              only: /^(master|develop|support\/.*|chore\/ci-build-speed)$/
+      - stage-image-amd64:
+          name: stage-pdfgen-amd64
+          variant: pdfgen
+          filters: *stagingBranchFilters
+      - stage-image-arm64:
+          name: stage-pdfgen-arm64
+          variant: pdfgen
+          filters: *stagingBranchFilters
       - build:
-          filters:
+          stage_tested_image: true
+          filters: &normalBranchFilters
             branches:
               ignore: /^dependabot.*/
       - generate-api-docs:
-          requires:
-            - build
-          filters:
-            branches:
-              ignore: /^dependabot.*/
+          filters: *normalBranchFilters
       - publish-wiki:
           requires:
             - deploy
@@ -1222,12 +1377,6 @@ workflows:
               only: master
             tags:
               ignore: /.*/
-      - build-runtime-pdfgen:
-          requires:
-            - build
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
       - test-bruno-general:
           requires:
             - build
@@ -1269,105 +1418,117 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
+          filters: *normalBranchFilters
       - test-sails-ng-common:
-          requires:
-            - build
+          filters: *normalBranchFilters
       # - lint-redbox-core:
       #     requires:
       #       - build
       - test-redbox-core:
-          requires:
-            - build
+          filters: *normalBranchFilters
       - test-agenda-sqs-backend:
-          requires:
-            - build
+          filters: *normalBranchFilters
       - test-rva-registry:
-          requires:
-            - build
+          filters: *normalBranchFilters
       - test-redbox-dev-tools-cli:
-          requires:
-            - build
+          filters: *normalBranchFilters
       - test-storage-mongo:
+          filters: *normalBranchFilters
+      - promote-staging-image:
+          name: deploy-arm64
+          variant: runtime
+          arch: arm64
           requires:
-            - build
-      - deploy-arm64:
-          requires:
+            - stage-runtime-arm64
+            - generate-api-docs
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
+            - test-playwright
             - test-mocha
             - test-angular
             - test-sails-ng-common
             - test-redbox-core
             - test-agenda-sqs-backend
+            - test-rva-registry
             - test-redbox-dev-tools-cli
             - test-storage-mongo
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
-      - publish-manifest:
+          filters: *stagingBranchFilters
+      - promote-staging-image:
+          name: deploy
+          variant: runtime
+          arch: amd64
+          upload_nexus: true
+          requires:
+            - build
+            - generate-api-docs
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-bruno-s3
+            - test-playwright
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-agenda-sqs-backend
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters: *stagingBranchFilters
+      - promote-staging-image:
+          name: deploy-runtime-pdfgen
+          variant: pdfgen
+          arch: amd64
+          requires:
+            - stage-pdfgen-amd64
+            - generate-api-docs
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-bruno-s3
+            - test-playwright
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-agenda-sqs-backend
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters: *stagingBranchFilters
+      - promote-staging-image:
+          name: deploy-runtime-pdfgen-arm64
+          variant: pdfgen
+          arch: arm64
+          requires:
+            - stage-pdfgen-arm64
+            - generate-api-docs
+            - test-bruno-general
+            - test-bruno-oidc
+            - test-bruno-s3
+            - test-playwright
+            - test-mocha
+            - test-angular
+            - test-sails-ng-common
+            - test-redbox-core
+            - test-agenda-sqs-backend
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
+            - test-storage-mongo
+          filters: *stagingBranchFilters
+      - publish-staging-manifest:
+          name: publish-manifest
+          variant: runtime
           requires:
             - deploy
             - deploy-arm64
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
-      - deploy:
-          requires:
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
-      - deploy-runtime-pdfgen:
-          requires:
-            - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
-      - deploy-runtime-pdfgen-arm64:
-          requires:
-            - build-runtime-pdfgen
-            - test-bruno-general
-            - test-bruno-oidc
-            - test-bruno-s3
-            - test-mocha
-            - test-angular
-            - test-sails-ng-common
-            - test-redbox-core
-            - test-agenda-sqs-backend
-            - test-redbox-dev-tools-cli
-            - test-storage-mongo
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
-      - publish-runtime-pdfgen-manifest:
+          filters: *stagingBranchFilters
+      - publish-staging-manifest:
+          name: publish-runtime-pdfgen-manifest
+          variant: pdfgen
           requires:
             - deploy-runtime-pdfgen
             - deploy-runtime-pdfgen-arm64
-          filters:
-            branches:
-              only: /^(master|develop|support\/.*)$/
+          filters: *stagingBranchFilters
   build_test_dependabot:
     when:
       and:
@@ -1375,7 +1536,7 @@ workflows:
         - equal: [none, << pipeline.parameters.docker_publish_mode >>]
     jobs:
       - refresh-dependabot-package-locks:
-          filters:
+          filters: &dependabotFilters
             branches:
               only: /^dependabot.*/
             tags:
@@ -1390,12 +1551,8 @@ workflows:
               ignore: /.*/
       - generate-api-docs:
           requires:
-            - build
-          filters:
-            branches:
-              only: /^dependabot.*/
-            tags:
-              ignore: /.*/
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-bruno-general:
           requires:
             - build
@@ -1438,27 +1595,37 @@ workflows:
                 - translation
                 - record-search
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-sails-ng-common:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-redbox-core:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-agenda-sqs-backend:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-rva-registry:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-redbox-dev-tools-cli:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - test-storage-mongo:
           requires:
-            - build
+            - refresh-dependabot-package-locks
+          filters: *dependabotFilters
       - deploy-arm64:
           requires:
+            - generate-api-docs
+            - test-rva-registry
+            - test-playwright
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1474,6 +1641,9 @@ workflows:
               ignore: /^dependabot.*/
       - deploy:
           requires:
+            - generate-api-docs
+            - test-rva-registry
+            - test-playwright
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1500,8 +1670,6 @@ workflows:
             branches:
               ignore: /.*/
       - generate-api-docs:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
@@ -1532,6 +1700,14 @@ workflows:
             branches:
               ignore: /.*/
       - test-bruno-s3:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - test-playwright:
           requires:
             - build
           filters:
@@ -1573,56 +1749,42 @@ workflows:
                 - branding
                 - translation
                 - record-search
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-sails-ng-common:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-redbox-core:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-agenda-sqs-backend:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-rva-registry:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-redbox-dev-tools-cli:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
             branches:
               ignore: /.*/
       - test-storage-mongo:
-          requires:
-            - build
           filters:
             tags:
               only: /^v.*/
@@ -1630,6 +1792,10 @@ workflows:
               ignore: /.*/
       - deploy-arm64:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1646,6 +1812,10 @@ workflows:
               ignore: /.*/
       - deploy:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - test-bruno-general
             - test-bruno-oidc
             - test-bruno-s3
@@ -1671,6 +1841,10 @@ workflows:
               ignore: /.*/
       - deploy-runtime-pdfgen:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc
@@ -1688,6 +1862,10 @@ workflows:
               ignore: /.*/
       - deploy-runtime-pdfgen-arm64:
           requires:
+            - test-playwright
+            - generate-api-docs
+            - test-rva-registry
+            - test-redbox-dev-tools-cli
             - build-runtime-pdfgen
             - test-bruno-general
             - test-bruno-oidc

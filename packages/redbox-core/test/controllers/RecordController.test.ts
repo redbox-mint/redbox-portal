@@ -3,6 +3,7 @@ import {createSinonStubLogger} from "../logger.test";
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { firstValueFrom, of } from 'rxjs';
+import { tmpdir } from 'node:os';
 import { Settings } from 'luxon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { UserModel, RoleModel } from '../../src/model';
@@ -2304,6 +2305,10 @@ describe('RecordController getWorkflowSteps', () => {
 
 describe('RecordController TUS URL generation', () => {
   class TestTusRecordController extends Controllers.Record {
+    public override async checkDiskSpace(root: string) {
+      return super.checkDiskSpace(root);
+    }
+
     public getTusServer() {
       this.initTusServer();
       if (!this.tusServer) {
@@ -2313,12 +2318,11 @@ describe('RecordController TUS URL generation', () => {
     }
   }
 
-  let controller: Controllers.Record;
+  let controller: TestTusRecordController;
   let originalSails: any;
   let originalStorageManagerService: any;
   let originalBrandingService: any;
   let originalTranslationService: any;
-  let originalCheckDiskSpace: any;
 
   beforeEach(() => {
     originalSails = (global as any).sails;
@@ -2356,7 +2360,7 @@ describe('RecordController TUS URL generation', () => {
     (global as any).TranslationService = {
       t: sinon.stub().callsFake((value: string) => value),
     };
-    controller = new Controllers.Record();
+    controller = new TestTusRecordController();
   });
 
   afterEach(() => {
@@ -2444,10 +2448,17 @@ describe('RecordController TUS URL generation', () => {
     expect(() => (controller as any).initTusServer()).to.not.throw();
   });
 
+  it('loads the ESM disk-space checker from the CommonJS controller', async () => {
+    const diskSpace = await controller.checkDiskSpace(tmpdir());
+
+    expect(diskSpace.free).to.be.a('number').and.to.be.at.least(0);
+    expect(diskSpace.size).to.be.a('number').and.to.be.greaterThan(0);
+    expect(diskSpace.diskPath).to.be.a('string');
+  });
+
   it('checks disk space against the staging disk root for filesystem staging uploads', async () => {
-    const checkDiskSpaceModule = require('check-disk-space');
     const checkDiskSpaceStub = sinon
-      .stub(checkDiskSpaceModule, 'default')
+      .stub(controller, 'checkDiskSpace')
       .resolves({ free: 10000, size: 20000, diskPath: '/tmp/storage-manager-staging' });
     const handleStub = sinon.stub();
     (controller as any).tusServer = { handle: handleStub };
@@ -2479,9 +2490,8 @@ describe('RecordController TUS URL generation', () => {
   });
 
   it('skips local disk-space checks for non-filesystem staging uploads', async () => {
-    const checkDiskSpaceModule = require('check-disk-space');
     const checkDiskSpaceStub = sinon
-      .stub(checkDiskSpaceModule, 'default')
+      .stub(controller, 'checkDiskSpace')
       .resolves({ free: 10000, size: 20000, diskPath: '/tmp/storage-manager-staging' });
     (global as any).StorageManagerService.getStagingDiskConfig.returns({
       driver: 's3',
@@ -2517,9 +2527,8 @@ describe('RecordController TUS URL generation', () => {
   });
 
   it('does not use record.mongodbDisk for tus disk-space validation', async () => {
-    const checkDiskSpaceModule = require('check-disk-space');
     const checkDiskSpaceStub = sinon
-      .stub(checkDiskSpaceModule, 'default')
+      .stub(controller, 'checkDiskSpace')
       .resolves({ free: 10000, size: 20000, diskPath: '/tmp/storage-manager-staging' });
     const handleStub = sinon.stub();
     (controller as any).tusServer = { handle: handleStub };

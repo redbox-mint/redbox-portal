@@ -8,7 +8,7 @@
     }
 
     @if (displayType === 'dropdown' && workspaceApps.length) {
-      <label [for]="name + '-workspace-select'" class="form-label">{{ label | i18next }}</label>
+      <label [for]="name + '-workspace-select'" class="form-label">{{ label | i18next | plainTextLabel }}</label>
       <select
         class="form-select"
         [id]="name + '-workspace-select'"
