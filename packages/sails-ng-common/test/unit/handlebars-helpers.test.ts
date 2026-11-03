@@ -6,7 +6,8 @@ import {
   handlebarsCompile,
   handlebarsTemplate,
 } from '../../src';
-import { Settings } from 'luxon';
+import { Settings, DateTime } from 'luxon';
+import * as sinon from 'sinon';
 
 describe('Shared Handlebars Helpers', async function () {
   let expect: Chai.ExpectStatic;
@@ -15,10 +16,6 @@ describe('Shared Handlebars Helpers', async function () {
     const chai = await import('chai');
     expect = chai.expect;
   });
-
-  // not
-  // t
-  // json
 
   describe('formatDate', function () {
     it('should format ISO date with default format', function () {
@@ -199,6 +196,33 @@ describe('Shared Handlebars Helpers', async function () {
     });
   });
 
+  describe('dateModify', function () {
+    const when = '2023-05-18T01:30:00.000Z';
+    const whenDt = DateTime.fromISO(when);
+    it('should default to plus operation', function () {
+      expect(handlebarsCompile(`{{dateModify when 'days' 3 'months' 1}}`)({ when })).to.equal(
+        whenDt.plus({ months: 1, days: 3 }).toISO()
+      );
+      expect(handlebarsCompile(`{{dateModify when 'days' -3}}`)({ when })).to.equal(whenDt.plus({ days: -3 }).toISO());
+      expect(handlebarsCompile(`{{dateModify when 'years' 1}}`)({ when })).to.equal(whenDt.plus({ years: 1 }).toISO());
+    });
+    it('should allow startOf and endOf operations', function () {
+      expect(handlebarsCompile(`{{dateModify when 'startOf' 'day'}}`)({ when })).to.equal(
+        whenDt.startOf('day').toISO()
+      );
+      expect(handlebarsCompile(`{{dateModify when 'endOf' 'month'}}`)({ when })).to.equal(
+        whenDt.endOf('month').toISO()
+      );
+    });
+    it('should return first input if called incorrectly', function () {
+      expect(handlebarsCompile(`{{dateModify when}}`)({ when })).to.equal(when);
+      expect(handlebarsCompile(`{{dateModify when 'something'}}`)({ when })).to.equal(when);
+      expect(handlebarsCompile(`{{dateModify 'plus'}}`)({ when })).to.equal('plus');
+      expect(handlebarsCompile(`{{dateModify when 'plus' 'notAUnit' 10}}`)({ when })).to.equal(when);
+      expect(handlebarsCompile(`{{dateModify when 'startOf' 'days' 10}}`)({ when })).to.equal(when);
+    });
+  });
+
   describe('isEmpty', function () {
     it('should return true for empty string', function () {
       expect(handlebarsHelperDefinitions.isEmpty('')).to.be.true;
@@ -318,15 +342,36 @@ describe('Shared Handlebars Helpers', async function () {
     });
 
     it('or should return false if all args are falsy', function () {
-      expect(handlebarsHelperDefinitions.or(false, false, {})).to.be.false;
+      expect(handlebarsHelperDefinitions.or(false, false, null)).to.be.false;
+    });
+  });
+
+  describe('not', function () {
+    it('should return true if false', function () {
+      expect(handlebarsHelperDefinitions.not(false)).to.be.true;
+    });
+
+    it('should return false if truthy', function () {
+      expect(handlebarsHelperDefinitions.not(1)).to.be.false;
+      expect(handlebarsHelperDefinitions.not('a')).to.be.false;
+      expect(handlebarsHelperDefinitions.not([])).to.be.false;
+    });
+
+    it('should return true if falsy', function () {
+      expect(handlebarsHelperDefinitions.not(null)).to.be.true;
+      expect(handlebarsHelperDefinitions.not(undefined)).to.be.true;
+      expect(handlebarsHelperDefinitions.not('')).to.be.true;
+      expect(handlebarsHelperDefinitions.not(0)).to.be.true;
     });
   });
 
   describe('concat', function () {
     it('should concatenate strings', function () {
-      // Last arg is options hash
-      const result = handlebarsHelperDefinitions.concat('Hello', ' ', 'World', {});
-      expect(result).to.equal('Hello World');
+      const value = 'Hello World';
+      const result = handlebarsHelperDefinitions.concat('Hello', ' ', 'World');
+      expect(result).to.equal(value);
+
+      expect(handlebarsCompile('{{concat "Hello" " " "World"}}')({})).to.equal(value);
     });
   });
 
@@ -344,6 +389,16 @@ describe('Shared Handlebars Helpers', async function () {
     it('should treat nullish values as empty strings', function () {
       expect(handlebarsHelperDefinitions.toLower(null)).to.equal('');
       expect(handlebarsHelperDefinitions.toUpper(undefined)).to.equal('');
+    });
+  });
+
+  describe('translation helper', function () {
+    it('should show translated string from code', function () {
+      const result = handlebarsHelperDefinitions.t.call(
+        { translationService: { t: (key: string) => `translated-${key}` } },
+        'Ada Lovelace'
+      );
+      expect(result).to.equal(`translated-Ada Lovelace`);
     });
   });
 
@@ -399,6 +454,18 @@ describe('Shared Handlebars Helpers', async function () {
       const plucked = handlebarsHelperDefinitions.pluck(creators, 'email');
       const result = handlebarsHelperDefinitions.join(plucked, ',');
       expect(result).to.equal('a@x,b@x');
+    });
+
+    it('should extract multiple properties', function () {
+      const creators = [
+        { email: 'a@x', name: 'name1' },
+        { email: 'b@x', name: 'name2' },
+      ];
+      const plucked = handlebarsHelperDefinitions.pluck(creators, 'email', 'name');
+      expect(plucked).to.deep.equal([
+        ['a@x', 'name1'],
+        ['b@x', 'name2'],
+      ]);
     });
   });
 
@@ -544,6 +611,13 @@ describe('Shared Handlebars Helpers', async function () {
     });
   });
 
+  describe('json', function () {
+    it('should display string', function () {
+      const result = handlebarsHelperDefinitions.json({ test: 'value' });
+      expect(result).to.equal('{"test":"value"}');
+    });
+  });
+
   describe('comparison helpers', function () {
     it('gt should return true if first > second', function () {
       expect(handlebarsHelperDefinitions.gt(5, 3)).to.be.true;
@@ -644,10 +718,11 @@ describe('Shared Handlebars Helpers', async function () {
 
   describe('asArray', async function () {
     it('convert values to array', function () {
-      const input = ['value', null, undefined, {}];
+      const input = ['value', '', 0];
       expect(handlebarsHelperDefinitions.asArray(input)).to.deep.equal(input);
       expect(handlebarsHelperDefinitions.asArray('value')).to.deep.equal(['value']);
       expect(handlebarsHelperDefinitions.asArray({ aProp: 'value' })).to.deep.equal([{ aProp: 'value' }]);
+      expect(handlebarsCompile('{{asArray input}}')({ input })).to.deep.equal('value,,0');
     });
   });
 
@@ -663,7 +738,7 @@ describe('Shared Handlebars Helpers', async function () {
   });
 
   describe('displayName and displayNameArray', function () {
-    it('should format the display name', function () {
+    it('should format the display name using text_full_name first', function () {
       const input1 = {
         text_full_name: 'Mr Given1 Family1',
         givenName: 'given',
@@ -673,18 +748,45 @@ describe('Shared Handlebars Helpers', async function () {
       const expected1 = 'Mr Given1 Family1';
       expect(handlebarsHelperDefinitions.displayName(input1)).to.deep.equal(expected1);
       expect(handlebarsHelperDefinitions.displayNameArray([input1])).to.deep.equal([expected1]);
-
+    });
+    it('should format the display name using individual properties', function () {
       const input2 = { givenName: 'given', familyName: 'family', honorific: 'HON' };
       const expected2 = 'HON given family';
       expect(handlebarsHelperDefinitions.displayName(input2)).to.deep.equal(expected2);
       expect(handlebarsHelperDefinitions.displayNameArray([input2])).to.deep.equal([expected2]);
-
+    });
+    it('should format the display name as empty string when no properties are suitable', function () {
+      const input2 = {
+        text_full_name: null,
+        givenName: ['given'],
+        familyName: { value: 'family' },
+        honorific: function () {
+          return 'HON';
+        },
+      };
+      const expected2 = '';
+      expect(handlebarsHelperDefinitions.displayName(input2)).to.deep.equal(expected2);
+      expect(handlebarsHelperDefinitions.displayNameArray([input2])).to.deep.equal([expected2]);
+    });
+    it('should format the display name as empty string when input is not an object', function () {
       const input3 = ['one'];
       const expected3 = '';
       expect(handlebarsHelperDefinitions.displayName(input3)).to.deep.equal(expected3);
       expect(handlebarsHelperDefinitions.displayNameArray([input3])).to.deep.equal([expected3]);
 
       expect(handlebarsHelperDefinitions.displayNameArray({})).to.deep.equal({});
+    });
+  });
+
+  describe('sort', function () {
+    it('should sort ignoring case and punctuation', function () {
+      const input = ['réservé', 'Premier', 'Cli.ché', 'communiqué', 'c!afé', 'Adieu'];
+      const expected = ['Adieu', 'c!afé', 'Cli.ché', 'communiqué', 'Premier', 'réservé'];
+      expect(handlebarsHelperDefinitions.sort(input)).to.deep.equal(expected);
+    });
+    it('should return a non-array input unchanged', function () {
+      const input = { text_full_name: 'My Name' };
+      expect(handlebarsHelperDefinitions.sort(input)).to.deep.equal(input);
     });
   });
 
@@ -708,14 +810,32 @@ describe('Shared Handlebars Helpers', async function () {
           scu_data_infra_special_access_rights: 'special access rights text',
           scu_data_special_requests: 'special requests text',
           'redbox:retentionPeriod_dc:date': '1year',
-          'redbox:retentionPeriod_dc:date_skos:note': ['not-applicable'],
+          'redbox:retentionPeriod_dc:date_skos:note': ['not-applicable', 'a2'],
           'dc:coverage_dc:identifier': [{ basic_name: 'coverage1' }],
+          geolocations: [
+            {
+              basic_name: ['Lismore'],
+              latitude: [45.70015],
+              longitude: [-62.2653],
+            },
+            'name2',
+          ],
           scu_ownership_decision_authority: 'manager',
           'dc:accessRights': 'office-research-decide',
           workspaces: [{ id: 'workspace-id2' }, { id: 'workspace-id1  ' }],
           'vivo:Dataset_redbox:DataCollectionMethodology': 'data collection answer',
           'vivo:Dataset_redbox:DataCollectionResources': 'Software/equipment used to create/collect the data answer',
           'vivo:Dataset_redbox:DataAnalysisResources': 'Software/equipment used to manipulate/analyse the data answer',
+          data_size: 'upTo5GB',
+          'additional-irma-ids': [
+            {
+              display_title: 'HEC: 123x4 Human addtional irma id 1',
+              title: 'addtional irma id 1',
+              type: 'Human',
+              ID: 'HEC: 123x4',
+              oid: 'oid-123',
+            },
+          ],
           contributor_author: {
             text_full_name: 'The Author Example',
             email: 'author-example@redboxresearchdata.com.au',
@@ -759,6 +879,21 @@ describe('Shared Handlebars Helpers', async function () {
               text_full_name: 'The Data Manager Example1',
             },
           ],
+          'foaf:fundedBy_foaf:Agent': [
+            {
+              'provider-id': 'FPRx6542',
+              'provider-name': 'Australian Research Council',
+              primary: 'Yes',
+            },
+          ],
+          'dc:subject_anzsrc:for': [
+            {
+              name: '370304 - Organic geochemistry',
+              label: 'Organic geochemistry',
+              notation: '370304',
+              geneaology: ['37', '3703'],
+            },
+          ],
         },
         lastSaveDate: '2025-04-01T01:23:45.678Z',
       };
@@ -767,38 +902,43 @@ describe('Shared Handlebars Helpers', async function () {
         <li>ciName: {{displayName (get record 'metadata.contributor_ci')}}</li>
         <li>managerNames: {{join (sort (displayNameArray (asArray (get record 'metadata.contributors_data_manager')))) ', '}}</li>
         <li>collaboratorNames: joined(collaboratorNames),</li>
-        <li>workspaceIds: {{join (filterArray (trimArray (pluck (asArray (get record 'metadata.workspaces')) 'id'))) ', '}}</li>
-        <li>projectStart: date(metadata['dc:coverage_vivo:DateTimeInterval_vivo:start']),</li>
-        <li>lastSaveDate: date(record.lastSaveDate),</li>
-        <li>reviewDate: date(reviewDate),</li>
-        <li>citationPublicationDate: date(metadata.citation_publication_date, true),</li>
-        <li>retentionReasons: joined(array(metadata['redbox:retentionPeriod_dc:date_skos:note'])),</li>
+        <li>workspaceIds: {{join (sort (filterArray (trimArray (pluck (asArray (get record 'metadata.workspaces')) 'id')))) ', '}}</li>
+        <li>projectStart: {{formatDate (get record "metadata['dc:coverage_vivo:DateTimeInterval_vivo:start']") "dd/MM/yyyy hh:mm a" "Australia/Sydney"}}</li>
+        <li>lastSaveDate: {{formatDateLocale (get record "lastSaveDate") "DATE_SHORT" "UTC"}}</li>
+        <li>reviewDate: {{formatDate (dateModify (get record 'lastSaveDate') 'days' 14)}}</li>
+        <li>scu_entered_retention_end_date: {{formatDate (get record "metadata.scu_entered_retention_end_date") "dd/MM/yyyy" "Australia/Sydney"}}</li>
+        <li>retentionReasons: {{join (sort (filterArray (trimArray (asArray (get record 'metadata.["redbox:retentionPeriod_dc:date_skos:note"]'))))) ', '}}</li>
         <li>countries: countryNames(metadata['dc:coverage_dc:identifier']),</li>
-        <li>additionalIrmaIds: joined(array(metadata['additional-irma-ids']).map(item => item.display_title)),</li>
-        <li>researchFields: joined(array(metadata['dc:subject_anzsrc:for']).map(item => item.name)),</li>
+        <li>geolocations: countryNames(metadata['dc:coverage_dc:identifier']),</li>
+        <li>additionalIrmaIds: {{join (sort (filterArray (trimArray (pluck (asArray (get record 'metadata.additional-irma-ids')) 'display_title')))) ', '}}</li>
+        <li>researchFields: {{join (sort (filterArray (trimArray (pluck (asArray (get record "metadata['dc:subject_anzsrc:for']" '(blank)')) 'name')))) ', '}}</li>
         <li>funders: joined(array(metadata['foaf:fundedBy_foaf:Agent']).filter(item => item['provider-name'] && item['provider-id']).map(item => {item['provider-name']} ({item['provider-id']}))),</li>
-        <li>viewSupervisorNames: joined(array(metadata.view_only_contributors_supervisor).filter(item => String(item).trim() !== 'null')),</li>
-        <li>dataSize: ({upTo5GB: 'Up to 5GB', moreThan5GB: 'More than 5GB'} as Record<string, string>)[String(metadata.data_size ?? '').trim()] ?? blank,</li>
+        <li>viewSupervisorNames: {{join (sort (filterArray (trimArray (asArray (get record 'metadata.view_only_contributors_supervisor' '(blank)') )))) ', '}}</li>
+        <li>dataSize: {{default (t (get record 'metadata.data_size')) '(blank)'}}</li>
 </ul>`;
       const expected = `<ul>
         <li>authorName: The Author Example</li>
         <li>ciName: The CI Example</li>
         <li>managerNames: The Data Manager Example1, The Data Manager Example2</li>
-        <li>collaboratorNames: joined(collaboratorNames),</li>
+        <li>collaboratorNames: The Supervisor Example, The Contributor Example, The External Example, The Data Manager Example2</li>
         <li>workspaceIds: workspace-id1, workspace-id2</li>
-        <li>projectStart: date(metadata['dc:coverage_vivo:DateTimeInterval_vivo:start']),</li>
-        <li>lastSaveDate: date(record.lastSaveDate),</li>
-        <li>reviewDate: date(reviewDate),</li>
-        <li>citationPublicationDate: date(metadata.citation_publication_date, true),</li>
-        <li>retentionReasons: joined(array(metadata['redbox:retentionPeriod_dc:date_skos:note'])),</li>
-        <li>countries: countryNames(metadata['dc:coverage_dc:identifier']),</li>
-        <li>additionalIrmaIds: joined(array(metadata['additional-irma-ids']).map(item => item.display_title)),</li>
-        <li>researchFields: joined(array(metadata['dc:subject_anzsrc:for']).map(item => item.name)),</li>
-        <li>funders: joined(array(metadata['foaf:fundedBy_foaf:Agent']).filter(item => item['provider-name'] && item['provider-id']).map(item => {item['provider-name']} ({item['provider-id']}))),</li>
-        <li>viewSupervisorNames: joined(array(metadata.view_only_contributors_supervisor).filter(item => String(item).trim() !== 'null')),</li>
-        <li>dataSize: ({upTo5GB: 'Up to 5GB', moreThan5GB: 'More than 5GB'} as Record<string, string>)[String(metadata.data_size ?? '').trim()] ?? blank,</li>
+        <li>projectStart: 05/09/2024 10:34 PM</li>
+        <li>lastSaveDate: 4/1/2025</li>
+        <li>reviewDate: 15/04/2025 01:23 AM</li>
+        <li>scu_entered_retention_end_date: 26/02/2026</li>
+        <li>retentionReasons: a2, not-applicable</li>
+        <li>countries: coverage1</li>
+        <li>geolocations: Lismore, name2</li>
+        <li>additionalIrmaIds: HEC: 123x4 Human addtional irma id 1</li>
+        <li>researchFields: 370304 - Organic geochemistry</li>
+        <li>funders: Australian Research Council (FPRx6542)</li>
+        <li>viewSupervisorNames: (blank)</li>
+        <li>dataSize: Up to 5GB</li>
 </ul>`;
-      expect(handlebarsCompile(template)({ record })).to.equal(expected);
+      const compiled = handlebarsCompile(template);
+      expect(
+        compiled({ record, translationService: { t: (key: string) => ({ upTo5GB: 'Up to 5GB' })[key] } })
+      ).to.equal(expected);
     });
   });
 });

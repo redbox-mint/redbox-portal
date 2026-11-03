@@ -29,7 +29,8 @@ import {
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
-import {normaliseVisual} from "./config/names/naming-helpers";
+import { normaliseVisual } from './config/names/naming-helpers';
+import { guessType } from './config/helpers';
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -40,6 +41,10 @@ function isHandlebarsOptionsArg(value: unknown): boolean {
       Object.prototype.hasOwnProperty.call(value, 'fn') ||
       Object.prototype.hasOwnProperty.call(value, 'inverse'))
   );
+}
+
+function isNotHandlebarsOptionsArg(value: unknown): boolean {
+  return !isHandlebarsOptionsArg(value);
 }
 
 // TODO: this is because the DateInputComponent needs Luxon style formatters. We have a moment shim on the server side but not on the client.
@@ -61,9 +66,9 @@ let cachedMarkedParser: ((value: string) => string) | null | undefined;
 
 void import('marked')
   .then(markedModule => {
-      const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
-      if (typeof parseFn === 'function') {
-        cachedMarkedParser = (value: string): string => {
+    const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+    if (typeof parseFn === 'function') {
+      cachedMarkedParser = (value: string): string => {
         const result = parseFn(value);
         return typeof result === 'string' ? result : value;
       };
@@ -260,10 +265,10 @@ function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding:
 
 function contributorDisplayName(
   value: unknown,
-  fullOrOptions?: string[],
-  honorificOrOptions?: string[],
-  givenOrOptions?: string[],
-  familyOrOptions?: string[]
+  fullOrOptions?: string | string[] | Record<string, unknown>,
+  honorificOrOptions?: string | string[] | Record<string, unknown>,
+  givenOrOptions?: string | string[] | Record<string, unknown>,
+  familyOrOptions?: string | string[] | Record<string, unknown>
 ) {
   if (!_isPlainObject(value)) {
     return '';
@@ -274,6 +279,11 @@ function contributorDisplayName(
   const getPath = function (value: unknown, paths: string[]) {
     for (const path of paths) {
       const raw = _get(value, path);
+      const guessedType = guessType(raw);
+      if (['array', 'object', 'function'].includes(guessedType)) {
+        // Skip properties that are likely to show an unfriendly string representation.
+        continue;
+      }
       const result = String(raw ?? '').trim();
       if (result) {
         return result;
@@ -329,6 +339,37 @@ const dateLocalePresetMap: Record<string, Intl.DateTimeFormatOptions> = {
   DATETIME_FULL_WITH_SECONDS: DateTime.DATETIME_FULL_WITH_SECONDS,
   DATETIME_HUGE_WITH_SECONDS: DateTime.DATETIME_HUGE_WITH_SECONDS,
 };
+
+export const dateModifyOperations = ['startOf', 'endOf', 'plus'] as const;
+export const dateModifyShiftUnits = [
+  'year',
+  'quarter',
+  'month',
+  'week',
+  'day',
+  'hour',
+  'minute',
+  'second',
+  'millisecond',
+] as const;
+export const dateModifyPlusUnits = [
+  'years',
+  'quarters',
+  'months',
+  'weeks',
+  'days',
+  'hours',
+  'minutes',
+  'seconds',
+  'milliseconds',
+] as const;
+export type DateModifyOperations = (typeof dateModifyOperations)[number];
+export type DateModifyShiftUnits = (typeof dateModifyShiftUnits)[number];
+export type DateModifyPlusUnits = (typeof dateModifyPlusUnits)[number];
+
+function isIn<T>(values: readonly T[], x: any): x is T {
+  return values.includes(x);
+}
 
 /**
  * Helper function definitions that can be registered with Handlebars.
@@ -411,6 +452,72 @@ export const handlebarsHelperDefinitions = {
    */
   parseDateString: function (dateString: string): string {
     return dateString || '';
+  },
+
+  /**
+   * Modify a date by adding the provided time units, or setting to the start or end of the given time unit.
+   * Returns the date value unchanged or empty string if the call was not valid.
+   * @param args The date value to modify.
+   *    Then the 'plus' operation duration, or the operation name, or the handlebars options.
+   *    Then the operation duration, or operation unit, or handlebars options.
+   */
+  dateModify: function (...args: unknown[]): string {
+    args = args.filter(isNotHandlebarsOptionsArg);
+
+    const failResult = args.length > 0 && typeof args[0] === 'string' ? args[0] : '';
+    try {
+      const dt =
+        args.length > 0 && typeof args[0] === 'string'
+          ? DateTime.fromISO(args[0])
+          : args[0] instanceof Date
+            ? DateTime.fromJSDate(args[0])
+            : DateTime.invalid('no date value provided');
+
+      if (!dt.isValid) {
+        return String(failResult);
+      }
+
+      const secondParamIsOperation =
+        args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1]);
+      const operation =
+        args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1]) ? args[1] : 'plus';
+
+      switch (operation) {
+        case 'plus':
+          const durationItems = secondParamIsOperation ? args.slice(2) : args.slice(1);
+          const opts = Object.fromEntries(
+            durationItems
+              .map((val, index, arr) => {
+                if (index % 2 !== 0) {
+                  return null;
+                }
+                const key = typeof val === 'string' && isIn(dateModifyPlusUnits, val) ? val : null;
+                if (!key) {
+                  return null;
+                }
+                return [key, arr[index + 1]];
+              })
+              .filter(i => i !== null)
+          );
+          return Object.keys(opts).length > 0 ? dt.plus(opts).toISO() : failResult;
+
+        case 'startOf':
+          if (args.length >= 3 && isIn(dateModifyShiftUnits, args[2])) {
+            return dt.startOf(args[2]).toISO();
+          }
+          return failResult;
+        case 'endOf':
+          if (args.length >= 3 && isIn(dateModifyShiftUnits, args[2])) {
+            return dt.endOf(args[2]).toISO();
+          }
+          return failResult;
+        default:
+          const _: never = operation;
+          return failResult;
+      }
+    } catch {
+      return failResult;
+    }
   },
 
   /**
@@ -502,8 +609,7 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (and condition1 condition2)}}both true{{/if}}
    */
   and: function (...args: unknown[]): boolean {
-    // Remove the Handlebars options hash (last argument)
-    args.pop();
+    args = args.filter(isNotHandlebarsOptionsArg);
     return args.every(Boolean);
   },
 
@@ -514,8 +620,7 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (or condition1 condition2)}}at least one true{{/if}}
    */
   or: function (...args: unknown[]): boolean {
-    // Remove the Handlebars options hash (last argument)
-    args.pop();
+    args = args.filter(isNotHandlebarsOptionsArg);
     return args.some(Boolean);
   },
 
@@ -628,18 +733,32 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
-   * Extract a property from each item in an array using dot notation.
+   * Extract one or more properties from each item in an array using dot notation.
    * Replaces lodash usage like: _.map(creators, c => c.email).
    * Returns an empty array for non-array input. Combine with {{join}} to
    * build a delimited string, e.g. {{join (pluck creators "email") ","}}.
    *
+   * For one property, returns an array of the property values.
+   * For more than one property, returns an array of arrays containing the specified property values in the same order.
+   *
    * @example {{join (pluck record.metadata.creators "email") ","}}
    */
-  pluck: function (arr: unknown, path: string): unknown[] {
-    if (!_isArray(arr)) {
+  pluck: function (...args: unknown[]): unknown[] {
+    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length === 0 || !_isArray(args[0])) {
       return [];
     }
-    return arr.map((item) => _get(item, path, ''));
+    const arr = args[0];
+
+    if (args.length === 1) {
+      return [];
+    }
+    const paths = args.slice(1).map(String);
+
+    if (paths.length === 1) {
+      return arr.map(item => _get(item, paths[0], ''));
+    }
+    return arr.map(item => paths.map(path => _get(item, path, '')));
   },
 
   /**
@@ -703,7 +822,7 @@ export const handlebarsHelperDefinitions = {
 
     return text
       .split('/')
-      .map((segment) => encodeURIComponent(segment))
+      .map(segment => encodeURIComponent(segment))
       .join('/');
   },
 
@@ -714,8 +833,7 @@ export const handlebarsHelperDefinitions = {
    * @example {{concat prefix value suffix}}
    */
   concat: function (...args: unknown[]): string {
-    // Remove the Handlebars options hash (last argument)
-    args.pop();
+    args = args.filter(isNotHandlebarsOptionsArg);
     return args.map(String).join('');
   },
 
@@ -791,14 +909,24 @@ export const handlebarsHelperDefinitions = {
 
   /**
    * Convert a value with an unknown type to an array.
+   * With one value, ensures it is an array.
+   * With more than one value, returns all values in an array. Does not flatten nested arrays..
    *
    * @example {{asArray ['value']}} -> ['value]
    * @example {{asArray 'value'}} -> ['value']
-   * @example {{asArray {aProp: 'value'}}} -> [{aProp: 'value'}]
+   * @example {{asArray {aProp: 'value'}, null, 0, ['value']}} -> [{aProp: 'value'}, null, 0, ['value']]
    * @param value The value to get as an array.
    */
-  asArray: function (value: unknown): unknown[] {
-    return Array.isArray(value) ? value : [value];
+  asArray: function (...args: unknown[]): unknown[] {
+    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length === 0) {
+      return [];
+    }
+    if (args.length === 1) {
+      return Array.isArray(args[0]) ? args[0] : [args[0]];
+    }
+
+    return args;
   },
 
   /**
@@ -869,14 +997,16 @@ export const handlebarsHelperDefinitions = {
   },
 
   /**
-   * Create a new array with items sorted.
-   * Returns a non-array without changes.
+   * Create a new array with items case-insensitive sorted order.
+   * A non-array argument is returned without changes.
    * @example {{sort ['value2', 'value1']}} -> ['value1', 'value2']
    * @example {{sort {text_full_name: 'My Name'} }} -> {text_full_name: 'My Name'}
    * @param value
    */
   sort: function (value: unknown): any[] | unknown {
-    return Array.isArray(value) ? value.toSorted() : value;
+    return Array.isArray(value)
+      ? value.toSorted((a, b) => String(a).localeCompare(String(b), undefined, { ignorePunctuation: true }))
+      : value;
   },
 };
 
@@ -885,7 +1015,7 @@ export const handlebarsHelperDefinitions = {
  * and ensure they happen exactly once.
  */
 class HandlebarsRegisterHelper {
-  static #isSetupDone:boolean = false;
+  static #isSetupDone: boolean = false;
   constructor() {
     if (HandlebarsRegisterHelper.#isSetupDone) {
       return;
