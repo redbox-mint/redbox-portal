@@ -31,6 +31,14 @@ const metadata = require('redoc/package.json');
 
 configure({ useProxies: 'ifavailable' });
 
+const roots = new WeakMap();
+const hydrationTimers = new WeakMap();
+
+function cancelHydration(element) {
+  clearTimeout(hydrationTimers.get(element));
+  hydrationTimers.delete(element);
+}
+
 function elementOptions(element) {
   const options = {};
   for (const attribute of element.attributes) {
@@ -44,7 +52,9 @@ function init(specOrUrl, options = {}, element = document.querySelector('redoc')
   if (element === null) {
     throw new Error('"element" argument is not provided and <redoc> tag is not found on the page');
   }
-  createRoot(element).render(React.createElement(RedocStandalone, {
+  cancelHydration(element);
+  if (!roots.has(element)) roots.set(element, createRoot(element));
+  roots.get(element).render(React.createElement(RedocStandalone, {
     spec: typeof specOrUrl === 'object' ? specOrUrl : undefined,
     specUrl: typeof specOrUrl === 'string' ? specOrUrl : undefined,
     options: { ...options, ...elementOptions(element) },
@@ -53,14 +63,25 @@ function init(specOrUrl, options = {}, element = document.querySelector('redoc')
 }
 
 function destroy(element = document.querySelector('redoc')) {
-  if (element) createRoot(element).unmount();
+  if (!element) return;
+  cancelHydration(element);
+  const root = roots.get(element);
+  if (root) {
+    root.unmount();
+    roots.delete(element);
+  }
 }
 
 function hydrate(state, element = document.querySelector('redoc'), callback) {
+  if (element === null) {
+    throw new Error('"element" argument is not provided and <redoc> tag is not found on the page');
+  }
   const store = AppStore.fromJS(state);
-  setTimeout(() => {
-    hydrateRoot(element, React.createElement(Redoc, { store }), { onRecoverableError: callback });
-  }, 0);
+  destroy(element);
+  hydrationTimers.set(element, setTimeout(() => {
+    hydrationTimers.delete(element);
+    roots.set(element, hydrateRoot(element, React.createElement(Redoc, { store }), { onRecoverableError: callback }));
+  }, 0));
 }
 
 module.exports = { init, destroy, hydrate, Redoc, AppStore, version: metadata.version, revision: '1b2591e' };

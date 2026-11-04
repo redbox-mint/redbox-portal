@@ -107,7 +107,7 @@ describe('admin API docs', function () {
         const docs = webpack.config.find(config => config.name === 'api-docs');
 
         expect(docs).to.not.equal(undefined);
-        expect(docs!.entry).to.equal(path.resolve(process.cwd(), 'assets/default/default/js/redoc-standalone.js'));
+        expect(docs!.entry).to.equal(path.resolve(__dirname, '../../browser/redoc-standalone.js'));
         expect(docs!.output!.filename).to.equal('./default/default/js/redoc.standalone.js');
         expect(docs!.output!.path).to.equal(assets!.output!.path);
         expect(docs!.output!.library).to.deep.equal({ name: 'Redoc', type: 'umd' });

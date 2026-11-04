@@ -130,7 +130,7 @@ export const webpack: WebpackConfig = {
             // Bundle the library with our pinned dependencies so security fixes
             // also reach the API documentation asset served by the portal.
             mode: isDevelopmentAssetMode ? 'development' : 'production',
-            entry: path.resolve(topDir, './assets/default/default/js/redoc-standalone.js'),
+            entry: path.resolve(__dirname, '../../browser/redoc-standalone.js'),
             output: {
                 filename: './default/default/js/redoc.standalone.js',
                 path: outputDir,

@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "redbox-loader-templates"
+    "redbox-loader-templates",
+    "browser"
   ],
   "scripts": {
     "test": "TS_NODE_PROJECT=test/tsconfig.json mocha",
@@ -70,6 +71,7 @@
     "luxon": "3.7.2",
     "mime-types": "3.0.2",
     "mini-css-extract-plugin": "2.10.2",
+    "mobx": "6.16.1",
     "moment": "2.31.0",
     "mongodb": "7.5.0",
     "node-cache": "5.1.2",
@@ -84,6 +86,9 @@
     "passport-local": "1.0.0",
     "pino": "10.3.1",
     "pino-logfmt": "1.1.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "redoc": "2.5.3",
     "reflect-metadata": "0.2.2",
     "resolve-url-loader": "5.0.0",
     "ro-crate": "3.7.2",
