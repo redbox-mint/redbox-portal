@@ -13,7 +13,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P0 — Baseline and qualification inputs
 
-- [ ] **FM-001 — Record implementation baseline.**
+- [x] **FM-001 — Record implementation baseline.**
   - Dependencies: none.
   - Work: identify integrated retirement base SHA, tree state, toolchain, package
     graph, entrypoints, lockfiles and applicable existing evidence. Record any
