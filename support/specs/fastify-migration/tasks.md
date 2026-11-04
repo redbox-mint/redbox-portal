@@ -56,7 +56,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: bounded gate matrix covers supported deployments without claiming
     direct TLS/HTTP2 or new cross-replica continuity. Skips are classified honestly.
 
-- [ ] **FM-006 — Locate converted WSU source.**
+- [x] **FM-006 — Locate converted WSU source.**
   - Dependencies: FM-001.
   - Work: locate the converted hook/artifact referenced by retirement evidence,
     record exact SHA and rebuild inputs, and identify local rehearsal configuration.
