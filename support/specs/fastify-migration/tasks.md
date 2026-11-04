@@ -21,7 +21,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: baseline record distinguishes historical proposal/retirement
     revisions from the actual source and artifact to be migrated.
 
-- [ ] **FM-002 — Inventory routes and identities.**
+- [x] **FM-002 — Inventory routes and identities.**
   - Dependencies: FM-001.
   - Work: collect API/browser/extension/assets/health/raw/upgrade routes; include
     stable names, method/path syntax, controller/action, provider, access policies,
