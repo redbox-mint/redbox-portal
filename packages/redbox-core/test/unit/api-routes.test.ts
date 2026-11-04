@@ -766,6 +766,16 @@ describe('API routes contract layer', function () {
     }
   });
 
+  it('should retain attachment authentication when browser record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    const defaultPolicies = recordPolicies['*'];
+
+    expect(recordPolicies.doAttachment).to.deep.equal(
+      defaultPolicies.flatMap(policy => policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy])
+    );
+    expect(recordPolicies.resolveRelatedMetadata).to.deep.equal([...defaultPolicies, 'validateApiContractRequest']);
+  });
+
   it('should retain Companion attachment authorization when record contracts are registered', function () {
     const recordPolicies = policies.RecordController as Record<string, string[]>;
     expect(recordPolicies.doAttachment).to.include('companionAttachmentUploadAuth');
