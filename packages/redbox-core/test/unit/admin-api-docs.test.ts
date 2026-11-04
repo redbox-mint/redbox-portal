@@ -6,6 +6,7 @@ import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/BrandingController';
 import { auth } from '../../src/config/auth.config';
 import { routes } from '../../src/config/routes.config';
+import { webpack } from '../../src/config/webpack.config';
 
 describe('admin API docs', function () {
     let expect: Chai.ExpectStatic;
@@ -101,11 +102,16 @@ describe('admin API docs', function () {
         expect(contents).to.not.include('cdn.redoc.ly');
     });
 
-    it('copies the redoc bundle into the webpack public output', function () {
-        const webpackConfigPath = path.resolve(__dirname, '../../../../packages/redbox-core/src/config/webpack.config.ts');
-        const contents = fs.readFileSync(webpackConfigPath, 'utf8');
+    it('builds the local redoc bundle into the public output after asset cleaning', function () {
+        const assets = webpack.config.find(config => config.name === 'portal-assets');
+        const docs = webpack.config.find(config => config.name === 'api-docs');
 
-        expect(contents).to.include("from: './node_modules/redoc/bundles/redoc.standalone.js'");
-        expect(contents).to.include("to: './default/default/js/'");
+        expect(docs).to.not.equal(undefined);
+        expect(docs!.entry).to.equal(path.resolve(process.cwd(), 'assets/default/default/js/redoc-standalone.js'));
+        expect(docs!.output!.filename).to.equal('./default/default/js/redoc.standalone.js');
+        expect(docs!.output!.path).to.equal(assets!.output!.path);
+        expect(docs!.output!.library).to.deep.equal({ name: 'Redoc', type: 'umd' });
+        expect(docs!.dependencies).to.include(assets!.name);
+        expect(docs!.output!.clean).to.not.equal(true);
     });
 });
