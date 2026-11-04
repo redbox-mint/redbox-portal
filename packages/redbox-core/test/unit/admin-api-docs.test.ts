@@ -114,4 +114,34 @@ describe('admin API docs', function () {
         expect(docs!.dependencies).to.include(assets!.name);
         expect(docs!.output!.clean).to.not.equal(true);
     });
+
+    it('uses consistent development and production modes for both asset compilers', function () {
+        const configPath = require.resolve('../../src/config/webpack.config');
+        const cachedConfig = require.cache[configPath];
+        const originalAssetMode = process.env.REDBOX_ASSET_MODE;
+        const originalNodeEnv = process.env.NODE_ENV;
+
+        try {
+            for (const mode of ['development', 'production']) {
+                process.env.REDBOX_ASSET_MODE = mode;
+                process.env.NODE_ENV = mode;
+                delete require.cache[configPath];
+                const config: typeof webpack = require(configPath).webpack;
+                const assets = config.config.find(compiler => compiler.name === 'portal-assets')!;
+                const docs = config.config.find(compiler => compiler.name === 'api-docs')!;
+
+                expect(assets.mode).to.equal(mode);
+                expect(docs.mode).to.equal(mode);
+                expect(assets.optimization!.minimize).to.equal(mode === 'production');
+                expect(docs.dependencies).to.include(assets.name);
+            }
+        } finally {
+            if (originalAssetMode === undefined) delete process.env.REDBOX_ASSET_MODE;
+            else process.env.REDBOX_ASSET_MODE = originalAssetMode;
+            if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+            else process.env.NODE_ENV = originalNodeEnv;
+            if (cachedConfig) require.cache[configPath] = cachedConfig;
+            else delete require.cache[configPath];
+        }
+    });
 });
