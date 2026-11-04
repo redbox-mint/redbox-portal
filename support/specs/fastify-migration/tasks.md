@@ -30,7 +30,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: every supported route and integration has one owner/task and test
     reference; stable extension names and explicit HEAD policies are preserved.
 
-- [ ] **FM-003 — Fix the HTTP compatibility matrix.**
+- [x] **FM-003 — Fix the HTTP compatibility matrix.**
   - Dependencies: FM-002.
   - Work: characterize case/trailing slash, root context, optional/wildcard captures,
     parameter precedence, HEAD/OPTIONS/unsupported methods, malformed encodings,
