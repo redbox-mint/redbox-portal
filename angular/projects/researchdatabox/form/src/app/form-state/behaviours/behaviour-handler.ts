@@ -145,7 +145,7 @@ export class BehaviourHandler {
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
   private async execute(event: FormComponentEvent): Promise<void> {
-    if (!this.isActive) return;
+    if (!this.isActive || event.isCurrent?.() === false) return;
     // Explicit emitEvent actions can form A -> B -> A cycles. Keep each
     // behaviour to one execution per causal chain while allowing cascades.
     if (event.behaviourChain?.includes(this.handlerId)) {
@@ -181,7 +181,7 @@ export class BehaviourHandler {
       const condition = this.behaviour.condition;
       const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
       const compiledTemplateEvaluator = await this.getCompiledTemplateEvaluator();
-      if (!this.isActive) return;
+      if (!this.isActive || event.isCurrent?.() === false) return;
       const requestParams = (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>;
 
       const matches = await matchBehaviourCondition(condition, conditionKind, event, this.behaviour, {
@@ -192,7 +192,7 @@ export class BehaviourHandler {
         querySource: this.getEventQuerySource(event),
       });
 
-      if (!this.isActive || !matches || (runsOnlyOnFormReady && this.hasExecutedFormReady)) {
+      if (!this.isActive || event.isCurrent?.() === false || !matches || (runsOnlyOnFormReady && this.hasExecutedFormReady)) {
         return;
       }
       // Condition evaluation and processors may await. Reserve a ready-only
@@ -215,7 +215,7 @@ export class BehaviourHandler {
           logger: this.ctx.logger,
           metadataCache: this.metadataCache,
         });
-        if (!this.isActive) return;
+        if (!this.isActive || event.isCurrent?.() === false) return;
       }
 
       await this.executeActions('actions', this.behaviour.actions ?? [], value, event);
@@ -223,7 +223,7 @@ export class BehaviourHandler {
         this.hasExecutedFormReady = true;
       }
     } catch (error) {
-      if (!this.isActive) return;
+      if (!this.isActive || event.isCurrent?.() === false) return;
       this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
         error,
         behaviour: this.behaviour.name,
@@ -257,7 +257,7 @@ export class BehaviourHandler {
   ): Promise<void> {
     const state = { value, extras: {} as Record<string, unknown> };
     for (const [actionIndex, action] of actions.entries()) {
-      if (!this.isActive) return;
+      if (!this.isActive || event.isCurrent?.() === false) return;
       const actionKey = this.buildActionKey(listName, actionIndex);
       if (this.permanentlySkippedActions.has(actionKey)) {
         continue;
@@ -272,9 +272,9 @@ export class BehaviourHandler {
         eventBus: this.ctx.eventBus,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
-        isActive: () => this.isActive,
+        isActive: () => this.isActive && event.isCurrent?.() !== false,
         broadcastFormStatus: () => {
-          if (this.isActive) this.ctx.formComponent.broadcastFormStatus();
+          if (this.isActive && event.isCurrent?.() !== false) this.ctx.formComponent.broadcastFormStatus();
         },
         fieldResolverContext: { formComponent: this.ctx.formComponent },
         getLogicalFieldEntry: (targetListName, targetActionIndex, targetEntryIndex) =>

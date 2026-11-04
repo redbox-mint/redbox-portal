@@ -66,7 +66,10 @@ export class RelatedObjectDataComponent extends ContentComponent {
   public async refreshRelatedData(force = false, initial = false, origin: ValueNotificationCause = {}): Promise<void> {
     const descriptor = this.descriptor;
     if (!descriptor || !this.isActive()) return;
-    const reference = structuredClone(readRelatedReference(this.formComponent.form.getRawValue(), descriptor.referenceTokens));
+    // Only snapshot the referenced subtree; unrelated fields can be large.
+    const [rootToken, ...tokens] = descriptor.referenceTokens;
+    const referenceControl = rootToken === undefined ? this.formComponent.form : this.formComponent.form.get([rootToken]);
+    const reference = readRelatedReference(referenceControl?.getRawValue(), tokens);
     const identity = relatedReferenceIdentity(reference, descriptor.oidTokens);
     const fingerprint = JSON.stringify(identity);
     if (!force && fingerprint === this.fingerprint) return;
@@ -88,6 +91,7 @@ export class RelatedObjectDataComponent extends ContentComponent {
         if (!result.loading) this.relatedDataState?.result(descriptor.componentPointer, !!descriptor.required, result);
         this.eventBus.publish(createFieldValueChangedEvent({
           fieldId: descriptor.componentPointer, sourceId: descriptor.componentPointer, value: result, ...cause,
+          isCurrent: () => request.isCurrent() && this.result === result,
         }));
         if (!request.isCurrent()) return;
         await this.refreshContent();
@@ -100,11 +104,12 @@ export class RelatedObjectDataComponent extends ContentComponent {
         await publish({ status: 'empty', records: [], issues: [] });
         return;
       }
+      // Detach overrides only for an actual request, before rendering can await.
+      const references = { [descriptor.relationId]: structuredClone(reference) ?? null };
       await publish({ status: 'empty', records: [], issues: [], loading: true });
       if (!request.isCurrent()) return;
       try {
         const oid = this.formComponent.trimmedParams.oid();
-        const references = { [descriptor.relationId]: reference ?? null };
         const response = await this.recordService.resolveRelatedMetadata(oid
           ? { oid, relations: [descriptor.relationId], references }
           : { recordType: this.formComponent.trimmedParams.recordType(), relations: [descriptor.relationId], references });

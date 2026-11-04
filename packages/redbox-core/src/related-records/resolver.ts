@@ -34,7 +34,10 @@ export interface RelatedResolverDependencies {
 
 class ResolutionDeadline extends Error {}
 
-/** Bound a read without publishing a result after its operation has expired. */
+/**
+ * Bound caller latency and reject late results. Storage adapters must also bound
+ * their own I/O; racing a promise does not cancel the underlying operation.
+ */
 export async function withinRelatedResolutionDeadline<T>(work: () => Promise<T>, startedAt = Date.now()): Promise<T> {
   const remaining = startedAt + RELATED_RESOLUTION_LIMITS.deadlineMs - Date.now();
   if (remaining <= 0) throw new ResolutionDeadline();

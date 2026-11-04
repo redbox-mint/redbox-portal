@@ -112,6 +112,67 @@ describe('RelatedObjectDataComponent', () => {
 
   }
 
+  for (const delayedWork of ['expressions', 'repeatable setter']) {
+  it(`ignores delayed loading ${delayedWork} after targets receive resolved data`, fakeAsync(() => {
+    let releaseLoading!: () => void;
+    const loading = new Promise<void>(resolve => { releaseLoading = resolve; });
+    let resolveRequest!: (value: RelatedMetadata) => void;
+    recordService.resolveRelatedMetadata.and.returnValue(new Promise<RelatedMetadata>(resolve => { resolveRequest = resolve; }));
+    const entry = (title: string): RelatedMetadataEntry => ({ status: 'resolved', issues: [], records: [{
+      redboxOid: 'A', metadata: { title }, metaMetadata: { type: 'activity', brandId: 'default' },
+    }] });
+    const expression = (template: string) => [{ name: template, config: {
+      conditionKind: 'jsonpointer' as const, condition: '/source::field.value.changed',
+      runOnFormReady: false, hasTemplate: true, template, target: 'model.value',
+    } }];
+    const config: FormConfigFrame = { name: 'delayed-related-loading',
+      relatedRecords: { displayTargets: [], relations: [], sources: [{
+        relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
+        initialResult: entry('Previous'), referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }),
+      }] }, componentDefinitions: [
+        { name: 'selection', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel', config: { value: 'A' } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } } },
+        { name: 'scalar', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+          expressions: expression('event.value.loading ? "" : event.value.records[0].metadata.title') },
+        { name: 'group', component: { class: 'GroupComponent', config: { componentDefinitions: [{ name: 'title',
+          component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } }] } },
+          model: { class: 'GroupModel' }, expressions: expression('{"title": event.value.loading ? "" : event.value.records[0].metadata.title}') },
+        { name: 'titles', component: { class: 'RepeatableComponent', config: { allowZeroRows: true,
+          elementTemplate: { name: '', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } } } },
+          model: { class: 'RepeatableModel', config: { value: [] } }, expressions: expression('event.value.loading ? [] : event.value.records.metadata.title[]') },
+      ],
+    };
+    let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady(config, undefined, undefined, { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-',
+      callable: (_key, path, context) => {
+        const template = path.reduce<any>((value, token) => value[token], config);
+        return delayedWork === 'expressions' && context.event?.value?.loading
+          ? loading.then(() => jsonataCompileAndEvaluate(template, context))
+          : jsonataCompileAndEvaluate(template, context);
+      },
+    }] }).then(value => { result = value; });
+    flushMicrotasks(); tick();
+    const source = result.formComponent.componentDefArr[1].component as RelatedObjectDataComponent;
+    if (delayedWork === 'repeatable setter') {
+      const titles = result.formComponent.form!.get('titles') as any;
+      const originalSetter = titles.setCustomValue.bind(titles);
+      spyOn(titles, 'setCustomValue').and.callFake(async (value: unknown[], options: unknown) => {
+        if (!value.length) await loading;
+        await originalSetter(value, options);
+      });
+    }
+    void source.refreshRelatedData(true); flushMicrotasks();
+    resolveRequest({ activities: entry('Current') }); flushMicrotasks(); tick();
+    const expected = { selection: 'A', scalar: 'Current', group: { title: 'Current' }, titles: ['Current'] };
+    expect(result.formComponent.form!.getRawValue()).toEqual(expected);
+    releaseLoading(); flushMicrotasks(); tick();
+    expect(result.formComponent.form!.getRawValue()).toEqual(expected);
+    expect(result.formComponent.relatedState).toBe('ready');
+    result.fixture.destroy();
+  }));
+  }
+
   for (const editMode of [false, true]) {
     it(`keeps legacy disabled readonly group children unregistered (editMode=${editMode})`, async () => {
       const config: FormConfigFrame = { name: 'legacy-disabled-readonly-group', componentDefinitions: [{
@@ -408,6 +469,33 @@ describe('RelatedObjectDataComponent request lifecycle', () => {
     };
   });
   function lastValue() { return bus.publish.calls.mostRecent().args[0] as unknown as { value: RelatedMetadataEntry & { loading?: boolean } }; }
+
+  it('skips whole-form snapshots and cloning when an unrelated value changes', async () => {
+    service.resolveRelatedMetadata.and.resolveTo({ activities: resolved('A') });
+    await component.refreshRelatedData();
+    const snapshot = spyOn(form, 'getRawValue').and.callThrough();
+    const clone = spyOn(globalThis, 'structuredClone').and.callThrough();
+    form.addControl('unrelated', new FormControl({ large: 'independent value' }));
+    await component.refreshRelatedData();
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(clone).not.toHaveBeenCalled();
+    expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(1);
+  });
+
+  it('snapshots disabled nested object references before asynchronous rendering', fakeAsync(() => {
+    const reference = { oid: 'A', label: 'Original' };
+    form.setControl('canonical/reference', new FormGroup({ selection: new FormControl(reference) }));
+    form.disable();
+    Object.assign((component as any).descriptor, { referenceTokens: ['canonical/reference', 'selection'], oidTokens: ['oid'] });
+    let releaseRender!: () => void;
+    const render = new Promise<void>(resolve => { releaseRender = resolve; });
+    spyOn(component as any, 'refreshContent').and.returnValue(render);
+    service.resolveRelatedMetadata.and.resolveTo({ activities: resolved('A') });
+    void component.refreshRelatedData(); flushMicrotasks();
+    reference.oid = 'B';
+    releaseRender(); flushMicrotasks();
+    expect(service.resolveRelatedMetadata.calls.mostRecent().args[0].references).toEqual({ activities: { oid: 'A', label: 'Original' } });
+  }));
 
   it('clears immediately and ignores delayed A after B, including disabled references', fakeAsync(() => {
     const a = pending(); const b = pending();
