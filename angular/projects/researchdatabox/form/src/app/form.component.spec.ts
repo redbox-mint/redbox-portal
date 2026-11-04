@@ -156,7 +156,7 @@ describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
     const url = new URL(window.location.href);
     url.search = search ?? '';
-    window.history.replaceState({}, '', url.toString());
+    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
   };
 
   const setFormDebugUrl = (value?: string) => {
@@ -165,7 +165,7 @@ describe('FormComponent', () => {
     if (value) {
       url.searchParams.set('formDebug', value);
     }
-    window.history.replaceState({}, '', url.toString());
+    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
   };
 
   const ensureDebugPanelOpen = async (fixture: { nativeElement: HTMLElement; detectChanges: () => void; whenStable: () => Promise<any> }) => {
@@ -179,7 +179,6 @@ describe('FormComponent', () => {
 
   beforeEach(async () => {
     setWindowSearch('');
-    setFormDebugUrl('1');
     const { translationService } = await createTestbedModule(
       {
         declarations: {

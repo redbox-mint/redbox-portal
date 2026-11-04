@@ -1,5 +1,7 @@
-import { get as getPath, set as setPath } from 'lodash';
+import { cloneDeep, get as getPath, set as setPath } from 'lodash';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
+import { normalizeRelatedReferences } from '../related-records/references';
+import type { RecordModel, UserModel } from '../model';
 import type { RecordsService } from '../RecordsService';
 import type { FormRecordAccessContext } from '../services/FormsService';
 import {
@@ -37,10 +39,47 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
     metadata: Record<string, unknown>,
     context: FormRecordAccessContext
   ): Promise<void> {
+    this.pending.length = 0;
+    this.relationIds.clear();
     this.metadata = metadata;
     this.context = context;
     await form.accept(this);
     await Promise.all(this.pending);
+    await this.resolveRelations(form, metadata, context);
+  }
+
+  private readonly relationIds = new Set<string>();
+
+  private async resolveRelations(
+    form: FormConfigOutline,
+    metadata: Record<string, unknown>,
+    context: FormRecordAccessContext
+  ): Promise<void> {
+    if (!this.relationIds.size) return;
+    const sources = form.relatedRecords?.sources.filter(source => this.relationIds.has(source.relationId)) ?? [];
+    for (const id of this.relationIds) {
+      if (!sources.some(source => source.relationId === id)) throw new Error(`Missing trusted related source descriptor ${id}`);
+    }
+    const root = {
+      ...context.record,
+      metadata: cloneDeep(metadata),
+      metaMetadata: { ...context.record?.metaMetadata, type: form.type, brandId: String(context.brand.id) },
+    } as RecordModel;
+    const result = await this.recordsService.resolveRelatedMetadata(
+      root,
+      { brand: context.brand, user: context.user as UserModel, audience: 'browser' },
+      { relations: [...this.relationIds].map(relationId => ({
+        relationId,
+        required: sources.some(source => source.relationId === relationId && source.required === true),
+      })) }
+    );
+    for (const source of sources) {
+      source.initialResult = cloneDeep(result[source.relationId]);
+      // Stable normalized reference identity, including malformed-reference positions.
+      source.referenceFingerprint = JSON.stringify(normalizeRelatedReferences(
+        getPath(metadata, source.referenceTokens), source.oidTokens
+      ));
+    }
   }
 
   private metadata: Record<string, unknown> = {};
@@ -105,6 +144,13 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
     config.relatedObjects = [];
     config.accessDeniedOids = [];
     config.failedOids = [];
+    if (config.relationId !== undefined) {
+      if ((['dataPath', 'oidProperty', 'relatedFields'] as const).some(key => config[key] !== undefined))
+        throw new Error('relationId conflicts with legacy related-object reference configuration');
+      this.relationIds.add(config.relationId);
+      return;
+    }
+    // Trusted legacy adapter: preserve configured Lodash paths, title and OID buckets.
     const dataPath = (config.dataPath ?? '').replace(/^metadata\./, '');
     if (!dataPath) return;
     const raw = getPath(this.metadata, dataPath);

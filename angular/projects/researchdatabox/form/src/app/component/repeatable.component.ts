@@ -111,13 +111,13 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
       >
         <ng-container #repeatableContainer></ng-container>
       </div>
-      @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
+      @if (isStatusReady() && isVisible && (getFormComponent.editMode() || !componentDefinition?.config?.readonly) && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
         <button
           type="button"
           class="rb-form-repeatable__add btn btn-success"
           (click)="appendNewElement()"
           [attr.aria-label]="'add-button-label' | i18next"
-          [disabled]="isDisabled"
+          [disabled]="isDisabled || isReadonly"
         >
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
@@ -548,6 +548,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     options?: RepeatableSetValueOptions,
     applyModelChange: ModelChange = change => change()
   ) {
+    if (markFormDirty && (this.isReadonly || this.isDisabled)) return;
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -753,9 +754,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
     layoutInstance.moveDownFn = this.moveElementFn(elemEntry, 1);
-    layoutInstance.canRemove = this.shouldKeepAtLeastOneRow()
+    layoutInstance.canRemove = !this.componentDefinition?.config?.readonly && (this.shouldKeepAtLeastOneRow()
       ? this.compDefMapEntries.length > 1
-      : this.compDefMapEntries.length > 0;
+      : this.compDefMapEntries.length > 0);
     elemEntry.layoutInstance = layoutInstance;
     this.updateCanSortFlags();
     if (this.model?.formControl && compInstance?.model) {
@@ -773,6 +774,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions, markFormDirty = true) {
     const that = this;
     return function () {
+      if (markFormDirty && (that.isReadonly || that.isDisabled)) return;
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
       that.loggerService.debug(
         `${that.logName}: removeElement called, matching elemEntry:`,
@@ -813,7 +815,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public moveElementFn(elemEntry: RepeatableElementEntry, delta: -1 | 1, options?: RepeatableSetValueOptions) {
     const that = this;
     return function () {
-      if (!that.canSort || that.isDisabled) {
+      if (!that.canSort || that.isDisabled || that.isReadonly) {
         return;
       }
       const fromIndex = that.compDefMapEntries.findIndex(entry => entry.localUniqueId === elemEntry.localUniqueId);
@@ -851,9 +853,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected updateCanRemoveFlags() {
-    const canRemove = this.shouldKeepAtLeastOneRow()
+    const canRemove = !this.componentDefinition?.config?.readonly && (this.shouldKeepAtLeastOneRow()
       ? this.compDefMapEntries.length > 1
-      : this.compDefMapEntries.length > 0;
+      : this.compDefMapEntries.length > 0);
     for (const entry of this.compDefMapEntries) {
       if (entry.layoutInstance) {
         entry.layoutInstance.canRemove = canRemove;
@@ -864,7 +866,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected updateCanSortFlags() {
     for (const [index, entry] of this.compDefMapEntries.entries()) {
       if (entry.layoutInstance) {
-        entry.layoutInstance.canSort = this.canSort;
+        entry.layoutInstance.canSort = this.canSort && !this.componentDefinition?.config?.readonly;
         entry.layoutInstance.canMoveUp = this.canSort && index > 0;
         entry.layoutInstance.canMoveDown = this.canSort && index < this.compDefMapEntries.length - 1;
       }
@@ -1001,7 +1003,7 @@ export interface RepeatableElementEntry {
               (click)="clickedRemove()"
               [attr.aria-label]="'remove-button-label' | i18next"
               [attr.title]="'remove-button-label' | i18next"
-              [disabled]="isDisabled"
+              [disabled]="isDisabled || isReadonly"
             >
               <span class="fa fa-minus-circle" aria-hidden="true"></span>
             </button>

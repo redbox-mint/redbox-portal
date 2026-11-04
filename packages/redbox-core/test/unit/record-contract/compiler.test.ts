@@ -1,3 +1,4 @@
+import { compileRelatedDisplayContract } from '../../../src/related-records/display-descriptors';
 import { expect } from 'chai';
 import { AllDefs, FormComponentDefinitionKind } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
@@ -176,6 +177,117 @@ describe('RecordContractCompiler and core contributors', function () {
         }),
       });
       expect(['node', 'non-persisting']).to.include(contribution.kind);
+    }
+  });
+
+  it('shares unnamed reusable wrapper metadata paths with related-display compilation', async function () {
+    const usage: ReusableFormComponentDefinitionFrame = { name: 'actual',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
+      overrides: { reusableFormName: 'unnamed' } };
+    const definition = form([usage]);
+    const reusableFormDefinitions: ReusableFormDefinitions = { unnamed: [{ name: '',
+      component: { class: 'SimpleInputComponent' }, relatedDisplay: { relationId: 'activities' } }] };
+    const contract = expectCompiled(await compiler().compile({ form: definition, reusableFormDefinitions, context: publicContext }));
+    const targets = compileRelatedDisplayContract(definition, reusableFormDefinitions)!.displayTargets;
+    expect(targets).to.deep.equal([{ metadataPointer: '/actual', relationId: 'activities' }]);
+    expect(contract.fieldOwners).to.have.property(targets[0].metadataPointer);
+    expect(contract.root.properties).to.have.property('actual');
+    expect(renderRecordJsonSchema(contract).properties?.actual?.['x-redbox-related-display']).to.have.property(
+      'relationId',
+      'activities'
+    );
+  });
+
+  it('rejects conflicting related-display role variants before publishing a schema', async function () {
+    const researcher = {
+      ...field('title', 'SimpleInputComponent'),
+      constraints: { authorization: { allowRoles: ['Researcher'] } },
+      relatedDisplay: { relationId: 'activities' },
+    } as FormComponentDefinitionFrame;
+    const staff = {
+      ...field('title', 'TextAreaComponent'),
+      constraints: { authorization: { allowRoles: ['Admin'] } },
+    } as FormComponentDefinitionFrame;
+    for (const components of [[researcher, staff], [staff, researcher]]) {
+      const definition = form(components);
+      expect(() => compileRelatedDisplayContract(definition)).to.throw(
+        'Conflicting relatedDisplay declarations at /title'
+      );
+      const result = await compiler().compile({ form: definition, context: publicContext });
+      expectFailure(result, RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT);
+      if (result.kind === 'failed') {
+        expect(result.diagnostics[0]?.message).to.equal('Conflicting relatedDisplay declarations at /title');
+      }
+    }
+    const compatible = form([researcher, { ...staff, relatedDisplay: researcher.relatedDisplay }]);
+    const contract = expectCompiled(await compiler().compile({ form: compatible, context: publicContext }));
+    expect(renderRecordJsonSchema(contract).properties?.title?.['x-redbox-related-display']).to.have.property(
+      'relationId',
+      'activities'
+    );
+  });
+
+  it('annotates conditional display writes while retaining ordinary local types and validators', async function () {
+    const target = {
+      ...field('title', 'SimpleInputComponent', {}, { validators: [{ class: 'required' }] }),
+      relatedDisplay: { relationId: 'activities' },
+    };
+    for (const kind of ['create', 'update'] as const) {
+      const components = [
+        target,
+        {
+          ...field('details', 'GroupComponent', {
+            componentDefinitions: [field('note', 'TextAreaComponent')],
+          }),
+          relatedDisplay: { relationId: 'activities' },
+        },
+        {
+          ...field('dates', 'RepeatableComponent', {
+            elementTemplate: field('', 'DateInputComponent'),
+          }),
+          relatedDisplay: { relationId: 'activities' },
+        },
+        field('activity', 'RecordSelectorComponent'),
+        field('local', 'SimpleInputComponent', { type: 'number' }),
+        field('source', 'RelatedObjectDataComponent', { relationId: 'activities' }),
+      ];
+      const contract = expectCompiled(
+        await compiler().compile({
+          form: form(components),
+          context: { ...publicContext, kind },
+        })
+      );
+      const schema = renderRecordJsonSchema(contract);
+      expect(schema.required).to.equal(undefined);
+      expect(schema.properties).not.to.have.property('source');
+      expect(schema.properties?.title?.type).to.deep.equal(['string', 'null']);
+      expect(schema.properties?.title).not.to.have.property('readOnly');
+      expect(schema.properties?.title?.['x-redbox-related-display']).to.deep.equal({
+        relationId: 'activities',
+        activation: 'merged-candidate-reference',
+        linked: { writable: false, required: false },
+        unlinked: { writable: true, validation: 'ordinary-local' },
+      });
+      expect(schema.properties?.title?.description).to.include('echo is accepted and discarded');
+      expect(schema.properties?.title?.description).to.include('Explicit null is distinct from absence');
+      expect(contract.validatorSummaries.map(summary => summary.code)).to.include('form.required');
+      const ordinary = expectCompiled(
+        await compiler().compile({
+          form: form(components.map(component => ({ ...component, relatedDisplay: undefined }))),
+          context: { ...publicContext, kind },
+        })
+      );
+      const stripped = JSON.parse(JSON.stringify(schema));
+      for (const name of ['title', 'details', 'dates']) {
+        expect(schema.properties?.[name]?.['x-redbox-related-display']).to.deep.equal(
+          schema.properties?.title?.['x-redbox-related-display']
+        );
+        delete stripped.properties[name].description;
+        delete stripped.properties[name]['x-redbox-related-display'];
+      }
+      expect(schema.properties?.details?.properties).to.have.property('note');
+      expect(schema.properties?.dates?.type).to.deep.equal(['array', 'null']);
+      expect(stripped).to.deep.equal(renderRecordJsonSchema(ordinary));
     }
   });
 

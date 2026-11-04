@@ -1,3 +1,5 @@
+import type { RelatedMetadata, RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+import type { RelatedRecordReadContext } from './related-records/types';
 import type { RecordFieldWriteResult } from './RecordWriteOptions';
 import StorageServiceResponse from './StorageServiceResponse';
 import { cloneDeep, isEqual } from 'lodash';
@@ -187,6 +189,12 @@ export function createRecordMetadataDelta(
  * Type safety will be improved incrementally in future phases.
  */
 export interface RecordsService {
+  /** Explicit fresh resolution from the supplied candidate, including unsaved references. */
+  resolveRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RelatedMetadata>;
+  /** Return a detached enriched view without mutating the candidate. */
+  enrichWithRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RecordModel>;
+  /** Load the root once and explicitly enrich it; ordinary getMeta remains raw. */
+  getMetaWithRelatedMetadata(oid: string, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RecordModel>;
   triggerPreSaveTriggers(
     oid: string,
     record: RecordInput,

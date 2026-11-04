@@ -44,6 +44,7 @@ import {
 } from 'lodash-es';
 import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
 import {
+  RelatedMetadata,
   emptyRecordSaveCompletion,
   isRecordConcurrencyProblemCode,
   isRecordConcurrencyResolution,
@@ -66,6 +67,18 @@ import {
   sanitizeRecordConcurrencyMetadata,
   sanitizeRecordSaveIssue,
 } from '@researchdatabox/sails-ng-common';
+
+/** Select declared relations and optionally replace their unsaved reference values. */
+export type RelatedMetadataRefreshRequest =
+  | { oid: string; relations: string[]; references?: Record<string, unknown> }
+  | { recordType: string; relations: string[]; references: Record<string, unknown> };
+
+export interface ResolvedRecord {
+  redboxOid: string;
+  metadata: Record<string, unknown>;
+  metaMetadata: { type: string; brandId: string };
+  relatedMetadata: RelatedMetadata;
+}
 
 /** Per-request options for a record save. */
 interface SaveRequestOptions {
@@ -327,6 +340,26 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
+  }
+
+  /** Errors reject; an unavailable optional source is a successful typed result. */
+  public async resolveRelatedMetadata(request: RelatedMetadataRefreshRequest): Promise<RelatedMetadata> {
+    const options = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+    const response = await firstValueFrom(this.http.post<{ data: { relatedMetadata: RelatedMetadata } }>(
+      `${this.brandingAndPortalUrl}/record/relatedMetadata/resolve`, request,
+      { ...options, headers: (options.headers ?? new HttpHeaders()).set('X-ReDBox-Api-Version', '2.0'), observe: 'body' as const, responseType: 'json' as const }
+    ).pipe(timeout(30_000)));
+    return response.data.relatedMetadata;
+  }
+
+  public async getRecordWithRelatedMetadata(oid: string, relations: string[]): Promise<ResolvedRecord> {
+    const options = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+    const response = await firstValueFrom(this.http.get<{ data: ResolvedRecord }>(
+      `${this.brandingAndPortalUrl}/api/records/resolved/${encodeURIComponent(oid)}`,
+      { ...options, headers: (options.headers ?? new HttpHeaders()).set('X-ReDBox-Api-Version', '2.0'), observe: 'body' as const, responseType: 'json' as const,
+        params: new HttpParams().set('relations', relations.join(',')) }
+    ).pipe(timeout(30_000)));
+    return response.data;
   }
 
   public async getRecordMeta(oid: string) {

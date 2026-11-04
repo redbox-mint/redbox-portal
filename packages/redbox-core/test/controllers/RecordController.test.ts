@@ -1,3 +1,5 @@
+import { getEffectiveRelatedClientForm } from '../../src/related-records/effective-form';
+import { RelatedDisplayWriteError } from '../../src/related-records/normalize-display-writes';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -100,6 +102,25 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).FormsService = originalFormsService;
     (global as any).FormRecordConsistencyService = originalFormRecordConsistencyService;
     (global as any).TranslationService = originalTranslationService;
+  });
+
+  it('maps a browser update transient display rejection to 400 on API v2 and keeps the v1 500', async () => {
+    (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+    controller.recordsService = {
+      getMeta: sinon.stub().resolves({ redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1', type: 'dataset', form: '' }, metadata: {}, authorization: {} }),
+      hasEditAccess: sinon.stub().returns(true),
+      updateMeta: sinon.stub().rejects(new RelatedDisplayWriteError()),
+    } as any;
+    const send = sinon.stub(controller as any, 'sendResp');
+    const request = (apiVersion: string) => ({ body: { title: 'PRIVATE' }, headers: { 'x-redbox-api-version': apiVersion }, params: { oid: 'oid-1' }, query: {}, session: { branding: 'default' }, user: { username: 'tester' } });
+    await (controller as any).updateInternal(request('2.0'), {});
+    expect(send.firstCall.args[2].status).to.equal(400);
+    expect(send.firstCall.args[2].displayErrors[0].code).to.equal('related-display-field-not-writable');
+    expect(JSON.stringify(send.firstCall.args[2])).not.to.include('PRIVATE');
+    // API v1 keeps its existing contract: non-conflict save failures are server errors.
+    await (controller as any).updateInternal(request('1.0'), {});
+    expect(send.secondCall.args[2].status).to.equal(500);
+    expect(JSON.stringify(send.secondCall.args[2])).not.to.include('PRIVATE');
   });
 
   describe('metadata update timestamps', () => {
@@ -1694,7 +1715,7 @@ describe('RecordController getWorkflowSteps', () => {
     const record = { metaMetadata: { brandId: 'record-brand' }, metadata: { title: 'A title' } };
     const brand = { id: 'fallback-brand', name: 'fallback' };
 
-    const result = await (controller as any).getEffectiveClientFormConfig(req, brand, record, 'form-1', false, 'edit');
+    const result = await getEffectiveRelatedClientForm(req, brand as any, record, 'form-1', false, 'edit');
 
     expect(result).to.equal(clientFormConfig);
     expect((global as any).FormsService.getFormByName.calledWith('form-1', false, 'record-brand')).to.be.true;
@@ -1707,7 +1728,7 @@ describe('RecordController getWorkflowSteps', () => {
         { shared: {} },
         'fallback',
         sinon.match.any,
-        { user: req.user, brand }
+        { user: req.user, brand, record }
       )
     ).to.be.true;
   });
@@ -1744,7 +1765,8 @@ describe('RecordController getWorkflowSteps', () => {
     const brand = { id: 'brand-1', name: 'default' };
     const savedRecord = { redboxOid: 'oid-1', metaMetadata: { form: 'form-1' }, metadata: { title: 'server title' } };
     const clientFormConfig = { componentDefinitions: [] };
-    sinon.stub(controller as any, 'getEffectiveClientFormConfig').resolves(clientFormConfig);
+    (global as any).FormsService.getFormByName.returns(of({ configuration: clientFormConfig }));
+    (global as any).FormsService.buildClientFormConfig.returns(clientFormConfig);
     (global as any).FormRecordConsistencyService.projectMetadataClientFormConfig.resolves({ title: 'projected' });
 
     expect(await (controller as any).getPostSaveMetadata(req, brand, savedRecord, null)).to.deep.equal({

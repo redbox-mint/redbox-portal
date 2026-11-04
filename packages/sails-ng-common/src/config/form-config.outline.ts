@@ -5,6 +5,7 @@ import { KeyValueStringNested, KeyValueStringProperty } from './shared.outline';
 import { FormExpressionsConfigOutline } from './form-component.outline';
 import { FormBehaviourConfigFrame } from './form-behaviour.outline';
 import { ValidationOperationDefinition } from '../validation/record-validation.model';
+import type { RelatedFormDescriptors } from '../related-records.model';
 
 /**
  * The top-level form config interface that provides typing for the object literal and schema.
@@ -14,6 +15,8 @@ import { ValidationOperationDefinition } from '../validation/record-validation.m
  * @see https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Record-Forms
  */
 export interface FormConfigFrame {
+  /** Derived server data; never trusted as authoritative write configuration. */
+  relatedRecords?: RelatedFormDescriptors;
   /**
    * optional form name, will be used to identify the form in the config
    */

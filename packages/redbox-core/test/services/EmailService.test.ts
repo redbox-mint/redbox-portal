@@ -359,6 +359,126 @@ describe('EmailService', function() {
   });
 
   describe('sendRecordNotification', function() {
+    describe('related metadata opt-in', function() {
+      let record: any;
+      let enrich: sinon.SinonStub;
+      let send: sinon.SinonStub;
+      let brand: any;
+      let user: any;
+      let request: any;
+      let tmpDir: string;
+
+      beforeEach(function() {
+        record = { redboxOid: 'plan', metaMetadata: { brandId: 'tenant' }, metadata: { activity: 'unsaved-reference' } };
+        brand = { id: 'tenant' };
+        user = { username: 'sender' };
+        request = { relations: [{ relationId: 'activities', required: true }] };
+        enrich = sinon.stub().callsFake(async candidate => ({ ..._.cloneDeep(candidate), relatedMetadata: {
+          activities: { status: 'resolved', issues: [], records: [{ metadata: { title: 'Current', email: 'current@example.com' } }] },
+        } }));
+        (global as any).RecordsService = { enrichWithRelatedMetadata: enrich };
+        (global as any).BrandingService = { getBrandById: sinon.stub().withArgs('tenant').returns(brand) };
+        send = sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'email-related-'));
+        mockSails.config.emailnotification.settings.templateDir = tmpDir + path.sep;
+        fs.writeFileSync(path.join(tmpDir, 'related.hbs'),
+          '{{record.relatedMetadata.activities.records.0.metadata.title}}/{{imports.record.relatedMetadata.activities.records.0.metadata.title}}');
+      });
+
+      afterEach(function() {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        delete (global as any).RecordsService;
+        delete (global as any).BrandingService;
+      });
+
+      function options(): any {
+        return { relatedMetadata: request, template: 'related',
+          triggerCondition: '<%= record.relatedMetadata.activities.records[0].metadata.title === "Current" %>',
+          to: '{{record.relatedMetadata.activities.records.0.metadata.email}}',
+          from: '{{imports.record.relatedMetadata.activities.records.0.metadata.email}}',
+          cc: '{{record.relatedMetadata.activities.records.0.metadata.email}}',
+          bcc: '{{imports.record.relatedMetadata.activities.records.0.metadata.email}}',
+          subject: '{{record.relatedMetadata.activities.records.0.metadata.title}}' };
+      }
+
+      it('uses one fresh result for trigger, all recipients, subject and body per operation', async function() {
+        record.relatedMetadata = { stale: true };
+        const original = _.cloneDeep(record);
+        for (let i = 0; i < 2; i++) {
+          expect(await EmailService.sendRecordNotification('plan', record, options(), user, {})).to.equal(record);
+          expect(send.getCall(i).args).to.deep.equal(['current@example.com', 'Current/Current', 'Current',
+            'current@example.com', 'text', 'current@example.com', 'current@example.com', {}]);
+        }
+        expect(enrich.callCount).to.equal(2);
+        expect(enrich.firstCall.args).to.deep.equal([record,
+          { brand, user, audience: 'service', serviceId: 'EmailService' }, request]);
+        expect(record).to.deep.equal(original);
+      });
+
+      it('keeps the original record for success mutations and record/response returns', async function() {
+        const hook = sinon.spy((_oid, candidate) => { candidate.metadata.notified = true; return of(candidate); });
+        mockSails.services.notificationtest = { success: hook };
+        const opts = { ...options(), onNotifySuccess: [{ function: 'sails.services.notificationtest.success' }] };
+        expect(await EmailService.sendRecordNotification('plan', record, opts, user, {})).to.equal(record);
+        expect(hook.firstCall.args[1]).to.equal(record);
+        expect(record.metadata.notified).to.be.true;
+        expect(record).not.to.have.property('relatedMetadata');
+        const response = { status: 200 };
+        expect(await EmailService.sendRecordNotification('plan', record, opts, user, response)).to.equal(response);
+        expect(opts.returnType).to.equal('response');
+      });
+
+      it('rejects required failures before trigger evaluation, rendering or sending', async function() {
+        const error = new Error('Required related metadata unavailable');
+        enrich.rejects(error);
+        const trigger = sinon.spy(EmailService, 'metTriggerCondition');
+        const render = sinon.spy(EmailService, 'evaluateProperties');
+        await rejects(EmailService.sendRecordNotification('plan', record, options(), user, {}), value => value === error);
+        expect(trigger.called).to.be.false;
+        expect(render.called).to.be.false;
+        expect(send.called).to.be.false;
+        expect(record).not.to.have.property('relatedMetadata');
+      });
+
+      it('uses configured fallbacks for optional unavailable data', async function() {
+        request.relations[0].required = false;
+        enrich.resolves({ ..._.cloneDeep(record), relatedMetadata: {
+          activities: { status: 'unavailable', records: [], issues: [{ code: 'unavailable' }] },
+        } });
+        fs.writeFileSync(path.join(tmpDir, 'optional.hbs'),
+          '{{#if record.relatedMetadata.activities.records.length}}Available{{else}}No activity{{/if}}');
+        await EmailService.sendRecordNotification('plan', record, { relatedMetadata: request, forceRun: true,
+          template: 'optional', to: 'fallback@example.com', subject: '{{imports.record.relatedMetadata.activities.status}}' }, user, {});
+        expect(send.firstCall.args.slice(0, 3)).to.deep.equal(['fallback@example.com', 'No activity', 'unavailable']);
+      });
+
+      it('returns early when disabled without resolution or trigger evaluation', async function() {
+        mockSails.config.services = { email: { disabled: true } };
+        const trigger = sinon.spy(EmailService, 'metTriggerCondition');
+        const opts = options();
+        expect(await EmailService.sendRecordNotification('plan', record, opts, user, {})).to.equal(record);
+        const response = { status: 200 };
+        expect(await EmailService.sendRecordNotification('plan', record, opts, user, response)).to.equal(response);
+        expect(opts.returnType).to.equal('response');
+        expect(enrich.called).to.be.false;
+        expect(trigger.called).to.be.false;
+        expect(send.called).to.be.false;
+      });
+
+      it('does no extra reads without opt-in and skips sending for a false enriched trigger', async function() {
+        fs.writeFileSync(path.join(tmpDir, 'legacy.hbs'), 'Legacy');
+        expect(await EmailService.sendRecordNotification('plan', record,
+          { forceRun: true, template: 'legacy', to: 'legacy@example.com' }, user, {})).to.equal(record);
+        expect(enrich.called).to.be.false;
+        expect(send.calledOnce).to.be.true;
+        send.resetHistory();
+        expect(await EmailService.sendRecordNotification('plan', record,
+          { ...options(), triggerCondition: 'false' }, user, {})).to.equal(record);
+        expect(enrich.calledOnce).to.be.true;
+        expect(send.called).to.be.false;
+      });
+    });
+
     it('should not mutate record notification send options', async function() {
       const record = { id: '1' };
       const options = { template: 'test-template', to: 'to@example.com',

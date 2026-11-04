@@ -2,6 +2,158 @@
 
 > Part of the [Form Configuration Recipes](Form-Configuration-Recipes.md) index.
 
+## Fresh display without stored copies
+
+The recipe below documents the existing **copy/populate** pattern. For a fresh,
+non-persisted display, use the opt-in `RelatedObjectDataComponent` relation mode
+and `relatedDisplay` declarations instead. These mechanisms have different
+persistence semantics; adding an expression alone does not make a field transient.
+See [Configuring Related Records](Configuring-Related-Records.md) for trusted
+relation projections, results, HTTP routes, limits and the migration checklist.
+
+The runnable source is `packages/redbox-hook-dev/src/form-config/related-plan-1.0-draft.ts`
+with `related-activity-1.0-draft.ts` and `src/config/related-record-examples.ts`.
+The plan stores local `title`/`notes`, a scalar `primaryActivity` OID and ordered
+`activities: [{ oid }]`. Activity dates are ISO calendar strings from `dateOnly`
+inputs. Its `primaryActivity` and `activities` relations project `/title`,
+`/startDate`, `/endDate`. This excerpt is from its hidden source/scalar target:
+
+```typescript
+{
+  name: 'primarySource',
+  layout: { class: 'DefaultLayout', config: { visible: false } },
+  component: {
+    class: 'RelatedObjectDataComponent',
+    config: { relationId: 'primaryActivity', required: false },
+  },
+},
+{
+  name: 'activityTitle',
+  relatedDisplay: { relationId: 'primaryActivity' },
+  model: { class: 'SimpleInputModel' },
+  component: { class: 'SimpleInputComponent' },
+  expressions: [
+    {
+      name: 'populate',
+      config: {
+        conditionKind: 'jsonpointer',
+        condition: '/primarySource::field.value.changed',
+        runOnFormReady: false,
+        template: 'event.value.loading ? "" : ($exists(event.value.records[0].metadata.title) ? event.value.records[0].metadata.title : "")',
+        target: 'model.value',
+      },
+    },
+    {
+      name: 'protect',
+      config: {
+        conditionKind: 'jsonpointer',
+        condition: '/primarySource::field.value.changed',
+        runOnFormReady: false,
+        template: 'event.value.status != "empty" or event.value.loading = true',
+        target: 'field.disabled',
+      },
+    },
+  ],
+},
+```
+
+The complete example wraps `activityTitle` in edit/view and Admin/Librarians
+presentation variants, all with the same metadata path and `relatedDisplay` rule.
+The Admin variant wins for accounts with both roles. It also populates a whole
+`activityDates` group and whole `activitySummaries` repeatable, while the visible
+`activityInformation` source renders:
+
+```handlebars
+<h3>Current activities</h3>
+{{#each relatedObjects}}
+<p>{{fields.title}}: {{fields.startDate}} – {{fields.endDate}}</p>
+{{else}}<p>No accessible activities selected.</p>{{/each}}
+```
+
+A relation-mode carrier needs no model and is non-persisting. A layout-hidden
+source still initializes and emits; do not constrain it out when hidden consumers
+need it. The template receives `relatedObjects` adapters with `oid`, `fields` and
+an optional title, plus `relatedMetadata` (the current entry).
+`accessDeniedOids`/`failedOids` are empty in relation mode; do not expect hidden
+identities. Legacy `dataPath`/`oidProperty`/`relatedFields` configurations remain
+supported without `relationId`.
+
+### Events, refresh and readiness
+
+The existing `field.value.changed` event carries the **entry**, not raw source
+metadata: `{ status, records, issues }`, with browser-only `loading: true` while
+fetching. Its field/source ID is the source component's lineage pointer. Loading,
+unlink and failure publish clearing results so expressions must clear old output.
+Initial results are accepted only for the matching reference fingerprint;
+reference changes start a new generation and older replies cannot overwrite it.
+The component observes references without requiring a root save. Publish the
+existing `field.dependency.trigger` event targeting the source component to force
+a same-ID refresh; its public `refreshRelatedData(true)` also forces a reread.
+Normal unchanged-reference events are deduplicated. No new expression priority or
+parallel event framework is introduced.
+
+`data-rb-related-state` on `redbox-form` is `pending`, `ready` or `error`. The
+form-scoped tracker covers fetches, rendering and registered asynchronous
+expression/custom-setter work, not only network completion. Destroyed/superseded
+work releases its tokens. Once pending work settles, required empty/non-resolved
+sources cause `error`; optional failures settle to `ready` and still require a
+configured empty/error presentation. A ready form does not guarantee optional
+source success. PDF waiting is opt-in; see
+[service examples](Services-Architecture.md#related-record-consumers).
+
+### Transient writes and view mode
+
+`relatedDisplay: { relationId }` is a **form component definition** property,
+not component `config`. It protects one metadata path: a scalar, group leaf,
+whole group or complete repeatable. Wildcard per-row targets are unsupported.
+Canonical form/reusable declarations are compiled before caller-specific pruning;
+role variants may differ visually but must agree on persistence and overlapping
+paths. Invalid contracts fail closed. Server-derived `relatedRecords` bootstrap
+descriptors (`displayTargets`, `relations`, `sources`) are not write-request input.
+
+While its merged candidate reference is active, the browser omits the target from
+submission and conflict comparisons but keeps raw values for expressions. Server
+normalization preserves the stored target value **or absence** under merge and
+replace; equal stored echoes are discarded and changed transient submissions are
+rejected. Reading a source does not refresh a retained canonical copy. On unlink,
+explicit local input is accepted; omitted retained targets are cleared rather than
+revived, for both merge and replace. There is no archive of prior local answers.
+Malformed nonempty references cannot make protected targets writable. Local notes
+and reference changes remain real edits; changed references/contracts retain
+conservative conflict handling. Hooks/internal writes cannot bypass normalization;
+active transient batch writes are rejected before insertion. Server error codes
+include `related-display-field-not-writable`, `related-reference-invalid`,
+`related-display-contract-invalid` and `related-display-batch-not-supported`.
+With API version 2.0 (used by the portal's own forms), rejected writes return HTTP
+400 with the code in the error list; `related-display-contract-invalid` remains a
+server error. API version 1.0 keeps its existing contract of HTTP 500 with a
+generic message for every non-conflict save failure.
+These checks do not require a source fetch merely to save an unrelated local field;
+opted-in validation operations still have to complete their selected validation.
+
+Shared projection helpers are `relatedDisplayActive`,
+`projectRelatedDisplayMetadata`, `relatedDisplayReferencesEqual`, and
+`retainRelatedDisplayValues` from `@researchdatabox/sails-ng-common`. The last is
+for control synchronization only; never persist or compare its display view.
+JSON Schema's `x-redbox-related-display` annotation explains conditional
+non-writable/non-required linked targets and ordinary local validation when
+unlinked; runtime normalization is authoritative.
+
+In view mode the server preserves the opted-in reference/display controls and
+containers needed for population, instead of replacing them with static values.
+It derives `component.config.relatedViewPreserved`, `readonly: true` and
+`disabled: true`, retaining only `model.value` expressions on preserved controls.
+Authored `relatedViewPreserved` markers are stripped: it is an internal derived
+marker, not a way to preserve arbitrary components or bypass role filtering.
+Hidden source components remain active and pruned values respect surviving paths.
+
+Compatibility: readonly repeatables now block user add/remove/reorder actions.
+Edit mode shows a disabled Add button; view mode hides Add/Remove. Programmatic
+population still replaces the displayed rows. This applies to readonly repeatables
+beyond the new example.
+
+## Legacy copy/populate recipe
+
 ## Problem
 
 A form lets the user pick a *related* record — for example a **Data Record**

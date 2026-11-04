@@ -103,6 +103,8 @@ export const policies: PoliciesConfig = {
   },
   RecordController: {
     '*': noCachePlusDefaultPolicies,
+    // Refresh uses the contract validation chain; its action also requires a session principal.
+    resolveRelatedMetadata: noCachePlusApiValidationPolicies,
     // companionAttachmentUploadAuth runs before checkAuth; bypass is route-scoped
     // and ignored for non-companion attachment routes.
     doAttachment: doAttachmentPolicies,

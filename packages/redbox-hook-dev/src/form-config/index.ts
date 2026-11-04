@@ -1,5 +1,7 @@
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import defaultDraft from './default-1.0-draft';
+import relatedPlan from './related-plan-1.0-draft';
+import relatedActivity from './related-activity-1.0-draft';
 import dataRecordDraft from './dataRecord-1.0-draft';
 import dataPublicationDraft from './dataPublication-1.0-draft';
 import dataPublicationQueued from './dataPublication-1.0-queued';
@@ -17,6 +19,8 @@ import existingLocationsDraft from './existing-locations-workspace-1.0-draft';
  */
 export const FormConfigExports: Record<string, FormConfigFrame> = {
   'default-1.0-draft': defaultDraft,
+  'related-plan-1.0-draft': relatedPlan,
+  'related-activity-1.0-draft': relatedActivity,
   'dataRecord-1.0-draft': dataRecordDraft,
   'dataPublication-1.0-draft': dataPublicationDraft,
   'dataPublication-1.0-queued': dataPublicationQueued,

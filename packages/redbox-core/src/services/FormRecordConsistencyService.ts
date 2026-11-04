@@ -1,3 +1,5 @@
+import { compileRelatedDisplayContract } from '../related-records/display-descriptors';
+import type { FormRecordAccessContext } from './FormsService';
 // Copyright (c) 2025 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -551,8 +553,18 @@ export namespace Services {
           formMode: FormModesConfig,
           userRoles?: string[],
           recordMetadata?: Record<string, unknown> | null,
-          reusableFormDefs?: ReusableFormDefinitions
+          reusableFormDefs?: ReusableFormDefinitions,
+          recordAccessContext?: FormRecordAccessContext
         ): Promise<TemplateCompileInput[]> {
+          // Compile the same caller-effective view structure returned by getForm.
+          // Plain view construction flattens live related targets and loses their keys.
+          if (formMode === 'view' && recordAccessContext && compileRelatedDisplayContract(item, reusableFormDefs)) {
+            const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata,
+              reusableFormDefs, undefined, undefined, recordAccessContext, false, true);
+            // The client carrier strips behaviour templates; compile their raw definitions.
+            form.behaviours = _.cloneDeep(item.behaviours);
+            return await new TemplateFormConfigVisitor(this.logger).start({ form });
+          }
           const constructor = new ConstructFormConfigVisitor(this.logger);
           const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
           const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);

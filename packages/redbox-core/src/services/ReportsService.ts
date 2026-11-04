@@ -286,10 +286,10 @@ export namespace Services {
       return { deleted: true };
     }
 
-    public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider): Promise<ReportResult> {
+    public async previewConfig(brand: BrandingModel, config: ReportConfigDto, req: Sails.ReqParamProvider, user?: Sails.Req['user']): Promise<ReportResult> {
       const { dto: normalized, namedQuery } = await this.validateMutableConfig(brand, config, false);
       const paramMap = this.buildNamedQueryParamMap(req, normalized as unknown as ReportConfig);
-      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, 0, 100);
+      const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, 0, 100, user);
       const response = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, normalized as unknown as ReportConfig);
       response.success = true;
       return response;
@@ -398,7 +398,7 @@ export namespace Services {
       return params;
     }
 
-    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10) {
+    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10, user?: Sails.Req['user']) {
       const reportModel = this.getReportModel();
       const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
         key: brand.id + "_" + name
@@ -418,7 +418,7 @@ export namespace Services {
           throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
         }
         const paramMap = this.buildNamedQueryParamMap(req, report)
-        const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows, user);
         return this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
       } else {
         if (!report.solrQuery) {
@@ -522,7 +522,7 @@ export namespace Services {
       return legacyReport;
     }
 
-    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000) {
+    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000, user?: Sails.Req['user']) {
       const reportModel = this.getReportModel();
       let report: ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
         key: brand.id + "_" + name
@@ -542,7 +542,7 @@ export namespace Services {
           throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
         }
         const paramMap = this.buildNamedQueryParamMap(req, report);
-        const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows, user);
         result = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
       } else {
         if (!report.solrQuery) {

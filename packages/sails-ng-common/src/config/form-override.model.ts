@@ -557,6 +557,9 @@ export class FormOverride {
     // Apply the transform.
     const hasTransform = !!transformComponentClassName && !!transformFunc;
     const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
+    if (original.relatedDisplay !== undefined) {
+      result.relatedDisplay = { ...original.relatedDisplay };
+    }
     if (
       formMode === 'view' &&
       hasTransform &&
@@ -2051,4 +2054,20 @@ export class FormOverride {
       );
     }
   }
+}
+
+/** Reusable values without a name inherit their usage wrapper's metadata identity.
+ * Shared by canonical metadata contract compilers; explicit expanded names win.
+ */
+export function effectiveReusableComponents<T extends import('./form-component.outline').FormComponentDefinitionFrame>(
+  wrapper: import('./form-component.outline').FormComponentDefinitionFrame,
+  expanded: readonly T[]
+): T[] {
+  return expanded.map(component => {
+    if (component.name || !wrapper.name) return component;
+    const overrides = { ...component.overrides };
+    delete overrides.replaceName;
+    return { ...component, name: wrapper.name,
+      overrides: Object.keys(overrides).length ? overrides : undefined };
+  });
 }

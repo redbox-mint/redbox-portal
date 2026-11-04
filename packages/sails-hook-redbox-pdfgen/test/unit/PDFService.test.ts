@@ -545,6 +545,42 @@ describe('PDFService Unit Tests', () => {
     expect(mockBrowser.close.calledOnce).to.be.true;
   });
 
+  it('does not require a related marker by default', async () => {
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-legacy', {}, {}, { name: 'default' }, 1));
+    expect(mockPage.waitForFunction.called).to.be.false;
+  });
+
+  it('waits for related rendering after existing readiness and checks all markers', async () => {
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-related', {},
+      { waitForRelatedData: true, readinessTimeout: 1234 }, { name: 'default' }, 1));
+    expect(mockPage.waitForNetworkIdle.calledBefore(mockPage.waitForFunction)).to.be.true;
+    const [predicate, options] = mockPage.waitForFunction.firstCall.args;
+    expect(options).to.deep.equal({ timeout: 1234, polling: 100 });
+    const evaluate = (states: string[]) => require('vm').runInNewContext(predicate, {
+      document: { querySelectorAll: () => states.map(state => ({ getAttribute: () => state })) },
+    });
+    expect(evaluate([])).to.equal(false);
+    expect(evaluate(['pending'])).to.equal(false);
+    expect(evaluate(['ready', 'pending'])).to.equal(false);
+    expect(evaluate(['ready', 'ready'])).to.equal(true);
+    expect(() => evaluate(['error'])).to.throw('Required related data unavailable');
+  });
+
+  for (const message of ['Waiting failed: timeout exceeded (missing marker)', 'Waiting failed: timeout exceeded (pending)', 'Required related data unavailable']) {
+    it(`maps related readiness failure to BrowserError: ${message}`, async () => {
+      mockPage.waitForFunction.rejects(new Error(message));
+      const exit = await Effect.runPromiseExit(pdfService.attemptPDFGeneration('oid-related-failure', {},
+        { waitForRelatedData: true }, { name: 'default' }, 1));
+      expect(exit._tag).to.equal('Failure');
+      const failure = Cause.failureOption(exit.cause);
+      expect(failure.value._tag).to.equal('BrowserError');
+      expect(failure.value.cause.message).to.equal(message);
+      expect(mockPage.pdf.called).to.be.false;
+      expect(mockPage.close.calledOnce).to.be.true;
+      expect(mockBrowser.close.calledOnce).to.be.true;
+    });
+  }
+
   it('should use selector strategy', async () => {
     const record = { metaMetadata: { brandId: 1 } };
     const options = {

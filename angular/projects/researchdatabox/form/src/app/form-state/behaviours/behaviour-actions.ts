@@ -128,7 +128,9 @@ async function executeSetValueEntry(
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
-  resolved.control.markAsDirty();
+  if (!ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
+    resolved.control.markAsDirty();
+  }
   ctx.broadcastFormStatus?.();
 }
 
@@ -283,7 +285,8 @@ async function applyRunTemplateInstructions(
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
     if (ctx.isActive?.() === false) return;
     if (target === FormExpressionsTargetModelValue) {
-      host.model?.formControl?.markAsDirty();
+      const control = host.model?.formControl;
+      if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
     }
   }
 }
@@ -392,6 +395,7 @@ function buildTargetContext(
   ctx: BehaviourActionExecutionContext
 ): ApplyExpressionTargetContext {
   return {
+    isActive: ctx.isActive,
     eventBus: ctx.eventBus,
     logger: ctx.logger,
     broadcastFormStatus: ctx.broadcastFormStatus,

@@ -28,6 +28,9 @@ import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 
+import type { RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+import type { RecordModel, UserModel } from '../model';
+
 export namespace Services {
   /**
    *
@@ -266,7 +269,7 @@ export namespace Services {
      *
      * @param oid The record identifier.
      * @param record The record data.
-     * @param options The email options.
+     * @param options The email options; relatedMetadata optionally selects fresh related data for evaluation.
      * @param user The optional user.
      * @param response The optional response to return.
      * @return The response if provided or the record data.
@@ -281,13 +284,26 @@ export namespace Services {
           return response;
         }
         return record;
-      } else if (this.metTriggerCondition(oid, record, options, user) == "true") {
+      }
+      // Resolve from the supplied candidate so unsaved reference changes are respected.
+      // Keep this rendering view separate from the original mutable hook record.
+      const evaluationRecord = options.relatedMetadata == null ? record : await RecordsService.enrichWithRelatedMetadata(
+        record as unknown as RecordModel,
+        {
+          brand: BrandingService.getBrandById(_.get(record, 'metaMetadata.brandId') as string),
+          user: user as unknown as UserModel,
+          audience: 'service',
+          serviceId: 'EmailService',
+        },
+        options.relatedMetadata as RelatedMetadataRequest,
+      );
+      if (this.metTriggerCondition(oid, evaluationRecord, options, user) == "true") {
         const variables = {
           imports: {
-            record: record,
+            record: evaluationRecord,
             oid: oid,
           },
-          record: record,
+          record: evaluationRecord,
           oid: oid,
         };
         this.updateChronicle({ emailNotificationOutcome: 'processing' });
