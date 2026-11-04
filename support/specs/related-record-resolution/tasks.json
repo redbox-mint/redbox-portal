@@ -1,0 +1,1052 @@
+{
+  "schema_version": 1,
+  "feature": "related-record-resolution",
+  "scope": "../related-record-resolution-plan.md",
+  "design": "design.md",
+  "implementation_plan": "implementation-plan.md",
+  "execution_started": true,
+  "status_values": [
+    "pending",
+    "in_progress",
+    "blocked",
+    "completed"
+  ],
+  "dependency_waves": [
+    [
+      "RR-01"
+    ],
+    [
+      "RR-02"
+    ],
+    [
+      "RR-03",
+      "RR-04",
+      "RR-08"
+    ],
+    [
+      "RR-05"
+    ],
+    [
+      "RR-06",
+      "RR-07",
+      "RR-09",
+      "RR-14",
+      "RR-15",
+      "RR-17"
+    ],
+    [
+      "RR-10",
+      "RR-11",
+      "RR-12",
+      "RR-16"
+    ],
+    [
+      "RR-13"
+    ],
+    [
+      "RR-18"
+    ],
+    [
+      "RR-19",
+      "RR-20"
+    ],
+    [
+      "RR-21"
+    ],
+    [
+      "RR-22"
+    ]
+  ],
+  "scheduling_note": "Waves express dependency readiness only; shared-file locks also apply.",
+  "tasks": [
+    {
+      "id": "RR-01",
+      "title": "Record baseline and establish shared fixtures",
+      "status": "completed",
+      "lane": "integration",
+      "depends_on": [],
+      "locks": [
+        "shared-test-fixtures"
+      ],
+      "design_sections": [
+        "1",
+        "2",
+        "11"
+      ],
+      "files": {
+        "existing": [
+          "AGENTS.md",
+          "support/wiki/ReDBox-Automated-Tests.md",
+          "packages/redbox-core/test/setup.ts",
+          "test/playwright/helpers.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/test/fixtures/related-records.fixtures.ts"
+        ]
+      },
+      "deliverables": [
+        "Record current HEAD, existing worktree changes, relevant package commands and focused baseline results.",
+        "Create generic root/activity, user/role and cross-tenant fixtures independent of new runtime types.",
+        "Define shared scenarios for source-only changes, reference races, retained local data and required/optional sources."
+      ],
+      "acceptance": [
+        "Existing work is preserved and baseline failures include exact commands/errors.",
+        "Fixtures include scalar/object/array references, two relations to one type, denied/deleted sources and explicit empty/literal-key data.",
+        "No institution-specific rules, live credentials or external side effects enter fixtures."
+      ],
+      "validation": [
+        "Existing isolated visitor and relationship-authorization suites",
+        "Focused RecordsService/email/DOI/storage baseline cases"
+      ]
+    },
+    {
+      "id": "RR-02",
+      "title": "Add shared DTOs and opt-in configuration contracts",
+      "status": "completed",
+      "lane": "contracts",
+      "depends_on": [
+        "RR-01"
+      ],
+      "locks": [
+        "common-contracts",
+        "core-public-exports"
+      ],
+      "design_sections": [
+        "3",
+        "4",
+        "7",
+        "8",
+        "9"
+      ],
+      "files": {
+        "existing": [
+          "packages/sails-ng-common/src/index.ts",
+          "packages/sails-ng-common/src/config/form-component.outline.ts",
+          "packages/sails-ng-common/src/config/form-component.model.ts",
+          "packages/sails-ng-common/src/config/component/related-object-data.outline.ts",
+          "packages/sails-ng-common/src/config/component/related-object-data.model.ts",
+          "packages/sails-ng-common/src/validation/record-validation.model.ts",
+          "packages/redbox-core/src/config/recordtype.config.ts",
+          "packages/redbox-core/src/model/storage/RecordTypeModel.ts",
+          "packages/redbox-core/src/model/storage/RecordModel.ts",
+          "packages/redbox-core/src/RecordsService.ts",
+          "packages/redbox-core/src/index.ts"
+        ],
+        "proposed": [
+          "packages/sails-ng-common/src/related-records.model.ts",
+          "packages/redbox-core/src/related-records/types.ts"
+        ]
+      },
+      "deliverables": [
+        "Implement result/status/request DTOs and optional runtime-only record.relatedMetadata typing.",
+        "Supplement RecordRelation with oidProperty and resolution.metadataFields, retaining old defaults.",
+        "Type component relationId/required, form relatedDisplay and optional validation-operation related requests.",
+        "Declare new methods/read context without global hydration or a duplicate relationship registry."
+      ],
+      "acceptance": [
+        "Old form and record-type configurations typecheck unchanged.",
+        "Common has no dependency on core/Sails runtime types; the component remains model-free.",
+        "Design examples and exported types agree; new options remain absent by default."
+      ],
+      "validation": [
+        "npm run test:config-types",
+        "Common compile and configuration construction/type coverage"
+      ]
+    },
+    {
+      "id": "RR-03",
+      "title": "Exclude runtime enrichment from persistence snapshots",
+      "status": "completed",
+      "lane": "persistence",
+      "depends_on": [
+        "RR-02"
+      ],
+      "locks": [
+        "core-records-service",
+        "mongo-storage"
+      ],
+      "design_sections": [
+        "8"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/services/RecordsService.ts",
+          "packages/redbox-core/src/RecordWriteClassification.ts",
+          "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/src/related-records/runtime-record.ts",
+          "packages/redbox-core/test/related-records/runtime-record.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Add detached root-only runtime-property exclusion before classification, canonical candidates and incidental audit/index snapshots.",
+        "Strip again at native Mongo create/update/batch boundaries and cover internal/writeback flows.",
+        "Leave ordinary metadata properties with the same spelling untouched."
+      ],
+      "acceptance": [
+        "Runtime enrichment neither mutates its input nor creates a false system-write classification.",
+        "Native create/update/batch payloads cannot persist relatedMetadata.",
+        "Existing integration fields and ordinary metadata survive unchanged."
+      ],
+      "validation": [
+        "Runtime-record unit suite",
+        "Existing write classification/save cases",
+        "Mongo native persistence tests"
+      ]
+    },
+    {
+      "id": "RR-04",
+      "title": "Provide bounded authorized relation reads in storage",
+      "status": "completed",
+      "lane": "storage",
+      "depends_on": [
+        "RR-02"
+      ],
+      "locks": [
+        "mongo-storage",
+        "storage-interface"
+      ],
+      "design_sections": [
+        "4",
+        "5"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/StorageService.ts",
+          "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+          "packages/sails-hook-redbox-storage-mongo/test/services/MongoStorageService.test.ts"
+        ],
+        "proposed": [
+          "packages/sails-hook-redbox-storage-mongo/test/integration/MongoRelatedRecords.integration.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Add optional findRecordsByRelation using server-derived tenant/type/path/values and principal ACL constraints.",
+        "Reuse current matching and list-ACL construction, applying tenant/ACL before limit; return deterministic complete/overflow results.",
+        "Keep bounded direct-OID fallback for other adapters and explicitly fail unsupported non-OID shapes."
+      ],
+      "acceptance": [
+        "Unreadable/cross-tenant sources cannot influence visible counts/results.",
+        "Scalar/object-array and reverse relation cases behave as declared.",
+        "Limit + 1 detects overflow without successful truncation.",
+        "Legacy graph traversal defaults/shapes remain compatible."
+      ],
+      "validation": [
+        "npm run test:storage-mongo",
+        "Actual Mongo integration with MONGO_CONCURRENCY_TEST_URL"
+      ]
+    },
+    {
+      "id": "RR-05",
+      "title": "Implement shared resolver and enrichment helpers",
+      "status": "completed",
+      "lane": "resolver",
+      "depends_on": [
+        "RR-03",
+        "RR-04",
+        "RR-08"
+      ],
+      "locks": [
+        "core-records-service",
+        "core-public-exports",
+        "core-record-controller"
+      ],
+      "design_sections": [
+        "3",
+        "4",
+        "5"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/services/RecordsService.ts",
+          "packages/redbox-core/src/RecordsService.ts",
+          "packages/redbox-core/src/services/FormRecordConsistencyService.ts",
+          "packages/redbox-core/src/controllers/RecordController.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/src/related-records/resolver.ts",
+          "packages/redbox-core/src/related-records/references.ts",
+          "packages/redbox-core/src/related-records/projection.ts",
+          "packages/redbox-core/test/related-records/resolver.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Implement relation lookup, reference normalization/order, projection, safe statuses, required checks and operation-local deduplication/limits.",
+        "Export resolveRelatedMetadata, enrichWithRelatedMetadata and getMetaWithRelatedMetadata on the existing service.",
+        "Extract/reuse caller-effective browser source projection; never fall back to unrestricted metadata.",
+        "Use supplied candidate references and rebuild runtime results without saving or mutating the root."
+      ],
+      "acceptance": [
+        "Literal keys and explicit empty values survive projection; absent fields remain absent.",
+        "Safe statuses do not leak hidden OIDs or denial/existence distinctions.",
+        "Unsaved candidate references, cardinality, deadlines and unsupported adapters have coverage.",
+        "Resolution causes no root revision, modified-date, audit or recursive-calculation side effects."
+      ],
+      "validation": [
+        "Resolver/reference/projection suites",
+        "Existing authorization regression suite",
+        "Core build and service registration checks"
+      ]
+    },
+    {
+      "id": "RR-06",
+      "title": "Integrate shared resolution into initial form construction",
+      "status": "completed",
+      "lane": "forms-server",
+      "depends_on": [
+        "RR-05"
+      ],
+      "locks": [
+        "core-forms-service"
+      ],
+      "design_sections": [
+        "2",
+        "7"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/visitor/related-object-data-inline.visitor.ts",
+          "packages/redbox-core/src/services/FormsService.ts",
+          "packages/redbox-core/test/visitor/related-object-data-inline.visitor.test.ts"
+        ],
+        "proposed": []
+      },
+      "deliverables": [
+        "Use relationId for new shared resolution and attach safe initial result/fingerprint/client descriptors.",
+        "Adapt new entries into existing relatedObjects/template buckets.",
+        "Retain legacy dataPath/oidProperty/relatedFields through a trusted compatibility adapter; keep source values out of canonical metadata."
+      ],
+      "acceptance": [
+        "Old inline configurations retain their rendering contract.",
+        "New initial resolution is identical to backend resolution for the same authorized source request.",
+        "New scalar/object/multiple references work without stored-data migration."
+      ],
+      "validation": [
+        "Inline visitor and new relation-mode cases",
+        "FormsService/construct visitor regressions"
+      ]
+    },
+    {
+      "id": "RR-07",
+      "title": "Add resolved-read and unsaved-refresh routes and client",
+      "status": "completed",
+      "lane": "api",
+      "depends_on": [
+        "RR-05"
+      ],
+      "locks": [
+        "api-registry",
+        "core-record-controller",
+        "portal-record-client"
+      ],
+      "design_sections": [
+        "6"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/controllers/RecordController.ts",
+          "packages/redbox-core/src/controllers/webservice/RecordController.ts",
+          "packages/redbox-core/src/config/routes.config.ts",
+          "packages/redbox-core/src/config/policies.config.ts",
+          "packages/redbox-core/src/api-routes/route-registry.ts",
+          "packages/redbox-core/src/api-routes/index.ts",
+          "angular/projects/researchdatabox/portal-ng-common/src/lib/record.service.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/src/api-routes/groups/related-records.ts",
+          "packages/redbox-core/test/related-records/routes.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Add explicit enriched GET and session/CSRF refresh POST through existing routing/auth conventions.",
+        "Derive root type/form/creation rights authoritatively and allow only declared reference overrides.",
+        "Sanitize public envelopes and use private/no-store rather than root-only 304 handling.",
+        "Add typed Angular RecordService methods and route/OpenAPI schemas."
+      ],
+      "acceptance": [
+        "Existing/new unsaved references resolve without a root save.",
+        "Request input cannot widen fields, queries, brand, form or service identity.",
+        "Raw response shapes/ETags remain unchanged; safe status/error mappings are covered.",
+        "Authentication, CSRF and malformed-body cases use real route tests."
+      ],
+      "validation": [
+        "npm run validate:api-routes",
+        "Route/API integration coverage",
+        "Portal-ng-common client cases"
+      ]
+    },
+    {
+      "id": "RR-08",
+      "title": "Compile transient display descriptors and fingerprints",
+      "status": "completed",
+      "lane": "forms-contract",
+      "depends_on": [
+        "RR-02"
+      ],
+      "locks": [
+        "core-records-service",
+        "core-form-config",
+        "common-contracts"
+      ],
+      "design_sections": [
+        "7",
+        "8"
+      ],
+      "files": {
+        "existing": [
+          "packages/sails-ng-common/src/config/visitor/common.model.ts",
+          "packages/redbox-core/src/visitor/construct.visitor.ts",
+          "packages/redbox-core/src/services/FormsService.ts",
+          "packages/redbox-core/src/services/RecordsService.ts",
+          "packages/redbox-core/test/unit/construct.visitor.test.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/src/related-records/display-descriptors.ts",
+          "packages/redbox-core/test/related-records/display-descriptors.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Compile metadata-pointer/relation descriptors from canonical forms/reusables before caller-specific UI removal.",
+        "Carry relatedDisplay and source descriptors through construction/transforms/bootstrap.",
+        "Validate role-variant/overlap consistency using existing lineage conventions.",
+        "Include referenced relation definitions and flags in existing form fingerprints."
+      ],
+      "acceptance": [
+        "Scalar, group-leaf, whole-group and complete-repeatable paths are correct.",
+        "Tabs, reusables and model-free groups do not create incorrect metadata nesting.",
+        "Role presentations remain flexible but agree on metadata persistence.",
+        "Central relation changes invalidate opted-in contracts; old forms retain behavior."
+      ],
+      "validation": [
+        "Descriptor suite",
+        "Construct/reusable form coverage",
+        "Fingerprint/concurrency regressions"
+      ]
+    },
+    {
+      "id": "RR-09",
+      "title": "Enforce transient display rules across saves and batches",
+      "status": "completed",
+      "lane": "persistence",
+      "depends_on": [
+        "RR-03",
+        "RR-05",
+        "RR-08"
+      ],
+      "locks": [
+        "core-records-service",
+        "mongo-storage"
+      ],
+      "design_sections": [
+        "8"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/services/RecordsService.ts",
+          "packages/redbox-core/src/RecordSaveResponse.ts",
+          "packages/sails-hook-redbox-storage-mongo/src/services/MongoStorageService.ts",
+          "packages/redbox-core/test/services/RecordsService.test.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/src/related-records/normalize-display-writes.ts",
+          "packages/redbox-core/test/related-records/display-writes.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Normalize authoritative target/reference state before structural validation and after hooks/transformations.",
+        "Preserve stored values/absence under active replace/merge, discard equal stored echoes and reject changed transient submissions.",
+        "On unlink accept explicit local input and clear omitted retained targets under merge/replace.",
+        "Preflight source/target workflow contracts before side-effecting hooks; cover internal/post-sync writes.",
+        "Reject unsupported active transient batches before any batch insertion, including direct adapter batch entrypoints."
+      ],
+      "acceptance": [
+        "Manipulated controls/API/internal candidates cannot introduce source copies.",
+        "Unrelated saves preserve retained values and normal array behavior outside protected targets.",
+        "Unlink cannot revive a legacy copy; null remains distinct from absence.",
+        "Transitions cannot implicitly materialize displayed values as local answers.",
+        "CAS/hook ordering and existing partial-commit semantics are preserved; unconfigured batches remain compatible."
+      ],
+      "validation": [
+        "Display-writes suite",
+        "Existing create/update/transition/internal-save regressions",
+        "Mongo batch guard/no-partial-write cases"
+      ]
+    },
+    {
+      "id": "RR-10",
+      "title": "Describe conditional transient fields in write schemas",
+      "status": "completed",
+      "lane": "schemas",
+      "depends_on": [
+        "RR-08",
+        "RR-09"
+      ],
+      "locks": [
+        "record-contract-compiler"
+      ],
+      "design_sections": [
+        "8"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/record-contract/core-contributors.ts",
+          "packages/redbox-core/src/record-contract/record-contract-compiler.ts",
+          "packages/redbox-core/src/record-contract/types.ts",
+          "packages/redbox-core/test/unit/record-contract/compiler.test.ts"
+        ],
+        "proposed": []
+      },
+      "deliverables": [
+        "Propagate relatedDisplay into contract annotations and applicable conditional writability/required behavior.",
+        "Keep references/local inputs represented normally and the related-object carrier non-persisting.",
+        "Describe runtime conditional rules without reclassifying every ordinary input."
+      ],
+      "acceptance": [
+        "Linked transient targets are not required persisted inputs.",
+        "Unlinked local inputs retain ordinary type/validation behavior.",
+        "Schemas accurately explain conditional behavior; old snapshots and contributor coverage remain compatible."
+      ],
+      "validation": [
+        "npm run test:record-contracts",
+        "Compiler/schema tests and relevant rollout regressions"
+      ]
+    },
+    {
+      "id": "RR-11",
+      "title": "Add component fetching, existing events and render refresh",
+      "status": "completed",
+      "lane": "forms-client",
+      "depends_on": [
+        "RR-06",
+        "RR-07",
+        "RR-08"
+      ],
+      "locks": [
+        "angular-related-lifecycle",
+        "angular-content-rendering"
+      ],
+      "design_sections": [
+        "7"
+      ],
+      "files": {
+        "existing": [
+          "angular/projects/researchdatabox/form/src/app/component/related-object-data.component.ts",
+          "angular/projects/researchdatabox/form/src/app/component/related-object-data.component.spec.ts",
+          "angular/projects/researchdatabox/form/src/app/component/record-metadata-retriever.component.ts",
+          "angular/projects/researchdatabox/form/src/app/component/record-metadata-retriever.component.spec.ts",
+          "angular/projects/researchdatabox/form/src/app/component/content.component.ts"
+        ],
+        "proposed": [
+          "angular/projects/researchdatabox/form/src/app/form-state/related-records/related-record-request.ts"
+        ]
+      },
+      "deliverables": [
+        "Factor request generation/disposal from existing getter patterns without changing getter defaults.",
+        "Reuse matching initial results and publish existing value-change events after subscriptions exist.",
+        "Watch canonical references; refresh unsaved selection/same-ID explicit requests and publish current loading/empty/error results.",
+        "Add awaitable protected content refresh; keep hidden components active and model-free."
+      ],
+      "acceptance": [
+        "Latest selection wins after every asynchronous extraction/fetch step.",
+        "No previous source appears under a new selection; destruction prevents late publication.",
+        "Existing getter/content/expression behavior remains compatible.",
+        "Initial events and scalar/group/repeatable consumers work through existing semantics."
+      ],
+      "validation": [
+        "Related-object, retriever and content Angular suites",
+        "Delayed-response/hidden-source cases"
+      ]
+    },
+    {
+      "id": "RR-12",
+      "title": "Separate submission and conflict state from transient controls",
+      "status": "completed",
+      "lane": "forms-client",
+      "depends_on": [
+        "RR-08",
+        "RR-09"
+      ],
+      "locks": [
+        "angular-form-component",
+        "common-metadata-projection"
+      ],
+      "design_sections": [
+        "8"
+      ],
+      "files": {
+        "existing": [
+          "angular/projects/researchdatabox/form/src/app/form.component.ts",
+          "angular/projects/researchdatabox/form/src/app/form.service.ts"
+        ],
+        "proposed": [
+          "packages/sails-ng-common/src/related-display-projection.ts",
+          "angular/projects/researchdatabox/form/src/app/form-state/related-records/related-display-projection.spec.ts"
+        ]
+      },
+      "deliverables": [
+        "Implement pure descriptor-aware local submission/comparison projection using presence-aware pointer operations.",
+        "Apply it to saves, initial/saved baselines, freshness checks and manual/automatic conflict candidates.",
+        "Retain raw displayed values for expressions; conservatively use existing conflict handling when reference/contracts differ."
+      ],
+      "acceptance": [
+        "Source population/refresh causes no user edit or false deletion diff.",
+        "Active transient values never enter local save payloads.",
+        "Local/reference/unlink changes and real concurrency conflicts remain detectable.",
+        "Nested/group/repeatable projection does not rely only on Angular disabled-state behavior."
+      ],
+      "validation": [
+        "Projection/serialization/conflict unit cases",
+        "Existing form CAS/merge tests",
+        "Unrelated-local-edit runtime scenario"
+      ]
+    },
+    {
+      "id": "RR-13",
+      "title": "Track settled related rendering and PDF readiness",
+      "status": "completed",
+      "lane": "pdf",
+      "depends_on": [
+        "RR-11",
+        "RR-12"
+      ],
+      "locks": [
+        "angular-form-component",
+        "angular-expression-readiness",
+        "pdf-service"
+      ],
+      "design_sections": [
+        "7",
+        "9"
+      ],
+      "files": {
+        "existing": [
+          "angular/projects/researchdatabox/form/src/app/form.component.ts",
+          "angular/projects/researchdatabox/form/src/app/form-state/events/form-component-base-event-consumer.ts",
+          "angular/projects/researchdatabox/form/src/app/form-state/apply-expression-target.ts",
+          "packages/sails-hook-redbox-pdfgen/src/api/services/PDFService.ts",
+          "packages/sails-hook-redbox-pdfgen/src/config/pdfgen.ts",
+          "packages/sails-hook-redbox-pdfgen/test/unit/PDFService.test.ts"
+        ],
+        "proposed": [
+          "angular/projects/researchdatabox/form/src/app/form-state/related-records/related-data-state.service.ts"
+        ]
+      },
+      "deliverables": [
+        "Add form-scoped accounting for fetch/render work and existing asynchronous expression/custom-setter promises.",
+        "Register work before awaits and release in finally, observing downstream events without changing ordering/priority.",
+        "Expose data-rb-related-state and opt-in waitForRelatedData after existing PDF readiness.",
+        "Handle required errors/missing marker/timeouts through current PDF failure paths."
+      ],
+      "acceptance": [
+        "Fetch completion cannot mark readiness before asynchronous target/render completion.",
+        "Late/aborted generations release tokens safely; multiple forms remain isolated.",
+        "Legacy forms/PDF options remain compatible.",
+        "Actual delayed-page/repeatable PDF coverage proves final content, not just a mocked pending flag."
+      ],
+      "validation": [
+        "Angular readiness/expression cases",
+        "PDF unit suite",
+        "Actual-browser PDF test in RR-20"
+      ]
+    },
+    {
+      "id": "RR-14",
+      "title": "Enrich existing email evaluation contexts",
+      "status": "completed",
+      "lane": "email",
+      "depends_on": [
+        "RR-03",
+        "RR-05"
+      ],
+      "locks": [
+        "email-service"
+      ],
+      "design_sections": [
+        "9"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/services/EmailService.ts",
+          "packages/redbox-core/test/services/EmailService.test.ts"
+        ],
+        "proposed": []
+      },
+      "deliverables": [
+        "Add optional options.relatedMetadata without changing service signatures.",
+        "Keep disabled early return; enrich once before opted-in trigger/recipient/subject/body evaluation.",
+        "Use the enriched view for record/imports.record while retaining original hook return/success mutation semantics."
+      ],
+      "acceptance": [
+        "Every email property uses one fresh consistent related result.",
+        "Required failure stops sendMessage; optional data follows template configuration.",
+        "Default options fetch nothing extra and successful hooks do not persist incidental enrichment."
+      ],
+      "validation": [
+        "EmailService unit cases",
+        "Mock/local transport integration in RR-19"
+      ]
+    },
+    {
+      "id": "RR-15",
+      "title": "Enrich DOI binding inputs and preserve writeback",
+      "status": "completed",
+      "lane": "doi",
+      "depends_on": [
+        "RR-03",
+        "RR-05"
+      ],
+      "locks": [
+        "doi-service"
+      ],
+      "design_sections": [
+        "9"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/services/DoiService.ts",
+          "packages/redbox-core/src/services/doi-v2/types.ts",
+          "packages/redbox-core/src/services/doi-v2/context.ts",
+          "packages/redbox-core/src/configmodels/DoiPublishing.ts",
+          "packages/redbox-core/test/services/DoiService.test.ts"
+        ],
+        "proposed": []
+      },
+      "deliverables": [
+        "Carry optional related requests through existing operation/trigger options.",
+        "Enrich the v2 mapping input once before path/template/JSONata/array mapping and HTTP.",
+        "Keep original mutable record for DOI/citation writeback and existing audits/errors.",
+        "Retain unconfigured legacy DOI behavior; reject unsupported legacy new-option use explicitly."
+      ],
+      "acceptance": [
+        "Create/update payloads read current source values through existing bindings.",
+        "Required failure prevents DataCite HTTP.",
+        "Writeback changes intended DOI fields with normal CAS, never source metadata/runtime properties.",
+        "Tests do not mint live identifiers."
+      ],
+      "validation": [
+        "DoiService/doi-v2 mapping cases",
+        "Internal writeback and mocked integration coverage"
+      ]
+    },
+    {
+      "id": "RR-16",
+      "title": "Supply separate related inputs to validation operations",
+      "status": "completed",
+      "lane": "validation",
+      "depends_on": [
+        "RR-05",
+        "RR-09"
+      ],
+      "locks": [
+        "core-records-service",
+        "record-validation-service"
+      ],
+      "design_sections": [
+        "8",
+        "9"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/services/RecordsService.ts",
+          "packages/redbox-core/src/services/RecordValidationService.ts",
+          "packages/sails-ng-common/src/validation/record-validation.model.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/test/related-records/validation-context.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Resolve configured operation relations against the candidate with its actual effective read principal.",
+        "Expose read-only relatedMetadata without changing existing validator record/metadata meanings.",
+        "Keep runtime values out of transformedCandidate metadata and respect existing groups/roles/unknown-dependency validators."
+      ],
+      "acceptance": [
+        "Candidate reference changes and current source data reach opted-in validators.",
+        "Required absence blocks dependent validation; optional status remains usable.",
+        "Unrelated saves proceed only when their selected validation completes, with no skipped legacy rules.",
+        "No privileges are inferred from role names alone and no transformation can reintroduce display copies."
+      ],
+      "validation": [
+        "Validation-context suite",
+        "Existing validation operation/authorization cases",
+        "Save/transition integration"
+      ]
+    },
+    {
+      "id": "RR-17",
+      "title": "Reuse declared source filters before count and pagination",
+      "status": "completed",
+      "lane": "queries",
+      "depends_on": [
+        "RR-04",
+        "RR-05"
+      ],
+      "locks": [
+        "named-query-service"
+      ],
+      "design_sections": [
+        "10"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-core/src/config/namedQuery.config.ts",
+          "packages/redbox-core/src/services/NamedQueryService.ts",
+          "packages/redbox-core/src/services/FormVocabularyService.ts",
+          "packages/redbox-core/test/services/NamedQueryServiceMongoDates.test.ts"
+        ],
+        "proposed": [
+          "packages/redbox-core/test/related-records/named-query.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Add optional rootRecordType/relationId to current relatedRecordFilters and derive paths/types/ACL from trusted relations.",
+        "Apply source predicates and root authorization before count/page; combine any/exists predicates on the same source correctly.",
+        "Bound source-ID materialization and fail overflow explicitly; preserve existing vocabulary/legacy filters.",
+        "Reject unsupported effective sort/all/aggregation cases and use supported root sorting with OID tie-breaker."
+      ],
+      "acceptance": [
+        "Source date changes alter next query membership without root writes.",
+        "Counts/pages use authorized current matches and do not disclose hidden source values.",
+        "Same-source predicates cannot accidentally match different activities.",
+        "Limits/unsupported shapes fail explicitly, with no post-pagination filtering shortcut."
+      ],
+      "validation": [
+        "Named-query suite and existing Mongo date cases",
+        "Authorization/count/page runtime integration"
+      ]
+    },
+    {
+      "id": "RR-18",
+      "title": "Provide a complete generic plan and activity example",
+      "status": "completed",
+      "lane": "examples",
+      "depends_on": [
+        "RR-06",
+        "RR-07",
+        "RR-09",
+        "RR-10",
+        "RR-11",
+        "RR-12",
+        "RR-13",
+        "RR-14",
+        "RR-15",
+        "RR-16",
+        "RR-17"
+      ],
+      "locks": [
+        "dev-hook-configuration"
+      ],
+      "design_sections": [
+        "11"
+      ],
+      "files": {
+        "existing": [
+          "packages/redbox-hook-dev/src/config/recordtype.ts"
+        ],
+        "proposed": [
+          "packages/redbox-hook-dev/src/form-config/related-plan-1.0-draft.ts",
+          "packages/redbox-hook-dev/src/form-config/related-activity-1.0-draft.ts"
+        ]
+      },
+      "deliverables": [
+        "Register separate opted-in forms/types with current discovery conventions.",
+        "Demonstrate local notes, single/multiple references, titles/dates, visible informational content and hidden expression source.",
+        "Include role/view presentation variants plus email/DOI mappings, PDF wait and source-date query using test-safe options."
+      ],
+      "acceptance": [
+        "Examples run through existing framework mechanisms rather than pseudocode only.",
+        "Current demo/client forms retain their original persistence behavior.",
+        "No institution-specific business rule, new approval workflow or automatic source-change effect is added."
+      ],
+      "validation": [
+        "Dev-hook build/config loading",
+        "Shared fixture setup for backend/browser integration"
+      ]
+    },
+    {
+      "id": "RR-19",
+      "title": "Prove backend and persistence behavior end to end",
+      "status": "completed",
+      "lane": "integration",
+      "depends_on": [
+        "RR-03",
+        "RR-04",
+        "RR-05",
+        "RR-07",
+        "RR-09",
+        "RR-10",
+        "RR-14",
+        "RR-15",
+        "RR-16",
+        "RR-17",
+        "RR-18"
+      ],
+      "locks": [
+        "backend-integration-fixtures"
+      ],
+      "design_sections": [
+        "12"
+      ],
+      "files": {
+        "existing": [
+          "test/integration/services/RecordsService.test.ts",
+          "test/integration/services/EmailService.test.ts"
+        ],
+        "proposed": [
+          "test/integration/services/RelatedRecordResolution.test.ts"
+        ]
+      },
+      "deliverables": [
+        "Exercise actual service/HTTP/Mongo paths and compare root metadata/revision/dates/audit around source-only edits.",
+        "Exercise email evaluation, mocked DOI payload/writeback, validation/query membership and supported save modes.",
+        "Cover manipulated payloads, runtime keys, batches, permissions/deletion/config changes and opt-out compatibility."
+      ],
+      "acceptance": [
+        "Source-only edits change consumer inputs without root writes.",
+        "Real local/DOI writes persist intended changes only.",
+        "Native storage and full pipeline evidence agree; old APIs/config/consumers have explicit assertions.",
+        "No live mail/DOI side effects occur."
+      ],
+      "validation": [
+        "Runtime integration command in implementation-plan.md",
+        "Actual Mongo evidence",
+        "Schema/concurrency/hook regression suites"
+      ]
+    },
+    {
+      "id": "RR-20",
+      "title": "Prove form races and PDF readiness in browsers",
+      "status": "completed",
+      "lane": "browser-integration",
+      "depends_on": [
+        "RR-11",
+        "RR-12",
+        "RR-13",
+        "RR-18"
+      ],
+      "locks": [
+        "browser-fixtures",
+        "pdf-browser-tests"
+      ],
+      "design_sections": [
+        "7",
+        "9",
+        "12"
+      ],
+      "files": {
+        "existing": [
+          "test/playwright/helpers.ts",
+          "packages/sails-hook-redbox-pdfgen/test/unit/PDFService.test.ts"
+        ],
+        "proposed": [
+          "test/playwright/related-record-resolution.spec.ts"
+        ]
+      },
+      "deliverables": [
+        "Use existing login/bootstrap helpers and the generic runtime example.",
+        "Exercise initial/hidden/visible scalar/group/repeatable output, same-ID refresh, unlink/failure, A-to-B races and role presentations.",
+        "Prove save/dirty/conflict behavior and print a PDF after delayed data plus asynchronous repeatable population."
+      ],
+      "acceptance": [
+        "Older responses cannot win after selection or reload.",
+        "Final UI agrees with shared backend data and transient updates are not user edits/conflicts.",
+        "PDF waits for fully applied content and fails on required-source errors.",
+        "Legacy form/PDF behavior remains covered."
+      ],
+      "validation": [
+        "npm run test:playwright:mount",
+        "Actual PDF/browser integration",
+        "Focused Angular regressions"
+      ]
+    },
+    {
+      "id": "RR-21",
+      "title": "Document APIs, configuration and deployment migration",
+      "status": "completed",
+      "lane": "documentation",
+      "depends_on": [
+        "RR-18",
+        "RR-19",
+        "RR-20"
+      ],
+      "locks": [
+        "wiki-documentation",
+        "generated-api-docs"
+      ],
+      "design_sections": [
+        "11",
+        "12"
+      ],
+      "files": {
+        "existing": [
+          "support/wiki/Form-Configuration-Recipe-Populate-From-Related-Record.md",
+          "support/wiki/Configuring-Related-Records.md",
+          "support/wiki/Services-Architecture.md"
+        ],
+        "proposed": []
+      },
+      "deliverables": [
+        "Document implemented declarations/result/events/transient flags/helper calls and email/DOI/PDF examples.",
+        "Update generated API/contract reference with current tools and describe limits/adapter support.",
+        "Add consumer inventory, activation/transition and rollback/copy-writer migration checklist.",
+        "Handle wiki submodule changes and parent pointer explicitly, preserving unrelated work."
+      ],
+      "acceptance": [
+        "Examples match implemented types/configs and running fixtures.",
+        "Readiness, optional failures and existing post-hook partial-commit semantics are accurate.",
+        "Rollback does not claim old copies become fresh by disabling enrichment.",
+        "Deployment-specific migration is distinguished from implemented core support."
+      ],
+      "validation": [
+        "Reference/link checks",
+        "API validation and applicable docs generation/audit"
+      ]
+    },
+    {
+      "id": "RR-22",
+      "title": "Complete release evidence and implementation handoff",
+      "status": "completed",
+      "lane": "release",
+      "depends_on": [
+        "RR-21"
+      ],
+      "locks": [
+        "release-evidence"
+      ],
+      "design_sections": [
+        "12"
+      ],
+      "files": {
+        "existing": [
+          "support/specs/related-record-resolution-plan.md",
+          "support/specs/related-record-resolution/design.md",
+          "support/specs/related-record-resolution/implementation-plan.md",
+          "support/specs/related-record-resolution/tasks.md",
+          "support/specs/related-record-resolution/tasks.json"
+        ],
+        "proposed": [
+          "support/specs/related-record-resolution/verification.md"
+        ]
+      },
+      "deliverables": [
+        "Run remaining appropriate touched-package/CI checks after task prerequisites pass.",
+        "Map each agreed acceptance requirement to a real test/command/result.",
+        "Record implementation head, changed paths, baseline failures, unsupported shapes and remaining deployment work.",
+        "Update manifest/documents to the delivered code; never mark skipped/blocked evidence as passed."
+      ],
+      "acceptance": [
+        "All dependencies and release gates have reviewable evidence.",
+        "Both forms and email/DOI/PDF/backend consumers are demonstrated.",
+        "Compatibility and nonpersistence protections are proven without excluded framework additions.",
+        "No deployment copy writer is retired automatically."
+      ],
+      "validation": [
+        "Touched-package build/type/lint tests",
+        "Core/common/storage/schema/API regressions",
+        "Runtime Mongo/browser/PDF evidence",
+        "Documentation consistency checks"
+      ]
+    }
+  ]
+}

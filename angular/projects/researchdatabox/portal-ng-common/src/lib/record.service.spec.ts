@@ -40,6 +40,37 @@ describe('RecordService', () => {
     httpTestingController.verify();
   });
 
+  it('refreshes unsaved references through the CSRF-enabled session endpoint', async () => {
+    const input = { recordType: 'plan', relations: ['activity'], references: { activity: 'new-source' } };
+    const pending = recordService.resolveRelatedMetadata(input);
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/relatedMetadata/resolve`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(input);
+    expect(request.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
+    const relatedMetadata = { activity: { status: 'unavailable' as const, records: [], issues: [{ code: 'unavailable' as const }] } };
+    request.flush({ data: { relatedMetadata } });
+    await expectAsync(pending).toBeResolvedTo(relatedMetadata);
+  });
+
+  it('rejects refresh request failures instead of returning a prior source', async () => {
+    const pending = recordService.resolveRelatedMetadata({ oid: 'root', relations: ['activity'] });
+    const rejected = expectAsync(pending).toBeRejected();
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/relatedMetadata/resolve`);
+    request.flush({ errors: [] }, { status: 403, statusText: 'Forbidden' });
+    await rejected;
+  });
+
+  it('requests explicit enriched reads with encoded OIDs and declared relations', async () => {
+    const pending = recordService.getRecordWithRelatedMetadata('root/one', ['activity', 'project']);
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/api/records/resolved/root%2Fone'));
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('relations')).toBe('activity,project');
+    expect(request.request.headers.has('If-None-Match')).toBeFalse();
+    const data = { redboxOid: 'root/one', metadata: {}, metaMetadata: { type: 'plan', brandId: 'default' }, relatedMetadata: {} };
+    request.flush({ data });
+    await expectAsync(pending).toBeResolvedTo(data);
+  });
+
   it('sends the configured dashboard page size and matching offset while preserving the default', async () => {
     recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
     for (const rows of [undefined, 25, 100]) {

@@ -1,3 +1,4 @@
+import { compileRelatedDisplayContract, bindRelatedDisplayContract, relatedFormDescriptors, prepareRelatedViewForm, pruneRelatedViewValues } from '../related-records/display-descriptors';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -88,6 +89,8 @@ type FormComponentNodeLike = {
   };
 };
 export interface FormRecordAccessContext {
+  /** Trusted root identity/workflow; current candidate metadata is supplied separately. */
+  readonly record?: Readonly<import('../model').RecordModel>;
   readonly user: FormRecordAccessUser;
   readonly brand: BrandingModel;
 }
@@ -916,17 +919,32 @@ export namespace Services {
       contextVariablesMap?: Record<string, unknown>,
       recordAccessContext?: FormRecordAccessContext,
       preserveDefaultValues = false,
+      // Projection reads must not resolve another level of related source data.
+      suppressRelatedResolution = false,
       options: { hydrateVocabulary?: boolean } = {}
     ): Promise<FormConfigOutline> {
+      // Compile canonical persistence declarations before construction transforms/pruning.
+      const declarations = compileRelatedDisplayContract(item, reusableFormDefs);
+      let relatedRecordType: import('../model/storage/RecordTypeModel').RecordTypeModel | undefined;
+      let relatedRecords: import('@researchdatabox/sails-ng-common').RelatedFormDescriptors | undefined;
+      if (declarations) {
+        if (!recordAccessContext || !item.type) throw new Error('Related form descriptors require trusted brand and record type context');
+        const recordType = await firstValueFrom(RecordTypesService.get(recordAccessContext.brand, item.type));
+        relatedRecordType = recordType;
+        const contract = bindRelatedDisplayContract(declarations, item.type, recordType?.relatedTo ?? []);
+        relatedRecords = relatedFormDescriptors(contract!);
+      }
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
-        data: item,
+        data: formMode === 'view' && relatedRecords ? prepareRelatedViewForm(item, relatedRecords, reusableFormDefs) : item,
         reusableFormDefs,
         formMode,
         record: recordMetadata,
         translate: this.buildFormConfigTranslator(branding),
         preserveDefaultValues,
+        relatedViewPrepared: formMode === 'view' && !!relatedRecords,
       });
+      if (relatedRecords) constructed.relatedRecords = relatedRecords;
       // Schema assistance needs effective names and nesting, without reading
       // vocabulary pages. Normal record/client and contract builds still hydrate.
       if (options.hydrateVocabulary !== false) {
@@ -937,11 +955,6 @@ export namespace Services {
       }
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
-      if (recordMetadata && recordAccessContext) {
-        const recordsService = sails.services.recordsservice as unknown as RecordsService;
-        const relatedVisitor = new RelatedObjectDataInlineFormConfigVisitor(this.logger, recordsService);
-        await relatedVisitor.resolve(constructed, recordMetadata, recordAccessContext);
-      }
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
       const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
@@ -956,6 +969,29 @@ export namespace Services {
               reusableFormDefs,
             })}`
         );
+      }
+
+      if (formMode === 'view' && relatedRecords) pruneRelatedViewValues(result);
+
+      if (recordAccessContext && !suppressRelatedResolution && (recordMetadata || relatedRecords)) {
+        const recordsService = sails.services.recordsservice as unknown as RecordsService;
+        const relatedVisitor = new RelatedObjectDataInlineFormConfigVisitor(this.logger, recordsService);
+        let accessContext = recordAccessContext;
+        if (relatedRecords?.sources.length && !recordAccessContext.record?.redboxOid) {
+          // A new record has no stored workflow. Derive its starting stage from
+          // trusted configuration, just as the starting-form lookup does.
+          const startingStep = await firstValueFrom(WorkflowStepsService.getFirst(relatedRecordType!)) as { name?: string } | null;
+          const stage = String(startingStep?.name ?? '').trim();
+          if (!stage) throw new Error('Related form resolution requires a starting workflow stage');
+          accessContext = {
+            ...recordAccessContext,
+            record: {
+              ...recordAccessContext.record,
+              workflow: { stage },
+            } as import('../model').RecordModel,
+          };
+        }
+        await relatedVisitor.resolve(result, recordMetadata ?? {}, accessContext);
       }
 
       const componentDefinitions = result.componentDefinitions as unknown[] | undefined;
@@ -1005,7 +1041,12 @@ export namespace Services {
         reusableFormDefinitions,
         context.publicContext.brand,
         _.cloneDeep(resolution.contextVariables),
-        recordAccessContext,
+        recordAccessContext ? {
+          ...recordAccessContext,
+          record: context.publicContext.kind === 'update'
+            ? (context.resolution.existingRecord ?? recordAccessContext.record) as import('../model').RecordModel
+            : recordAccessContext.record,
+        } : undefined,
         true
       );
       effectiveForm.componentDefinitions = this.retainSubmittableContractComponents(

@@ -107,3 +107,69 @@ describe('RelatedObjectDataInlineFormConfigVisitor', () => {
     expect(config?.failedOids).to.deep.equal([]);
   });
 });
+
+
+describe('relation-based initial resolution', () => {
+  const { resolveRelatedMetadata } = require('../../src/related-records/resolver');
+  const { relatedFormDescriptors, compileRelatedDisplayContract } = require('../../src/related-records/display-descriptors');
+  for (const references of ['a', { oid: 'a' }, ['a', { oid: 'b' }, 'a']]) {
+    it(`matches backend resolution for ${JSON.stringify(references)} without changing metadata`, async () => {
+      const input: FormConfigFrame = {
+        name: 'test', type: 'plan', componentDefinitions: [{ name: 'source', component: {
+          class: 'RelatedObjectDataComponent', config: { relationId: 'activities' },
+        } }],
+      };
+      const relations = [{ id: 'activities', recordType: 'activity', localField: 'metadata.references',
+        foreignField: 'redboxOid', cardinality: 'many', oidProperty: 'oid',
+        resolution: { metadataFields: ['/title', '/empty'] } }];
+      const metadata = { references, local: 'answer' };
+      const before = JSON.stringify(metadata);
+      const context = { brand: { id: 'tenant' }, user: { username: 'reader' } } as never;
+      const root = { redboxOid: 'root', metaMetadata: { type: 'plan', brandId: 'tenant' }, metadata };
+      const dependencies = {
+        storage: { getMeta: async (oid: string) => ({ redboxOid: oid,
+          metaMetadata: { type: 'activity', brandId: 'tenant' },
+          metadata: { title: oid, empty: false, secret: 'private' } }) },
+        relations: async () => relations, authorizeRoot: async () => true, canRead: () => true,
+        sourceMetadata: async (record: any) => record.metadata,
+      };
+      const calls: any[] = [];
+      const service = { resolveRelatedMetadata: async (...args: any[]) => {
+        calls.push(args);
+        return resolveRelatedMetadata(...args, dependencies);
+      } } as unknown as RecordsService;
+      const form = await new ConstructFormConfigVisitor(nothingLogger).start({ data: input });
+      form.relatedRecords = relatedFormDescriptors(compileRelatedDisplayContract(input, {}, relations));
+      await new RelatedObjectDataInlineFormConfigVisitor(nothingLogger, service).resolve(
+        form, metadata, { ...context as any, record: root }
+      );
+      const backend = await resolveRelatedMetadata(root, { ...context as any, audience: 'browser' },
+        { relations: [{ relationId: 'activities', required: false }] }, dependencies);
+      expect(form.relatedRecords!.sources[0].initialResult).to.deep.equal(backend.activities);
+      expect(calls[0][0].redboxOid).to.equal('root');
+      expect(calls[0][1].audience).to.equal('browser');
+      expect(form.relatedRecords!.sources[0].referenceFingerprint).to.equal(JSON.stringify({
+        values: Array.isArray(references) ? ['a', 'b'] : ['a'], invalidIndices: [],
+      }));
+      const config = (form.componentDefinitions[0] as RelatedObjectDataFormComponentDefinitionOutline).component.config!;
+      expect(config.accessDeniedOids).to.deep.equal([]);
+      expect(config.failedOids).to.deep.equal([]);
+      expect(JSON.stringify(metadata)).to.equal(before);
+      expect(JSON.stringify(form.relatedRecords)).not.to.contain('private');
+    });
+  }
+
+  it('rejects conflicting legacy configuration even when invoked directly', async () => {
+    const input: FormConfigFrame = { name: 'test', componentDefinitions: [{ name: 'source', component: {
+      class: 'RelatedObjectDataComponent', config: { relationId: 'activities', dataPath: 'metadata.old' },
+    } }] };
+    const form = await new ConstructFormConfigVisitor(nothingLogger).start({ data: input });
+    let error: unknown;
+    try {
+      await new RelatedObjectDataInlineFormConfigVisitor(nothingLogger, {} as RecordsService).resolve(
+        form, {}, { brand: {}, user: {} } as never
+      );
+    } catch (caught) { error = caught; }
+    expect(String(error)).to.contain('conflicts');
+  });
+});

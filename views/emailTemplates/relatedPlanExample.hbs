@@ -1,0 +1,10 @@
+<h1>{{record.metadata.title}}</h1>
+<p>Local notes: {{record.metadata.notes}}</p>
+<p>Primary activity status: {{record.relatedMetadata.primaryActivity.status}}</p>
+{{#each record.relatedMetadata.primaryActivity.records}}
+<p>{{metadata.title}}: {{metadata.startDate}} – {{metadata.endDate}}</p>
+{{/each}}
+<p>Additional activities status: {{record.relatedMetadata.activities.status}}</p>
+{{#each record.relatedMetadata.activities.records}}
+<p>{{metadata.title}}: {{metadata.startDate}} – {{metadata.endDate}}</p>
+{{/each}}

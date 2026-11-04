@@ -23,6 +23,9 @@ import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
 import {
+  assertRelatedDisplayBatchAllowed,
+  normalizeRelatedReferences,
+  withoutRuntimeRecordProperties,
   Services as services,
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
@@ -63,6 +66,8 @@ import {
   type StorageServiceCapabilities,
 } from '@researchdatabox/redbox-core';
 import type {
+  RecordRelationQuery,
+  RecordRelationQueryResult,
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
   RecordSchemaArtifactQuery,
@@ -387,6 +392,7 @@ export namespace Services {
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
       'getRelatedRecords',
+      'findRecordsByRelation',
       'delete',
       'updateNotificationLog',
       'getRecords',
@@ -1587,7 +1593,7 @@ export namespace Services {
       if (precondition && (precondition.requireRevision || precondition.expectedRevision !== undefined)) {
         return this.notApplied(response, 'lifecycle-conflict', 'Record creation does not accept an existing revision');
       }
-      const serverRecord = _.cloneDeep(record);
+      const serverRecord = withoutRuntimeRecordProperties(record);
       // The storage boundary owns creation revision regardless of anything a
       // request candidate supplied.
       serverRecord.revision = INITIAL_RECORD_REVISION;
@@ -1690,7 +1696,7 @@ export namespace Services {
         );
       }
 
-      const candidate = _.cloneDeep(record);
+      const candidate = withoutRuntimeRecordProperties(record);
       // Identity, creation, and revision are owned by storage, never by the
       // candidate; lastSaveDate is reissued with the committing write.
       for (const field of [
@@ -2445,10 +2451,12 @@ export namespace Services {
       data: JsonMap[],
       harvestIdFldName: string
     ): Promise<StorageMutationResponse> {
+      await assertRelatedDisplayBatchAllowed(type, data);
       const response = new StorageMutationResponse();
       let notAppliedCount = 0;
       let unknownCount = 0;
-      for (const [rowIndex, dataItem] of data.entries()) {
+      for (const [rowIndex, inputItem] of data.entries()) {
+        const dataItem = withoutRuntimeRecordProperties(inputItem);
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
@@ -2495,6 +2503,112 @@ export namespace Services {
         'capability-unavailable',
         'Permission rewrites require the authoritative RecordsService mutation pipeline'
       );
+    }
+
+    public async findRecordsByRelation(query: RecordRelationQuery): Promise<RecordRelationQueryResult> {
+      const { context, recordType, foreignField, values, limit } = query ?? ({} as RecordRelationQuery);
+      if (
+        !context?.brand?.id ||
+        !context.user?.username ||
+        !Array.isArray(context.user.roles) ||
+        !recordType ||
+        !foreignField ||
+        !Array.isArray(values) ||
+        values.some(value => typeof value !== 'string' || !value.trim()) ||
+        !Number.isSafeInteger(limit) ||
+        limit < 1 ||
+        limit > 1000
+      ) {
+        throw new Error('Invalid authorized relation query.');
+      }
+      if (values.length === 0) return { records: [], complete: true, overflow: false };
+      const collection = this.getNativeRecordCollection();
+      if (!collection) throw new Error('Native relation reads are unavailable.');
+      const matching: JsonMap = {};
+      const tokens = _.toPath(foreignField);
+      if (tokens.some(token => token.includes('.') || token.startsWith('$') || /^(0|[1-9]\d*)$/.test(token))) {
+        // Mongo dotted selectors cannot represent literal keys and make numeric
+        // tokens ambiguous on arrays. Walk Lodash tokens,
+        // retaining any-element matching except where an explicit index selects
+        // one element. Numeric object keys still use exact field lookup.
+        const matches = (input: unknown, remaining: string[]): unknown => {
+          if (remaining.length && /^(0|[1-9]\d*)$/.test(remaining[0])) {
+            const index = Number(remaining[0]);
+            return matches(
+              {
+                $cond: [
+                  { $isArray: input },
+                  // BSON arrays cannot reach indexes beyond Mongo's signed int range.
+                  index <= 2147483647 ? { $arrayElemAt: [input, index] } : null,
+                  {
+                    $cond: [
+                      { $eq: [{ $type: input }, 'object'] },
+                      { $getField: { field: { $literal: remaining[0] }, input } },
+                      null,
+                    ],
+                  },
+                ],
+              },
+              remaining.slice(1)
+            );
+          }
+          return {
+            $anyElementTrue: {
+              $map: {
+                input: { $cond: [{ $isArray: input }, input, [input]] },
+                as: 'item',
+                in: remaining.length
+                  ? {
+                      $cond: [
+                        { $eq: [{ $type: '$$item' }, 'object'] },
+                        matches(
+                          { $getField: { field: { $literal: remaining[0] }, input: '$$item' } },
+                          remaining.slice(1)
+                        ),
+                        false,
+                      ],
+                    }
+                  : { $in: ['$$item', { $literal: [...values] }] },
+              },
+            },
+          };
+        };
+        matching.$expr = matches('$$ROOT', tokens);
+      } else {
+        matching[tokens.join('.')] = { $in: [...values] };
+      }
+      const criteria = {
+        $and: [
+          matching,
+          { 'metaMetadata.type': recordType, 'metaMetadata.brandId': context.brand.id },
+          this.buildRecordReadPermissions(context.user.username, context.user.roles, context.brand),
+        ],
+      };
+      const found = await collection
+        .find(criteria as Filter<MongoRecordDocument>)
+        .sort({ redboxOid: 1 })
+        .limit(limit + 1)
+        .maxTimeMS(10_000)
+        .toArray();
+      const overflow = found.length > limit;
+      const records = found.slice(0, limit);
+      if (foreignField === 'redboxOid') {
+        const order = new Map(values.map((value, index) => [value, index]));
+        records.sort((left, right) => order.get(left.redboxOid) - order.get(right.redboxOid));
+      }
+      return { records: records as unknown as RecordModel[], complete: !overflow, overflow };
+    }
+
+    private buildRecordReadPermissions(username: string, roles: RoleModel[], brand: BrandingModel) {
+      const roleNames = this.getRoleNames(roles, brand);
+      return {
+        $or: [
+          { 'authorization.view': username },
+          { 'authorization.edit': username },
+          { 'authorization.editRoles': { $in: roleNames } },
+          { 'authorization.viewRoles': { $in: roleNames } },
+        ],
+      };
     }
 
     public async getRelatedRecords(
@@ -2662,6 +2776,11 @@ export namespace Services {
         relationship.localField === 'redboxOid' ? record.redboxOid : undefined
       );
       const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+      if (relationship.oidProperty) {
+        const references = normalizeRelatedReferences(rawValue, relationship.oidProperty);
+        if (references.invalidIndices.length) throw new Error('Invalid relationship object reference.');
+        return references.values;
+      }
       return values.map(value => String(value ?? '').trim()).filter(value => value !== '');
     }
 

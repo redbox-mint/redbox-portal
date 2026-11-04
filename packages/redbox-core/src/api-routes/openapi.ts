@@ -26,6 +26,7 @@ export interface OpenApiDocument {
   components: {
     securitySchemes: {
       bearerAuth: { type: 'http'; scheme: 'bearer'; bearerFormat?: string };
+      sessionAuth: { type: 'apiKey'; in: 'cookie'; name: string };
     };
     schemas?: Record<string, unknown>;
   };
@@ -384,6 +385,7 @@ export function buildOpenApiDocument(
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        sessionAuth: { type: 'apiKey', in: 'cookie', name: 'sails.sid' },
       },
       ...(componentSchemas ? { schemas: componentSchemas } : {}),
     },

@@ -61,7 +61,7 @@ export namespace Controllers {
       this.updateChronicle(req, {reportName: name, reportPagingStart: start, reportPagingRows: rows});
 
       // TODO: Passing the full req object to the service layer is not ideal. We should refactor this to only pass the necessary parameters to avoid tight coupling between the controller and service layers.
-      const response = from(ReportsService.getResults(brand, name, req, start, rows));
+      const response = from(ReportsService.getResults(brand, name, req, start, rows, req.user));
       return response.subscribe((responseObject: unknown) => {
         if (responseObject) {
           const response = responseObject as globalThis.Record<string, unknown>;
@@ -103,7 +103,7 @@ export namespace Controllers {
 
         this.updateChronicle(req, {reportName: name});
 
-        const results = await ReportsService.getCSVResult(brand, name, req);
+        const results = await ReportsService.getCSVResult(brand, name, req, undefined, undefined, req.user);
         const fileName = name + '.csv';
         this.updateChronicle(req, {reportDownloadFilename: fileName});
 

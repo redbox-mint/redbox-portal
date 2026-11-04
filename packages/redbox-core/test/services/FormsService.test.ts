@@ -90,6 +90,7 @@ describe('FormsService', function () {
     (global as any).Form = mockForm;
     (global as any).WorkflowStep = mockWorkflowStep;
     (global as any).RecordType = mockRecordType;
+    (global as any).WorkflowStepsService = { getFirst: sinon.stub().returns(of({ name: 'draft' })) };
 
     const { Services } = require('../../src/services/FormsService');
     FormsService = new Services.Forms();
@@ -654,6 +655,377 @@ describe('FormsService', function () {
   });
 
   describe('buildClientFormConfig', async function () {
+    it('suppresses inline source reads only for explicit projection builds', async function () {
+      const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
+      const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
+      try {
+        const item = { name: 'projection', componentDefinitions: [
+          { name: 'title', component: { class: 'SimpleInputComponent' } },
+        ] };
+        const access = { user: { roles: [] }, brand: { id: 'brand-1' } };
+        await FormsService.buildClientFormConfig(item, 'edit', [], {}, {}, 'default', {}, access, false, true);
+        expect(resolve.callCount).to.equal(0);
+        await FormsService.buildClientFormConfig(item, 'edit', [], {}, {}, 'default', {}, access);
+        expect(resolve.callCount).to.equal(1);
+      } finally { resolve.restore(); }
+    });
+
+    it('delivers canonical descriptors before role pruning, including hidden source and target', async function () {
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activities',
+        recordType: 'activity', localField: 'metadata.activities', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title'] } }] })) };
+      const item: FormConfigFrame = { name: 'plan', type: 'plan', componentDefinitions: [
+        { name: 'notes', component: { class: 'SimpleInputComponent' } },
+        { name: 'title', relatedDisplay: { relationId: 'activities' }, component: { class: 'SimpleInputComponent' },
+          constraints: { authorization: { allowRoles: ['editor'] } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities', required: true } },
+          constraints: { authorization: { allowRoles: ['editor'] } } },
+      ] };
+      const compile = sinon.spy(require('../../src/related-records/display-descriptors'), 'compileRelatedDisplayContract');
+      let result: any;
+      try {
+        result = await FormsService.buildClientFormConfig(item, 'edit', ['reader'], {}, {}, 'default', {},
+          { user: { roles: [] }, brand: { id: 'brand-1' } });
+        expect(compile.callCount).to.equal(1);
+      } finally { compile.restore(); }
+      expect(result.componentDefinitions.map((field: any) => field.name)).to.deep.equal(['notes']);
+      expect(result.relatedRecords.displayTargets).to.deep.equal([{ metadataPointer: '/title', relationId: 'activities' }]);
+      expect(result.relatedRecords.sources[0]).to.deep.equal({ componentPointer: '/source', relationId: 'activities', required: true,
+        referenceTokens: ['activities'] });
+      expect(item).not.to.have.property('relatedRecords');
+    });
+
+    it('prunes denied group and repeatable snapshots from related view forms', async function () {
+      const input = (name: string, denied = false): any => ({ name,
+        component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+        ...(denied ? { constraints: { authorization: { allowRoles: ['Admin'] } } } : {}),
+      });
+      const group = (name: string): any => ({ name, model: { class: 'GroupModel' }, component: {
+        class: 'GroupComponent', config: { componentDefinitions: [input('reference'), input('secret', true),
+          { ...input('editOnly'), constraints: { allowModes: ['edit'] } }] },
+      } });
+      const item: any = { name: 'secure-view', type: 'plan', componentDefinitions: [group('group'),
+        { name: 'rows', relatedDisplay: { relationId: 'activity' }, model: { class: 'RepeatableModel' }, component: { class: 'RepeatableComponent',
+          config: { allowZeroRows: true, elementTemplate: group('') } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+      ] };
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activity',
+        recordType: 'activity', localField: 'metadata.group.reference', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title'] } }] })) };
+      const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
+      const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
+      try {
+        const result = await FormsService.buildClientFormConfig(item, 'view', ['Librarians'], {
+          group: { reference: 'A', secret: 'SECRET', editOnly: 'EDIT_ONLY' },
+          rows: [{ reference: 'B', secret: 'ROW_SECRET', editOnly: 'ROW_EDIT_ONLY' }],
+        }, {}, 'default', {}, { user: { username: 'librarian' }, brand: { id: 'brand-1' } });
+        const serialized = JSON.stringify(result);
+        // Sweep all client carriers, not only the surviving child component list.
+        for (const removed of ['secret', 'SECRET', 'editOnly', 'EDIT_ONLY', 'ROW_SECRET', 'ROW_EDIT_ONLY']) {
+          expect(serialized, removed).not.to.contain(removed);
+        }
+        const container: any = result.componentDefinitions.find(field => field.name === 'group');
+        expect(container.model.config.value).to.deep.equal({ reference: 'A' });
+        const rows: any = result.componentDefinitions.find(field => field.name === 'rows');
+        expect(rows.model.config.value).to.deep.equal([{ reference: 'B' }]);
+      } finally { resolve.restore(); }
+    });
+
+    it('filters nested related view carriers using exact literal model keys for both roles', async function () {
+      const input = (name: string, denied = false): any => ({ name,
+        component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+        ...(denied ? { constraints: { authorization: { allowRoles: ['Admin'] } } } : {}),
+      });
+      const snapshot = { reference: 'A', secret: 'DENIED_VALUE', secretPublic: 'PUBLIC',
+        'literal/key~name': 'LITERAL', 'literal/key~nameDenied': 'DENIED_LITERAL' };
+      const group = (name: string): any => ({ name, model: { class: 'GroupModel', config: {
+        ...(name ? { defaultValue: snapshot } : { newEntryValue: snapshot }),
+      } }, component: { class: 'GroupComponent', config: { componentDefinitions: [
+        input('reference'), input('secret', true), input('secretPublic'),
+        input('literal/key~name'), input('literal/key~nameDenied', true),
+      ] } } });
+      const item: any = { name: 'nested-secure-view', type: 'plan', componentDefinitions: [
+        { name: 'outer', model: { class: 'GroupModel' }, component: { class: 'GroupComponent',
+          config: { componentDefinitions: [group('nested'),
+            { name: 'rows', relatedDisplay: { relationId: 'activity' }, model: { class: 'RepeatableModel',
+              config: { defaultValue: [snapshot] } }, component: { class: 'RepeatableComponent',
+              config: { allowZeroRows: true, elementTemplate: group('') } } },
+          ] } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+      ] };
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activity',
+        recordType: 'activity', localField: 'metadata.outer.nested.reference', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title'] } }] })) };
+      const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
+      const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
+      try {
+        for (const role of ['Librarians', 'Admin']) {
+          const result = await FormsService.buildClientFormConfig(item, 'view', [role], {
+            outer: { nested: snapshot, rows: [snapshot] },
+          }, {}, 'default', {}, { user: { username: role }, brand: { id: 'brand-1' } }, true);
+          const serialized = JSON.stringify(result);
+          if (role === 'Librarians') {
+            for (const denied of ['DENIED_VALUE', 'DENIED_LITERAL', '"secret"', 'literal/key~nameDenied']) {
+              expect(serialized, denied).not.to.contain(denied);
+            }
+          } else expect(serialized).to.contain('DENIED_VALUE');
+          const outer: any = result.componentDefinitions.find(field => field.name === 'outer');
+          const expected: any = role === 'Admin' ? snapshot : {
+            reference: 'A', secretPublic: 'PUBLIC', 'literal/key~name': 'LITERAL',
+          };
+          expect(outer.model.config.value).to.deep.equal({ nested: { reference: 'A' }, rows: [expected] });
+          const nested = outer.component.config.componentDefinitions.find((field: any) => field.name === 'nested');
+          for (const carrier of ['value', 'defaultValue']) {
+            expect(nested.model.config[carrier], carrier).to.deep.equal({ reference: 'A' });
+          }
+          const rows = outer.component.config.componentDefinitions.find((field: any) => field.name === 'rows');
+          expect(rows.model.config.defaultValue).to.deep.equal([expected]);
+          expect(rows.component.config.elementTemplate.model.config.newEntryValue).to.deep.equal(expected);
+        }
+      } finally { resolve.restore(); }
+    });
+
+    it('retains live related references and targets in view mode for both dev-plan roles', async function () {
+      const plan = require('../../../redbox-hook-dev/src/form-config/related-plan-1.0-draft').default;
+      const snapshot = JSON.stringify(plan);
+      const relations = require('../../../redbox-hook-dev/src/config/recordtype').recordtype['related-plan'].relatedTo;
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: relations })) };
+      const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
+      const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
+      const savedForms = (global as any).FormsService;
+      (global as any).FormsService = FormsService;
+      try {
+        for (const role of ['Admin', 'Librarians']) {
+          const metadata = { title: 'Local title', primaryActivity: 'A',
+            activities: [{ oid: 'A', secret: 'DENIED_ROW_A' }, { oid: 'B', secret: 'DENIED_ROW_B' }] };
+          const access = { user: { username: role === 'Admin' ? 'related-admin' : 'related-librarian' }, brand: { id: 'brand-1' } };
+          const built = await FormsService.buildClientFormConfig(plan, 'view', [role], metadata, {}, 'default', {}, access);
+          const serialized = JSON.stringify(built);
+          expect(serialized).not.to.contain('DENIED_ROW');
+          expect(serialized).not.to.contain('\"secret\"');
+          const result = JSON.parse(serialized);
+          const { Services } = require('../../src/services/FormRecordConsistencyService');
+          const consistency = new Services.FormRecordConsistency();
+          const compiled = await consistency.extractRawTemplates(plan, 'view', [role], metadata, {}, access);
+          const expected = await new TemplateFormConfigVisitor(mockSails.log).start({ form: built });
+          expect(compiled.map((entry: any) => entry.key)).to.deep.equal(expected.map((entry: any) => entry.key));
+          const withBehaviour = { ...plan, behaviours: [{ name: 'view-ready',
+            conditionKind: 'jsonata_query', condition: 'true', actions: [] }] };
+          const behaviourTemplates = await consistency.extractRawTemplates(withBehaviour, 'view', [role], metadata, {}, access);
+          expect(behaviourTemplates).to.deep.include({ key: ['behaviours', '0', 'condition'], kind: 'jsonata', value: 'true' });
+          const field = (name: string): any => result.componentDefinitions.find(item => item.name === name);
+          expect(field('title').component.class).to.equal('ContentComponent');
+          expect(field('title').component.config.relatedViewPreserved).not.to.equal(true);
+          expect(field('primaryActivity').model, 'view reference remains model-backed').to.exist;
+          expect(field('primaryActivity').model.config.value).to.equal('A');
+          expect(field('activities').model.config.value).to.deep.equal([{ oid: 'A' }, { oid: 'B' }]);
+          expect(field('activities').component.class).to.equal('RepeatableComponent');
+          expect(field('activityTitle').component.class).to.equal(role === 'Admin' ? 'SimpleInputComponent' : 'TextAreaComponent');
+          for (const name of ['primaryActivity', 'activities', 'activityTitle', 'activityDates', 'activitySummaries']) {
+            expect(field(name).model, name).to.exist;
+            expect(field(name).component.config.disabled, name).to.equal(true);
+            expect(field(name).component.config.relatedViewPreserved, name).to.equal(true);
+          }
+          for (const name of ['activityTitle', 'activityDates', 'activitySummaries']) {
+            expect(field(name).expressions, name).to.have.length(1);
+            expect(field(name).expressions[0].config.target).to.equal('model.value');
+          }
+          expect(field('activityDates').component.class).to.equal('GroupComponent');
+          expect(field('activityDates').component.config.componentDefinitions.map((child: any) => [child.name, child.model.class]))
+            .to.deep.equal([['startDate', 'SimpleInputModel'], ['endDate', 'SimpleInputModel']]);
+          const dateIndex = result.componentDefinitions.findIndex((child: any) => child.name === 'activityDates');
+          expect(compiled.some((entry: any) => entry.key.map(String).join('/') ===
+            `componentDefinitions/${dateIndex}/expressions/0/config/template`)).to.equal(true);
+          expect(field('activities').component.config.elementTemplate.component.config.componentDefinitions[0].model.class).to.equal('SimpleInputModel');
+          expect(field('primarySource').component.class).to.equal('RelatedObjectDataComponent');
+        }
+        expect(JSON.stringify(plan)).to.equal(snapshot);
+      } finally { resolve.restore(); (global as any).FormsService = savedForms; }
+    });
+
+    it('builds distinct dev-plan role presentations with identical persistence descriptors', async function () {
+      const plan = require('../../../redbox-hook-dev/src/form-config/related-plan-1.0-draft').default;
+      const relations = require('../../../redbox-hook-dev/src/config/recordtype').recordtype['related-plan'].relatedTo;
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: relations })) };
+      const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
+      // Resolve tests cover source access separately; this test exercises real construction and role pruning.
+      const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
+      try {
+        const build = (roles: string[]) => FormsService.buildClientFormConfig(
+          plan, 'edit', roles, {}, {}, 'default', {},
+          { user: { username: roles.join('-'), roles: roles.map(name => ({ name, branding: 'brand-1' })) }, brand: { id: 'brand-1' } }
+        );
+        const admin = await build(['Admin']);
+        const librarian = await build(['Librarians']);
+        const combined = await build(['Admin', 'Librarians']);
+        const title = (form: any) => form.componentDefinitions.filter((field: any) => field.name === 'activityTitle');
+        expect(title(admin)).to.have.length(1);
+        expect(title(librarian)).to.have.length(1);
+        expect(title(combined)).to.have.length(1);
+        expect(title(admin)[0].component.class).to.equal('SimpleInputComponent');
+        expect(title(librarian)[0].component.class).to.equal('TextAreaComponent');
+        expect(title(librarian)[0].component.config.readonly).to.equal(true);
+        expect(title(librarian)[0].layout.config.label).to.equal('Primary activity summary (read only)');
+        expect(title(combined)[0].component.class).to.equal('SimpleInputComponent');
+        expect(title(admin)[0].relatedDisplay).to.deep.equal({ relationId: 'primaryActivity' });
+        expect(title(librarian)[0].relatedDisplay).to.deep.equal(title(admin)[0].relatedDisplay);
+        expect(librarian.relatedRecords.displayTargets).to.deep.equal(admin.relatedRecords.displayTargets);
+        expect(combined.relatedRecords.displayTargets).to.deep.equal(admin.relatedRecords.displayTargets);
+        expect(admin.relatedRecords.displayTargets).to.deep.equal([
+          { metadataPointer: '/activityTitle', relationId: 'primaryActivity' },
+          { metadataPointer: '/activityDates', relationId: 'primaryActivity' },
+          { metadataPointer: '/activitySummaries', relationId: 'activities' },
+        ]);
+        for (const form of [admin, librarian, combined]) {
+          expect(form.componentDefinitions.map((field: any) => field.name)).to.include.members(['primarySource', 'activitiesSource']);
+        }
+      } finally { resolve.restore(); }
+    });
+
+    describe('production related-record authorization', function () {
+      const item: FormConfigFrame = { name: 'plan', type: 'plan', componentDefinitions: [
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } } },
+      ] };
+      let records: any;
+      let root: any;
+      let getMeta: sinon.SinonStub;
+      let savedRoles: any;
+      let savedForms: any;
+      beforeEach(function () {
+        const { Services } = require('../../src/services/RecordsService');
+        const type = { name: 'plan', relatedTo: [{ id: 'activities', recordType: 'activity',
+          localField: 'metadata.activities', foreignField: 'redboxOid', cardinality: 'many',
+          resolution: { metadataFields: ['/title'] } }] };
+        (global as any).RecordTypesService = { get: sinon.stub().returns(of(type)) };
+        (global as any).WorkflowStepsService = { getFirst: sinon.stub().returns(of({ name: 'draft',
+          config: { form: 'plan', authorization: { editRoles: ['creator'] } } })) };
+        savedRoles = (global as any).RolesService;
+        (global as any).RolesService = { getRole: (_brand: unknown, name: string) => ({ id: name, name }) };
+        mockSails.config.record = {};
+        root = { redboxOid: 'root', metaMetadata: { type: 'plan', brandId: 'brand-1', form: 'plan' },
+          workflow: { stage: 'review' }, metadata: { activities: 'activity' },
+          authorization: { view: ['reader'] } };
+        const source = { redboxOid: 'activity', metaMetadata: { type: 'activity', brandId: 'brand-1' },
+          metadata: { title: 'Current', secret: 'private' }, authorization: { view: ['reader'] } };
+        records = new Services.Records();
+        getMeta = sinon.stub().callsFake(async (oid: string) => oid === 'root' ? root : source);
+        records.storageService = { getMeta };
+        mockSails.services.recordsservice = records;
+        savedForms = (global as any).FormsService;
+        (global as any).FormsService = FormsService;
+        sinon.stub(FormsService, 'getFormByName').returns(of({ configuration: item }));
+      });
+      afterEach(function () {
+        (global as any).RolesService = savedRoles;
+        (global as any).FormsService = savedForms;
+      });
+      const user = (authorised: boolean) => ({ username: 'reader',
+        roles: authorised ? [{ id: 'creator', name: 'creator' }] : [] });
+      for (const selected of [false, true]) {
+        for (const authorised of [false, true]) {
+          it(`${authorised ? 'allows' : 'rejects'} a new form with ${selected ? 'selected' : 'empty'} references for ${authorised ? 'a creator' : 'an unauthorized user'}`, async function () {
+            const metadata = { activities: selected ? 'activity' : [] };
+            let result: any;
+            let error: unknown;
+            try {
+              result = await FormsService.buildClientFormConfig(item, 'edit', [], metadata, {}, 'default', {},
+                { user: user(authorised), brand: { id: 'brand-1' } });
+            } catch (caught) { error = caught; }
+            if (authorised) {
+              expect(error).to.equal(undefined);
+              expect(result.relatedRecords.sources[0].initialResult.status).to.equal(selected ? 'resolved' : 'empty');
+              expect(result.relatedRecords.sources[0].initialResult.records.map((record: any) => record.metadata))
+                .to.deep.equal(selected ? [{ title: 'Current' }] : []);
+            } else {
+              expect(String(error)).to.contain('Record unavailable');
+              expect(getMeta.callCount).to.equal(0);
+            }
+            expect((global as any).WorkflowStepsService.getFirst.called).to.equal(true);
+          });
+        }
+      }
+      for (const mode of ['view', 'edit']) {
+        it(`preserves stored root identity in the effective-form ${mode} path for a reader without create permission`, async function () {
+          const { getEffectiveRelatedClientForm } = require('../../src/related-records/effective-form');
+          const req = { user: user(false), session: {}, headers: {}, param: () => undefined };
+          const result = await getEffectiveRelatedClientForm(req, { id: 'brand-1' }, root, 'plan', mode === 'edit', mode);
+          expect(result.relatedRecords.sources[0].initialResult.status).to.equal('resolved');
+          expect(getMeta.calledWith('root')).to.equal(true);
+          expect((global as any).WorkflowStepsService.getFirst.called).to.equal(false);
+          root.authorization.view = [];
+          let error: unknown;
+          try { await getEffectiveRelatedClientForm(req, { id: 'brand-1' }, root, 'plan', mode === 'edit', mode); }
+          catch (caught) { error = caught; }
+          expect(String(error)).to.contain('Record unavailable');
+        });
+      }
+      it('preserves the authoritative root through update contract construction', async function () {
+        const contractForm = { ...item, componentDefinitions: [
+          ...item.componentDefinitions,
+          { name: 'notes', component: { class: 'SimpleInputComponent' } },
+        ] };
+        const context = { publicContext: { kind: 'update', brand: 'brand-1' }, resolution: {
+          sourceForm: contractForm, formMode: 'edit', actor: { roles: [] }, reusableFormDefinitions: {},
+          contextVariables: {}, existingRecord: root,
+        } };
+        const createAccess = sinon.spy(records, 'hasCreateAccess');
+        const result = await FormsService.buildContractFormConfig(context,
+          { user: user(false), brand: { id: 'brand-1' } });
+        expect(result.ok).to.equal(true);
+        expect(getMeta.calledWith('root')).to.equal(true);
+        expect(createAccess.called).to.equal(false);
+      });
+
+      it('keeps source projection builds free of recursive resolution and create authorization', async function () {
+        const { getEffectiveRelatedClientForm } = require('../../src/related-records/effective-form');
+        const req = { user: user(false), session: {}, headers: {}, param: () => undefined };
+        const result = await getEffectiveRelatedClientForm(req, { id: 'brand-1' }, root, 'plan', false, 'view', true);
+        expect(result.relatedRecords.sources[0]).not.to.have.property('initialResult');
+        expect(getMeta.callCount).to.equal(0);
+        expect((global as any).WorkflowStepsService.getFirst.called).to.equal(false);
+      });
+    });
+
+    it('delivers safe initial results for a visually hidden source and skips them for projection builds', async function () {
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activities',
+        recordType: 'activity', localField: 'metadata.activities', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title'] } }] })) };
+      const entry = { status: 'resolved', records: [{ redboxOid: 'activity',
+        metaMetadata: { type: 'activity', brandId: 'brand-1' }, metadata: { title: 'Current' } }], issues: [] };
+      const resolve = sinon.stub().resolves({ activities: entry });
+      mockSails.services.recordsservice = { resolveRelatedMetadata: resolve };
+      const item: FormConfigFrame = { name: 'plan', type: 'plan', componentDefinitions: [
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } },
+          layout: { class: 'DefaultLayout', config: { visible: false } } },
+      ] };
+      const metadata = { activities: 'activity', answer: 'local' };
+      const access = { user: { username: 'reader', roles: [] }, brand: { id: 'brand-1' },
+        record: { redboxOid: 'root', metaMetadata: { type: 'plan', brandId: 'brand-1' }, metadata } };
+      const result = await FormsService.buildClientFormConfig(item, 'edit', [], metadata, {}, 'default', {}, access);
+      expect(resolve.callCount).to.equal(1);
+      expect(resolve.firstCall.args[0].redboxOid).to.equal('root');
+      expect(resolve.firstCall.args[1].audience).to.equal('browser');
+      expect(result.relatedRecords.sources[0].initialResult).to.deep.equal(entry);
+      expect(result.relatedRecords.sources[0].referenceFingerprint).to.equal(JSON.stringify({ values: ['activity'], invalidIndices: [] }));
+      expect(metadata).to.deep.equal({ activities: 'activity', answer: 'local' });
+      expect(item).not.to.have.property('relatedRecords');
+      const projection = await FormsService.buildClientFormConfig(item, 'edit', [], metadata, {}, 'default', {}, access, false, true);
+      expect(resolve.callCount).to.equal(1);
+      expect(projection.relatedRecords.sources[0]).not.to.have.property('initialResult');
+      const unsaved = await FormsService.buildClientFormConfig(item, 'edit', [], null, {}, 'default', {},
+        { user: access.user, brand: access.brand });
+      expect(resolve.callCount).to.equal(2);
+      expect(resolve.lastCall.args[0].metadata).to.deep.equal({});
+      expect(unsaved.relatedRecords.sources[0].initialResult).to.deep.equal(entry);
+    });
+
+    it('leaves the legacy bootstrap payload without a descriptor carrier', async function () {
+      const result = await FormsService.buildClientFormConfig({ name: 'legacy', componentDefinitions: [
+        { name: 'notes', component: { class: 'SimpleInputComponent' } },
+      ] }, 'edit');
+      expect(result).not.to.have.property('relatedRecords');
+    });
+
     it('should build the client form config for a basic form', async function () {
       const item: FormConfigFrame = formConfigExample1;
       const formMode: FormModesConfig = 'edit';
@@ -890,7 +1262,10 @@ describe('FormsService', function () {
       expect(delegatedReusableDefinitions).to.deep.equal(context.resolution.reusableFormDefinitions);
       expect(branding).to.equal('brand-1');
       expect(contextVariables).to.deep.equal({ '@user_name': 'Alice' });
-      expect(delegatedAccessContext).to.equal(recordAccessContext);
+      expect(delegatedAccessContext).to.deep.equal({
+        ...recordAccessContext, record: context.resolution.existingRecord,
+      });
+      expect(delegatedAccessContext.record).to.equal(context.resolution.existingRecord);
       expect(buildClientFormConfig.firstCall.args[8]).to.equal(true);
     });
 

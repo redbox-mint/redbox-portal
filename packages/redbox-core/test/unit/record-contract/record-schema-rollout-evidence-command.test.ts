@@ -29,10 +29,10 @@ describe('record-schema shadow-rollout evidence command', function () {
       unknownProperties: 'allow',
     });
     expect(report.summary).to.deep.include({
-      formsChecked: 8,
-      schemasChecked: 16,
+      formsChecked: 10,
+      schemasChecked: 20,
       unsupportedComponents: 0,
-      unknownPropertyProbesAccepted: 16,
+      unknownPropertyProbesAccepted: 20,
     });
     expect(report.limitHeadroom.cacheEntries.remaining).to.be.greaterThan(0);
     expect(report.limitHeadroom.maxDepth.remaining).to.be.greaterThan(0);

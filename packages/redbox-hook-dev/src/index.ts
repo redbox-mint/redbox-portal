@@ -13,6 +13,7 @@ import { routes } from './config/routes';
 import { views } from './config/views';
 import { jsonld } from './config/jsonld';
 import { FormConfigExports } from './form-config';
+import { namedQuery } from './config/related-record-examples';
 
 export {};
 
@@ -32,6 +33,7 @@ const hook = defineRedboxHook({
   registerRedboxConfig(): HookRegistrationMap {
     return {
       recordtype,
+      namedQuery,
       workflow,
       dashboardtype,
       dashboardview,

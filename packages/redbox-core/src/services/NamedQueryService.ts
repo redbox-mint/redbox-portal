@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
+import { normalizeRelatedReferences } from '../related-records/references';
 import { buildNamedQueryUsage, NamedQueryInUseError, NamedQueryUsage } from './named-query/usage';
 import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery.config';
 import * as fs from 'node:fs/promises';
@@ -118,6 +119,20 @@ const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<st
   throw Error(`${queryParamKey} must be a valid JSON object`);
 };
 
+const containsOperatorKey = (value: unknown): boolean =>
+  Array.isArray(value)
+    ? value.some(containsOperatorKey)
+    : _.isPlainObject(value) &&
+      Object.entries(value as Record<string, unknown>).some(([key, item]) => key.startsWith('$') || containsOperatorKey(item));
+
+/**
+ * A request-supplied value for a non-object parameter is placed directly at a
+ * Mongo path, so a plain object would be interpreted as an operator document
+ * (e.g. `{ $ne: true }`). Only parameters declared as `object` may carry objects.
+ */
+const isUnsafeParameterValue = (value: unknown): boolean =>
+  _.isPlainObject(value) || (Array.isArray(value) && value.some(containsOperatorKey));
+
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
 export namespace Services {
@@ -159,10 +174,9 @@ export namespace Services {
         const ioError = error as NodeJS.ErrnoException;
         if (ioError.code === 'ENOENT') {
           sails.log.verbose(`Named query bootstrap data path not found: ${bootstrapPath}`);
-          return;
+        } else {
+          sails.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`, error);
         }
-        sails.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`, error);
-        return;
       }
 
       for (const fileName of fileNames) {
@@ -189,6 +203,23 @@ export namespace Services {
           sails.log.verbose(`Bootstrapped named query: ${name}`);
         } catch (error) {
           sails.log.error(`Failed to bootstrap named query from file: ${fileName}`, error);
+        }
+      }
+
+      // File seeds run first. Config seeds never overwrite file or admin entries.
+      for (const [name, definition] of Object.entries(sails.config.namedQuery?.queries ?? {})) {
+        try {
+          if (!name || !definition || typeof definition.collectionName !== 'string' || !definition.collectionName.length) {
+            sails.log.error(`Skipping named query config seed with missing name or collectionName: ${name}`);
+            continue;
+          }
+          if (await NamedQuery.findOne({ key: `${defBrand.id}_${name}` })) {
+            sails.log.verbose(`Skipping existing named query bootstrap data: ${name}`);
+            continue;
+          }
+          await this.create(defBrand, name, definition);
+        } catch (error) {
+          sails.log.error(`Failed to bootstrap named query from config: ${name}`, error);
         }
       }
     }
@@ -552,6 +583,96 @@ export namespace Services {
       return Array.isArray(collections) ? collections.filter((c): c is string => typeof c === 'string') : [];
     }
 
+    /** Declared filters are trusted configuration; parameters can only replace literal leaves. */
+    private async declaredRelationCriteria(
+      filters: RelatedRecordFilter[], collectionName: string, queryParams: Record<string, QueryParameterDefinition>,
+      paramMap: Record<string, unknown>, brand: BrandingModel, user: unknown, sort: NamedQuerySortConfig | undefined
+    ): Promise<Record<string, unknown>[]> {
+      const principal = user as { username?: string; roles?: Array<{ name: string; branding: unknown }> };
+      if (collectionName !== 'record' || !principal?.username || !Array.isArray(principal.roles)) {
+        throw new Error('Declared relation filters require an authenticated record query');
+      }
+      const safePath = (path: string) => typeof path === 'string' && path.length > 0 &&
+        _.toPath(path).every(token => /^[A-Za-z_][A-Za-z0-9_]*$/.test(token)) &&
+        _.toPath(path).join('.') === path;
+      for (const entry of sort ?? []) for (const [field, direction] of Object.entries(entry)) {
+        if (!safePath(field) || !(field === 'redboxOid' || field === 'lastSaveDate' || field === 'dateCreated' ||
+          field.startsWith('metadata.') || field.startsWith('metaMetadata.')) || !['ASC', 'DESC'].includes(direction)) {
+          throw new Error('Unsupported declared relation sort');
+        }
+      }
+      const roles = principal.roles.filter(role => String(role.branding) === String(brand.id)).map(role => role.name);
+      const acl = { $or: [
+        { 'authorization.view': principal.username }, { 'authorization.edit': principal.username },
+        { 'authorization.viewRoles': { $in: roles } }, { 'authorization.editRoles': { $in: roles } }
+      ] };
+      const criteria: Record<string, unknown>[] = [acl];
+      const groups = new Map<string, RelatedRecordFilter[]>();
+      for (const filter of filters) {
+        if (!filter.rootRecordType || !filter.relationId ||
+          Object.keys(filter).some(key => !['rootRecordType', 'relationId', 'mongoQuery', 'collectionName', 'localField', 'foreignField'].includes(key))) {
+          throw new Error('Unsupported declared relation filter');
+        }
+        const key = JSON.stringify([filter.rootRecordType, filter.relationId]);
+        groups.set(key, [...(groups.get(key) ?? []), filter]);
+      }
+      const native = await this.getNativeRecordCollection(this.getModel('record')!);
+      for (const group of groups.values()) {
+        const { rootRecordType, relationId } = group[0];
+        const summary = await (sails.services.recordsservice as unknown as { getRecordTypeSummary(brand: BrandingModel, type: string): Promise<{ relatedTo: import('../config/recordtype.config').RecordRelation[] } | null> }).getRecordTypeSummary(brand, rootRecordType!);
+        const relations = summary?.relatedTo.filter(relation => relation.id === relationId) ?? [];
+        if (relations.length !== 1) throw new Error('Unknown declared relation');
+        const relation = relations[0];
+        const local = relation.localField || 'redboxOid';
+        if (!safePath(local) || !safePath(relation.foreignField) || (relation.oidProperty && !safePath(relation.oidProperty))) {
+          throw new Error('Unsupported literal-field relation query path');
+        }
+        const predicates = group.map(filter => {
+          const predicate = _.cloneDeep(filter.mongoQuery);
+          const params = _.pickBy(queryParams, param => this.getMongoQueryValue(predicate, param.path) !== undefined);
+          this.setParamsInQuery(predicate, params, paramMap, undefined, true);
+          const validate = (value: unknown): void => {
+            if (Array.isArray(value)) { value.forEach(validate); return; }
+            if (!_.isPlainObject(value)) return;
+            for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+              if (key.startsWith('$') && !['$and', '$or', '$nor', '$eq', '$ne', '$in', '$nin', '$gt', '$gte', '$lt', '$lte', '$exists', '$not', '$regex', '$options', '$elemMatch'].includes(key)) {
+                throw new Error('Unsupported relation aggregation or predicate');
+              }
+              if (!key.startsWith('$') && !['>', '>=', '<', '<=', '!='].includes(key) && !safePath(key)) throw new Error('Unsupported literal-field query path');
+              validate(child);
+            }
+          };
+          validate(predicate);
+          return this.toNativeMongoCriteria(this.flattenDeepTargetCriteria(predicate), params);
+        });
+        const sources = await native.find({ $and: [
+          { 'metaMetadata.brandId': brand.id, 'metaMetadata.type': relation.recordType }, acl, ...predicates
+        ] }).limit(1001).toArray();
+        if (sources.length > 1000) throw new Error('Declared relation source ID limit exceeded');
+        const ids = _.uniq(sources.flatMap(source => {
+          // Mongo dotted paths traverse object arrays; Lodash get alone does not.
+          // Walk those arrays, then reuse the resolver's reference normalization.
+          const read = (value: unknown, tokens: string[]): unknown[] => {
+            if (!tokens.length) return [value];
+            if (Array.isArray(value)) return value.flatMap(item => read(item, tokens));
+            return read(_.get(value, [tokens[0]]), tokens.slice(1));
+          };
+          return read(source, _.toPath(relation.foreignField)).flatMap(value => {
+            const references = normalizeRelatedReferences(value);
+            if (references.invalidIndices.length) throw new Error('Unsupported relation identifier');
+            return references.values;
+          });
+        }));
+        if (ids.length > 1000) throw new Error('Declared relation source ID limit exceeded');
+        // Objects and scalar references share the same authorized source set.
+        const reference = relation.oidProperty
+          ? { $or: [{ [local]: { $in: ids } }, { [`${local}.${relation.oidProperty}`]: { $in: ids } }] }
+          : { [local]: { $in: ids } };
+        criteria.push({ 'metaMetadata.type': rootRecordType }, reference);
+      }
+      return criteria;
+    }
+
     async performNamedQuery(
       _brandIdFieldPath: string,
       resultObjectMapping: Record<string, unknown>,
@@ -570,15 +691,22 @@ export namespace Services {
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
       // A response timer cannot cancel Waterline/populate or hook database operations.
       // Refuse those paths before any I/O when running a draft preview budget.
+      // Declared relation filters are relatedRecordFilters, so they never reach the budget path.
       if (budget && previewDeadlineIssue({ collectionName, expandRelations, relatedRecordFilters }))
         throw new NamedQueryAssistanceError('PREVIEW_DEADLINE_UNSUPPORTED', 422);
       const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
-      if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, queryParams, paramMap, budget));
-      else this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+      const declared = relatedRecordFilters.filter(filter => filter.rootRecordType !== undefined || filter.relationId !== undefined);
+      const declaredCriteria = declared.length ? await this.declaredRelationCriteria(declared, collectionName, queryParams, paramMap, brand, _user, sort) : [];
+      if (declared.length && !(sort ?? []).some(entry => 'redboxOid' in entry)) sort = [...(sort ?? []), { redboxOid: 'ASC' }];
+      const rootQueryParams = declared.length
+        ? _.pickBy(queryParams, param => this.getMongoQueryValue(mongoQuery, param.path) !== undefined)
+        : queryParams;
+      if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, rootQueryParams, paramMap, budget, declared.length > 0));
+      else this.setParamsInQuery(mongoQuery, rootQueryParams, paramMap, undefined, declared.length > 0);
       if (budget?.outputTruncated) return new ListAPIResponse<NamedQueryResponseRecord>();
 
       if (relatedRecordFilters && relatedRecordFilters.length > 0) {
-        for (const filter of relatedRecordFilters) {
+        for (const filter of relatedRecordFilters.filter(filter => !declared.includes(filter))) {
           const filterModel = sails.models[filter.collectionName];
           if (!filterModel) {
             this.updateChronicle(
@@ -590,8 +718,8 @@ export namespace Services {
           }
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
           const filterQueryParams = _.pickBy(queryParams, (queryParam) => _.has(filterMongoQuery, queryParam.path));
-          if (budget) budget.run(() => this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap));
-          else this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
+          if (budget) budget.run(() => this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap, budget, declared.length > 0));
+          else this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap, undefined, declared.length > 0);
           if (budget) budget.run(() => budget.query(filterMongoQuery));
           const scope = budget ? this.resolveBrandScope(filter.collectionName) : undefined;
           const filterCriteria = budget ? this.flattenDeepTargetCriteria(filterMongoQuery) : filterMongoQuery;
@@ -643,7 +771,8 @@ export namespace Services {
       if (collectionName === 'record') {
         const collectionOperation = this.getNativeRecordCollection(model);
         const nativeCollection = budget ? await budget.wait(collectionOperation) : await collectionOperation;
-        const nativeCriteria = this.toNativeMongoCriteria(waterlineQuery, queryParams);
+        const rootCriteria = this.toNativeMongoCriteria(waterlineQuery, queryParams);
+        const nativeCriteria = declaredCriteria.length ? { $and: [rootCriteria, ...declaredCriteria] } : rootCriteria;
         const countOperation = nativeCollection.countDocuments(nativeCriteria, budget ? { maxTimeMS: budget.remaining() } : undefined);
         totalItems = budget ? await budget.wait(countOperation) : await countOperation;
         if (totalItems > 0) {
@@ -850,7 +979,7 @@ export namespace Services {
       return response;
     }
 
-    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>, budget?: NamedQueryExecutionBudget) {
+    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>, budget?: NamedQueryExecutionBudget, literalParameters = false) {
       for (const queryParamKey in queryParams) {
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
@@ -873,6 +1002,15 @@ export namespace Services {
         if (!_.isEmpty(queryParam.template)) {
           value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap }, budget);
           if (budget?.outputTruncated) return mongoQuery;
+        }
+
+        // Validate the evaluated template result, including values selected from
+        // undeclared request parameters, before coercion can hide its shape.
+        const primitive = (item: unknown): boolean => item == null ||
+          ['string', 'number', 'boolean', 'undefined'].includes(typeof item);
+        if (literalParameters && !(primitive(value) ||
+          (queryParam.type === DataType.Array && Array.isArray(value) && value.every(primitive)))) {
+          throw new Error('Relation parameters must be literal values of the declared type');
         }
 
         if (queryParam.type == DataType.Number) {
@@ -911,6 +1049,24 @@ export namespace Services {
 
         if (queryParam.type == DataType.Object && !_.isUndefined(value)) {
           value = parseObjectParamValue(queryParamKey, value);
+        }
+
+        // Checked after templates have selected the final value, so neither direct
+        // request values nor template-selected undeclared parameters can inject
+        // query operators. Relation-filter queries apply a stricter check below.
+        if (!literalParameters && queryParam.type != DataType.Object && isUnsafeParameterValue(value)) {
+          throw new Error(`${queryParamKey} must be a literal value of the declared type`);
+        }
+
+        if (literalParameters && value != null) {
+          const type = queryParam.type || DataType.String;
+          const valid = type === DataType.String ? typeof value === 'string' :
+            type === DataType.Number ? typeof value === 'number' && Number.isFinite(value) :
+            type === DataType.Boolean ? typeof value === 'boolean' :
+            type === DataType.Array ? Array.isArray(value) && value.every(primitive) :
+            type === DataType.Date ? typeof value === 'string' ||
+              (queryParam.format === NamedQueryFormatOptions.days && typeof value === 'number' && Number.isFinite(value)) : false;
+          if (!valid) throw new Error('Relation parameters must be literal values of the declared type');
         }
 
         if (
@@ -1073,6 +1229,8 @@ class QueryParameterDefinition {
 }
 
 export class RelatedRecordFilter {
+  rootRecordType?: string;
+  relationId?: string;
   collectionName: string = '';
   mongoQuery: Record<string, unknown> = {};
   localField: string = '';

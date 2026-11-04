@@ -1,3 +1,6 @@
+import { RBValidationError } from '../../model/RBValidationError';
+import { relatedHttpCandidate, RelatedHttpError } from '../../related-records/http';
+import { relatedMetadataSchema } from '../../api-routes/groups/related-records';
 // Copyright(c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -128,6 +131,7 @@ export namespace Controllers {
       'updateMeta',
       'updateObjectMeta',
       'getMeta',
+      'getResolved',
       'getRecordAudit',
       'getObjectMeta',
       'addUserEdit',
@@ -810,6 +814,28 @@ export namespace Controllers {
       }
     }
 
+    public async getResolved(req: Sails.Req, res: Sails.Res) {
+      const headers = { 'Cache-Control': 'private, no-store' };
+      try {
+        if (!req.user) throw new RelatedHttpError(403);
+        const validated = getValidatedApiRequest(req);
+        const context = { brand: BrandingService.getBrand(req.session.branding!), user: req.user as unknown as UserModel, audience: 'api' as const };
+        const relations = String(validated.query.relations).split(',').map(value => value.trim());
+        const root = await relatedHttpCandidate({ oid: validated.params.oid as string, relations }, context, this.RecordsService);
+        const relatedMetadata = relatedMetadataSchema.parse(await this.RecordsService.resolveRelatedMetadata(root, context, {
+          relations: relations.map(relationId => ({ relationId })),
+        }));
+        if (Object.values(relatedMetadata).some(entry => entry.issues.some(issue => issue.code === 'configuration-error')))
+          throw new RelatedHttpError(500);
+        const data = { redboxOid: root.redboxOid, metadata: root.metadata,
+          metaMetadata: { type: String(root.metaMetadata.type), brandId: String(root.metaMetadata.brandId) }, relatedMetadata };
+        return this.sendResp(req, res, { data, headers });
+      } catch (error) {
+        return this.sendResp(req, res, { status: error instanceof RelatedHttpError ? error.status : 500,
+          displayErrors: [{ detail: 'Related metadata could not be resolved.' }], headers });
+      }
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
@@ -995,6 +1021,9 @@ export namespace Controllers {
         }
         return this.sendSaveFailure(req, res, result, 'Update Metadata failed');
       } catch (err) {
+        if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(err) && RBValidationError.classify(err) === 'validation') {
+          return this.sendResp(req, res, { status: 400, displayErrors: err.displayErrors });
+        }
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Update Metadata failed' }],
@@ -1167,6 +1196,9 @@ export namespace Controllers {
                 }
               },
               (error: unknown) => {
+                if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(error) && RBValidationError.classify(error) === 'validation') {
+                  return this.sendResp(req, res, { status: 400, displayErrors: error.displayErrors });
+                }
                 return this.sendResp(req, res, {
                   errors: [this.asError(error)],
                   displayErrors: [{ detail: 'Create Record failed' }],
