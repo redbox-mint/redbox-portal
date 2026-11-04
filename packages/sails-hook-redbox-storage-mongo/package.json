@@ -75,11 +75,15 @@
     "serialize-javascript": "7.0.5",
     "uuid": "14.0.0",
     "compression": {
-      "on-headers": "1.1.0"
+      "on-headers": "1.1.0",
+      ".": "1.8.2"
     },
     "express-session": {
       "on-headers": "1.1.0"
-    }
+    },
+    "body-parser@1": "1.20.9",
+    "body-parser@2": "2.4.0",
+    "multiparty": "4.3.0"
   },
   "publishConfig": {
     "access": "public"
