@@ -3319,8 +3319,9 @@ export namespace Services {
 
       for (let i = 0; i < roles.length; i++) {
         const role = roles[i];
-        if (role.branding == brand.id) {
-          roleNames.push(roles[i].name);
+        const brandingId = typeof role.branding === 'object' ? role.branding?.id : role.branding;
+        if (brandingId != null && String(brandingId) === String(brand.id)) {
+          roleNames.push(role.name);
         }
       }
 

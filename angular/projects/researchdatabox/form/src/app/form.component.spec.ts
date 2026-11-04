@@ -243,6 +243,23 @@ describe('FormComponent', () => {
     });
   }
 
+  it('keeps PDF readiness pending until a form without related sources has loaded', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    fixture.componentInstance.downloadAndCreateOnInit.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('pending');
+    fixture.destroy();
+
+    const loaded = await createFormAndWaitForReady({
+      name: 'legacy', componentDefinitions: [{
+        name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+      }],
+    });
+    expect(loaded.formComponent.componentsLoaded()).toBeTrue();
+    expect(loaded.fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('ready');
+    loaded.fixture.destroy();
+  });
+
   it('should render basic form config', async () => {
     const formConfig: FormConfigFrame = {
       name: 'testing',

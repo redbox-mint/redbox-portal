@@ -202,9 +202,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   readonly relatedDataState = inject(RelatedDataStateService);
 
   @HostBinding('attr.data-rb-related-state')
-  get relatedState(): string | null {
+  get relatedState(): string {
+    if (!this.componentsLoaded()) return 'pending';
     const sources = this.formDefMap?.formConfig?.relatedRecords?.sources;
-    if (!sources?.length) return null;
+    if (!sources?.length) return 'ready';
     return sources.some(source => !this.relatedDataState.hasSource(source.componentPointer))
       ? 'pending' : this.relatedDataState.state;
   }

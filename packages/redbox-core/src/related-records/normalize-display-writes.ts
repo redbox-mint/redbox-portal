@@ -111,7 +111,9 @@ export async function loadRelatedDisplayContract(
   sourceForm?: FormAttributes | null
 ): Promise<RelatedFormDescriptors | undefined> {
   if (!recordType?.relatedTo?.some(relation => relation.resolution)) return undefined;
-  if (!brandId || !formName) throw new RelatedDisplayWriteError('related-display-contract-invalid');
+  // These records have no configured form and therefore no transient display targets.
+  if (!formName || formName === 'generated-view-only') return undefined;
+  if (!brandId) throw new RelatedDisplayWriteError('related-display-contract-invalid');
   const form =
     sourceForm === undefined ? await firstValueFrom(FormsService.getFormByName(formName, true, brandId)) : sourceForm;
   if (!form) throw new RelatedDisplayWriteError('related-display-contract-invalid');

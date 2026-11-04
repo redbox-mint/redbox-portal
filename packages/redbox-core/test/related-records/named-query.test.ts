@@ -9,7 +9,7 @@ describe('declared named-query relations', function () {
   let service: import('../../src/services/NamedQueryService').Services.NamedQueryService;
   let relation: { id: string; recordType: string; localField: string; foreignField: string; oidProperty?: string };
   const brand = { id: 'brand', name: 'brand', css: '', roles: [] };
-  const user = { username: 'reader', roles: [] };
+  const user: { username: string; roles: Array<{ name: string; branding: unknown }> } = { username: 'reader', roles: [] };
   const filter = (mongoQuery: Record<string, unknown>) => ({ rootRecordType: 'root', relationId: 'activities', mongoQuery });
   const run = (filters: unknown[] = [filter({ 'metadata.active': true })], params = {}, queryParams = {}, sort: unknown = [], start = 0) =>
     service.performNamedQueryFromConfig({ collectionName: 'record', mongoQuery: {}, resultObjectMapping: {}, queryParams, sort, relatedRecordFilters: filters } as any, params, brand, start, 1, user);
@@ -21,6 +21,7 @@ describe('declared named-query relations', function () {
     collection = client.db(`rr17_${randomUUID().replace(/-/g, '')}`).collection('records');
   });
   beforeEach(async function () {
+    user.roles = [];
     await collection.deleteMany({});
     const record = (redboxOid: string, type: string, metadata: object, visible = true) => ({ redboxOid, metaMetadata: { brandId: 'brand', type }, metadata, authorization: { view: visible ? ['reader'] : ['hidden'] } });
     await collection.insertMany([
@@ -51,6 +52,20 @@ describe('declared named-query relations', function () {
     expect(next.summary.numFound).to.equal(2);
     expect(next.records.map(record => record.oid)).to.deep.equal(['root-b']);
   });
+  for (const permission of ['viewRoles', 'editRoles']) {
+    for (const populated of [false, true]) {
+      it(`uses ${populated ? 'populated' : 'primitive'} role branding for role-only ${permission} on roots and sources`, async () => {
+        user.roles = [{ name: 'Reader', branding: populated ? { id: brand.id } : brand.id }];
+        await collection.updateMany({ redboxOid: { $in: ['a', 'root-a', 'root-b'] } }, {
+          $set: { authorization: { [permission]: ['Reader'] } },
+        });
+        expect((await run()).summary.numFound).to.equal(2);
+        // Matching role names in another brand cannot grant access to either side.
+        user.roles[0].branding = populated ? { id: 'other' } : 'other';
+        expect((await run()).summary.numFound).to.equal(0);
+      });
+    }
+  }
   it('combines conditions on one source and reruns after source changes', async () => {
     const filters = [filter({ 'metadata.active': true }), filter({ 'metadata.date': { $gte: '2027' } })];
     expect((await run(filters)).summary.numFound).to.equal(0);

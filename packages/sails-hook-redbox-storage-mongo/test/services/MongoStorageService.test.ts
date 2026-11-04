@@ -2956,11 +2956,14 @@ describe('MongoStorageService', function () {
       [
         { name: 'Admin', branding: 'brand-1' },
         { name: 'Guest', branding: 'brand-2' },
+        { name: 'Reader', branding: { id: 'brand-1' } },
+        { name: 'Other reader', branding: { id: 'brand-2' } },
+        { name: 'Unbranded', branding: null },
       ],
       { id: 'brand-1' }
     );
 
-    expect(roleNames).to.deep.equal(['Admin']);
+    expect(roleNames).to.deep.equal(['Admin', 'Reader']);
   });
 
   it('aggregates success and failure messages when adding multiple datastreams', async function () {
