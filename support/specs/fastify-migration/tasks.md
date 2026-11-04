@@ -40,7 +40,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: each matrix row has current observation, target rule and executable
     coverage; accidental behavior is not silently promoted to compatibility policy.
 
-- [ ] **FM-004 — Inventory owners and security ordering.**
+- [x] **FM-004 — Inventory owners and security ordering.**
   - Dependencies: FM-001, FM-002.
   - Work: map initialization/preparation/activation, request/session retained work,
     stream/socket/Companion ownership, signals, cleanup and retry. Record per-route
