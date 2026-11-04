@@ -18,14 +18,14 @@
     "ejs": "5.0.2",
     "express-session": "1.19.0",
     "fs-extra": "11.3.5",
-    "handlebars": "4.7.9",
+    "handlebars": "4.7.10",
     "include-all": "4.0.3",
     "jquery": "4.0.0",
     "lodash": "4.18.1",
     "lodash-es": "4.18.1",
     "lucene-escape-query": "1.0.1",
     "luxon": "3.7.2",
-    "moment": "2.30.1",
+    "moment": "2.31.0",
     "mongodb": "7.2.0",
     "numeral": "2.0.6",
     "pino": "10.3.1",
@@ -106,7 +106,8 @@
     "dev:prepare": "./support/development/prepareLocalDev.sh",
     "compile:jsonSchema": "./support/development/compileJsonSchema.sh",
     "nvm:install-all": "bash ./support/development/installAllNvmrc.sh",
-    "test:agenda-watchdog": "node --test packages/agenda-patched/test/*.test.mjs"
+    "test:agenda-watchdog": "node --test packages/agenda-patched/test/*.test.mjs",
+    "test:outbound-dependencies": "node --test --test-timeout=15000 test/dependencies/outbound.test.cjs"
   },
   "main": "app.js",
   "repository": {
@@ -116,7 +117,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
-    "axios": "1.18.0",
+    "axios": "1.21.0",
     "@aws-sdk/xml-builder": "3.972.16",
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
@@ -165,7 +166,7 @@
       "express": "4.22.2",
       "express-session": "1.18.2",
       "fast-xml-parser": "5.10.1",
-      "morgan": "1.11.0",
+      "morgan": "1.12.1",
       "serialize-javascript": "7.0.5"
     },
     "@tus/server": {
@@ -201,10 +202,11 @@
       "serialize-javascript": "7.0.5"
     },
     "morgan": {
-      "on-headers": "1.1.0"
+      "on-headers": "1.1.0",
+      ".": "1.12.1"
     },
     "sails-mongo": {
-      "qs": "6.15.2"
+      "qs": "6.17.1"
     },
     "postcss": "8.5.23",
     "srvx": "0.11.13",
@@ -215,7 +217,18 @@
       "minimatch": "10.2.5"
     },
     "oni-ocfl": "git+https://github.com/Language-Research-Technology/oni-ocfl.git#add9d36bd8a33b051e1a67f46a523ad88986a0e3",
-    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e"
+    "ro-crate-modes": "git+https://github.com/Language-Research-Technology/ro-crate-modes.git#3d80adab4cf94c5e3df4756d0160a342b5e3d74e",
+    "fast-uri": "3.1.9",
+    "js-yaml@3": "3.15.2",
+    "js-yaml@4": "4.3.2",
+    "sails-hook-sockets": {
+      "proxy-addr": "2.0.8"
+    },
+    "qs": "6.17.1",
+    "form-data": "4.0.6",
+    "brace-expansion@1": "1.1.21",
+    "brace-expansion@2": "2.1.7",
+    "brace-expansion@5": "5.0.12"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",

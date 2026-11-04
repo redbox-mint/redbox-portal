@@ -71,6 +71,17 @@ describe('TemplateService', function () {
   });
 
   describe('buildClientHandlebars', function () {
+    it('preserves hostile template text without allowing it to terminate an inline script', function () {
+      const { handlebarsTemplate } = require('@researchdatabox/sails-ng-common');
+      const source = 'safe</script><script>globalThis.injected=true</script><script>';
+      const compiled = TemplateService.buildClientHandlebars(source);
+
+      expect(compiled).to.be.a('string');
+      expect(compiled).not.to.match(/<\/script/i);
+      const specification = new Function(`return (${compiled})`)();
+      expect(handlebarsTemplate(specification)({})).to.equal(source);
+    });
+
     it('should precompile a valid Handlebars template', function () {
       const template = '{{firstName}} {{lastName}}';
 
