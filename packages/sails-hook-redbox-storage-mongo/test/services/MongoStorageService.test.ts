@@ -232,6 +232,7 @@ describe('MongoStorageService', function () {
       });
       expect(cursor.limit.calledWithExactly(3)).to.equal(true);
       expect(cursor.sort.calledWithExactly({ redboxOid: 1 })).to.equal(true);
+      expect(cursor.maxTimeMS.calledOnceWithExactly(10_000)).to.equal(true);
       expect(result.records.map(record => record.redboxOid)).to.deep.equal(['b', 'a']);
       expect(result).to.include({ complete: true, overflow: false });
     });

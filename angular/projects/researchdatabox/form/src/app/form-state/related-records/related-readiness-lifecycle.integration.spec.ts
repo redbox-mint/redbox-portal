@@ -132,6 +132,27 @@ describe('Related readiness work ownership', () => {
     fixture.destroy();
   }));
 
+  it('ignores a superseded source notification after an asynchronous behaviour condition', fakeAsync(() => {
+    const gate = deferred<boolean>();
+    const { fixture, formComponent } = create(false, () => gate.promise);
+    const handler = new BehaviourHandler({ name: 'condition', conditionKind: 'jsonata', condition: 'true',
+      actions: [{ type: 'setUIProperty', config: { fieldPath: '/titles', target: 'field.disabled', value: true } }],
+    }, 0, { formComponent, eventBus: TestBed.inject(FormComponentEventBus),
+      logger: TestBed.inject(LoggerService), recordService: TestBed.inject(RecordService) });
+    handler.activate();
+    let current = true;
+    TestBed.inject(FormComponentEventBus).publish(createFieldValueChangedEvent({
+      fieldId: '/source', sourceId: '*', value: [], isCurrent: () => current,
+    }));
+    flushMicrotasks();
+    expect(formComponent.relatedState).toBe('pending');
+    current = false;
+    gate.resolve(true); flushMicrotasks();
+    expect(formComponent.form!.get('titles')!.disabled).toBeFalse();
+    expect(formComponent.relatedState).toBe('ready');
+    handler.destroy(); fixture.destroy();
+  }));
+
   it('releases destroyed expression matching and prevents its late write after rebind', fakeAsync(() => {
     const { fixture, formComponent } = create();
     const consumer = TestBed.runInInjectionContext(() => new DelayedMatchingConsumer(TestBed.inject(FormComponentEventBus)));

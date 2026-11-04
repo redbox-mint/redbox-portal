@@ -366,10 +366,10 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
           expr => !event.expressionChain?.includes(this.getExpressionChainId(expr))
         );
         const hasConditionMatches = await this.getMatchedExpressions(event, expressions);
-        if (this.destroyed || generation !== this.bindingGeneration) return;
+        if (this.destroyed || generation !== this.bindingGeneration || event.isCurrent?.() === false) return;
         if (hasConditionMatches) {
           for (const expr of hasConditionMatches) {
-            if (this.destroyed || generation !== this.bindingGeneration) return;
+            if (this.destroyed || generation !== this.bindingGeneration || event.isCurrent?.() === false) return;
             await this.consumeEvent(event, expr);
           }
         }
@@ -507,7 +507,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     expression: FormExpressionsConfigFrame
   ) {
     const generation = this.eventGenerations.get(event) ?? this.bindingGeneration;
-    const isActive = () => !this.destroyed && generation === this.bindingGeneration;
+    const isActive = () => !this.destroyed && generation === this.bindingGeneration && event.isCurrent?.() !== false;
     if (!isActive()) return;
     // Only publish validation-groups change events in response to scoped change
     // events, don't need to respond to the broadcast events. Only want to
@@ -536,6 +536,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
         eventFieldId: event.fieldId,
         cause: {
+          ...(event.isCurrent ? { isCurrent: isActive } : {}),
           ...(event.behaviourChain ? { behaviourChain: event.behaviourChain } : {}),
           expressionChain: [...(event.expressionChain ?? []), this.getExpressionChainId(expression)],
         },

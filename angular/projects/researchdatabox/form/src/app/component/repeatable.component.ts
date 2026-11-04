@@ -35,12 +35,12 @@ import {
   createFormStatusDirtyRequestEvent,
   FormComponentEventBus,
 } from '../form-state';
-import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+import { ControlSetValueOptions, CustomSetValueControl } from '../form-state/custom-set-value.control';
 import { withWriteOptions } from '../form-state/control-value-notifications';
 import { FormComponent } from '../form.component';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
-type RepeatableSetValueOptions = ModifyOptions;
+type RepeatableSetValueOptions = ControlSetValueOptions;
 /** Applies a row's form-model change, letting replacement observe its final change. */
 type ModelChange = (change: () => void) => void;
 
@@ -78,6 +78,7 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
   }
 
   public async setCustomValue(value: Array<unknown>, options?: RepeatableSetValueOptions): Promise<void> {
+    if (options?.isCurrent?.() === false) return;
     if (this.customValueSetter) {
       await this.customValueSetter(value, options);
       return;
@@ -141,6 +142,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
   private syncSourcesUpdatePromise: Promise<void> = Promise.resolve();
+  private replacementWork: Promise<void> = Promise.resolve();
 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
@@ -548,6 +550,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     options?: RepeatableSetValueOptions,
     applyModelChange: ModelChange = change => change()
   ) {
+    if (options?.isCurrent?.() === false) return;
     if (markFormDirty && (this.isReadonly || this.isDisabled)) return;
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
@@ -562,7 +565,17 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-  public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+  public replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+    // Row initialisation awaits component creation. Finish it before another
+    // replacement removes rows whose controls have not yet been registered.
+    const replace = () => this.replaceElements(values, options);
+    const work = this.replacementWork.then(replace, replace);
+    this.replacementWork = work;
+    return work;
+  }
+
+  private async replaceElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+    if (options?.isCurrent?.() === false) return;
     const nextValues = Array.isArray(values) ? values : [];
     const appendValues = nextValues.length === 0 && !this.allowZeroRows ? [undefined] : nextValues;
     const removeCount = this.compDefMapEntries.length;
@@ -592,11 +605,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         }
       }
       for (const [index, value] of appendValues.entries()) {
+        if (options?.isCurrent?.() === false) return;
         const isFinal = index === appendValues.length - 1;
         await this.appendNewElement(value, false, isFinal ? options : rowOptions, isFinal ? applyFinalChange : undefined);
       }
     } finally {
-      if (!finalChangeApplied) {
+      if (!finalChangeApplied && options?.isCurrent?.() !== false) {
         // The final row change failed or was skipped; still publish the resulting state.
         this.rebuildLineagePaths(options);
         this.model?.formControl?.updateValueAndValidity(options);
@@ -744,6 +758,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
+    if (options?.isCurrent?.() === false) {
+      wrapperRef.destroy();
+      const index = this.compDefMapEntries.indexOf(elemEntry);
+      if (index !== -1) this.compDefMapEntries.splice(index, 1);
+      this.updateCanRemoveFlags();
+      this.rebuildLineagePaths({ ...options, emitEvent: false });
+      return;
+    }
     this.publishDefinitionChange(options);
     const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
