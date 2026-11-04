@@ -77,7 +77,7 @@
     "flydrive": "2.2.0",
     "fs-extra": "11.4.1",
     "genson-js": "0.0.8",
-    "glob": "13.0.6",
+    "glob": "14.0.3",
     "graceful-fs": "4.2.11",
     "handlebars": "4.7.10",
     "i18next": "26.5.11",
