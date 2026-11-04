@@ -48,7 +48,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: owner table identifies one acquire/drain/close owner per resource;
     ordering tests needed to prevent changed denial behavior are listed.
 
-- [ ] **FM-005 — Define final qualification environment.**
+- [x] **FM-005 — Define final qualification environment.**
   - Dependencies: FM-001, FM-003, FM-004.
   - Work: map supported Mongo/database/proxy/process profiles to existing commands;
     identify real provider fixtures, package/artifact checks and explicit pending
