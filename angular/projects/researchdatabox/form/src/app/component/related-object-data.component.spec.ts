@@ -428,7 +428,7 @@ describe('RelatedObjectDataComponent', () => {
       } } }],
     };
     const { fixture } = await createFormAndWaitForReady(formConfig, undefined, undefined, assets);
-    expect(fixture.nativeElement.hasAttribute('data-rb-related-state')).toBeFalse();
+    expect(fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('ready');
     expect(utilityService.getDynamicImport).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('One');
     expect(fixture.nativeElement.textContent).toContain('denied:two');

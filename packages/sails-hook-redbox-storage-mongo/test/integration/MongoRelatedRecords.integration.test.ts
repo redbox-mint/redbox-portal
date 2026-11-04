@@ -123,6 +123,22 @@ const mongoUrl = process.env.MONGO_CONCURRENCY_TEST_URL;
     expect(await service.findRecordsByRelation(query({ limit: 2 }))).to.include({ complete: true, overflow: false });
   });
 
+  for (const permission of ['viewRoles', 'editRoles']) {
+    for (const populated of [false, true]) {
+      it(`allows role-only ${permission} with ${populated ? 'populated' : 'primitive'} branding`, async function () {
+        await records.updateOne({ redboxOid: fixtures.ids.activityA }, {
+          $set: { authorization: { [permission]: [fixtures.roles.reader] } },
+        });
+        const roleQuery = query({ values: [fixtures.ids.activityA] });
+        const role = roleQuery.context.user.roles[0] as { branding: unknown };
+        role.branding = populated ? { id: fixtures.tenants.primary } : fixtures.tenants.primary;
+        expect(oids(await service.findRecordsByRelation(roleQuery))).to.deep.equal([fixtures.ids.activityA]);
+        role.branding = populated ? { id: fixtures.tenants.other } : fixtures.tenants.other;
+        expect(oids(await service.findRecordsByRelation(roleQuery))).to.deep.equal([]);
+      });
+    }
+  }
+
   it('honors tenant-scoped roles and edit access using the list read ACL', async function () {
     await records.updateOne(
       { redboxOid: fixtures.ids.activityA },

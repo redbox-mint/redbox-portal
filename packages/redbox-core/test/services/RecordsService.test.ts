@@ -15135,6 +15135,43 @@ describe('RecordsService', function () {
       expect(result.wasPersisted()).to.equal(true);
       expect(mockFormsService.getFormByName.callCount).to.equal(baseline);
     });
+    for (const formName of [undefined, '', 'generated-view-only']) {
+      for (const mode of ['merge', 'replace'] as const) {
+        it(`allows an API ${mode} update of a resolvable record with no configured form (${formName})`, async function () {
+          if (formName === undefined) delete stored.metaMetadata.form;
+          else stored.metaMetadata.form = formName;
+          stored.authorization = { edit: ['owner'], view: ['owner'] };
+          const step = { name: 'draft', config: { form: formName } };
+          (global as any).WorkflowStepsService.getFirst.returns(of(step));
+          (global as any).WorkflowStepsService.get.returns(of(step));
+          mockFormsService.getFormByName.returns(of(null));
+          mockFormsService.getForm.resolves(null);
+          const context = createRecordSaveContext({ routeFamily: 'api', operation: 'update' });
+          const result = await RecordsService.updateMeta(
+            { id: 'brand-1' }, 'record-123', _.cloneDeep(stored), { username: 'owner' },
+            true, false, {}, { metadata: { activity: 'source', display: 'local', local: 'new' }, mode }, context
+          );
+          expect(result.wasPersisted(), JSON.stringify(result.problems)).to.equal(true);
+          expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.include({
+            activity: 'source', display: 'local', local: 'new',
+          });
+        });
+      }
+    }
+    it('rejects an unavailable explicitly configured form before saving', async function () {
+      mockFormsService.getFormByName.returns(of(null));
+      const result = await update({ local: 'new' }, 'merge');
+      expect(result.problems[0].issues[0].code).to.equal('related-display-contract-invalid');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('rejects a transition with active transient targets to the generated no-form view', async function () {
+      (global as any).WorkflowStepsService.get.withArgs(recordType, 'published').returns(of({
+        name: 'published', config: { form: 'generated-view-only' },
+      }));
+      const result = await update({ local: 'new' }, 'merge', { name: 'published' }, true);
+      expect(result.problems[0].issues[0].code).to.equal('related-display-contract-invalid');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
     it('loads a declared authoritative form only once throughout update normalization', async function () {
       const result = await update({ activity: 'source', local: 'new' }, 'replace', {}, true);
       expect(result.wasPersisted()).to.equal(true);

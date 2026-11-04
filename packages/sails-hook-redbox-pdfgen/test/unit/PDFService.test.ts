@@ -566,6 +566,24 @@ describe('PDFService Unit Tests', () => {
     expect(() => evaluate(['error'])).to.throw('Required related data unavailable');
   });
 
+  it('renders a form without related sources when waiting is enabled for the branding', async () => {
+    globalAny.sails.config.brandingAware = () => ({ pdfgen: { token: 'test-token', waitForRelatedData: true } });
+    let state = 'pending';
+    mockPage.waitForFunction.callsFake(async (predicate: string) => {
+      const evaluate = () => require('vm').runInNewContext(predicate, {
+        document: { querySelectorAll: () => [{ getAttribute: () => state }] },
+      });
+      expect(evaluate()).to.equal(false);
+      expect(mockPage.pdf.called).to.be.false;
+      // FormComponent publishes ready after loading a form with no related sources.
+      state = 'ready';
+      expect(evaluate()).to.equal(true);
+    });
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-legacy', {}, {}, { name: 'default' }, 1));
+    sinon.assert.callOrder(mockPage.waitForNetworkIdle, mockPage.waitForFunction, mockPage.pdf);
+    expect(mockPage.pdf.calledOnce).to.be.true;
+  });
+
   for (const message of ['Waiting failed: timeout exceeded (missing marker)', 'Waiting failed: timeout exceeded (pending)', 'Required related data unavailable']) {
     it(`maps related readiness failure to BrowserError: ${message}`, async () => {
       mockPage.waitForFunction.rejects(new Error(message));

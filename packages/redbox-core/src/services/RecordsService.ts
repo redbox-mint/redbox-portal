@@ -2007,6 +2007,8 @@ export namespace Services {
       formName: string,
       brandId: string
     ): Promise<FormAttributes | null> {
+      // Imported records can use the generated view without a configured form.
+      if (!formName || formName === 'generated-view-only') return Promise.resolve(null);
       const key = JSON.stringify([brandId, formName]);
       if (!operation.forms.has(key))
         operation.forms.set(key, firstValueFrom(FormsService.getFormByName(formName, true, brandId)));

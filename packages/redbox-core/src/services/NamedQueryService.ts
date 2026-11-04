@@ -601,7 +601,10 @@ export namespace Services {
           throw new Error('Unsupported declared relation sort');
         }
       }
-      const roles = principal.roles.filter(role => String(role.branding) === String(brand.id)).map(role => role.name);
+      const roles = principal.roles.filter(role => {
+        const brandingId = typeof role.branding === 'object' ? (role.branding as { id?: unknown })?.id : role.branding;
+        return brandingId != null && String(brandingId) === String(brand.id);
+      }).map(role => role.name);
       const acl = { $or: [
         { 'authorization.view': principal.username }, { 'authorization.edit': principal.username },
         { 'authorization.viewRoles': { $in: roles } }, { 'authorization.editRoles': { $in: roles } }
