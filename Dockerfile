@@ -82,6 +82,7 @@ COPY packages/redbox-core/tsconfig.json ./packages/redbox-core/
 COPY packages/redbox-core/src/config/webpack.config.ts ./packages/redbox-core/src/config/
 COPY packages/redbox-core/src/hooks/webpack.ts ./packages/redbox-core/src/hooks/
 COPY packages/redbox-core/src/sails.ts ./packages/redbox-core/src/
+COPY packages/redbox-core/browser ./packages/redbox-core/browser
 COPY packages/redbox-dev-tools/bin/wrapper-webpack.js ./packages/redbox-dev-tools/bin/
 COPY assets ./assets
 COPY typescript/assets ./typescript/assets

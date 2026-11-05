@@ -7,6 +7,7 @@ import { Controllers } from '../../src/controllers/BrandingController';
 import { auth } from '../../src/config/auth.config';
 import { routes } from '../../src/config/routes.config';
 import {createSinonStubLogger} from "../logger.test";
+import { webpack } from '../../src/config/webpack.config';
 
 describe('admin API docs', function () {
     let expect: Chai.ExpectStatic;
@@ -113,11 +114,46 @@ describe('admin API docs', function () {
         expect(bootstrap).to.not.include('Redoc.init');
     });
 
-    it('copies the redoc bundle into the webpack public output', function () {
-        const webpackConfigPath = path.resolve(__dirname, '../../../../packages/redbox-core/src/config/webpack.config.ts');
-        const contents = fs.readFileSync(webpackConfigPath, 'utf8');
+    it('builds the local redoc bundle into the public output after asset cleaning', function () {
+        const assets = webpack.config.find(config => config.name === 'portal-assets');
+        const docs = webpack.config.find(config => config.name === 'api-docs');
 
-        expect(contents).to.include("from: './node_modules/redoc/bundles/redoc.standalone.js'");
-        expect(contents).to.include("to: './default/default/js/'");
+        expect(docs).to.not.equal(undefined);
+        expect(docs!.entry).to.equal(path.resolve(__dirname, '../../browser/redoc-standalone.js'));
+        expect(docs!.output!.filename).to.equal('./default/default/js/redoc.standalone.js');
+        expect(docs!.output!.path).to.equal(assets!.output!.path);
+        expect(docs!.output!.library).to.deep.equal({ type: 'module' });
+        expect(docs!.dependencies).to.include(assets!.name);
+        expect(docs!.output!.clean).to.not.equal(true);
+    });
+
+    it('uses consistent development and production modes for both asset compilers', function () {
+        const configPath = require.resolve('../../src/config/webpack.config');
+        const cachedConfig = require.cache[configPath];
+        const originalAssetMode = process.env.REDBOX_ASSET_MODE;
+        const originalNodeEnv = process.env.NODE_ENV;
+
+        try {
+            for (const mode of ['development', 'production']) {
+                process.env.REDBOX_ASSET_MODE = mode;
+                process.env.NODE_ENV = mode;
+                delete require.cache[configPath];
+                const config: typeof webpack = require(configPath).webpack;
+                const assets = config.config.find(compiler => compiler.name === 'portal-assets')!;
+                const docs = config.config.find(compiler => compiler.name === 'api-docs')!;
+
+                expect(assets.mode).to.equal(mode);
+                expect(docs.mode).to.equal(mode);
+                expect(assets.optimization!.minimize).to.equal(mode === 'production');
+                expect(docs.dependencies).to.include(assets.name);
+            }
+        } finally {
+            if (originalAssetMode === undefined) delete process.env.REDBOX_ASSET_MODE;
+            else process.env.REDBOX_ASSET_MODE = originalAssetMode;
+            if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+            else process.env.NODE_ENV = originalNodeEnv;
+            if (cachedConfig) require.cache[configPath] = cachedConfig;
+            else delete require.cache[configPath];
+        }
     });
 });
