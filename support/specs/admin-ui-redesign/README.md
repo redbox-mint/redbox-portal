@@ -12,7 +12,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
-Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps; Figshare source metadata edits and real manual/daily/weekly mirror schedules.
+Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps; Figshare source metadata edits and real manual/daily/weekly mirror schedules. Existing source scope remains read-only pending an identity migration policy.
 
 Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
 
@@ -469,3 +469,8 @@ crash, an operator must confirm the worker has stopped and remove only its
 `figshare-vocabulary-sync:<brand-id>:<scope>:<taxonomy-id>` claim to resume that source. Other sources
 continue normally. This favors avoiding concurrent writes over automatic crash recovery. Agenda must
 run with its Mongo backend for recurring jobs, as with the project's existing dispatch jobs.
+
+Migration `20261106T130000-lookup-claims` explicitly creates a native Mongo unique partial index on
+the Figshare sync and party import claim namespaces. Model `unique` flags alone are insufficient under
+`migrate: safe`. Conflicting existing claims fail migration without deleting locks. Party preview consumption
+uses Mongo's atomic `deleteOne` count; Waterline's fetch-then-destroy operation is not a one-use boundary.
