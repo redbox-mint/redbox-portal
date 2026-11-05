@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { DeleteResult } from 'mongodb';
 import { Controllers as controllers } from '../CoreController';
 import { partyImportInput } from '../api-routes/groups/party-import';
 import { PartyImportError, partyImportHash } from '../services/PartyImportService';
@@ -33,8 +34,12 @@ export namespace Controllers {
           } else {
             const ticket = session.partyImport;
             if (!ticket || ticket.expires < Date.now() || ticket.token !== body.token || ticket.hash !== hash) throw new PartyImportError(409, 'preview-required');
-            const claimed = await CacheEntry.destroyOne({ name: `party-import:${ticket.token}` });
-            if (!claimed) throw new PartyImportError(409, 'preview-required');
+            // Waterline destroyOne fetches before deleting, so two requests can
+            // both receive the same row. Mongo's acknowledged delete count is
+            // the atomic one-use boundary, including across server processes.
+            const claimed = await CacheEntry.getDatastore().manager.collection(CacheEntry.tableName)
+              .deleteOne({ name: `party-import:${ticket.token}`, 'data.hash': hash }) as DeleteResult;
+            if (claimed.deletedCount !== 1) throw new PartyImportError(409, 'preview-required');
             delete session.partyImport;
             // Persist consumption before the first record write. A lost response
             // must not turn the same preview into a second batch of creations.
