@@ -95,6 +95,21 @@ describe('AdminFigshareVocabularyComponent', () => {
     expect(component.syncWarningCount).toBe(2);
   });
 
+  it('reads every source page so filtering does not change catalogue statistics', async () => {
+    const first = { id: 's1', scope: 'public', historicalCount: 2 } as any;
+    const second = { id: 's2', scope: 'account', historicalCount: 1 } as any;
+    api.listSources.and.returnValues(
+      Promise.resolve({ records: [first], total: 2 }),
+      Promise.resolve({ records: [second], total: 2 })
+    );
+    await component.showTab('sources');
+    expect(api.listSources).toHaveBeenCalledWith(undefined, { limit: 100, offset: 1 });
+    expect(component.sources).toEqual([first, second]);
+    await component.onScopeFilterChanged('public');
+    expect(component.totalSources).toBe(2);
+    expect(component.syncWarningCount).toBe(3);
+  });
+
   it('starts an import after loading editable local vocabularies', async () => {
     api.listLocalVocabularies.and.resolveTo([
       { id: 'local-1', name: 'Local taxonomy', slug: 'local-taxonomy', source: 'local' }
@@ -196,7 +211,7 @@ describe('AdminFigshareVocabularyComponent', () => {
       busyDuringCall = component.busySourceId;
       return { localVocabularyId: 'local-1', crosswalkId: 'crosswalk-1', entries: 12 };
     });
-    api.listCrosswalks.and.resolveTo({ data: [], total: 0 } as any);
+    api.listCrosswalks.and.resolveTo({ records: [], total: 0 });
     component.error = 'a previous failure';
 
     await component.cloneSource(source);

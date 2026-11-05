@@ -1,6 +1,7 @@
-<div class="figshare-panel">
-  <div class="d-flex flex-wrap justify-content-between align-items-end mb-3">
-    <div>
+<div class="card">
+  <div class="card-header"><h2>{{ 'figshare-vocab-tab-sources' | i18next }}</h2><span>{{ total }}</span></div>
+  <div class="rb-admin-filter-bar">
+    <div class="rb-admin-field">
       <label class="form-label" for="figshare-source-scope-filter">{{
         'figshare-vocab-scope-filter-label' | i18next
       }}</label>
@@ -15,15 +16,15 @@
         <option value="account">{{ 'figshare-vocab-scope-account' | i18next }}</option>
       </select>
     </div>
-    <p class="mb-0 text-muted">{{ 'figshare-vocab-source-count' | i18next: { count: total } }}</p>
+    <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-sources-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-sources-search" type="search" class="form-control" [(ngModel)]="search" /></div>
   </div>
 
   @if (loading) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
-  } @else if (sources.length === 0) {
-  <p class="text-muted mb-0">{{ 'figshare-vocab-no-sources' | i18next }}</p>
+  } @else if (filteredItems.length === 0) {
+  <div class="rb-admin-empty"><i class="fa fa-list fa-3x" aria-hidden="true"></i><h3>{{ (sources.length ? 'figshare-vocab-no-matching-sources' : 'figshare-vocab-sources-empty-title') | i18next }}</h3><p>{{ 'figshare-vocab-sources-empty-help' | i18next }}</p><button type="button" class="btn btn-primary" (click)="addRequested.emit()"><span aria-hidden="true">+</span> {{ 'figshare-vocab-add-action' | i18next }}</button> <a class="btn rb-admin-ghost" href="#figshare-explainer">{{ 'figshare-vocab-how-crosswalks-work' | i18next }}</a></div>
   } @else {
-  <table class="table table-sm align-middle mb-0">
+  <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-source-table-caption' | i18next }}</caption>
     <thead>
       <tr>
@@ -35,7 +36,7 @@
       </tr>
     </thead>
     <tbody>
-      @for (source of sources; track source.id) {
+      @for (source of filteredItems; track source.id) {
       <tr>
         <th scope="row" class="fw-normal">
           <span class="d-block">{{ source.displayName }}</span>
@@ -47,25 +48,19 @@
         <td>{{ formatDate(source.lastSyncedAt) || ('figshare-vocab-never-synced' | i18next) }}</td>
         <td>
           @if (source.historicalCount > 0) {
-          <span class="figshare-badge figshare-badge--historical">{{
+          <span class="badge rb-admin-badge-warning">{{
             'figshare-vocab-historical-count' | i18next: { count: source.historicalCount }
           }}</span>
           } @else {
-          <span class="figshare-badge">{{ 'figshare-vocab-status-current' | i18next }}</span>
+          <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-status-current' | i18next }}</span>
           }
         </td>
         <td>
-          <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-primary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">
-              {{ 'figshare-vocab-action-resync' | i18next }}
-            </button>
-            <button type="button" class="btn btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source)">
-              {{ 'figshare-vocab-action-clone' | i18next }}
-            </button>
-            <button type="button" class="btn btn-outline-secondary" [disabled]="isBusy(source)" (click)="historyRequested.emit(source)">
-              {{ 'figshare-vocab-action-history' | i18next }}
-            </button>
-          </div>
+<div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">{{ 'figshare-vocab-action-resync' | i18next }}</button>
+        <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-clone' | i18next }}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="historyRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-history' | i18next }}</button>
+        </div></details></div>
           @if (isBusy(source)) {
           <span class="d-inline-flex align-items-center ms-2 text-muted small" role="status">
             <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
@@ -76,6 +71,6 @@
       </tr>
       }
     </tbody>
-  </table>
+  </table></div>
   }
 </div>

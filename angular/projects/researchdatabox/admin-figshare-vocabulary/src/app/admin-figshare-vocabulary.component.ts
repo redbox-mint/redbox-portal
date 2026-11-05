@@ -45,6 +45,17 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   public syncRuns: FigshareSyncRunSummary[] = [];
   public historySourceId = '';
   public historyLoading = false;
+  public historySearch = '';
+
+  get filteredSyncRuns(): FigshareSyncRunSummary[] {
+    const q = this.historySearch.trim().toLowerCase();
+    return this.syncRuns.filter(run => `${run.state} ${run.scope} ${run.taxonomyId} ${run.requestedBy}`.toLowerCase().includes(q));
+  }
+
+  async filterHistorySource(sourceId: string): Promise<void> {
+    this.historySourceId = sourceId;
+    await this.loadSyncRuns();
+  }
 
   public taxonomies: FigshareTaxonomySummary[] = [];
   public localVocabularies: FigshareLocalVocabulary[] = [];
@@ -87,7 +98,8 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    await Promise.all([this.loadSources(), this.loadCrosswalks()]);
+    this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
+    await Promise.all([this.loadSources(), this.loadCrosswalks(), this.loadSyncRuns()]);
   }
 
   get totalSources(): number {
@@ -137,13 +149,12 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
 
   async onScopeFilterChanged(scope: '' | 'public' | 'account'): Promise<void> {
     this.scopeFilter = scope;
-    await this.loadSources();
   }
 
   private async loadSources(): Promise<void> {
     this.sourcesLoading = true;
     try {
-      const result = await this.api.listSources(this.scopeFilter || undefined);
+      const result = await this.loadCatalogue(offset => this.api.listSources(undefined, { limit: 100, offset }));
       this.sources = result.records;
       this.sourceTotal = result.total;
     } catch (err) {
@@ -340,13 +351,12 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
 
   async onCrosswalkStatusFilterChanged(status: string): Promise<void> {
     this.crosswalkStatusFilter = status;
-    await this.loadCrosswalks();
   }
 
   private async loadCrosswalks(): Promise<void> {
     this.crosswalksLoading = true;
     try {
-      const result = await this.api.listCrosswalks({ status: this.crosswalkStatusFilter || undefined });
+      const result = await this.loadCatalogue(offset => this.api.listCrosswalks({ limit: 100, offset }));
       this.crosswalks = result.records;
       this.crosswalkTotal = result.total;
     } catch (err) {
@@ -481,6 +491,20 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   closeCrosswalkEditor(): void {
     this.activeCrosswalk = null;
     this.view = 'crosswalks';
+  }
+
+  /** Source/crosswalk catalogues are small configuration lists. Read their existing
+   * pages so stats and local filters describe the whole catalogue, not page one. */
+  private async loadCatalogue<T>(page: (offset: number) => Promise<{ records: T[]; total: number }>): Promise<{ records: T[]; total: number }> {
+    const records: T[] = [];
+    let total = 0;
+    do {
+      const result = await page(records.length);
+      total = result.total;
+      if (!result.records?.length) break;
+      records.push(...result.records);
+    } while (records.length < total);
+    return { records, total };
   }
 
   // ── Helpers ───────────────────────────────────────────────────────

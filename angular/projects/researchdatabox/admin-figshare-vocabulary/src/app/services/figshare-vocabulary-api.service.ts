@@ -265,8 +265,8 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigshareTaxonomySummary[]>(response as ApiResponse<FigshareTaxonomySummary[]>) ?? [];
   }
 
-  public async listSources(scope?: string): Promise<PagedResult<FigshareSourceSummary>> {
-    const params: Record<string, string> = {};
+  public async listSources(scope?: string, paging: { limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareSourceSummary>> {
+    const params: Record<string, string> = this.toParams(paging);
     if (scope) {
       params['scope'] = scope;
     }
@@ -382,7 +382,7 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigshareApplyResult>(response as ApiResponse<FigshareApplyResult>);
   }
 
-  public async listCrosswalks(query: { status?: string; sourceId?: string; localVocabularyId?: string } = {}): Promise<PagedResult<FigshareCrosswalkSummary>> {
+  public async listCrosswalks(query: { status?: string; sourceId?: string; localVocabularyId?: string; limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareCrosswalkSummary>> {
     const params: Record<string, string> = {};
     for (const [key, value] of Object.entries(query)) {
       if (value) {

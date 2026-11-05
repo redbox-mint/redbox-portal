@@ -14,6 +14,13 @@ export class FigshareSourceListComponent {
   @Input() loading = false;
   @Input() busySourceId = '';
 
+  search = '';
+  @Output() addRequested = new EventEmitter<void>();
+  get filteredItems() {
+    const q = this.search.trim().toLowerCase();
+    return this.sources.filter(item => (!this.scopeFilter || item.scope === this.scopeFilter) && `${item.displayName} ${item.taxonomyId}`.toLowerCase().includes(q));
+  }
+
   @Output() scopeFilterChanged = new EventEmitter<'' | 'public' | 'account'>();
   @Output() resyncRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() cloneRequested = new EventEmitter<FigshareSourceSummary>();

@@ -1,6 +1,7 @@
-<div class="figshare-panel">
-  <div class="d-flex flex-wrap justify-content-between align-items-end mb-3">
-    <div>
+<div class="card">
+  <div class="card-header"><h2>{{ 'figshare-vocab-tab-crosswalks' | i18next }}</h2><span>{{ total }}</span></div>
+  <div class="rb-admin-filter-bar">
+    <div class="rb-admin-field">
       <label class="form-label" for="figshare-crosswalk-status-filter">{{
         'figshare-vocab-status-filter-label' | i18next
       }}</label>
@@ -16,15 +17,15 @@
         <option value="archived">{{ 'figshare-vocab-status-archived' | i18next }}</option>
       </select>
     </div>
-    <p class="mb-0 text-muted">{{ 'figshare-vocab-crosswalk-count' | i18next: { count: total } }}</p>
+    <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-crosswalks-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-crosswalks-search" type="search" class="form-control" [(ngModel)]="search" /></div>
   </div>
 
   @if (loading) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
-  } @else if (crosswalks.length === 0) {
-  <p class="text-muted mb-0">{{ 'figshare-vocab-no-crosswalks' | i18next }}</p>
+  } @else if (filteredItems.length === 0) {
+  <div class="rb-admin-empty"><i class="fa fa-exchange fa-3x" aria-hidden="true"></i><h3>{{ (crosswalks.length ? 'figshare-vocab-no-matching-crosswalks' : 'figshare-vocab-no-crosswalks') | i18next }}</h3><p>{{ 'figshare-vocab-crosswalks-empty-help' | i18next }}</p><button type="button" class="btn btn-primary" (click)="addRequested.emit()"><span aria-hidden="true">+</span> {{ 'figshare-vocab-add-action' | i18next }}</button></div>
   } @else {
-  <table class="table table-sm align-middle mb-0">
+  <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-crosswalk-table-caption' | i18next }}</caption>
     <thead>
       <tr>
@@ -36,7 +37,7 @@
       </tr>
     </thead>
     <tbody>
-      @for (crosswalk of crosswalks; track crosswalk.id) {
+      @for (crosswalk of filteredItems; track crosswalk.id) {
       <tr>
         <th scope="row" class="fw-normal">
           <span class="d-block">{{ crosswalk.name }}</span>
@@ -45,9 +46,9 @@
           </small>
         </th>
         <td>
-          <span class="figshare-badge">{{ 'figshare-vocab-status-' + crosswalk.status | i18next }}</span>
+          <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-status-' + crosswalk.status | i18next }}</span>
           @if (crosswalk.historicalTargetCount > 0) {
-          <span class="figshare-badge figshare-badge--historical ms-1">{{
+          <span class="badge rb-admin-badge-warning ms-1">{{
             'figshare-vocab-historical-count' | i18next: { count: crosswalk.historicalTargetCount }
           }}</span>
           }
@@ -60,19 +61,13 @@
         </td>
         <td>{{ crosswalk.approvedMappingCount }} / {{ crosswalk.workingMappingCount }}</td>
         <td>
-          <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-primary" (click)="editRequested.emit(crosswalk)">
-              {{ 'figshare-vocab-action-manage' | i18next }}
-            </button>
-            <button type="button" class="btn btn-outline-danger" (click)="requestDelete(crosswalk)">
-              {{ 'figshare-vocab-action-delete' | i18next }}
-            </button>
-          </div>
+<div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="editRequested.emit(crosswalk)">{{ 'figshare-vocab-action-manage' | i18next }}</button>
+        <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div><button type="button" class="btn btn-sm btn-outline-danger" (click)="requestDelete(crosswalk); actions.open = false">{{ 'figshare-vocab-action-delete' | i18next }}</button></div></details></div>
         </td>
       </tr>
       }
     </tbody>
-  </table>
+  </table></div>
   }
 </div>
 
@@ -80,7 +75,7 @@
 <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
   aria-labelledby="figshareCrosswalkDeleteTitle" (keydown.escape)="cancelDelete()">
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-    <div class="modal-content">
+    <div class="modal-content rb-admin">
       <div class="modal-header">
         <span class="modal-title h5" id="figshareCrosswalkDeleteTitle">{{
           'figshare-vocab-confirm-delete-title' | i18next
@@ -93,7 +88,7 @@
         <button type="button" class="btn btn-secondary" (click)="cancelDelete()" cdkFocusInitial>
           {{ 'figshare-vocab-cancel' | i18next }}
         </button>
-        <button type="button" class="btn btn-danger" (click)="confirmDelete()">
+        <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDelete()">
           {{ 'figshare-vocab-action-delete' | i18next }}
         </button>
       </div>
