@@ -1,3 +1,14 @@
+@if (adminPresentation) {
+<button type="button" class="rb-admin-sort" [attr.aria-sort]="sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="sortClicked()">
+  {{ title }}
+  @if (sort == 'asc') {
+    <i class="fa fa-sort-asc"></i>
+  }
+  @if (sort == 'desc') {
+    <i class="fa fa-sort-desc"></i>
+  }
+</button>
+} @else {
 <a href="#" role="button" [attr.aria-sort]="sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null" (click)="sortClicked()">
   {{ title }}
   @if (sort == 'asc') {
@@ -7,3 +18,4 @@
     <i class="fa fa-sort-desc"></i>
   }
 </a>
+}
