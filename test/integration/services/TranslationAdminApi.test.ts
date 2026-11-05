@@ -78,4 +78,39 @@ describe('Translation admin API', function () {
     await ordinary.post(base + '/revert').set('X-CSRF-Token', await token(ordinary)).send({ key: 'menu-admin' }).expect(403);
   });
 
+  it('previews, exports and applies only allowed flat JSON changes', async () => {
+    const json = JSON.stringify({ label: 'Changed parent', 'label.help': 'Help', 'menu-admin': 'Imported admin', 'translation-unknown-fixture': 'Unknown' });
+    const before = await I18nEntriesService.getBundle(brand, locale, 'translation');
+    const preview = (await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).send({ json }).expect(200)).body;
+    expect(preview.counts.unknown).to.equal(1);
+    expect(await I18nEntriesService.getBundle(brand, locale, 'translation')).to.deep.equal(before);
+    const exported = await admin.get(base + '/export').expect(200).expect('Content-Disposition', /attachment; filename=/);
+    expect(exported.body.label).to.equal('Parent');
+    expect(exported.body['label.help']).to.equal('Help');
+    expect(exported.body).not.to.have.property('_meta');
+    const result = (await admin.post(base + '/import/apply').set('X-CSRF-Token', csrf).send({ json, previewToken: preview.previewToken }).expect(200)).body;
+    expect(result.failed).to.equal(0);
+    const values = (await admin.get(base + '/export').expect(200)).body;
+    expect(values.label).to.equal('Changed parent');
+    expect(values['label.help']).to.equal('Help');
+    expect(values).not.to.have.property('translation-unknown-fixture');
+    await admin.post(base + '/import/apply').set('X-CSRF-Token', csrf).send({ json, previewToken: preview.previewToken }).expect(409);
+    const opted = (await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).send({ json, keepUnknown: true }).expect(200)).body;
+    await admin.post(base + '/import/apply').set('X-CSRF-Token', csrf).send({ json, keepUnknown: true, previewToken: opted.previewToken }).expect(200);
+    expect((await admin.get(base + '/export').expect(200)).body['translation-unknown-fixture']).to.equal('Unknown');
+  });
+  it('rejects invalid imports and protects preview/apply/export with brand Admin and CSRF', async function () {
+    await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).set('Content-Type', 'application/json').send('{malformed').expect(400);
+    await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).send({ json: JSON.stringify({ label: 'a'.repeat(1024 * 1024 + 100) }) }).expect(200);
+    for (const json of ['{', '[]', '{"label":1}', '{"label":{}}', '{"__proto__":"bad"}']) {
+      await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).send({ json }).expect(400);
+    }
+    await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).send({ json: JSON.stringify({ label: 'é'.repeat(1100000) }) }).expect(413);
+    for (const action of ['preview', 'apply']) {
+      await ordinary.post(base + '/import/' + action).set('X-CSRF-Token', await token(ordinary)).send({ json: '{}' }).expect(403);
+      if (sails.config.security.csrf !== false) await admin.post(base + '/import/' + action).send({ json: '{}' }).expect(403);
+    }
+    await ordinary.get(base + '/export').expect(403);
+  });
+
 });

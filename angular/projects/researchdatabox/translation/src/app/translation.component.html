@@ -1,5 +1,5 @@
-<div [attr.aria-hidden]="modalOpen() || languageModalOpen() || displayNameModalOpen() ? 'true' : null"
-  [attr.inert]="modalOpen() || languageModalOpen() || displayNameModalOpen() ? '' : null">
+<div [attr.aria-hidden]="modalOpen() || languageModalOpen() || displayNameModalOpen() || importModalOpen() ? 'true' : null"
+  [attr.inert]="modalOpen() || languageModalOpen() || displayNameModalOpen() || importModalOpen() ? '' : null">
   <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
     <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
     <li>{{ 'admin-nav-site' | i18next }}</li>
@@ -7,7 +7,10 @@
   </ol></nav>
   <header class="rb-admin-page-header">
     <div><h1>{{ 'admin-tx-title' | i18next }}</h1><p>{{ 'admin-tx-description' | i18next }}</p></div>
-    <div class="rb-admin-page-actions"><button type="button" class="btn btn-primary" (click)="openLanguageModal()">{{ 'admin-tx-add' | i18next }}</button></div>
+    <div class="rb-admin-page-actions">
+      <a class="btn btn-outline-secondary" *ngIf="selectedLang" [href]="exportUrl" download>{{ 'admin-tx-export' | i18next }}</a>
+      <button type="button" class="btn btn-outline-secondary" [disabled]="!selectedLang" (click)="openImport()">{{ 'admin-tx-import' | i18next }}</button>
+      <button type="button" class="btn btn-primary" (click)="openLanguageModal()">{{ 'admin-tx-add' | i18next }}</button></div>
   </header>
   <div *ngIf="readWarnings().languages" class="alert alert-warning" role="status" aria-live="polite">
     {{ readWarnings().languages }}
@@ -466,3 +469,42 @@
   </div>
 </div>
 <div *ngIf="displayNameModalOpen()" class="modal-backdrop fade show" aria-hidden="true"></div>
+
+<div *ngIf="importModalOpen()" class="modal fade show d-block" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="tx-import-title" (keydown.escape)="closeImport()">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-header"><h2 class="modal-title h4" id="tx-import-title">{{ 'admin-tx-import-title' | i18next: { language: importLanguage } }}</h2>
+      <button type="button" class="btn-close" [attr.aria-label]="'admin-tx-close' | i18next" [disabled]="importBusy()" (click)="closeImport()"></button>
+    </div>
+    <div class="modal-body">
+      <p class="rb-admin-hint">{{ 'admin-tx-import-help' | i18next }}</p>
+      <div *ngIf="importError()" class="alert alert-danger" role="alert">{{ importError() | i18next }}</div>
+      <label class="form-label" for="tx-import-file">{{ 'admin-tx-import-file' | i18next }}</label>
+      <input id="tx-import-file" class="form-control" type="file" accept=".json,application/json" [disabled]="importBusy()" (change)="readImportFile($event)">
+      <div class="form-check mt-3"><input id="tx-import-unknown" class="form-check-input" type="checkbox" [(ngModel)]="keepUnknown" [disabled]="importBusy()" (ngModelChange)="invalidateImportPreview()">
+        <label for="tx-import-unknown" class="form-check-label">{{ 'admin-tx-import-keep-unknown' | i18next }}</label>
+      </div>
+      <div *ngIf="importPreview() as preview" class="mt-3">
+        <h3 class="h5">{{ 'admin-tx-import-preview' | i18next }}</h3>
+        <div class="rb-admin-stats tx-import-counts">
+          <div *ngFor="let kind of ['added', 'changed', 'unchanged', 'unknown', 'ignored']" class="rb-admin-stat"><b>{{ preview.counts[kind] | number }}</b><span>{{ ('admin-tx-import-' + kind) | i18next }}</span></div>
+        </div>
+        <p class="rb-admin-hint">{{ 'admin-tx-import-sample' | i18next }}</p>
+        <div class="table-responsive"><table class="table tx-import-diff"><thead><tr><th>{{ 'admin-tx-key' | i18next }}</th><th>{{ 'admin-tx-import-before' | i18next }}</th><th>{{ 'admin-tx-import-after' | i18next }}</th><th>{{ 'admin-tx-import-action' | i18next }}</th></tr></thead>
+          <tbody><tr *ngFor="let item of preview.sample"><td><code>{{ item.key }}</code></td><td>{{ item.before }}</td><td>{{ item.after }}</td><td>{{ ('admin-tx-import-' + item.action) | i18next }}</td></tr></tbody>
+        </table></div>
+      </div>
+      <div *ngIf="importResult() as result" class="mt-3" role="status">
+        <div class="alert" [class.alert-warning]="result.failed" [class.alert-success]="!result.failed">{{ 'admin-tx-import-result' | i18next: { applied: result.applied, failed: result.failed, ignored: result.counts.ignored } }}</div>
+        <p *ngIf="result.failed" class="rb-admin-hint">{{ 'admin-tx-import-retry' | i18next }}</p>
+        <ul *ngIf="result.failed"><ng-container *ngFor="let item of result.results"><li *ngIf="item.status === 'failed'"><code>{{ item.key }}</code>: {{ 'admin-tx-import-key-failed' | i18next }}</li></ng-container></ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span *ngIf="importBusy()" role="status">{{ 'admin-tx-loading' | i18next }}</span>
+      <button type="button" class="btn btn-outline-secondary" [disabled]="importBusy()" (click)="closeImport()">{{ 'admin-tx-close' | i18next }}</button>
+      <button type="button" class="btn btn-outline-secondary" [disabled]="!importJson || importBusy()" (click)="previewImport()">{{ 'admin-tx-import-preview' | i18next }}</button>
+      <button *ngIf="importPreview()" type="button" class="btn btn-primary" [disabled]="importBusy() || !(importPreview().counts.added + importPreview().counts.changed)" (click)="applyImport()">{{ 'admin-tx-import-apply' | i18next }}</button>
+    </div>
+  </div></div>
+</div>
+<div *ngIf="importModalOpen()" class="modal-backdrop fade show"></div>

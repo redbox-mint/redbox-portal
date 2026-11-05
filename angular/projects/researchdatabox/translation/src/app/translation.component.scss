@@ -164,3 +164,9 @@
 
 .tx-row-missing { background: var(--admin-surface); }
 .tx-translated { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.tx-import-counts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 991px) { .tx-import-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 575px) { .tx-import-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tx-import-diff { table-layout: fixed; min-width: 560px; }
+.tx-import-diff td { overflow-wrap: anywhere; white-space: pre-wrap; }

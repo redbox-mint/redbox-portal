@@ -19,7 +19,9 @@ describe('Translation admin endpoints', () => {
     });
     controller = new Controllers.Translation();
     req = { user: {}, params: { branding: 'default', locale: 'en', namespace: 'translation' }, body: { displayName: ' English ' } };
-    res = Object.fromEntries(['json', 'badRequest', 'notFound', 'forbidden', 'serverError'].map(k => [k, sinon.stub()]));
+    req.query = {};
+    res = Object.fromEntries(['json', 'badRequest', 'notFound', 'forbidden', 'serverError', 'status', 'set'].map(k => [k, sinon.stub()]));
+    res.status.returns(res);
   });
   afterEach(() => { for (const key of ['BrandingService', 'RolesService', 'UsersService', 'I18nEntriesService']) delete (global as any)[key]; sinon.restore(); });
   it('renames metadata for the route brand without accepting bundle data', async () => {
@@ -75,6 +77,46 @@ describe('Translation admin endpoints', () => {
   it('denies non-Admins on every provenance route', async () => {
     (global as any).UsersService.hasRole.returns(false);
     for (const action of ['editorEntries', 'languageSummaries', 'revertEntry']) await controller[action](req, res);
+    expect(res.forbidden.callCount).to.equal(3);
+  });
+
+  it('keeps preview read-only and requires its token for apply', async () => {
+    const preview = { previewToken: 'a'.repeat(64), counts: { added: 1 } };
+    service.previewImport = sinon.stub().resolves(preview);
+    service.applyImport = sinon.stub().resolves({ applied: 1 });
+    req.body = { json: '{"key":"value"}' };
+    await controller.previewImport(req, res);
+    expect(service.previewImport.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'en', 'translation', req.body.json, false]);
+    expect(service.applyImport.called).to.equal(false);
+    await controller.applyImport(req, res);
+    expect(res.badRequest.calledOnce).to.equal(true);
+    req.body.previewToken = preview.previewToken;
+    await controller.applyImport(req, res);
+    expect(service.applyImport.firstCall.args.slice(0, 3)).to.deep.equal([{ id: 'brand-1' }, 'en', 'translation']);
+  });
+  it('returns size/stale errors safely and rejects non-boolean unknown options', async () => {
+    service.previewImport = sinon.stub();
+    req.body = { json: 'x'.repeat(2 * 1024 * 1024 + 1) };
+    await controller.previewImport(req, res);
+    expect(res.status.calledWith(413)).to.equal(true);
+    req.body = { json: '{}', keepUnknown: 'true' };
+    await controller.previewImport(req, res);
+    expect(res.badRequest.calledOnce).to.equal(true);
+    service.applyImport = sinon.stub().rejects(Object.assign(new Error('Preview is stale; preview again'), { status: 409 }));
+    req.body = { json: '{}', keepUnknown: false, previewToken: 'a'.repeat(64) };
+    await controller.applyImport(req, res);
+    expect(res.status.calledWith(409)).to.equal(true);
+  });
+  it('exports JSON with a safe download filename', async () => {
+    service.exportBundle = sinon.stub().resolves({ label: 'Parent', 'label.help': 'Help' });
+    await controller.exportBundle(req, res);
+    expect(service.exportBundle.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'en', 'translation', false]);
+    expect(res.set.calledWith('Content-Disposition', 'attachment; filename="translations-en-translation.json"')).to.equal(true);
+    expect(res.json.firstCall.args[0]).to.deep.equal({ label: 'Parent', 'label.help': 'Help' });
+  });
+  it('denies every import/export action to users without the route brand Admin role', async () => {
+    (global as any).UsersService.hasRole.returns(false);
+    for (const action of ['previewImport', 'applyImport', 'exportBundle']) await controller[action](req, res);
     expect(res.forbidden.callCount).to.equal(3);
   });
 
