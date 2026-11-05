@@ -126,6 +126,16 @@ export const apiHarvestResponseSchema = withOpenApi(
   { description: 'Legacy harvest response envelope' }
 );
 
+export const harvestRunStatisticsSchema = withOpenApi(
+  z.object({
+    runsLast7Days: z.number().int().nonnegative(),
+    failedLast7Days: z.number().int().nonnegative(),
+    runningNow: z.number().int().nonnegative(),
+    lastSuccessfulRun: z.object({ completedAt: z.string(), sourceName: z.string() }).nullable(),
+  }),
+  { description: 'Global brand statistics over retained run summaries. Seven-day counts use startedAt within the inclusive rolling seven-day window. Running and failed match those exact statuses; success means completed. Latest success is ordered by completedAt across all retained history. List filters and pagination do not apply.' }
+);
+
 export const harvestRunSummarySchema = withOpenApi(
   z.object({
     id: z.string().optional(),

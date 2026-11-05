@@ -10,6 +10,7 @@ import {
   HarvestRunEvent,
   HarvestRunListQuery,
   HarvestRunSummary,
+  HarvestRunStatistics,
   ListApiResponse,
 } from './harvest-run-api.service';
 
@@ -66,6 +67,10 @@ export class HarvestRunsComponent extends BaseComponent {
   selectedRunId = '';
   loadingRuns = false;
   loadingDetail = false;
+  statistics: HarvestRunStatistics | null = null;
+  loadingStatistics = false;
+  statisticsError = '';
+  private statisticsRequestId = 0;
   listError = '';
   detailError = '';
   private detailRequestId = 0;
@@ -446,10 +451,39 @@ export class HarvestRunsComponent extends BaseComponent {
     ];
   }
 
+  public getLastSuccessRelativeTime(): string {
+    const timestamp = this.statistics?.lastSuccessfulRun?.completedAt;
+    if (!timestamp || !Number.isFinite(Date.parse(timestamp))) { return '—'; }
+    const seconds = (Date.parse(timestamp) - Date.now()) / 1000;
+    const formatter = new Intl.RelativeTimeFormat(this.translationService.getCurrentLanguage(), { numeric: 'auto', style: 'short' });
+    for (const [unit, size] of [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]] as const) {
+      if (Math.abs(seconds) >= size) { return formatter.format(Math.round(seconds / size), unit); }
+    }
+    return formatter.format(0, 'second');
+  }
+
+  private async loadStatistics(): Promise<void> {
+    const requestId = ++this.statisticsRequestId;
+    this.loadingStatistics = true;
+    this.statisticsError = '';
+    try {
+      const statistics = await this.harvestRunApiService.getStatistics();
+      if (requestId === this.statisticsRequestId) { this.statistics = statistics; }
+    } catch {
+      if (requestId === this.statisticsRequestId) {
+        this.statistics = null;
+        this.statisticsError = this.translationService.t('harvest-runs-statistics-error');
+      }
+    } finally {
+      if (requestId === this.statisticsRequestId) { this.loadingStatistics = false; }
+    }
+  }
+
   private async loadRuns(page: number): Promise<void> {
     const requestId = ++this.runRequestId;
     this.loadingRuns = true;
     this.listError = '';
+    const statisticsRequest = this.loadStatistics();
     try {
       const response = await this.harvestRunApiService.listRuns({
         status: this.filters.status,
@@ -496,6 +530,7 @@ export class HarvestRunsComponent extends BaseComponent {
       this.listResponse.summary.page = this.loadedRunPage || 1;
       this.loggerService.error(this.listError);
     } finally {
+      await statisticsRequest;
       if (requestId === this.runRequestId) {
         this.loadingRuns = false;
       }

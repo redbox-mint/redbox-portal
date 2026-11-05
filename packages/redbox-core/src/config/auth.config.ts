@@ -80,6 +80,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/users/:id/audit', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/integration-audit(/*)', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/report-config(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/api/harvest-runs/summary', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/harvest-runs', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/harvest-runs(/*)', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/users/link', role: 'Admin', can_update: true },

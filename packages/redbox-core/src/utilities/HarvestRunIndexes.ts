@@ -6,6 +6,8 @@ export const HARVEST_RUN_INDEXES: IndexDescription[] = [
   { key: { status: 1, completedAt: 1, _id: 1 } },
   { key: { brandId: 1, recordType: 1, sourceName: 1, sourceRunId: 1 }, unique: true },
   { key: { brandId: 1, startedAt: -1, _id: -1 } },
+  { key: { brandId: 1, status: 1, startedAt: -1 } },
+  { key: { brandId: 1, status: 1, completedAt: -1, _id: -1 } },
   { key: { status: 1 } },
   { key: { recordType: 1 } },
 ];

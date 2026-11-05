@@ -15,6 +15,13 @@ export interface ListApiResponse<T> {
   records: T[];
 }
 
+export interface HarvestRunStatistics {
+  runsLast7Days: number;
+  failedLast7Days: number;
+  runningNow: number;
+  lastSuccessfulRun: { completedAt: string; sourceName: string } | null;
+}
+
 export interface HarvestRunSummary {
   historyRetention?: { prunedAt: string; successfulDays: number; failedDays: number; complete: boolean };
   id?: string;
@@ -142,6 +149,14 @@ export class HarvestRunApiService extends HttpClientService {
 
   public getBrandingAndPortalUrl(): string {
     return this.brandingAndPortalUrl;
+  }
+
+  public async getStatistics(): Promise<HarvestRunStatistics> {
+    await this.waitForInit();
+    const response = await firstValueFrom(this.http.get<MaybeWrapped<HarvestRunStatistics>>(
+      this.apiUrl('/summary'), this.getJsonRequestOptions()
+    ));
+    return this.unwrap(response);
   }
 
   public async listRuns(query: HarvestRunListQuery = {}): Promise<ListApiResponse<HarvestRunSummary>> {
