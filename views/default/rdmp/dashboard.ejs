@@ -4,11 +4,7 @@
 <% } %>
 <% let appName='dashboard' ; %>
 <% if (typeof showAdminSideBar !== 'undefined' && showAdminSideBar) { %>
-<div class="row admin-layout">
-  <div class="col-md-3 col-lg-2">
-    <%- include('../default/admin/layout/sidebar.ejs') %>
-  </div>
-  <div class="col-md-9 col-lg-10 admin-main-content">
+<%- include('../default/admin/layout/start.ejs') %>
     <div class="default-page">
       <div class="header">
         <h1 id="main-title" class="container">
@@ -29,8 +25,7 @@
         </dashboard>
       </div>
     </div>
-  </div>
-</div>
+<%- include('../default/admin/layout/end.ejs') %>
 <% } else { %>
   <div class="default-page">
     <div class="header">
