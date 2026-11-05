@@ -455,6 +455,106 @@ describe('AppConfigComponent', () => {
     return fixture;
   }
 
+  async function renderAddressTester() {
+    return renderConfig({ schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' },
+      domainsAaf: { type: 'array', items: { type: 'string' } },
+      emailsAaf: { type: 'array', items: { type: 'string' } }
+    } }, model: { enabled: true, domainsAaf: ['uni.edu.au'], emailsAaf: [] } }, 'authorizedDomainsEmails');
+  }
+
+  it('renders the address tester only for authorized domains, and disables invalid input', async () => {
+    const ordinary = await renderConfig({ schema: { type: 'object', properties: { enabled: { type: 'boolean' } } }, model: { enabled: true } });
+    expect(ordinary.nativeElement.querySelector('#address-test-email')).toBeNull();
+    ordinary.destroy();
+    // renderConfig installs a read spy; update it for the next fixture.
+    (appConfigService.getAppConfigForm as jasmine.Spy).and.resolveTo({ schema: { type: 'object', properties: { enabled: { type: 'boolean' } } }, model: { enabled: true } });
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    fixture.componentInstance.configKey = 'authorizedDomainsEmails';
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit(); fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('.app-config-address-check button');
+    expect(button.type).toBe('button');
+    expect(button.disabled).toBeTrue();
+    component.addressEmail.setValue('bad');
+    await component.checkAddress();
+    expect(appConfigService.testAuthorizedEmail).not.toHaveBeenCalled();
+    expect(component.dirty).toBeFalse();
+    fixture.destroy();
+  });
+
+  for (const [reason, allowed, key] of [
+    ['allowed-domain', true, 'admin-config-address-allowed-rule'],
+    ['allowed-exception', true, 'admin-config-address-allowed-rule'],
+    ['denied', false, 'admin-config-address-denied'],
+    ['disabled', true, 'admin-config-address-off'],
+    ['unrestricted', true, 'admin-config-address-empty']
+  ] as const) {
+    it(`shows the server's ${reason} result without saving`, async () => {
+      const fixture = await renderAddressTester();
+      const component = fixture.componentInstance;
+      component.addressEmail.setValue('person@uni.edu.au');
+      component.addressProvider.setValue('oidc');
+      appConfigService.testAuthorizedEmail.and.resolveTo({ allowed, reason, matchedRule: 'uni.edu.au' });
+      const submit = spyOn(appConfigService, 'saveAppConfig').and.callThrough();
+      await component.checkAddress(); fixture.detectChanges();
+      expect(appConfigService.testAuthorizedEmail).toHaveBeenCalledOnceWith('person@uni.edu.au', 'oidc', component.model);
+      expect(fixture.nativeElement.querySelector('[role="status"] .badge').textContent.trim()).toBe(key);
+      expect(fixture.nativeElement.querySelector('.app-config-address-result').classList.contains(allowed ? 'rb-admin-badge-success' : 'rb-admin-badge-danger')).toBeTrue();
+      expect(submit).not.toHaveBeenCalled();
+      expect(component.dirty).toBeFalse();
+      fixture.destroy();
+    });
+  }
+
+  it('sends unsaved edits and hides results after a rule, email or provider changes', async () => {
+    const fixture = await renderAddressTester();
+    const component = fixture.componentInstance;
+    component.model.domainsAaf.push('draft.org');
+    component.addressEmail.setValue('person@draft.org');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('admin-config-address-unsaved');
+    await component.checkAddress(); fixture.detectChanges();
+    const draft = appConfigService.testAuthorizedEmail.calls.mostRecent().args[2];
+    expect(draft.domainsAaf).toEqual(['uni.edu.au', 'draft.org']);
+    component.model.domainsAaf.push('later.org');
+    expect(draft.domainsAaf).toEqual(['uni.edu.au', 'draft.org']);
+    expect(component.addressResult).toBeUndefined();
+    await component.checkAddress();
+    component.addressEmail.setValue('other@draft.org');
+    expect(component.addressResult).toBeUndefined();
+    await component.checkAddress();
+    component.addressProvider.setValue('oidc');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.app-config-address-result')).toBeNull();
+    fixture.destroy();
+  });
+
+  it('prevents duplicate checks, ignores stale responses and supports retry after errors', async () => {
+    const fixture = await renderAddressTester();
+    const component = fixture.componentInstance;
+    component.addressEmail.setValue('person@uni.edu.au');
+    let complete!: (value: any) => void;
+    appConfigService.testAuthorizedEmail.and.returnValue(new Promise(resolve => { complete = resolve; }));
+    const pending = component.checkAddress();
+    await component.checkAddress();
+    expect(appConfigService.testAuthorizedEmail).toHaveBeenCalledTimes(1);
+    component.model.enabled = false;
+    complete({ allowed: false, reason: 'denied' });
+    await pending;
+    expect(component.addressResult).toBeUndefined();
+    appConfigService.testAuthorizedEmail.and.rejectWith(new Error('network'));
+    await component.checkAddress(); fixture.detectChanges();
+    expect(component.addressError).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('admin-config-address-error');
+    appConfigService.testAuthorizedEmail.and.resolveTo({ allowed: true, reason: 'disabled' });
+    await component.checkAddress();
+    expect(component.addressError).toBeFalse();
+    expect(component.addressResult?.reason).toBe('disabled');
+    expect(component.addressChecking).toBeFalse();
+    fixture.destroy();
+  });
+
   it('translates schema presentation without translating stored title properties or defaults', async () => {
     translationService.translationMap['admin-config-label-title'] = 'Title';
     translationService.translationMap['admin-nav-menu'] = 'Menu';
@@ -1086,6 +1186,7 @@ export function getStubAppConfigService(recordData: any = {}) {
         }
       }
     },
+    testAuthorizedEmail: jasmine.createSpy('testAuthorizedEmail').and.resolveTo({ allowed: true, reason: 'disabled' }),
     saveAppConfig: function (configKey: string, model: any) {
       this.lastSavedModel = model;
       if (configKey === "fail") {

@@ -2926,5 +2926,20 @@
   "admin-roles-replace-confirm": "Remove {{role}} from {{name}}? They'll be given the default role {{defaultRole}} so they can still sign in.",
   "admin-roles-default-blocked": "This is their only role and it is already the default role, or the default role is unavailable. Assign another role first so they can still sign in.",
   "admin-roles-blocked-title": "Role cannot be removed",
-  "admin-roles-close": "Close"
+  "admin-roles-close": "Close",
+  "admin-config-address-title": "Test an address",
+  "admin-config-address-help": "Check the current form before you save. This does not change your configuration.",
+  "admin-config-address-semantics": "Tests the restriction applied when creating AAF and OIDC accounts. Sign-in lowercases incoming addresses; stored rules are case-sensitive. Domains match exactly, without subdomains. Empty lists for a provider allow everyone. Other sign-in checks still apply.",
+  "admin-config-address-unsaved": "Testing your unsaved changes",
+  "admin-config-address-current": "Testing the current form",
+  "admin-config-address-email": "Email",
+  "admin-config-address-provider": "Provider",
+  "admin-config-address-check": "Check",
+  "admin-config-address-checking": "Checking…",
+  "admin-config-address-allowed-rule": "Allowed via {{rule}}",
+  "admin-config-address-off": "Allowed: restriction is off",
+  "admin-config-address-empty": "Allowed: no rules configured for this provider",
+  "admin-config-address-denied": "Denied: no matching domain or email",
+  "admin-config-address-invalid": "Enter a valid email address (up to 254 characters).",
+  "admin-config-address-error": "Could not check this address. Check your session and form values, then try again."
 }

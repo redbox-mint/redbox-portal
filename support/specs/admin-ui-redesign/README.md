@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/07-auth-domain-tester`: authorized-address tester using the shared AAF/OIDC matcher, brand Admin and CSRF protection, and unsaved-form testing without persistence.
+
 Delivered on `admin-deferred/06-users-roles`: successful interactive last-login tracking, server-side sign-in filters, editable role descriptions, atomic replacement of sole roles, and the configured default-role marker.
 
 Delivered on `admin-deferred/05-deleted-records`: record-type badges, original deletion actors, server-side deletion filters and bounded bulk restore/permanent delete with per-record results.
@@ -281,3 +283,16 @@ The dashboard editor translates column headings for display while preserving edi
 The site logo uses a non-heading element only on admin pages (including legacy admin Parties), so the
 content supplies the sole H1. Admin-scoped CSS preserves its portal layout. Ordinary portal pages keep
 the original logo heading and styles. Draft branding typography stays inside the preview shadow root.
+
+### Authorized-address tester
+
+The authorized domains editor posts its current form to the brand Admin, CSRF-protected
+`POST /:branding/:portal/admin/appconfig/authorizedDomainsEmails/test` contract. Other callers
+may omit `draft` to test saved runtime configuration. The draft is a complete replacement,
+never merged or saved. Results distinguish an exact domain or email rule, restriction off,
+empty provider lists (allowed), and no match (denied). Results disappear when inputs change.
+
+This preserves the existing account-creation gate: incoming AAF/OIDC addresses are lowercased,
+stored rules are case-sensitive, domains match exactly without subdomains, and empty lists for
+the selected provider allow all. Existing accounts and other authentication checks retain their
+current behavior. The reference mock's subdomain example is not the server's matching policy.
