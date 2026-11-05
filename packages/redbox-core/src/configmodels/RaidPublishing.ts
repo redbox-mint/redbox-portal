@@ -41,14 +41,49 @@ export const RAID_PUBLISHING_SCHEMA = {
   type: 'object',
   required: ['enabled', 'connection', 'durableRetry', 'raidFieldName', 'orcidBaseUrl', 'types', 'mapping'],
   properties: {
-    enabled: { type: 'boolean' },
-    connection: { type: 'object' },
-    durableRetry: { type: 'object' },
-    saveBodyInMeta: { type: 'boolean' },
-    raidFieldName: { type: 'string' },
-    orcidBaseUrl: { type: 'string' },
-    types: { type: 'object' },
-    mapping: { type: 'object' }
+    enabled: { type: 'boolean', title: 'Enabled' },
+    connection: {
+      type: 'object', title: 'Connection',
+      properties: {
+        baseUrl: { type: 'string', title: 'API Base URL' },
+        token: { type: 'string', title: 'API Token' },
+        timeoutMs: { type: 'number', title: 'Request Timeout (ms)' },
+        oauth: {
+          type: 'object', title: 'OAuth',
+          properties: {
+            url: { type: 'string', title: 'Token URL' },
+            clientId: { type: 'string', title: 'Client ID' },
+            username: { type: 'string', title: 'Username' },
+            password: { type: 'string', title: 'Password' },
+            timeoutMs: { type: 'number', title: 'Token Timeout (ms)' },
+            expirySkewMs: { type: 'number', title: 'Expiry Skew (ms)' }
+          }
+        },
+        retry: {
+          type: 'object', title: 'Retries',
+          properties: {
+            maxAttempts: { type: 'number', title: 'Max Attempts' },
+            baseDelayMs: { type: 'number', title: 'Base Delay (ms)' },
+            maxDelayMs: { type: 'number', title: 'Max Delay (ms)' },
+            jitter: { type: 'boolean', title: 'Jitter' },
+            retryOnStatusCodes: { type: 'array', title: 'Retry On Status Codes', items: { type: 'integer' } }
+          }
+        }
+      }
+    },
+    durableRetry: {
+      type: 'object', title: 'Durable Retry Job',
+      properties: {
+        jobName: { type: 'string', title: 'Job Name' },
+        schedule: { type: 'string', title: 'Schedule' },
+        maxAttempts: { type: 'number', title: 'Max Attempts' }
+      }
+    },
+    saveBodyInMeta: { type: 'boolean', title: 'Save Request Body in Record Metadata' },
+    raidFieldName: { type: 'string', title: 'RAiD Field Name' },
+    orcidBaseUrl: { type: 'string', title: 'ORCID Base URL' },
+    types: { type: 'object', title: 'Types' },
+    mapping: { type: 'object', title: 'Field Mapping' }
   }
 };
 

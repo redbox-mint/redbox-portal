@@ -68,6 +68,24 @@ describe('AppConfigService', function () {
     }
   });
 
+  it('returns presentation metadata separately from the unchanged masked model', async function () {
+    const schema = { type: 'object', properties: { connection: { type: 'object' } } };
+    const sections = [{ titleKey: 'connection-label', fields: ['connection'] }];
+    (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+      modelName: 'MetadataModel', class: class {}, schema, title: 'Integration',
+      descriptionKey: 'integration-description', sections, secretFields: ['connection.token']
+    });
+    service.brandingAppConfigMap.default = { connection: {} } as any;
+    (service.brandingAppConfigMap.default as any).test = { connection: { token: 'secret', baseUrl: 'https://example.org' } };
+    const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+    expect(form.title).to.equal('Integration');
+    expect(form.descriptionKey).to.equal('integration-description');
+    expect(form.sections).to.deep.equal(sections);
+    expect(form.secretFields).to.deep.equal(['connection.token']);
+    expect(form.model).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK, baseUrl: 'https://example.org' } });
+    expect((service.brandingAppConfigMap.default as any).test.connection.token).to.equal('secret');
+  });
+
   describe('AWS secret storage', function () {
     const arn = 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:test-123456';
     const reference = { $appConfigSecret: { provider: 'aws-secrets-manager', arn } };
