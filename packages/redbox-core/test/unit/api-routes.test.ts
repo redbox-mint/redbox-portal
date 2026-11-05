@@ -311,6 +311,22 @@ describe('API routes contract layer', function () {
     expect(operation['x-redbox-roles']).to.deep.equal(['Admin']);
   });
 
+  it('documents the default and effective session cookie names', function () {
+    const globalWithSails = globalThis as typeof globalThis & { sails?: { config?: Record<string, unknown> } };
+    const previousSails = globalWithSails.sails;
+    try {
+      delete globalWithSails.sails;
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('redbox.sid');
+      globalWithSails.sails = { config: { redboxSession: { name: 'custom.sid' } } };
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('custom.sid');
+    } finally {
+      if (previousSails === undefined) delete globalWithSails.sails;
+      else globalWithSails.sails = previousSails;
+    }
+  });
+
   it('should derive x-redbox-roles from runtime auth rules', function () {
     const globalWithSails = globalThis as typeof globalThis & {
       sails?: { config?: Record<string, unknown> };

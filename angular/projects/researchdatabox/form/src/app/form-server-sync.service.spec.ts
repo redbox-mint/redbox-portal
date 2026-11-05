@@ -19,6 +19,33 @@ describe('FormServerSyncService', () => {
     service = TestBed.inject(FormServerSyncService);
   });
 
+  it('retains silent source refreshes while an earlier setter is awaiting', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => release = resolve);
+    const notes = new FormControl('before') as FormControl & {
+      setCustomValue(value: unknown, options?: { emitEvent?: boolean }): Promise<void>;
+    };
+    notes.setCustomValue = async (value, options) => { await gate; notes.setValue(value, options); };
+    const title = new FormControl('old source');
+    const reference = new FormControl('a');
+    const form = new FormGroup({ notes, reference, title });
+    const formDefMap = new FormComponentsMap([], { name: 'related-sync', componentDefinitions: [], relatedRecords: {
+      displayTargets: [{ metadataPointer: '/title', relationId: 'activity' }],
+      relations: [{ relationId: 'activity', referenceTokens: ['reference'] }], sources: [],
+    } } as FormConfigFrame);
+    formDefMap.withFormControl = { notes, reference, title };
+    const sync = service.applyServerMetadata(
+      { notes: 'before', reference: 'a' },
+      { notes: 'after', reference: 'a', title: 'stored copy' }, formDefMap, form, 'always');
+    await Promise.resolve();
+    title.setValue('fresh source', { emitEvent: false });
+    release();
+    await sync;
+    expect(notes.value).toBe('after');
+    expect(title.value).toBe('fresh source');
+    expect(title.pristine).toBeTrue();
+  });
+
   it('keeps a control dirty when it was edited while the save was in flight', async () => {
     const serverControl = new FormControl('before-server-sync');
     const localControl = new FormControl('before-local-edit');
