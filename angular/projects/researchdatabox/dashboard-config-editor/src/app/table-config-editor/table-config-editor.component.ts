@@ -1,163 +1,30 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } from '../dashboard-config-api.service';
 
-type Tab = 'columns' | 'formatRules' | 'rowRules' | 'groupConfig';
-
 @Component({
   selector: 'table-config-editor',
   template: `
-    <div class="dc-table-config-editor">
-      <ul class="nav nav-tabs dc-tabs" role="tablist">
-        <li role="presentation" [class.active]="activeTab === 'columns'">
-          <a role="tab" (click)="activeTab = 'columns'">
-            <i class="fa fa-columns"></i>
-            Columns
-            <span class="dc-tab-count" *ngIf="(config.rowConfig?.length || 0) as count">{{ count }}</span>
-          </a>
-        </li>
-        <li role="presentation" [class.active]="activeTab === 'rowRules'">
-          <a role="tab" (click)="activeTab = 'rowRules'">
-            <i class="fa fa-bolt"></i>
-            Row actions
-            <span class="dc-tab-count" *ngIf="(config.rowRulesConfig?.length || 0) as count">{{ count }}</span>
-          </a>
-        </li>
-        <li role="presentation" [class.active]="activeTab === 'formatRules'">
-          <a role="tab" (click)="activeTab = 'formatRules'">
-            <i class="fa fa-sliders"></i>
-            Filters, sorting and search
-          </a>
-        </li>
-        <li role="presentation" [class.active]="activeTab === 'groupConfig'">
-          <a role="tab" (click)="activeTab = 'groupConfig'">
-            <i class="fa fa-object-group"></i>
-            Grouping
-          </a>
-        </li>
-      </ul>
-      <div class="tab-content dc-tab-content">
-        <div *ngIf="activeTab === 'columns'" class="dc-tab-pane">
-          <column-editor [columns]="config.rowConfig || []" [catalogue]="catalogue" (columnsChange)="updateRowConfig($event)"></column-editor>
-        </div>
-        <div *ngIf="activeTab === 'rowRules'" class="dc-tab-pane">
-          <p class="dc-tab-help">Named rule sets used by column templates through <code>evaluateRowLevelRules</code>, for example action links.</p>
-          <rule-set-editor [ruleSets]="config.rowRulesConfig || []" (ruleSetsChange)="updateRowRules($event)"></rule-set-editor>
-        </div>
-        <div *ngIf="activeTab === 'formatRules'" class="dc-tab-pane">
-          <dashboard-filters-editor [targetKind]="targetKind" [queryFilterKeys]="queryFilterKeys" [columns]="config.rowConfig || []" [catalogue]="catalogue" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-filters-editor>
-        </div>
-        <div *ngIf="activeTab === 'groupConfig'" class="dc-tab-pane">
-          <dashboard-grouping-editor [targetKind]="targetKind" [recordTypes]="recordTypes" [fields]="catalogue?.fields || []" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-grouping-editor>
-          <section class="dc-group-section">
-            <h5 class="dc-group-section-title">
-              <i class="fa fa-columns"></i>
-              Group row columns
-            </h5>
-            <column-editor [columns]="config.groupRowConfig || []" [catalogue]="catalogue" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
-          </section>
-          <section class="dc-group-section">
-            <h5 class="dc-group-section-title">
-              <i class="fa fa-filter"></i>
-              Group row rules
-            </h5>
-            <rule-set-editor [ruleSets]="config.groupRowRulesConfig || []" (ruleSetsChange)="updateGroupRowRules($event)"></rule-set-editor>
-          </section>
-        </div>
+    <section class="rb-admin-form-section">
+      <header class="rb-admin-form-section-header"><h3>{{ 'admin-dashboard-columns' | i18next }}</h3><span class="badge rb-admin-badge-info">{{ config.rowConfig?.length || 0 }}</span></header>
+      <div class="rb-admin-form-section-body"><column-editor [columns]="config.rowConfig || []" [catalogue]="catalogue" (columnsChange)="updateRowConfig($event)"></column-editor></div>
+    </section>
+    <details class="rb-admin-form-section">
+      <summary class="rb-admin-form-section-header"><div><h3>{{ 'admin-dashboard-filters-sort' | i18next }}</h3><p>{{ 'admin-dashboard-filters-summary' | i18next }}</p></div></summary>
+      <div class="rb-admin-form-section-body"><dashboard-filters-editor [targetKind]="targetKind" [queryFilterKeys]="queryFilterKeys" [columns]="config.rowConfig || []" [catalogue]="catalogue" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-filters-editor></div>
+    </details>
+    <details class="rb-admin-form-section">
+      <summary class="rb-admin-form-section-header"><div><h3>{{ 'admin-dashboard-row-actions' | i18next }}</h3><p>{{ 'admin-dashboard-row-actions-summary' | i18next }}</p></div><span class="badge rb-admin-badge-info">{{ config.rowRulesConfig?.length || 0 }}</span></summary>
+      <div class="rb-admin-form-section-body"><rule-set-editor [ruleSets]="config.rowRulesConfig || []" (ruleSetsChange)="updateRowRules($event)"></rule-set-editor></div>
+    </details>
+    <details class="rb-admin-form-section">
+      <summary class="rb-admin-form-section-header"><div><h3>{{ 'admin-dashboard-grouping' | i18next }}</h3><p>{{ 'admin-dashboard-grouping-summary' | i18next }}</p></div></summary>
+      <div class="rb-admin-form-section-body">
+        <dashboard-grouping-editor [targetKind]="targetKind" [recordTypes]="recordTypes" [fields]="catalogue?.fields || []" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-grouping-editor>
+        <h4 class="dc-subheading">{{ 'admin-dashboard-group-columns' | i18next }}</h4><column-editor [columns]="config.groupRowConfig || []" [catalogue]="catalogue" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
+        <h4 class="dc-subheading">{{ 'admin-dashboard-group-rules' | i18next }}</h4><rule-set-editor [ruleSets]="config.groupRowRulesConfig || []" (ruleSetsChange)="updateGroupRowRules($event)"></rule-set-editor>
       </div>
-    </div>
+    </details>
   `,
-  styles: [`
-    .dc-table-config-editor {
-      display: flex;
-      flex-direction: column;
-    }
-    .dc-tabs {
-      border-bottom: 1px solid var(--dc-border, #e5e7eb);
-      margin-bottom: 0;
-    }
-    .dc-tabs > li > a {
-      align-items: center;
-      border-radius: 4px 4px 0 0;
-      color: var(--dc-text-muted, #4b5563);
-      cursor: pointer;
-      display: inline-flex;
-      font-size: 13px;
-      font-weight: 500;
-      gap: 8px;
-      padding: 10px 14px;
-      transition: color 120ms ease, background 120ms ease;
-    }
-    .dc-tabs > li > a:hover {
-      background: var(--dc-surface-muted, #f9fafb);
-      color: var(--dc-text, #1f2937);
-    }
-    .dc-tabs > li.active > a,
-    .dc-tabs > li.active > a:hover,
-    .dc-tabs > li.active > a:focus {
-      background: #fff;
-      border: 1px solid var(--dc-border, #e5e7eb);
-      border-bottom-color: #fff;
-      color: var(--dc-accent, #2563eb);
-      font-weight: 600;
-    }
-    .dc-tabs > li > a i {
-      color: var(--dc-text-subtle, #6b7280);
-      font-size: 12px;
-    }
-    .dc-tabs > li.active > a i {
-      color: var(--dc-accent, #2563eb);
-    }
-    .dc-tab-count {
-      background: var(--dc-surface-deeper, #f3f4f6);
-      border-radius: 999px;
-      color: var(--dc-text-muted, #4b5563);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 1px 8px;
-    }
-    .dc-tabs > li.active > a .dc-tab-count {
-      background: var(--dc-accent-soft, #eff6ff);
-      color: var(--dc-accent, #2563eb);
-    }
-    .dc-tab-content {
-      background: #fff;
-      border: 1px solid var(--dc-border, #e5e7eb);
-      border-top: 0;
-      border-radius: 0 0 6px 6px;
-    }
-    .dc-tab-pane {
-      padding: 16px;
-    }
-    .dc-tab-help {
-      color: var(--dc-text-subtle, #6b7280);
-      font-size: 12px;
-      margin: 0 0 12px;
-    }
-    .dc-group-section {
-      border-top: 1px solid var(--dc-border, #e5e7eb);
-      margin-top: 20px;
-      padding-top: 20px;
-    }
-    .dc-group-section + .dc-group-section {
-      border-top: 1px solid var(--dc-border, #e5e7eb);
-      margin-top: 20px;
-      padding-top: 20px;
-    }
-    .dc-group-section-title {
-      align-items: center;
-      color: var(--dc-text-muted, #4b5563);
-      display: inline-flex;
-      font-size: 0.85rem;
-      font-weight: 600;
-      gap: 8px;
-      letter-spacing: 0.03em;
-      margin: 0 0 12px;
-      text-transform: uppercase;
-    }
-    .dc-group-section-title i {
-      color: var(--dc-text-subtle, #6b7280);
-    }
-  `],
   standalone: false
 })
 export class TableConfigEditorComponent {
@@ -168,7 +35,6 @@ export class TableConfigEditorComponent {
   @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Output() configChange = new EventEmitter<DashboardTableConfig>();
 
-  activeTab: Tab = 'columns';
 
   private emitConfig(): void {
     this.configChange.emit(this.config);

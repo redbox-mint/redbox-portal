@@ -91,7 +91,7 @@ export const USER_FILTER_PROPERTIES = [
         <header class="dc-guided-header">
           <h5><i class="fa fa-sort-amount-desc"></i> Default order</h5>
           <p>
-            <ng-container *ngIf="columnSort">Records are sorted by the <strong>{{ columnSort }}</strong> column, as set on the Columns tab. The order below is only used if no column has an initial sort.</ng-container>
+            <ng-container *ngIf="columnSort">{{ 'admin-dashboard-column-sort-help' | i18next: { column: columnSort } }}</ng-container>
             <ng-container *ngIf="!columnSort">No column declares an initial sort, so this order is used.</ng-container>
           </p>
         </header>
@@ -100,7 +100,7 @@ export const USER_FILTER_PROPERTIES = [
             <label class="dc-form-label" for="dc-sort-field">Sort by</label>
             <select id="dc-sort-field" class="form-control" [(ngModel)]="sortField" (ngModelChange)="emitSort()">
               <option value="">Last modified (default)</option>
-              <option *ngFor="let option of sortOptions" [value]="option.value">{{ option.label }}</option>
+              <option *ngFor="let option of sortOptions; trackBy: trackSortOption" [value]="option.value">{{ option.label }}</option>
               <option value="__custom">Other field…</option>
             </select>
             <dashboard-field-picker *ngIf="sortField === '__custom'" class="dc-mt-6" [catalogue]="catalogue" filter="scalar" [(value)]="customSortField" (valueChange)="emitSort()" placeholder="metadata.some.field" ariaLabel="Sort field path"></dashboard-field-picker>
@@ -161,44 +161,6 @@ export const USER_FILTER_PROPERTIES = [
       </p>
     </div>
   `,
-  styles: [`
-    .dc-guided-editor { display: flex; flex-direction: column; gap: 22px; }
-    .dc-guided-section + .dc-guided-section { border-top: 1px solid var(--dc-border, #e5e7eb); padding-top: 20px; }
-    .dc-guided-header h5 { align-items: center; color: var(--dc-text, #1f2937); display: flex; font-size: 0.95rem; font-weight: 600; gap: 8px; margin: 0 0 4px; }
-    .dc-guided-header h5 i { color: var(--dc-text-subtle, #6b7280); }
-    .dc-guided-header p { color: var(--dc-text-subtle, #6b7280); font-size: 12px; margin: 0 0 12px; }
-    .dc-choice-cards { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .dc-choice-card { align-items: flex-start; border: 1px solid var(--dc-border, #e5e7eb); border-radius: 6px; cursor: pointer; display: flex; font-weight: normal; gap: 10px; margin: 0; padding: 10px 12px; }
-    .dc-choice-card.active { background: var(--dc-accent-soft, #eff6ff); border-color: var(--dc-accent, #2563eb); }
-    .dc-choice-card input { margin-top: 3px; }
-    .dc-choice-card span { display: flex; flex-direction: column; gap: 2px; }
-    .dc-choice-card small { color: var(--dc-text-subtle, #6b7280); font-size: 12px; }
-    .dc-sentence-builder, .dc-inline-fields { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
-    .dc-inline-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
-    .dc-form-group { display: flex; flex-direction: column; }
-    .dc-form-label { color: var(--dc-text-muted, #4b5563); font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
-    .dc-form-help { color: var(--dc-text-subtle, #6b7280); font-size: 12px; margin-top: 3px; }
-    .dc-form-help-error { color: var(--dc-danger, #b91c1c); font-size: 12px; }
-    .dc-form-help-warning { color: var(--dc-warning, #d97706) !important; }
-    .dc-mono { font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace; font-size: 12px; }
-    .dc-mt-6 { margin-top: 6px; }
-    .dc-guided-summary { align-items: center; background: var(--dc-success-soft, #f0fdf4); border-radius: 4px; color: #166534; display: flex; font-size: 13px; gap: 8px; margin: 12px 0 0; padding: 8px 12px; }
-    .dc-guided-summary.dc-guided-incomplete { background: var(--dc-warning-soft, #fffbeb); color: #92400e; }
-    .dc-search-group { border: 1px solid var(--dc-border, #e5e7eb); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
-    .dc-search-group + .dc-search-group { margin-top: 10px; }
-    .dc-search-group-unused { border-style: dashed; }
-    .dc-search-group-title { align-items: center; display: flex; font-size: 13px; gap: 8px; }
-    .dc-search-group-title .btn-link { margin-left: auto; }
-    .dc-search-field { border-bottom: 1px dashed var(--dc-border, #e5e7eb); padding-bottom: 8px; }
-    .dc-schema-status { color: var(--dc-text-subtle, #6b7280); font-size: 12px; margin: 0; }
-    .dc-search-field-row { align-items: start; display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; }
-    .dc-row-actions { display: flex; gap: 4px; }
-    .dc-template-toggle { padding-left: 0; }
-    .dc-empty-inline { color: var(--dc-text-subtle, #6b7280); font-size: 12px; font-style: italic; }
-    @media (max-width: 991px) {
-      .dc-choice-cards, .dc-sentence-builder, .dc-inline-fields { grid-template-columns: 1fr; }
-    }
-  `],
   standalone: false
 })
 export class FiltersEditorComponent implements OnChanges {
@@ -315,6 +277,10 @@ export class FiltersEditorComponent implements OnChanges {
     }
     return options;
   }
+
+  // Angular schedules select writes after rendering. Retain the option nodes
+  // when deriving labels from editable columns so those writes can settle.
+  trackSortOption(index: number, option: { value: string }): string { return option.value; }
 
   get columnSort(): string {
     const column = (this.columns ?? []).find((c) => c.defaultSort && (c.initialSort === 'asc' || c.initialSort === 'desc'))

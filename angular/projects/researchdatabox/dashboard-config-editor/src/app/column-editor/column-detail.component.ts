@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config-api.service';
 
 @Component({
@@ -7,100 +7,53 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
     <div class="dc-column-detail" *ngIf="column">
       <h6 class="dc-column-detail-title">
         <i class="fa fa-pencil"></i>
-        Edit “{{ column.title || 'Untitled' }}”
+        {{ 'admin-dashboard-column-edit' | i18next: { name: column.title || ('admin-dashboard-untitled' | i18next) } }}
       </h6>
       <div class="dc-column-detail-grid">
         <div class="form-group">
-          <label class="dc-form-label">Title</label>
-          <input type="text" class="form-control" [(ngModel)]="column.title" placeholder="Display title" />
+          <label class="dc-form-label" [for]="id + 'title'">{{ 'admin-dashboard-title' | i18next }}</label>
+          <input type="text" class="form-control" [id]="id + 'title'" [(ngModel)]="column.title" (ngModelChange)="columnChange.emit()" [placeholder]="'admin-dashboard-title-placeholder' | i18next" />
         </div>
         <div class="form-group">
-          <label class="dc-form-label" [attr.for]="'dc-column-variable'">Record field</label>
-          <dashboard-field-picker inputId="dc-column-variable" [catalogue]="catalogue" [(value)]="column.variable" placeholder="e.g. metadata.title"></dashboard-field-picker>
-          <small class="dc-form-help">Used for sorting and to identify the cell. Leave empty for columns such as actions.</small>
+          <label class="dc-form-label" [attr.for]="id + '-field'">{{ 'admin-dashboard-record-field' | i18next }}</label>
+          <dashboard-field-picker [inputId]="id + '-field'" [catalogue]="catalogue" [(value)]="column.variable" (valueChange)="columnChange.emit()" placeholder="e.g. metadata.title"></dashboard-field-picker>
+          <small class="dc-form-help">{{ 'admin-dashboard-field-help' | i18next }}</small>
         </div>
         <div class="form-group dc-column-detail-full">
-          <label class="dc-form-label">Template</label>
-          <textarea class="form-control dc-mono" rows="4" [(ngModel)]="column.template" [placeholder]="templatePlaceholder"></textarea>
+          <label class="dc-form-label" [for]="id + 'template'">{{ 'admin-dashboard-template' | i18next }}</label>
+          <textarea class="form-control dc-mono" rows="4" [id]="id + 'template'" [(ngModel)]="column.template" (ngModelChange)="columnChange.emit()" [placeholder]="templatePlaceholder"></textarea>
         </div>
         <div class="form-group">
-          <label class="dc-form-label">Initial Sort</label>
-          <select class="form-control" [(ngModel)]="column.initialSort">
-            <option value="">None</option>
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
+          <label class="dc-form-label" [for]="id + 'sort'">{{ 'admin-dashboard-initial-sort' | i18next }}</label>
+          <select class="form-control" [id]="id + 'sort'" [ngModel]="column.initialSort || ''" (ngModelChange)="setInitialSort($event)">
+            <option value="">{{ 'admin-dashboard-none' | i18next }}</option>
+            <option value="asc">{{ 'admin-dashboard-ascending' | i18next }}</option>
+            <option value="desc">{{ 'admin-dashboard-descending' | i18next }}</option>
           </select>
         </div>
         <div class="form-group dc-column-detail-flag">
           <label class="dc-inline-toggle">
-            <input type="checkbox" [(ngModel)]="column.defaultSort" />
-            <span>Use as default sort column</span>
+            <input type="checkbox" [(ngModel)]="column.defaultSort" (ngModelChange)="columnChange.emit()" />
+            <span>{{ 'admin-dashboard-default-sort-column' | i18next }}</span>
           </label>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    .dc-column-detail {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .dc-column-detail-title {
-      align-items: center;
-      color: var(--dc-text-muted, #4b5563);
-      display: inline-flex;
-      font-size: 0.8rem;
-      font-weight: 600;
-      gap: 8px;
-      letter-spacing: 0.04em;
-      margin: 0;
-      text-transform: uppercase;
-    }
-    .dc-column-detail-title i {
-      color: var(--dc-text-subtle, #6b7280);
-    }
-    .dc-column-detail-grid {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .dc-column-detail-full {
-      grid-column: 1 / -1;
-    }
-    .dc-column-detail-flag {
-      align-items: center;
-      display: flex;
-    }
-    .dc-form-label {
-      color: var(--dc-text-muted, #4b5563);
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .dc-inline-toggle {
-      align-items: center;
-      cursor: pointer;
-      display: inline-flex;
-      font-weight: 500;
-      gap: 8px;
-      margin: 0;
-    }
-    .dc-mono {
-      font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
-      font-size: 12px;
-    }
-    @media (max-width: 767px) {
-      .dc-column-detail-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  `],
   standalone: false
 })
 export class ColumnDetailComponent {
   @Input() catalogue: DashboardFieldCatalogue | null = null;
+  @Output() columnChange = new EventEmitter<void>();
   @Input() column: DashboardRowConfig | null = null;
+  static nextId = 0;
+  readonly id = `dc-column-${++ColumnDetailComponent.nextId}`;
+  setInitialSort(value: 'asc' | 'desc' | ''): void {
+    if (!this.column) return;
+    if (value) this.column.initialSort = value;
+    else delete this.column.initialSort;
+    this.columnChange.emit();
+  }
+
   readonly templatePlaceholder = 'Handlebars template, e.g. {{title}}';
 }
