@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VocabDetailComponent } from './vocab-detail.component';
 
@@ -17,7 +18,7 @@ describe('VocabDetailComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [VocabDetailComponent, I18NextPipeStub],
-      imports: [FormsModule]
+      imports: [CommonModule, FormsModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VocabDetailComponent);
@@ -52,6 +53,27 @@ describe('VocabDetailComponent', () => {
     const optionIdsForB = optionsForB.map(option => option.id);
     expect(optionIdsForB).toEqual(['a', 'd']);
   });
+
+  it('keeps tree parent options stable while editing and updates the selected parent', fakeAsync(() => {
+    component.draft.type = 'tree';
+    component.draft.entries = [
+      { id: 'a', label: 'Root', value: 'root' },
+      { id: 'b', label: 'Child', value: 'child' }
+    ];
+    component.openParentEditor(component.draft.entries[1]);
+    fixture.detectChanges();
+    tick();
+    const select = fixture.nativeElement.querySelector('tbody select') as HTMLSelectElement;
+    const option = select.options[1];
+    fixture.detectChanges();
+    tick();
+    expect(select.options[1]).toBe(option);
+    select.value = 'a';
+    select.dispatchEvent(new Event('change'));
+    tick();
+    fixture.detectChanges();
+    expect(component.draft.entries[1].parent).toBe('a');
+  }));
 
   it('creates temporary ids for new entries so they can be used as parents', () => {
     component.draft.type = 'tree';

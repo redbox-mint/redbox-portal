@@ -81,10 +81,10 @@ describe('VocabListComponent', () => {
     const mirrorButtons = rows[1].querySelectorAll('td:last-child button');
 
     expect(localButtons[0].textContent.trim()).toBe('admin-vocabulary-edit');
-    expect(localButtons[1].disabled).toBe(false);
+    expect(localButtons[2].disabled).toBe(false);
 
     expect(mirrorButtons[0].textContent.trim()).toBe('admin-vocabulary-view');
-    expect(mirrorButtons[1].disabled).toBe(true);
+    expect(mirrorButtons[2].disabled).toBe(true);
     expect(rows[1].textContent).toContain('admin-vocabulary-read-only');
   });
 });

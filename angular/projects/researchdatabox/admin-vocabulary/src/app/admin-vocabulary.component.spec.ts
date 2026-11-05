@@ -69,13 +69,15 @@ describe('AdminVocabularyComponent', () => {
     const component = fixture.componentInstance;
     const api = TestBed.inject(VocabularyApiService);
 
-    spyOn(api, 'list').and.returnValues(
-      Promise.resolve({ data: [], meta: { total: 0, limit: 25, offset: 0 } }),
-      Promise.resolve({
-        data: [{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }],
-        meta: { total: 1, limit: 25, offset: 0 }
-      })
-    );
+    let imported = false;
+    spyOn(api, 'importRva').and.callFake(async () => {
+      imported = true;
+      return { name: 'Imported', type: 'flat', source: 'rva' };
+    });
+    spyOn(api, 'list').and.callFake(async () => ({
+      data: imported ? [{ id: 'v1', name: 'Imported', slug: 'imported', type: 'flat', source: 'rva' }] : [],
+      meta: { total: imported ? 1 : 0, limit: 25, offset: 0 }
+    }));
 
     fixture.detectChanges();
     await component.waitForInit();
