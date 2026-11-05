@@ -53,6 +53,83 @@ describe('AppConfigService', function () {
     sinon.restore(); // Restores ConfigModels stubs
   });
 
+  describe('reset to defaults', function () {
+    beforeEach(() => {
+      (global as any).AppConfig.destroy = sinon.stub().resolves([]);
+      mockSails.config.brandingConfigurationDefaults = { test: { enabled: false } };
+      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['test']);
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'MockModel', class: class { enabled = true; style = 'info'; }, schema: {} });
+      service.brandingAppConfigMap.default = { test: { enabled: true }, other: { keep: true } } as any;
+      service.brandingAppConfigMap.other = { test: { enabled: true } } as any;
+    });
+    it('removes all duplicates for just this brand/key and immediately replaces the runtime cache', async () => {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test' }, { configKey: 'test' }]);
+      expect(await service.resetConfig(BrandingService.getBrand('default'), 'test')).to.deep.equal({ reset: true });
+      expect((AppConfig.destroy as unknown as sinon.SinonStub).calledOnceWithExactly({ branding: 'brand1', configKey: 'test' })).to.equal(true);
+      expect((service.getAppConfigurationForBrand('default') as any).test).to.deep.equal({ enabled: false, style: 'info' });
+      expect((service.getAppConfigurationForBrand('default') as any).other).to.deep.equal({ keep: true });
+      expect((service.getAppConfigurationForBrand('other') as any).test.enabled).to.equal(true);
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+      expect(form.model).to.deep.equal({ enabled: false, style: 'info' });
+    });
+    it('succeeds without an override and reports that fact in the form', async () => {
+      expect(await service.resetConfig(BrandingService.getBrand('default'), 'test')).to.deep.equal({ reset: false });
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+      expect(form.hasOverride).to.equal(false);
+    });
+    it('serializes a reset with saves to the same key', async () => {
+      let finishDelete!: () => void;
+      let deletionStarted!: () => void;
+      const started = new Promise<void>(resolve => { deletionStarted = resolve; });
+      (AppConfig.destroy as unknown as sinon.SinonStub).callsFake(() => {
+        deletionStarted();
+        return new Promise<void>(resolve => { finishDelete = resolve; });
+      });
+      const reset = service.resetConfig(BrandingService.getBrand('default'), 'test');
+      await started;
+      const save = service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { enabled: true });
+      await Promise.resolve();
+      expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+      finishDelete(); await reset; await save;
+      expect((service.getAppConfigurationForBrand('default') as any).test.enabled).to.equal(true);
+    });
+    it('preserves a different config saved while the reset deletion awaits', async () => {
+      (AppConfig.destroy as unknown as sinon.SinonStub).callsFake(async () => {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'other', { keep: 'new' });
+      });
+      await service.resetConfig(BrandingService.getBrand('default'), 'test');
+      expect((service.getAppConfigurationForBrand('default') as any).other).to.deep.equal({ keep: 'new' });
+    });
+    it('keeps the cache intact when deletion fails', async () => {
+      (AppConfig.destroy as unknown as sinon.SinonStub).rejects(new Error('DB unavailable'));
+      try { await service.resetConfig(BrandingService.getBrand('default'), 'test'); expect.fail('Expected rejection'); }
+      catch (error) { expect(String(error)).to.contain('DB unavailable'); }
+      expect((service.getAppConfigurationForBrand('default') as any).test.enabled).to.equal(true);
+    });
+    it('rejects unknown, retired and unsafe keys before deletion', async () => {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns(undefined);
+      for (const key of ['unknown', 'menu.items', '__proto__', 'dashboardTableConfig']) {
+        let rejected = false;
+        try { await service.resetConfig(BrandingService.getBrand('default'), key); }
+        catch { rejected = true; }
+        expect(rejected).to.equal(true);
+      }
+      expect((AppConfig.destroy as unknown as sinon.SinonStub).called).to.equal(false);
+    });
+  });
+
+  it('rejects invalid system message styles on all service save paths and accepts legacy configs', async () => {
+    for (const style of ['danger', null, 5, {}]) {
+      for (const write of [() => service.createOrUpdateConfig(BrandingService.getBrand('default'), 'systemMessage', { style }), () => service.createConfig('default', 'systemMessage', { style })]) {
+        try { await write(); expect.fail('Expected rejection'); }
+        catch (error) { expect((error as any).status).to.equal(400); }
+      }
+    }
+    expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+    await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'systemMessage', { enabled: true });
+    expect((AppConfig.create as unknown as sinon.SinonStub).calledOnce).to.equal(true);
+  });
+
   describe('form field order', function () {
     for (const order of [undefined, [], ['third', 'unknown', 'first', 'third']]) {
       it(`preserves all schema properties with order ${JSON.stringify(order)}`, async function () {

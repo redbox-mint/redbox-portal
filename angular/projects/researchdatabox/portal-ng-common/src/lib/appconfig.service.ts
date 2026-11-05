@@ -96,6 +96,13 @@ export class AppConfigService extends HttpClientService {
     ));
   }
 
+  public async resetAppConfig(appConfigId: string): Promise<{ reset: boolean }> {
+    return firstValueFrom(this.http.post<{ reset: boolean }>(
+      `${this.brandingAndPortalUrl}/admin/appconfig/${appConfigId}/reset`, {},
+      { responseType: 'json', observe: 'body', context: this.httpContext }
+    ));
+  }
+
   public async saveAppConfig(appConfigId:string, model:any): Promise<AppConfig> {
     let url = `${this.brandingAndPortalUrl}/appconfig/form/${appConfigId}`;
     const req = this.http.post<AppConfig>(url, model, {responseType: 'json', observe: 'body', context: this.httpContext});

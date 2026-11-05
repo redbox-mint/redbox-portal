@@ -29,8 +29,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| System messages | "Style" option (information/warning/critical) | Not in the SystemMessage config model |
-| Navigation editors | "Reset to default" button | Needs an endpoint to clear the saved brand override back to defaults |
 | Dashboards | Dashboard types group and “Add dashboard type” form | The current target catalogue and DashboardConfigController expose only existing workflow-stage and view-step targets. Legacy profile rows are used for migration, with no supported list/create/edit API for dashboard types. Needs a dashboard-type management API before showing these controls. |
 | Dashboards | Rows per page | The current editor settings and dashboard configuration validation expose no persisted per-target page-size setting. Needs a supported field and runtime consumption before adding this mock control. |
 | Branding | Draft / publish lifecycle for logo and favicon | Existing upload routes update live assets immediately; version history covers colours and typography only. Draft image storage and versioned publish/restore support are needed before these assets can join the draft lifecycle. The UI explains the immediate effect. |

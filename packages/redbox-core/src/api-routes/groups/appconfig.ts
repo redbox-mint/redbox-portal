@@ -87,4 +87,29 @@ export const testAuthorizedEmailRoute = defineApiRoute({
   },
 });
 
-export const appConfigApiRoutes = [testAuthorizedEmailRoute, getAppConfigByIdRoute, saveAppConfigByIdRoute];
+export const resetAppConfigBody = z.object({}).strict();
+export const resetAppConfigRoute = defineApiRoute({
+  method: 'post',
+  path: '/:branding/:portal/admin/appconfig/:appConfigId/reset',
+  controller: 'AppConfigController',
+  action: 'resetAppConfig',
+  csrf: true,
+  request: {
+    params: z.object({ appConfigId: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/).max(100) }),
+    headers: z.object({ 'x-csrf-token': z.string().optional() }),
+    body: { required: true, content: { 'application/json': { schema: resetAppConfigBody } } },
+  },
+  extensions: { 'x-redbox-roles': ['Admin'] },
+  tags: ['AppConfig'],
+  summary: 'Reset a registered app config to defaults (brand Admin only)',
+  description: 'Session CSRF protected. Deletes all saved overrides for the route brand and key, and immediately refreshes that entry in the runtime configuration cache. Uses brandingConfigurationDefaults over model defaults. Other brands and keys are unchanged. An absent override succeeds with reset false. Retired dashboard keys cannot be reset. External secret objects are retained; only the AppConfig override is deleted.',
+  responses: {
+    200: responseField(z.object({ reset: z.boolean() }), 'Whether a saved override was removed'),
+    400: badRequestResponse,
+    403: responseField(apiErrorResponseSchema, 'Brand Admin permission and CSRF required'),
+    410: responseField(apiErrorResponseSchema, 'Retired configuration key'),
+    500: internalServerErrorResponse,
+  },
+});
+
+export const appConfigApiRoutes = [resetAppConfigRoute, testAuthorizedEmailRoute, getAppConfigByIdRoute, saveAppConfigByIdRoute];

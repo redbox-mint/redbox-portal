@@ -15,6 +15,7 @@ export interface ConfigForm {
   sections?: ConfigSection[];
   secretFields?: string[];
   requiresSetup?: boolean;
+  hasOverride?: boolean;
 }
 
 export const SECRET_MASK = '__REDACTED__';

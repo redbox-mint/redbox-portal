@@ -139,6 +139,92 @@ describe('AppConfigComponent', () => {
     TestBed.inject(UtilityService);
 
   });
+  for (const style of [undefined, 'info', 'warning', 'critical']) {
+    it(`renders the system message style selector and matching preview for ${style}`, async () => {
+      spyOn(appConfigService, 'getAppConfigForm').and.returnValue({
+        schema: { type: 'object', properties: { title: { type: 'string' }, style: { type: 'string', enum: ['info', 'warning', 'critical'], default: 'info' } } },
+        model: { title: 'Notice', ...(style ? { style } : {}) }
+      });
+      const fixture = TestBed.createComponent(AppConfigComponent);
+      const component = fixture.componentInstance;
+      component.configKey = 'systemMessage';
+      fixture.autoDetectChanges(true);
+      await component.waitForInit();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const select: HTMLSelectElement = fixture.nativeElement.querySelector('form select');
+      expect(select).toBeTruthy();
+      expect(Array.from(select.options).filter(option => option.value).map(option => option.textContent?.trim())).toEqual(['admin-config-message-style-info', 'admin-config-message-style-warning', 'admin-config-message-style-critical']);
+      const preview = fixture.nativeElement.querySelector('.app-config-preview-message');
+      expect(preview.classList.contains('rb-system-message-' + (style || 'info'))).toBeTrue();
+      expect(preview.getAttribute('role')).toBe(style === 'critical' ? 'alert' : 'status');
+      select.value = Array.from(select.options).find(option => option.textContent?.trim() === 'admin-config-message-style-critical')!.value;
+      select.dispatchEvent(new Event('change')); await fixture.whenStable(); fixture.detectChanges();
+      expect(component.model.style).toBe('critical');
+      expect(preview.classList.contains('rb-system-message-critical')).toBeTrue();
+      fixture.destroy();
+    });
+  }
+
+  for (const configKey of ['menu', 'homePanels', 'adminSidebar']) {
+    it(`confirms reset, reloads defaults and disables reset for ${configKey}`, async () => {
+      const read = spyOn(appConfigService, 'getAppConfigForm').and.returnValue({ schema: { type: 'object', properties: { label: { type: 'string' } } }, model: { label: 'custom' }, hasOverride: true });
+      const fixture = TestBed.createComponent(AppConfigComponent);
+      const component = fixture.componentInstance;
+      component.configKey = configKey;
+      fixture.autoDetectChanges(true);
+      await component.waitForInit(); await fixture.whenStable();
+      const button: HTMLButtonElement = fixture.nativeElement.querySelector('.rb-admin-page-header button');
+      button.click(); fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeTruthy();
+      expect(appConfigService.resetAppConfig).not.toHaveBeenCalled();
+      component.cancelReset(); fixture.detectChanges();
+      expect(component.showReset).toBeFalse();
+      button.click();
+      read.and.resolveTo({ schema: { type: 'object', properties: { label: { type: 'string' } } }, model: { label: 'default' }, hasOverride: false });
+      await component.resetConfig(); await fixture.whenStable(); fixture.detectChanges();
+      expect(appConfigService.resetAppConfig).toHaveBeenCalledOnceWith(configKey);
+      expect(component.model.label).toBe('default');
+      expect(component.dirty).toBeFalse();
+      expect(button.disabled).toBeTrue();
+      expect(button.parentElement?.title).toBe('admin-config-reset-unavailable');
+      expect(fixture.nativeElement.textContent).toContain('admin-config-reset-success');
+      expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeFalsy();
+      fixture.destroy();
+    });
+  }
+
+  it('keeps customisations and reports a reset failure', async () => {
+    spyOn(appConfigService, 'getAppConfigForm').and.returnValue({ schema: { type: 'object', properties: { label: { type: 'string' } } }, model: { label: 'custom' }, hasOverride: true });
+    appConfigService.resetAppConfig.and.rejectWith(new Error('Unavailable'));
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const component = fixture.componentInstance;
+    component.configKey = 'menu'; fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable();
+    fixture.nativeElement.querySelector('.rb-admin-page-header button').click();
+    await component.resetConfig(); fixture.detectChanges();
+    expect(component.model.label).toBe('custom');
+    expect(component.hasOverride).toBeTrue();
+    expect(fixture.nativeElement.textContent).toContain('admin-config-reset-error');
+    expect(component.formSaving).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('does not expose reset for other app configs or absent overrides', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const component = fixture.componentInstance;
+    component.configKey = 'systemMessage'; fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header button')).toBeFalsy();
+    component.openReset({ currentTarget: document.body } as any);
+    expect(component.showReset).toBeFalse();
+    component.configKey = 'menu'; component.hasOverride = false;
+    component.openReset({ currentTarget: document.body } as any);
+    expect(component.showReset).toBeFalse();
+    expect(appConfigService.resetAppConfig).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
   for (const order of [undefined, [], ['third', 'unknown', 'first', 'third']]) {
     it(`renders every schema property with order ${JSON.stringify(order)}`, async () => {
       spyOn(appConfigService, 'getAppConfigForm').and.returnValue({
@@ -1186,6 +1272,7 @@ export function getStubAppConfigService(recordData: any = {}) {
         }
       }
     },
+    resetAppConfig: jasmine.createSpy('resetAppConfig').and.resolveTo({ reset: true }),
     testAuthorizedEmail: jasmine.createSpy('testAuthorizedEmail').and.resolveTo({ allowed: true, reason: 'disabled' }),
     saveAppConfig: function (configKey: string, model: any) {
       this.lastSavedModel = model;

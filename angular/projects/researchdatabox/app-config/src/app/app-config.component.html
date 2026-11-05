@@ -5,7 +5,7 @@
 }
 @if (isReady) {
   <div class="app-config-page">
-    <div [attr.inert]="showJson || pendingLeave ? '' : null">
+    <div [attr.inert]="showReset || showJson || pendingLeave ? '' : null">
       <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
         <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
         @if (navigationEditor || sidebarSection) { <li>{{ navigationEditor ? ('admin-nav-site' | i18next) : sidebarSection }}</li> }
@@ -13,6 +13,11 @@
       </ol></nav>
       <header class="rb-admin-page-header">
         <div><h1>{{ title }}</h1><p>{{ descriptionKey | i18next }}</p></div>
+        @if (navigationEditor) {
+          <div class="rb-admin-page-actions"><span [attr.title]="!hasOverride ? ('admin-config-reset-unavailable' | i18next) : null" [attr.tabindex]="!hasOverride ? 0 : null">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="!hasOverride || formSaving" (click)="openReset($event)">{{ 'admin-config-reset' | i18next }}</button>
+          </span></div>
+        }
         @if (longForm && !empty) {
           <div class="rb-admin-page-actions">
             @if (enabledField) {
@@ -34,6 +39,8 @@
           <h3>{{ 'admin-config-not-setup' | i18next: { name: title } }}</h3><p>{{ 'admin-config-setup-help' | i18next }}</p>
         </section>
       } @else {
+        @if (resetSuccessful) { <div class="alert alert-success" role="status">{{ 'admin-config-reset-success' | i18next }}</div> }
+        @if (resetFailed) { <div class="alert alert-danger" role="alert">{{ 'admin-config-reset-error' | i18next }}</div> }
         @if (formSaveSuccessful) { <div class="alert alert-success" role="status">{{ 'admin-config-save-success' | i18next }}</div> }
         @if (formSaveUnsuccessful) { <div class="alert alert-danger" role="alert">{{ 'admin-config-save-error' | i18next }}</div> }
         <form [formGroup]="form" (ngSubmit)="onSubmit(model)">
@@ -62,7 +69,7 @@
                 <div class="app-config-banner-preview">
                   <div class="app-config-preview-brand"></div><div class="app-config-preview-nav"></div>
                   <div class="app-config-preview-body">
-                    <div class="alert alert-primary app-config-preview-message" [class.alert-dismissible]="model.dismissalDurationHours > 0">
+                    <div class="alert rb-system-message app-config-preview-message" [class.rb-system-message-info]="messageStyle === 'info'" [class.rb-system-message-warning]="messageStyle === 'warning'" [class.rb-system-message-critical]="messageStyle === 'critical'" [attr.role]="messageStyle === 'critical' ? 'alert' : 'status'" [class.alert-dismissible]="model.dismissalDurationHours > 0">
                       <div><h4 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h4><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
                       @if (model.dismissalDurationHours > 0) { <button type="button" class="btn-close" disabled [attr.aria-label]="'admin-config-dismiss-preview' | i18next"></button> }
                     </div>
@@ -104,6 +111,16 @@
         </form>
       }
     </div>
+    @if (showReset) {
+      <div class="modal-backdrop fade show"></div>
+      <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="config-reset-title" aria-describedby="config-reset-help" [attr.aria-busy]="formSaving" (keydown.escape)="cancelReset()">
+        <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+          <div class="modal-header"><h2 id="config-reset-title" class="modal-title">{{ 'admin-config-reset-title' | i18next }}</h2><button class="btn-close" type="button" [disabled]="formSaving" [attr.aria-label]="'admin-config-close' | i18next" (click)="cancelReset()"></button></div>
+          <div class="modal-body"><p id="config-reset-help">{{ 'admin-config-reset-help' | i18next: { name: ('admin-navigation-tab-' + configKey) | i18next } }}</p></div>
+          <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial [disabled]="formSaving" (click)="cancelReset()">{{ 'admin-config-reset-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="formSaving" (click)="resetConfig()">{{ (formSaving ? 'admin-config-resetting' : 'admin-config-reset') | i18next }}</button></div>
+        </div></div>
+      </div>
+    }
     @if (showJson || pendingLeave) {
       <div class="modal-backdrop fade show"></div>
       <div class="modal d-block" [attr.role]="pendingLeave ? 'alertdialog' : 'dialog'" aria-modal="true" aria-labelledby="config-dialog-title" (keydown.escape)="showJson ? closeJson() : cancelLeave()">
