@@ -89,34 +89,6 @@ const RECORD_TYPE_FIELD = 'metadata.metaMetadata.type';
       </datalist>
     </div>
   `,
-  styles: [`
-    .dc-guided-editor { display: flex; flex-direction: column; gap: 14px; }
-    .dc-guided-header h5 { align-items: center; color: var(--dc-text, #1f2937); display: flex; font-size: 0.95rem; font-weight: 600; gap: 8px; margin: 0 0 4px; }
-    .dc-guided-header h5 i { color: var(--dc-text-subtle, #6b7280); }
-    .dc-guided-header p { color: var(--dc-text-subtle, #6b7280); font-size: 12px; margin: 0; }
-    .dc-form-help-warning { color: var(--dc-warning, #d97706) !important; }
-    .dc-choice-cards { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .dc-choice-card { align-items: flex-start; border: 1px solid var(--dc-border, #e5e7eb); border-radius: 6px; cursor: pointer; display: flex; font-weight: normal; gap: 10px; margin: 0; padding: 10px 12px; }
-    .dc-choice-card.active { background: var(--dc-accent-soft, #eff6ff); border-color: var(--dc-accent, #2563eb); }
-    .dc-choice-card input { margin-top: 3px; }
-    .dc-choice-card span { display: flex; flex-direction: column; gap: 2px; }
-    .dc-choice-card small { color: var(--dc-text-subtle, #6b7280); font-size: 12px; }
-    .dc-levels-title { font-size: 0.85rem; font-weight: 600; margin: 4px 0 2px; }
-    .dc-level-list { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 8px 0; padding: 0; }
-    .dc-level { align-items: flex-start; border: 1px solid var(--dc-border, #e5e7eb); border-radius: 6px; display: grid; gap: 12px; grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px 12px; }
-    .dc-level-number { align-items: center; background: var(--dc-accent-soft, #eff6ff); border-radius: 999px; color: var(--dc-accent, #2563eb); display: flex; font-weight: 600; height: 26px; justify-content: center; width: 26px; }
-    .dc-level-fields { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .dc-level-advanced { grid-column: 1 / -1; font-size: 12px; }
-    .dc-level-advanced summary { color: var(--dc-text-subtle, #6b7280); cursor: pointer; }
-    .dc-form-group { display: flex; flex-direction: column; }
-    .dc-form-label { color: var(--dc-text-muted, #4b5563); font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
-    .dc-form-help { color: var(--dc-text-subtle, #6b7280); font-size: 12px; margin-top: 3px; }
-    .dc-form-help-error { color: var(--dc-danger, #b91c1c); font-size: 12px; grid-column: 1 / -1; }
-    .dc-mono { font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace; font-size: 12px; }
-    .dc-row-actions { display: flex; gap: 4px; }
-    .dc-empty-inline { color: var(--dc-text-subtle, #6b7280); font-size: 12px; font-style: italic; }
-    @media (max-width: 991px) { .dc-choice-cards, .dc-level-fields { grid-template-columns: 1fr; } }
-  `],
   standalone: false
 })
 export class GroupingEditorComponent implements OnChanges {
