@@ -473,7 +473,8 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
         defaultValue: next['defaultValue'] ?? '',
         sourceVocabularyId: next['sourceVocabularyId'] ?? '',
         crosswalkId: next['crosswalkId'] ?? '',
-        outputs: next['outputs'] ?? '',
+        // Output is absent for simple bindings; an empty string fails the enum validator.
+        outputs: next['outputs'],
         // Always a full shape so a partial patch cannot leave stale siblings behind.
         source: {
           kind: 'path',
