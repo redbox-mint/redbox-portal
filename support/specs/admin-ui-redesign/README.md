@@ -211,3 +211,19 @@ a 2 GB heap. Screenshot tooling should use the running container's configured `a
 (`REDBOX_BASE` for the shared capture script); an origin mismatch causes existing Angular API calls
 to fail under `connect-src 'self'`. The translation app currently renders the full bundle in one table,
 so its full-page screenshots can be very tall; use an additional viewport capture for review.
+
+### Dashboard editor (phase 9)
+
+The `dashboard-config-editor` owns its Angular header, target section rail, red selected-target card,
+collapsible settings sections and sticky save bar. Workflow and view targets use the existing settings,
+fields, validation and copy APIs, including revision conflicts and warning acknowledgements. Discard
+restores the loaded draft locally; switching targets and leaving the page protect unsaved edits.
+Selection uses `#target=<encoded target key>` while retaining the editor path (the portal has a root
+`<base href>`). Column counts appear after a target has loaded; no extra settings requests are made for
+rail badges. At tablet widths the target rail stacks above the editor and scrolls within a bounded area.
+Dashboard types and rows per page are deferred: the current editor API does not support them.
+
+Keep derived select options keyed by value: Angular schedules select writes after rendering, so
+recreating all options each pass can cause an infinite change-detection cycle. Record-type inputs are
+also stable across renders. Guided-editor styles live in the app stylesheet under `.rb-admin` and use
+the shared theme aliases, avoiding local component palette and legacy root-rem sizing conflicts.
