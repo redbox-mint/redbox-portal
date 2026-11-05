@@ -1,4 +1,4 @@
-<div class="figshare-panel">
+<div class="rb-admin-form-section rb-figshare-form">
   @if (errorMessage) {
   <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
   }
@@ -31,8 +31,8 @@
 
   <p class="text-muted small">{{ 'figshare-vocab-preview-untouched' | i18next }}</p>
 
-  <div class="row g-2 align-items-end mb-3">
-    <div class="col-md-4">
+  <div class="rb-admin-filter-bar">
+    <div class="rb-admin-field">
       <label class="form-label" for="figshare-preview-search">{{ 'figshare-vocab-search' | i18next }}</label>
       <input
         id="figshare-preview-search"
@@ -89,7 +89,7 @@
   @if (loading) {
   <p class="text-muted" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else if (filters.view === 'proposals') {
-  <table class="table table-sm align-middle">
+  <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-proposal-table-caption' | i18next }}</caption>
     <thead>
       <tr>
@@ -119,9 +119,9 @@
           <small class="text-muted">{{ proposal.localLabel }}</small>
         </td>
         <td>
-          <span class="figshare-badge">{{ 'figshare-vocab-match-' + proposal.matchType | i18next }}</span>
+          <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-match-' + proposal.matchType | i18next }}</span>
           @if (proposal.historical) {
-          <span class="figshare-badge figshare-badge--historical ms-1">{{
+          <span class="badge rb-admin-badge-warning ms-1">{{
             'figshare-vocab-historical' | i18next
           }}</span>
           }
@@ -134,9 +134,9 @@
       </tr>
       }
     </tbody>
-  </table>
+  </table></div>
   } @else {
-  <table class="table table-sm align-middle">
+  <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-diff-table-caption' | i18next }}</caption>
     <thead>
       <tr>
@@ -150,7 +150,7 @@
       <tr>
         <td>
           <span
-            class="figshare-badge"
+            class="badge rb-admin-badge-primary"
             [class.figshare-badge--historical]="row.changeClass === 'removed'"
             [class.figshare-badge--warning]="row.changeClass === 'changed'"
           >{{ 'figshare-vocab-change-' + row.changeClass | i18next }}</span>
@@ -164,7 +164,7 @@
       </tr>
       }
     </tbody>
-  </table>
+  </table></div>
   }
 
   <nav class="d-flex justify-content-between align-items-center" [attr.aria-label]="'figshare-vocab-pagination' | i18next">
@@ -182,7 +182,7 @@
   </nav>
 
   <div class="mt-3 d-flex flex-wrap gap-2">
-    <button type="button" class="btn btn-secondary" (click)="cancelled.emit()">
+    <button type="button" class="btn btn-outline-secondary" (click)="cancelled.emit()">
       {{ 'figshare-vocab-cancel' | i18next }}
     </button>
     <button type="button" class="btn btn-primary" [disabled]="applying" (click)="requestApply()">
@@ -194,7 +194,7 @@
   <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
     aria-labelledby="figshareApplyTitle" (keydown.escape)="cancelApply()">
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-      <div class="modal-content">
+      <div class="modal-content rb-admin">
         <div class="modal-header">
           <span class="modal-title h5" id="figshareApplyTitle">{{ 'figshare-vocab-confirm-apply-title' | i18next }}</span>
         </div>
@@ -202,7 +202,7 @@
           <p class="mb-0">{{ 'figshare-vocab-confirm-apply-body' | i18next: { approved: approvedCount } }}</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="cancelApply()" cdkFocusInitial>
+          <button type="button" class="btn btn-outline-secondary" (click)="cancelApply()" cdkFocusInitial>
             {{ 'figshare-vocab-cancel' | i18next }}
           </button>
           <button type="button" class="btn btn-primary" (click)="confirmApply()">
