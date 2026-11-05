@@ -332,7 +332,6 @@
                   <!-- Account Information -->
                   <div class="rb-admin-form-section">
                     <h5 class="rb-admin-form-section-header">
-                      <i class="fa fa-id-card" aria-hidden="true"></i>
                       {{ 'manage-users-account-information' | i18next }}
                     </h5><div class="rb-admin-form-section-body">
                     <dl class="people-summary"><dt>{{ 'manage-users-username' | i18next }}</dt><dd>{{ currentUser.username }}</dd><dt>{{ 'admin-users-sign-in' | i18next }}</dt><dd>{{ currentUser.type === 'local' ? ('admin-users-local' | i18next) : currentUser.type }}</dd></dl>
@@ -377,7 +376,6 @@
                   <!-- Security -->
                   <div class="rb-admin-form-section">
                     <h5 class="rb-admin-form-section-header">
-                      <i class="fa fa-lock" aria-hidden="true"></i>
                       {{ 'manage-users-security' | i18next }}
                     </h5><div class="rb-admin-form-section-body">
                     <div class="people-form-group">
@@ -461,7 +459,6 @@
                   <!-- Roles & Permissions -->
                   <div class="rb-admin-form-section">
                     <h5 class="rb-admin-form-section-header">
-                      <i class="fa fa-shield" aria-hidden="true"></i>
                       {{ 'manage-users-roles-and-permissions' | i18next }}
                     </h5><div class="rb-admin-form-section-body">
                     @if (currentUser.accountLinkState === 'linked-alias') {
@@ -558,7 +555,6 @@
                 <!-- Account Details -->
                 <div class="rb-admin-form-section">
                   <h5 class="rb-admin-form-section-header">
-                    <i class="fa fa-id-card" aria-hidden="true"></i>
                     {{ 'manage-users-account-details' | i18next }}
                   </h5><div class="rb-admin-form-section-body">
                   <div class="people-form-group">
@@ -623,7 +619,6 @@
                 <!-- Security -->
                 <div class="rb-admin-form-section">
                   <h5 class="rb-admin-form-section-header">
-                    <i class="fa fa-lock" aria-hidden="true"></i>
                     {{ 'manage-users-security' | i18next }}
                   </h5><div class="rb-admin-form-section-body">
                   <div class="people-form-group">
@@ -676,7 +671,6 @@
                 <!-- Roles -->
                 <div class="rb-admin-form-section">
                   <h5 class="rb-admin-form-section-header">
-                    <i class="fa fa-shield" aria-hidden="true"></i>
                     {{ 'manage-users-roles-and-permissions' | i18next }}
                   </h5><div class="rb-admin-form-section-body">
                   <div [formArrayName]="'allRoles'" class="people-roles-grid">

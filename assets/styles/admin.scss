@@ -198,6 +198,23 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-stat b { display: block; font-size: 26px; color: var(--admin-heading); line-height: 1.1; }
   .rb-admin-stat span, .rb-admin-hint { font-size: 13px; color: var(--admin-muted); }
   .rb-admin-filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 14px 16px; border-bottom: 1px solid var(--admin-line); background: var(--admin-surface); }
+  .rb-admin-filter-bar :is(.form-control, .form-select, .btn) {
+    box-sizing: border-box;
+    height: 36px;
+    min-height: 36px;
+    font-size: 14px;
+    line-height: 20px;
+    padding-block: 7px;
+  }
+  .rb-admin-filter-bar .form-select { padding-right: 32px; }
+  .table th :is(.rb-admin-sort, .record-table-heading-sort, sort > a) {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0; border: 0; background: transparent; box-shadow: none;
+    color: var(--admin-ink); font: inherit; text-align: left; text-decoration: none;
+    &:hover { color: var(--admin-heading); }
+    &:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 3px; }
+    :is(i, .record-table-heading-sort-icon) { color: var(--admin-muted); font-size: 11px; }
+  }
   .rb-admin-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 0 1 180px; }
   .rb-admin-field-grow { flex: 1 1 240px; }
   .rb-admin-field label { font-size: 12.5px; font-weight: 700; }
@@ -330,7 +347,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .modal-backdrop.show { opacity: .45 !important; background: var(--admin-heading); }
   .rb-admin-active-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--admin-line); }
   .rb-admin-form-section-body label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-  .rb-admin-form-section-body .form-check label { display: inline; }
+  .rb-admin-form-section-body .form-check label { display: inline-flex; align-items: center; gap: 8px; }
   .rb-admin-segmented-field { flex-basis: auto; }
   .rb-admin-segmented .btn { border-radius: 0; & + .btn { margin-left: -1px; } &:first-child { border-radius: var(--admin-radius) 0 0 var(--admin-radius); } &:last-child { border-radius: 0 var(--admin-radius) var(--admin-radius) 0; } }
 
@@ -436,6 +453,16 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-navigation-preview-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--admin-line); display: flex; flex-direction: column; }
   @media (max-width: 1199px) { .rb-navigation-split { grid-template-columns: minmax(0, 1fr); } .rb-navigation-preview { position: static; } }
   @media (max-width: 575px) { .rb-navigation-badges { max-width: 90px; } .rb-navigation-select { gap: 6px; padding-left: 10px; } }
+}
+
+// Preserve the portal logo layout when admin pages use a non-heading logo.
+body:has(.rb-admin.admin-layout) {
+  .logo .rb-admin-site-logo { font-size: 40px; margin: 40px 0; font-weight: 400; }
+  .logo .rb-admin-site-logo.logo-with-heading { display: flex; align-items: center; gap: 20px; }
+  @media (max-width: 767px) {
+    .logo .rb-admin-site-logo { font-size: 30px; margin: 20px 0; text-align: center; }
+    .logo .rb-admin-site-logo.logo-with-heading { flex-direction: column; gap: 10px; }
+  }
 }
 
 // Phase 10: the reference viewer owns its styles inside a bounded document.
