@@ -35,6 +35,14 @@ export interface AuthorizedEmailTestResult {
   matchedRule?: string;
 }
 
+export interface IntegrationConnectionResult {
+  ok: boolean;
+  status: 'ok' | 'auth_failed' | 'unreachable' | 'timeout' | 'tls_error' | 'misconfigured' | 'unexpected_response';
+  httpStatus?: number;
+  latencyMs: number;
+  message: string;
+}
+
 export interface AppConfig {
   schema: object;
   model: object;
@@ -93,6 +101,13 @@ export class AppConfigService extends HttpClientService {
       `${this.brandingAndPortalUrl}/admin/appconfig/authorizedDomainsEmails/test`,
       { email, provider, draft },
       { responseType: 'json', observe: 'body', context: this.httpContext }
+    ));
+  }
+
+  public async testConnection(integration: string, draft: object): Promise<IntegrationConnectionResult> {
+    return firstValueFrom(this.http.post<IntegrationConnectionResult>(
+      `${this.brandingAndPortalUrl}/admin/appconfig/${encodeURIComponent(integration)}/test-connection`,
+      { draft }, { responseType: 'json', observe: 'body', context: this.httpContext }
     ));
   }
 

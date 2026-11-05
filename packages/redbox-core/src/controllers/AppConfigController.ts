@@ -1,5 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
-import { authorizedEmailTestBody, resetAppConfigBody } from '../api-routes/groups/appconfig';
+import { authorizedEmailTestBody, resetAppConfigBody, integrationConnectionBody, integrationKeySchema } from '../api-routes/groups/appconfig';
 import { evaluateAuthorizedEmail } from '../utilities/AuthorizedEmailAccess';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { ConfigModels } from '../configmodels/ConfigModels';
@@ -28,6 +28,7 @@ export namespace Controllers {
       'saveAppConfig',
       'editAppConfig',
       'testAuthorizedEmail',
+      'testConnection',
       'resetAppConfig'
     ];
 
@@ -53,6 +54,26 @@ export namespace Controllers {
       const config = draft ?? sails.config.brandingAware(brandName).authorizedDomainsEmails ?? {};
       // AAF and OIDC both normalize the incoming claim this way before the gate.
       return res.json(evaluateAuthorizedEmail(email.toLowerCase(), config as Partial<AuthorizedDomainsEmails>, provider));
+    }
+
+    public async testConnection(req: Sails.Req, res: Sails.Res) {
+      const parsed = integrationConnectionBody.safeParse(req.body);
+      const key = integrationKeySchema.safeParse(req.param('integration'));
+      if (!parsed.success || !key.success) return res.badRequest({ message: 'Invalid connection test request' });
+      try {
+        const brandName = this.brandingService.getBrandNameFromReq(req);
+        const userId = String(req.user?.id ?? '');
+        if (!userId) return res.status(403).json({ message: 'Authentication required' });
+        const { result, retryAfter } = await this.appConfigService.testConnection(brandName, userId, key.data, parsed.data.draft);
+        if (retryAfter) {
+          res.set('Retry-After', String(retryAfter));
+          return res.status(429).json(result);
+        }
+        return res.json(result);
+      } catch {
+        // Never log a draft, upstream error, headers, credentials or response body.
+        return res.json({ ok: false, status: 'misconfigured', latencyMs: 0, message: 'Unable to read connection settings. Check the integration configuration.' });
+      }
     }
 
     public async resetAppConfig(req: Sails.Req, res: Sails.Res) {

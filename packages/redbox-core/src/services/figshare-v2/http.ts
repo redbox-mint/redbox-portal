@@ -1,5 +1,6 @@
 import { figshareExecution, workerClient, transportGuardedMethods } from './execution';
 import type { FigshareOperation } from '../../configmodels/FigsharePublishing';
+import { figshareConnectionOptions } from './connection';
 import axios, { AxiosError, type AxiosResponse } from 'axios';
 import * as Context from 'effect/Context';
 import * as Layer from 'effect/Layer';
@@ -182,11 +183,11 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
           method,
           url,
           headers: {
-            'Content-Type': 'application/json',
-            ...(options.anonymous === true || !accountApi ? {} : { 'Authorization': `token ${config.connection.token}` }),
+            ...figshareConnectionOptions(config.connection).headers,
+            ...(options.anonymous === true || !accountApi ? { Authorization: undefined } : {}),
             ...(options.headers || {})
           },
-          timeout: options.timeoutMs ?? config.connection.timeoutMs,
+          timeout: options.timeoutMs ?? figshareConnectionOptions(config.connection).timeout,
           data: payload,
           params,
           signal: execution?.signal,

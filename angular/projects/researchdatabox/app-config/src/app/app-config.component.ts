@@ -21,7 +21,7 @@ import { Component, ElementRef, HostListener, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms';
 
-import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService, AuthorizedEmailTestResult } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService, AuthorizedEmailTestResult, IntegrationConnectionResult } from '@researchdatabox/portal-ng-common';
 import { cloneDeep, isEqual } from 'lodash-es';
 import { ConfigForm, ConfigSection, SECRET_MASK, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
 import { FormlyFormOptions } from '@ngx-formly/core';
@@ -45,6 +45,48 @@ export class AppConfigComponent extends BaseComponent {
   private addressCheckedState?: { email: string; provider: 'aaf' | 'oidc'; draft: any };
   private addressCheckedResult?: AuthorizedEmailTestResult;
   private addressCheckFailed = false;
+
+  connectionChecking = false;
+  connectionTestedAt?: Date;
+  connectionTestedDirty = false;
+  connectionReachabilityOnly = false;
+  connectionErrorKey = '';
+  private connectionCheckedState?: any;
+  private connectionCheckedResult?: IntegrationConnectionResult;
+
+  get supportsConnectionTest(): boolean {
+    return ['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing'].includes(this.configKey);
+  }
+  get connectionResult(): IntegrationConnectionResult | undefined {
+    return isEqual(this.connectionCheckedState, this.model) ? this.connectionCheckedResult : undefined;
+  }
+  get connectionError(): string {
+    return isEqual(this.connectionCheckedState, this.model) ? this.connectionErrorKey : '';
+  }
+  get connectionDetailKey(): string {
+    const status = this.connectionResult?.status;
+    return 'admin-config-connection-' + (status === 'ok' && this.connectionReachabilityOnly ? 'reachable' : status);
+  }
+  async testConnection(): Promise<void> {
+    if (!this.supportsConnectionTest || this.connectionChecking || this.formSaving) return;
+    this.connectionChecking = true;
+    this.connectionCheckedResult = undefined;
+    this.connectionErrorKey = '';
+    this.connectionCheckedState = cloneDeep(this.model);
+    this.connectionTestedDirty = this.dirty;
+    const site = this.model.sites?.[this.model.defaultSite];
+    this.connectionReachabilityOnly = this.configKey === 'oniPublishing' && site?.ingestion?.enabled !== true;
+    try {
+      this.connectionCheckedResult = await this.appConfigService.testConnection(this.configKey, cloneDeep(this.connectionCheckedState));
+    } catch (error) {
+      this.connectionErrorKey = (error as { status?: number })?.status === 429
+        ? 'admin-config-connection-rate-limit' : 'admin-config-connection-request-error';
+    } finally {
+      this.connectionTestedAt = new Date();
+      this.connectionChecking = false;
+      this.requestRender();
+    }
+  }
 
   window: any;
   form = new FormGroup({});

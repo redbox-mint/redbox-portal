@@ -541,6 +541,78 @@ describe('AppConfigComponent', () => {
     return fixture;
   }
 
+  async function renderConnectionTester(key = 'figsharePublishing') {
+    return renderConfig({ schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' },
+      connection: { type: 'object', properties: { baseUrl: { type: 'string' }, token: { type: 'string' } } },
+      mapping: { type: 'object', properties: { field: { type: 'string' } } },
+    } }, model: { enabled: true, connection: { baseUrl: 'https://saved.example', token: '__REDACTED__' }, mapping: { field: 'title' } }, secretFields: ['connection.token'] }, key);
+  }
+
+  for (const key of ['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing']) {
+    it(`tests the current ${key} form draft and displays the result and time without saving`, async () => {
+      const fixture = await renderConnectionTester(key);
+      const component = fixture.componentInstance;
+      const button = fixture.nativeElement.querySelector('#test-connection');
+      expect(button.type).toBe('button');
+      component.model.connection.baseUrl = 'http://draft.example';
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('admin-config-connection-unsaved');
+      button.click();
+      await fixture.whenStable(); fixture.detectChanges();
+      expect(appConfigService.testConnection).toHaveBeenCalledWith(key, jasmine.objectContaining({ connection: { baseUrl: 'http://draft.example', token: '' } }));
+      expect(component.connectionResult?.ok).toBeTrue();
+      expect(component.connectionTestedAt).toEqual(jasmine.any(Date));
+      expect(fixture.nativeElement.querySelector('.app-config-connection-result').classList).toContain('alert-success');
+      expect(fixture.nativeElement.textContent).toContain('admin-config-connection-draft');
+      expect(appConfigService.lastSavedModel).toBeUndefined();
+      component.model.connection.baseUrl = 'http://new-draft.example'; fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.app-config-connection-result')).toBeNull();
+      fixture.destroy();
+    });
+  }
+  for (const status of ['auth_failed', 'unreachable', 'timeout', 'tls_error', 'misconfigured', 'unexpected_response']) {
+    it(`shows the specific translated ${status} connection failure`, async () => {
+      const fixture = await renderConnectionTester();
+      appConfigService.testConnection.and.resolveTo({ ok: false, status, latencyMs: 80, message: 'safe' });
+      await fixture.componentInstance.testConnection(); fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('admin-config-connection-' + status);
+      expect(fixture.componentInstance.connectionChecking).toBeFalse();
+      fixture.destroy();
+    });
+  }
+  it('disables the connection button during requests and prevents duplicate calls', async () => {
+    const fixture = await renderConnectionTester();
+    let resolve: (value: any) => void;
+    appConfigService.testConnection.and.returnValue(new Promise(done => { resolve = done; }));
+    const pending = fixture.componentInstance.testConnection(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#test-connection').disabled).toBeTrue();
+    await fixture.componentInstance.testConnection();
+    expect(appConfigService.testConnection).toHaveBeenCalledTimes(1);
+    resolve!({ ok: true, status: 'ok', latencyMs: 20, message: 'Connection OK' });
+    await pending; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#test-connection').disabled).toBeFalse();
+    fixture.destroy();
+  });
+  for (const status of [429, 403, 500]) {
+    it(`handles HTTP ${status} safely and allows retry`, async () => {
+      const fixture = await renderConnectionTester();
+      appConfigService.testConnection.and.rejectWith({ status, message: 'untrusted error' });
+      await fixture.componentInstance.testConnection(); fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(status === 429 ? 'admin-config-connection-rate-limit' : 'admin-config-connection-request-error');
+      expect(fixture.nativeElement.textContent).not.toContain('untrusted error');
+      expect(fixture.componentInstance.connectionChecking).toBeFalse();
+      fixture.destroy();
+    });
+  }
+  it('does not expose the connection tester for unrelated config pages', async () => {
+    const fixture = await renderConnectionTester('integrationNotification');
+    expect(fixture.nativeElement.querySelector('#test-connection')).toBeNull();
+    await fixture.componentInstance.testConnection();
+    expect(appConfigService.testConnection).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
   async function renderAddressTester() {
     return renderConfig({ schema: { type: 'object', properties: {
       enabled: { type: 'boolean' },
@@ -1272,6 +1344,7 @@ export function getStubAppConfigService(recordData: any = {}) {
         }
       }
     },
+    testConnection: jasmine.createSpy('testConnection').and.resolveTo({ ok: true, status: 'ok', latencyMs: 230, message: 'Connection OK' }),
     resetAppConfig: jasmine.createSpy('resetAppConfig').and.resolveTo({ reset: true }),
     testAuthorizedEmail: jasmine.createSpy('testAuthorizedEmail').and.resolveTo({ allowed: true, reason: 'disabled' }),
     saveAppConfig: function (configKey: string, model: any) {
