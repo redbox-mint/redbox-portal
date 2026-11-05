@@ -17,11 +17,11 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, Inject, ElementRef, ViewChild, inject } from '@angular/core';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable, RecordActionResult, RecordTableComponent } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
-import { DateTime } from 'luxon';
 import { HttpErrorResponse } from '@angular/common/http';
 
 interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
@@ -38,8 +38,8 @@ interface DeletedRecordTableHeader extends RecordPropViewMetaDto {
     standalone: false
 })
 export class DeletedRecordsComponent extends BaseComponent implements RecordSource {
+  readonly adminDates = inject(AdminDateService);
   appName: string = 'deleted-records';
-  private readonly deletedRecordDateFormat = 'dd/MM/yyyy hh:mm a';
 
   // Internal properties
   protected sysConfig: any;
@@ -493,8 +493,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     }
 
     const safeValue = value ?? '';
-    const date = DateTime.fromISO(safeValue);
-    return date.isValid ? date.toFormat(this.deletedRecordDateFormat) : safeValue;
+    return this.adminDates.format(safeValue);
   }
 
   private getParams() {

@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Component, Input, Inject, TemplateRef, ViewChildren, QueryList} from '@angular/core';
+import { AdminDateService } from './admin-date.service';
+import {Component, Input, Inject, TemplateRef, ViewChildren, QueryList, inject} from '@angular/core';
 import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
@@ -48,6 +49,7 @@ import {HeaderSortComponent} from "./header-sort.component";
     standalone: false
 })
 export class RecordTableComponent extends BaseComponent {
+  private readonly adminDates = inject(AdminDateService);
   // row/column config
   @Input() columnConfig: RecordPropViewMetaDto[] = null as any;
   // the data source
@@ -137,6 +139,9 @@ export class RecordTableComponent extends BaseComponent {
 
   getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
+    if (this.adminPresentation && !col.template && /(?:^|\.)(?:dateCreated|dateModified|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
+      return this.adminDates.format(_get(row, col.property, val));
+    }
     if (!_isEmpty(col.template)) {
       const data = _merge({}, row, {
         recordTableMeta: {

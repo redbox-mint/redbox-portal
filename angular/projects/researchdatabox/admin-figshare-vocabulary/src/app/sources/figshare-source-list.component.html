@@ -16,7 +16,7 @@
         <option value="account">{{ 'figshare-vocab-scope-account' | i18next }}</option>
       </select>
     </div>
-    <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-sources-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-sources-search" type="search" class="form-control" [(ngModel)]="search" /></div>
+    <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-sources-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-sources-search" [placeholder]="'admin-figshare-search-sources' | i18next" type="search" class="form-control" [(ngModel)]="search" /></div>
   </div>
 
   @if (loading) {

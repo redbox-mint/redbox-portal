@@ -24,7 +24,6 @@
     <section class="card ex-panel" aria-labelledby="export-form-title">
       <div class="card-header">
         <h2 id="export-form-title">
-          <i class="fa fa-file-export" aria-hidden="true"></i>
           {{ 'admin-export-new' | i18next }}
         </h2>
       </div>
@@ -102,7 +101,6 @@
     <section class="card ex-panel" aria-labelledby="export-recent-title" [attr.aria-busy]="jobsLoading">
       <div class="card-header">
         <h2 id="export-recent-title">
-          <i class="fa fa-clock-rotate-left" aria-hidden="true"></i>
           {{ 'admin-export-recent' | i18next }}
         </h2>
         <div class="ex-panel__tools">
@@ -158,7 +156,7 @@
                 @for (job of jobs; track job.id) {
                   @let status = getStatus(job);
                   <tr [class.ex-row--muted]="status === 'expired'">
-                    <td class="text-nowrap">{{ job.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td class="text-nowrap">{{ job.createdAt | adminDate }}</td>
                     <td>
                       <div>{{ job.recordType + '-title' | i18next }}</div>
                       @if (status === 'ready' && job.filename) {
@@ -172,14 +170,14 @@
                     </td>
                     <td>
                       @if (job.modifiedAfter && job.modifiedBefore) {
-                        <span class="text-nowrap">{{ job.modifiedAfter | date:'dd/MM/yyyy' }}</span>
+                        <span class="text-nowrap">{{ job.modifiedAfter | adminDate:true }}</span>
                         <span class="ex-range-sep" aria-hidden="true">–</span>
                         <span class="visually-hidden">{{ 'export-range-to' | i18next }}</span>
-                        <span class="text-nowrap">{{ job.modifiedBefore | date:'dd/MM/yyyy' }}</span>
+                        <span class="text-nowrap">{{ job.modifiedBefore | adminDate:true }}</span>
                       } @else if (job.modifiedAfter) {
-                        {{ 'export-range-from' | i18next: { date: (job.modifiedAfter | date:'dd/MM/yyyy') } }}
+                        {{ 'export-range-from' | i18next: { date: (job.modifiedAfter | adminDate:true) } }}
                       } @else if (job.modifiedBefore) {
-                        {{ 'export-range-until' | i18next: { date: (job.modifiedBefore | date:'dd/MM/yyyy') } }}
+                        {{ 'export-range-until' | i18next: { date: (job.modifiedBefore | adminDate:true) } }}
                       } @else {
                         <span class="text-muted">{{ 'admin-export-all-dates' | i18next }}</span>
                       }
@@ -197,7 +195,7 @@
                     </td>
                     <td class="text-nowrap">
                       @if (job.expiresAt && (status === 'ready' || status === 'expired')) {
-                        {{ job.expiresAt | date:'dd/MM/yyyy HH:mm' }}
+                        {{ job.expiresAt | adminDate }}
                       } @else {
                         <span class="text-muted">—</span>
                       }

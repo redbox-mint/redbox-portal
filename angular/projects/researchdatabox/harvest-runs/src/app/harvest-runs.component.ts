@@ -1,6 +1,6 @@
-import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, ElementRef, Inject, ViewChild, inject } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { DateTime } from 'luxon';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { BaseComponent, ConfigService, RecordService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
@@ -27,6 +27,7 @@ type StatusOption = {
   standalone: false
 })
 export class HarvestRunsComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
   recordTypes: string[] = [];
   dateFrom: Date | string | null = null;
   dateTo: Date | string | null = null;
@@ -35,7 +36,6 @@ export class HarvestRunsComponent extends BaseComponent {
   readonly runPageSize = 20;
   readonly eventPageSize = 20;
   readonly chunkPageSize = 20;
-  readonly displayDateFormat = 'dd/MM/yyyy HH:mm';
   readonly statusOptions: StatusOption[] = [
     { value: '', labelKey: 'admin-any-status' },
     { value: 'running', labelKey: 'harvest-runs-status-running' },
@@ -87,7 +87,8 @@ export class HarvestRunsComponent extends BaseComponent {
     this.brandingAndPortalUrl = this.harvestRunApiService.getBrandingAndPortalUrl();
     const config = await this.configService.getConfig();
     this.datePickerOpts = ConfigService._getAppConfigProperty(config, 'report', 'datePickerOpts', this.datePickerOpts);
-    this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(config, 'report', 'datePickerPlaceHolder', this.datePickerPlaceHolder);
+    this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
+    this.datePickerPlaceHolder = this.adminDates.placeholder;
     this.recordTypes = (await this.recordService.getAllTypes()).map((type: { name: string }) => type.name);
     await this.loadRuns(1);
   }
@@ -325,8 +326,7 @@ export class HarvestRunsComponent extends BaseComponent {
       return '';
     }
 
-    const date = DateTime.fromISO(safeValue);
-    return date.isValid ? date.toFormat(this.displayDateFormat) : safeValue;
+    return this.adminDates.format(safeValue);
   }
 
   public getStatusLabel(status?: string): string {

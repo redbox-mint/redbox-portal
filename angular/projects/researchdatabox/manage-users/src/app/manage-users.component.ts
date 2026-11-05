@@ -1,4 +1,5 @@
-import { Component, Inject, ViewChild } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, Inject, ViewChild, inject } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import {
@@ -78,6 +79,7 @@ type LinkingUserService = UserService & {
   standalone: false
 })
 export class ManageUsersComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
 
   title = '@researchdatabox/manage-users';
   roleFilter = '';
@@ -541,7 +543,7 @@ export class ManageUsersComponent extends BaseComponent {
     if (_.isEmpty(timestamp)) {
       return '';
     }
-    return new Date(String(timestamp)).toLocaleString();
+    return this.adminDates.format(timestamp);
   }
 
   isAuditRowExpanded(recordId: string): boolean {

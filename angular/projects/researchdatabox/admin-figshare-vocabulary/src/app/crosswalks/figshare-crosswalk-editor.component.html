@@ -41,7 +41,7 @@
         type="search"
         [value]="search.q"
         (change)="update({ q: $any($event.target).value })"
-      />
+      / [placeholder]="'admin-filter-search-placeholder' | i18next">
     </div>
     <div class="rb-admin-field">
       <label class="form-label" for="figshare-mapping-status">{{ 'figshare-vocab-column-status' | i18next }}</label>

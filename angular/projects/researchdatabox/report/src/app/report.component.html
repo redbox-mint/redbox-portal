@@ -27,12 +27,12 @@
       <form class="rb-admin-filter-bar" (ngSubmit)="filter()">
         @for (filter of report.filter; track filter.paramName) {
           @if (filter.type === 'text') {
-            <div class="rb-admin-field rb-admin-field-grow"><label [attr.for]="filter.paramName">{{ filter.message | i18next }}</label>
-              <input [id]="filter.paramName" [name]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[filter.paramName]"></div>
+            <div class="rb-admin-field rb-admin-field-grow"><label [attr.for]="filter.paramName">{{ filterLabel(filter) }}</label>
+              <input [id]="filter.paramName" [name]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[filter.paramName]" [placeholder]="(filter.message === 'Filter by title' ? 'admin-report-title-placeholder' : 'admin-filter-search-placeholder') | i18next"></div>
           }
           @if (filter.type === 'date-range') {
             @for (bound of ['fromDate', 'toDate']; track bound) {
-              <div class="rb-admin-field"><label [attr.for]="filter.paramName + '_' + bound">{{ filter.message | i18next }} {{ (bound === 'fromDate' ? 'report-filter-date-from' : 'report-filter-date-to') | i18next }}</label>
+              <div class="rb-admin-field"><label [attr.for]="filter.paramName + '_' + bound">{{ filterLabel(filter, bound) }}</label>
                 <input type="text" class="form-control" [id]="filter.paramName + '_' + bound" [name]="filter.paramName + '_' + bound"
                   [attr.aria-invalid]="dateRangeError ? 'true' : null" [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
                   [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="filterParams[filter.paramName + '_' + bound]" bsDatepicker>
@@ -47,7 +47,7 @@
     @if (activeFilters.length) {
       <div class="rb-admin-active-filters"><span class="rb-admin-hint">{{ 'admin-report-active-filters' | i18next }}</span>
         @for (chip of activeFilters; track chip.key) {
-          <span class="rb-admin-chip">{{ chip.label }} {{ chip.value }}<button class="btn btn-sm rb-admin-ghost" type="button" [attr.aria-label]="'admin-report-remove-filter' | i18next: { name: chip.label }" (click)="removeFilter(chip.key)">×</button></span>
+          <span class="rb-admin-chip">{{ chip.label }}: {{ chip.value }}<button class="btn btn-sm rb-admin-ghost" type="button" [attr.aria-label]="'admin-report-remove-filter' | i18next: { name: chip.label }" (click)="removeFilter(chip.key)">×</button></span>
         }
       </div>
     }
