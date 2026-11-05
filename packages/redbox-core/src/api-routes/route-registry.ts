@@ -1,3 +1,4 @@
+import { adminUsersApiRoutes } from './groups/admin-users';
 import { deletedRecordsApiRoutes } from './groups/deleted-records';
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
@@ -35,6 +36,7 @@ const coreApiRouteGroups = [
   deletedRecordsApiRoutes,
   recordSchemaApiRoutes,
   userApiRoutes,
+  adminUsersApiRoutes,
   searchApiRoutes,
   formApiRoutes,
   harvestRunApiRoutes,

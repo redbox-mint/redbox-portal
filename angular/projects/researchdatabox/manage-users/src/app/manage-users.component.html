@@ -12,14 +12,15 @@
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field rb-admin-field-grow"><label for="manage-users-search">{{ 'admin-users-search' | i18next }}</label><input id="manage-users-search" type="search" class="form-control" [(ngModel)]="searchFilter.name" (ngModelChange)="onFilterChange()" [placeholder]="'admin-users-search-placeholder' | i18next"></div>
     <div class="rb-admin-field"><label for="manage-users-role">{{ 'manage-users-role' | i18next }}</label><select id="manage-users-role" class="form-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilterChange()"><option value="">{{ 'admin-users-any-role' | i18next }}</option>@for (role of allRoles; track role.id) { <option [value]="role.name">{{ role.name }}</option> }</select></div>
+    <div class="rb-admin-field"><label for="manage-users-sign-in">{{ 'admin-users-sign-in' | i18next }}</label><select id="manage-users-sign-in" class="form-select" [(ngModel)]="signInFilter" (ngModelChange)="changeSignInFilter()"><option value="">{{ 'admin-users-any-sign-in' | i18next }}</option>@for (method of signInMethods; track method) { <option [value]="method">{{ method === 'local' ? ('admin-users-local' | i18next) : method }}</option> }</select></div>
     <div class="form-check form-switch people-show-disabled"><input id="show-disabled-users" class="form-check-input" type="checkbox" [checked]="showDisabledUsers" (change)="toggleShowDisabled()"><label class="form-check-label" for="show-disabled-users">{{ 'manage-users-show-disabled' | i18next }}</label></div>
-    @if (searchFilter.name || roleFilter) { <button type="button" class="btn rb-admin-ghost" (click)="resetFilter()">{{ 'admin-report-clear' | i18next }}</button> }
+    @if (searchFilter.name || roleFilter || signInFilter) { <button type="button" class="btn rb-admin-ghost" (click)="resetFilter()">{{ 'admin-report-clear' | i18next }}</button> }
   </div>
   @if (filteredUsers.length) {
   <div class="table-responsive people-table"><table class="table table-hover">
     <thead><tr><th>{{ 'admin-users-user' | i18next }}</th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'manage-users-role' | i18next }}</th><th>{{ 'manage-users-account-status' | i18next }}</th><th class="text-nowrap">{{ 'admin-users-api-key' | i18next }}</th><th class="text-end">{{ 'manage-users-action' | i18next }}</th></tr></thead>
     <tbody>@for (user of filteredUsers; track user.id) {
-      <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span></td><td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
+      <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span><span class="rb-admin-sub">{{ 'admin-users-last-login' | i18next }}: {{ user.lastLogin ? (user.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</span></td><td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
         <td><div class="people-badges">@for (role of user.roles; track role.id) { <span class="badge" [class.rb-admin-badge-primary]="role.name === 'Admin'">{{ role.name }}</span> }</div></td>
         <td><span class="badge" [class.rb-admin-badge-danger]="isEffectivelyDisabled(user)" [class.rb-admin-badge-info]="isLinkedAlias(user)" [class.rb-admin-badge-success]="!isEffectivelyDisabled(user) && !isLinkedAlias(user)">{{ getAccountStatusBadge(user) }}</span>@if (getAccountStatusContext(user); as context) { <span class="rb-admin-sub">{{ context }}</span> }</td>
         <td><span class="rb-admin-hint">{{ (user.token ? 'admin-users-key-issued' : 'admin-users-key-none') | i18next }}</span></td>
@@ -371,6 +372,7 @@
                         <div class="people-form-value">{{ currentUser.email }}</div>
                       }
                     </div>
+                    <div class="people-form-group"><span class="form-label">{{ 'admin-users-last-login' | i18next }}</span><div class="people-form-value">{{ currentUser.lastLogin ? (currentUser.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</div></div>
                   </div></div>
 
                   <!-- Security -->

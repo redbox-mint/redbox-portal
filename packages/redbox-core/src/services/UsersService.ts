@@ -159,6 +159,9 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'updateUserRoles',
+      'recordSuccessfulLogin',
+      'removeRoleForBrand',
+      'updateUserRolesForBrand',
       'updateUserDetails',
       'getUserWithId',
       'getUserWithUsername',
@@ -232,12 +235,16 @@ export namespace Services {
       };
     }
 
+    private readonly signInIdentities = new WeakMap<object, string>();
+
     private async resolveLinkedUserCandidate(user: unknown): Promise<AnyRecord | null> {
       if (_.isEmpty(user)) {
         return null;
       }
       const resolved = await firstValueFrom(this.getEffectiveUser(user));
-      return (resolved as AnyRecord | null) ?? (user as AnyRecord);
+      const candidate = (resolved as AnyRecord | null) ?? (user as AnyRecord);
+      this.signInIdentities.set(candidate, String((user as AnyRecord).id));
+      return candidate;
     }
 
     private rewriteLinkedAuthorization(
@@ -783,7 +790,6 @@ export namespace Services {
                   that
                     .assertAuthenticationAllowed(foundUserObj as UserAttributes)
                     .then(async () => {
-                      // foundUser.lastLogin = new Date();
 
                       const configLocal = _.get(defAuthConfig, 'local', {});
                       if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
@@ -796,7 +802,6 @@ export namespace Services {
                                 username: username,
                               })
                                 .set({
-                                  lastLogin: new Date(),
                                   additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
                                 })
                                 .exec(async function (err: unknown, user: unknown) {
@@ -828,25 +833,6 @@ export namespace Services {
                             }
                           });
                       } else {
-                        User.update({
-                          username: username,
-                        })
-                          .set({ lastLogin: new Date() })
-                          .exec(async function (err: unknown, user: unknown) {
-                            if (err) {
-                              that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [err]);
-                              return;
-                            }
-                            if (_.isEmpty(user)) {
-                              that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
-                                'No user found',
-                              ]);
-                              return;
-                            }
-
-                            return;
-                          });
-
                         await that.runLoginPostSaveTriggers(foundUserObj, configLocal, 'onUpdate');
 
                         return done(null, foundUserObj, {
@@ -1157,7 +1143,6 @@ export namespace Services {
                       .assertAuthenticationAllowed(userObj)
                       .then(async () => {
                         const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-                        userObj.lastLogin = new Date();
                         userObj.name = String(attrs.cn ?? '');
                         userObj.email = String(attrs.mail ?? '').toLowerCase();
                         userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
@@ -1295,7 +1280,6 @@ export namespace Services {
                       surname: normalizedSurname,
                       type: 'aaf',
                       roles: aafDefRoles,
-                      lastLogin: new Date(),
                     };
 
                     const emailAuthorizedCheck = that.checkAuthorizedEmail(
@@ -1575,7 +1559,6 @@ export namespace Services {
               .assertAuthenticationAllowed(userObj)
               .then(async () => {
                 that.updateChronicle({ usersUserUpdate: 'processing' });
-                userObj.lastLogin = new Date();
                 const additionalAttributesMapping = claimsMappings['additionalAttributes'];
                 userObj.additionalAttributes = that.mapAdditionalAttributes(
                   userinfo,
@@ -1702,7 +1685,6 @@ export namespace Services {
                 type: 'oidc',
                 roles: openIdConnectDefRoles,
                 additionalAttributes: additionalAttributes,
-                lastLogin: new Date(),
               };
             } catch (e) {
               that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [e]);
@@ -2003,13 +1985,13 @@ export namespace Services {
      * Retrieve all users that hold at least one role for the supplied brand.
      * @param brand The brand or brand id to scope the search to.
      */
-    public getUsersForBrand = (brand: BrandingModel | string): Observable<UserModel[]> => {
+    public getUsersForBrand = (brand: BrandingModel | string, signIn?: string): Observable<UserModel[]> => {
       const brandId = typeof brand === 'string' ? brand : _.get(brand, 'id');
       if (_.isEmpty(brandId)) {
         return of([]);
       }
 
-      return super.getObservable<UserModel[]>(User.find({}).populate('roles')).pipe(
+      return super.getObservable<UserModel[]>(User.find(signIn ? { type: signIn } : {}).populate('roles')).pipe(
         flatMap(async (users: UserModel[]) => {
           const activeLinks =
             typeof UserLink !== 'undefined' ? await UserLink.find({ brandId: brandId, status: 'active' }) : [];
@@ -2385,19 +2367,93 @@ export namespace Services {
       );
     };
 
+    /** Only called after Passport has established an interactive sign-in session. */
+    public async recordSuccessfulLogin(user: { id?: unknown }): Promise<void> {
+      if (!user?.id) throw new Error('Missing sign-in user');
+      await User.update({ id: this.signInIdentities.get(user) ?? String(user.id) }).set({ lastLogin: new Date().toISOString() });
+    }
+
+    private async assertAdminRoleRetained(user: UserModel, newRoleIds: Array<string | number>): Promise<void> {
+      for (const role of user.roles ?? []) {
+        if (role.name !== 'Admin' || newRoleIds.map(String).includes(String(role.id))) continue;
+        const brandId = String((role.branding as unknown as AnyRecord)?.id ?? role.branding);
+        const members = await firstValueFrom(this.getUsersForBrand(brandId));
+        const enriched = await this.enrichUsersWithEffectiveDisabledState(members);
+        if (!enriched.some(member => String(member.id) !== String(user.id) &&
+          member.accountLinkState !== 'linked-alias' && !member.effectiveLoginDisabled &&
+          (member.roles as RoleModel[]).some(item => String(item.id) === String(role.id)))) {
+          throw new Error('The last active Admin cannot be removed');
+        }
+      }
+    }
+
+    public async updateUserRolesForBrand(brand: BrandingModel, userId: string, names: string[]): Promise<void> {
+      const user = await firstValueFrom(this.getUserWithId(userId));
+      if (!user || !this.hasRoleInBrand(user, brand.id) || user.accountLinkState === 'linked-alias') {
+        throw new Error('User not found in this brand or is a linked account');
+      }
+      const roles = await firstValueFrom(RolesService.getRolesWithBrand(brand));
+      if (!Array.isArray(names) || !names.length || names.some(name => !roles.some(role => role.name === name))) {
+        throw new Error('Please assign at least one valid role for this brand');
+      }
+      const foreignIds = (user.roles ?? []).filter(role => !this.getRolesForBrand(user as unknown as UserAttributes, brand.id).some(item => item.id === role.id)).map(role => role.id);
+      await firstValueFrom(this.updateUserRoles(userId, [...foreignIds, ...roles.filter(role => names.includes(role.name)).map(role => role.id)]));
+    }
+
+    /** Replace a sole brand membership by updating its junction row in one database write.
+     * Waterline replaceCollection deletes then inserts, so cannot provide this guarantee.
+     */
+    public async removeRoleForBrand(brand: BrandingModel, userId: string, roleId: string): Promise<RoleModel[]> {
+      const user = await firstValueFrom(this.getUserWithId(userId));
+      const current = this.getRolesForBrand(user as unknown as UserAttributes, brand.id);
+      if (!user || user.accountLinkState === 'linked-alias' || !current.some(role => String(role.id) === roleId)) {
+        throw new Error('User membership not found in this brand');
+      }
+      const remaining = current.filter(role => String(role.id) !== roleId);
+      const roles = await firstValueFrom(RolesService.getRolesWithBrand(brand));
+      if (!remaining.length) {
+        const defaultRole = RolesService.getDefUnathenticatedRole({ ...brand, roles });
+        if (!defaultRole || String(defaultRole.id) === roleId) {
+          throw new Error('Assign another role first; the only role is already the default role or the default is unavailable');
+        }
+        remaining.push(defaultRole as unknown as AnyRecord);
+      }
+      const newIds = [...(user.roles ?? []).filter(role => String(role.id) !== roleId).map(role => role.id), ...remaining.map(role => String(role.id))];
+      await this.assertAdminRoleRetained(user, newIds);
+      // Resolve generated junction/foreign-key names from Waterline rather than hard-coding Mongo names.
+      const userModel = User as unknown as { schema: Record<string, { referenceIdentity: string; on: string }> };
+      const association = userModel.schema.roles;
+      const junction = sails.models[association.referenceIdentity] as unknown as {
+        schema: Record<string, { columnName?: string; references?: string }>;
+        updateOne: (where: AnyRecord) => { set: (values: AnyRecord) => Promise<unknown> };
+        destroyOne: (where: AnyRecord) => Promise<unknown>;
+      };
+      const foreignKeys = Object.entries(junction.schema).filter(([, attr]) => attr.references);
+      const userKey = foreignKeys.find(([, attr]) => attr.columnName === association.on)?.[0];
+      const roleKey = foreignKeys.find(([key]) => key !== userKey)?.[0];
+      if (!userKey || !roleKey) throw new Error('Role membership storage is unavailable');
+      const where = { [userKey]: userId, [roleKey]: roleId };
+      const changed = current.length === 1
+        ? await junction.updateOne(where).set({ [roleKey]: remaining[0].id })
+        : await junction.destroyOne(where);
+      if (!changed) throw new Error('Membership changed; reload before retrying');
+      return roles.filter(role => remaining.some(item => String(item.id) === String(role.id)));
+    }
+
     public updateUserRoles = (userid: string | number, newRoleIds: Array<string | number>): Observable<UserModel> => {
       return this.getUserWithId(userid).pipe(
-        flatMap(user => {
+        flatMap(async user => {
           if (user) {
             if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
-              return throwError(new Error('Please assign at least one role'));
+              throw new Error('Please assign at least one role');
             }
+            await this.assertAdminRoleRetained(user, newRoleIds);
             // START Sails 1.0 upgrade
             const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
             // END Sails 1.0 upgrade
-            return this.getObservable<UserModel>(q, 'exec', 'simplecb');
+            return await firstValueFrom(this.getObservable<UserModel>(q, 'exec', 'simplecb'));
           } else {
-            return throwError(new Error('No such user with id:' + userid));
+            throw new Error('No such user with id:' + userid);
           }
         })
       );

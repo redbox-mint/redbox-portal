@@ -3,7 +3,7 @@ import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe, AdminDatePipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
@@ -140,6 +140,7 @@ describe('ManageUsersComponent', () => {
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
+        AdminDatePipe,
         ModalModule.forRoot()
       ],
       providers: [
@@ -805,6 +806,29 @@ describe('ManageUsersComponent', () => {
     expect(audit).not.toHaveBeenCalled();
     app.onDetailsModalHidden();
     expect(audit).toHaveBeenCalledWith(app.currentUser!);
+  });
+
+  it('loads enabled methods and sends the sign-in filter to the server', async () => {
+    const { fixture, app } = await createComponent();
+    const read = spyOn(userService, 'getUsers').and.resolveTo(baseUsersData);
+    app.signInFilter = 'local';
+    await app.changeSignInFilter();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: false, signIn: 'local' });
+    expect(app.signInMethods).toEqual(['local', 'aaf', 'oidc']);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#manage-users-sign-in')).toBeTruthy();
+    await app.resetFilter();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: false });
+  });
+
+  it('renders last login in the table and account dialog, with Never when empty', async () => {
+    const { fixture, app } = await createComponent();
+    app.allUsers[0].lastLogin = '2026-11-06T01:02:03Z';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('06/11/2026');
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
+    app.editUser('admin'); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
   });
 
 });

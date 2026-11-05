@@ -37,6 +37,7 @@ export interface User {
   email: string;
   token: string;
   roles: Role[];
+  lastLogin?: string | Date;
   newRoles: Role[];
   roleStr: string;
   accountLinkState?: 'active' | 'linked-alias';
@@ -50,6 +51,9 @@ export interface User {
 }
 
 export interface Role {
+  description?: string;
+  descriptionKey?: string;
+  isDefault?: boolean;
   id: string;
   name: string;
   users: User[];
@@ -192,11 +196,12 @@ export class UserService extends HttpClientService {
   // headersObj['X-Source'] = 'jsclient';
   // headersObj['Content-Type'] = 'application/json;charset=utf-8';
   // headersObj['X-CSRF-Token'] = this.config.csrfToken;
-  public async getUsers(options?: { includeDisabled?: boolean }) {
+  public async getUsers(options?: { includeDisabled?: boolean; signIn?: string }) {
     let url = `${this.brandingAndPortalUrl}/admin/users/get`;
-    if (options?.includeDisabled) {
-      url += '?includeDisabled=true';
-    }
+    const params = new URLSearchParams();
+    if (options?.includeDisabled) params.set('includeDisabled', 'true');
+    if (options?.signIn) params.set('signIn', options.signIn);
+    if (params.size) url += '?' + params.toString();
     const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned User[]
@@ -228,6 +233,18 @@ export class UserService extends HttpClientService {
     const result$ = this.http.post(url, {userid: userid}, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async getUserOptions(): Promise<{ signInMethods: string[] }> {
+    return await firstValueFrom(this.http.get<{ signInMethods: string[] }>(`${this.brandingAndPortalUrl}/admin/users/options`, { responseType: 'json', observe: 'body', context: this.httpContext }));
+  }
+
+  public async updateRoleDescription(roleId: string, description: string) {
+    return await firstValueFrom(this.http.post<{ status: boolean }>(`${this.brandingAndPortalUrl}/admin/roles/${encodeURIComponent(roleId)}/description`, { description }, { responseType: 'json', observe: 'body', context: this.httpContext }));
+  }
+
+  public async removeRoleMember(roleId: string, userId: string) {
+    return await firstValueFrom(this.http.post<{ status: boolean; roles: Role[] }>(`${this.brandingAndPortalUrl}/admin/roles/${encodeURIComponent(roleId)}/users/${encodeURIComponent(userId)}/remove`, {}, { responseType: 'json', observe: 'body', context: this.httpContext }));
   }
 
   public async getBrandRoles() {

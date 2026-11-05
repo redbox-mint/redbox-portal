@@ -83,6 +83,10 @@ export class ManageUsersComponent extends BaseComponent {
 
   title = '@researchdatabox/manage-users';
   roleFilter = '';
+  signInFilter = '';
+  signInMethods: string[] = [];
+  usersLoading = false;
+  private usersRequest = 0;
   pendingUserAction: { kind: 'disable' | 'revoke'; user: ManageUser } | null = null;
   actionPending = false;
   actionError = '';
@@ -194,6 +198,7 @@ export class ManageUsersComponent extends BaseComponent {
     this.brandingAndPortalUrl = this.userService.brandingAndPortalUrl;
     const roles = await this.userService.getBrandRoles() as unknown as Role[];
     this.allRoles = [...roles];
+    this.signInMethods = (await this.userService.getUserOptions()).signInMethods;
     await this.refreshUsers();
   }
 
@@ -290,7 +295,21 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   async refreshUsers() {
-    const users = await this.userService.getUsers({ includeDisabled: this.showDisabledUsers }) as unknown as ManageUser[];
+    const request = ++this.usersRequest;
+    this.usersLoading = true;
+    let users: ManageUser[];
+    try {
+      users = await this.userService.getUsers({ includeDisabled: this.showDisabledUsers, ...(this.signInFilter ? { signIn: this.signInFilter } : {}) }) as unknown as ManageUser[];
+      if (request !== this.usersRequest) return;
+    } catch (error) {
+      if (request === this.usersRequest) {
+        this.allUsers = []; this.filteredUsers = [];
+        this.setUpdateMessage(this.translationService.t('admin-users-load-error'), 'danger');
+      }
+      throw error;
+    } finally {
+      if (request === this.usersRequest) this.usersLoading = false;
+    }
     this.allUsers = [];
     for (const user of users) {
       this.allUsers.push(user);
@@ -688,10 +707,17 @@ export class ManageUsersComponent extends BaseComponent {
     );
   }
 
-  resetFilter() {
+  async changeSignInFilter() {
+    try { await this.refreshUsers(); } catch { /* refreshUsers presents the error. */ }
+  }
+
+  async resetFilter() {
+    const hadSignIn = !!this.signInFilter;
+    this.signInFilter = '';
     this.searchFilter.name = '';
     this.roleFilter = '';
     this.searchFilter.users.forEach(user => user.checked = user.value == null);
+    if (hadSignIn) await this.changeSignInFilter();
     this.onFilterChange();
   }
 

@@ -152,6 +152,10 @@ export function getStubUserService(username: string = '', password: string = '',
         this.loginResult.message = 'Invalid username/password';
       }
       return this.loginResult;
+    }, getUserOptions() {
+      return Promise.resolve({ signInMethods: ['local', 'aaf', 'oidc'] });
+    }, updateRoleDescription() { return Promise.resolve({ status: true });
+    }, removeRoleMember() { return Promise.resolve({ status: true, roles: [] });
     }, getBrandRoles() {
       return rolesData;
     }, getUsers() {

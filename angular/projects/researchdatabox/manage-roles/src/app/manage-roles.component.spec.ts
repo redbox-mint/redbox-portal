@@ -142,8 +142,9 @@ describe('AppComponent', () => {
     expect(save).toHaveBeenCalledWith('candidate', ['Researcher', 'Admin']);
     expect(app.members().length).toBe(2);
     app.requestRemoval(user);
+    const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [researcher] });
     await app.removeMember();
-    expect(save).toHaveBeenCalledWith('candidate', ['Researcher']);
+    expect(remove).toHaveBeenCalledWith(app.selectedRole!.id, 'candidate');
     expect(user.roles.map(role => role.name)).toEqual(['Researcher']);
     fixture.destroy();
   });
@@ -160,7 +161,7 @@ describe('AppComponent', () => {
     expect(app.removeBlockedReason(admin)).toBe('admin-roles-last-admin');
     app.selectedRole = { id: 'r', name: 'Researcher', users: [], hasRole: true };
     admin.roles = [app.selectedRole];
-    expect(app.removeBlockedReason(admin)).toBe('admin-roles-last-role');
+    expect(app.removeBlockedReason(admin)).toBe('admin-roles-default-blocked');
     fixture.destroy();
   });
 
@@ -195,6 +196,54 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-admin-crumbs a').getAttribute('href')).toBe('/default/rdmp/admin');
     expect(fixture.nativeElement.querySelector('.rb-admin-page-actions a').getAttribute('href')).toBe('/default/rdmp/admin/users');
+    fixture.destroy();
+  });
+
+  it('marks the configured default and replaces the only non-default role in one request', async () => {
+    const { fixture, app } = await createComponent();
+    const researcher = { id: 'r', name: 'Researcher', users: [], hasRole: true, descriptionKey: 'admin-roles-description-researcher' };
+    const guest = { id: 'g', name: 'Guest', users: [], hasRole: true, isDefault: true };
+    app.roles = [researcher, guest]; app.selectedRole = researcher;
+    const user: typeof app.users[number] = { ...app.users[0], id: 'only-role', roles: [researcher] };
+    app.users = [user];
+    app.requestRemoval(user);
+    expect(app.pendingRemoval).toBe(user);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('admin-roles-replace-confirm');
+    const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [guest] });
+    await app.removeMember();
+    expect(remove).toHaveBeenCalledOnceWith('r', 'only-role');
+    expect(user.roles).toEqual([guest]);
+    app.pendingRemoval = null; app.selectedRole = guest;
+    app.requestRemoval(user); fixture.detectChanges();
+    expect(app.blockedRemoval).toBe('admin-roles-default-blocked');
+    expect(fixture.nativeElement.textContent).toContain('admin-roles-default-badge');
+    expect(fixture.nativeElement.textContent).toContain('admin-roles-default-note');
+    fixture.destroy();
+  });
+
+  it('edits, cancels and saves descriptions without changing the role name', async () => {
+    const { fixture, app } = await createComponent();
+    app.selectedRole!.description = 'Original';
+    app.startDescriptionEdit(); app.descriptionDraft = 'Draft'; app.editingDescription = false;
+    expect(app.selectedRole!.description).toBe('Original');
+    app.startDescriptionEdit(); app.descriptionDraft = 'Edited description';
+    const save = spyOn(userService, 'updateRoleDescription').and.resolveTo({ status: true });
+    await app.saveDescription(); fixture.detectChanges();
+    expect(save).toHaveBeenCalledOnceWith(app.selectedRole!.id, 'Edited description');
+    expect(app.selectedRole!.description).toBe('Edited description');
+    expect(app.editingDescription).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Edited description');
+    fixture.destroy();
+  });
+
+  it('retains the draft when the description save fails', async () => {
+    const { fixture, app } = await createComponent();
+    app.startDescriptionEdit(); app.descriptionDraft = 'Retry this';
+    spyOn(userService, 'updateRoleDescription').and.rejectWith(new Error('Unavailable'));
+    await app.saveDescription();
+    expect(app.descriptionDraft).toBe('Retry this'); expect(app.editingDescription).toBeTrue();
+    expect(app.saveError).toBeTruthy(); expect(app.saving).toBeFalse();
     fixture.destroy();
   });
 

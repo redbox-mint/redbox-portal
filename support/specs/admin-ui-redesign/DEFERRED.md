@@ -24,10 +24,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Users | "Last login" field; filter by sign-in method | Needs last-login tracking and a sign-in-type filter in the user query |
-| Roles | Role descriptions | Roles have no description field |
-| Roles | Remove a user’s only role | `UsersService.updateUserRoles` rejects an empty role set. Assign another role first; allowing users with no roles requires a backend policy change. |
-| Roles | Default role for new users | The role list, user list and client configuration do not expose the brand’s auth default role. Expose that setting in an existing admin response before displaying it. |
 | Authorized domains | "Test an address" checker | Should call the server's actual matching logic via a new endpoint, not reimplement it client-side |
 
 ## Site and content
