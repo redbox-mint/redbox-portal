@@ -33,6 +33,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/listDeletedRecords(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/deletedRecords/bulk', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin', role: 'Librarians', can_update: true },
+        { path: '/:branding/:portal/admin/translation(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/translation', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/api-docs', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/admin/api-docs(/*)', role: 'Admin', can_read: true },

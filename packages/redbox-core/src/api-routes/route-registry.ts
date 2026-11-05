@@ -1,3 +1,4 @@
+import { adminTranslationApiRoutes } from './groups/admin-translation';
 import { adminUsersApiRoutes } from './groups/admin-users';
 import { deletedRecordsApiRoutes } from './groups/deleted-records';
 import { buildApiBlueprint } from './apib';
@@ -49,6 +50,7 @@ const coreApiRouteGroups = [
   brandingApiRoutes,
   dashboardConfigApiRoutes,
   translationApiRoutes,
+  adminTranslationApiRoutes,
   reportsApiRoutes,
   integrationAuditApiRoutes,
   exportApiRoutes,

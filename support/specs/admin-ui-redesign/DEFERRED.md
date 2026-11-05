@@ -31,7 +31,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 |---|---|---|
 | Translations | "Missing" / "Changed" filters, "New default" badge, translated-count column | Needs per-key provenance (default vs override vs missing) from the translation service |
 | Translations | Import / Export buttons | Needs bundle import/export endpoints |
-| Translations | Display-name-only rename update | The existing rename posts and resynchronizes the whole bundle. It is slow and can prune parent labels that also have dotted child keys (for example `@dataPublication-dc:accessRights`). Needs a metadata-only display-name endpoint that preserves every translation entry. |
 
 ## Lookups and vocabularies
 

@@ -131,6 +131,7 @@ export const policies: PoliciesConfig = {
     '*': noCachePlusDefaultPolicies,
   },
   TranslationController: {
+    ...(contractApiPolicies.TranslationController as ControllerPolicies),
     '*': noCachePlusDefaultPolicies,
     getNamespace: publicTranslationPolicies,
   },

@@ -79,6 +79,48 @@ describe('I18nEntriesService', function () {
     sinon.restore();
   });
 
+  describe('leaf and prefix preservation', function () {
+    for (const entries of [
+      [{ key: '@dataPublication-dc:accessRights', value: 'Access rights' }, { key: '@dataPublication-dc:accessRights.help', value: 'Help' }],
+      [{ key: '@dataPublication-dc:accessRights.help', value: 'Help' }, { key: '@dataPublication-dc:accessRights', value: 'Access rights' }],
+    ]) {
+      it('round trips parent labels and dotted child keys in either order', function () {
+        const data = I18nEntriesService.composeNamespace(entries);
+        expect(I18nEntriesService.flatten(data)).to.deep.equal(Object.fromEntries(entries.map(e => [e.key, e.value])));
+      });
+    }
+    it('saving or deleting a child preserves its parent and siblings', function () {
+      const data = { label: 'Parent', 'label.help': 'Help', 'label.other': 'Other' };
+      I18nEntriesService.setNested(data, 'label.help', 'Updated');
+      expect(I18nEntriesService.flatten(data)).to.deep.equal({ label: 'Parent', 'label.help': 'Updated', 'label.other': 'Other' });
+      I18nEntriesService.removeNested(data, 'label.help');
+      expect(I18nEntriesService.flatten(data)).to.deep.equal({ label: 'Parent', 'label.other': 'Other' });
+    });
+    it('full bundle sync does not prune a label after saving its child', async function () {
+      const data = { label: 'Parent', 'label.help': 'Help' };
+      I18nEntriesService.setNested(data, 'label.help', 'Updated');
+      const entries = [{ key: 'label', value: 'Parent' }, { key: 'label.help', value: 'Help' }];
+      mockI18nTranslation.find.returns(Promise.resolve(entries));
+      sinon.stub(I18nEntriesService, 'getEntry').callsFake(async (_b, _l, _n, key) => entries.find(e => e.key === key));
+      sinon.stub(I18nEntriesService, 'setEntry').resolves({});
+      const remove = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
+      await I18nEntriesService.syncEntriesFromBundle({ id: 'b', branding: 'brand-1', locale: 'en', namespace: 'translation', data }, true);
+      expect(remove.called).to.equal(false);
+    });
+  });
+
+  it('updates only metadata with one brand-scoped write', async function () {
+    const set = sinon.stub().resolves({ locale: 'en', namespace: 'translation', displayName: 'English' });
+    mockI18nBundle.updateOne.returns({ set });
+    const result = await I18nEntriesService.updateDisplayName({ id: 'brand-1' }, 'en', 'translation', 'English');
+    expect(mockI18nBundle.updateOne.firstCall.args).to.deep.equal([{ branding: 'brand-1', locale: 'en', namespace: 'translation' }]);
+    expect(set.firstCall.args).to.deep.equal([{ displayName: 'English' }]);
+    expect(result).to.deep.equal({ locale: 'en', namespace: 'translation', displayName: 'English' });
+    expect(mockI18nTranslation.find.called).to.equal(false);
+    expect(mockI18nBundle.findOne.called).to.equal(false);
+    expect((global as any).TranslationService.reloadResources.called).to.equal(false);
+  });
+
   describe('resolveBrandingId (private)', function () {
     it('should resolve branding id from object', function () {
       const result = I18nEntriesService.resolveBrandingId({ id: 'brand-1' });
