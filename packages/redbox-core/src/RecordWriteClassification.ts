@@ -53,7 +53,7 @@ function authorizationContext(record: Readonly<AnyRecord>): AnyRecord {
 
 function nonFormObjectMetadata(record: Readonly<AnyRecord>): AnyRecord {
   return {
-    ...omit(record, ['metadata', 'metaMetadata', ...AUTHORIZATION_KEYS, 'workflow', 'previousWorkflow']),
+    ...omit(record, ['metadata', 'metaMetadata', ...AUTHORIZATION_KEYS, 'workflow', 'previousWorkflow', 'relatedMetadata']),
     metaMetadata: omit(recordProperty(record, 'metaMetadata'), FORM_RELEVANT_META_METADATA_KEYS),
   };
 }

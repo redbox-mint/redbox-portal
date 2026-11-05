@@ -1,3 +1,5 @@
+import type { RelatedMetadataRequest } from '../related-records.model';
+
 /** Public operation names are small, case-sensitive identifiers. */
 export const VALIDATION_OPERATION_NAME_MAX_LENGTH = 64;
 export const VALIDATION_OPERATION_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/;
@@ -28,6 +30,8 @@ export function safeValidationDiscoveryText(value: unknown, maxLength: number): 
  * rather than values from a fixed framework enum.
  */
 export interface ValidationOperationDefinition {
+  /** Optional separate related-data input; never merged into persistable metadata. */
+  relatedMetadata?: RelatedMetadataRequest;
   /** The exact validation-group set to use for this operation. */
   enabledValidationGroups: string[];
   /** Optional safe display label. */

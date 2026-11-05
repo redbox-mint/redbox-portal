@@ -17,6 +17,8 @@ import {
   jsonataCompile,
   jsonataEvaluate,
   JSONataEvaluate,
+  RelatedMetadata,
+  RelatedMetadataRequest,
   RecordSaveIssue,
   RecordValidationDiagnostic,
   ReusableFormDefinitions,
@@ -33,6 +35,8 @@ import {
   SuggestedValidationSummaryComponentName,
   ValidatorsSupport,
 } from '@researchdatabox/sails-ng-common';
+import type { RelatedRecordReadContext } from '../related-records/types';
+import type { RecordModel } from '../model/storage/RecordModel';
 import { Services as services } from '../CoreService';
 import type { RecordValidationConfig } from '../config/recordValidation.config';
 import {
@@ -46,6 +50,7 @@ import type { WorkflowStageConfig } from '../config/workflow.config';
 import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { RecordMetaMetadata, RecordWorkflow } from '../model/storage/RecordModel';
 import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
+import { freezeDeep } from '../record-contract/deep-freeze';
 import { RecordContractContextResolutionError } from '../record-contract/record-contract-context';
 import type {
   RecordContractContext,
@@ -139,6 +144,8 @@ export interface RecordValidationActor {
 }
 
 export interface RecordValidationRequest {
+  /** Server-owned effective source-read authority; roles alone never supply it. */
+  readonly relatedReadContext?: RelatedRecordReadContext;
   readonly candidate: RecordValidationCandidate;
   readonly writeKind: RecordValidationWriteKind;
   /** Server-owned validation intent; separate from the CRUD write kind. */
@@ -183,7 +190,11 @@ export interface RecordValidationOperationDiscoveryRequest {
   readonly authorizedTargetSteps?: readonly string[];
 }
 
+type DeepReadonly<T> = T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;
+type ReadonlyRelatedMetadata = DeepReadonly<RelatedMetadata>;
+
 export interface RecordValidationExpressionContext {
+  readonly relatedMetadata?: ReadonlyRelatedMetadata;
   readonly formData: Readonly<Record<string, unknown>>;
   readonly operation?: string;
   readonly recordType: string;
@@ -202,6 +213,7 @@ export interface RecordValidationExpressionContext {
 }
 
 export interface EffectiveValidationOperationPolicy {
+  readonly relatedMetadata?: RelatedMetadataRequest;
   readonly name: string;
   readonly enabledValidationGroups: readonly string[];
   readonly label?: string;
@@ -357,6 +369,11 @@ interface WorkflowStepLike {
 }
 
 export interface RecordValidationServiceDependencies {
+  resolveRelatedMetadata?(
+    candidate: RecordValidationCandidate,
+    context: RelatedRecordReadContext,
+    request: RelatedMetadataRequest
+  ): Promise<RelatedMetadata>;
   loadRecord(oid: string): Promise<Readonly<Record<string, unknown>> | null>;
   loadRecordType(brand: string, recordType: string): Promise<RecordTypeLike | null>;
   loadStartingWorkflowStep(recordType: RecordTypeLike): Promise<WorkflowStepLike | null>;
@@ -701,6 +718,7 @@ function applyPolicyLayer(
   }
   return {
     name: policy.name,
+    relatedMetadata: layer.relatedMetadata ?? policy.relatedMetadata,
     enabledValidationGroups: groups,
     label: layer.label ?? policy.label,
     description: layer.description ?? policy.description,
@@ -1392,6 +1410,9 @@ export namespace Services {
       }
       const timeoutMs = this.timeoutMs(globalConfig?.timeoutMs);
       const deadline = this.createDeadline(timeoutMs);
+      let relatedMetadata: ReadonlyRelatedMetadata | undefined;
+      // Opted-in operations must finish their selected validation even in shadow mode.
+      const requiresRelatedValidation = policy?.relatedMetadata !== undefined;
       let persistenceCandidate: RecordValidationCandidate | undefined;
       // Until the schema-owned transformation pass completes, shadow mode must
       // not treat the raw submitted candidate as safe for persistence.
@@ -1415,6 +1436,16 @@ export namespace Services {
           }
           transformationContractFailed = false;
           this.checkDeadline(deadline);
+          if (policy?.relatedMetadata !== undefined) {
+            const readContext = request.relatedReadContext;
+            const resolve = this.dependencies().resolveRelatedMetadata;
+            if (!readContext || !resolve || String(readContext.brand.id) !== brand) {
+              throw new Error('Effective related read authority is required.');
+            }
+            const resolved = await resolve(transformedCandidate, readContext, policy.relatedMetadata);
+            // Freeze a detached runtime view; never attach it to the candidate.
+            relatedMetadata = freezeDeep(_.cloneDeep(resolved));
+          }
           const normalizedForContext: NormalizedRecordValidationRequest = {
             ...normalized,
             source: { ...normalized.source, candidate: transformedCandidate },
@@ -1428,13 +1459,14 @@ export namespace Services {
             diagnostics
           );
           if (!context) return undefined;
+          const validatorContext = relatedMetadata === undefined ? context : { ...context, relatedMetadata };
           const validationForm = transformationApplication.applied.length > 0
             ? await this.constructForm(form, transformedCandidate.metadata)
             : constructedForm;
           const groupResolution = await this.resolveValidationGroups(
             validationForm,
             policy,
-            context,
+            validatorContext,
             diagnostics,
             deadline
           );
@@ -1451,7 +1483,8 @@ export namespace Services {
             groupResolution.effectiveGroups,
             validatorDefinitionsMap,
             advisoryGroups,
-            deadline
+            deadline,
+            relatedMetadata
           );
           const validatorTransformationApplication = this.applyCandidateTransformations(
             transformedCandidate,
@@ -1470,7 +1503,7 @@ export namespace Services {
           const transformationAdvisories = this.mapTransformationAdvisories(appliedTransformations);
           this.checkDeadline(deadline);
           return {
-            context,
+            context: validatorContext,
             validationForm,
             groupResolution,
             advisoryGroups,
@@ -1491,7 +1524,7 @@ export namespace Services {
           operation,
           recordType: recordTypeName,
           formName: selection.formName,
-          contractFailure: transformationContractFailed,
+          contractFailure: transformationContractFailed || requiresRelatedValidation,
           ...(persistenceCandidate ? { transformedCandidate: persistenceCandidate } : {}),
         });
       }
@@ -1507,7 +1540,7 @@ export namespace Services {
           operation,
           recordType: recordTypeName,
           formName: selection.formName,
-          contractFailure: transformationContractFailed,
+          contractFailure: transformationContractFailed || requiresRelatedValidation,
           ...(persistenceCandidate ? { transformedCandidate: persistenceCandidate } : {}),
         });
       }
@@ -1517,7 +1550,7 @@ export namespace Services {
           operation,
           recordType: recordTypeName,
           formName: selection.formName,
-          contractFailure: transformationContractFailed,
+          contractFailure: transformationContractFailed || requiresRelatedValidation,
           ...(persistenceCandidate ? { transformedCandidate: persistenceCandidate } : {}),
         });
       }
@@ -1541,7 +1574,8 @@ export namespace Services {
             advisoryGroups,
             validatorDefinitionsMap,
             [],
-            deadline
+            deadline,
+            relatedMetadata
           );
           const advisoryTransformationApplication = this.applyCandidateTransformations(
             transformedCandidate,
@@ -1587,7 +1621,7 @@ export namespace Services {
             operation,
             recordType: recordTypeName,
             formName: selection.formName,
-            contractFailure: transformationContractFailed,
+            contractFailure: transformationContractFailed || requiresRelatedValidation,
             ...(persistenceCandidate ? { transformedCandidate: persistenceCandidate } : {}),
           });
         } else {
@@ -1733,6 +1767,8 @@ export namespace Services {
     private dependencies(): RecordValidationServiceDependencies {
       if (this.resolvedDependencies) return this.resolvedDependencies;
       const defaults: RecordValidationServiceDependencies = {
+        resolveRelatedMetadata: (candidate, context, request) =>
+          RecordsService.resolveRelatedMetadata(candidate as unknown as Readonly<RecordModel>, context, request),
         loadRecord: oid => RecordsService.getMeta(oid),
         loadRecordType: async (brand, recordType) =>
           (await firstValueFrom(
@@ -2051,6 +2087,7 @@ export namespace Services {
       }
       let policy: EffectiveValidationOperationPolicy = {
         name: operation,
+        relatedMetadata: formPolicy.relatedMetadata,
         enabledValidationGroups: groups,
         label: formPolicy.label,
         description: formPolicy.description,
@@ -2458,7 +2495,8 @@ export namespace Services {
       groups: readonly string[],
       mapping: ReadonlyMap<string, FormValidatorDefinition>,
       excludedOnlyGroups: readonly string[],
-      deadline: ValidationDeadline
+      deadline: ValidationDeadline,
+      relatedMetadata?: ReadonlyRelatedMetadata
     ): Promise<ValidatorFormConfigResult> {
       const execute = this.dependencies().executeValidators;
       if (!execute) throw new Error('Record validation executor is unavailable.');
@@ -2467,7 +2505,7 @@ export namespace Services {
         form,
         groups,
         mapping,
-        expression => this.jsonataEvaluator(expression, deadline),
+        expression => this.jsonataEvaluator(expression, deadline, relatedMetadata),
         excludedOnlyGroups,
         () => this.checkDeadline(deadline)
       );
@@ -2556,13 +2594,21 @@ export namespace Services {
       return true;
     }
 
-    private jsonataEvaluator(expression: string, deadline: ValidationDeadline): JSONataEvaluate {
+    private jsonataEvaluator(
+      expression: string,
+      deadline: ValidationDeadline,
+      relatedMetadata?: ReadonlyRelatedMetadata
+    ): JSONataEvaluate {
       this.checkDeadline(deadline);
       const compiled = this.compiledExpression(expression);
       this.checkDeadline(deadline);
       return async (value: unknown) => {
         this.checkDeadline(deadline);
-        const result = await jsonataEvaluate(compiled, value);
+        // Keep the control value ($), record and metadata meanings unchanged.
+        // JSONata validators opt in through the separate $relatedMetadata binding,
+        // including validators on scalar and array controls.
+        const result = await jsonataEvaluate(compiled, value,
+          relatedMetadata === undefined ? undefined : { relatedMetadata });
         this.checkDeadline(deadline);
         return result;
       };

@@ -23,6 +23,8 @@ export class SearchFilter {
 }
 
 export class RelatedTo {
+  oidProperty?: string;
+  resolution?: import('../../related-records/types').RelatedRelationResolutionConfig;
   id?: string;
   label?: string;
   recordType: string = '';

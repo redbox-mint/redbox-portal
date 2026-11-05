@@ -2728,6 +2728,77 @@ describe('RecordsService', function () {
         })
       );
 
+    it('preserves retained references during in-place workflow normalization', function () {
+      for (const enriched of [false, true]) {
+        const candidate = {
+          ...record(),
+          ...(enriched ? { relatedMetadata: {} } : {}),
+        };
+        const metadata = candidate.metadata;
+        const metaMetadata = candidate.metaMetadata;
+        const authorization = candidate.authorization;
+        const workflow = candidate.workflow;
+        const nextWorkflow = { stage: 'published' };
+        RecordsService.transitionWorkflowStepMetadata(candidate, {
+          config: { form: 'published-form', workflow: nextWorkflow, authorization: {} },
+        });
+        expect(candidate.metadata).to.equal(metadata);
+        expect(candidate.metaMetadata).to.equal(metaMetadata);
+        expect(metaMetadata.form).to.equal('published-form');
+        metadata.title = 'Written through retained metadata';
+        expect(candidate.metadata.title).to.equal('Written through retained metadata');
+        expect(candidate.authorization).to.equal(authorization);
+        expect((candidate as any).previousWorkflow).to.equal(workflow);
+        expect(candidate.workflow).to.equal(nextWorkflow);
+        expect(candidate).not.to.have.property('relatedMetadata');
+      }
+    });
+
+    it('excludes runtime enrichment from incidental index and queued audit snapshots', async function () {
+      const candidate = {
+        ...record(),
+        metadata: { title: 'Local', relatedMetadata: { local: true } },
+        relatedMetadata: { activities: { status: 'empty', records: [], issues: [] } },
+      };
+      mockSails.config.record.auditing.enabled = true;
+      mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true });
+      mockStorageService.getMeta.resolves(candidate);
+      await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Local' }, 4, ['metadata.title'], {});
+      const indexed = mockSearchService.index.firstCall.args[1];
+      const audited = mockQueueService.now.firstCall.args[1].record;
+      for (const snapshot of [indexed, audited]) {
+        expect(snapshot).not.to.have.property('relatedMetadata');
+        expect(snapshot.metadata.relatedMetadata).to.deep.equal({ local: true });
+        snapshot.metadata.title = 'Detached';
+      }
+      expect(candidate.metadata.title).to.equal('Local');
+      expect(candidate).to.have.property('relatedMetadata');
+    });
+
+    it('excludes runtime enrichment from canonical and storage snapshots during a real local save', async function () {
+      installMode('observe');
+      const candidate = {
+        ...record(4, 'Local edit'),
+        relatedMetadata: { activities: { status: 'empty', records: [], issues: [] } },
+      };
+      const committed = { ...candidate, revision: 5 };
+      mockStorageService.getMeta.onFirstCall().resolves(record());
+      mockStorageService.getMeta.onSecondCall().resolves(committed);
+      mockStorageService.updateMeta.resolves({
+        success: true, oid: 'record-123', applicationState: 'applied',
+        committedRevision: 5, committedRecord: committed,
+      });
+      const result = await update(candidate, {});
+      expect(result.outcome).to.equal('saved');
+      expect(mockStorageService.updateMeta.firstCall.args[2]).not.to.have.property('relatedMetadata');
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.title).to.equal('Local edit');
+      expect(candidate).to.have.property('relatedMetadata');
+      const normalized = (RecordsService as any).cloneValidationCandidate(candidate);
+      expect(normalized).not.to.have.property('relatedMetadata');
+      normalized.metadata.title = 'Detached';
+      expect(candidate.metadata.title).to.equal('Local edit');
+    });
+
     it('enforces strict missing while observe and last-write-wins accept tokenless writes', async function () {
       const validator = (global as any).RecordValidationService.resolve as sinon.SinonStub;
 
@@ -2886,6 +2957,42 @@ describe('RecordsService', function () {
 
       expect(fingerprint).to.equal(undefined);
       expect((global as any).FormsService.getFormByName.notCalled).to.equal(true);
+    });
+
+    it('binds centralized opted-in relations and preserves exact legacy fingerprint composition', async function () {
+      const stored = record();
+      const deliveredForm = { id: 'default-form-id', name: 'default-form', branding: 'brand-1',
+        configuration: { name: 'default-form', componentDefinitions: [] as any[] } };
+      const relatedTo = [{ id: 'activities', recordType: 'activity', localField: 'metadata.activities',
+        foreignField: 'redboxOid', resolution: { metadataFields: ['/title'] } }];
+      const recordType = { name: 'rdmp', relatedTo };
+      const legacy = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
+      // Capture the pre-feature composition verbatim, including workflow sorting.
+      const { formatRecordFormFingerprint } = require('../../src/RecordFormFingerprint');
+      const steps = await (await import('rxjs')).firstValueFrom((global as any).WorkflowStepsService.getAllForRecordType(recordType)) as any[];
+      const expected = formatRecordFormFingerprint({
+        recordType: 'rdmp', recordValidation: undefined,
+        currentWorkflow: { stage: stored.workflow.stage, form: 'default-form' },
+        workflowFormContract: steps.map(step => ({ name: String(step.name ?? '').trim(), starting: step.starting === true,
+          hidden: step.hidden === true, config: step.config ?? {} })).sort((a, b) => a.name.localeCompare(b.name)),
+        form: deliveredForm, reusableFormDefinitions: mockSails.config.reusableFormDefinitions ?? {},
+        validatorDefinitions: mockSails.config.validators?.definitions ?? [],
+      });
+      expect(legacy).to.equal(expected);
+      relatedTo[0].resolution.metadataFields = ['/startDate'];
+      expect(await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm)).to.equal(legacy);
+      deliveredForm.configuration.componentDefinitions.push({ name: 'title', relatedDisplay: { relationId: 'activities' },
+        component: { class: 'SimpleInputComponent' } });
+      const opted = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
+      const compile = sinon.spy(require('@researchdatabox/sails-ng-common').FormOverride.prototype, 'applyOverridesReusable');
+      try {
+        relatedTo[0].resolution.metadataFields = ['/title'];
+        expect(await RecordsService.getRecordFormFingerprint(stored, recordType, structuredClone(deliveredForm))).not.to.equal(opted);
+        expect(compile.callCount).to.equal(0);
+        deliveredForm.configuration.componentDefinitions[0].name = 'changed-title';
+        await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
+        expect(compile.callCount).to.be.greaterThan(0);
+      } finally { compile.restore(); }
     });
 
     it('binds workflow mappings into a stable fingerprint', async function () {
@@ -3172,7 +3279,7 @@ describe('RecordsService', function () {
         onUpdate: {
           postSync: [
             {
-              function: '(_oid, value) => ({ ...value, metadata: { title: "post-sync" } })',
+              function: '(_oid, value) => ({ ...value, relatedMetadata: {}, metadata: { title: "post-sync" } })',
             },
           ],
           post: [
@@ -3206,6 +3313,8 @@ describe('RecordsService', function () {
           (problem: any) => problem.kind === 'conflict' && problem.issues[0]?.code === 'record-revision-stale'
         )
       ).to.equal(true);
+      expect(mockStorageService.updateMeta.secondCall.args[2]).not.to.have.property('relatedMetadata');
+      expect(mockStorageService.updateMeta.secondCall.args[2].metadata.title).to.equal('post-sync');
       expect(mockStorageService.updateMeta.secondCall.args[4].precondition).to.deep.equal({
         requireRevision: true,
         expectedRevision: 5,
@@ -13091,7 +13200,8 @@ describe('RecordsService', function () {
       expect(mockSearchService.index.calledOnceWithExactly('tracker-oid', authoritative)).to.equal(true);
       expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
       const audit = mockStorageService.createRecordAudit.firstCall.args[0];
-      expect(audit.record).to.equal(authoritative);
+      expect(audit.record).to.deep.equal(authoritative);
+      expect(audit.record).not.to.equal(authoritative);
       expect(audit.user).to.deep.equal({ id: 'user-id', username: 'user-1' });
       expect(audit.concurrency).to.deep.equal({ revision: 9, resolution: 'direct' });
       expect(JSON.stringify(audit.user)).not.to.contain('must-not-persist');
@@ -13535,6 +13645,7 @@ describe('RecordsService', function () {
       const dispatchedRequestIds: string[] = [];
       mockStorageService.getMeta.callsFake(async () => _.cloneDeep(current));
       mockStorageService.updateMeta.callsFake(async (_brand, oid, candidate, _user, options) => {
+        expect(candidate).not.to.have.property('relatedMetadata');
         dispatchedRequestIds.push(options.requestId);
         if (dispatchedRequestIds.length === 1) {
           current = internalRecord(2, 'second-baseline');
@@ -13564,7 +13675,11 @@ describe('RecordsService', function () {
         triggerPostSaveTriggers: false,
         mutate: snapshot => {
           computedFrom.push(String(snapshot.metadata?.title));
-          return { ...snapshot, metadata: { ...snapshot.metadata, targeted: computedFrom.length } };
+          return {
+            ...snapshot,
+            relatedMetadata: { activities: { status: 'empty', records: [], issues: [] } },
+            metadata: { ...snapshot.metadata, targeted: computedFrom.length },
+          };
         },
         retry: { idempotent: true, recomputable: true, maxAttempts: 2 },
       });
@@ -13697,6 +13812,440 @@ describe('RecordsService', function () {
         ]);
         expect(mockStorageService.createBatch.notCalled).to.equal(true);
       }
+    });
+  });
+
+  describe('RR-09 authoritative transient displays', function () {
+    let stored: any;
+    let recordType: any;
+    let form: any;
+    beforeEach(function () {
+      stored = {
+        redboxOid: 'record-123',
+        revision: 0,
+        metaMetadata: { type: 'rdmp', form: 'default-form', brandId: 'brand-1' },
+        workflow: { stage: 'draft' },
+        metadata: { activity: 'source', display: 'retained', rows: [1], local: 'old' },
+      };
+      recordType = {
+        name: 'rdmp',
+        hooks: {},
+        searchable: false,
+        relatedTo: [
+          {
+            id: 'activity',
+            recordType: 'activity',
+            localField: 'metadata.activity',
+            foreignField: 'redboxOid',
+            resolution: { metadataFields: ['/title'] },
+          },
+        ],
+      };
+      form = {
+        name: 'default-form',
+        configuration: {
+          name: 'default-form',
+          componentDefinitions: [
+            { name: 'display', relatedDisplay: { relationId: 'activity' }, component: { class: 'SimpleInputComponent' } },
+          ],
+        },
+      };
+      mockFormsService.getFormByName.returns(of(form));
+      mockFormsService.getForm.resolves(form);
+      (global as any).RecordTypesService.get.returns(of(recordType));
+      mockStorageService.getMeta.resolves(stored);
+    });
+    function update(metadata: any, mode = 'replace', next = {}, hooks = false) {
+      return RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        _.cloneDeep(stored),
+        { username: 'owner' },
+        hooks,
+        false,
+        next,
+        { metadata, mode }
+      );
+    }
+    for (const mode of ['replace', 'merge']) {
+      it(`preserves active retained values and ordinary arrays in ${mode} saves`, async function () {
+        const payload = { activity: 'source', local: 'new', rows: [2], display: 'retained' };
+        const result = await update(payload, mode);
+        expect(result.wasPersisted()).to.equal(true);
+        const metadata = mockStorageService.updateMeta.firstCall.args[2].metadata;
+        expect(metadata.display).to.equal('retained');
+        expect(metadata.rows).to.deep.equal(mode === 'replace' ? [2] : [1, 2]);
+        expect(payload.display).to.equal('retained');
+      });
+      it(`clears omitted targets on unlink in ${mode} saves`, async function () {
+        const result = await update({ activity: null, local: 'new' }, mode);
+        expect(result.wasPersisted()).to.equal(true);
+        expect(mockStorageService.updateMeta.firstCall.args[2].metadata).not.to.have.property('display');
+      });
+    }
+    it('restores protected values omitted from replacement saves', async function () {
+      const result = await update({ activity: 'source', local: 'new' });
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.display).to.equal('retained');
+    });
+    it('preserves authoritative absence and distinguishes null from absence', async function () {
+      delete stored.metadata.display;
+      let result = await update({ activity: 'source', local: 'new' });
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).not.to.have.property('display');
+      mockStorageService.updateMeta.resetHistory();
+      result = await update({ activity: 'source', display: null });
+      expect(result.problems[0].issues[0].code).to.equal('related-display-field-not-writable');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      stored.metadata.display = null;
+      result = await update({ activity: 'source', local: 'new' });
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.display).to.equal(null);
+    });
+    it('keeps stale CAS diagnostics ahead of display rejection and form lookups', async function () {
+      stored.authorization = { edit: ['owner'], view: ['owner'] };
+      mockStorageService.getCapabilities = sinon
+        .stub()
+        .returns({ recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION });
+      const context = createRecordSaveContext({
+        routeFamily: 'api',
+        operation: 'update',
+        concurrency: { expectedRevision: 1 },
+      });
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        _.cloneDeep(stored),
+        { username: 'owner' },
+        true,
+        false,
+        {},
+        { metadata: { activity: 'source', display: 'fetched' }, mode: 'replace' },
+        context
+      );
+      expect(result.problems[0].issues[0].code).to.equal('record-revision-stale');
+      expect(mockFormsService.getFormByName.notCalled && mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('rejects manipulated API controls before structural validation or hooks', async function () {
+      const structural = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
+      const hooks = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      const result = await update({ activity: 'source', display: 'fetched' }, 'replace', {}, true);
+      expect(result.problems[0].issues[0].code).to.equal('related-display-field-not-writable');
+      expect(structural.notCalled && hooks.notCalled && mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('removes equal echoes before structural validation', async function () {
+      const structural = sinon.spy(RecordsService, 'validateUpdateMetadataStructure');
+      await update({ activity: 'source', display: 'retained', local: 'new' });
+      expect(structural.firstCall.args[0]).not.to.have.property('display');
+    });
+    it('rejects hook writes and clears a hook resurrection after unlink', async function () {
+      sinon.stub(RecordsService, 'triggerPreSaveTriggers').callsFake(async (_oid: any, record: any) => {
+        record.metadata.display = 'fetched';
+        return record;
+      });
+      let result = await update({ activity: 'source', local: 'new' }, 'replace', {}, true);
+      expect(result.problems[0].issues[0].code).to.equal('related-display-field-not-writable');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+      result = await update({ activity: null, local: 'new' }, 'merge', {}, true);
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata).not.to.have.property('display');
+    });
+    for (const kind of ['create', 'update']) {
+      for (const phase of ['hook', 'transformation']) {
+        it(`retains the source contract when a ${kind} transition ${phase} activates a reference`, async function () {
+          stored.metadata.activity = null;
+          delete stored.metadata.display;
+          mockFormsService.getFormByName.callsFake((name: string) =>
+            of(name === 'published-form' ? ({ name, configuration: { componentDefinitions: [] } } as any) : form)
+          );
+          const activate = (record: any) => ({
+            ...record,
+            metadata: { ...record.metadata, activity: 'source', display: 'fetched' },
+          });
+          if (phase === 'hook') {
+            sinon
+              .stub(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers')
+              .callsFake(async (_oid: any, record: any) => activate(record));
+          } else {
+            mockRecordValidationService.resolve.callsFake(async (request: any) => ({
+              status: 'resolved',
+              shouldBlock: false,
+              mode: 'shadow',
+              diagnostics: [],
+              transformedCandidate: activate(request.candidate),
+            }));
+          }
+          const result =
+            kind === 'create'
+              ? await RecordsService.create(
+                  { id: 'brand-1' },
+                  { metadata: { activity: null } },
+                  recordType,
+                  { username: 'owner' },
+                  false,
+                  false,
+                  'published'
+                )
+              : await update({ activity: null, local: 'new' }, 'merge', { name: 'published' });
+          expect(result.wasPersisted()).to.equal(false);
+          expect(result.problems[0].issues[0].code).to.equal('related-display-contract-invalid');
+          expect(mockStorageService.create.notCalled && mockStorageService.updateMeta.notCalled).to.equal(true);
+          expect(
+            mockFormsService.getFormByName.getCalls().filter(call => call.args[0] === 'default-form')
+          ).to.have.length(1);
+          expect(mockFormsService.getFormByName.callCount).to.equal(2);
+        });
+      }
+    }
+    it('adds no form reads to an ordinary update whose form has no declarations', async function () {
+      form.configuration.componentDefinitions = [];
+      delete recordType.relatedTo;
+      let result = await update({ activity: 'source', local: 'new' });
+      expect(result.wasPersisted()).to.equal(true);
+      const baseline = mockFormsService.getFormByName.callCount;
+      expect(baseline).to.equal(2);
+      mockFormsService.getFormByName.resetHistory();
+      recordType.relatedTo = [
+        {
+          id: 'activity',
+          recordType: 'activity',
+          localField: 'metadata.activity',
+          foreignField: 'redboxOid',
+          resolution: { metadataFields: ['/title'] },
+        },
+      ];
+      result = await update({ activity: 'source', local: 'new' });
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockFormsService.getFormByName.callCount).to.equal(baseline);
+    });
+    for (const formName of [undefined, '', 'generated-view-only']) {
+      for (const mode of ['merge', 'replace'] as const) {
+        it(`allows an API ${mode} update of a resolvable record with no configured form (${formName})`, async function () {
+          if (formName === undefined) delete stored.metaMetadata.form;
+          else stored.metaMetadata.form = formName;
+          stored.authorization = { edit: ['owner'], view: ['owner'] };
+          const step = { name: 'draft', config: { form: formName } };
+          (global as any).WorkflowStepsService.getFirst.returns(of(step));
+          (global as any).WorkflowStepsService.get.returns(of(step));
+          mockFormsService.getFormByName.returns(of(null));
+          mockFormsService.getForm.resolves(null);
+          const context = createRecordSaveContext({ routeFamily: 'api', operation: 'update' });
+          const result = await RecordsService.updateMeta(
+            { id: 'brand-1' }, 'record-123', _.cloneDeep(stored), { username: 'owner' },
+            true, false, {}, { metadata: { activity: 'source', display: 'local', local: 'new' }, mode }, context
+          );
+          expect(result.wasPersisted(), JSON.stringify(result.problems)).to.equal(true);
+          expect(mockStorageService.updateMeta.firstCall.args[2].metadata).to.include({
+            activity: 'source', display: 'local', local: 'new',
+          });
+        });
+      }
+    }
+    it('rejects an unavailable explicitly configured form before saving', async function () {
+      mockFormsService.getFormByName.returns(of(null));
+      const result = await update({ local: 'new' }, 'merge');
+      expect(result.problems[0].issues[0].code).to.equal('related-display-contract-invalid');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('rejects a transition with active transient targets to the generated no-form view', async function () {
+      (global as any).WorkflowStepsService.get.withArgs(recordType, 'published').returns(of({
+        name: 'published', config: { form: 'generated-view-only' },
+      }));
+      const result = await update({ local: 'new' }, 'merge', { name: 'published' }, true);
+      expect(result.problems[0].issues[0].code).to.equal('related-display-contract-invalid');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('loads a declared authoritative form only once throughout update normalization', async function () {
+      const result = await update({ activity: 'source', local: 'new' }, 'replace', {}, true);
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockFormsService.getFormByName.callCount).to.equal(1);
+    });
+    it('shares the authoritative form lookup with the browser fingerprint check', async function () {
+      stored.authorization = { edit: ['owner'], view: ['owner'] };
+      mockStorageService.getCapabilities = sinon
+        .stub()
+        .returns({ recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION });
+      mockStorageService.updateMeta.callsFake(async (_brand: any, oid: string, record: any) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: 1,
+        committedRecord: { ..._.cloneDeep(record), revision: 1 },
+      }));
+      const fingerprint = await RecordsService.getRecordFormFingerprint(stored, recordType);
+      mockFormsService.getFormByName.resetHistory();
+      const context = createRecordSaveContext({
+        routeFamily: 'browser',
+        operation: 'update',
+        concurrency: { expectedRevision: 0, formFingerprint: fingerprint },
+      });
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        _.cloneDeep(stored),
+        { username: 'owner' },
+        true,
+        false,
+        {},
+        { metadata: { activity: 'source', local: 'new' }, mode: 'replace' },
+        context
+      );
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockFormsService.getFormByName.callCount).to.equal(1);
+    });
+    it('checks later non-workflow forms before either core batch entry point dispatches', async function () {
+      mockFormsService.getFormByName.callsFake((name: string) =>
+        of(name === 'declared-extra-form' ? form : ({ name, configuration: { componentDefinitions: [] } } as any))
+      );
+      const first = _.cloneDeep(stored);
+      first.metaMetadata.form = 'ordinary-form';
+      first.metadata.activity = null;
+      const second = _.cloneDeep(stored);
+      second.metaMetadata.form = 'declared-extra-form';
+      await rejects(() => RecordsService.createBatch('rdmp', [first, second]), /related-display-batch-not-supported/);
+      await rejects(() => RecordsService.createBatch([first, second]), /related-display-batch-not-supported/);
+      expect(mockStorageService.createBatch.notCalled && mockStorageService.createRecordAudit.notCalled).to.equal(true);
+    });
+    it('preflights incompatible transitions before either side-effecting hook', async function () {
+      mockFormsService.getFormByName.callsFake((name: string) =>
+        of(name === 'published-form' ? ({ name, configuration: { componentDefinitions: [] } } as any) : form)
+      );
+      const hooks = sinon.spy(RecordsService, 'triggerPreSaveTransitionWorkflowTriggers');
+      const result = await update({ local: 'new' }, 'merge', { name: 'published' }, true);
+      expect(result.problems[0].issues[0].code).to.equal('related-display-contract-invalid');
+      expect(hooks.notCalled && mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('accepts compatible active transitions without materializing displays', async function () {
+      const result = await update({ local: 'new' }, 'merge', { name: 'published' });
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.updateMeta.firstCall.args[2].metadata.display).to.equal('retained');
+    });
+    it('requires a stored snapshot to preserve configured targets on legacy internal updates', async function () {
+      mockStorageService.getMeta.rejects(new Error('unavailable'));
+      const result = await update({ activity: 'source', local: 'new' });
+      expect(result.problems[0].issues[0].code).to.equal('record-validation-snapshot-unavailable');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('preserves retained displays during normal internal DOI-style writeback with CAS', async function () {
+      mockStorageService.getCapabilities = sinon
+        .stub()
+        .returns({ recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION });
+      mockStorageService.updateMeta.callsFake(async (_brand: any, oid: string, record: any) => ({
+        success: true,
+        oid,
+        applicationState: 'applied',
+        committedRevision: 1,
+        committedRecord: { ..._.cloneDeep(record), revision: 1 },
+      }));
+      const candidate = _.cloneDeep(stored);
+      candidate.metadata.doi = '10.1234/local-writeback';
+      const result = await RecordsService.updateMetaInternal({
+        oid: 'record-123',
+        record: candidate,
+        actor: { kind: 'service', id: 'test.doi-writeback' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+        metadata: { doi: candidate.metadata.doi },
+        metadataMode: 'pre-applied',
+      });
+      expect(result.wasPersisted()).to.equal(true);
+      const persisted = mockStorageService.updateMeta.firstCall.args[2];
+      expect(persisted.metadata).to.include({ display: 'retained', doi: candidate.metadata.doi });
+      expect(mockStorageService.updateMeta.firstCall.args[4].precondition).to.deep.equal({
+        requireRevision: true,
+        expectedRevision: 0,
+      });
+    });
+    it('rejects changed internal full-record snapshots', async function () {
+      mockStorageService.getCapabilities = sinon
+        .stub()
+        .returns({ recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION });
+      const candidate = _.cloneDeep(stored);
+      candidate.metadata.display = 'fetched';
+      const result = await RecordsService.updateMetaInternal({
+        oid: 'record-123',
+        record: candidate,
+        actor: { kind: 'service', id: 'test.display' },
+        authorization: { kind: 'service' },
+        mutationClass: 'full-record',
+      });
+      expect(result.problems[0].issues[0].code).to.equal('related-display-field-not-writable');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('rejects validator transformations that introduce transient values', async function () {
+      mockRecordValidationService.resolve.callsFake(async (request: any) => ({
+        status: 'resolved',
+        shouldBlock: false,
+        mode: 'shadow',
+        diagnostics: [],
+        transformedCandidate: { ...request.candidate, metadata: { ...request.candidate.metadata, display: 'fetched' } },
+      }));
+      const result = await update({ local: 'new' }, 'merge');
+      expect(result.problems[0].issues[0].code).to.equal('related-display-field-not-writable');
+      expect(mockStorageService.updateMeta.notCalled).to.equal(true);
+    });
+    it('creates without transient targets and rejects supplied targets before hooks', async function () {
+      let result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { activity: 'source' } },
+        recordType,
+        { username: 'owner' },
+        false,
+        false
+      );
+      expect(result.wasPersisted()).to.equal(true);
+      expect(mockStorageService.create.firstCall.args[1].metadata).not.to.have.property('display');
+      mockStorageService.create.resetHistory();
+      const hooks = sinon.spy(RecordsService, 'triggerPreSaveTriggers');
+      result = await RecordsService.create(
+        { id: 'brand-1' },
+        { metadata: { activity: 'source', display: 'fetched' } },
+        recordType,
+        { username: 'owner' },
+        true,
+        false
+      );
+      expect(result.problems[0].issues[0].code).to.equal('related-display-field-not-writable');
+      expect(hooks.notCalled && mockStorageService.create.notCalled).to.equal(true);
+    });
+    it('rejects a whole mixed batch before audit or storage, including legacy arguments', async function () {
+      const unlinked = _.cloneDeep(stored);
+      unlinked.metadata.activity = null;
+      await rejects(() => RecordsService.createBatch('rdmp', [unlinked, stored]), /related-display-batch-not-supported/);
+      await rejects(() => RecordsService.createBatch([unlinked, stored]), /related-display-batch-not-supported/);
+      expect(mockStorageService.createBatch.notCalled && mockStorageService.createRecordAudit.notCalled).to.equal(true);
+    });
+    it('keeps unlinked configured batches compatible', async function () {
+      stored.metadata.activity = null;
+      await RecordsService.createBatch('rdmp', [stored]);
+      expect(mockStorageService.createBatch.calledOnce).to.equal(true);
+    });
+    it('guards post-sync changes while preserving a previous successful commit', async function () {
+      recordType.hooks = {
+        onUpdate: {
+          postSync: [
+            { function: '(_oid, record) => ({ ...record, metadata: { ...record.metadata, display: "fetched" } })' },
+          ],
+        },
+      };
+      const result = await RecordsService.updateMeta(
+        { id: 'brand-1' },
+        'record-123',
+        _.cloneDeep(stored),
+        { username: 'owner' },
+        false,
+        true,
+        {},
+        { metadata: { local: 'new' }, mode: 'merge' }
+      );
+      expect(result.wasPersisted()).to.equal(true);
+      expect(result.outcome).to.equal('saved-with-warnings');
+      expect(
+        result.problems.some((problem: any) =>
+          problem.issues.some((issue: any) => issue.code === 'related-display-field-not-writable')
+        )
+      ).to.equal(true);
+      expect(mockStorageService.updateMeta.calledOnce).to.equal(true);
     });
   });
 

@@ -1,9 +1,10 @@
 /**
  * Named Query Config Interface and Default Values
  *
- * Seed named-query definitions now live as JSON files under
- * `bootstrap-data/namedqueries/` and are loaded into the NamedQuery model by
- * NamedQueryService.bootstrapData(). This config only carries `supportedCollections`,
+ * NamedQueryService.bootstrapData() seeds JSON files from `bootstrap-data/namedqueries/`
+ * first, then hook/deployment definitions from `namedQuery.queries`. Existing
+ * brand/name entries are never overwritten; file seeds take precedence.
+ * Both sources require collectionName. This config also carries `supportedCollections`,
  * which the named-query editor surfaces as the Collection field's allowed values.
  */
 
@@ -18,10 +19,12 @@ export interface NamedQueryParam {
 }
 
 export interface RelatedRecordFilterDefinition {
-    collectionName: string;
+    rootRecordType?: string;
+    relationId?: string;
+    collectionName?: string;
     mongoQuery: Record<string, unknown>;
-    localField: string;
-    foreignField: string;
+    localField?: string;
+    foreignField?: string;
 }
 
 export interface NamedQueryDefinition {

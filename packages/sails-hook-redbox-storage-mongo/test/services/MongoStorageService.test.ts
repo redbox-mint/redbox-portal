@@ -185,6 +185,104 @@ describe('MongoStorageService', function () {
     service.gridFsBucket = mockBucket;
   });
 
+  describe('bounded authorized relation reads', function () {
+    function query(overrides = {}) {
+      return {
+        context: {
+          brand: { id: 'brand-1' },
+          user: {
+            username: 'reader',
+            roles: [
+              { name: 'reader-role', branding: 'brand-1' },
+              { name: 'foreign-role', branding: 'brand-2' },
+            ],
+          },
+          audience: 'api',
+        },
+        recordType: 'activity',
+        foreignField: 'redboxOid',
+        values: ['b', 'a'],
+        limit: 2,
+        ...overrides,
+      };
+    }
+
+    it('combines tenant, type, matching and scoped ACL before the bounded read', async function () {
+      const cursor = {
+        sort: sandbox.stub().returnsThis(),
+        limit: sandbox.stub().returnsThis(),
+        maxTimeMS: sandbox.stub().returnsThis(),
+        toArray: sandbox.stub().resolves([{ redboxOid: 'a' }, { redboxOid: 'b' }]),
+      };
+      recordCollection.find = sandbox.stub().returns(cursor);
+      const result = await service.findRecordsByRelation(query());
+      expect(recordCollection.find.firstCall.args[0]).to.deep.equal({
+        $and: [
+          { redboxOid: { $in: ['b', 'a'] } },
+          { 'metaMetadata.type': 'activity', 'metaMetadata.brandId': 'brand-1' },
+          {
+            $or: [
+              { 'authorization.view': 'reader' },
+              { 'authorization.edit': 'reader' },
+              { 'authorization.editRoles': { $in: ['reader-role'] } },
+              { 'authorization.viewRoles': { $in: ['reader-role'] } },
+            ],
+          },
+        ],
+      });
+      expect(cursor.limit.calledWithExactly(3)).to.equal(true);
+      expect(cursor.sort.calledWithExactly({ redboxOid: 1 })).to.equal(true);
+      expect(cursor.maxTimeMS.calledOnceWithExactly(10_000)).to.equal(true);
+      expect(result.records.map(record => record.redboxOid)).to.deep.equal(['b', 'a']);
+      expect(result).to.include({ complete: true, overflow: false });
+    });
+
+    it('selects explicit indexes instead of using ambiguous Mongo dotted selectors', async function () {
+      const cursor = { sort: () => cursor, limit: () => cursor, maxTimeMS: () => cursor,
+        toArray: async () => [] };
+      recordCollection.find = sandbox.stub().returns(cursor);
+      await service.findRecordsByRelation(query({ foreignField: 'metadata.refs[0].oid' }));
+      const expression = recordCollection.find.firstCall.args[0].$and[0].$expr;
+      // The index branch consumes the token through $arrayElemAt, never by
+      // mapping over the array and reading a field named "0" from each element.
+      const selectors: any[] = [];
+      const visit = (value: any) => {
+        if (!value || typeof value !== 'object') return;
+        if (value.$cond && value.$cond[1]?.$arrayElemAt) selectors.push(value.$cond);
+        Object.values(value).forEach(visit);
+      };
+      visit(expression);
+      expect(new Set(selectors.map(selector => JSON.stringify(selector))).size).to.equal(1);
+      expect(selectors[0][1].$arrayElemAt[1]).to.equal(0);
+      expect(selectors[0][2].$cond[1].$getField.field).to.deep.equal({ $literal: '0' });
+    });
+
+    it('reports overflow explicitly and rejects unbounded or missing-principal reads', async function () {
+      const cursor = {
+        sort: () => cursor,
+        limit: () => cursor,
+        maxTimeMS: () => cursor,
+        toArray: async () => [{ redboxOid: 'a' }, { redboxOid: 'b' }],
+      };
+      recordCollection.find = sandbox.stub().returns(cursor);
+      expect(await service.findRecordsByRelation(query({ limit: 1 }))).to.include({ complete: false, overflow: true });
+      for (const limit of [0, -1, 1.5, 1001, Infinity, Number.MAX_SAFE_INTEGER]) {
+        await expectRejects(() => service.findRecordsByRelation(query({ limit })), 'Invalid authorized relation');
+      }
+      await expectRejects(() => service.findRecordsByRelation(query({ context: {} })), 'Invalid authorized relation');
+    });
+
+    it('extracts configured object references without changing legacy scalar extraction', function () {
+      const relation = { localField: 'metadata.refs', oidProperty: 'oid' };
+      expect(
+        service.extractRelationshipLocalValues({ metadata: { refs: ['b', { oid: 'a' }, 'b'] } }, relation)
+      ).to.deep.equal(['b', 'a']);
+      expect(
+        service.extractRelationshipLocalValues({ metadata: { refs: 'a' } }, { localField: 'metadata.refs' })
+      ).to.deep.equal(['a']);
+    });
+  });
+
   afterEach(function () {
     sandbox.restore();
     delete (global as any).sails;
@@ -824,6 +922,38 @@ describe('MongoStorageService', function () {
 
     expect(mockSails.log.error.calledWith('Failed to create record audit index:')).to.be.true;
     expect(recordCollection.createIndexes.calledOnce).to.be.true;
+  });
+
+  it('strips runtime enrichment from native create, update and batch payloads only at the root', async function () {
+    const makeRecord = () => ({
+      redboxOid: 'runtime-record',
+      metadata: { relatedMetadata: { localAnswer: 'keep' }, title: 'Local' },
+      relatedMetadata: { activities: { status: 'empty', records: [], issues: [] } },
+      integration: { doi: 'keep-doi' },
+    });
+    const candidate = makeRecord();
+    await service.create(null, candidate, null);
+    const inserted = recordCollection.insertOne.firstCall.args[0];
+    expect(inserted).not.to.have.property('relatedMetadata');
+    expect(inserted.metadata).to.deep.equal(candidate.metadata);
+    expect(inserted.integration).to.deep.equal(candidate.integration);
+    expect(candidate).to.have.property('relatedMetadata');
+
+    await service.updateMeta(null, 'runtime-record', candidate);
+    const update = recordCollection.findOneAndUpdate.firstCall.args[1].$set;
+    expect(update).not.to.have.property('relatedMetadata');
+    expect(update.metadata).to.deep.equal(candidate.metadata);
+    expect(update.integration).to.deep.equal(candidate.integration);
+
+    recordCollection.insertOne.resetHistory();
+    const batchInput = [makeRecord()];
+    const originalBatch = structuredClone(batchInput);
+    await service.createBatch('rdmp', batchInput, 'metadata.title');
+    expect(batchInput).to.deep.equal(originalBatch);
+    const batchRecord = recordCollection.insertOne.firstCall.args[0];
+    expect(batchRecord).not.to.have.property('relatedMetadata');
+    expect(batchRecord.metadata).to.deep.equal(candidate.metadata);
+    expect(batchRecord.integration).to.deep.equal(candidate.integration);
   });
 
   it('creates a record and assigns a generated oid', async function () {
@@ -1694,6 +1824,109 @@ describe('MongoStorageService', function () {
     expect(result.isSuccessful()).to.equal(false);
   });
 
+  describe('RR-09 direct batch preflight', function () {
+    let previousSteps: any;
+    beforeEach(function () {
+      previousSteps = (global as any).WorkflowStepsService;
+      (global as any).WorkflowStepsService = {
+        getAllForRecordType: sandbox.stub().returns(of([{ name: 'draft', config: { form: 'plan-form' } }])),
+      };
+      (global as any).RecordTypesService.get.returns(
+        of({
+          name: 'plan',
+          relatedTo: [
+            {
+              id: 'activity',
+              localField: 'metadata.activity',
+              recordType: 'activity',
+              foreignField: 'redboxOid',
+              resolution: { metadataFields: ['/title'] },
+            },
+          ],
+        })
+      );
+      (global as any).FormsService.getFormByName.returns(
+        of({
+          configuration: {
+            componentDefinitions: [
+              {
+                name: 'display',
+                component: { class: 'SimpleInputComponent' },
+                relatedDisplay: { relationId: 'activity' },
+              },
+            ],
+          },
+        })
+      );
+    });
+    afterEach(function () {
+      (global as any).WorkflowStepsService = previousSteps;
+    });
+    const row = (activity: any) => ({ metaMetadata: { brandId: 'brand-1' }, metadata: { activity } });
+    it('rejects the complete batch before the first identity claim or create', async function () {
+      const create = sandbox.stub(service, 'create');
+      await expectRejects(
+        () => service.createBatch('plan', [row(null), row('source')], ''),
+        'related-display-batch-not-supported'
+      );
+      expect(create.notCalled).to.equal(true);
+      expect(recordCollection.insertOne.notCalled).to.equal(true);
+      expect(recordIdentityCollection.insertOne.notCalled).to.equal(true);
+    });
+    it('checks every later explicit non-workflow form before the first insertion', async function () {
+      const declared = await firstValueFrom((global as any).FormsService.getFormByName('declared-extra-form'));
+      (global as any).FormsService.getFormByName.callsFake((name: string) =>
+        of(name === 'declared-extra-form' ? declared : { configuration: { componentDefinitions: [] } })
+      );
+      const first = row(null),
+        second = row('source');
+      Object.assign(first.metaMetadata, { form: 'ordinary-form' });
+      Object.assign(second.metaMetadata, { form: 'declared-extra-form' });
+      const create = sandbox.stub(service, 'create');
+      await expectRejects(() => service.createBatch('plan', [first, second], ''), 'related-display-batch-not-supported');
+      expect(
+        create.notCalled && recordCollection.insertOne.notCalled && recordIdentityCollection.insertOne.notCalled
+      ).to.equal(true);
+    });
+    it('rejects malformed active references before the first create', async function () {
+      const create = sandbox.stub(service, 'create');
+      await expectRejects(
+        () => service.createBatch('plan', [row(null), row({ bad: 'source' })], ''),
+        'related-reference-invalid'
+      );
+      expect(create.notCalled).to.equal(true);
+    });
+    it('uses the authoritative default brand when direct batch rows omit branding', async function () {
+      const previousBranding = (global as any).BrandingService;
+      (global as any).BrandingService = { getDefault: () => ({ id: 'brand-1' }) };
+      const create = sandbox.stub(service, 'create');
+      try {
+        await expectRejects(
+          () => service.createBatch('plan', [{ metadata: { activity: 'source' } }], ''),
+          'related-display-batch-not-supported'
+        );
+        expect((global as any).RecordTypesService.get.firstCall.args[0].id).to.equal('brand-1');
+        expect(create.notCalled).to.equal(true);
+      } finally {
+        if (previousBranding === undefined) delete (global as any).BrandingService;
+        else (global as any).BrandingService = previousBranding;
+      }
+    });
+    it('fails closed when a configured opted-in type cannot be resolved for a batch brand', async function () {
+      mockSails.config.recordtype = { plan: { relatedTo: [{ resolution: { metadataFields: ['/title'] } }] } };
+      (global as any).RecordTypesService.get.returns(of(null));
+      const create = sandbox.stub(service, 'create');
+      await expectRejects(() => service.createBatch('plan', [row('source')], ''), 'related-display-contract-invalid');
+      expect(create.notCalled).to.equal(true);
+    });
+    it('permits unlinked configured rows and keeps existing batch outcomes', async function () {
+      const create = sandbox.stub(service, 'create').resolves({ success: true, applicationState: 'applied' });
+      const response = await service.createBatch('plan', [row(null), row('')], '');
+      expect(response.applicationState).to.equal('applied');
+      expect(create.callCount).to.equal(2);
+    });
+  });
+
   it('prepares batch items before dispatching create calls', async function () {
     const createStub = sandbox.stub(service, 'create').resolves({ success: true, applicationState: 'applied' });
     const data = [
@@ -1701,13 +1934,20 @@ describe('MongoStorageService', function () {
       { externalId: 'ext-2', metaMetadata: {} },
     ];
 
+    const original = structuredClone(data);
     const response = await service.createBatch('rdmp', data, 'externalId');
 
+    expect(data).to.deep.equal(original);
     expect(response.success).to.equal(true);
     expect(response.applicationState).to.equal('applied');
     expect(createStub.callCount).to.equal(2);
-    expect(data[0]).to.include({ harvestId: 'ext-1' });
-    expect(data[0].metaMetadata).to.include({ type: 'rdmp' });
+    for (const [index, call] of createStub.getCalls().entries()) {
+      expect(call.args[1]).to.deep.equal({
+        externalId: `ext-${index + 1}`, harvestId: `ext-${index + 1}`, metaMetadata: { type: 'rdmp' },
+      });
+      expect(call.args[1]).not.to.equal(data[index]);
+      expect(call.args[1].metaMetadata).not.to.equal(data[index].metaMetadata);
+    }
   });
 
   it('records createBatch failures in the response message when create rejects asynchronously', async function () {
@@ -2716,11 +2956,14 @@ describe('MongoStorageService', function () {
       [
         { name: 'Admin', branding: 'brand-1' },
         { name: 'Guest', branding: 'brand-2' },
+        { name: 'Reader', branding: { id: 'brand-1' } },
+        { name: 'Other reader', branding: { id: 'brand-2' } },
+        { name: 'Unbranded', branding: null },
       ],
       { id: 'brand-1' }
     );
 
-    expect(roleNames).to.deep.equal(['Admin']);
+    expect(roleNames).to.deep.equal(['Admin', 'Reader']);
   });
 
   it('aggregates success and failure messages when adding multiple datastreams', async function () {

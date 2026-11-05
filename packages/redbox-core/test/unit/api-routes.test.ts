@@ -294,6 +294,22 @@ describe('API routes contract layer', function () {
     expect(operation['x-redbox-roles']).to.deep.equal(['Admin']);
   });
 
+  it('documents the default and effective session cookie names', function () {
+    const globalWithSails = globalThis as typeof globalThis & { sails?: { config?: Record<string, unknown> } };
+    const previousSails = globalWithSails.sails;
+    try {
+      delete globalWithSails.sails;
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('redbox.sid');
+      globalWithSails.sails = { config: { redboxSession: { name: 'custom.sid' } } };
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('custom.sid');
+    } finally {
+      if (previousSails === undefined) delete globalWithSails.sails;
+      else globalWithSails.sails = previousSails;
+    }
+  });
+
   it('should derive x-redbox-roles from runtime auth rules', function () {
     const globalWithSails = globalThis as typeof globalThis & {
       sails?: { config?: Record<string, unknown> };
@@ -739,6 +755,16 @@ describe('API routes contract layer', function () {
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
       expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
     }
+  });
+
+  it('should retain attachment authentication when browser record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    const defaultPolicies = recordPolicies['*'];
+
+    expect(recordPolicies.doAttachment).to.deep.equal(
+      defaultPolicies.flatMap(policy => policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy])
+    );
+    expect(recordPolicies.resolveRelatedMetadata).to.deep.equal([...defaultPolicies, 'validateApiContractRequest']);
   });
 
   it('should build and merge contract validation policies for hook API routes', function () {

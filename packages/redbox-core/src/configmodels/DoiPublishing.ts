@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { AppConfig } from './AppConfig.interface';
 
 
+/** Bindings may read record.relatedMetadata when operation options opt in to related resolution. */
 export interface PathBinding {
   kind: 'path';
   path: string;

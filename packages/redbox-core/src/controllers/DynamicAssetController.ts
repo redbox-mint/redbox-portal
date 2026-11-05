@@ -19,7 +19,7 @@
 
 //<reference path='./../../typings/loader.d.ts'/>
 
-import { BrandingModel } from '../model';
+import { BrandingModel, UserModel } from '../model';
 import { Controllers as controllers } from '../CoreController';
 import { TemplateCompileInput } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
@@ -84,6 +84,7 @@ export namespace Controllers {
           .filter(name => !!name);
         this.updateChronicle(req, { userRoles });
         let form: FormAttributes | null, recordMetadata;
+        let rootRecord: Awaited<ReturnType<typeof RecordsService.getMeta>> | undefined;
         if (!oid) {
           recordMetadata = null;
           form = await firstValueFrom<FormAttributes>(
@@ -91,6 +92,7 @@ export namespace Controllers {
           );
         } else {
           const record = await RecordsService.getMeta(oid);
+          rootRecord = record;
           this.updateChronicle(req, { recordFound: record !== null && record !== undefined });
           const recordAny = record as unknown as Record<string, unknown>;
           let hasAccess: boolean = false;
@@ -138,7 +140,8 @@ export namespace Controllers {
             formMode,
             userRoles,
             recordMetadata,
-            reusableFormDefs
+            reusableFormDefs,
+            { brand, user: req.user as UserModel, record: rootRecord }
           )) || [];
         return this.sendClientMappingJavascript(req, res, entries);
       } catch (error) {

@@ -1,3 +1,20 @@
+import {
+  assertRelatedDisplayBatchAllowed,
+  createRelatedDisplayWriteContext,
+  type RelatedDisplayWriteContext,
+  loadRelatedDisplayContract,
+  normalizeDisplayWrites,
+  RelatedDisplayWriteError,
+} from '../related-records/normalize-display-writes';
+import {
+  resolveRelatedMetadata as resolveRelatedMetadataOperation,
+  withinRelatedResolutionDeadline,
+} from '../related-records/resolver';
+import { projectRelatedSource } from '../related-records/source-projection';
+import type { RelatedRecordReadContext } from '../related-records/types';
+import type { RelatedMetadata, RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+import { cachedRelatedDisplayDeclarations, bindRelatedDisplayContract } from '../related-records/display-descriptors';
+import { stripRuntimeRecordProperties, withoutRuntimeRecordProperties } from '../related-records/runtime-record';
 import { prepareSourceIntent } from './figshare-v2/source-intent';
 import { assertRecordFieldPaths } from '../RecordWriteOptions';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
@@ -438,6 +455,7 @@ export namespace Services {
     readonly authoritativeStep?: WorkflowStepLike;
     readonly requiresTransitionAuthorization?: boolean;
     readonly evaluateFormValidators?: boolean;
+    readonly displayContext?: RelatedDisplayWriteContext;
     readonly phase?: Extract<RecordSavePhase, 'pre-save' | 'post-save'>;
     readonly brand: BrandingModel;
   };
@@ -492,6 +510,83 @@ export namespace Services {
    * @see https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications
    */
   export class Records extends services.Core.Service implements RecordsService {
+    /** Resolve runtime source data without changing the supplied candidate or stored record. */
+    public async resolveRelatedMetadata(
+      record: Readonly<RecordModel>,
+      context: RelatedRecordReadContext,
+      request: RelatedMetadataRequest
+    ): Promise<RelatedMetadata> {
+      return this.resolveRelatedMetadataOperation(record, context, request);
+    }
+
+    private async resolveRelatedMetadataOperation(
+      record: Readonly<RecordModel>,
+      context: RelatedRecordReadContext,
+      request: RelatedMetadataRequest,
+      loadedRoot?: RecordModel,
+      startedAt?: number
+    ): Promise<RelatedMetadata> {
+      const roles = (context.user?.roles ?? []) as unknown as AnyRecord[];
+      const canRead = (source: RecordModel) =>
+        this.hasViewAccess(context.brand, context.user as unknown as AnyRecord, roles, source as unknown as AnyRecord);
+      return resolveRelatedMetadataOperation(record, context, request, {
+        startedAt,
+        storage: this.storageService,
+        relations: async type => (await firstValueFrom(RecordTypesService.get(context.brand, type)))?.relatedTo ?? [],
+        authorizeRoot: async candidate => {
+          if (!candidate.redboxOid)
+            return this.hasCreateAccess(
+              context.brand,
+              context.user as unknown as AnyRecord,
+              roles,
+              String(candidate.metaMetadata?.type ?? ''),
+              String(candidate.workflow?.stage ?? '')
+            );
+          const authoritative = loadedRoot ?? (await this.getMeta(candidate.redboxOid));
+          return (
+            !!authoritative &&
+            String(authoritative.metaMetadata?.brandId) === String(context.brand.id) &&
+            authoritative.metaMetadata?.type === candidate.metaMetadata?.type &&
+            canRead(authoritative)
+          );
+        },
+        canRead,
+        sourceMetadata: (source, fields) => projectRelatedSource(source, fields, context, this),
+        summary: summary => this.updateChronicle({ relatedMetadata: summary }),
+      });
+    }
+
+    public async enrichWithRelatedMetadata(
+      record: Readonly<RecordModel>,
+      context: RelatedRecordReadContext,
+      request: RelatedMetadataRequest
+    ): Promise<RecordModel> {
+      const detached = _.cloneDeep(record) as RecordModel;
+      delete detached.relatedMetadata;
+      detached.relatedMetadata = await this.resolveRelatedMetadata(detached, context, request);
+      return detached;
+    }
+
+    public async getMetaWithRelatedMetadata(
+      oid: string,
+      context: RelatedRecordReadContext,
+      request: RelatedMetadataRequest
+    ): Promise<RecordModel> {
+      const startedAt = Date.now();
+      const record = await withinRelatedResolutionDeadline(() => this.getMeta(oid), startedAt);
+      if (!record) throw new Error('Record unavailable');
+      const detached = _.cloneDeep(record);
+      delete detached.relatedMetadata;
+      detached.relatedMetadata = await this.resolveRelatedMetadataOperation(
+        detached,
+        context,
+        request,
+        record,
+        startedAt
+      );
+      return detached;
+    }
+
     storageService!: StorageService;
     datastreamService!: DatastreamService;
 
@@ -690,7 +785,7 @@ export namespace Services {
     }
 
     private normalizeRecord(record: AnyRecord): RecordWithMeta {
-      const recordObj = record as RecordWithMeta;
+      const recordObj = stripRuntimeRecordProperties(record) as RecordWithMeta;
       recordObj.metaMetadata = (recordObj.metaMetadata ?? {}) as AnyRecord;
       recordObj.metadata = (recordObj.metadata ?? {}) as AnyRecord;
       recordObj.authorization = (recordObj.authorization ?? {}) as AnyRecord;
@@ -1239,7 +1334,7 @@ export namespace Services {
     }
 
     private cloneValidationCandidate(candidate: RecordValidationCandidate | AnyRecord): RecordWithMeta {
-      return this.normalizeRecord({ ..._.cloneDeep(candidate) });
+      return this.normalizeRecord(withoutRuntimeRecordProperties(candidate) as AnyRecord);
     }
 
     /** Bind only the public record identity to the route OID. Storage IDs are independent. */
@@ -1281,7 +1376,7 @@ export namespace Services {
       user: AnyRecord,
       options?: RecordStorageMutationOptions
     ): Promise<StorageMutationResponse> {
-      const storageCandidate = _.cloneDeep(candidate) as AnyRecord;
+      const storageCandidate = withoutRuntimeRecordProperties(candidate) as AnyRecord;
       if (!this.normalizeUpdateCandidateIdentity(storageCandidate, oid)) {
         throw new Error('The storage update candidate identity diverged from the route OID.');
       }
@@ -1302,7 +1397,7 @@ export namespace Services {
       user: AnyRecord,
       options?: RecordStorageMutationOptions
     ): Promise<StorageMutationResponse> {
-      const storageCandidate = _.cloneDeep(candidate) as AnyRecord;
+      const storageCandidate = withoutRuntimeRecordProperties(candidate) as AnyRecord;
       if (!this.normalizeUpdateCandidateIdentity(storageCandidate, createOid)) {
         throw new Error('The storage create candidate identity diverged from the preselected OID.');
       }
@@ -1562,7 +1657,7 @@ export namespace Services {
     }
 
     private lifecycleSnapshot(record: AnyRecord): AnyRecord {
-      const snapshot = _.cloneDeep(record) as AnyRecord;
+      const snapshot = withoutRuntimeRecordProperties(record) as AnyRecord;
       for (const field of ['_id', 'id', 'revision', 'lifecycleOperationId']) _.unset(snapshot, field);
       return snapshot;
     }
@@ -1855,7 +1950,7 @@ export namespace Services {
           };
         })
         .sort((first, second) => first.name.localeCompare(second.name));
-      return formatRecordFormFingerprint({
+      const fingerprintInput = {
         recordType: String(recordType.name ?? '').trim(),
         recordValidation: recordType.recordValidation,
         currentWorkflow: {
@@ -1871,7 +1966,97 @@ export namespace Services {
         },
         reusableFormDefinitions: sails.config.reusableFormDefinitions ?? {},
         validatorDefinitions: sails.config.validators?.definitions ?? [],
-      });
+      };
+      const configurationFingerprint = formatRecordFormFingerprint(fingerprintInput);
+      if (!configurationFingerprint) return undefined;
+      const declarations = cachedRelatedDisplayDeclarations(
+        configurationFingerprint,
+        form.configuration as import('@researchdatabox/sails-ng-common').FormConfigFrame,
+        sails.config.reusableFormDefinitions ?? {}
+      );
+      // Legacy forms return the exact existing digest, without a second hash or compilation.
+      if (!declarations) return configurationFingerprint;
+      const relatedContract = bindRelatedDisplayContract(declarations, String(recordType.name ?? ''), recordType.relatedTo ?? []);
+      return formatRecordFormFingerprint({ ...fingerprintInput, relatedRecords: relatedContract });
+    }
+
+    private loadDisplayWriteForm(
+      operation: RelatedDisplayWriteContext,
+      formName: string,
+      brandId: string
+    ): Promise<FormAttributes | null> {
+      // Imported records can use the generated view without a configured form.
+      if (!formName || formName === 'generated-view-only') return Promise.resolve(null);
+      const key = JSON.stringify([brandId, formName]);
+      if (!operation.forms.has(key))
+        operation.forms.set(key, firstValueFrom(FormsService.getFormByName(formName, true, brandId)));
+      return operation.forms.get(key)!;
+    }
+
+    /** Authoritative form declarations apply to every write, including internal bypasses. */
+    private async normalizeCandidateDisplay(
+      candidate: AnyRecord,
+      original: AnyRecord | undefined,
+      recordType: RecordTypeLike | null | undefined,
+      brand: { id?: unknown },
+      input: AnyRecord | undefined,
+      phase: 'pre-save' | 'post-save' = 'pre-save',
+      targetStep?: WorkflowStepLike,
+      localInput?: AnyRecord,
+      requireStored = false,
+      displayContext?: RelatedDisplayWriteContext
+    ): Promise<RecordSaveProblem | undefined> {
+      if (!recordType?.relatedTo?.some(relation => relation.resolution)) return undefined;
+      try {
+        const brandId = String(
+          _.get(original, 'metaMetadata.brandId') ?? _.get(candidate, 'metaMetadata.brandId') ?? brand.id ?? ''
+        );
+        const operation = displayContext ?? createRelatedDisplayWriteContext();
+        let formName =
+          operation.sourceForm ??
+          String(_.get(original, 'metaMetadata.form') ?? _.get(candidate, 'metaMetadata.form') ?? '');
+        if (!formName) {
+          const step = await firstValueFrom(WorkflowStepsService.getFirst(recordType));
+          formName = String(_.get(step, 'config.form', ''));
+        }
+        operation.sourceForm ??= formName;
+        const loadContract = (name: string) => {
+          const key = JSON.stringify([brandId, name]);
+          if (!operation.contracts.has(key)) {
+            operation.contracts.set(
+              key,
+              this.loadDisplayWriteForm(operation, name, brandId).then(async form => {
+                const descriptors = await loadRelatedDisplayContract(recordType, brandId, name, form);
+                if (descriptors) operation.hasDeclarations = true;
+                return descriptors;
+              })
+            );
+          }
+          return operation.contracts.get(key)!;
+        };
+        const contract = await loadContract(formName);
+        const targetForm = String(targetStep?.config?.form ?? _.get(candidate, 'metaMetadata.form') ?? formName);
+        const transitioning = targetForm !== formName;
+        const targetContract = transitioning ? await loadContract(targetForm) : undefined;
+        if (!contract && !targetContract) return undefined;
+        if (requireStored && !original && (contract?.displayTargets.length || targetContract?.displayTargets.length)) {
+          return this.validationProblem('system', phase, RECORD_VALIDATION_SAVE_CODES.snapshotUnavailable);
+        }
+        candidate.metadata ??= {};
+        normalizeDisplayWrites({
+          metadata: this.recordObject(candidate.metadata),
+          stored: original ? this.recordObject(original.metadata) : undefined,
+          input: input ?? _.cloneDeep(this.recordObject(candidate.metadata)),
+          contract,
+          targetContract,
+          transitioning,
+          localInput,
+        });
+        return undefined;
+      } catch (error) {
+        const code = error instanceof RelatedDisplayWriteError ? error.code : 'related-display-contract-invalid';
+        return this.validationProblem(code === 'related-display-contract-invalid' ? 'system' : 'validation', phase, code);
+      }
     }
 
     private committedRevision(response: StorageMutationResponse): number | undefined {
@@ -1988,7 +2173,8 @@ export namespace Services {
     private async refreshAttachmentFields(
       record: AnyRecord,
       original: AnyRecord | undefined,
-      brand: BrandingModel | null
+      brand: BrandingModel | null,
+      displayContext?: RelatedDisplayWriteContext
     ): Promise<void> {
       const recordMeta = this.recordObject(record.metaMetadata);
       record.metaMetadata = recordMeta;
@@ -1996,7 +2182,15 @@ export namespace Services {
       const formName = String(recordMeta.form ?? originalMeta.form ?? '');
       const configuredBrand = recordMeta.brandId ?? originalMeta.brandId ?? brand?.id;
       const brandId = configuredBrand == null ? undefined : String(configuredBrand);
-      const form: FormAttributes | null = await firstValueFrom(FormsService.getFormByName(formName, true, brandId));
+      const key = JSON.stringify([brandId, formName]);
+      const cached = displayContext?.forms.get(key);
+      // Reuse the preflight lookup at the next existing attachment-read boundary.
+      // Undeclared forms retain their later legacy refreshes; declared forms use one snapshot.
+      const reuse = cached && (displayContext!.hasDeclarations || !displayContext!.attachmentReads.has(key));
+      if (reuse) displayContext!.attachmentReads.add(key);
+      const form: FormAttributes | null = reuse
+        ? await cached
+        : await firstValueFrom(FormsService.getFormByName(formName, true, brandId));
       recordMeta.attachmentFields = _.get(form, 'configuration.attachmentFields', _.get(form, 'attachmentFields', []));
     }
 
@@ -2481,7 +2675,12 @@ export namespace Services {
         phase = 'pre-save',
         brand,
       } = options;
+      const displayContext = options.displayContext ?? (recordType?.relatedTo?.some(relation => relation.resolution)
+        ? createRelatedDisplayWriteContext() : undefined);
       const candidateToValidate = this.cloneValidationCandidate(candidate);
+      const displayProblem = await this.normalizeCandidateDisplay(candidateToValidate, original, recordType, brand ?? {},
+        undefined, phase, targetStep, undefined, false, displayContext);
+      if (displayProblem) return { allowed: false, problem: displayProblem };
       const publicRoute = context.routeFamily === 'api' || context.routeFamily === 'browser';
       if (publicRoute && writeKind !== 'create' && !this.isUsableRecordSnapshot(original)) {
         sails.log.warn(`${this.logHeader} public record save snapshot unavailable`, {
@@ -2585,6 +2784,13 @@ export namespace Services {
               ? { previousWorkflow: candidateToValidate.previousWorkflow as AnyRecord }
               : {}),
           },
+          relatedReadContext: {
+            brand: brand as BrandingModel,
+            user: user as unknown as RelatedRecordReadContext['user'],
+            ...(context.routeFamily === 'browser' || context.routeFamily === 'api'
+              ? { audience: context.routeFamily }
+              : { audience: 'service' as const, serviceId: 'record-validation' }),
+          },
           writeKind,
           validationOperation: context.validationOperation,
           evaluateFormValidators,
@@ -2618,6 +2824,9 @@ export namespace Services {
               problem: this.validationProblem('system', phase, RECORD_VALIDATION_SAVE_CODES.authorityDivergence),
             };
           }
+          const transformedDisplayProblem = await this.normalizeCandidateDisplay(validatedCandidate, original, recordType,
+            brand ?? {}, undefined, phase, targetStep, undefined, false, displayContext);
+          if (transformedDisplayProblem) return { allowed: false, problem: transformedDisplayProblem };
           return {
             allowed: true,
             candidate: validatedCandidate,
@@ -2809,7 +3018,7 @@ export namespace Services {
         if (!this.isUsableRecordSnapshot(reloaded)) {
           throw new Error('Committed record reload did not return a usable record.');
         }
-        const persistedRecord = reloaded as unknown as AnyRecord;
+        const persistedRecord = withoutRuntimeRecordProperties(reloaded) as unknown as AnyRecord;
         if (data.searchable) {
           if (!this.searchService || typeof this.searchService.index !== 'function') {
             throw new Error('Record search indexing is unavailable.');
@@ -2887,7 +3096,7 @@ export namespace Services {
       const result = await this.storageService.setRecordFields(oid, fields, expectedVersion, allowedPaths);
       if (result.updated) {
         const current = await this.storageService.getMeta(oid);
-        await this.searchService.index(oid, current);
+        await this.searchService.index(oid, withoutRuntimeRecordProperties(current));
         await this.auditRecord(oid, current, user, RecordAuditActionType.updated);
       }
       return result;
@@ -2931,7 +3140,7 @@ export namespace Services {
         if (!this.isUsableRecordSnapshot(reloaded)) {
           throw new TypeError('Committed record reload did not return a usable record.');
         }
-        persistedRecord = reloaded as unknown as AnyRecord;
+        persistedRecord = withoutRuntimeRecordProperties(reloaded) as unknown as AnyRecord;
       } catch (error) {
         const handedOff = await this.enqueuePostCommitReconciliation(oid, searchable, action, user, tracker);
         // None of the adapter or hook projections can be trusted without the
@@ -3506,7 +3715,7 @@ export namespace Services {
       expectedRevision: number,
       context: RecordSaveContext
     ): Promise<StorageMutationResponse> {
-      const finalizedRecord = _.cloneDeep(record) as AnyRecord;
+      const finalizedRecord = withoutRuntimeRecordProperties(record) as AnyRecord;
       this.clearPendingAttachmentOids(finalizedRecord, attachmentFields);
       return await this.updateStorageCandidate(
         brand,
@@ -3534,6 +3743,7 @@ export namespace Services {
         expectedRevision,
         editAuthorizationRecord,
       } = options;
+      const displayContext = options.displayContext ?? createRelatedDisplayWriteContext();
       let { writeKind, targetStep, authoritativeStep, requiresTransitionAuthorization } = options;
       // Callers pass a freshly merged postSync candidate. Normalize that exact
       // object so persistence and every subsequently dispatched hook observe
@@ -3618,6 +3828,9 @@ export namespace Services {
       }
       authoritativeCandidate.redboxOid = oid;
       let warnings: readonly RecordSaveProblem[] = [];
+      const displayProblem = await this.normalizeCandidateDisplay(authoritativeCandidate, beforeCandidate, recordType,
+        brand, undefined, 'post-save', targetStep, undefined, false, displayContext);
+      if (displayProblem) return { status: 'validation-failed', problem: displayProblem };
       const classification = classifyRecordWrite(beforeCandidate, authoritativeCandidate);
       const requiresFormValidation = recordWriteRequiresFormValidation(classification);
       if (
@@ -3626,6 +3839,7 @@ export namespace Services {
         context.validationOperation !== undefined
       ) {
         const validation = await this.validateCandidate({
+          displayContext,
           candidate: authoritativeCandidate,
           original: beforeCandidate,
           editAuthorizationRecord,
@@ -3914,6 +4128,9 @@ export namespace Services {
       'updateMetaInternal',
       'mutateMetaInternal',
       'getMeta',
+      'resolveRelatedMetadata',
+      'enrichWithRelatedMetadata',
+      'getMetaWithRelatedMetadata',
       'getRecordFormFingerprint',
       'getRecordAudit',
       'getResolvedPermissionsSummary',
@@ -4049,7 +4266,8 @@ export namespace Services {
       );
       const brandObj = brand as BrandingModel;
       const recordTypeObj = recordType as RecordTypeLike;
-      const requestedRecord = _.cloneDeep(record) as AnyRecord;
+      const requestedRecord = withoutRuntimeRecordProperties(record) as AnyRecord;
+      const displayContext = createRelatedDisplayWriteContext();
       const rawSubmittedMetadata = _.cloneDeep(requestedRecord.metadata);
       let resolvedSchemaUsage: ResolvedRecordSchemaSaveUsage | undefined;
       let recordObj = this.normalizeRecord(requestedRecord);
@@ -4163,6 +4381,7 @@ export namespace Services {
         hookOperation.recordOid = createOid;
         this.setConcurrencyMetadata(tracker, createOid, concurrencyMode, undefined);
         const validation = await this.validateCandidate({
+          displayContext,
           candidate: recordObj,
           user: userObj,
           context: tracker.context,
@@ -4262,6 +4481,20 @@ export namespace Services {
         metaMetadata: { brandId: String(brandObj.id ?? ''), form: String(_.get(startingWfStep, 'config.form', '')) },
         workflow: { stage: this.workflowStepName(startingWfStep) },
       };
+
+      const createDisplayCandidate = recordTypeObj.relatedTo?.some(relation => relation.resolution) ? {
+        ...recordObj, metaMetadata: { brandId: brandObj.id, form: _.get(startingWfStep, 'config.form', '') },
+      } : recordObj;
+      const createDisplayProblem = await this.normalizeCandidateDisplay(
+        createDisplayCandidate, undefined, recordTypeObj, brandObj, undefined,
+        'pre-save', wfStep, undefined, false, displayContext
+      );
+      if (createDisplayProblem) {
+        tracker.recordPrimaryNotApplied(createDisplayProblem);
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      recordObj.metadata = createDisplayCandidate.metadata;
 
       const schemaEnabled = this.recordSchemaEnabled();
       if (schemaEnabled) {
@@ -4363,7 +4596,9 @@ export namespace Services {
       const formFingerprintRequired = tracker.context.routeFamily === 'browser' && concurrencyMode === 'strict';
       if (suppliedFormFingerprint || formFingerprintRequired) {
         try {
-          currentFormFingerprint = await this.getRecordFormFingerprint(createFormFingerprintRecord, recordTypeObj);
+          const fingerprintForm = await this.loadDisplayWriteForm(displayContext,
+            String(_.get(createFormFingerprintRecord, 'metaMetadata.form', '')), String(brandObj.id ?? ''));
+          currentFormFingerprint = fingerprintForm ? await this.getRecordFormFingerprint(createFormFingerprintRecord, recordTypeObj, fingerprintForm) : undefined;
         } catch (error) {
           tracker.recordPrimaryNotApplied(
             this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
@@ -4425,7 +4660,7 @@ export namespace Services {
         // The transition hook intentionally observes the target workflow. Any
         // workflow metadata it returns is part of the authoritative candidate
         // and is not silently replaced after the hook completes.
-        await this.refreshAttachmentFields(recordObj, undefined, brandObj);
+        await this.refreshAttachmentFields(recordObj, undefined, brandObj, displayContext);
       }
 
       let createResponse: StorageMutationResponse = new StorageMutationResponse();
@@ -4440,7 +4675,7 @@ export namespace Services {
             userObj,
             hookOperation
           );
-          await this.refreshAttachmentFields(recordObj, undefined, brandObj);
+          await this.refreshAttachmentFields(recordObj, undefined, brandObj, displayContext);
         } catch (err) {
           this.updateChronicle({ recordsOperation: 'create', recordsOperationOutcome: 'failed' }, [err]);
           tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
@@ -4458,9 +4693,10 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
-      await this.refreshAttachmentFields(recordObj, undefined, brandObj);
+      await this.refreshAttachmentFields(recordObj, undefined, brandObj, displayContext);
 
       const validation = await this.validateCandidate({
+        displayContext,
         candidate: recordObj,
         user: userObj,
         context: tracker.context,
@@ -4692,6 +4928,7 @@ export namespace Services {
             if (this.hasPostSaveSyncHooks(recordTypeObj, 'onCreate')) {
               currentRevision = adoptedRevision ?? currentRevision;
               const hookMutationState = await this.persistPostSyncCandidate({
+                displayContext,
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSync,
@@ -4793,6 +5030,7 @@ export namespace Services {
                 if (this.hasPostSaveSyncHooks(recordTypeObj, 'onTransitionWorkflow')) {
                   currentRevision = adoptedRevision ?? currentRevision;
                   const transitionMutationState = await this.persistPostSyncCandidate({
+                    displayContext,
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionPostSync,
@@ -5080,7 +5318,7 @@ export namespace Services {
               causedByRequestId
             );
           }
-          snapshot = _.cloneDeep(loaded) as unknown as AnyRecord;
+          snapshot = withoutRuntimeRecordProperties(loaded) as unknown as AnyRecord;
         } catch {
           return this.internalMutationFailure(oid, 'system', 'internal-record-snapshot-unavailable', causedByRequestId);
         }
@@ -5102,7 +5340,7 @@ export namespace Services {
           if (!this.isUsableRecordSnapshot(computed)) {
             throw new TypeError('Internal mutation did not return a complete record candidate.');
           }
-          candidate = _.cloneDeep(computed) as AnyRecord;
+          candidate = withoutRuntimeRecordProperties(computed) as AnyRecord;
         } catch {
           return this.internalMutationFailure(
             oid,
@@ -5204,12 +5442,12 @@ export namespace Services {
         )
       );
       let brandObj = brand as BrandingModel;
-      const requestedRecord = _.cloneDeep(record) as AnyRecord;
+      const requestedRecord = withoutRuntimeRecordProperties(record) as AnyRecord;
       let originalRecord: AnyRecord | undefined;
       try {
         const loaded = await this.storageService.getMeta(oid);
         if (this.isUsableRecordSnapshot(loaded)) {
-          originalRecord = this.normalizeRecord(_.cloneDeep(loaded) as AnyRecord);
+          originalRecord = this.normalizeRecord(withoutRuntimeRecordProperties(loaded) as AnyRecord);
         } else {
           sails.log.warn(`${this.logHeader} pre-update snapshot was unusable; validation will be required`);
         }
@@ -5267,7 +5505,7 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
-      const origRecordObj = this.normalizeRecord(_.cloneDeep(requestedRecord) as AnyRecord);
+      const origRecordObj = this.normalizeRecord(withoutRuntimeRecordProperties(requestedRecord) as AnyRecord);
 
       const requestedMeta = this.recordObject(recordObj.metaMetadata);
       const originalMeta = this.recordObject(originalRecord?.metaMetadata);
@@ -5373,13 +5611,17 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
+      const displayContext = createRelatedDisplayWriteContext();
       let currentFormFingerprint: string | undefined;
       if (tracker.context.concurrency?.formFingerprint) {
         try {
-          currentFormFingerprint = await this.getRecordFormFingerprint(
+          const fingerprintForm = await this.loadDisplayWriteForm(displayContext,
+            String(_.get(originalRecord, 'metaMetadata.form', '')), String(_.get(originalRecord, 'metaMetadata.brandId', '')));
+          currentFormFingerprint = fingerprintForm ? await this.getRecordFormFingerprint(
             originalRecord as AnyRecord,
-            recordType as RecordTypeLike
-          );
+            recordType as RecordTypeLike,
+            fingerprintForm
+          ) : undefined;
         } catch (error) {
           tracker.recordPrimaryNotApplied(
             this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
@@ -5461,6 +5703,23 @@ export namespace Services {
         return tracker.toResponse();
       }
 
+      // Preview the existing replace/merge semantics, then normalize before validating the delta.
+      // Keep protected echoes out of structural submission validation.
+      const displayConfigured = recordType?.relatedTo?.some(relation => relation.resolution);
+      const displayInput = displayConfigured ? _.cloneDeep(submission?.metadata ?? recordObj.metadata ?? {}) : {};
+      const displayCandidate = displayConfigured ? this.mergeValidationCandidate(originalRecord, recordObj) : recordObj;
+      if (displayConfigured && submission) this.applySubmittedMetadata(displayCandidate, submission);
+      const displayProblem = await this.normalizeCandidateDisplay(
+        displayCandidate, originalRecord, recordType, brandObj, displayInput, 'pre-save',
+        transitionRequested ? nextStepObj : undefined, undefined, true, displayContext
+      );
+      if (displayProblem) {
+        tracker.recordPrimaryNotApplied(displayProblem);
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
+      if (displayConfigured && submission) submission = { ...submission, metadata: displayInput };
+
       const schemaEnabled = this.recordSchemaEnabled();
       let resolvedSchemaUsage: ResolvedRecordSchemaSaveUsage | undefined;
       const structuralBypass = tracker.context.validationBypass;
@@ -5481,6 +5740,7 @@ export namespace Services {
       // validate them without reapplying the already-present mutation. A
       // structural rejection must stop before merge, transition mutation,
       // hooks, business validation, attachment work, or storage.
+      if (displayConfigured && !submission) recordObj.metadata = displayCandidate.metadata;
       const legacyMetadataChanged =
         submission === undefined &&
         (originalRecord === undefined || !_.isEqual(storedMetadataSnapshot, recordObj.metadata));
@@ -5531,12 +5791,13 @@ export namespace Services {
         }
       }
       if (submission !== undefined) this.applySubmittedMetadata(recordObj, submission);
+      if (displayConfigured) recordObj.metadata = displayCandidate.metadata;
 
       if (transitionRequested) {
         if (!_.isEmpty(recordType)) {
           try {
             this.transitionWorkflowStepMetadata(recordObj, nextStepObj);
-            await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
+            await this.refreshAttachmentFields(recordObj, originalRecord, brandObj, displayContext);
             recordObj = await this.triggerPreSaveTransitionWorkflowTriggers(
               oid,
               recordObj,
@@ -5558,13 +5819,13 @@ export namespace Services {
 
       // Preserve the legacy hook contract: every pre-save hook can inspect
       // attachmentFields for the form that is current at its invocation.
-      await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
+      await this.refreshAttachmentFields(recordObj, originalRecord, brandObj, displayContext);
 
       // process pre-save
       if (!_.isEmpty(brand) && triggerPreSaveTriggers === true) {
         try {
           recordObj = await this.triggerPreSaveTriggers(oid, recordObj, recordType, 'onUpdate', userObj, hookOperation);
-          await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
+          await this.refreshAttachmentFields(recordObj, originalRecord, brandObj, displayContext);
         } catch (err) {
           this.updateChronicle({ recordsOperation: 'updateMeta', recordsOperationOutcome: 'failed' }, [err]);
           tracker.recordPrimaryNotApplied(this.saveProblemFromError(err, 'pre-save', 'Your changes were not saved.'));
@@ -5590,9 +5851,18 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
-      await this.refreshAttachmentFields(recordObj, originalRecord, brandObj);
+      await this.refreshAttachmentFields(recordObj, originalRecord, brandObj, displayContext);
 
       let authoritativeCandidate = this.mergeValidationCandidate(originalRecord, recordObj);
+      const hookDisplayProblem = await this.normalizeCandidateDisplay(
+        authoritativeCandidate, originalRecord, recordType, brandObj, undefined,
+        'pre-save', transitionRequested ? nextStepObj : undefined, displayInput, false, displayContext
+      );
+      if (hookDisplayProblem) {
+        tracker.recordPrimaryNotApplied(hookDisplayProblem);
+        this.logSaveOutcome(tracker, 'pre-save');
+        return tracker.toResponse();
+      }
       const classification = originalRecord
         ? classifyRecordWrite(originalRecord, authoritativeCandidate)
         : 'record-metadata';
@@ -5603,6 +5873,7 @@ export namespace Services {
         tracker.context.validationOperation !== undefined
       ) {
         const validation = await this.validateCandidate({
+          displayContext,
           candidate: authoritativeCandidate,
           original: originalRecord,
           user: userObj,
@@ -5622,6 +5893,16 @@ export namespace Services {
         }
         for (const warning of validation.warnings) tracker.recordWarning(warning);
         authoritativeCandidate = validation.candidate;
+      }
+      if (displayConfigured) {
+        const finalDisplayProblem = await this.normalizeCandidateDisplay(authoritativeCandidate, originalRecord, recordType,
+          brandObj, undefined, 'pre-save',
+          transitionRequested ? nextStepObj : undefined, displayInput, false, displayContext);
+        if (finalDisplayProblem) {
+          tracker.recordPrimaryNotApplied(finalDisplayProblem);
+          this.logSaveOutcome(tracker, 'pre-save');
+          return tracker.toResponse();
+        }
       }
       // From this point onward timestamps, attachment preparation, persistence,
       // and post-save hooks all use the exact candidate returned by validation.
@@ -5968,6 +6249,7 @@ export namespace Services {
               recordObj = postSyncCandidate;
               currentRevision = adoptedRevision ?? currentRevision;
               const hookMutationState = await this.persistPostSyncCandidate({
+                displayContext,
                 brand: brandObj,
                 oid,
                 beforeCandidate: beforePostSyncCandidate,
@@ -6079,6 +6361,7 @@ export namespace Services {
                   recordObj = transitionCandidate;
                   currentRevision = adoptedRevision ?? currentRevision;
                   const transitionMutationState = await this.persistPostSyncCandidate({
+                    displayContext,
                     brand: brandObj,
                     oid,
                     beforeCandidate: beforeTransitionCandidate,
@@ -6477,6 +6760,7 @@ export namespace Services {
      * inferred through positional ternaries.
      */
     async createBatch(type: unknown, data?: unknown, harvestIdFldName?: unknown): Promise<unknown> {
+      await assertRelatedDisplayBatchAllowed(type, data);
       const requestId = randomUUID();
       const batchContext = this.createBatchAuditContext(type, data);
       const createAudit = (this.storageService as Partial<StorageService> | undefined)?.createRecordAudit;
@@ -6519,7 +6803,11 @@ export namespace Services {
         ...(batchContext.recordType ? { record_type: batchContext.recordType } : {}),
         ...(batchContext.candidateCount !== undefined ? { candidate_count: batchContext.candidateCount } : {}),
       });
-      return await this.storageService.createBatch(type, data, harvestIdFldName);
+      return await this.storageService.createBatch(
+        Array.isArray(type) ? type.map(row => withoutRuntimeRecordProperties(row)) : type,
+        Array.isArray(data) ? data.map(row => withoutRuntimeRecordProperties(row)) : data,
+        harvestIdFldName
+      );
     }
 
     private batchBypassAuditError(cause?: unknown): RBValidationError {
@@ -7184,7 +7472,7 @@ export namespace Services {
       _.unset(user, 'password');
       _.unset(user, 'token');
       // storage_id is used as the main ID in searches
-      const data = new RecordAuditModel(id, record, user, action, executionSummary, concurrency);
+      const data = new RecordAuditModel(id, withoutRuntimeRecordProperties(record), user, action, executionSummary, concurrency);
       this.updateChronicle({ recordsAuditOid: id, recordsAuditAction: action, recordsAuditOutcome: 'queued' });
 
       const envName = String((sails.config as AnyRecord).environment ?? process.env.NODE_ENV ?? '');
@@ -7763,7 +8051,7 @@ export namespace Services {
         }
         if (authority.recordType.searchable !== false) {
           try {
-            if (!(await this.searchService.index(oid, finalActive))) {
+            if (!(await this.searchService.index(oid, withoutRuntimeRecordProperties(finalActive)))) {
               throw new Error('Index request was not accepted.');
             }
           } catch {
@@ -8314,6 +8602,7 @@ export namespace Services {
     }
 
     public transitionWorkflowStepMetadata(currentRec: unknown, nextStep: unknown) {
+      // This legacy helper intentionally mutates its supplied workflow record.
       const currentRecObj = this.normalizeRecord(currentRec as AnyRecord);
       const nextStepObj = (nextStep ?? {}) as AnyRecord;
       const meta = currentRecObj.metaMetadata as AnyRecord;

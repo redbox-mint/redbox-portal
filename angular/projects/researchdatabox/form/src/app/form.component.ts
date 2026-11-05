@@ -16,6 +16,9 @@
 // You should have received a copy of the GNU General Public License along
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+import { RelatedDataStateService } from './form-state/related-records/related-data-state.service';
+import { omitAbsentRelatedDisplayValues } from './form-state/related-records/related-display-control-state';
+import { relatedDisplayReferencesEqual, relatedDisplayActive, projectRelatedDisplayMetadata } from '@researchdatabox/sails-ng-common';
 import {
   Component,
   computed,
@@ -186,6 +189,7 @@ interface FormValueGenerationSnapshot {
     { provide: LocationStrategy, useClass: PathLocationStrategy },
     FormComponentFocusRequestCoordinator,
     FormDebugStateService,
+    RelatedDataStateService,
   ],
   encapsulation: ViewEncapsulation.None,
   standalone: false,
@@ -195,6 +199,17 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     'stale',
     'reviewing',
   ]);
+  readonly relatedDataState = inject(RelatedDataStateService);
+
+  @HostBinding('attr.data-rb-related-state')
+  get relatedState(): string {
+    if (!this.componentsLoaded()) return 'pending';
+    const sources = this.formDefMap?.formConfig?.relatedRecords?.sources;
+    if (!sources?.length) return 'ready';
+    return sources.some(source => !this.relatedDataState.hasSource(source.componentPointer))
+      ? 'pending' : this.relatedDataState.state;
+  }
+
   private logName = 'FormComponent';
   /**
    * App name for logging and diagnostics
@@ -740,6 +755,10 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           return;
         }
         const targetControl = evt.fieldId ? this.form.get(evt.fieldId) : null;
+        if (targetControl && this.isActiveRelatedDisplayControl(targetControl)) return;
+        if (this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length) {
+          this.localDirtyRequestControls.add(targetControl ?? this.form);
+        }
         targetControl?.markAsDirty();
         this.form.markAsDirty();
       });
@@ -808,9 +827,15 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       );
 
       this.subMaps['formValueChangesSub']?.unsubscribe();
+      let previousLocalValue = this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length
+        ? this.getPersistedFormValue() : null;
       this.subMaps['formValueChangesSub'] = this.form.valueChanges.subscribe(() => {
-        this.formValueGeneration += 1;
-        if (this.resetTemporaryValidationGroupsOnNextChange) {
+        const optedIn = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
+        const nextLocalValue = optedIn ? this.getPersistedFormValue() : null;
+        const localChanged = !optedIn || !_isEqual(previousLocalValue, nextLocalValue);
+        previousLocalValue = nextLocalValue;
+        if (localChanged) this.formValueGeneration += 1;
+        if (localChanged && this.resetTemporaryValidationGroupsOnNextChange) {
           this.resetTemporaryValidationGroups();
         }
         const conflict = this.formConflictState();
@@ -1045,6 +1070,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
   }
 
   private getPersistedFormValue(): Record<string, unknown> {
+    const optedIn = !!this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length;
     const formValue = structuredClone((this.form?.value ?? {}) as Record<string, unknown>);
     const groupMap = this.formDefMap?.completeGroupMap ?? {};
     for (const [name, compEntry] of Object.entries(groupMap)) {
@@ -1053,7 +1079,69 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         delete formValue[name];
       }
     }
-    return formValue;
+    if (optedIn && this.form) {
+      omitAbsentRelatedDisplayValues(formValue, this.form, this.formDefMap!.formConfig.relatedRecords!);
+    }
+    // Raw references determine activation even if their selectors are disabled;
+    // every submitted value still comes from Angular's legacy value view.
+    return optedIn ? projectRelatedDisplayMetadata(formValue,
+      this.formDefMap?.formConfig?.relatedRecords, this.form?.getRawValue() ?? {}) : formValue;
+  }
+
+  /** Persistence activation changes cannot safely share a three-way merge contract. */
+  private planLocalConflictRebase(...args: Parameters<typeof planFormConflictRebase>): ReturnType<typeof planFormConflictRebase> {
+    const [baseline, conflict, local] = args;
+    const contract = this.formDefMap?.formConfig?.relatedRecords;
+    if (contract?.displayTargets.length && baseline && conflict?.latest &&
+      (!relatedDisplayReferencesEqual(baseline.metadata, local, contract) ||
+       !relatedDisplayReferencesEqual(baseline.metadata, conflict.latest, contract))) {
+      return { eligible: false, reason: 'form-fingerprint-mismatch' };
+    }
+    return planFormConflictRebase(...args);
+  }
+
+  /** Only descriptor-declared active targets are expression-owned controls. */
+  public isActiveRelatedDisplayControl(control: AbstractControl): boolean {
+    return this.relatedDisplayControlKind(control) === 'display';
+  }
+
+  private relatedDisplayControlKind(control: AbstractControl): 'display' | 'ancestor' | 'local' {
+    const contract = this.formDefMap?.formConfig?.relatedRecords;
+    if (!contract?.displayTargets.length || !this.form) return 'local';
+    const metadata = this.form.getRawValue();
+    let ancestor = false;
+    for (const target of contract.displayTargets) {
+      if (!relatedDisplayActive(metadata, contract, target.relationId)) continue;
+      const path = target.metadataPointer.slice(1).split('/').map(token => token.replace(/~1/g, '/').replace(/~0/g, '~'));
+      const targetControl = this.form.get(path);
+      for (let current: AbstractControl | null = control; current; current = current.parent) {
+        if (current === targetControl) return 'display';
+      }
+      for (let current = targetControl?.parent; current; current = current.parent) {
+        if (current === control) ancestor = true;
+      }
+    }
+    return ancestor ? 'ancestor' : 'local';
+  }
+
+  private localDirtyRequestControls = new WeakSet<AbstractControl>();
+
+  /** Keep legacy dirty intent for local controls and explicit ancestor requests;
+   * ignore only dirty state propagated entirely from active display children. */
+  private hasLocalDirtyControl(control: AbstractControl): boolean {
+    const kind = this.relatedDisplayControlKind(control);
+    if (kind === 'display') return false;
+    if (kind === 'local' || this.localDirtyRequestControls?.has(control)) return control.dirty;
+    const children = (control as FormGroup).controls;
+    if (!children) return control.dirty;
+    const values = Object.values(children) as AbstractControl[];
+    return values.some(child => this.hasLocalDirtyControl(child)) ||
+      (control.dirty && values.every(child => child.pristine));
+  }
+
+  private projectLocalMetadata(value: Record<string, unknown>): Record<string, unknown> {
+    const contract = this.formDefMap?.formConfig?.relatedRecords;
+    return contract?.displayTargets.length ? projectRelatedDisplayMetadata(value, contract) : value;
   }
 
   private getComponentDebugInfo(
@@ -1313,7 +1401,8 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     // Check if the form is ready, defined, modified OR forceSave is set
     // Status check will ensure saves requests will not overlap within the Angular Form app context
-    const formIsModified = this.form?.dirty || forceSave;
+    const formIsModified = (this.formDefMap?.formConfig?.relatedRecords?.displayTargets?.length && this.form
+      ? this.hasLocalDirtyControl(this.form) : this.form?.dirty) || forceSave;
     const saveOperation: 'create' | 'update' = _isEmpty(this.trimmedParams.oid()) ? 'create' : 'update';
     if (this.form?.pending) {
       const validationSettled = await this.waitForPendingValidation();
@@ -1354,7 +1443,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           // inferred complete from visible values. A subsequent user-initiated
           // save may explicitly retry them against the latest exact version.
           if (saveOperation === 'update' && namedIntent && existingConflict?.status === 'stale') {
-            const explicitPlan = planFormConflictRebase(
+            const explicitPlan = this.planLocalConflictRebase(
               requestBaseline,
               existingConflict,
               currentFormValue,
@@ -1409,6 +1498,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
           }
           // Snapshot and mark pristine together: preserveLocalEdits uses dirty to identify
           // edits made after this save payload was sent.
+          this.localDirtyRequestControls = new WeakSet<AbstractControl>();
           this.form.markAsPristine();
           if (_isEmpty(this.trimmedParams.oid())) {
             // Actual record creation via RecordService call
@@ -1446,7 +1536,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
             this.captureConflictResponse(response, requestBaseline);
             const conflict = this.formConflictState();
             const automaticSnapshot = this.captureFormValueGeneration();
-            const automaticPlan = planFormConflictRebase(
+            const automaticPlan = this.planLocalConflictRebase(
               requestBaseline,
               conflict,
               automaticSnapshot.value,
@@ -1750,7 +1840,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       return false;
     }
     const local = this.getPersistedFormValue();
-    const plan = planFormConflictRebase(
+    const plan = this.planLocalConflictRebase(
       baseline,
       { ...conflict, status: 'stale' },
       local,
@@ -1784,13 +1874,18 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       throw new TypeError('A conflict retry cannot cross form or record identity.');
     }
 
+    if (!relatedDisplayReferencesEqual(expectedBaseline.metadata, candidateSnapshot.value, this.formDefMap.formConfig?.relatedRecords) ||
+      !relatedDisplayReferencesEqual(expectedBaseline.metadata, conflict.latest, this.formDefMap.formConfig?.relatedRecords)) {
+      this.parkConflictForReview(conflict);
+      return null;
+    }
     let source = candidateSnapshot;
     let guardedCandidate = structuredClone(candidate);
     let value: Record<string, unknown> | null = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       if (source.generation !== this.formValueGeneration || !_isEqual(source.value, this.getPersistedFormValue())) {
         source = this.captureFormValueGeneration();
-        const refreshed = planFormConflictRebase(
+        const refreshed = this.planLocalConflictRebase(
           expectedBaseline,
           { ...conflict, status: 'stale' },
           source.value,
@@ -1807,6 +1902,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       // The candidate and pristine marker form one generation. Edits after this
       // point become dirty; preserveLocalEdits and the generation check below
       // keep them out of the older candidate.
+      this.localDirtyRequestControls = new WeakSet<AbstractControl>();
       this.form.markAsPristine();
       const replacementGeneration = source.generation;
       const syncResult = await this.serverSyncService.applyServerMetadata(
@@ -1830,7 +1926,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         break;
       }
 
-      const refreshed = planFormConflictRebase(
+      const refreshed = this.planLocalConflictRebase(
         expectedBaseline,
         { ...conflict, status: 'stale' },
         afterReplacement.value,
@@ -1944,6 +2040,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     });
     this.formConflictReviewState.set(null);
     this.clearServerSaveProblems();
+    this.localDirtyRequestControls = new WeakSet<AbstractControl>();
     this.form.markAsPristine();
     this.broadcastFormStatus(false);
   }
@@ -1961,7 +2058,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
       oid: response.oid || this.trimmedParams.oid(),
       recordType: this.trimmedParams.recordType(),
       formName: this.trimmedParams.formName(),
-      metadata: immutableFormMetadata(projected),
+      metadata: immutableFormMetadata(this.projectLocalMetadata(projected)),
       trusted:
         response.metadata !== null &&
         typeof response.metadata === 'object' &&
@@ -2041,7 +2138,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     // fingerprint metadata. They also retain no server projection or current
     // coordinates in the form-scoped conflict state: the local values are all
     // that the presenter needs for its non-disclosing export action.
-    const latest = discloseLatest && response.metadata !== null ? immutableFormMetadata(response.metadata) : null;
+    const latest = discloseLatest && response.metadata !== null ? immutableFormMetadata(this.projectLocalMetadata(response.metadata)) : null;
     let cause: FormConflictState['cause'] = 'record-stale';
     let status: FormConflictStatus =
       repeatedRace || (response.concurrencyOutcome === 'stale' && !revisionStale) ? 'reviewing' : 'stale';
@@ -2132,7 +2229,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
 
     const local = immutableFormMetadata(this.getPersistedFormValue());
     const reviewing = { ...conflict, local, status: 'reviewing' } satisfies FormConflictState;
-    const eligibility = planFormConflictRebase(
+    const eligibility = this.planLocalConflictRebase(
       baseline,
       { ...reviewing, status: 'stale' },
       local,
@@ -2374,6 +2471,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     this.formDefMap.updateConcurrency(next);
     this.clearServerSaveProblems();
     if (resolution === 'discard') {
+      this.localDirtyRequestControls = new WeakSet<AbstractControl>();
       this.form.markAsPristine();
     }
     this.formConflictState.set(null);

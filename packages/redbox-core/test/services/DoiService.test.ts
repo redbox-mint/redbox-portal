@@ -370,6 +370,194 @@ describe('DoiService', function () {
     });
   });
 
+  describe('related DOI mapping inputs', function () {
+    const request = { relations: [{ relationId: 'activities', required: true }] };
+    const user = { username: 'owner' };
+
+    function recordForMapping() {
+      return withBrand({
+        redboxOid: 'oid1', revision: 7,
+        metadata: {
+          activities: ['unsaved-reference'], citation_title: 'Local title',
+          citation_publisher: 'Local publisher', citation_publication_date: '2023-04-01',
+          creators: [{ given_name: 'First', family_name: 'Last' }], citation_doi: '10.1234/existing',
+        },
+      });
+    }
+
+    function configureRelatedMapping() {
+      const profile = mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication;
+      profile.metadata.publisher = createDefaultBinding('record.relatedMetadata.activities.records[0].metadata.title');
+      profile.metadata.url = { kind: 'handlebars', template: 'https://example.org/{{record.relatedMetadata.activities.records.[0].metadata.title}}' };
+      profile.metadata.publicationYear = { kind: 'jsonata', expression: 'record.relatedMetadata.activities.records[0].metadata.year' };
+      profile.metadata.titles = [{ sourcePath: 'relatedMetadata.activities.records', title: createDefaultBinding('item.metadata.title') }];
+      profile.writeBack.citationString = { kind: 'handlebars', template: '{{record.relatedMetadata.activities.records.[0].metadata.title}} {{record.metadata.citation_doi}}' };
+      let generation = 0;
+      const enrich = sinon.stub().callsFake(async (record: any) => ({
+        ..._.cloneDeep(record),
+        relatedMetadata: { activities: { status: 'resolved', issues: [], records: [
+          { metadata: { title: `Fresh${++generation}`, year: '2026' } },
+        ] } },
+      }));
+      (global as any).RecordsService.enrichWithRelatedMetadata = enrich;
+      return enrich;
+    }
+
+    it('uses one fresh view for path, template, JSONata and array bindings on each create/update', async function () {
+      const enrich = configureRelatedMapping();
+      const record = recordForMapping();
+      const before = _.cloneDeep(record);
+      for (const [index, action] of ['create', 'update'].entries()) {
+        await service.publishDoi('oid1', record, 'publish', action, { relatedMetadata: request, user });
+        const run = action === 'create' ? runtime.runCreateDoiProgram : runtime.runUpdateDoiProgram;
+        const payload = (run as sinon.SinonStub).firstCall.args[action === 'create' ? 2 : 3];
+        expect(payload.data.attributes).to.include({ publisher: `Fresh${index + 1}`, publicationYear: '2026', url: `https://example.org/Fresh${index + 1}` });
+        expect(payload.data.attributes.titles).to.deep.equal([{ title: `Fresh${index + 1}` }]);
+      }
+      expect(enrich.callCount).to.equal(2);
+      expect(enrich.firstCall.args).to.deep.equal([record, {
+        brand: { id: 'brand-1', name: 'default' }, user, audience: 'service', serviceId: 'DoiService',
+      }, request]);
+      expect(record).to.deep.equal(before);
+    });
+
+    it('writes only DOI/citation deltas from the original revision and reuses mapping data', async function () {
+      const enrich = configureRelatedMapping();
+      const record = recordForMapping();
+      const originalMetadata = _.cloneDeep(record.metadata);
+      await service.publishDoiTrigger('oid1', record, { forceRun: true, relatedMetadata: request }, user);
+      expect(enrich.calledOnce).to.equal(true);
+      const write = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+      expect(write.record).to.equal(record);
+      expect(write.record.revision).to.equal(7);
+      expect(write.record).not.to.have.property('relatedMetadata');
+      expect(write.metadata).to.deep.equal({ citation_doi: '10.1234/5678', citation_url: 'https://example.org/Fresh1', citation_generated: 'Fresh1 10.1234/5678' });
+      expect(record.metadata).to.deep.equal({ ...originalMetadata, ...write.metadata });
+      expect(write.metadataMode).to.equal('pre-applied');
+      expect(write.mutationClass).to.equal('external-side-effect');
+    });
+
+    it('rejects raw related-data path copies before HTTP or writeback', async function () {
+      configureRelatedMapping();
+      const profile = mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication;
+      for (const sourcePath of ['relatedMetadata.activities.records[0].metadata', '["relatedMetadata"].activities.records[0].metadata', 'relatedMetadata']) {
+        profile.writeBack.extraFields = [{ sourcePath, targetPath: 'metadata.activityCopy' }];
+        const record = recordForMapping();
+        const before = _.cloneDeep(record);
+        for (const execute of [
+          () => service.publishDoiTrigger('oid1', record, { forceRun: true, relatedMetadata: request }, user),
+          () => service.addDoiDataToRecord('oid1', record, '10.1234/5678'),
+        ]) {
+          let error: unknown;
+          try { await execute(); } catch (caught) { error = caught; }
+          expect(String(error)).to.contain('Invalid DOI writeBack.extraFields sourcePath');
+          expect(String(error)).to.contain('copying relatedMetadata is not permitted');
+          expect(record).to.deep.equal(before);
+        }
+      }
+      expect((global as any).RecordsService.updateMetaInternal.called).to.equal(false);
+      expect((runtime.runCreateDoiProgram as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('copies extra fields only from the original record while computing a related citation', async function () {
+      const enrich = configureRelatedMapping();
+      // Distinguish original local metadata from the detached mapping input.
+      enrich.callsFake(async (record: any) => ({
+        ..._.cloneDeep(record), metadata: { ...record.metadata, citation_title: 'Detached title' },
+        relatedMetadata: { activities: { status: 'resolved', issues: [], records: [{ metadata: { title: 'Related title', year: '2026' } }] } },
+      }));
+      const profile = mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication;
+      profile.writeBack.extraFields = [
+        { sourcePath: 'metadata.citation_title', targetPath: 'metadata.localTitleCopy' },
+        { sourcePath: 'metadata.citation_doi', targetPath: 'metadata.doiCopy' },
+      ];
+      const record = recordForMapping();
+      await service.publishDoiTrigger('oid1', record, { forceRun: true, relatedMetadata: request }, user);
+      const write = (global as any).RecordsService.updateMetaInternal.firstCall.args[0];
+      expect(write.metadata.localTitleCopy).to.equal('Local title');
+      expect(write.metadata.doiCopy).to.equal('10.1234/5678');
+      expect(write.metadata.citation_generated).to.equal('Related title 10.1234/5678');
+      expect(write.record).not.to.have.property('relatedMetadata');
+    });
+
+    it('preserves legacy extra-field copies without related resolution', async function () {
+      const profile = mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication;
+      profile.writeBack.extraFields = [{ sourcePath: 'metadata.citation_title', targetPath: 'metadata.localTitleCopy' }];
+      const record = recordForMapping();
+      const result = await service.addDoiDataToRecord('oid1', record, '10.1234/5678');
+      expect(result).to.equal(record);
+      expect(result.metadata.localTitleCopy).to.equal('Local title');
+    });
+
+    it('uses the sync hook principal and returns the original record', async function () {
+      const enrich = configureRelatedMapping();
+      const record = recordForMapping();
+      const result = await service.publishDoiTriggerSync('oid1', record, { forceRun: true, relatedMetadata: request }, user);
+      expect(result).to.equal(record);
+      expect(enrich.calledOnce).to.equal(true);
+      expect(enrich.firstCall.args[1].user).to.equal(user);
+      expect(record).not.to.have.property('relatedMetadata');
+    });
+
+    it('fails through the existing audit path before HTTP when required resolution fails', async function () {
+      const enrich = configureRelatedMapping();
+      enrich.rejects(new Error('required related source unavailable'));
+      let error: unknown;
+      try {
+        await service.publishDoi('oid1', recordForMapping(), 'publish', 'create', { relatedMetadata: request, user });
+      } catch (caught) { error = caught; }
+      expect(error).to.exist;
+      expect((runtime.runCreateDoiProgram as sinon.SinonStub).called).to.equal(false);
+      expect((global as any).IntegrationAuditService.failAudit.calledOnce).to.equal(true);
+    });
+
+    it('requires read authority and explicitly rejects the option without enabled v2 publishing', async function () {
+      const enrich = configureRelatedMapping();
+      for (const enabled of [true, false]) {
+        mockSails.config.brandingConfigurationDefaults.doiPublishing.enabled = enabled;
+        let error: unknown;
+        try {
+          await service.publishDoi('oid1', recordForMapping(), 'publish', 'create', { relatedMetadata: request });
+        } catch (caught) { error = caught; }
+        expect(error).to.exist;
+      }
+      expect(enrich.called).to.equal(false);
+      expect((runtime.runCreateDoiProgram as sinon.SinonStub).called).to.equal(false);
+      expect(await service.publishDoi('oid1', recordForMapping())).to.equal(null);
+    });
+
+    it('permits optional unavailable data through configured binding defaults', async function () {
+      const profile = mockSails.config.brandingConfigurationDefaults.doiPublishing.profiles.dataPublication;
+      profile.metadata.publisher = createDefaultBinding('record.relatedMetadata.activities.records[0].metadata.title', 'Configured fallback');
+      (global as any).RecordsService.enrichWithRelatedMetadata = sinon.stub().callsFake(async (record: any) => ({
+        ..._.cloneDeep(record), relatedMetadata: { activities: { status: 'unavailable', records: [], issues: [{ code: 'unavailable' }] } },
+      }));
+      await service.publishDoi('oid1', recordForMapping(), 'publish', 'create', {
+        user, relatedMetadata: { relations: [{ relationId: 'activities' }] },
+      });
+      expect((runtime.runCreateDoiProgram as sinon.SinonStub).firstCall.args[2].data.attributes.publisher).to.equal('Configured fallback');
+    });
+
+    it('preserves normal writeback conflict failures after the external operation', async function () {
+      configureRelatedMapping();
+      (global as any).RecordsService.updateMetaInternal.resolves({ wasPersisted: () => false, outcome: 'conflict' });
+      let error: unknown;
+      try {
+        await service.publishDoiTrigger('oid1', recordForMapping(), { forceRun: true, relatedMetadata: request }, user);
+      } catch (caught) { error = caught; }
+      expect(String(error)).to.contain('conflict');
+      expect((runtime.runCreateDoiProgram as sinon.SinonStub).calledOnce).to.equal(true);
+      expect((global as any).IntegrationAuditService.failAudit.called).to.equal(true);
+    });
+
+    it('does not resolve additional data without the opt-in', async function () {
+      const enrich = sinon.stub();
+      (global as any).RecordsService.enrichWithRelatedMetadata = enrich;
+      await service.publishDoi('oid1', recordForMapping());
+      expect(enrich.called).to.equal(false);
+    });
+  });
+
   describe('lookupDataciteDois', function () {
     const request = {
       serviceId: 'dataciteDois',

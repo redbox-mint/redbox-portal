@@ -69,7 +69,7 @@ export namespace Controllers {
           });
         }
         const paramMap = _.clone(query);
-        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows);
+        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows, req.user);
         this.updateChronicle(req, { namedQueryResponse: summarizeChronicleValue(response) });
         return this.sendResp(req, res, {
           data: response,
@@ -170,7 +170,7 @@ export namespace Controllers {
         const validated = getValidatedApiRequest(req);
         const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
         return this.sendResp(req, res, {
-          data: await ReportsService.previewConfig(brand, validated.body as ReportConfigDto, req),
+          data: await ReportsService.previewConfig(brand, validated.body as ReportConfigDto, req, req.user),
           status: 200,
           headers: this.getNoCacheHeaders(),
         });

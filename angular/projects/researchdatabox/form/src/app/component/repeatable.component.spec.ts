@@ -10,6 +10,7 @@ import {LoggerService} from '@researchdatabox/portal-ng-common';
 import {applyExpressionTarget} from '../form-state/apply-expression-target';
 import {resolveFieldByPointer} from '../form-state/behaviours/behaviour-field-resolver';
 import {FormServerSyncService} from "../form-server-sync.service";
+import {FormBaseWrapperComponent} from './base-wrapper.component';
 
 
 function nestedCreatorsConfig(allowZeroRows = true): FormConfigFrame {
@@ -58,6 +59,43 @@ describe('RepeatableComponent', () => {
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
   });
+
+  it('finishes superseded row construction before applying the next replacement', fakeAsync(() => {
+    let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+    void createFormAndWaitForReady({ name: 'superseded-rows', componentDefinitions: [{ name: 'titles',
+      component: { class: 'RepeatableComponent', config: { allowZeroRows: true,
+        elementTemplate: { name: '', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+      } }, model: { class: 'RepeatableModel', config: { value: [] } },
+    }] }).then(value => { result = value; });
+    flushMicrotasks(); tick();
+    const repeatable = result.formComponent.componentDefArr[0].component as RepeatableComponent;
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let delayNext = true;
+    const original = FormBaseWrapperComponent.prototype.initWrapperComponent;
+    spyOn(FormBaseWrapperComponent.prototype, 'initWrapperComponent').and.callFake(async function (this: FormBaseWrapperComponent<unknown>, ...args) {
+      const component = await original.apply(this, args);
+      if (delayNext) {
+        delayNext = false;
+        await gate;
+      }
+      return component;
+    });
+    let current = true;
+    void repeatable.replaceAllElements(['Previous'], { isCurrent: () => current });
+    flushMicrotasks();
+    current = false;
+    let completed = false;
+    void repeatable.replaceAllElements(['Current']).then(() => { completed = true; });
+    flushMicrotasks();
+    expect(completed).toBeFalse();
+    release(); flushMicrotasks(); tick();
+    expect(completed).toBeTrue();
+    expect(repeatable.model?.formControl?.getRawValue()).toEqual(['Current']);
+    expect(repeatable.formFieldCompMapEntries.length).toBe(1);
+    expect(result.fixture.nativeElement.querySelectorAll('redbox-form-repeatable input').length).toBe(1);
+    result.fixture.destroy();
+  }));
 
   it('should upsert array sync source values item by item', () => {
     const fixture = TestBed.createComponent(RepeatableComponent);

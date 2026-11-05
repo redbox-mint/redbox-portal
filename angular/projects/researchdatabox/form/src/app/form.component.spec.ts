@@ -156,7 +156,7 @@ describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
     const url = new URL(window.location.href);
     url.search = search ?? '';
-    window.history.replaceState({}, '', url.toString());
+    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
   };
 
   const setFormDebugUrl = (value?: string) => {
@@ -165,7 +165,7 @@ describe('FormComponent', () => {
     if (value) {
       url.searchParams.set('formDebug', value);
     }
-    window.history.replaceState({}, '', url.toString());
+    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
   };
 
   const ensureDebugPanelOpen = async (fixture: { nativeElement: HTMLElement; detectChanges: () => void; whenStable: () => Promise<any> }) => {
@@ -179,7 +179,6 @@ describe('FormComponent', () => {
 
   beforeEach(async () => {
     setWindowSearch('');
-    setFormDebugUrl('1');
     const { translationService } = await createTestbedModule(
       {
         declarations: {
@@ -243,6 +242,23 @@ describe('FormComponent', () => {
       expect(fixture.componentInstance.componentsLoaded()).toBeFalse();
     });
   }
+
+  it('keeps PDF readiness pending until a form without related sources has loaded', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    fixture.componentInstance.downloadAndCreateOnInit.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('pending');
+    fixture.destroy();
+
+    const loaded = await createFormAndWaitForReady({
+      name: 'legacy', componentDefinitions: [{
+        name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+      }],
+    });
+    expect(loaded.formComponent.componentsLoaded()).toBeTrue();
+    expect(loaded.fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('ready');
+    loaded.fixture.destroy();
+  });
 
   it('should render basic form config', async () => {
     const formConfig: FormConfigFrame = {

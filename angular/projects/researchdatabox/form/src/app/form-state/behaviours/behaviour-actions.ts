@@ -11,7 +11,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FormComponentEvent } from '../events/form-component-event.types';
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from '../apply-expression-target';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
@@ -128,7 +128,9 @@ async function executeSetValueEntry(
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
-  resolved.control.markAsDirty();
+  if (!ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
+    resolved.control.markAsDirty();
+  }
   ctx.broadcastFormStatus?.();
 }
 
@@ -171,6 +173,7 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,
+      ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     })
   );
@@ -283,7 +286,8 @@ async function applyRunTemplateInstructions(
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
     if (ctx.isActive?.() === false) return;
     if (target === FormExpressionsTargetModelValue) {
-      host.model?.formControl?.markAsDirty();
+      const control = host.model?.formControl;
+      if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
     }
   }
 }
@@ -392,12 +396,14 @@ function buildTargetContext(
   ctx: BehaviourActionExecutionContext
 ): ApplyExpressionTargetContext {
   return {
+    isActive: ctx.isActive,
     eventBus: ctx.eventBus,
     logger: ctx.logger,
     broadcastFormStatus: ctx.broadcastFormStatus,
     eventFieldId: (pipelineContext.event as { fieldId?: string } | undefined)?.fieldId,
     cause: {
       behaviourChain: ctx.behaviourChain,
+      ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     },
   };
