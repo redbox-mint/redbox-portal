@@ -1,0 +1,21 @@
+{
+  "utc": "2026-11-05T03:56:24.556584+00:00",
+  "volumes": [
+    {
+      "name": "1ea5e70a7c4b7e98336d84bfaca1e6ae7c0bf4dc4336d2081855c052e27326f7",
+      "removedNow": true,
+      "absentAfter": true
+    },
+    {
+      "name": "386a9398996630f1a3555b8af1623bce6b05602e95571530a4bd8c4c0824c9f6",
+      "removedNow": true,
+      "absentAfter": true
+    },
+    {
+      "name": "4f07e510faf66e8d8d4235c056f931fa09850daf2b22880e58b5869fc0ea0201",
+      "removedNow": true,
+      "absentAfter": true
+    }
+  ],
+  "stateRemoved": true
+}

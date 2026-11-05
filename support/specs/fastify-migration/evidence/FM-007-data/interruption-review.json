@@ -1,0 +1,8 @@
+{
+  "state": "invalidated",
+  "directory": "express-01-direct-W1-0-c8-1",
+  "utc": "2026-11-04T21:25:10.066378+00:00",
+  "originalResultSha256": "67fb062f7b19c8ea1311c028401ba8d53a215ff1fb1f95d9f90a08c4f8969670",
+  "reason": "Invalidated: user reported cancellation/service restart during this measurement; never pool this attempt with reruns.",
+  "resultSha256": "a492dcb42438517609f2003659e363ee56faaf75db40c36bfe1bda4b153fb9f6"
+}

@@ -1,0 +1,16 @@
+{
+  "decisionUtc": "2026-11-05T03:56:03.020294+00:00",
+  "decisionAuthority": "Explicit user instruction on 2026-11-05: stop measurement; select express-02; completed express-03 supplementary only; no pooling; document >10% variability for FM-047.",
+  "baselineBatch": "express-02",
+  "baselineCells": 20,
+  "samplesPerCell": 5,
+  "baselineSamples": 100,
+  "supplementaryBatch": "express-03",
+  "supplementaryCompletedSamples": 28,
+  "supplementaryInvalidSamples": 1,
+  "supersededBatch": "express-01",
+  "partialSamplesPooled": false,
+  "varianceLimitationAcceptedForG0": true,
+  "fm047PerformanceThresholdWaived": false,
+  "measurementRestartAuthorized": false
+}

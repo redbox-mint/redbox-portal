@@ -1,0 +1,915 @@
+{
+  "note": "Host snapshots are scheduled at 1 Hz but async /proc reads can queue; use full-window CPU means and >=10-second CPU windows rather than tiny adjacent-snapshot differences for saturation review. Node samples are taken inside the owner.",
+  "minObservedHostGapMs": 46.91398811340332,
+  "maxObservedHostGapMs": 10235.205515861511,
+  "maxTenSecondCpuPctOneCore": {
+    "generator": 70.02999436941144,
+    "fm007-proxy": 40.37797959873552
+  },
+  "runs": [
+    {
+      "attempt": "express-02-direct-W1-0-c1-1",
+      "minHostSampleGapMs": 695.2558560371399,
+      "maxHostSampleGapMs": 1303.1460568904877,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.784869707261795,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c1-2",
+      "minHostSampleGapMs": 590.1275489330292,
+      "maxHostSampleGapMs": 1473.6773219108582,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.3705832194752885,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c1-3",
+      "minHostSampleGapMs": 796.9647700786591,
+      "maxHostSampleGapMs": 1253.678564786911,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.0161642037110825,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c1-4",
+      "minHostSampleGapMs": 489.9547109603882,
+      "maxHostSampleGapMs": 1751.734018087387,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.613965874969314,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c1-5",
+      "minHostSampleGapMs": 712.8282639980316,
+      "maxHostSampleGapMs": 1289.3609910011292,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.911968487219124,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c8-1",
+      "minHostSampleGapMs": 930.9169509410858,
+      "maxHostSampleGapMs": 1064.8729150295258,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.692154843166521,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c8-2",
+      "minHostSampleGapMs": 618.8733329772949,
+      "maxHostSampleGapMs": 1335.7641060352325,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.90468161394296,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c8-3",
+      "minHostSampleGapMs": 688.714733839035,
+      "maxHostSampleGapMs": 1296.1531629562378,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.798126347206204,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c8-4",
+      "minHostSampleGapMs": 805.7320430278778,
+      "maxHostSampleGapMs": 1211.2880401611328,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.496299446017413,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W1-0-c8-5",
+      "minHostSampleGapMs": 131.61299180984497,
+      "maxHostSampleGapMs": 2981.622796058655,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.71795823921463,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c1-1",
+      "minHostSampleGapMs": 458.53831005096436,
+      "maxHostSampleGapMs": 1477.787998199463,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.192350052437824,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c1-2",
+      "minHostSampleGapMs": 612.6331131458282,
+      "maxHostSampleGapMs": 1647.777489900589,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.195205781817317,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c1-3",
+      "minHostSampleGapMs": 53.073158979415894,
+      "maxHostSampleGapMs": 2823.1386139392853,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.024268913876998,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c1-4",
+      "minHostSampleGapMs": 537.6973249912262,
+      "maxHostSampleGapMs": 1325.890280008316,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.9836739476581124,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c1-5",
+      "minHostSampleGapMs": 382.0000491142273,
+      "maxHostSampleGapMs": 1671.4022448062897,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.996939774064256,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c4-1",
+      "minHostSampleGapMs": 762.5993101596832,
+      "maxHostSampleGapMs": 1225.2315409183502,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.991614981968218,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c4-2",
+      "minHostSampleGapMs": 483.01177406311035,
+      "maxHostSampleGapMs": 1503.3248388767242,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.822811991696491,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c4-3",
+      "minHostSampleGapMs": 613.7921628952026,
+      "maxHostSampleGapMs": 1370.295312166214,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.6890986307206735,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c4-4",
+      "minHostSampleGapMs": 710.9400401115417,
+      "maxHostSampleGapMs": 1449.2888398170471,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.748847240951842,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W2-0-c4-5",
+      "minHostSampleGapMs": 572.3185908794403,
+      "maxHostSampleGapMs": 1414.1401801109314,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.0962380841280615,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c1-1",
+      "minHostSampleGapMs": 767.4358270168304,
+      "maxHostSampleGapMs": 1139.4172308444977,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.485269125591559,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c1-2",
+      "minHostSampleGapMs": 590.9349269866943,
+      "maxHostSampleGapMs": 1529.6727221012115,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.294611007715398,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c1-3",
+      "minHostSampleGapMs": 581.8023719787598,
+      "maxHostSampleGapMs": 1416.8738939762115,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.725990049128905,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c1-4",
+      "minHostSampleGapMs": 817.3995258808136,
+      "maxHostSampleGapMs": 1183.7801649570465,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.287080932333316,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c1-5",
+      "minHostSampleGapMs": 677.6482651233673,
+      "maxHostSampleGapMs": 1321.8936188220978,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.061724828487515,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c8-1",
+      "minHostSampleGapMs": 61.98651695251465,
+      "maxHostSampleGapMs": 7357.228369951248,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 10.977131465941214,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c8-2",
+      "minHostSampleGapMs": 846.7642300128937,
+      "maxHostSampleGapMs": 1134.4517650604248,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.469257483358593,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c8-3",
+      "minHostSampleGapMs": 550.5191221237183,
+      "maxHostSampleGapMs": 1524.1183149814606,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.39797013077489,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c8-4",
+      "minHostSampleGapMs": 841.7065517902374,
+      "maxHostSampleGapMs": 1171.997768163681,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.708744558535207,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W3-0-c8-5",
+      "minHostSampleGapMs": 783.0415329933167,
+      "maxHostSampleGapMs": 1321.0758218765259,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.085082046331195,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c1-1",
+      "minHostSampleGapMs": 663.3619527816772,
+      "maxHostSampleGapMs": 1296.3790497779846,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 30.50078792458967,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c1-2",
+      "minHostSampleGapMs": 748.2133610248566,
+      "maxHostSampleGapMs": 1379.4679670333862,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 27.076266858289923,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c1-3",
+      "minHostSampleGapMs": 695.6670570373535,
+      "maxHostSampleGapMs": 1127.4946689605713,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 30.598311447985914,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c1-4",
+      "minHostSampleGapMs": 276.2943458557129,
+      "maxHostSampleGapMs": 2230.784497976303,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 27.71426288512587,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c1-5",
+      "minHostSampleGapMs": 604.3134191036224,
+      "maxHostSampleGapMs": 1247.1311838626862,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 26.85608982276084,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c4-1",
+      "minHostSampleGapMs": 193.29648804664612,
+      "maxHostSampleGapMs": 1781.8731639385223,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 34.47814817704911,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c4-2",
+      "minHostSampleGapMs": 517.7323739528656,
+      "maxHostSampleGapMs": 1283.0395500659943,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 32.50932246344687,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c4-3",
+      "minHostSampleGapMs": 664.6843428611755,
+      "maxHostSampleGapMs": 1298.2382650375366,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 33.69145149175744,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c4-4",
+      "minHostSampleGapMs": 288.43623399734497,
+      "maxHostSampleGapMs": 1774.4332160949707,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 34.62024496796084,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-1048576-c4-5",
+      "minHostSampleGapMs": 109.53055620193481,
+      "maxHostSampleGapMs": 1953.1100480556488,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 32.24664250263392,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c1-1",
+      "minHostSampleGapMs": 624.7631409168243,
+      "maxHostSampleGapMs": 1322.210382938385,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 49.75676603722665,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c1-2",
+      "minHostSampleGapMs": 465.3490560054779,
+      "maxHostSampleGapMs": 1454.5604648590088,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 51.369975050668444,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c1-3",
+      "minHostSampleGapMs": 551.6679141521454,
+      "maxHostSampleGapMs": 1760.5317950248718,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 50.668294983663095,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c1-4",
+      "minHostSampleGapMs": 596.748095035553,
+      "maxHostSampleGapMs": 1423.643443107605,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 51.31019792238427,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c1-5",
+      "minHostSampleGapMs": 496.8941159248352,
+      "maxHostSampleGapMs": 1472.7445259094238,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 51.891274065512725,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c4-1",
+      "minHostSampleGapMs": 140.26036405563354,
+      "maxHostSampleGapMs": 2061.7305381298065,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 53.20543225019852,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c4-2",
+      "minHostSampleGapMs": 278.51652002334595,
+      "maxHostSampleGapMs": 1610.8469309806824,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 52.71236838872632,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c4-3",
+      "minHostSampleGapMs": 438.14687991142273,
+      "maxHostSampleGapMs": 1716.322751045227,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 58.44669713838184,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c4-4",
+      "minHostSampleGapMs": 47.37475299835205,
+      "maxHostSampleGapMs": 10235.205515861511,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 68.19281959826671,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-direct-W4-33554432-c4-5",
+      "minHostSampleGapMs": 48.44920015335083,
+      "maxHostSampleGapMs": 2897.8095490932465,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 55.22141420129079,
+        "fm007-proxy": 0.0
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c1-1",
+      "minHostSampleGapMs": 50.369170904159546,
+      "maxHostSampleGapMs": 2044.6220788955688,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.184627416322851,
+        "fm007-proxy": 0.3999301116527076
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c1-2",
+      "minHostSampleGapMs": 228.29923820495605,
+      "maxHostSampleGapMs": 1900.8021337985992,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.190202796349623,
+        "fm007-proxy": 0.39991217053057715
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c1-3",
+      "minHostSampleGapMs": 657.3942759037018,
+      "maxHostSampleGapMs": 1605.0042278766632,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.306528697987042,
+        "fm007-proxy": 0.3999751123083245
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c1-4",
+      "minHostSampleGapMs": 265.56741404533386,
+      "maxHostSampleGapMs": 1711.2784440517426,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.299590784213585,
+        "fm007-proxy": 0.39998859240641216
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c1-5",
+      "minHostSampleGapMs": 453.0544168949127,
+      "maxHostSampleGapMs": 1410.269986152649,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.166309574169919,
+        "fm007-proxy": 0.399902856325397
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c8-1",
+      "minHostSampleGapMs": 252.54709911346436,
+      "maxHostSampleGapMs": 1808.7430889606476,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.863801899309715,
+        "fm007-proxy": 0.3635085469572441
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c8-2",
+      "minHostSampleGapMs": 321.95352005958557,
+      "maxHostSampleGapMs": 1906.1325008869171,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.620086537639939,
+        "fm007-proxy": 0.3998780154128594
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c8-3",
+      "minHostSampleGapMs": 792.1715590953827,
+      "maxHostSampleGapMs": 1194.361631155014,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.0714968942571454,
+        "fm007-proxy": 0.2999751026051697
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c8-4",
+      "minHostSampleGapMs": 696.6299760341644,
+      "maxHostSampleGapMs": 1264.0302300453186,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.826101297048777,
+        "fm007-proxy": 0.3637233175522021
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W1-0-c8-5",
+      "minHostSampleGapMs": 445.7483160495758,
+      "maxHostSampleGapMs": 1555.760901927948,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.004780007137208,
+        "fm007-proxy": 0.36365716737163634
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c1-1",
+      "minHostSampleGapMs": 762.252466917038,
+      "maxHostSampleGapMs": 1282.6721999645233,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.281449092251417,
+        "fm007-proxy": 0.2998724627395692
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c1-2",
+      "minHostSampleGapMs": 911.56081199646,
+      "maxHostSampleGapMs": 1085.5771470069885,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.197171882731348,
+        "fm007-proxy": 0.2999878969593219
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c1-3",
+      "minHostSampleGapMs": 492.9342827796936,
+      "maxHostSampleGapMs": 1666.8410770893097,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.383347317221318,
+        "fm007-proxy": 0.2998817417840136
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c1-4",
+      "minHostSampleGapMs": 700.4781880378723,
+      "maxHostSampleGapMs": 1292.3131968975067,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.351024777311497,
+        "fm007-proxy": 0.2996247908968955
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c1-5",
+      "minHostSampleGapMs": 427.49999809265137,
+      "maxHostSampleGapMs": 1560.5265378952026,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.208736961450288,
+        "fm007-proxy": 0.2997058265035465
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c4-1",
+      "minHostSampleGapMs": 830.1143381595612,
+      "maxHostSampleGapMs": 1208.072054862976,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.527832043518797,
+        "fm007-proxy": 0.1999966060785219
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c4-2",
+      "minHostSampleGapMs": 703.5097379684448,
+      "maxHostSampleGapMs": 1520.630245923996,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.675709006832566,
+        "fm007-proxy": 0.19999783534485532
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c4-3",
+      "minHostSampleGapMs": 400.66880989074707,
+      "maxHostSampleGapMs": 1583.3860869407654,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 7.298400237621299,
+        "fm007-proxy": 0.2936597631445002
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c4-4",
+      "minHostSampleGapMs": 661.0258979797363,
+      "maxHostSampleGapMs": 1250.5377080440521,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.5682033049203215,
+        "fm007-proxy": 0.1998798467311398
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W2-0-c4-5",
+      "minHostSampleGapMs": 541.5182621479034,
+      "maxHostSampleGapMs": 1472.283434867859,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 6.89610250967219,
+        "fm007-proxy": 0.2997710607930985
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c1-1",
+      "minHostSampleGapMs": 478.40719413757324,
+      "maxHostSampleGapMs": 1521.3813898563385,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.870414821494151,
+        "fm007-proxy": 1.360649313750106
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c1-2",
+      "minHostSampleGapMs": 715.5494291782379,
+      "maxHostSampleGapMs": 1281.3610877990723,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.498174771759594,
+        "fm007-proxy": 1.399264992385093
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c1-3",
+      "minHostSampleGapMs": 833.9819138050079,
+      "maxHostSampleGapMs": 1180.1124081611633,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.1985515427988,
+        "fm007-proxy": 1.2997271626981115
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c1-4",
+      "minHostSampleGapMs": 584.3351011276245,
+      "maxHostSampleGapMs": 1412.5567138195038,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.678721096784242,
+        "fm007-proxy": 1.3986339373325716
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c1-5",
+      "minHostSampleGapMs": 697.3049898147583,
+      "maxHostSampleGapMs": 1590.830101966858,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.647925466997192,
+        "fm007-proxy": 1.29998457125617
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c8-1",
+      "minHostSampleGapMs": 584.9113919734955,
+      "maxHostSampleGapMs": 1446.2876861095428,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.185813064556402,
+        "fm007-proxy": 1.4552944346612882
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c8-2",
+      "minHostSampleGapMs": 761.671205997467,
+      "maxHostSampleGapMs": 1233.0207469463348,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 8.996817582644756,
+        "fm007-proxy": 1.3999034286503937
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c8-3",
+      "minHostSampleGapMs": 70.71256494522095,
+      "maxHostSampleGapMs": 2360.2995371818542,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 10.088089205765751,
+        "fm007-proxy": 1.399417802144632
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c8-4",
+      "minHostSampleGapMs": 860.6975109577179,
+      "maxHostSampleGapMs": 1150.5682849884033,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 9.58231277340166,
+        "fm007-proxy": 1.3658038183072463
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W3-0-c8-5",
+      "minHostSampleGapMs": 320.49188113212585,
+      "maxHostSampleGapMs": 1700.264153957367,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 10.092431322338536,
+        "fm007-proxy": 1.4996754739765628
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c1-1",
+      "minHostSampleGapMs": 778.6145000457764,
+      "maxHostSampleGapMs": 1140.2749300003052,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 33.848431999018885,
+        "fm007-proxy": 16.89621348615342
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c1-2",
+      "minHostSampleGapMs": 711.7204749584198,
+      "maxHostSampleGapMs": 1283.603149175644,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 32.67315896462743,
+        "fm007-proxy": 16.968181192032368
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c1-3",
+      "minHostSampleGapMs": 559.7956049442291,
+      "maxHostSampleGapMs": 1190.863615989685,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 32.64768837990366,
+        "fm007-proxy": 16.74840670408118
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c1-4",
+      "minHostSampleGapMs": 694.7104568481445,
+      "maxHostSampleGapMs": 1378.8074910640717,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 33.539562867575775,
+        "fm007-proxy": 16.989895650066458
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c1-5",
+      "minHostSampleGapMs": 534.2344169616699,
+      "maxHostSampleGapMs": 1449.7612969875336,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 35.246707268093374,
+        "fm007-proxy": 16.801026404865542
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c4-1",
+      "minHostSampleGapMs": 714.1458871364594,
+      "maxHostSampleGapMs": 1291.2617900371552,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 39.512325869187244,
+        "fm007-proxy": 19.63111264686226
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c4-2",
+      "minHostSampleGapMs": 886.9143559932709,
+      "maxHostSampleGapMs": 1141.4218518733978,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 37.94785596258341,
+        "fm007-proxy": 19.499000619760313
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c4-3",
+      "minHostSampleGapMs": 745.4182250499725,
+      "maxHostSampleGapMs": 1325.8963069915771,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 36.59090624661284,
+        "fm007-proxy": 19.977580753646052
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c4-4",
+      "minHostSampleGapMs": 532.4249269962311,
+      "maxHostSampleGapMs": 1465.246864080429,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 36.64575979009421,
+        "fm007-proxy": 19.3097879922423
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-1048576-c4-5",
+      "minHostSampleGapMs": 589.3561320304871,
+      "maxHostSampleGapMs": 1406.5952479839325,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 38.28949454810593,
+        "fm007-proxy": 19.819473697179134
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c1-1",
+      "minHostSampleGapMs": 46.91398811340332,
+      "maxHostSampleGapMs": 6945.499512195587,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 54.04223767019925,
+        "fm007-proxy": 35.86773886944855
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c1-2",
+      "minHostSampleGapMs": 60.00430393218994,
+      "maxHostSampleGapMs": 4558.784939050674,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 68.66778419078517,
+        "fm007-proxy": 35.829884905294804
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c1-3",
+      "minHostSampleGapMs": 735.5390141010284,
+      "maxHostSampleGapMs": 1404.9830920696259,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 55.93682325561646,
+        "fm007-proxy": 37.16051274043445
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c1-4",
+      "minHostSampleGapMs": 430.08326292037964,
+      "maxHostSampleGapMs": 1783.98845911026,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 57.08025141008326,
+        "fm007-proxy": 39.044477527036115
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c1-5",
+      "minHostSampleGapMs": 451.28866505622864,
+      "maxHostSampleGapMs": 2604.7393169403076,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 57.41511833450803,
+        "fm007-proxy": 37.85026495354858
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c4-1",
+      "minHostSampleGapMs": 47.79175305366516,
+      "maxHostSampleGapMs": 7883.062580108643,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 70.02999436941144,
+        "fm007-proxy": 38.83134565170362
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c4-2",
+      "minHostSampleGapMs": 135.37737488746643,
+      "maxHostSampleGapMs": 2116.6000781059265,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 63.560775010472256,
+        "fm007-proxy": 37.88054408572406
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c4-3",
+      "minHostSampleGapMs": 50.48232913017273,
+      "maxHostSampleGapMs": 4298.546247959137,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 65.56468378118453,
+        "fm007-proxy": 40.37797959873552
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c4-4",
+      "minHostSampleGapMs": 57.91625189781189,
+      "maxHostSampleGapMs": 1792.8678228855133,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 64.89933895227136,
+        "fm007-proxy": 40.05013203541679
+      }
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c4-5",
+      "minHostSampleGapMs": 118.8484001159668,
+      "maxHostSampleGapMs": 2072.7971839904785,
+      "maxTenSecondCpuPctOneCore": {
+        "generator": 59.528250015650464,
+        "fm007-proxy": 34.65848343280186
+      }
+    }
+  ],
+  "minObservedNodeGapMs": 994.3136560916901,
+  "maxObservedNodeGapMs": 1401.10156583786,
+  "minNodeSamples": 112,
+  "maxNodeSamples": 120
+}

@@ -1,7 +1,18 @@
 # FM-005 conditional-assertion scan reconciliation
 
 Recorded 2026-11-05 against `b9520ddfe5f3eb5f5cf2c3ea39a17fbf61e11466`.
-Source SHA-256: `4d27b83d161d40506dc272ad8b391a1b6a7355edb502bcbae7b69f3064ee214d`
+Source SHA-256: `0c231bf037902ca590bcd077fc8de3ccd6d5ad326c3179a0ca5bdc061cb0f0f5`
+
+FM-007 extends the ledger for its five fixed-input protocol-test loop sites,
+including the review regression matrix for unsafe clean/all/start/run dispatch.
+Before review, four sites produced digest
+`651b8828be67d2d34274d08fa2a00bfaf2f48929df4eaf5d5538ca546ec5147f`
+and 1,746 total sites (F 1,002); that historical check is retained.
+The prospective committed-source check uses an isolated Git index; the shared
+index is untouched. The original FM-005 digest remains
+`4d27b83d161d40506dc272ad8b391a1b6a7355edb502bcbae7b69f3064ee214d`
+and its historical results in FM-005.md are unchanged. New source and check output
+are retained in [FM-007-data](FM-007-data/).
 
 The digest covers sorted tracked source paths and their complete UTF-8 contents,
 separated by NULs. Run `FM-005-assertion-scan.cjs --check` from the repository root.
@@ -22,11 +33,12 @@ initializer. G checks can follow the loop or live in a required suite manifest;
 these dependencies are stated in the basis. P/H never manufacture a test pass.
 Existing skip/pending counts and request-stop controls remain in FM-005.md.
 
-Reconciled **1742 sites / 401 files**, **F 998**, **G 596**, **O 61**, **P 59**, **H 28**; **0 unclassified**.
+Reconciled **1747 sites / 402 files**, **F 1003**, **G 596**, **O 61**, **P 59**, **H 28**; **0 unclassified**.
 
 <!-- prettier-ignore -->
 | Source (repository relative) | Sites (line:column) | Class | Basis / required disposition |
 | --- | --- | --- | --- |
+| `support/integration-testing/fastify-performance/protocol.test.cjs` | `24:3, 26:5, 28:5, 39:3, 107:3` | F | Literal direct/proxy, W1/W2/W3, 1 MiB/32 MiB and clean/all/start/run matrices; bounded 0..999 seed-byte verification. Unsafe state must reject every dispatch with the production sentinel intact. Independent exact cell/count assertions and rejecting invalid/empty/late-result controls remain required. These sites do not enumerate returned product outputs to choose assertions. |
 | `angular/projects/researchdatabox/admin-vocabulary/src/app/admin-vocabulary.component.spec.ts` | `121:5, 321:5, 362:5` | G | Required precondition/discriminator, exhaustive fixed-scenario branch, rejection sentinel, or asserted final outcome prevents successful omission of the stated checks. |
 | `angular/projects/researchdatabox/branding/src/app/branding-admin.component.spec.ts` | `232:5` | F | Nonempty literal input matrix (including local aliases); assertions do not depend on discovered output to select the cases. |
 | `angular/projects/researchdatabox/branding/src/app/branding-admin.service.spec.ts` | `150:7, 161:7` | G | Required precondition/discriminator, exhaustive fixed-scenario branch, rejection sentinel, or asserted final outcome prevents successful omission of the stated checks. |

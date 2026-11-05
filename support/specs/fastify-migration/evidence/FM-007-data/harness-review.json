@@ -1,0 +1,54 @@
+{
+  "recordedUtc": "2026-11-05T04:30:25.994181+00:00",
+  "measuredImage": "sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e",
+  "measuredHarness": {
+    "Dockerfile": "9f8781fb4c86d893538676927282591ca182c7a56c94287a506af69315a8f79c",
+    "README.md": "b3369ebb7d507f67e02d6394bc97ab3d763d3e4ffdbf75bc79825db0d02f9503",
+    "application.cjs": "a826cbce3e805041cae8dbe8735022307a48986ae68b9b60898f68b0113fc1c7",
+    "client.cjs": "4dcc64eb5282699ada3d0684af48b8829a90ece4642c4d5d025fb765cbb2490e",
+    "fixture-package.json": "a50c75e663f5a91878665841f1954b4160f620641e7a5a95b8c84e87c7e71c25",
+    "freeze.cjs": "9dc9b756d3a58c9808b7938d47878e751a465faa9341c767f78d5f1ad8d10ef8",
+    "nginx.conf": "e02ca39e25d1da0348ef42898bbfd4ad7af56faf5e35aaeb5b6c09e232a2d93a",
+    "owner.cjs": "0d102338bac81e0fa77f3890197a29243175f95d07264def956e045bdf226973",
+    "protocol.cjs": "041ce080730a2e4555a867927a327b74c45e36187531284cdba6114ca89463ef",
+    "protocol.test.cjs": "a5e010bc7b1d0b7b7c93b0a94844e07055a4459370447396d865857573e364de",
+    "report.cjs": "2836bde75dab294936fd2c31df22148f98c43c6bd08a4d546937a258048c72a4",
+    "run.cjs": "926b4bcd94553e08a9c4495f1dbc0f445f8760d2d09e494d814204fbb4488fcd",
+    "sample.cjs": "7df851baafebdf484e38c92f4a91ae2c78d5bdd11bf61461a4613b0bc4391fbb"
+  },
+  "reviewedHarness": {
+    "Dockerfile": "9f8781fb4c86d893538676927282591ca182c7a56c94287a506af69315a8f79c",
+    "README.md": "725178a6f113f739b3da12cf276c89309e856aa2306cdbadab699e665aab498a",
+    "application.cjs": "a826cbce3e805041cae8dbe8735022307a48986ae68b9b60898f68b0113fc1c7",
+    "archive-raw.py": "25b1ecce7b7593c8e84b1739cd990ed941048e2843228451d9c4c2f7a9b16ccc",
+    "client.cjs": "4dcc64eb5282699ada3d0684af48b8829a90ece4642c4d5d025fb765cbb2490e",
+    "fixture-package.json": "a50c75e663f5a91878665841f1954b4160f620641e7a5a95b8c84e87c7e71c25",
+    "freeze.cjs": "9dc9b756d3a58c9808b7938d47878e751a465faa9341c767f78d5f1ad8d10ef8",
+    "nginx.conf": "e02ca39e25d1da0348ef42898bbfd4ad7af56faf5e35aaeb5b6c09e232a2d93a",
+    "owner.cjs": "0d102338bac81e0fa77f3890197a29243175f95d07264def956e045bdf226973",
+    "protocol.cjs": "041ce080730a2e4555a867927a327b74c45e36187531284cdba6114ca89463ef",
+    "protocol.test.cjs": "41fca2c8d17958900427740e55fcb072e06baf8d0d74745d0877acf9e841fed9",
+    "report.cjs": "90cb899fdb9642d26693391b4faa254cf7d7fc7e4c57817b778e03f0308795bd",
+    "run.cjs": "351906e1b0c54d652cd8ae38df2b9694bbdc226d9c00ee3b171c31caee3d801c",
+    "sample.cjs": "53d24a57d755ab47e2d69396f78491a9a682f9805bc968267681ea711d2afebc",
+    "state.cjs": "64847f6ee7d1939ece0e1ae968dca3e433b9534e8c730bb52e601cffec689035"
+  },
+  "originalSources": "raw-manifest.json: measured-harness/ members preserve the original 13 hashes",
+  "changes": [
+    "Shared owned/marked disposable-state guard before service acquisition/reset/cleanup, including all finally path",
+    "Invalid completed attempts retain errors/metrics without valid-only assertions or aggregation",
+    "Resource summaries bound to result SHA-256 support repository-only reporting; optional archived raw verification",
+    "Raw archive creation/verification and updated replay instructions; two regression tests added"
+  ],
+  "fixedProtocolUnchanged": true,
+  "unchangedMeasuredInputs": [
+    "protocol.cjs",
+    "client.cjs",
+    "owner.cjs",
+    "application.cjs",
+    "fixture-package.json",
+    "nginx.conf",
+    "Dockerfile",
+    "freeze.cjs"
+  ]
+}

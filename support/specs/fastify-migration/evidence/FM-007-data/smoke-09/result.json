@@ -1,0 +1,96 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W1",
+    "concurrency": 1,
+    "id": "direct-W1-0-c1"
+  },
+  "smoke": true,
+  "startedUtc": "2026-11-04T20:07:20.400Z",
+  "image": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "seedRevision": 0,
+    "portalPort": 18570,
+    "controlPort": 18574,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "error": "AssertionError [ERR_ASSERTION]: {\"error\":\"owned queue failed to drain within 60 seconds\",\"stack\":\"Error: owned queue failed to drain within 60 seconds\\n    at drain (/opt/redbox-portal/support/integration-testing/fastify-performance/owner.cjs:46:9)\\n    at async seedRecords (/opt/redbox-portal/support/integration-testing/fastify-performance/owner.cjs:88:19)\\n    at async Server.<anonymous> (/opt/redbox-portal/support/integration-testing/fastify-performance/owner.cjs:166:47)\"}\n    at control (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/client.cjs:40:39)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async main (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs:105:16)",
+  "failureStop": {
+    "stopped": true,
+    "persistence": {
+      "ready": false,
+      "cleanupPending": false,
+      "resources": [],
+      "operations": 0,
+      "prismaClients": 0,
+      "pools": 0
+    }
+  },
+  "containerState": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 1126283,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-11-04T20:07:20.8917096Z",
+    "FinishedAt": "0001-01-01T00:00:00Z",
+    "Health": {
+      "Status": "starting",
+      "FailingStreak": 1,
+      "Log": [
+        {
+          "Start": "2026-11-05T06:38:01.620320827+10:30",
+          "End": "2026-11-05T06:38:01.666734893+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        },
+        {
+          "Start": "2026-11-05T06:38:06.667518588+10:30",
+          "End": "2026-11-05T06:38:06.708765304+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        },
+        {
+          "Start": "2026-11-05T06:38:11.709300757+10:30",
+          "End": "2026-11-05T06:38:11.763680509+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        },
+        {
+          "Start": "2026-11-05T06:38:16.768442626+10:30",
+          "End": "2026-11-05T06:38:16.821664731+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        },
+        {
+          "Start": "2026-11-05T06:38:21.823747592+10:30",
+          "End": "2026-11-05T06:38:21.870077458+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        }
+      ]
+    }
+  },
+  "finishedUtc": "2026-11-04T20:08:42.849Z"
+}

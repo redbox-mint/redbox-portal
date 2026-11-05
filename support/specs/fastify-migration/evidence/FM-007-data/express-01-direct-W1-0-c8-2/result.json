@@ -1,0 +1,36 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W1",
+    "concurrency": 8,
+    "id": "direct-W1-0-c8"
+  },
+  "smoke": false,
+  "startedUtc": "2026-11-04T21:22:55.433Z",
+  "image": "sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "seedRevision": 0,
+    "portalPort": 18570,
+    "controlPort": 18574,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "error": "AssertionError [ERR_ASSERTION]: staging filesystem must have >=20 GiB free\n    at reset (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs:124:3)\n    at async main (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs:146:3)",
+  "finishedUtc": "2026-11-04T21:22:56.112Z"
+}

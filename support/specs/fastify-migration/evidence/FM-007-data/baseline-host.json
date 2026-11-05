@@ -1,0 +1,190 @@
+{
+  "baselineBatch": "express-02",
+  "hostMetrics": {
+    "hostIdlePct": {
+      "median": 27.020296880292868,
+      "min": 4.429272455728611,
+      "max": 40.706351225303145
+    },
+    "hostIoWaitPct": {
+      "median": 0.3363642747803216,
+      "min": 0.021516481624924692,
+      "max": 8.679324894514767
+    },
+    "hostStealPct": {
+      "median": 0.49509142365229697,
+      "min": 0.27557552889303427,
+      "max": 4.160688665710187
+    }
+  },
+  "providers": {
+    "fm007-portal": {
+      "cpuPctOneCore": {
+        "median": 93.81814473855094,
+        "min": 64.33709691158852,
+        "max": 99.65281924532067
+      },
+      "rssHighWaterMiB": {
+        "median": 497.09375,
+        "min": 448.953125,
+        "max": 569.390625
+      }
+    },
+    "fm007-mongo": {
+      "cpuPctOneCore": {
+        "median": 13.07796383269942,
+        "min": 6.175173821570602,
+        "max": 28.316423547014214
+      },
+      "rssHighWaterMiB": {
+        "median": 274.75,
+        "min": 239.1171875,
+        "max": 281.72265625
+      }
+    },
+    "fm007-solr": {
+      "cpuPctOneCore": {
+        "median": 0.36061924873507945,
+        "min": 0.3024321257366108,
+        "max": 14.059319183553098
+      },
+      "rssHighWaterMiB": {
+        "median": 781.716796875,
+        "min": 759.0234375,
+        "max": 782.7578125
+      }
+    },
+    "fm007-proxy": {
+      "cpuPctOneCore": {
+        "median": 0.06305705672736792,
+        "min": 0,
+        "max": 35.602924888768186
+      },
+      "rssHighWaterMiB": {
+        "median": 4.38671875,
+        "min": 3.7890625,
+        "max": 5.109375
+      }
+    },
+    "generator": {
+      "cpuPctOneCore": {
+        "median": 8.04150277885537,
+        "min": 5.740986042228805,
+        "max": 58.08402069599951
+      },
+      "rssHighWaterMiB": {
+        "median": 151.478515625,
+        "min": 118.69921875,
+        "max": 292.6015625
+      }
+    }
+  },
+  "backgroundCpuPctOneCore": {
+    "median": 4.060285996526158,
+    "min": 2.3671247212852133,
+    "max": 12.3073381982864
+  },
+  "runsWithBackgroundCpuAbove10Pct": [
+    {
+      "attempt": "express-02-direct-W4-33554432-c4-4",
+      "cpuPctOneCore": 12.3073381982864,
+      "topProcesses": [
+        {
+          "pid": 1215774,
+          "comm": "node-MainThread",
+          "cpuPctOneCore": 8.676631310222437
+        },
+        {
+          "pid": 1757,
+          "comm": "dockerd",
+          "cpuPctOneCore": 1.7858697454050065
+        },
+        {
+          "pid": 1277,
+          "comm": "tailscaled",
+          "cpuPctOneCore": 0.480163091924931
+        },
+        {
+          "pid": 1501110,
+          "comm": "gomon",
+          "cpuPctOneCore": 0.3453804696302135
+        },
+        {
+          "pid": 37,
+          "comm": "kcompactd0",
+          "cpuPctOneCore": 0.19375001954865637
+        },
+        {
+          "pid": 1270432,
+          "comm": "kworker/1:1-events",
+          "cpuPctOneCore": 0.11793479450787779
+        },
+        {
+          "pid": 836,
+          "comm": "jbd2/sdb-8",
+          "cpuPctOneCore": 0.10951088061445795
+        },
+        {
+          "pid": 1333,
+          "comm": "containerd",
+          "cpuPctOneCore": 0.058967397253938895
+        }
+      ]
+    },
+    {
+      "attempt": "express-02-proxy-W4-33554432-c4-1",
+      "cpuPctOneCore": 11.707980072337403,
+      "topProcesses": [
+        {
+          "pid": 1215774,
+          "comm": "node-MainThread",
+          "cpuPctOneCore": 6.764421626096101
+        },
+        {
+          "pid": 1326418,
+          "comm": "claude",
+          "cpuPctOneCore": 1.8548980056464779
+        },
+        {
+          "pid": 1757,
+          "comm": "dockerd",
+          "cpuPctOneCore": 1.7783196476152012
+        },
+        {
+          "pid": 1277,
+          "comm": "tailscaled",
+          "cpuPctOneCore": 0.2892960192292672
+        },
+        {
+          "pid": 1274094,
+          "comm": "codex",
+          "cpuPctOneCore": 0.23824378054174947
+        },
+        {
+          "pid": 1329543,
+          "comm": "kworker/0:3+events",
+          "cpuPctOneCore": 0.1786828354063121
+        },
+        {
+          "pid": 37,
+          "comm": "kcompactd0",
+          "cpuPctOneCore": 0.11061318382295511
+        },
+        {
+          "pid": 15,
+          "comm": "rcu_sched",
+          "cpuPctOneCore": 0.04254353223959812
+        }
+      ]
+    }
+  ],
+  "observedHeapDrops": {
+    "runsWithDropAtLeast5MiB": 100,
+    "largestDropMiB": 145.14778900146484
+  },
+  "samplingIntervalReview": "sampling-interval-review.json",
+  "maxTenSecondCpuPctOneCore": {
+    "generator": 70.02999436941144,
+    "fm007-proxy": 40.37797959873552
+  }
+}

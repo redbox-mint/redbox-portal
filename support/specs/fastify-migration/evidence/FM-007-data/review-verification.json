@@ -1,0 +1,101 @@
+{
+  "recordedUtc": "2026-11-05T04:30:25.994181+00:00",
+  "node": "v26.12.1",
+  "npm": "11.20.0",
+  "benchmarkRerun": false,
+  "protocolTests": {
+    "pass": 6,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "prettier": "pass",
+  "archiveSmoke": [
+    "create",
+    "verify",
+    "preserve result.json and original harness",
+    "reject corrupt archive"
+  ],
+  "rawReplayValidAttempts": 133,
+  "repositoryOnlyReporting": true,
+  "allBatchMetricsResourcesUnchanged": true,
+  "unchangedResultHashes": 150,
+  "resourceSummaries": {
+    "count": 134,
+    "sha256": "bea5920898ee4306146b93f997e364d53c0ca90574f2bec7ed200122c781dc8d",
+    "matchOriginalRawDerivedResources": true
+  },
+  "unchangedArtifacts": {
+    "baseline-runs.csv": {
+      "beforeSha256": "c6bbaa7b645bdb4414f0c9e26a55a18d9c275e0c1e3909806fabe4a08821d8c3",
+      "afterSha256": "c6bbaa7b645bdb4414f0c9e26a55a18d9c275e0c1e3909806fabe4a08821d8c3"
+    },
+    "baseline-tables.md": {
+      "beforeSha256": "0c2e5a769c6b6a86ada020cbf5af8711313d50f0f24657a0184a31f6d43543d7",
+      "afterSha256": "0c2e5a769c6b6a86ada020cbf5af8711313d50f0f24657a0184a31f6d43543d7"
+    }
+  },
+  "baselineJsonUnchangedExceptGeneratedUtc": true,
+  "baselineTotals": {
+    "offered": 326879,
+    "completed": 326549,
+    "late": 330,
+    "errors": 0,
+    "timeouts": 0
+  },
+  "unchangedDocumentRows": {
+    "count": 60,
+    "beforeSha256": "9e7bff7146c8c6b92373ab3c98945472c0bd4648894469d6ce32347e671c6b59",
+    "afterSha256": "9e7bff7146c8c6b92373ab3c98945472c0bd4648894469d6ce32347e671c6b59"
+  },
+  "rawArchive": {
+    "path": "/home/ubuntu/work/evidence-archive/fastify-migration/FM-007/raw-telemetry.tar.gz",
+    "size": 73760002,
+    "sha256": "f2909d4f58bbf40df66c357175544d9f8eae5a2067f92d58ce6b9ca9c02d69d3",
+    "files": 749,
+    "sourceBytes": 75301499,
+    "manifestSha256": "dfb0091704668a4397cf4110bccd9799162513831c9e6db1a31e0879e59faedb",
+    "verifiedAllMembers": true
+  },
+  "unchangedLockHashes": 18,
+  "originalMeasuredHarnessHashes": 13,
+  "reviewedHarnessHashes": 15,
+  "syntax": {
+    "cjsPass": 10,
+    "pythonPass": 1
+  },
+  "localLinksVerified": 66,
+  "sharedIndexSha256": "d95365cd1d5bf054e6ea1c178fef3da6d5b4655a54d3c9ec1aab7b95481697ce",
+  "assertionScan": {
+    "sourceFiles": 1158,
+    "sourceSha256": "0c231bf037902ca590bcd077fc8de3ccd6d5ad326c3179a0ca5bdc061cb0f0f5",
+    "candidateSites": 1747,
+    "candidateFiles": 402,
+    "classified": {
+      "F": 1003,
+      "G": 596,
+      "O": 61,
+      "H": 28,
+      "P": 59
+    },
+    "errors": [],
+    "unclassified": 0
+  },
+  "cleanup": {
+    "containers": [],
+    "benchmarkProcesses": [],
+    "benchmarkListeners": [],
+    "disposableStateExists": false,
+    "temporaryExtractionIndexTestState": "removed by temporary-directory contexts",
+    "retainedArtifacts": [
+      "saved Express image/archive",
+      "external raw archive",
+      "repository evidence and harness"
+    ],
+    "reviewStagingExists": false,
+    "reviewTemporaryFilesExist": false,
+    "checkedUtc": "2026-11-05T04:30:56.612502+00:00"
+  },
+  "gitDiffCheck": "pass"
+}

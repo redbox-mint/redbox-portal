@@ -1,0 +1,450 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 24,
+    "passes": 24,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-11-04T20:15:55.675Z",
+    "end": "2026-11-04T20:15:56.158Z",
+    "duration": 483
+  },
+  "tests": [
+    {
+      "title": "reproduces the retained inventory byte for byte",
+      "fullTitle": "FM-002 source-derived routes and identities reproduces the retained inventory byte for byte",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "requires one real task and executable test references on every supported entry",
+      "fullTitle": "FM-002 source-derived routes and identities requires one real task and executable test references on every supported entry",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects missing, unknown and multiple owners",
+      "fullTitle": "FM-002 source-derived routes and identities rejects missing, unknown and multiple owners",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 42,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "rejects missing tests and duplicate stable identities",
+      "fullTitle": "FM-002 source-derived routes and identities rejects missing tests and duplicate stable identities",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 107,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "detects declaration/metadata drift without rewriting evidence",
+      "fullTitle": "FM-002 source-derived routes and identities detects declaration/metadata drift without rewriting evidence",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 20,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "matches the actual API registry with no copied, missing or duplicate API bindings",
+      "fullTitle": "FM-002 source-derived routes and identities matches the actual API registry with no copied, missing or duplicate API bindings",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 5,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "resolves every declaration reference, distinguishing scalar exports from array entries",
+      "fullTitle": "FM-002 source-derived routes and identities resolves every declaration reference, distinguishing scalar exports from array entries",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 20,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "preserves the core replacement names already exposed to installed extensions",
+      "fullTitle": "FM-002 source-derived routes and identities preserves the core replacement names already exposed to installed extensions",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 46,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "freezes explicit OIDC HEAD denial independently from the GET identity",
+      "fullTitle": "FM-002 source-derived routes and identities freezes explicit OIDC HEAD denial independently from the GET identity",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "records each administration GET HEAD denial after its applicable guards",
+      "fullTitle": "FM-002 source-derived routes and identities records each administration GET HEAD denial after its applicable guards",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 1,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "verifies all three administration HEAD denials over HTTP, including policy/CSRF precedence",
+      "fullTitle": "FM-002 source-derived routes and identities verifies all three administration HEAD denials over HTTP, including policy/CSRF precedence",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 52,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "records explicit font HEAD metadata handling and its existing conditional-response coverage",
+      "fullTitle": "FM-002 source-derived routes and identities records explicit font HEAD metadata handling and its existing conditional-response coverage",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "records Companion upgrade access separately for tracked uploads and format-checked OAuth callbacks",
+      "fullTitle": "FM-002 source-derived routes and identities records Companion upgrade access separately for tracked uploads and format-checked OAuth callbacks",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "verifies the Companion forwarding gate accepts callbacks with zero tracked transfers",
+      "fullTitle": "FM-002 source-derived routes and identities verifies the Companion forwarding gate accepts callbacks with zero tracked transfers",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 56,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "distinguishes public Socket.IO client assets, origin-checked transport and authenticated namespace/rooms",
+      "fullTitle": "FM-002 source-derived routes and identities distinguishes public Socket.IO client assets, origin-checked transport and authenticated namespace/rooms",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "verifies Socket.IO client JS is public while transport admission requires canonical origin before any grant",
+      "fullTitle": "FM-002 source-derived routes and identities verifies Socket.IO client JS is public while transport admission requires canonical origin before any grant",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 85,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "retains attachment HEAD fallthrough and TUS protection on all methods",
+      "fullTitle": "FM-002 source-derived routes and identities retains attachment HEAD fallthrough and TUS protection on all methods",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains original API pattern spelling alongside effective Express patterns",
+      "fullTitle": "FM-002 source-derived routes and identities retains original API pattern spelling alongside effective Express patterns",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "does not mistake declared csrf:false or public page mappings for bypassing runtime guards",
+      "fullTitle": "FM-002 source-derived routes and identities does not mistake declared csrf:false or public page mappings for bypassing runtime guards",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 1,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "includes health, assets, fallback, raw, polling/client assets, both Companion upgrades and extension stages",
+      "fullTitle": "FM-002 source-derived routes and identities includes health, assets, fallback, raw, polling/client assets, both Companion upgrades and extension stages",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "audits all three bundled registrations and preserves the opt-in example name",
+      "fullTitle": "FM-002 source-derived routes and identities audits all three bundled registrations and preserves the opt-in example name",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "requires explicit inventory of new bundled HTTP contributions, including quoted fields",
+      "fullTitle": "FM-002 source-derived routes and identities requires explicit inventory of new bundled HTTP contributions, including quoted fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 6,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "fails closed on bundled spreads, computed fields and unrecognized registration returns",
+      "fullTitle": "FM-002 source-derived routes and identities fails closed on bundled spreads, computed fields and unrecognized registration returns",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 2,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "fingerprints source inputs so unchanged route counts cannot hide metadata changes",
+      "fullTitle": "FM-002 source-derived routes and identities fingerprints source inputs so unchanged route counts cannot hide metadata changes",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 12,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    }
+  ],
+  "pending": [],
+  "failures": [],
+  "passes": [
+    {
+      "title": "reproduces the retained inventory byte for byte",
+      "fullTitle": "FM-002 source-derived routes and identities reproduces the retained inventory byte for byte",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "requires one real task and executable test references on every supported entry",
+      "fullTitle": "FM-002 source-derived routes and identities requires one real task and executable test references on every supported entry",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "rejects missing, unknown and multiple owners",
+      "fullTitle": "FM-002 source-derived routes and identities rejects missing, unknown and multiple owners",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 42,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "rejects missing tests and duplicate stable identities",
+      "fullTitle": "FM-002 source-derived routes and identities rejects missing tests and duplicate stable identities",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 107,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "detects declaration/metadata drift without rewriting evidence",
+      "fullTitle": "FM-002 source-derived routes and identities detects declaration/metadata drift without rewriting evidence",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 20,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "matches the actual API registry with no copied, missing or duplicate API bindings",
+      "fullTitle": "FM-002 source-derived routes and identities matches the actual API registry with no copied, missing or duplicate API bindings",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 5,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "resolves every declaration reference, distinguishing scalar exports from array entries",
+      "fullTitle": "FM-002 source-derived routes and identities resolves every declaration reference, distinguishing scalar exports from array entries",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 20,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "preserves the core replacement names already exposed to installed extensions",
+      "fullTitle": "FM-002 source-derived routes and identities preserves the core replacement names already exposed to installed extensions",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 46,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "freezes explicit OIDC HEAD denial independently from the GET identity",
+      "fullTitle": "FM-002 source-derived routes and identities freezes explicit OIDC HEAD denial independently from the GET identity",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "records each administration GET HEAD denial after its applicable guards",
+      "fullTitle": "FM-002 source-derived routes and identities records each administration GET HEAD denial after its applicable guards",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 1,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "verifies all three administration HEAD denials over HTTP, including policy/CSRF precedence",
+      "fullTitle": "FM-002 source-derived routes and identities verifies all three administration HEAD denials over HTTP, including policy/CSRF precedence",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 52,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "records explicit font HEAD metadata handling and its existing conditional-response coverage",
+      "fullTitle": "FM-002 source-derived routes and identities records explicit font HEAD metadata handling and its existing conditional-response coverage",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "records Companion upgrade access separately for tracked uploads and format-checked OAuth callbacks",
+      "fullTitle": "FM-002 source-derived routes and identities records Companion upgrade access separately for tracked uploads and format-checked OAuth callbacks",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "verifies the Companion forwarding gate accepts callbacks with zero tracked transfers",
+      "fullTitle": "FM-002 source-derived routes and identities verifies the Companion forwarding gate accepts callbacks with zero tracked transfers",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 56,
+      "currentRetry": 0,
+      "speed": "medium",
+      "err": {}
+    },
+    {
+      "title": "distinguishes public Socket.IO client assets, origin-checked transport and authenticated namespace/rooms",
+      "fullTitle": "FM-002 source-derived routes and identities distinguishes public Socket.IO client assets, origin-checked transport and authenticated namespace/rooms",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "verifies Socket.IO client JS is public while transport admission requires canonical origin before any grant",
+      "fullTitle": "FM-002 source-derived routes and identities verifies Socket.IO client JS is public while transport admission requires canonical origin before any grant",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 85,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "retains attachment HEAD fallthrough and TUS protection on all methods",
+      "fullTitle": "FM-002 source-derived routes and identities retains attachment HEAD fallthrough and TUS protection on all methods",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains original API pattern spelling alongside effective Express patterns",
+      "fullTitle": "FM-002 source-derived routes and identities retains original API pattern spelling alongside effective Express patterns",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "does not mistake declared csrf:false or public page mappings for bypassing runtime guards",
+      "fullTitle": "FM-002 source-derived routes and identities does not mistake declared csrf:false or public page mappings for bypassing runtime guards",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 1,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "includes health, assets, fallback, raw, polling/client assets, both Companion upgrades and extension stages",
+      "fullTitle": "FM-002 source-derived routes and identities includes health, assets, fallback, raw, polling/client assets, both Companion upgrades and extension stages",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "audits all three bundled registrations and preserves the opt-in example name",
+      "fullTitle": "FM-002 source-derived routes and identities audits all three bundled registrations and preserves the opt-in example name",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 0,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "requires explicit inventory of new bundled HTTP contributions, including quoted fields",
+      "fullTitle": "FM-002 source-derived routes and identities requires explicit inventory of new bundled HTTP contributions, including quoted fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 6,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "fails closed on bundled spreads, computed fields and unrecognized registration returns",
+      "fullTitle": "FM-002 source-derived routes and identities fails closed on bundled spreads, computed fields and unrecognized registration returns",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 2,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "fingerprints source inputs so unchanged route counts cannot hide metadata changes",
+      "fullTitle": "FM-002 source-derived routes and identities fingerprints source inputs so unchanged route counts cannot hide metadata changes",
+      "file": "/home/ubuntu/work/github/redbox-portal/support/specs/fastify-migration/evidence/FM-002.test.cjs",
+      "duration": 12,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    }
+  ]
+}

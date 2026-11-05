@@ -1,0 +1,71 @@
+{
+  "sourceFiles": 1158,
+  "sourceSha256": "651b8828be67d2d34274d08fa2a00bfaf2f48929df4eaf5d5538ca546ec5147f",
+  "counts": {
+    "Angular": 146,
+    "Mocha/other JS test sources": 611,
+    "Playwright/harness": 51,
+    "Bruno": 350
+  },
+  "parseErrors": [],
+  "candidateSites": 1746,
+  "candidateFiles": 402,
+  "hits": [
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:436",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 18,
+      "column": 3,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "['direct', 'proxy']",
+      "assertions": [
+        21,
+        23
+      ],
+      "source": "for (const profile of ['direct', 'proxy']) {"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:554",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 20,
+      "column": 5,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "['W1', 'W2', 'W3']",
+      "assertions": [
+        21
+      ],
+      "source": "for (const workload of ['W1', 'W2', 'W3'])"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:684",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 22,
+      "column": 5,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "[1048576, 33554432]",
+      "assertions": [
+        23
+      ],
+      "source": "for (const size of [1048576, 33554432])"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:1089",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 33,
+      "column": 3,
+      "kind": "ForStatement",
+      "fixedInput": false,
+      "assertions": [
+        33
+      ],
+      "source": "for (let index = 0; index < 1000; index++) assert.equal(Buffer.byteLength(JSON.stringify(metadata(index))), 8192);"
+    }
+  ]
+}

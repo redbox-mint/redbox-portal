@@ -1,0 +1,34 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W1",
+    "concurrency": 1,
+    "id": "direct-W1-0-c1"
+  },
+  "smoke": true,
+  "startedUtc": "2026-11-04T20:00:01.289Z",
+  "image": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "portalPort": 18570,
+    "controlPort": 18571,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "error": "TypeError: fetch failed",
+  "finishedUtc": "2026-11-04T20:01:32.193Z"
+}

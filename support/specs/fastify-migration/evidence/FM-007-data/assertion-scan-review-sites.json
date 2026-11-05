@@ -1,0 +1,87 @@
+{
+  "sourceFiles": 1158,
+  "sourceSha256": "0c231bf037902ca590bcd077fc8de3ccd6d5ad326c3179a0ca5bdc061cb0f0f5",
+  "counts": {
+    "Angular": 146,
+    "Mocha/other JS test sources": 611,
+    "Playwright/harness": 51,
+    "Bruno": 350
+  },
+  "parseErrors": [],
+  "candidateSites": 1747,
+  "candidateFiles": 402,
+  "hits": [
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:693",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 24,
+      "column": 3,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "['direct', 'proxy']",
+      "assertions": [
+        27,
+        29
+      ],
+      "source": "for (const profile of ['direct', 'proxy']) {"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:811",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 26,
+      "column": 5,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "['W1', 'W2', 'W3']",
+      "assertions": [
+        27
+      ],
+      "source": "for (const workload of ['W1', 'W2', 'W3'])"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:941",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 28,
+      "column": 5,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "[1048576, 33554432]",
+      "assertions": [
+        29
+      ],
+      "source": "for (const size of [1048576, 33554432])"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:1346",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 39,
+      "column": 3,
+      "kind": "ForStatement",
+      "fixedInput": false,
+      "assertions": [
+        39
+      ],
+      "source": "for (let index = 0; index < 1000; index++) assert.equal(Buffer.byteLength(JSON.stringify(metadata(index))), 8192);"
+    },
+    {
+      "id": "support/integration-testing/fastify-performance/protocol.test.cjs:4315",
+      "family": "Mocha/other JS test sources",
+      "file": "support/integration-testing/fastify-performance/protocol.test.cjs",
+      "line": 107,
+      "column": 3,
+      "kind": "ForOfStatement",
+      "fixedInput": true,
+      "input": "['clean', 'all', 'start', 'run']",
+      "assertions": [
+        113,
+        114,
+        115
+      ],
+      "source": "for (const action of ['clean', 'all', 'start', 'run']) {"
+    }
+  ]
+}

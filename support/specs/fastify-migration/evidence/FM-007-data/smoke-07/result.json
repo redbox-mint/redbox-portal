@@ -1,0 +1,66 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W1",
+    "concurrency": 1,
+    "id": "direct-W1-0-c1"
+  },
+  "smoke": true,
+  "startedUtc": "2026-11-04T20:05:32.910Z",
+  "image": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "portalPort": 18570,
+    "controlPort": 18574,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "error": "AssertionError [ERR_ASSERTION]: {\"error\":\"Expected values to be strictly equal:\\n\\n0 !== 1\\n\",\"stack\":\"AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\\n\\n0 !== 1\\n\\n    at /opt/redbox-portal/support/integration-testing/fastify-performance/owner.cjs:72:16\\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\"}\n    at control (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/client.cjs:40:39)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async main (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs:105:16)",
+  "containerState": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 1124475,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-11-04T20:05:33.155419421Z",
+    "FinishedAt": "0001-01-01T00:00:00Z",
+    "Health": {
+      "Status": "starting",
+      "FailingStreak": 0,
+      "Log": [
+        {
+          "Start": "2026-11-05T06:35:38.245252075+10:30",
+          "End": "2026-11-05T06:35:38.344252923+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        },
+        {
+          "Start": "2026-11-05T06:35:43.34557227+10:30",
+          "End": "2026-11-05T06:35:43.419068131+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        }
+      ]
+    }
+  },
+  "finishedUtc": "2026-11-04T20:06:45.823Z"
+}

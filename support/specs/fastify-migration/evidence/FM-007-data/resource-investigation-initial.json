@@ -1,0 +1,5402 @@
+[
+  {
+    "directory": "express-02-direct-W1-0-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1519,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 104.59610748291016,
+    "heapDropsAtLeast5MiB": 34,
+    "hostIdlePct": 39.68361390745284,
+    "hostIoWaitPct": 0.31723204466627186,
+    "hostStealPct": 0.3637594112173251,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 123.69547016861942,
+        "secondsAtLeast90Pct": 116,
+        "meanPctOneCore": 97.76169441242192
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.506555364522738,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.511727959149566
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 4.029051958494228,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.40331425284024514
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.506555364522738,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.024506651801162
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 545726464,
+      "heapTotal": 358731776,
+      "heapUsed": 262934536,
+      "external": 92657283,
+      "arrayBuffers": 77272650
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1507,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 110.79399871826172,
+    "heapDropsAtLeast5MiB": 34,
+    "hostIdlePct": 39.53527743683075,
+    "hostIoWaitPct": 0.5078935116603885,
+    "hostStealPct": 0.4951961738688788,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 177.92763647425645,
+        "secondsAtLeast90Pct": 112,
+        "meanPctOneCore": 97.53110730602141
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.390695548060847,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.485590198093297
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0183506361152492,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3276520962128379
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 16.94548918802442,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.22538982804392
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 509804544,
+      "heapTotal": 360304640,
+      "heapUsed": 263296024,
+      "external": 92687624,
+      "arrayBuffers": 77302991
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1531,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 105.12689208984375,
+    "heapDropsAtLeast5MiB": 33,
+    "hostIdlePct": 40.706351225303145,
+    "hostIoWaitPct": 0.32222504875773766,
+    "hostStealPct": 0.3476638683965064,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 105.9045452333225,
+        "secondsAtLeast90Pct": 116,
+        "meanPctOneCore": 97.71347925404262
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 10.038084869435838,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.581798553900482
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0059483008364807,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3113502180847035
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 10.038084869435838,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.151270524862655
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 551747584,
+      "heapTotal": 360566784,
+      "heapUsed": 310868992,
+      "external": 93602218,
+      "arrayBuffers": 78217585
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1535,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 103.4320068359375,
+    "heapDropsAtLeast5MiB": 33,
+    "hostIdlePct": 39.70787468247248,
+    "hostIoWaitPct": 0.40643522438611346,
+    "hostStealPct": 0.3852667231160034,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 146.95235781868226,
+        "secondsAtLeast90Pct": 116,
+        "meanPctOneCore": 97.7206117508807
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.814733035075584,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.738000466216244
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.97926867465902,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31926603443671797
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 14.28703478792744,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.133268556284318
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 521109504,
+      "heapTotal": 360828928,
+      "heapUsed": 280318896,
+      "external": 93025941,
+      "arrayBuffers": 77641308
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1523,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 106.92957305908203,
+    "heapDropsAtLeast5MiB": 33,
+    "hostIdlePct": 39.658090724441436,
+    "hostIoWaitPct": 0.36391333784698715,
+    "hostStealPct": 0.34698713608666215,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 109.0750029281859,
+        "secondsAtLeast90Pct": 115,
+        "meanPctOneCore": 97.77898442388813
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 10.738227630137311,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.545374925895983
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.1588923110325084,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31929203472611056
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 12.625761988619537,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.200987411259726
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 548290560,
+      "heapTotal": 360304640,
+      "heapUsed": 304629848,
+      "external": 93401094,
+      "arrayBuffers": 78016461
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c8-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1508,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 100.57952117919922,
+    "heapDropsAtLeast5MiB": 37,
+    "hostIdlePct": 40.158112792762324,
+    "hostIoWaitPct": 0.2959330345818889,
+    "hostStealPct": 0.30438826414137143,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 106.1797593056842,
+        "secondsAtLeast90Pct": 118,
+        "meanPctOneCore": 99.62249864201434
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.904813747064534,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.522961211998213
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.067684192108082,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3278161868915423
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 9.585584927304195,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 5.740986042228805
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 514297856,
+      "heapTotal": 357421056,
+      "heapUsed": 208640120,
+      "external": 91099300,
+      "arrayBuffers": 75714667
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c8-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1500,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 105.41078186035156,
+    "heapDropsAtLeast5MiB": 36,
+    "hostIdlePct": 37.42579259820639,
+    "hostIoWaitPct": 0.3831417624521073,
+    "hostStealPct": 0.4168245547555892,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 124.41964437143545,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 98.76944556840677
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.310876761039587,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.44843548879245
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0095173107850224,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3274960361475824
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.310876761039587,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.046080667339982
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 544165888,
+      "heapTotal": 364761088,
+      "heapUsed": 315084008,
+      "external": 93535414,
+      "arrayBuffers": 78150781
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c8-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1493,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 103.83221435546875,
+    "heapDropsAtLeast5MiB": 37,
+    "hostIdlePct": 38.69132889525575,
+    "hostIoWaitPct": 0.2570152523805511,
+    "hostStealPct": 0.31178899469116034,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 140.84205729025487,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 98.99579943562422
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.836467025585657,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.383107729841649
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 3.1226416048979866,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35277647855898664
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.412262633518262,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.089593975125366
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 588963840,
+      "heapTotal": 365285376,
+      "heapUsed": 331672248,
+      "external": 94275677,
+      "arrayBuffers": 78891044
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c8-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1510,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 103.60064697265625,
+    "heapDropsAtLeast5MiB": 37,
+    "hostIdlePct": 40.493536025603234,
+    "hostIoWaitPct": 0.2863519602476102,
+    "hostStealPct": 0.3074072514422874,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 106.73819876921642,
+        "secondsAtLeast90Pct": 119,
+        "meanPctOneCore": 99.65281924532067
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 10.180264674905919,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.468914879291422
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.9941649755792081,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.328026666995907
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 9.045415540392952,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 5.912890946105708
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 522956800,
+      "heapTotal": 362229760,
+      "heapUsed": 328574584,
+      "external": 94419930,
+      "arrayBuffers": 79035297
+    }
+  },
+  {
+    "directory": "express-02-direct-W1-0-c8-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1515,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 104.8051986694336,
+    "heapDropsAtLeast5MiB": 36,
+    "hostIdlePct": 36.72055427251732,
+    "hostIoWaitPct": 0.37371404576947304,
+    "hostStealPct": 0.47029183287843795,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 425.22315196615597,
+        "secondsAtLeast90Pct": 112,
+        "meanPctOneCore": 98.99253870218257
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 42.522315196615594,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.520649378831014
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.5013126586244465,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3353689801039471
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 60.784272813723696,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.128868111399633
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 507449344,
+      "heapTotal": 365809664,
+      "heapUsed": 230421112,
+      "external": 91707013,
+      "arrayBuffers": 76322380
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 812,
+      "auditCount": 812,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 116.56726837158203,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 23.36290663286861,
+    "hostIoWaitPct": 7.748204478242501,
+    "hostStealPct": 4.013519222644698,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 139.57394310823605,
+        "secondsAtLeast90Pct": 102,
+        "meanPctOneCore": 92.85533625648928
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 23.98927147172807,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.9092679822451
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 39.81339446681517,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.059319183553098
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 19.627585749595696,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.3157754038422524
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 537853952,
+      "heapTotal": 358993920,
+      "heapUsed": 222083672,
+      "external": 91797105,
+      "arrayBuffers": 76412472
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 804,
+      "auditCount": 804,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 108.903076171875,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 22.73225888110708,
+    "hostIoWaitPct": 7.741962703569319,
+    "hostStealPct": 4.105138806851742,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 114.26088224411326,
+        "secondsAtLeast90Pct": 104,
+        "meanPctOneCore": 93.10933972835304
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 21.219878131049608,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.832872704721694
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 40.223705105140716,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 12.336756567236458
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.127819671792698,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.365732796436512
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 509157376,
+      "heapTotal": 368431104,
+      "heapUsed": 217065752,
+      "external": 91809497,
+      "arrayBuffers": 76424864
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 758,
+      "auditCount": 758,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 108.24242401123047,
+    "heapDropsAtLeast5MiB": 30,
+    "hostIdlePct": 22.54398518393804,
+    "hostIoWaitPct": 7.273339506692483,
+    "hostStealPct": 4.036535061873895,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 728.9806305932748,
+        "secondsAtLeast90Pct": 101,
+        "meanPctOneCore": 93.21187383061267
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 55.22580534797536,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.390794178240025
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 47.798799390749,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 10.703996293963788
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 113.05149562186536,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 6.239810046168249
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 515158016,
+      "heapTotal": 361959424,
+      "heapUsed": 226923136,
+      "external": 91732802,
+      "arrayBuffers": 76348169
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 805,
+      "auditCount": 805,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 107.30372619628906,
+    "heapDropsAtLeast5MiB": 25,
+    "hostIdlePct": 23.42803912435957,
+    "hostIoWaitPct": 7.905322437227421,
+    "hostStealPct": 4.039463098615404,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 120.81784333617992,
+        "secondsAtLeast90Pct": 106,
+        "meanPctOneCore": 93.76728331751508
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.597823599295705,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.914853536659066
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 42.33634510975339,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 9.654994550229745
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 14.878258879436565,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.282070689887477
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 558542848,
+      "heapTotal": 365547520,
+      "heapUsed": 262518392,
+      "external": 92586129,
+      "arrayBuffers": 77201496
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 805,
+      "auditCount": 805,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 118.64307403564453,
+    "heapDropsAtLeast5MiB": 25,
+    "hostIdlePct": 24.22145328719723,
+    "hostIoWaitPct": 8.650519031141869,
+    "hostStealPct": 4.160688665710187,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 101.69501905656124,
+        "secondsAtLeast90Pct": 108,
+        "meanPctOneCore": 93.955082438592
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 16.93980345633587,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.739137121204006
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 39.04204278214842,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 9.589481110454203
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 18.324604973825096,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.213849406073652
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 502325248,
+      "heapTotal": 365547520,
+      "heapUsed": 213899960,
+      "external": 91425025,
+      "arrayBuffers": 76040392
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c4-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 864,
+      "auditCount": 864,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 106.99655151367188,
+    "heapDropsAtLeast5MiB": 28,
+    "hostIdlePct": 25.410668924640134,
+    "hostIoWaitPct": 5.795935647756139,
+    "hostStealPct": 2.9974597798475866,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 108.83828361006563,
+        "secondsAtLeast90Pct": 113,
+        "meanPctOneCore": 97.0588719477909
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 25.402564674835887,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.019261926822136
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 16.992445335485854,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.706427267635256
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 10.799151011377775,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.1988311136388505
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 511324160,
+      "heapTotal": 369045504,
+      "heapUsed": 237623232,
+      "external": 95047394,
+      "arrayBuffers": 79662761
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c4-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 866,
+      "auditCount": 866,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 107.78730773925781,
+    "heapDropsAtLeast5MiB": 27,
+    "hostIdlePct": 25.64814814814815,
+    "hostIoWaitPct": 5.357744107744108,
+    "hostStealPct": 2.9503367003367003,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 132.50194599115042,
+        "secondsAtLeast90Pct": 109,
+        "meanPctOneCore": 96.35207827065585
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 29.758915911207986,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.928530935026942
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 18.63308615500553,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.1455876782856755
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 18.63308615500553,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.087604073745141
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 534151168,
+      "heapTotal": 361877504,
+      "heapUsed": 281733800,
+      "external": 104143728,
+      "arrayBuffers": 88759095
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c4-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 826,
+      "auditCount": 826,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 107.64627838134766,
+    "heapDropsAtLeast5MiB": 34,
+    "hostIdlePct": 25.761025381566743,
+    "hostIoWaitPct": 5.485285437220676,
+    "hostStealPct": 2.904966691963909,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 141.74179023340537,
+        "secondsAtLeast90Pct": 113,
+        "meanPctOneCore": 97.41581561876367
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 30.95510361419198,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.131167221163725
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 26.75962774333316,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.2673290651341595
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 16.292159796943146,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.007098591411473
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 538890240,
+      "heapTotal": 367464448,
+      "heapUsed": 306467176,
+      "external": 101501473,
+      "arrayBuffers": 86116840
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c4-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 860,
+      "auditCount": 860,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 110.25247955322266,
+    "heapDropsAtLeast5MiB": 28,
+    "hostIdlePct": 25.749536803099208,
+    "hostIoWaitPct": 5.486777833922857,
+    "hostStealPct": 2.964460165066532,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 106.90071695508401,
+        "secondsAtLeast90Pct": 109,
+        "meanPctOneCore": 96.27555644426924
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 26.159801473899527,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.380361962393764
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 30.68449043337662,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.018955715305579
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 14.032751902494471,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.263326511504739
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 539537408,
+      "heapTotal": 354799616,
+      "heapUsed": 216361160,
+      "external": 91579971,
+      "arrayBuffers": 76195338
+    }
+  },
+  {
+    "directory": "express-02-direct-W2-0-c4-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 857,
+      "auditCount": 857,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 110.95507049560547,
+    "heapDropsAtLeast5MiB": 27,
+    "hostIdlePct": 25.95890121946074,
+    "hostIoWaitPct": 5.460145997721423,
+    "hostStealPct": 2.8819781425376596,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 118.33666594649733,
+        "secondsAtLeast90Pct": 109,
+        "meanPctOneCore": 96.6695641764175
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 26.763348554169934,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.30894740948682
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 22.87006655321494,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.903169294849724
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.72550698758598,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.0801637098189785
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 508768256,
+      "heapTotal": 371396608,
+      "heapUsed": 308489288,
+      "external": 102393936,
+      "arrayBuffers": 87009303
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6308,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 49.21623229980469,
+    "heapDropsAtLeast5MiB": 27,
+    "hostIdlePct": 38.558727187646234,
+    "hostIoWaitPct": 0.31479984685412854,
+    "hostStealPct": 0.3615944186837963,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 102.9402032311784,
+        "secondsAtLeast90Pct": 99,
+        "meanPctOneCore": 91.76343536363538
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.24256766122149,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.083838614418765
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.035136809974032,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.34453304486346614
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.727364925070958,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.03350221681643
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 497283072,
+      "heapTotal": 310706176,
+      "heapUsed": 257999472,
+      "external": 94817281,
+      "arrayBuffers": 79432648
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6378,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 61.781150817871094,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 40.25111725899127,
+    "hostIoWaitPct": 0.3192168546499255,
+    "hostStealPct": 0.35326665247925093,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 125.2252940562205,
+        "secondsAtLeast90Pct": 108,
+        "meanPctOneCore": 92.2572463997996
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 17.50576142385927,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.167566939617643
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0098204632346017,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35292871379830426
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 16.922337034624395,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.209794128117696
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 466337792,
+      "heapTotal": 265093120,
+      "heapUsed": 200687216,
+      "external": 90924595,
+      "arrayBuffers": 75539962
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6309,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 57.070655822753906,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 37.88793469943032,
+    "hostIoWaitPct": 0.32310177705977383,
+    "hostStealPct": 0.395374542981039,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 127.19095618039448,
+        "secondsAtLeast90Pct": 95,
+        "meanPctOneCore": 91.38061376646249
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 24.371350315618436,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.130936136360203
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.000002257826493,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36125460990694924
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.469170346264194,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.065219197922588
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 477728768,
+      "heapTotal": 267190272,
+      "heapUsed": 212977168,
+      "external": 92404171,
+      "arrayBuffers": 77019538
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6229,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 52.24519348144531,
+    "heapDropsAtLeast5MiB": 25,
+    "hostIdlePct": 37.496811495621124,
+    "hostIoWaitPct": 0.527166057308052,
+    "hostStealPct": 0.4974066831051781,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 99.64848835034958,
+        "secondsAtLeast90Pct": 92,
+        "meanPctOneCore": 90.72301292341248
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 16.392931990759585,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.022662397589873
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0026368040430675,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.344475229659188
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 12.256268061182645,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.141377988774465
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 450183168,
+      "heapTotal": 275316736,
+      "heapUsed": 221199728,
+      "external": 94040900,
+      "arrayBuffers": 78656267
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6447,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 61.330650329589844,
+    "heapDropsAtLeast5MiB": 21,
+    "hostIdlePct": 39.80467091295117,
+    "hostIoWaitPct": 0.3099787685774947,
+    "hostStealPct": 0.3481953290870488,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 112.15257813161233,
+        "secondsAtLeast90Pct": 105,
+        "meanPctOneCore": 91.89845130352293
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 16.075605182018492,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.216984155997064
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0082399169177148,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.352487210479266
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 13.694994785645305,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.972924998935779
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 457994240,
+      "heapTotal": 274141184,
+      "heapUsed": 222866136,
+      "external": 94610659,
+      "arrayBuffers": 79226026
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c8-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 5991,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 92.42469024658203,
+    "heapDropsAtLeast5MiB": 31,
+    "hostIdlePct": 31.041248986904407,
+    "hostIoWaitPct": 0.3028622616559314,
+    "hostStealPct": 0.6483811798831207,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 2244.3666646196516,
+        "secondsAtLeast90Pct": 105,
+        "meanPctOneCore": 94.31302926517651
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 732.1196071753943,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 14.056350204721943
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 24.00392154673424,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3556425955411576
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 144.02352928040546,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 7.7055895700584145
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 575258624,
+      "heapTotal": 338104320,
+      "heapUsed": 295729272,
+      "external": 106439687,
+      "arrayBuffers": 91055054
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c8-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6351,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 60.361175537109375,
+    "heapDropsAtLeast5MiB": 30,
+    "hostIdlePct": 34.59505180799324,
+    "hostIoWaitPct": 0.5963205751744555,
+    "hostStealPct": 0.5836329033622331,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 104.76664763875492,
+        "secondsAtLeast90Pct": 113,
+        "meanPctOneCore": 98.274200851564
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 17.45133026543185,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.434049505256644
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.1809662767459757,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3444680033268466
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.809662767459757,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.88915744204656
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 576532480,
+      "heapTotal": 298700800,
+      "heapUsed": 232405944,
+      "external": 93455026,
+      "arrayBuffers": 78070393
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c8-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6173,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 76.0132064819336,
+    "heapDropsAtLeast5MiB": 32,
+    "hostIdlePct": 35.29113496154821,
+    "hostIoWaitPct": 0.3126848643623764,
+    "hostStealPct": 0.37606693146285813,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 143.50091908750505,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 98.29010084088914
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 27.247009953323744,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.20828864095944
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0497846698444113,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3444942840208971
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 19.981140632437413,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.872954734819039
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 528322560,
+      "heapTotal": 295292928,
+      "heapUsed": 227385032,
+      "external": 92312169,
+      "arrayBuffers": 76927536
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c8-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6365,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 86.88677978515625,
+    "heapDropsAtLeast5MiB": 30,
+    "hostIdlePct": 35.17711286977866,
+    "hostIoWaitPct": 0.34703119048626685,
+    "hostStealPct": 0.36819162893055146,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 106.18287752489461,
+        "secondsAtLeast90Pct": 112,
+        "meanPctOneCore": 98.14928764171744
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.866222221094393,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.460656110897673
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.010125664218615,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3781112870368363
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 10.69256260493372,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.948739500818826
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 533725184,
+      "heapTotal": 282447872,
+      "heapUsed": 231322840,
+      "external": 98638512,
+      "arrayBuffers": 83253879
+    }
+  },
+  {
+    "directory": "express-02-direct-W3-0-c8-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6086,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 79.1076889038086,
+    "heapDropsAtLeast5MiB": 32,
+    "hostIdlePct": 30.637885239681268,
+    "hostIoWaitPct": 1.4503140941860955,
+    "hostStealPct": 1.1594080694801636,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 114.8163313302961,
+        "secondsAtLeast90Pct": 108,
+        "meanPctOneCore": 97.1919331983176
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 20.43314348708571,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.330171153129564
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0205862991937047,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35217506637299106
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 13.137060554429956,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.041330682183297
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 560087040,
+      "heapTotal": 302108672,
+      "heapUsed": 238800976,
+      "external": 93307550,
+      "arrayBuffers": 77922917
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 7544,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 92.72509765625,
+    "heapDropsAtLeast5MiB": 10,
+    "hostIdlePct": 30.56950345478735,
+    "hostIoWaitPct": 0.549332646667525,
+    "hostStealPct": 0.656624179219776,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 96.47824951616332,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 78.19034897285474
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 31.656925622491087,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.876326612319026
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.1028601070404105,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36965459920550214
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 38.99849699305524,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 26.337890193392028
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 485314560,
+      "heapTotal": 319356928,
+      "heapUsed": 291518104,
+      "external": 101901296,
+      "arrayBuffers": 86516663
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 7557,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 92.87165832519531,
+    "heapDropsAtLeast5MiB": 10,
+    "hostIdlePct": 30.82832618025751,
+    "hostIoWaitPct": 0.4291845493562232,
+    "hostStealPct": 0.5236051502145923,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 92.86099161991352,
+        "secondsAtLeast90Pct": 3,
+        "meanPctOneCore": 78.76513464250333
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 28.066860462416084,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.863130188255756
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0057193527978336,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36130795707570335
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 41.43203211118565,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 25.468009718522254
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 471797760,
+      "heapTotal": 304939008,
+      "heapUsed": 274571328,
+      "external": 100431323,
+      "arrayBuffers": 85046690
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 7531,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 88.26974487304688,
+    "heapDropsAtLeast5MiB": 12,
+    "hostIdlePct": 32.12131656039979,
+    "hostIoWaitPct": 0.5686713768740307,
+    "hostStealPct": 0.5643632603825608,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 94.69182538716024,
+        "secondsAtLeast90Pct": 5,
+        "meanPctOneCore": 79.26971111890576
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 35.38267444564799,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.957030797390143
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.014700684740885,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3707736036177159
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 35.6756967128674,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 25.94572558043062
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 447418368,
+      "heapTotal": 289996800,
+      "heapUsed": 210036744,
+      "external": 92878670,
+      "arrayBuffers": 77494037
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 7169,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 98.71797943115234,
+    "heapDropsAtLeast5MiB": 11,
+    "hostIdlePct": 26.896226819135723,
+    "hostIoWaitPct": 0.8008908304424173,
+    "hostStealPct": 1.2291746969891644,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 182.2136155370756,
+        "secondsAtLeast90Pct": 4,
+        "meanPctOneCore": 76.05304037915381
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 58.95146385023034,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.15168712645764
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.6796119931922884,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36935251398264546
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 57.90925598005382,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 24.99844969637087
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 497090560,
+      "heapTotal": 298385408,
+      "heapUsed": 241833760,
+      "external": 96905368,
+      "arrayBuffers": 81520735
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 7417,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 91.50917053222656,
+    "heapDropsAtLeast5MiB": 12,
+    "hostIdlePct": 30.13029315960912,
+    "hostIoWaitPct": 0.5957483284759129,
+    "hostStealPct": 0.724327104405966,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 100.94099861373465,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 78.62277926158316
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 36.40495031970758,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.67164527805222
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.9916324493631843,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3694758397425675
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 43.02403219601805,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 25.393066804125546
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 496164864,
+      "heapTotal": 291831808,
+      "heapUsed": 221948384,
+      "external": 93850446,
+      "arrayBuffers": 78465813
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c4-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 8505,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 84.82230377197266,
+    "heapDropsAtLeast5MiB": 17,
+    "hostIdlePct": 21.856784240309747,
+    "hostIoWaitPct": 0.2978343190231034,
+    "hostStealPct": 0.5829043100880739,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 118.98819390060342,
+        "secondsAtLeast90Pct": 85,
+        "meanPctOneCore": 91.22568985244362
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 45.95986268699314,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 28.11842534393836
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.2086520698870657,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3770349047905918
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 87.94779549175036,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.28009213140442
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 490733568,
+      "heapTotal": 314773504,
+      "heapUsed": 276127440,
+      "external": 111127276,
+      "arrayBuffers": 95742643
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c4-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 8430,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 86.64546966552734,
+    "heapDropsAtLeast5MiB": 17,
+    "hostIdlePct": 21.13758317235458,
+    "hostIoWaitPct": 0.377763468555484,
+    "hostStealPct": 0.6224511697789226,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 133.27348929947686,
+        "secondsAtLeast90Pct": 67,
+        "meanPctOneCore": 89.98022828007332
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 46.35599627807891,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 28.021495093615762
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 3.5191712236585446,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3723786723404088
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 59.8764951925186,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 29.646420209283004
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 501960704,
+      "heapTotal": 315559936,
+      "heapUsed": 205645080,
+      "external": 91527765,
+      "arrayBuffers": 76143132
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c4-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 8416,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 90.1453857421875,
+    "heapDropsAtLeast5MiB": 19,
+    "hostIdlePct": 20.830320302862734,
+    "hostIoWaitPct": 0.36156365647198946,
+    "hostStealPct": 0.7188736228678378,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 108.85965188304507,
+        "secondsAtLeast90Pct": 66,
+        "meanPctOneCore": 90.16035644367633
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 40.62078532462011,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 28.03030076028261
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.102764177709007,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3441875804646861
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 48.14315297732754,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 29.835186852963286
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 470003712,
+      "heapTotal": 301142016,
+      "heapUsed": 272851808,
+      "external": 111776222,
+      "arrayBuffers": 96391589
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c4-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 8549,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 84.1832504272461,
+    "heapDropsAtLeast5MiB": 18,
+    "hostIdlePct": 21.84238780330685,
+    "hostIoWaitPct": 0.3006227184882972,
+    "hostStealPct": 0.5325316727506979,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 103.50467955184044,
+        "secondsAtLeast90Pct": 70,
+        "meanPctOneCore": 91.13370613935976
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 38.198155548893496,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 28.316423547014214
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0500986227954963,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3553300833506415
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 44.48028943245152,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.769893170149594
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 494034944,
+      "heapTotal": 313462784,
+      "heapUsed": 250045240,
+      "external": 106621703,
+      "arrayBuffers": 91237070
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-1048576-c4-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 8256,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 89.5346450805664,
+    "heapDropsAtLeast5MiB": 17,
+    "hostIdlePct": 19.66903884077853,
+    "hostIoWaitPct": 0.5144473977535797,
+    "hostStealPct": 0.9474406241961759,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 511.2728533648292,
+        "secondsAtLeast90Pct": 67,
+        "meanPctOneCore": 89.57634973694434
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 127.8182133412073,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 27.90485153750513
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.15201370778526,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3552603105714506
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 200.85719239332573,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 29.089052572743302
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 501645312,
+      "heapTotal": 303763456,
+      "heapUsed": 254545880,
+      "external": 104858172,
+      "arrayBuffers": 89473539
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 612,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 13.869415283203125,
+    "heapDropsAtLeast5MiB": 20,
+    "hostIdlePct": 23.376237203177435,
+    "hostIoWaitPct": 0.11894142134998513,
+    "hostStealPct": 0.4587740537785141,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 118.1653879734711,
+        "secondsAtLeast90Pct": 76,
+        "meanPctOneCore": 93.20107460898096
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.043529575564104,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.761958752984594
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.121824865451369,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36030263491739467
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 84.6670600793248,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 43.529585776648034
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 487190528,
+      "heapTotal": 247320576,
+      "heapUsed": 218046448,
+      "external": 102896214,
+      "arrayBuffers": 87511581
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 648,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 13.421012878417969,
+    "heapDropsAtLeast5MiB": 23,
+    "hostIdlePct": 23.339149678682386,
+    "hostIoWaitPct": 0.20002553517470315,
+    "hostStealPct": 0.4170745201515087,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 141.00754730622688,
+        "secondsAtLeast90Pct": 69,
+        "meanPctOneCore": 92.5523595898097
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.339195686363837,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.90739418765422
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.039912855130443,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35293254973415716
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 79.42688300682113,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 46.08290720814567
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 456957952,
+      "heapTotal": 256495616,
+      "heapUsed": 198368536,
+      "external": 97179856,
+      "arrayBuffers": 81795223
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 642,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 11.884796142578125,
+    "heapDropsAtLeast5MiB": 21,
+    "hostIdlePct": 23.15990656190274,
+    "hostIoWaitPct": 0.09343809726056487,
+    "hostStealPct": 0.3185389679337439,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 130.39981531963699,
+        "secondsAtLeast90Pct": 84,
+        "meanPctOneCore": 93.37017298602787
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.688793059060272,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.847929278860214
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.2261335808441785,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3692510885659919
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 86.70813446657394,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 44.31013062791902
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 456372224,
+      "heapTotal": 250728448,
+      "heapUsed": 206753904,
+      "external": 94457306,
+      "arrayBuffers": 79072673
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 622,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 12.828445434570312,
+    "heapDropsAtLeast5MiB": 19,
+    "hostIdlePct": 23.17911714770798,
+    "hostIoWaitPct": 0.13157894736842105,
+    "hostStealPct": 0.4923599320882852,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 139.08716373037612,
+        "secondsAtLeast90Pct": 82,
+        "meanPctOneCore": 93.41719197301795
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.921052728249132,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.779467079336825
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.217657342194241,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3780371977325367
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 100.49707677527103,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 43.8355132837417
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 486121472,
+      "heapTotal": 258412544,
+      "heapUsed": 203461240,
+      "external": 97091981,
+      "arrayBuffers": 81707348
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 637,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 12.231369018554688,
+    "heapDropsAtLeast5MiB": 18,
+    "hostIdlePct": 24.602535294865817,
+    "hostIoWaitPct": 0.09327171747148853,
+    "hostStealPct": 0.27557552889303427,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 134.84102120893806,
+        "secondsAtLeast90Pct": 76,
+        "meanPctOneCore": 92.95638398551557
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.120541232264095,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.769157361154221
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.045433102803697,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36907425513108516
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 87.87392393391468,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 45.043835228498345
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 495349760,
+      "heapTotal": 257019904,
+      "heapUsed": 210378144,
+      "external": 114060846,
+      "arrayBuffers": 98676213
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c4-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 731,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 14.102127075195312,
+    "heapDropsAtLeast5MiB": 23,
+    "hostIdlePct": 20.526739895669877,
+    "hostIoWaitPct": 0.11450867297171212,
+    "hostStealPct": 0.3604902667627974,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 606.0158233033331,
+        "secondsAtLeast90Pct": 94,
+        "meanPctOneCore": 97.37372108103351
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 35.64798960607842,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.946835166300573
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.2265545434932044,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.38780875928376984
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 299.44311269105873,
+        "secondsAtLeast90Pct": 4,
+        "meanPctOneCore": 46.17453423037408
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 541974528,
+      "heapTotal": 258330624,
+      "heapUsed": 197446600,
+      "external": 98220831,
+      "arrayBuffers": 82836198
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c4-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 743,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 15.190170288085938,
+    "heapDropsAtLeast5MiB": 33,
+    "hostIdlePct": 20.679261303332627,
+    "hostIoWaitPct": 0.09764381235406495,
+    "hostStealPct": 0.32264911908299726,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 193.05461006448232,
+        "secondsAtLeast90Pct": 92,
+        "meanPctOneCore": 97.58534941673686
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 25.753364204002544,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.052839777377493
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.2278795508148463,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3876112661402207
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 130.65311994262944,
+        "secondsAtLeast90Pct": 3,
+        "meanPctOneCore": 46.45436761371819
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 491945984,
+      "heapTotal": 259641344,
+      "heapUsed": 205559528,
+      "external": 96856339,
+      "arrayBuffers": 81471706
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c4-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 786,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 12.9169921875,
+    "heapDropsAtLeast5MiB": 26,
+    "hostIdlePct": 20.441777323799794,
+    "hostIoWaitPct": 0.06384065372829417,
+    "hostStealPct": 0.30217909431392576,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 228.09803407878601,
+        "secondsAtLeast90Pct": 86,
+        "meanPctOneCore": 97.32431238013618
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.067171016141465,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.091024581430687
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.258396377017683,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3883180127926329
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 149.0541608831671,
+        "secondsAtLeast90Pct": 4,
+        "meanPctOneCore": 47.99948305954153
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 467038208,
+      "heapTotal": 264097792,
+      "heapUsed": 198268640,
+      "external": 97077708,
+      "arrayBuffers": 81693075
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c4-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 679,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 15.529373168945312,
+    "heapDropsAtLeast5MiB": 26,
+    "hostIdlePct": 12.493127511101713,
+    "hostIoWaitPct": 0.13110594205963205,
+    "hostStealPct": 0.8965954747303869,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 1668.3986410799182,
+        "secondsAtLeast90Pct": 84,
+        "meanPctOneCore": 89.99267212340418
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 270.74890228051305,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 6.798098511989813
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 14.635075798946652,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.4043478668841524
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 614.6731835557594,
+        "secondsAtLeast90Pct": 14,
+        "meanPctOneCore": 42.37228688390181
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 496611328,
+      "heapTotal": 257544192,
+      "heapUsed": 207706760,
+      "external": 94176936,
+      "arrayBuffers": 78792303
+    }
+  },
+  {
+    "directory": "express-02-direct-W4-33554432-c4-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 731,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 24.534011840820312,
+    "heapDropsAtLeast5MiB": 27,
+    "hostIdlePct": 18.845399505414854,
+    "hostIoWaitPct": 0.10659162616184872,
+    "hostStealPct": 0.4519484949262386,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 459.5223880869549,
+        "secondsAtLeast90Pct": 90,
+        "meanPctOneCore": 94.58757631086647
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 214.44378110724563,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 6.945004707638834
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 15.084207129274352,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.39806734299881125
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 0.0,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 331.85255684403575,
+        "secondsAtLeast90Pct": 5,
+        "meanPctOneCore": 46.13346419818138
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 536268800,
+      "heapTotal": 257544192,
+      "heapUsed": 200751072,
+      "external": 171605957,
+      "arrayBuffers": 156221324
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1366,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 103.14939880371094,
+    "heapDropsAtLeast5MiB": 42,
+    "hostIdlePct": 36.08064037948414,
+    "hostIoWaitPct": 0.3854135784168396,
+    "hostStealPct": 0.4574139172419635,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 436.77510677832527,
+        "secondsAtLeast90Pct": 109,
+        "meanPctOneCore": 97.55039987725624
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 59.56024183340799,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.295849926047492
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.9951489471608024,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3285659897411688
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 4.581706275055257,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.28644214490255737
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 119.12048366681599,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 6.2343290361144845
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 524750848,
+      "heapTotal": 356192256,
+      "heapUsed": 245226344,
+      "external": 91458830,
+      "arrayBuffers": 76074197
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1481,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 114.09559631347656,
+    "heapDropsAtLeast5MiB": 32,
+    "hostIdlePct": 37.00837350926161,
+    "hostIoWaitPct": 0.6258986720798444,
+    "hostStealPct": 0.756999069610082,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 411.74031389281873,
+        "secondsAtLeast90Pct": 113,
+        "meanPctOneCore": 96.87734379271802
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 39.42194494718477,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.558700425959794
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 4.380216105242752,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31914512909608017
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.8554170317680108,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31074657306723596
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 39.42194494718477,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.198134349287031
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 529780736,
+      "heapTotal": 357945344,
+      "heapUsed": 229074024,
+      "external": 91982885,
+      "arrayBuffers": 76598252
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1485,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 106.81741333007812,
+    "heapDropsAtLeast5MiB": 32,
+    "hostIdlePct": 38.427042348859835,
+    "hostIoWaitPct": 0.4526801201506113,
+    "hostStealPct": 0.4949866734357152,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 149.62925946687088,
+        "secondsAtLeast90Pct": 113,
+        "meanPctOneCore": 96.91273682028368
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.091253290252192,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.443839169724434
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0050869877940753,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31926172511233464
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.0050383406091354,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3108601007672732
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 13.602659951533717,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.234005264035587
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 502927360,
+      "heapTotal": 358993920,
+      "heapUsed": 270376360,
+      "external": 92812888,
+      "arrayBuffers": 77428255
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1481,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 108.98920440673828,
+    "heapDropsAtLeast5MiB": 32,
+    "hostIdlePct": 39.83588528889265,
+    "hostIoWaitPct": 0.38490821419507654,
+    "hostStealPct": 0.43989510193723036,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 267.35207802219253,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 97.4431117726231
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 26.358655579652783,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.4199954894124005
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 3.765522225664683,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.33612663598697173
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.0951090837499673,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.30251397238827454
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 33.88970003098215,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.235149097558326
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 531279872,
+      "heapTotal": 357421056,
+      "heapUsed": 294672280,
+      "external": 93251689,
+      "arrayBuffers": 77867056
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1367,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 99.95948791503906,
+    "heapDropsAtLeast5MiB": 45,
+    "hostIdlePct": 39.364757560398715,
+    "hostIoWaitPct": 0.32522385538097653,
+    "hostStealPct": 0.35901334684912994,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 180.993710561308,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 98.58838663647441
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 15.450682608892146,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.150052584595169
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0566212130251365,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3192737934366821
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.0387763290045124,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.28566602570650507
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.450682608892146,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.158623436554947
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 529592320,
+      "heapTotal": 356634624,
+      "heapUsed": 286652272,
+      "external": 92909893,
+      "arrayBuffers": 77525260
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c8-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1477,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 103.97370910644531,
+    "heapDropsAtLeast5MiB": 35,
+    "hostIdlePct": 38.40506329113924,
+    "hostIoWaitPct": 0.3206751054852321,
+    "hostStealPct": 0.4345991561181435,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 281.13567825263806,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 99.17567336819747
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 27.717602081246003,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.407939016831823
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.160424321725386,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31076388165847785
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.9984419705182983,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.23517266720101027
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 47.51588928213601,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.240474704655379
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 550354944,
+      "heapTotal": 363802624,
+      "heapUsed": 285070576,
+      "external": 92829386,
+      "arrayBuffers": 77444753
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c8-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1483,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 108.3996810913086,
+    "heapDropsAtLeast5MiB": 37,
+    "hostIdlePct": 40.061535867824325,
+    "hostIoWaitPct": 0.21916884430582484,
+    "hostStealPct": 0.2823906263171205,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 267.1193033829341,
+        "secondsAtLeast90Pct": 117,
+        "meanPctOneCore": 99.50016936734497
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 15.530192057147334,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.401186188165393
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.9798177459112822,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3024321257366108
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.9621538316629858,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.24362587906560312
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 31.060384114294667,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.124250546166369
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 504119296,
+      "heapTotal": 354365440,
+      "heapUsed": 301339224,
+      "external": 92919077,
+      "arrayBuffers": 77534444
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c8-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1480,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 111.0737075805664,
+    "heapDropsAtLeast5MiB": 36,
+    "hostIdlePct": 39.0179023813545,
+    "hostIoWaitPct": 0.2195575071778416,
+    "hostStealPct": 0.29555818273940215,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 104.78146455365057,
+        "secondsAtLeast90Pct": 117,
+        "meanPctOneCore": 99.29350452016276
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 11.36117536241457,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.460244691928635
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0268958436914466,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31084352883035976
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.9997327575196162,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.24363411719136302
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 10.098822544368506,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.166463517877948
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 559796224,
+      "heapTotal": 356372480,
+      "heapUsed": 236199472,
+      "external": 91570890,
+      "arrayBuffers": 76186257
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c8-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1485,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 101.06765747070312,
+    "heapDropsAtLeast5MiB": 37,
+    "hostIdlePct": 38.734294628552156,
+    "hostIoWaitPct": 0.2656210473058437,
+    "hostStealPct": 0.311999325406864,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 129.19340696815806,
+        "secondsAtLeast90Pct": 118,
+        "meanPctOneCore": 99.32129383085345
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 10.048376097523404,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.443006540990963
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.003675664811128,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.31082532958991604
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.0138413938667457,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.23521916833831485
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.483858397169605,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.132499745963209
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 509157376,
+      "heapTotal": 366596096,
+      "heapUsed": 321714440,
+      "external": 94078989,
+      "arrayBuffers": 78694356
+    }
+  },
+  {
+    "directory": "express-02-proxy-W1-0-c8-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 1474,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 100.22150421142578,
+    "heapDropsAtLeast5MiB": 37,
+    "hostIdlePct": 37.58522009931824,
+    "hostIoWaitPct": 0.23987879808096962,
+    "hostStealPct": 0.3030047975759616,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 157.03929208386432,
+        "secondsAtLeast90Pct": 117,
+        "meanPctOneCore": 99.15110256150581
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 15.703929208386432,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.410496776480648
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.2181673456421027,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3108711799657415
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.9645368564527357,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.23525386592002057
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.703929208386432,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.091394742571961
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 529989632,
+      "heapTotal": 360566784,
+      "heapUsed": 284837368,
+      "external": 93394186,
+      "arrayBuffers": 78009553
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 810,
+      "auditCount": 810,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 118.8296890258789,
+    "heapDropsAtLeast5MiB": 25,
+    "hostIdlePct": 24.0481724065075,
+    "hostIoWaitPct": 8.155503908725967,
+    "hostStealPct": 3.9932389604901752,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 104.74283201699714,
+        "secondsAtLeast90Pct": 104,
+        "meanPctOneCore": 93.95671425390802
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 15.143541978361034,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.685782325392173
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 24.65390816417234,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.678226557965575
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.9787589289096876,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.17642086903899037
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 10.921609321208425,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.367953272931177
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 538726400,
+      "heapTotal": 363188224,
+      "heapUsed": 245114160,
+      "external": 92792839,
+      "arrayBuffers": 77408206
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 823,
+      "auditCount": 823,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 107.09191131591797,
+    "heapDropsAtLeast5MiB": 26,
+    "hostIdlePct": 25.89451476793249,
+    "hostIoWaitPct": 8.679324894514767,
+    "hostStealPct": 3.8607594936708862,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 103.43198375997753,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 95.17919814845479
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 14.956209939994977,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.90789685675921
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 27.309571032688122,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.884735454479015
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.0406534929812774,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.17635108179967798
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 10.885643161410695,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.231071556921957
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 507371520,
+      "heapTotal": 369479680,
+      "heapUsed": 301722688,
+      "external": 94801680,
+      "arrayBuffers": 79417047
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 830,
+      "auditCount": 830,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 108.46871948242188,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 24.38736344847948,
+    "hostIoWaitPct": 8.334387785229238,
+    "hostStealPct": 4.019570627187988,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 137.9494232305022,
+        "secondsAtLeast90Pct": 109,
+        "meanPctOneCore": 93.8690061595868
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 24.34401586420627,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 12.192635210595332
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 16.229343909470845,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.823064763008338
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.1029149399009226,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.18486421408207945
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 18.258011898154702,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.445038736407042
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 523464704,
+      "heapTotal": 368431104,
+      "heapUsed": 296441952,
+      "external": 94991725,
+      "arrayBuffers": 79607092
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 808,
+      "auditCount": 808,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 112.67510223388672,
+    "heapDropsAtLeast5MiB": 25,
+    "hostIdlePct": 24.438913263584205,
+    "hostIoWaitPct": 8.471144110698615,
+    "hostStealPct": 4.071042861964226,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 100.64211936027502,
+        "secondsAtLeast90Pct": 110,
+        "meanPctOneCore": 93.94696917252422
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 22.599326754500076,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 11.882985731574305
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 12.296267246382994,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.47345060293885
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.9960417211716337,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.18475313504921184
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 11.420769606558354,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.281606591673203
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 536514560,
+      "heapTotal": 368168960,
+      "heapUsed": 222421664,
+      "external": 92798860,
+      "arrayBuffers": 77414227
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 1,
+      "successfulOffered": 829,
+      "auditCount": 829,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 117.34241485595703,
+    "heapDropsAtLeast5MiB": 25,
+    "hostIdlePct": 25.310152755506795,
+    "hostIoWaitPct": 8.6252004388556,
+    "hostStealPct": 4.000337581230483,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 163.74269078903953,
+        "secondsAtLeast90Pct": 113,
+        "meanPctOneCore": 94.71966476598172
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 30.409356860821624,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 12.054160955940382
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 18.713450375890233,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.668915753679773
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.339181296986279,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.19320257978162286
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 21.052631672876508,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.2328832259984415
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 510619648,
+      "heapTotal": 365899776,
+      "heapUsed": 280162256,
+      "external": 93664657,
+      "arrayBuffers": 78280024
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c4-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 861,
+      "auditCount": 861,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 105.58240509033203,
+    "heapDropsAtLeast5MiB": 28,
+    "hostIdlePct": 25.91653995607366,
+    "hostIoWaitPct": 5.731542490285521,
+    "hostStealPct": 2.935462071295827,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 107.14642374683302,
+        "secondsAtLeast90Pct": 110,
+        "meanPctOneCore": 96.87434206943887
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 25.09935514276208,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.94974645308344
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 11.852283835751726,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.626829884930402
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.2046533278982878,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.1343843829643681
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 14.455839934779453,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.17328259242566
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 504115200,
+      "heapTotal": 361967616,
+      "heapUsed": 296333112,
+      "external": 103421574,
+      "arrayBuffers": 88036941
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c4-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 855,
+      "auditCount": 855,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 113.54304504394531,
+    "heapDropsAtLeast5MiB": 27,
+    "hostIdlePct": 25.698135493124102,
+    "hostIoWaitPct": 5.732725892179195,
+    "hostStealPct": 2.9612756264236904,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 115.13699900431679,
+        "secondsAtLeast90Pct": 112,
+        "meanPctOneCore": 96.80763528346331
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 24.313925518011935,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.555070323180118
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 11.685715202895645,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.962825754814425
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.4214444321520592,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.14278412283696654
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 12.796802904216808,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.349693933220394
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 533012480,
+      "heapTotal": 370003968,
+      "heapUsed": 310737032,
+      "external": 104594890,
+      "arrayBuffers": 89210257
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c4-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 860,
+      "auditCount": 860,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 111.12896728515625,
+    "heapDropsAtLeast5MiB": 27,
+    "hostIdlePct": 24.804893482387683,
+    "hostIoWaitPct": 5.467201012444632,
+    "hostStealPct": 2.9867116642058638,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 173.10841662509532,
+        "secondsAtLeast90Pct": 110,
+        "meanPctOneCore": 96.54011191263403
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 29.949922988195954,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.206176914967703
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 28.244390611942322,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.347360000309192
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.0358622171488399,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.1343517257199395
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 22.462442241146967,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.138194468829736
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 544268288,
+      "heapTotal": 277729280,
+      "heapUsed": 222086768,
+      "external": 93126726,
+      "arrayBuffers": 77742093
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c4-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 822,
+      "auditCount": 822,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 108.10403442382812,
+    "heapDropsAtLeast5MiB": 34,
+    "hostIdlePct": 27.14436694145001,
+    "hostIoWaitPct": 5.643627140139506,
+    "hostStealPct": 2.7943352356795605,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 114.97280247608359,
+        "secondsAtLeast90Pct": 117,
+        "meanPctOneCore": 98.11678026778448
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 24.204800521280752,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.697003321332788
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 12.493950713653476,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.894238202192225
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.512800032580047,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.12611411345473583
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 9.208729990948507,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.0366622307000215
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 534228992,
+      "heapTotal": 277991424,
+      "heapUsed": 220677160,
+      "external": 92278802,
+      "arrayBuffers": 76894169
+    }
+  },
+  {
+    "directory": "express-02-proxy-W2-0-c4-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 4,
+      "successfulOffered": 855,
+      "auditCount": 855,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 113.50086975097656,
+    "heapDropsAtLeast5MiB": 26,
+    "hostIdlePct": 24.29957805907173,
+    "hostIoWaitPct": 4.881856540084388,
+    "hostStealPct": 2.9367088607594938,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 134.80616463505658,
+        "secondsAtLeast90Pct": 103,
+        "meanPctOneCore": 95.5652085029526
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 25.64396293399878,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.025421267834897
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 33.54771752300753,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.737389150822732
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 1.2901751493209206,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.14263463955664568
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 12.92661852664926,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.150070046765958
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 509796352,
+      "heapTotal": 359870464,
+      "heapUsed": 227642952,
+      "external": 94371832,
+      "arrayBuffers": 78987199
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6207,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 65.40342712402344,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 38.22841841288732,
+    "hostIoWaitPct": 0.31453223955455434,
+    "hostStealPct": 0.36553746759042804,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 137.9577916234694,
+        "secondsAtLeast90Pct": 80,
+        "meanPctOneCore": 90.6349101286144
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 29.26377398073593,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.014928163022972
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0902695700525666,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35289387460849203
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 3.0410475954065004,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2099218558005442
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 16.722156560420533,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.990525589349427
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 493416448,
+      "heapTotal": 307433472,
+      "heapUsed": 244603344,
+      "external": 92650867,
+      "arrayBuffers": 77266234
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6245,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 145.14778900146484,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 38.2785908781484,
+    "hostIoWaitPct": 0.3658951667801225,
+    "hostStealPct": 0.4041865214431586,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 101.49362808081695,
+        "secondsAtLeast90Pct": 66,
+        "meanPctOneCore": 90.56160175573
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 28.731676229124492,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.247910628730803
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.795054986343669,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3444365187370064
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.993225304885715,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2097282609299738
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 12.641937540814776,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.132062198473713
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 468123648,
+      "heapTotal": 276365312,
+      "heapUsed": 217941080,
+      "external": 93307450,
+      "arrayBuffers": 77922817
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6201,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 52.574249267578125,
+    "heapDropsAtLeast5MiB": 30,
+    "hostIdlePct": 38.6958003237073,
+    "hostIoWaitPct": 0.3492631399608144,
+    "hostStealPct": 0.37055967288525427,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 103.55877567864874,
+        "secondsAtLeast90Pct": 73,
+        "meanPctOneCore": 91.01813493850159
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 16.17936240518894,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.009258389462643
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.1088503008517474,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3531745812469574
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.0949010147191025,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.1940664413587607
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 13.3148071228177,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.03892618266884
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 455704576,
+      "heapTotal": 282656768,
+      "heapUsed": 235594304,
+      "external": 95846634,
+      "arrayBuffers": 80462001
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6167,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 54.60679626464844,
+    "heapDropsAtLeast5MiB": 23,
+    "hostIdlePct": 38.29560925799864,
+    "hostIoWaitPct": 0.3446221919673247,
+    "hostStealPct": 0.3829135466303608,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 124.92831572008555,
+        "secondsAtLeast90Pct": 77,
+        "meanPctOneCore": 90.76980245589475
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 22.247508278919344,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 13.963292454803506
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.082531463750343,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3444614865505076
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.5610575851658224,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2014144530907949
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.402121116174932,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 7.847000693614003
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 486924288,
+      "heapTotal": 271384576,
+      "heapUsed": 220322696,
+      "external": 92723202,
+      "arrayBuffers": 77338569
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6143,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 61.18749237060547,
+    "heapDropsAtLeast5MiB": 23,
+    "hostIdlePct": 38.60724471119057,
+    "hostIoWaitPct": 0.2809347465202401,
+    "hostStealPct": 0.37032307495849826,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 104.68876756409377,
+        "secondsAtLeast90Pct": 75,
+        "meanPctOneCore": 90.79445875660817
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.643205182646835,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 13.99100174268881
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0980960246686755,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35292617008584387
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 3.0072833123104803,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.1932265750521387
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.775019769931937,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.041674875527443
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 454254592,
+      "heapTotal": 269422592,
+      "heapUsed": 206392376,
+      "external": 90840934,
+      "arrayBuffers": 75456301
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c8-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6229,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 79.08792877197266,
+    "heapDropsAtLeast5MiB": 35,
+    "hostIdlePct": 35.93161525115315,
+    "hostIoWaitPct": 0.28775760653379034,
+    "hostStealPct": 0.33853836062798864,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 124.80522862394156,
+        "secondsAtLeast90Pct": 118,
+        "meanPctOneCore": 99.22691565444654
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 20.515927992976692,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.376937309235164
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.00723393681617,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.34450872570347263
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.042097242637762,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2015792140389412
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 15.386945994732521,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.226196157651213
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 527327232,
+      "heapTotal": 299487232,
+      "heapUsed": 237626328,
+      "external": 93201487,
+      "arrayBuffers": 77816854
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c8-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6273,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 76.04367065429688,
+    "heapDropsAtLeast5MiB": 30,
+    "hostIdlePct": 34.13788730608277,
+    "hostIoWaitPct": 0.24939764129010442,
+    "hostStealPct": 0.35507460793845375,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 110.28380663280494,
+        "secondsAtLeast90Pct": 114,
+        "meanPctOneCore": 98.48859603078856
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 19.69353689871517,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.541432934944984
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.269172168159597,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3528250625463254
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 3.0917413588452067,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2180865254575521
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 13.129024599143445,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.190581809111126
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 524582912,
+      "heapTotal": 271175680,
+      "heapUsed": 212766184,
+      "external": 92447264,
+      "arrayBuffers": 77062631
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c8-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6171,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 83.0994873046875,
+    "heapDropsAtLeast5MiB": 34,
+    "hostIdlePct": 32.41473164923025,
+    "hostIoWaitPct": 0.3529812026877605,
+    "hostStealPct": 0.4678064132006464,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 1148.8318709308787,
+        "secondsAtLeast90Pct": 111,
+        "meanPctOneCore": 97.61832368487099
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 308.22318488389425,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 14.388974747657329
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.5764414623567766,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3299059465953179
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 28.02028953489948,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2011960106803883
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 112.08115813959792,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 8.382994694255386
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 477360128,
+      "heapTotal": 279040000,
+      "heapUsed": 229516520,
+      "external": 99501140,
+      "arrayBuffers": 84116507
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c8-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6310,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 70.47621154785156,
+    "heapDropsAtLeast5MiB": 31,
+    "hostIdlePct": 35.511991835346144,
+    "hostIoWaitPct": 0.2721551284232012,
+    "hostStealPct": 0.3486987582922266,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 108.0518983917088,
+        "secondsAtLeast90Pct": 117,
+        "meanPctOneCore": 99.06084372868723
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 19.04037444837022,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.641494170533441
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.028120712585156,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.34719563967141187
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 2.999075043322398,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.2278870183501152
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 12.51232466268973,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.417377215448376
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 536481792,
+      "heapTotal": 304730112,
+      "heapUsed": 237845480,
+      "external": 93221504,
+      "arrayBuffers": 77836871
+    }
+  },
+  {
+    "directory": "express-02-proxy-W3-0-c8-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6374,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 101.51826477050781,
+    "heapDropsAtLeast5MiB": 28,
+    "hostIdlePct": 31.154434250764528,
+    "hostIoWaitPct": 0.3058103975535168,
+    "hostStealPct": 0.4841997961264016,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 162.377935405651,
+        "secondsAtLeast90Pct": 107,
+        "meanPctOneCore": 97.36532147209888
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 27.38904934553149,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 14.837426052307684
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.884174294489156,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35528614264362757
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 3.9127213350759273,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 1.226583111507762
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 19.563606675379635,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 8.501489841829661
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 535764992,
+      "heapTotal": 313643008,
+      "heapUsed": 265473472,
+      "external": 103492547,
+      "arrayBuffers": 88107914
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6083,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 98.54329681396484,
+    "heapDropsAtLeast5MiB": 7,
+    "hostIdlePct": 30.749110243986106,
+    "hostIoWaitPct": 0.41593413661506795,
+    "hostStealPct": 0.5016937524119892,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 79.53603027389677,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 64.9491213539303
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 25.32698793145992,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 20.487250337803342
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0360142707993845,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3529386850647008
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 18.873335241658907,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.243582815001584
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 43.941001607833144,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.890538245186665
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 501485568,
+      "heapTotal": 328794112,
+      "heapUsed": 273793096,
+      "external": 102051246,
+      "arrayBuffers": 86666613
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 5987,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 95.03404998779297,
+    "heapDropsAtLeast5MiB": 11,
+    "hostIdlePct": 29.356109255929447,
+    "hostIoWaitPct": 0.4324000342495077,
+    "hostStealPct": 0.5865228187344806,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 84.2484934714603,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 64.82164462239776
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 23.355161947632354,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 20.257813789741306
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.047263883179106,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3863430490580846
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 19.43946018019732,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.9576476784861
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 39.38274042521883,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.03397268329805
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 445325312,
+      "heapTotal": 277413888,
+      "heapUsed": 225452944,
+      "external": 94720866,
+      "arrayBuffers": 79336233
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 5860,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 92.31925964355469,
+    "heapDropsAtLeast5MiB": 11,
+    "hostIdlePct": 28.414247795187944,
+    "hostIoWaitPct": 0.47949310728658273,
+    "hostStealPct": 0.6807089648086309,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 94.67741356290256,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 64.33709691158852
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 24.34603978102548,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 20.006653373812515
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.0055318428352966,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.36116124898150215
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 18.9705973986877,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.78190667061029
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 39.7601554034722,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.278751222751517
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 443633664,
+      "heapTotal": 275578880,
+      "heapUsed": 221787360,
+      "external": 94936325,
+      "arrayBuffers": 79551692
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6050,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 93.59185791015625,
+    "heapDropsAtLeast5MiB": 11,
+    "hostIdlePct": 31.154702758266232,
+    "hostIoWaitPct": 0.3983210553366455,
+    "hostStealPct": 0.5096796299468905,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 83.2052138744282,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 65.24702290265945
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 24.470626334211055,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 20.355593791193773
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.1198298228542543,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3777326682901937
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 18.84861603964657,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 16.183746321410965
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 42.27321132928405,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.361312471236236
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 435871744,
+      "heapTotal": 286326784,
+      "heapUsed": 260438384,
+      "external": 100048553,
+      "arrayBuffers": 84663920
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 5959,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 93.7713851928711,
+    "heapDropsAtLeast5MiB": 9,
+    "hostIdlePct": 29.03032379647079,
+    "hostIoWaitPct": 0.3854719890354634,
+    "hostStealPct": 0.5139626520472845,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 89.84819861099268,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 64.64997699416807
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 33.69307447912226,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 20.20626716653265
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.124328744215722,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3611261380552386
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 20.94131867701241,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 15.746779275664474
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 56.15512413187043,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.30100246751862
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 466096128,
+      "heapTotal": 303366144,
+      "heapUsed": 254424552,
+      "external": 98227350,
+      "arrayBuffers": 82842717
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c4-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6760,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 86.46697998046875,
+    "heapDropsAtLeast5MiB": 17,
+    "hostIdlePct": 20.01117942984908,
+    "hostIoWaitPct": 0.29668486907167735,
+    "hostStealPct": 0.5804703960098035,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 95.21863981134506,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 74.54278388657013
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 32.206304642072595,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.98620381710389
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.08968205535038,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.372798646397941
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 24.26299401565624,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 18.309497156044333
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 46.096141747333554,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 33.37395154912477
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 469979136,
+      "heapTotal": 288559104,
+      "heapUsed": 222415824,
+      "external": 96659012,
+      "arrayBuffers": 81274379
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c4-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6969,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 87.81339263916016,
+    "heapDropsAtLeast5MiB": 14,
+    "hostIdlePct": 20.98602352139083,
+    "hostIoWaitPct": 0.3281063575933186,
+    "hostStealPct": 0.575251406170104,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 100.34790777552287,
+        "secondsAtLeast90Pct": 3,
+        "meanPctOneCore": 75.25093041361701
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 33.49364005270456,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 24.493275509975952
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.099050029255579,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3609358625527642
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 23.022540800939787,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 18.458092133802985
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 46.55864929065484,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 34.08745436806455
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 521232384,
+      "heapTotal": 325521408,
+      "heapUsed": 287770296,
+      "external": 114874512,
+      "arrayBuffers": 99489879
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c4-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6874,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 90.08868408203125,
+    "heapDropsAtLeast5MiB": 15,
+    "hostIdlePct": 19.791084554872544,
+    "hostIoWaitPct": 0.30520569144134463,
+    "hostStealPct": 0.6276060697244551,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 95.27151566963708,
+        "secondsAtLeast90Pct": 4,
+        "meanPctOneCore": 74.87265269480868
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 27.712262877047348,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 24.203315913568034
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.004342309833907,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3728802171558101
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 23.370372578496617,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 18.38977434609336
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 45.71375155730353,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 33.745659652600814
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 496160768,
+      "heapTotal": 308744192,
+      "heapUsed": 214357512,
+      "external": 95535010,
+      "arrayBuffers": 80150377
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c4-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6775,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 82.21974182128906,
+    "heapDropsAtLeast5MiB": 20,
+    "hostIdlePct": 19.851877074997873,
+    "hostIoWaitPct": 0.2979484123606027,
+    "hostStealPct": 0.5575891717034136,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 120.20474015194453,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 75.5938557995798
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 43.198578492105064,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 23.86820777495898
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.108000656210133,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.34433375044803594
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 31.92938410286027,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 18.08172109060052
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 60.10237007597227,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 33.02244650638237
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 474091520,
+      "heapTotal": 287248384,
+      "heapUsed": 223137408,
+      "external": 94614983,
+      "arrayBuffers": 79230350
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-1048576-c4-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 6898,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 85.35392761230469,
+    "heapDropsAtLeast5MiB": 16,
+    "hostIdlePct": 20.998594129425296,
+    "hostIoWaitPct": 0.2769139010778341,
+    "hostStealPct": 0.5367869467047246,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 89.78968948433631,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 75.56366516501556
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 29.18038478251687,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 24.185078775012762
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.6967669387857842,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.35294416558392494
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 26.35766278578955,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 18.672427045892412
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 49.75359738406622,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 33.538099162986775
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 492072960,
+      "heapTotal": 297472000,
+      "heapUsed": 208767056,
+      "external": 94743315,
+      "arrayBuffers": 79358682
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c1-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 430,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 11.163505554199219,
+    "heapDropsAtLeast5MiB": 19,
+    "hostIdlePct": 11.047538914598233,
+    "hostIoWaitPct": 0.04206983592763988,
+    "hostStealPct": 0.49642406394615063,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 2600.5037070200524,
+        "secondsAtLeast90Pct": 19,
+        "meanPctOneCore": 70.08547811451369
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 191.8404374031186,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 6.193366826455712
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 21.31560415590207,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.34314599984416777
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 660.7837288329641,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 29.008391108777698
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 1001.8333953273972,
+        "secondsAtLeast90Pct": 6,
+        "meanPctOneCore": 48.03207056355315
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 490700800,
+      "heapTotal": 255447040,
+      "heapUsed": 196816848,
+      "external": 92856005,
+      "arrayBuffers": 77471372
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c1-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 429,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 11.074241638183594,
+    "heapDropsAtLeast5MiB": 19,
+    "hostIdlePct": 11.98314014752371,
+    "hostIoWaitPct": 0.13066385669125394,
+    "hostStealPct": 0.5690200210748156,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 723.3463284217731,
+        "secondsAtLeast90Pct": 19,
+        "meanPctOneCore": 68.41121235415828
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 64.58449360908689,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.176536016784841
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 12.916898721817377,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3519871271437765
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 258.33797443634757,
+        "secondsAtLeast90Pct": 5,
+        "meanPctOneCore": 27.22871847833643
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 426.2576578199735,
+        "secondsAtLeast90Pct": 10,
+        "meanPctOneCore": 49.621804281388115
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 404631552,
+      "heapTotal": 258068480,
+      "heapUsed": 205918344,
+      "external": 91500502,
+      "arrayBuffers": 76115869
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c1-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 467,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 11.888153076171875,
+    "heapDropsAtLeast5MiB": 17,
+    "hostIdlePct": 13.72532442828761,
+    "hostIoWaitPct": 0.04227078665933973,
+    "hostStealPct": 0.3339392146087839,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 107.49235594764555,
+        "secondsAtLeast90Pct": 9,
+        "meanPctOneCore": 76.52206197492191
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 9.324481783693907,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.227856749521997
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 1.9858783968193752,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3441268554318085
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 50.766623044555715,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 33.72443183231723
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 78.96891786832755,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 50.95595461771975
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 477716480,
+      "heapTotal": 255971328,
+      "heapUsed": 207837184,
+      "external": 93088929,
+      "arrayBuffers": 77704296
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c1-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 476,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 12.891746520996094,
+    "heapDropsAtLeast5MiB": 22,
+    "hostIdlePct": 12.644310060472787,
+    "hostIoWaitPct": 0.05497526113249038,
+    "hostStealPct": 0.4482598215418446,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 139.0169054042934,
+        "secondsAtLeast90Pct": 14,
+        "meanPctOneCore": 73.5050552669343
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.974911171067383,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.320578578965574
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.2416720872424487,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3525422314960878
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 72.28879081023257,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 33.919598987516444
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 101.94573062981516,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 51.210956056134094
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 444284928,
+      "heapTotal": 251604992,
+      "heapUsed": 207608480,
+      "external": 92537272,
+      "arrayBuffers": 77152639
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c1-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 460,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 11.464340209960938,
+    "heapDropsAtLeast5MiB": 23,
+    "hostIdlePct": 12.131398663886642,
+    "hostIoWaitPct": 0.03829624271307604,
+    "hostStealPct": 0.4382792221607591,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 105.68670748364026,
+        "secondsAtLeast90Pct": 12,
+        "meanPctOneCore": 72.6237610725615
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 12.045903674787484,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.175173821570602
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.370982088069051,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3463503785012239
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 55.003425072326756,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 32.06697650708893
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 80.00011858025951,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 50.07719618915257
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 483762176,
+      "heapTotal": 260952064,
+      "heapUsed": 198285520,
+      "external": 91309431,
+      "arrayBuffers": 75924798
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c4-1",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 542,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 11.379043579101562,
+    "heapDropsAtLeast5MiB": 22,
+    "hostIdlePct": 4.429272455728611,
+    "hostIoWaitPct": 0.06827394922125027,
+    "hostStealPct": 0.6358011521228931,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 1638.1582936631917,
+        "secondsAtLeast90Pct": 50,
+        "meanPctOneCore": 80.57745006179884
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 199.6505420402015,
+        "secondsAtLeast90Pct": 3,
+        "meanPctOneCore": 6.407055955283476
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 11.599473020538666,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3828917901563831
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 624.5478494590918,
+        "secondsAtLeast90Pct": 8,
+        "meanPctOneCore": 28.47013177473906
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 985.9552067457867,
+        "secondsAtLeast90Pct": 29,
+        "meanPctOneCore": 51.503200129257486
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 420585472,
+      "heapTotal": 255971328,
+      "heapUsed": 207334432,
+      "external": 91832605,
+      "arrayBuffers": 76447972
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c4-2",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 585,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 16.861526489257812,
+    "heapDropsAtLeast5MiB": 23,
+    "hostIdlePct": 6.396189504125202,
+    "hostIoWaitPct": 0.05103342689461597,
+    "hostStealPct": 0.44654248532788976,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 242.99268070338005,
+        "secondsAtLeast90Pct": 47,
+        "meanPctOneCore": 83.59926668819027
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 20.462541532916212,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.518626364547495
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 3.6326496689221206,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3640271865916133
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 95.41641355577353,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 33.15187122541297
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 156.2039357636512,
+        "secondsAtLeast90Pct": 8,
+        "meanPctOneCore": 55.55224182358527
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 449921024,
+      "heapTotal": 257806336,
+      "heapUsed": 199170704,
+      "external": 107114158,
+      "arrayBuffers": 91729525
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c4-3",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 591,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 15.320228576660156,
+    "heapDropsAtLeast5MiB": 22,
+    "hostIdlePct": 5.39794444916334,
+    "hostIoWaitPct": 0.025482035165208528,
+    "hostStealPct": 0.3482544805911832,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 1520.9720129640198,
+        "secondsAtLeast90Pct": 54,
+        "meanPctOneCore": 86.21143760949975
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 151.42610651869157,
+        "secondsAtLeast90Pct": 3,
+        "meanPctOneCore": 6.511948887513714
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 12.618842209890964,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.37211136500078373
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 492.1348461857476,
+        "secondsAtLeast90Pct": 5,
+        "meanPctOneCore": 32.483630749272955
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 1135.6957988901868,
+        "secondsAtLeast90Pct": 10,
+        "meanPctOneCore": 56.34950056818686
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 503119872,
+      "heapTotal": 252563456,
+      "heapUsed": 197199504,
+      "external": 98325755,
+      "arrayBuffers": 82941122
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c4-4",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 605,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 17.861282348632812,
+    "heapDropsAtLeast5MiB": 28,
+    "hostIdlePct": 5.508219295980721,
+    "hostIoWaitPct": 0.021516481624924692,
+    "hostStealPct": 0.3442637059987951,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 433.4353869072713,
+        "secondsAtLeast90Pct": 45,
+        "meanPctOneCore": 83.7277258638364
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 189.9294177290431,
+        "secondsAtLeast90Pct": 1,
+        "meanPctOneCore": 6.5737706763806445
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 3.4860798478467854,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.3771133112917188
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 431.65776756600707,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 35.602924888768186
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 341.4945472602744,
+        "secondsAtLeast90Pct": 8,
+        "meanPctOneCore": 58.08402069599951
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 517939200,
+      "heapTotal": 258854912,
+      "heapUsed": 199164592,
+      "external": 101610062,
+      "arrayBuffers": 86225429
+    }
+  },
+  {
+    "directory": "express-02-proxy-W4-33554432-c4-5",
+    "checks": {
+      "controlsVerified": true,
+      "seedCount": 1000,
+      "finalCount": 1000,
+      "poolsAfterStop": 0,
+      "expectedMutationsVerified": 0,
+      "successfulOffered": 587,
+      "auditCount": 0,
+      "finalPending": 0,
+      "finalFailed": 0,
+      "OOMKilled": false
+    },
+    "largestObservedHeapDropMiB": 13.215538024902344,
+    "heapDropsAtLeast5MiB": 24,
+    "hostIdlePct": 6.75509598677798,
+    "hostIoWaitPct": 0.029664787896766538,
+    "hostStealPct": 0.3432639742340128,
+    "cpu": {
+      "fm007-portal": {
+        "maxOneSecondPctOneCore": 156.45037813741234,
+        "secondsAtLeast90Pct": 40,
+        "meanPctOneCore": 85.23910586314513
+      },
+      "fm007-mongo": {
+        "maxOneSecondPctOneCore": 18.67214258864067,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 6.481547851771826
+      },
+      "fm007-solr": {
+        "maxOneSecondPctOneCore": 2.384023223873329,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 0.37133867900776096
+      },
+      "fm007-proxy": {
+        "maxOneSecondPctOneCore": 77.35601929579707,
+        "secondsAtLeast90Pct": 0,
+        "meanPctOneCore": 30.331618462588473
+      },
+      "generator": {
+        "maxOneSecondPctOneCore": 136.00942752633856,
+        "secondsAtLeast90Pct": 2,
+        "meanPctOneCore": 55.371660749316355
+      }
+    },
+    "memoryAfterVerification": {
+      "rss": 504950784,
+      "heapTotal": 253693952,
+      "heapUsed": 201361088,
+      "external": 92311095,
+      "arrayBuffers": 76926462
+    }
+  }
+]

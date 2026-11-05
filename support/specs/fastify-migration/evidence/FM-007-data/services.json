@@ -1,0 +1,755 @@
+[
+    {
+        "Id": "5a0d3df17ad0e5553a9b0057cf4dad8d95ffd0e6dab707445791433587e70f20",
+        "Created": "2026-11-04T19:58:27.787598911Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "mongod",
+            "--bind_ip",
+            "127.0.0.1",
+            "--port",
+            "19570",
+            "--wiredTigerCacheSizeGB",
+            "0.25",
+            "--setParameter",
+            "diagnosticDataCollectionEnabled=false"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 1117781,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-11-04T19:58:27.850838394Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+        "ResolvConfPath": "/home/ubuntu/work/docker/containers/5a0d3df17ad0e5553a9b0057cf4dad8d95ffd0e6dab707445791433587e70f20/resolv.conf",
+        "HostnamePath": "/home/ubuntu/work/docker/containers/5a0d3df17ad0e5553a9b0057cf4dad8d95ffd0e6dab707445791433587e70f20/hostname",
+        "HostsPath": "/home/ubuntu/work/docker/containers/5a0d3df17ad0e5553a9b0057cf4dad8d95ffd0e6dab707445791433587e70f20/hosts",
+        "LogPath": "/home/ubuntu/work/docker/containers/5a0d3df17ad0e5553a9b0057cf4dad8d95ffd0e6dab707445791433587e70f20/5a0d3df17ad0e5553a9b0057cf4dad8d95ffd0e6dab707445791433587e70f20-json.log",
+        "Name": "/fm007-mongo",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "host",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 1610612736,
+            "NanoCpus": 500000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 3221225472,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [
+                {
+                    "Name": "nofile",
+                    "Hard": 64000,
+                    "Soft": 64000
+                }
+            ],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "386a9398996630f1a3555b8af1623bce6b05602e95571530a4bd8c4c0824c9f6",
+                "Source": "/home/ubuntu/work/docker/volumes/386a9398996630f1a3555b8af1623bce6b05602e95571530a4bd8c4c0824c9f6/_data",
+                "Destination": "/data/configdb",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "4f07e510faf66e8d8d4235c056f931fa09850daf2b22880e58b5869fc0ea0201",
+                "Source": "/home/ubuntu/work/docker/volumes/4f07e510faf66e8d8d4235c056f931fa09850daf2b22880e58b5869fc0ea0201/_data",
+                "Destination": "/data/db",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "nam-oci-agent-2",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "27017/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "GOSU_VERSION=1.19",
+                "JSYAML_VERSION=3.13.1",
+                "JSYAML_CHECKSUM=662e32319bdd378e91f67578e56a34954b0a2e33aca11d70ab9f4826af24b941",
+                "MONGO_PACKAGE=mongodb-org",
+                "MONGO_REPO=repo.mongodb.org",
+                "MONGO_MAJOR=9.0",
+                "MONGO_VERSION=9.0.4",
+                "HOME=/data/db",
+                "GLIBC_TUNABLES=glibc.pthread.rseq=0"
+            ],
+            "Cmd": [
+                "mongod",
+                "--bind_ip",
+                "127.0.0.1",
+                "--port",
+                "19570",
+                "--wiredTigerCacheSizeGB",
+                "0.25",
+                "--setParameter",
+                "diagnosticDataCollectionEnabled=false"
+            ],
+            "Image": "mongo@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8",
+            "Volumes": {
+                "/data/configdb": {},
+                "/data/db": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "org.opencontainers.image.created": "2026-10-06T20:38:12.175309+00:00",
+                "org.opencontainers.image.description": "The Ubuntu container image maintained by Canonical\n\nUbuntu is a Debian-based Linux operating system that runs from the desktop to the cloud, to all your internet connected things.\nIt is the world's most popular operating system across public clouds and OpenStack clouds.\nIt is the number one platform for containers; from Docker to Kubernetes to LXD, Ubuntu can run your containers at scale.\nFast, secure and simple, Ubuntu powers millions of PCs worldwide.\n",
+                "org.opencontainers.image.title": "ubuntu",
+                "org.opencontainers.image.version": "26.04"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "2356108fa0841ae96c91e9845c87a9ceada013dc3af09d5483b1dd81fe4264fa",
+            "SandboxKey": "/var/run/docker/netns/default",
+            "Ports": {},
+            "Networks": {
+                "host": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "1b3466218da300a60e587fa85a78f73966921f0b629d337e28ea428b7a4afd38",
+                    "EndpointID": "4bedd264304cbe8285c068ef95f7309699915e4ffe4af31e026b83113f7989f3",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:4278740dbc9d04c9d41d4ea140518c126ff42caecb1fad1eca26e0805d526ff0",
+            "size": 2672,
+            "annotations": {
+                "com.docker.official-images.bashbrew.arch": "arm64v8",
+                "org.opencontainers.image.base.digest": "sha256:7f787d965bc0e4cd42b5f74c013515d6e24ce691c881c81c42e4db59a791e5ce",
+                "org.opencontainers.image.base.name": "ubuntu:resolute",
+                "org.opencontainers.image.created": "2026-10-17T00:31:35Z",
+                "org.opencontainers.image.revision": "5aed6b90c49b50c4cc1bbd54376087db445d2cbe",
+                "org.opencontainers.image.source": "https://github.com/docker-library/mongo.git#5aed6b90c49b50c4cc1bbd54376087db445d2cbe:9.0",
+                "org.opencontainers.image.url": "https://hub.docker.com/_/mongo",
+                "org.opencontainers.image.version": "9.0.4-resolute"
+            },
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux",
+                "variant": "v8"
+            }
+        }
+    },
+    {
+        "Id": "9e69fa3a86382b4db8ce5bf25ac2b7d851966f3991392bbbdf97291f2f4ad34e",
+        "Created": "2026-11-04T19:59:39.080667524Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "bash",
+            "-c",
+            "precreate-core redbox && exec solr-fg --user-managed -p 19571"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 1118871,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-11-04T19:59:39.143127203Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb",
+        "ResolvConfPath": "/home/ubuntu/work/docker/containers/9e69fa3a86382b4db8ce5bf25ac2b7d851966f3991392bbbdf97291f2f4ad34e/resolv.conf",
+        "HostnamePath": "/home/ubuntu/work/docker/containers/9e69fa3a86382b4db8ce5bf25ac2b7d851966f3991392bbbdf97291f2f4ad34e/hostname",
+        "HostsPath": "/home/ubuntu/work/docker/containers/9e69fa3a86382b4db8ce5bf25ac2b7d851966f3991392bbbdf97291f2f4ad34e/hosts",
+        "LogPath": "/home/ubuntu/work/docker/containers/9e69fa3a86382b4db8ce5bf25ac2b7d851966f3991392bbbdf97291f2f4ad34e/9e69fa3a86382b4db8ce5bf25ac2b7d851966f3991392bbbdf97291f2f4ad34e-json.log",
+        "Name": "/fm007-solr",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "host",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 1610612736,
+            "NanoCpus": 500000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 3221225472,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "1ea5e70a7c4b7e98336d84bfaca1e6ae7c0bf4dc4336d2081855c052e27326f7",
+                "Source": "/home/ubuntu/work/docker/volumes/1ea5e70a7c4b7e98336d84bfaca1e6ae7c0bf4dc4336d2081855c052e27326f7/_data",
+                "Destination": "/var/solr",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "nam-oci-agent-2",
+            "Domainname": "",
+            "User": "8983",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "8983/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "SOLR_JAVA_MEM=-Xms512m -Xmx512m",
+                "PATH=/opt/solr/bin:/opt/solr/docker/scripts:/opt/solr/cross-dc-manager/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-25.0.5+8",
+                "SOLR_USER=solr",
+                "SOLR_UID=8983",
+                "SOLR_GROUP=solr",
+                "SOLR_GID=8983",
+                "SOLR_INCLUDE=/etc/default/solr.in.sh",
+                "SOLR_HOME=/var/solr/data",
+                "SOLR_PID_DIR=/var/solr",
+                "SOLR_LOGS_DIR=/var/solr/logs",
+                "LOG4J_PROPS=/var/solr/log4j2.xml",
+                "SOLR_HOST_BIND=0.0.0.0",
+                "SOLR_ZOOKEEPER_EMBEDDED_HOST=0.0.0.0"
+            ],
+            "Cmd": [
+                "bash",
+                "-c",
+                "precreate-core redbox && exec solr-fg --user-managed -p 19571"
+            ],
+            "Image": "solr@sha256:b866a82ef3a0a16ed25005731dd0c5d87541b70783a14a2392ecfa12810541cb",
+            "Volumes": {
+                "/var/solr": {}
+            },
+            "WorkingDir": "/opt/solr",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "org.opencontainers.image.authors": "The Apache Solr Project",
+                "org.opencontainers.image.description": "Solr is the blazing-fast, open source, multi-modal search platform built on Apache Lucene. It powers full-text, vector, and geospatial search at many of the world's largest organizations.",
+                "org.opencontainers.image.documentation": "https://solr.apache.org/guide/",
+                "org.opencontainers.image.licenses": "Apache-2.0",
+                "org.opencontainers.image.source": "https://github.com/apache/solr",
+                "org.opencontainers.image.title": "Apache Solr",
+                "org.opencontainers.image.url": "https://solr.apache.org",
+                "org.opencontainers.image.version": "10.0.0"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "97bbdee775710ddc9fc468420b10d9d1216c6333310b5b378960133ca00fd538",
+            "SandboxKey": "/var/run/docker/netns/default",
+            "Ports": {},
+            "Networks": {
+                "host": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "1b3466218da300a60e587fa85a78f73966921f0b629d337e28ea428b7a4afd38",
+                    "EndpointID": "8c98cd2db5ca1b7989d500920162e635a949abf857f651a7b870c38af3c95f9d",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:423ad388f94ae095878d1e42f12ace31dc1e48b744e5deab80dc0c867d15e401",
+            "size": 3058,
+            "annotations": {
+                "com.docker.official-images.bashbrew.arch": "arm64v8",
+                "org.opencontainers.image.base.digest": "sha256:49fa0d811061f2b684eb8d32048c6697890e2b169e2cd6bd329d01f03848a606",
+                "org.opencontainers.image.base.name": "eclipse-temurin:25-jre-noble",
+                "org.opencontainers.image.created": "2026-10-29T19:55:21Z",
+                "org.opencontainers.image.revision": "884b2e6692174ea09cdb5183b8dd585760b5e9fb",
+                "org.opencontainers.image.source": "https://github.com/apache/solr-docker.git#884b2e6692174ea09cdb5183b8dd585760b5e9fb:10.0",
+                "org.opencontainers.image.url": "https://hub.docker.com/_/solr",
+                "org.opencontainers.image.version": "10.0.0"
+            },
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux",
+                "variant": "v8"
+            }
+        }
+    },
+    {
+        "Id": "fe592278fa1302c630d72376906f374000e1867717b367785d11f5f17b0587aa",
+        "Created": "2026-11-04T20:11:52.809213104Z",
+        "Path": "/docker-entrypoint.sh",
+        "Args": [
+            "nginx",
+            "-g",
+            "daemon off;"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 1129400,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-11-04T20:11:52.862308928Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14",
+        "ResolvConfPath": "/home/ubuntu/work/docker/containers/fe592278fa1302c630d72376906f374000e1867717b367785d11f5f17b0587aa/resolv.conf",
+        "HostnamePath": "/home/ubuntu/work/docker/containers/fe592278fa1302c630d72376906f374000e1867717b367785d11f5f17b0587aa/hostname",
+        "HostsPath": "/home/ubuntu/work/docker/containers/fe592278fa1302c630d72376906f374000e1867717b367785d11f5f17b0587aa/hosts",
+        "LogPath": "/home/ubuntu/work/docker/containers/fe592278fa1302c630d72376906f374000e1867717b367785d11f5f17b0587aa/fe592278fa1302c630d72376906f374000e1867717b367785d11f5f17b0587aa-json.log",
+        "Name": "/fm007-proxy",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/nginx.conf:/etc/nginx/nginx.conf:ro",
+                "/home/ubuntu/work/fm007-state/tls:/fm007-tls:ro"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "host",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 268435456,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 536870912,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/nginx.conf",
+                "Destination": "/etc/nginx/nginx.conf",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "bind",
+                "Source": "/home/ubuntu/work/fm007-state/tls",
+                "Destination": "/fm007-tls",
+                "Mode": "ro",
+                "RW": false,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "nam-oci-agent-2",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.29.3",
+                "PKG_RELEASE=1",
+                "DYNPKG_RELEASE=1",
+                "NJS_VERSION=0.9.4",
+                "NJS_RELEASE=1"
+            ],
+            "Cmd": [
+                "nginx",
+                "-g",
+                "daemon off;"
+            ],
+            "Image": "nginx@sha256:b3c656d55d7ad751196f21b7fd2e8d4da9cb430e32f646adcf92441b72f82b14",
+            "Volumes": null,
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "/docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "maintainer": "NGINX Docker Maintainers <docker-maint@nginx.com>"
+            },
+            "StopSignal": "SIGQUIT"
+        },
+        "NetworkSettings": {
+            "SandboxID": "126b26c9f8c61ddda88f1c29875c3e587993ac1dbde8ec562c6316fda8bc3c9e",
+            "SandboxKey": "/var/run/docker/netns/default",
+            "Ports": {},
+            "Networks": {
+                "host": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "1b3466218da300a60e587fa85a78f73966921f0b629d337e28ea428b7a4afd38",
+                    "EndpointID": "bb28708f72ff86117ac55e582325ea3a751307e55b49880e02311da331e3334a",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:7391b3732e7f7ccd23ff1d02fbeadcde496f374d7460ad8e79260f8f6d2c9f90",
+            "size": 2497,
+            "annotations": {
+                "com.docker.official-images.bashbrew.arch": "arm64v8",
+                "org.opencontainers.image.base.digest": "sha256:2a2846f9e452bb8a639eafa02d5f29c344afd0fc6dce9026d51c1f902cb76bcb",
+                "org.opencontainers.image.base.name": "nginx:1.29.3-alpine-slim",
+                "org.opencontainers.image.created": "2025-10-28T23:10:01Z",
+                "org.opencontainers.image.revision": "e4d5453581d9d3618f77c4aeccf2e6171a1cd6ff",
+                "org.opencontainers.image.source": "https://github.com/nginx/docker-nginx.git#e4d5453581d9d3618f77c4aeccf2e6171a1cd6ff:mainline/alpine",
+                "org.opencontainers.image.url": "https://hub.docker.com/_/nginx",
+                "org.opencontainers.image.version": "1.29.3-alpine"
+            },
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux",
+                "variant": "v8"
+            }
+        }
+    }
+]

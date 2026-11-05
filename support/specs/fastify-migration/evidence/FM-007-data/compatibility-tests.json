@@ -1,0 +1,612 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 33,
+    "passes": 33,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-11-04T20:16:38.972Z",
+    "end": "2026-11-04T20:16:39.454Z",
+    "duration": 482
+  },
+  "tests": [
+    {
+      "title": "matches case and optional trailing slash within root '' without changing captures",
+      "fullTitle": "HTTP compatibility characterization (FM-003) matches case and optional trailing slash within root '' without changing captures",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 31,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "matches case and optional trailing slash within root '/research/v6' without changing captures",
+      "fullTitle": "HTTP compatibility characterization (FM-003) matches case and optional trailing slash within root '/research/v6' without changing captures",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "captures the declared optional asset group and decodes each parameter exactly once",
+      "fullTitle": "HTTP compatibility characterization (FM-003) captures the declared optional asset group and decodes each parameter exactly once",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "matches the actual optional datastream wildcard including its empty and legacy suffix forms",
+      "fullTitle": "HTTP compatibility characterization (FM-003) matches the actual optional datastream wildcard including its empty and legacy suffix forms",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "joins the actual translation wildcard into its decoded slash-delimited key",
+      "fullTitle": "HTTP compatibility characterization (FM-003) joins the actual translation wildcard into its decoded slash-delimited key",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 21,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "returns safe versioned 400 errors for malformed captures before the handler",
+      "fullTitle": "HTTP compatibility characterization (FM-003) returns safe versioned 400 errors for malformed captures before the handler",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 17,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "distinguishes exact global GET probes from ordinary HEAD, OPTIONS and mounted paths",
+      "fullTitle": "HTTP compatibility characterization (FM-003) distinguishes exact global GET probes from ordinary HEAD, OPTIONS and mounted paths",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "runs implicit HEAD through the GET guard/action while suppressing only its response body",
+      "fullTitle": "HTTP compatibility characterization (FM-003) runs implicit HEAD through the GET guard/action while suppressing only its response body",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 6,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (no cookie)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (no cookie)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (saved anonymous)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (saved anonymous)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (authenticated v6)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (authenticated v6)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (legacy authenticated)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (legacy authenticated)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "synthesizes Allow for OPTIONS without invoking GET policies or adding CORS headers",
+      "fullTitle": "HTTP compatibility characterization (FM-003) synthesizes Allow for OPTIONS without invoking GET policies or adding CORS headers",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "distinguishes unmatched supported HTTP verbs from Node-rejected method tokens",
+      "fullTitle": "HTTP compatibility characterization (FM-003) distinguishes unmatched supported HTTP verbs from Node-rejected method tokens",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "characterizes branded fallback errors separately from host method misses and automatic OPTIONS",
+      "fullTitle": "HTTP compatibility characterization (FM-003) characterizes branded fallback errors separately from host method misses and automatic OPTIONS",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 104,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "keeps ALL root redirects for OPTIONS and less common verbs with deployment-local Location",
+      "fullTitle": "HTTP compatibility characterization (FM-003) keeps ALL root redirects for OPTIONS and less common verbs with deployment-local Location",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains duplicate, nested, blank and mixed scalar/array query values without coercion",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains duplicate, nested, blank and mixed scalar/array query values without coercion",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 3,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "does not pollute Object.prototype through query while characterizing own prototype-named fields",
+      "fullTitle": "HTTP compatibility characterization (FM-003) does not pollute Object.prototype through query while characterizing own prototype-named fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 3,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains duplicate, nested, blank and mixed scalar/array form values without coercion",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains duplicate, nested, blank and mixed scalar/array form values without coercion",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 15,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "does not pollute Object.prototype through form while characterizing own prototype-named fields",
+      "fullTitle": "HTTP compatibility characterization (FM-003) does not pollute Object.prototype through form while characterizing own prototype-named fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 2,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "characterizes query truncation, depth folding, array indices and tolerant percent decoding",
+      "fullTitle": "HTTP compatibility characterization (FM-003) characterizes query truncation, depth folding, array indices and tolerant percent decoding",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "enforces form parameter/depth bounds rather than applying query truncation",
+      "fullTitle": "HTTP compatibility characterization (FM-003) enforces form parameter/depth bounds rather than applying query truncation",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "bounds the request target through the Node HTTP header limit before application parsing",
+      "fullTitle": "HTTP compatibility characterization (FM-003) bounds the request target through the Node HTTP header limit before application parsing",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 3,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains JSON duplicate last-value behavior and strict object/array parsing",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains JSON duplicate last-value behavior and strict object/array parsing",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "accepts JSON UTF-8/UTF-16 and form UTF-8/Latin-1 while leaving unmatched media types unparsed",
+      "fullTitle": "HTTP compatibility characterization (FM-003) accepts JSON UTF-8/UTF-16 and form UTF-8/Latin-1 while leaving unmatched media types unparsed",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 18,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "inflates supported gzip, deflate and Brotli bodies before JSON/form parsing",
+      "fullTitle": "HTTP compatibility characterization (FM-003) inflates supported gzip, deflate and Brotli bodies before JSON/form parsing",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 14,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "enforces the exact 1 MiB application/json body boundary",
+      "fullTitle": "HTTP compatibility characterization (FM-003) enforces the exact 1 MiB application/json body boundary",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 17,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "enforces the exact 1 MiB application/x-www-form-urlencoded body boundary",
+      "fullTitle": "HTTP compatibility characterization (FM-003) enforces the exact 1 MiB application/x-www-form-urlencoded body boundary",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 21,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "excludes raw prefixes case-insensitively on segment boundaries and retains untouched bytes",
+      "fullTitle": "HTTP compatibility characterization (FM-003) excludes raw prefixes case-insensitively on segment boundaries and retains untouched bytes",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "preserves signed cookie attributes and rejects tampering/malformed cookies without reusing session state",
+      "fullTitle": "HTTP compatibility characterization (FM-003) preserves signed cookie attributes and rejects tampering/malformed cookies without reusing session state",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "preserves strong record tags and conditional GET/HEAD while reauthorizing before 304",
+      "fullTitle": "HTTP compatibility characterization (FM-003) preserves strong record tags and conditional GET/HEAD while reauthorizing before 304",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 19,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains static date/range responses, cache headers and cookie suppression without generated ETags",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains static date/range responses, cache headers and cookie suppression without generated ETags",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 15,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "keeps response and validation version negotiation distinct and preserves response fields",
+      "fullTitle": "HTTP compatibility characterization (FM-003) keeps response and validation version negotiation distinct and preserves response fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 6,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    }
+  ],
+  "pending": [],
+  "failures": [],
+  "passes": [
+    {
+      "title": "matches case and optional trailing slash within root '' without changing captures",
+      "fullTitle": "HTTP compatibility characterization (FM-003) matches case and optional trailing slash within root '' without changing captures",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 31,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "matches case and optional trailing slash within root '/research/v6' without changing captures",
+      "fullTitle": "HTTP compatibility characterization (FM-003) matches case and optional trailing slash within root '/research/v6' without changing captures",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "captures the declared optional asset group and decodes each parameter exactly once",
+      "fullTitle": "HTTP compatibility characterization (FM-003) captures the declared optional asset group and decodes each parameter exactly once",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 10,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "matches the actual optional datastream wildcard including its empty and legacy suffix forms",
+      "fullTitle": "HTTP compatibility characterization (FM-003) matches the actual optional datastream wildcard including its empty and legacy suffix forms",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "joins the actual translation wildcard into its decoded slash-delimited key",
+      "fullTitle": "HTTP compatibility characterization (FM-003) joins the actual translation wildcard into its decoded slash-delimited key",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 21,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "returns safe versioned 400 errors for malformed captures before the handler",
+      "fullTitle": "HTTP compatibility characterization (FM-003) returns safe versioned 400 errors for malformed captures before the handler",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 17,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "distinguishes exact global GET probes from ordinary HEAD, OPTIONS and mounted paths",
+      "fullTitle": "HTTP compatibility characterization (FM-003) distinguishes exact global GET probes from ordinary HEAD, OPTIONS and mounted paths",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "runs implicit HEAD through the GET guard/action while suppressing only its response body",
+      "fullTitle": "HTTP compatibility characterization (FM-003) runs implicit HEAD through the GET guard/action while suppressing only its response body",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 6,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (no cookie)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (no cookie)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (saved anonymous)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (saved anonymous)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (authenticated v6)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (authenticated v6)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains the explicit OIDC HEAD denial after production session middleware (legacy authenticated)",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains the explicit OIDC HEAD denial after production session middleware (legacy authenticated)",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "synthesizes Allow for OPTIONS without invoking GET policies or adding CORS headers",
+      "fullTitle": "HTTP compatibility characterization (FM-003) synthesizes Allow for OPTIONS without invoking GET policies or adding CORS headers",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "distinguishes unmatched supported HTTP verbs from Node-rejected method tokens",
+      "fullTitle": "HTTP compatibility characterization (FM-003) distinguishes unmatched supported HTTP verbs from Node-rejected method tokens",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "characterizes branded fallback errors separately from host method misses and automatic OPTIONS",
+      "fullTitle": "HTTP compatibility characterization (FM-003) characterizes branded fallback errors separately from host method misses and automatic OPTIONS",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 104,
+      "currentRetry": 0,
+      "speed": "slow",
+      "err": {}
+    },
+    {
+      "title": "keeps ALL root redirects for OPTIONS and less common verbs with deployment-local Location",
+      "fullTitle": "HTTP compatibility characterization (FM-003) keeps ALL root redirects for OPTIONS and less common verbs with deployment-local Location",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 8,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains duplicate, nested, blank and mixed scalar/array query values without coercion",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains duplicate, nested, blank and mixed scalar/array query values without coercion",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 3,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "does not pollute Object.prototype through query while characterizing own prototype-named fields",
+      "fullTitle": "HTTP compatibility characterization (FM-003) does not pollute Object.prototype through query while characterizing own prototype-named fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 3,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains duplicate, nested, blank and mixed scalar/array form values without coercion",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains duplicate, nested, blank and mixed scalar/array form values without coercion",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 15,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "does not pollute Object.prototype through form while characterizing own prototype-named fields",
+      "fullTitle": "HTTP compatibility characterization (FM-003) does not pollute Object.prototype through form while characterizing own prototype-named fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 2,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "characterizes query truncation, depth folding, array indices and tolerant percent decoding",
+      "fullTitle": "HTTP compatibility characterization (FM-003) characterizes query truncation, depth folding, array indices and tolerant percent decoding",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "enforces form parameter/depth bounds rather than applying query truncation",
+      "fullTitle": "HTTP compatibility characterization (FM-003) enforces form parameter/depth bounds rather than applying query truncation",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 12,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "bounds the request target through the Node HTTP header limit before application parsing",
+      "fullTitle": "HTTP compatibility characterization (FM-003) bounds the request target through the Node HTTP header limit before application parsing",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 3,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains JSON duplicate last-value behavior and strict object/array parsing",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains JSON duplicate last-value behavior and strict object/array parsing",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 13,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "accepts JSON UTF-8/UTF-16 and form UTF-8/Latin-1 while leaving unmatched media types unparsed",
+      "fullTitle": "HTTP compatibility characterization (FM-003) accepts JSON UTF-8/UTF-16 and form UTF-8/Latin-1 while leaving unmatched media types unparsed",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 18,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "inflates supported gzip, deflate and Brotli bodies before JSON/form parsing",
+      "fullTitle": "HTTP compatibility characterization (FM-003) inflates supported gzip, deflate and Brotli bodies before JSON/form parsing",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 14,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "enforces the exact 1 MiB application/json body boundary",
+      "fullTitle": "HTTP compatibility characterization (FM-003) enforces the exact 1 MiB application/json body boundary",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 17,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "enforces the exact 1 MiB application/x-www-form-urlencoded body boundary",
+      "fullTitle": "HTTP compatibility characterization (FM-003) enforces the exact 1 MiB application/x-www-form-urlencoded body boundary",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 21,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "excludes raw prefixes case-insensitively on segment boundaries and retains untouched bytes",
+      "fullTitle": "HTTP compatibility characterization (FM-003) excludes raw prefixes case-insensitively on segment boundaries and retains untouched bytes",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 7,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "preserves signed cookie attributes and rejects tampering/malformed cookies without reusing session state",
+      "fullTitle": "HTTP compatibility characterization (FM-003) preserves signed cookie attributes and rejects tampering/malformed cookies without reusing session state",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 9,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "preserves strong record tags and conditional GET/HEAD while reauthorizing before 304",
+      "fullTitle": "HTTP compatibility characterization (FM-003) preserves strong record tags and conditional GET/HEAD while reauthorizing before 304",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 19,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "retains static date/range responses, cache headers and cookie suppression without generated ETags",
+      "fullTitle": "HTTP compatibility characterization (FM-003) retains static date/range responses, cache headers and cookie suppression without generated ETags",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 15,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    },
+    {
+      "title": "keeps response and validation version negotiation distinct and preserves response fields",
+      "fullTitle": "HTTP compatibility characterization (FM-003) keeps response and validation version negotiation distinct and preserves response fields",
+      "file": "/home/ubuntu/work/github/redbox-portal/packages/redbox-core/test/http/HttpCompatibility.test.ts",
+      "duration": 6,
+      "currentRetry": 0,
+      "speed": "fast",
+      "err": {}
+    }
+  ]
+}

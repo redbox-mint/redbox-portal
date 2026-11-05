@@ -1,0 +1,51 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W2",
+    "concurrency": 4,
+    "id": "direct-W2-0-c4"
+  },
+  "smoke": false,
+  "startedUtc": "2026-11-05T03:51:38.415Z",
+  "finishedUtc": "2026-11-05T03:56:03.020294+00:00",
+  "image": "sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "seedRevision": 0,
+    "portalPort": 18570,
+    "controlPort": 18574,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "completed": false,
+  "error": "User stopped measurements; orchestrator killed the driver and this in-progress sample. Partial requests are invalid and never pooled. Completed express-03 samples are supplementary only.",
+  "partialRequestLog": true,
+  "containerState": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-11-05T03:51:38.819545568Z",
+    "FinishedAt": "2026-11-05T03:53:24.622031304Z"
+  }
+}

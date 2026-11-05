@@ -1,0 +1,66 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W1",
+    "concurrency": 1,
+    "id": "direct-W1-0-c1"
+  },
+  "smoke": true,
+  "startedUtc": "2026-11-04T20:03:30.689Z",
+  "image": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "portalPort": 18570,
+    "controlPort": 18571,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "error": "AssertionError [ERR_ASSERTION]: portal exited during readiness\n\n'false' !== 'true'\n\n    at main (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs:100:46)",
+  "containerState": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 1,
+    "Error": "",
+    "StartedAt": "2026-11-04T20:03:30.961149254Z",
+    "FinishedAt": "2026-11-04T20:03:41.467525016Z",
+    "Health": {
+      "Status": "unhealthy",
+      "FailingStreak": 0,
+      "Log": [
+        {
+          "Start": "2026-11-05T06:33:36.046539453+10:30",
+          "End": "2026-11-05T06:33:36.113392596+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        },
+        {
+          "Start": "2026-11-05T06:33:41.114656512+10:30",
+          "End": "2026-11-05T06:33:41.17004419+10:30",
+          "ExitCode": 7,
+          "Output": "curl: (7) Failed to connect to localhost port 1337 after 0 ms: Couldn't connect to server\n"
+        }
+      ]
+    }
+  },
+  "finishedUtc": "2026-11-04T20:03:42.990Z"
+}

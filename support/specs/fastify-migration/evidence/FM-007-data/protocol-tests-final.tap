@@ -1,0 +1,12 @@
+✔ FM-005 cells independently cover both transports and every payload/concurrency (1.81189ms)
+✔ seed and alternating patches have exact UTF-8 lengths and independent identities (30.252213ms)
+✔ boundary completions count once and late/errors never improve timed throughput (0.942965ms)
+✔ nearest-rank p95, median, full range and variability retain every attempt (1.504008ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.948257

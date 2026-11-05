@@ -1,0 +1,100 @@
+[
+    {
+        "Id": "sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e",
+        "RepoTags": [
+            "fm007-express:baseline"
+        ],
+        "RepoDigests": [
+            "fm007-express@sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-11-05T07:25:31.83707185+10:30",
+        "Config": {
+            "User": "node",
+            "ExposedPorts": {
+                "1337/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=26.12.1",
+                "NODE_ENV=production",
+                "TZ=Australia/Brisbane",
+                "NODE_OPTIONS=--max-old-space-size=1024"
+            ],
+            "Entrypoint": [
+                "node",
+                "support/integration-testing/fastify-performance/owner.cjs"
+            ],
+            "WorkingDir": "/opt/redbox-portal",
+            "ArgsEscaped": true,
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "sh",
+                    "-c",
+                    "curl -fsS \"http://localhost:${PORT:-1337}/\" >/dev/null"
+                ],
+                "Interval": 30000000000,
+                "Timeout": 5000000000,
+                "StartPeriod": 60000000000,
+                "Retries": 5
+            }
+        },
+        "Architecture": "arm64",
+        "Os": "linux",
+        "Size": 1402833341,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:8197d9c14b22d4cd79198c0722a18035760a85613211f2127ee6f5888735ca98",
+                "sha256:98c02004b598820d7a399e1e6e2f40c75906820f4a726f3be4ce2546bedded52",
+                "sha256:0bb1d25644d5aa84c4a523129af05180ea01ef0c05a00ae520f74e5cb59edac9",
+                "sha256:248bfddc606b5ab615db3cabe1561d4eab964f5b64e22cc87c537419682b3748",
+                "sha256:83a25d66d06867f45903883541d9a2ace693d00200c2be8cf3577387322789a6",
+                "sha256:58679b0a15bd4ec1481f549aa0ee902792c32ff91e555c2a3b876c9388d2728e",
+                "sha256:e57daac93a585ede58986fa0401b29747ce180604bc2a0560e93d99f59d8b727",
+                "sha256:28827c60a0bda7d243b7d1d325c70b6afb018e6827d758182b374cb8a01b0aea",
+                "sha256:fa41bbce89c23c380a82d409cde7d70870a47632db7e4089dfaae02828286a91",
+                "sha256:0e37ae6de2a3eb16576a8c25cddcbd7b928c0ae1eb11c73c5400c2157e4f791d",
+                "sha256:8afcd9ed93f19e9386209e4328ebe7541f1e41f6da6de125f3c9278fb24f0361",
+                "sha256:6ac967860929d0eaea519c9f3015c0d823d4586305d2728e95e366ac2019d461",
+                "sha256:6b8070e8ab74d86c76a708fd1ba07220c6fa17313942172fdba1049618053463",
+                "sha256:a17a614fcde2ccbccafa0b0f8f456b0c723db2db07d629e886566c2693f2b6a5",
+                "sha256:782d22b7a50059fc0ec1d509c106760cbf72b639bb552fe5efec959500831527",
+                "sha256:c42f3783ca8b2e9b2ad7f3e7645343295d0d69865313b63f7ae3e9f05e137007",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:ead183cfd4a5759096f4db7dc7743172f7d2dac4e9413970a28c55f4bd66ec7f",
+                "sha256:bb4ead6de1aed186a54ca145f668bba1c184710710f0ef9a2a72eb2e718adc64",
+                "sha256:e7746e2ff1d025704180b5a457362bedae6d9202d4be0d57e2431fd29a539ae3",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:4a74c581ecae46b43ddd54c3dd0b361a738763332552474705c0b8f1154a1e2c",
+                "sha256:769e9de79ad0f7bd1e0239bc1d184229b121e7b484ab68d404b481fea47f0bfa",
+                "sha256:b11378ead67a8061d9db304dee6b7f3e4402d797d8078821feb6a80aaa0281bb",
+                "sha256:7e96ee0d84720a87400330ba70c31878994c322e25b035a4d442b82764a50b52",
+                "sha256:b0dd735e766224659d6732d684e6f171ad314af4074f76eb627f966bfa2546dd",
+                "sha256:415c42f805ac7378413fc3222a12e7fc07710dc8f6bd95361c8083438e02ee8c",
+                "sha256:5e61950c018798d295712dfdf2f1fb2382c95c977d87827645df580cca62d826",
+                "sha256:da21a1b5e56a34238a4b26bea48a8979e1040084db6c65c96993d4996eae6819",
+                "sha256:783ce2e61ff185227da27294c938295ad6233235ea71123264e44b7b20645618",
+                "sha256:ba991a8f8a938d1fefe25b1a75906d0858a395e81a2ab1d71132a0aa32016100",
+                "sha256:aa2c04c36bde426f25f842223df3ef07162391cfcb9b3ea292329bdc5c14aa0d",
+                "sha256:da698663c4f17a63eb39cb73792bbde364a9fb170b1430590f7dd2bfa2dfc7f1",
+                "sha256:4ed7986750685cef322d3143fbd4d4eba3a80df63db4489618686ce8771ca729",
+                "sha256:12ff105e0489fa07487f6f5647e3945ccac77e0cc0a6b544cc040df6edbd7058",
+                "sha256:c3373ddd14bd38d519dbd4f7fca09b6ce1ff65313a9b89d41906abceb72d5c33",
+                "sha256:a865d1fc08eb193b75909bc8b25ac4d03e354d2027b0d2be10e476e7dae9b8fc",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+                "sha256:af5b9c892cb6a4e09230e7a86e7bcbcb2b0e916f4b3bf71f7a3ea60010be6d55",
+                "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-11-04T21:00:34.905626543Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e",
+            "size": 856
+        }
+    }
+]

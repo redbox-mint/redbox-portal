@@ -64,7 +64,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: reproducible institution source/artifact and local qualification
     procedure identified; actual production acceptance remains separately owned.
 
-- [ ] **FM-007 — Capture Express performance baseline and close G0.**
+- [x] **FM-007 — Capture Express performance baseline and close G0.**
   - Dependencies: FM-003–FM-006.
   - Work: run representative read/mutation/page/stream workloads in repeated,
     controlled runs; save preceding artifact/configuration, raw samples, p95,

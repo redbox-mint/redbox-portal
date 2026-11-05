@@ -1,0 +1,208 @@
+{
+  "capturedUtc": "2026-11-04T21:04:03.691Z",
+  "sourceHead": "79f61ba3769342f402035dbf506c33040e0a5ee2",
+  "sourceTree": "36c4d057d53d673ea5f79a6e6fc67281c1c8e3ff",
+  "base": "f7ebc45fb5b7c837b66dd309e879f89b87065f7e",
+  "trackedDiff": "",
+  "locks": {
+    "angular/package-lock.json": "dcade89025da8c190608ff81c1d0892da59d4b92bbfd9093ab4f400784bb78c8",
+    "angular/projects/researchdatabox/portal-ng-common/package-lock.json": "e6d58bf011bad357fc0e1d133206493a2f049af75d4661d72fe98e12b511962a",
+    "angular/projects/researchdatabox/portal-ng-form-custom/package-lock.json": "484ddb440ff43b0d6bb9ac14ac779e154094ce424b3be3d67b043ef23f94be0c",
+    "package-lock.json": "55975c014895db290ce6f3dd8b5d5da3804ac4513a4189560739a70ab16f81c1",
+    "packages/agenda-sqs-backend/package-lock.json": "298a5835fb89ae1facc17a03a75eceba526e8f85d4debc451999f4f7e465479b",
+    "packages/raido/package-lock.json": "009d0e4c7958f753152cc9aefdcca0680ec95cc4ac1e57ce4cc5680a7b272200",
+    "packages/redbox-core/package-lock.json": "cc6874b868e5613cca9b6991599ab7764e34a7bd2942ea89dafb569bfb08bef9",
+    "packages/redbox-dev-tools/package-lock.json": "1cd22f1adc58085b2219592c7540a860c9d27449f0874dec2ac7d490c53d9c71",
+    "packages/redbox-hook-dev/package-lock.json": "aa59dda7f6bdd2e558b92528ce48a0024c9f29afc50e147913dbb085fcd839a7",
+    "packages/rva-registry/package-lock.json": "9f833c5bac0500af9053ca3973c0e82a66cf8ad424009248f3a6487215aab104",
+    "packages/sails-hook-redbox-pdfgen/package-lock.json": "b1e0718b5550740eb82a1fc1c4d1136096f0c3080cbd4bfbccaa03cf7307b5d4",
+    "packages/sails-hook-redbox-pdfgen/test/bruno/package-lock.json": "102c7ecaa3e119f6312fd2f89e664d2ed31e730f73e8e1425336268b5333e7d4",
+    "packages/sails-hook-redbox-storage-mongo/package-lock.json": "f7f6989b6e4021debc0835820aad374a83cb360e460e9a845275870931a4146f",
+    "packages/sails-ng-common/package-lock.json": "7c379f01bb98e07b32adcb629c90baa2d3f415d7c0d5a454181e9a57873cf96f",
+    "support/build/api-descriptors/package-lock.json": "340c9664e342f45aa3b2f4d27bc80fbd55e85fb9391ffcaea19ce6a7a80d9cba",
+    "support/ng19-forms-migration/package-lock.json": "136252da4fc6d080d1281dc23e08240f72bc3f11a4088576c646dcad0b49e373",
+    "support/tools/figshare-metadata-inspector/package-lock.json": "1e45f80981af9cffc60fbe032c7bdf5854f3c948db673ad806556d7c6b283b7f",
+    "test/bruno/package-lock.json": "d274fbf19191299fda3b495f790b508978761f945086af8c58f4f43b695c0406"
+  },
+  "harness": {
+    "Dockerfile": "9f8781fb4c86d893538676927282591ca182c7a56c94287a506af69315a8f79c",
+    "README.md": "b3369ebb7d507f67e02d6394bc97ab3d763d3e4ffdbf75bc79825db0d02f9503",
+    "application.cjs": "a826cbce3e805041cae8dbe8735022307a48986ae68b9b60898f68b0113fc1c7",
+    "client.cjs": "4dcc64eb5282699ada3d0684af48b8829a90ece4642c4d5d025fb765cbb2490e",
+    "fixture-package.json": "a50c75e663f5a91878665841f1954b4160f620641e7a5a95b8c84e87c7e71c25",
+    "freeze.cjs": "9dc9b756d3a58c9808b7938d47878e751a465faa9341c767f78d5f1ad8d10ef8",
+    "nginx.conf": "e02ca39e25d1da0348ef42898bbfd4ad7af56faf5e35aaeb5b6c09e232a2d93a",
+    "owner.cjs": "0d102338bac81e0fa77f3890197a29243175f95d07264def956e045bdf226973",
+    "protocol.cjs": "041ce080730a2e4555a867927a327b74c45e36187531284cdba6114ca89463ef",
+    "protocol.test.cjs": "a5e010bc7b1d0b7b7c93b0a94844e07055a4459370447396d865857573e364de",
+    "report.cjs": "2836bde75dab294936fd2c31df22148f98c43c6bd08a4d546937a258048c72a4",
+    "run.cjs": "926b4bcd94553e08a9c4495f1dbc0f445f8760d2d09e494d814204fbb4488fcd",
+    "sample.cjs": "7df851baafebdf484e38c92f4a91ae2c78d5bdd11bf61461a4613b0bc4391fbb"
+  },
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "seedRevision": 0,
+    "portalPort": 18570,
+    "controlPort": 18574,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "cells": [
+    {
+      "profile": "direct",
+      "workload": "W1",
+      "concurrency": 1,
+      "id": "direct-W1-0-c1"
+    },
+    {
+      "profile": "direct",
+      "workload": "W1",
+      "concurrency": 8,
+      "id": "direct-W1-0-c8"
+    },
+    {
+      "profile": "direct",
+      "workload": "W3",
+      "concurrency": 1,
+      "id": "direct-W3-0-c1"
+    },
+    {
+      "profile": "direct",
+      "workload": "W3",
+      "concurrency": 8,
+      "id": "direct-W3-0-c8"
+    },
+    {
+      "profile": "direct",
+      "workload": "W2",
+      "concurrency": 1,
+      "id": "direct-W2-0-c1"
+    },
+    {
+      "profile": "direct",
+      "workload": "W2",
+      "concurrency": 4,
+      "id": "direct-W2-0-c4"
+    },
+    {
+      "profile": "direct",
+      "workload": "W4",
+      "concurrency": 1,
+      "size": 1048576,
+      "id": "direct-W4-1048576-c1"
+    },
+    {
+      "profile": "direct",
+      "workload": "W4",
+      "concurrency": 4,
+      "size": 1048576,
+      "id": "direct-W4-1048576-c4"
+    },
+    {
+      "profile": "direct",
+      "workload": "W4",
+      "concurrency": 1,
+      "size": 33554432,
+      "id": "direct-W4-33554432-c1"
+    },
+    {
+      "profile": "direct",
+      "workload": "W4",
+      "concurrency": 4,
+      "size": 33554432,
+      "id": "direct-W4-33554432-c4"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W1",
+      "concurrency": 1,
+      "id": "proxy-W1-0-c1"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W1",
+      "concurrency": 8,
+      "id": "proxy-W1-0-c8"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W3",
+      "concurrency": 1,
+      "id": "proxy-W3-0-c1"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W3",
+      "concurrency": 8,
+      "id": "proxy-W3-0-c8"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W2",
+      "concurrency": 1,
+      "id": "proxy-W2-0-c1"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W2",
+      "concurrency": 4,
+      "id": "proxy-W2-0-c4"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W4",
+      "concurrency": 1,
+      "size": 1048576,
+      "id": "proxy-W4-1048576-c1"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W4",
+      "concurrency": 4,
+      "size": 1048576,
+      "id": "proxy-W4-1048576-c4"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W4",
+      "concurrency": 1,
+      "size": 33554432,
+      "id": "proxy-W4-33554432-c1"
+    },
+    {
+      "profile": "proxy",
+      "workload": "W4",
+      "concurrency": 4,
+      "size": 33554432,
+      "id": "proxy-W4-33554432-c4"
+    }
+  ],
+  "node": "v26.12.1",
+  "npm": "11.20.0",
+  "image": "sha256:0f49180a8b4b7348b3cd687783f19d6aa84a66b13dc8072c85b15398c24e504e",
+  "baseImage": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+  "archive": "/home/ubuntu/work/fm007-artifacts/express-image.tar.gz",
+  "archiveBytes": 1398635095,
+  "archiveSha256": "5c11f2bdc4996a5435190a45b7f1230f3616d9d12f3573b7b54621dae41f5a9e",
+  "installedManifestSha256": "628948812a0766fc53eb40eeed9d2c6d6bf8a4b56c2b4cf0ed6fbbb188d28f1d",
+  "host": "Linux nam-oci-agent-2 7.0.0-1013-oracle #13~24.04.1-Ubuntu SMP PREEMPT Fri Sep 25 09:43:58 UTC 2026 aarch64 aarch64 aarch64 GNU/Linux",
+  "cpu": "Architecture:                            aarch64\nCPU op-mode(s):                          32-bit, 64-bit\nByte Order:                              Little Endian\nCPU(s):                                  2\nOn-line CPU(s) list:                     0,1\nVendor ID:                               ARM\nModel name:                              Neoverse-N1\nModel:                                   1\nThread(s) per core:                      1\nCore(s) per socket:                      2\nSocket(s):                               1\nStepping:                                r3p1\nBogoMIPS:                                50.00\nFlags:                                   fp asimd evtstrm aes pmull sha1 sha2 crc32 atomics fphp asimdhp cpuid asimdrdm lrcpc dcpop asimddp\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0,1\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Not affected\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; CSV2, BHB\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected",
+  "disk": "Filesystem        1B-blocks         Used   Available Use% Mounted on\n/dev/sdb       126227243008 100918939648 19042369536  85% /home/ubuntu/work",
+  "memory": "MemTotal:       12211460 kB\nMemFree:         2868212 kB\nMemAvailable:    5267124 kB\nBuffers:          544152 kB\nCached:          1748340 kB\nSwapCached:            0 kB\nActive:          4101820 kB\nInactive:        3583600 kB\nActive(anon):    3825880 kB\nInactive(anon):  2415912 kB\nActive(file):     275940 kB\nInactive(file):  1167688 kB\nUnevictable:       37120 kB\nMlocked:           33120 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:            152052 kB\nWriteback:             0 kB\nAnonPages:       5430304 kB\nMapped:           317184 kB\nShmem:            836412 kB\nKReclaimable:    1171612 kB\nSlab:            1512460 kB\nSReclaimable:    1171612 kB\nSUnreclaim:       340848 kB\nKernelStack:        9312 kB\nShadowCallStack:    2336 kB\nPageTables:        31476 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     6105728 kB\nCommitted_AS:   11755676 kB\nVmallocTotal:   135288315904 kB\nVmallocUsed:       30008 kB\nVmallocChunk:          0 kB\nPercpu:             1512 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:     10240 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:     61440 kB\nFilePmdMapped:         0 kB\nCmaTotal:          32768 kB\nCmaFree:           30268 kB\nBalloon:               0 kB\nGPUActive:             0 kB\nGPUReclaim:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\n",
+  "processes": "PID    PPID COMMAND         %CPU %MEM\n      1       0 systemd          0.0  0.0\n      2       0 kthreadd         0.0  0.0\n      3       2 pool_workqueue_  0.0  0.0\n      4       2 kworker/R-rcu_g  0.0  0.0\n      5       2 kworker/R-sync_  0.0  0.0\n      6       2 kworker/R-kvfre  0.0  0.0\n      7       2 kworker/R-slub_  0.0  0.0\n      8       2 kworker/R-netns  0.0  0.0\n     10       2 kworker/0:0H-kb  0.0  0.0\n     13       2 kworker/R-mm_pe  0.0  0.0\n     14       2 ksoftirqd/0      0.0  0.0\n     15       2 rcu_sched        0.0  0.0\n     16       2 rcu_exp_par_gp_  0.0  0.0\n     17       2 rcu_exp_gp_kthr  0.0  0.0\n     18       2 migration/0      0.0  0.0\n     19       2 idle_inject/0    0.0  0.0\n     20       2 cpuhp/0          0.0  0.0\n     21       2 cpuhp/1          0.0  0.0\n     22       2 idle_inject/1    0.0  0.0\n     23       2 migration/1      0.0  0.0\n     24       2 ksoftirqd/1      0.0  0.0\n     26       2 kworker/1:0H-kb  0.0  0.0\n     28       2 kdevtmpfs        0.0  0.0\n     29       2 kworker/R-inet_  0.0  0.0\n     30       2 rcu_tasks_kthre  0.0  0.0\n     31       2 rcu_tasks_rude_  0.0  0.0\n     32       2 kauditd          0.0  0.0\n     33       2 khungtaskd       0.0  0.0\n     35       2 oom_reaper       0.0  0.0\n     36       2 kworker/R-write  0.0  0.0\n     37       2 kcompactd0       0.1  0.0\n     38       2 ksmd             0.0  0.0\n     39       2 khugepaged       0.0  0.0\n     40       2 kworker/R-kbloc  0.0  0.0\n     41       2 kworker/R-blkcg  0.0  0.0\n     42       2 kworker/R-kinte  0.0  0.0\n     43       2 pr/ttyAMA-1      0.0  0.0\n     45       2 kworker/R-tpm_d  0.0  0.0\n     46       2 kworker/R-ata_s  0.0  0.0\n     47       2 kworker/R-md_bi  0.0  0.0\n     48       2 kworker/R-md_ll  0.0  0.0\n     49       2 kworker/R-md_ll  0.0  0.0\n     50       2 kworker/R-edac-  0.0  0.0\n     51       2 kworker/R-devfr  0.0  0.0\n     52       2 watchdogd        0.0  0.0\n     53       2 kworker/R-quota  0.0  0.0\n     54       2 kswapd0          0.0  0.0\n     55       2 ecryptfs-kthrea  0.0  0.0\n     56       2 kworker/R-kthro  0.0  0.0\n     57       2 irq/50-aerdrv    0.0  0.0\n     58       2 irq/50-pciehp    0.0  0.0\n     59       2 irq/51-aerdrv    0.0  0.0\n     60       2 irq/51-pciehp    0.0  0.0\n     61       2 irq/52-aerdrv    0.0  0.0\n     62       2 irq/52-pciehp    0.0  0.0\n     63       2 irq/53-aerdrv    0.0  0.0\n     64       2 irq/53-pciehp    0.0  0.0\n     65       2 irq/54-aerdrv    0.0  0.0\n     66       2 irq/54-pciehp    0.0  0.0\n     67       2 irq/55-aerdrv    0.0  0.0\n     68       2 irq/55-pciehp    0.0  0.0\n     69       2 irq/56-aerdrv    0.0  0.0\n     70       2 irq/56-pciehp    0.0  0.0\n     71       2 irq/57-aerdrv    0.0  0.0\n     72       2 irq/57-pciehp    0.0  0.0\n     73       2 irq/58-aerdrv    0.0  0.0\n     74       2 irq/58-pciehp    0.0  0.0\n     75       2 irq/59-aerdrv    0.0  0.0\n     76       2 irq/59-pciehp    0.0  0.0\n     77       2 irq/60-aerdrv    0.0  0.0\n     78       2 irq/60-pciehp    0.0  0.0\n     79       2 irq/61-aerdrv    0.0  0.0\n     80       2 irq/61-pciehp    0.0  0.0\n     81       2 irq/62-aerdrv    0.0  0.0\n     82       2 irq/62-pciehp    0.0  0.0\n     83       2 irq/63-aerdrv    0.0  0.0\n     84       2 irq/63-pciehp    0.0  0.0\n     85       2 irq/64-aerdrv    0.0  0.0\n     86       2 irq/64-pciehp    0.0  0.0\n     87       2 irq/65-aerdrv    0.0  0.0\n     88       2 irq/65-pciehp    0.0  0.0\n     89       2 irq/66-aerdrv    0.0  0.0\n     90       2 irq/66-pciehp    0.0  0.0\n     91       2 irq/67-aerdrv    0.0  0.0\n     92       2 irq/67-pciehp    0.0  0.0\n     93       2 irq/68-aerdrv    0.0  0.0\n     94       2 irq/68-pciehp    0.0  0.0\n     95       2 irq/69-aerdrv    0.0  0.0\n     96       2 irq/69-pciehp    0.0  0.0\n     97       2 irq/70-aerdrv    0.0  0.0\n     98       2 irq/70-pciehp    0.0  0.0\n     99       2 irq/71-aerdrv    0.0  0.0\n    100       2 irq/71-pciehp    0.0  0.0\n    101       2 irq/72-aerdrv    0.0  0.0\n    102       2 irq/72-pciehp    0.0  0.0\n    103       2 irq/73-aerdrv    0.0  0.0\n    104       2 irq/73-pciehp    0.0  0.0\n    105       2 irq/49-ACPI:Ged  0.0  0.0\n    106       2 kworker/R-acpi_  0.0  0.0\n    107       2 scsi_eh_0        0.0  0.0\n    108       2 kworker/R-scsi_  0.0  0.0\n    109       2 kworker/R-mld    0.0  0.0\n    110       2 kworker/R-ipv6_  0.0  0.0\n    111       2 kworker/R-kstrp  0.0  0.0\n    113       2 kworker/u9:0     0.0  0.0\n    120       2 kworker/R-charg  0.0  0.0\n    191       2 hwrng            0.0  0.0\n    212       2 card0-crtc0      0.0  0.0\n    294       2 kworker/R-raid5  0.0  0.0\n    318       2 kworker/R-iscsi  0.0  0.0\n    346       2 kworker/0:1H-kb  0.0  0.0\n    354       2 kworker/1:1H-kb  0.0  0.0\n    361       2 jbd2/sda1-8      0.0  0.0\n    362       2 kworker/R-ext4-  0.0  0.0\n    461       2 kworker/R-kmpat  0.0  0.0\n    462       2 kworker/R-kmpat  0.0  0.0\n    471       2 kworker/R-nvme-  0.0  0.0\n    472       2 kworker/R-nvme-  0.0  0.0\n    473       2 kworker/R-nvme-  0.0  0.0\n    474       2 kworker/R-nvme-  0.0  0.0\n    736       2 jbd2/sda16-8     0.0  0.0\n    737       2 kworker/R-ext4-  0.0  0.0\n    836       2 jbd2/sdb-8       0.0  0.0\n    837       2 kworker/R-ext4-  0.0  0.0\n   1134       2 kworker/R-rpcio  0.0  0.0\n   1135       2 kworker/R-xprti  0.0  0.0\n   1154       2 kworker/R-cfg80  0.0  0.0\n   1255       1 dbus-daemon      0.0  0.0\n   1272       1 systemd-logind   0.0  0.0\n   1277       1 tailscaled       0.2  0.3\n   1293       1 fluentd          0.0  0.2\n   1333       1 containerd       0.2  0.4\n   1457       1 agetty           0.0  0.0\n   1525       1 agetty           0.0  0.0\n   1527       1 unattended-upgr  0.0  0.0\n   1530       1 systemd          0.0  0.0\n   1560    1530 (sd-pam)         0.0  0.0\n   1757       1 dockerd          0.9 27.2\n   2638    1293 ruby             0.0  0.2\n   4325       2 kworker/R-tls-s  0.0  0.0\n  14700    1530 dbus-daemon      0.0  0.0\n 166579       1 sshd             0.0  0.0\n 166642  166579 sshd             0.0  0.0\n 166643  166642 bash             0.0  0.0\n 569365       2 psimon           0.0  0.0\n 569379       1 cron             0.0  0.0\n 569398       1 systemd-resolve  0.0  0.0\n 569409       1 iscsid           0.0  0.0\n 569410       1 iscsid           0.0  0.0\n 569412       1 systemd-timesyn  0.0  0.0\n 569413       1 multipathd       0.0  0.2\n 569415       1 sshd             0.0  0.0\n 569416       1 systemd-journal  0.0  0.0\n 569418       1 fwupd            0.0  0.1\n 569420       1 systemd-udevd    0.0  0.0\n 569437       2 psimon           0.0  0.0\n 569444       1 polkitd          0.0  0.0\n 569445       1 systemd-network  0.0  0.0\n 569446       1 udisksd          0.0  0.0\n 569464       1 ModemManager     0.0  0.0\n 595750    1530 gpg-agent        0.0  0.0\n 766648    1530 node-MainThread  0.0  1.5\n 912507  766648 node-MainThread  1.5  4.6\n 912673  912507 t3-resource-mon  0.0  0.0\n1039230       2 kworker/u8:6-wr  0.0  0.0\n1092020  912507 codex            0.4  1.0\n1092388 1092020 codex-code-mode  0.0  0.0\n1117758       1 containerd-shim  0.0  0.0\n1117781 1117758 mongod           1.2  1.7\n1118846       1 containerd-shim  0.0  0.0\n1118871 1118846 tini             0.0  0.0\n1118890 1118871 java             1.7  6.3\n1126522       2 kworker/u8:5-lo  0.2  0.0\n1129377       1 containerd-shim  0.0  0.0\n1129400 1129377 nginx            0.0  0.0\n1129461 1129400 nginx            0.0  0.0\n1140175       2 kworker/u8:4-io  0.2  0.0\n1141481       2 kworker/1:0-eve  0.0  0.0\n1148373 1092020 bash             0.0  0.0\n1148662 1148373 timeout          0.0  0.0\n1148663 1148662 node-MainThread  0.3  0.5\n1149220       2 kworker/u8:0-io  0.4  0.0\n1150510       2 kworker/0:1-eve  0.0  0.0\n1150534       2 kworker/u8:7-lo  0.0  0.0\n1151687       2 kworker/0:0-eve  0.0  0.0\n1153149       2 kworker/1:1-eve  0.0  0.0\n1153695       2 kworker/u8:1-lo  0.4  0.0\n1153703       2 kworker/0:2-cgr  0.0  0.0\n1157296       2 kworker/0:3-eve  0.0  0.0\n1163983  166643 sleep            0.0  0.0\n1165567       2 kworker/u8:2     0.0  0.0\n1166788 1092020 bash             0.0  0.0\n1166789 1166788 timeout          0.0  0.0\n1166790 1166789 docker           0.1  0.1\n1166802 1166790 docker-buildx    0.4  0.3\n1166809       2 kworker/1:2      0.0  0.0\n1166847 1148663 timeout          0.0  0.0\n1166848 1166847 ps              11.1  0.0\n1500955       1 agent            0.0  0.1\n1500961       1 updater          0.0  0.0\n1501110 1500955 gomon            0.1  0.1\n1501152 1500955 oci-wlp          0.0  0.1\n1501170 1500955 sudo             0.0  0.0\n1501171 1501170 runcommand       0.0  0.1\n1501179 1500955 unifiedmonitori  0.0  0.1\n1921370    1530 at-spi-bus-laun  0.0  0.0\n1921377 1921370 dbus-daemon      0.0  0.0\n1921403    1530 at-spi2-registr  0.0  0.0\n2420790       1 rpcbind          0.0  0.0\n2429895       1 code-2d0b7506a3  0.0  0.0\n2714783       1 rsyslogd         1.4  0.0\n2883246       1 run-cupsd        0.0  0.0\n2883251       1 run-cups-browse  0.0  0.0\n2883455 2883246 cupsd            0.0  0.0\n2883467 2883251 cups-browsed     0.0  0.0\n4106774       1 snapd            0.0  0.1",
+  "clockTicksPerSecond": 100
+}

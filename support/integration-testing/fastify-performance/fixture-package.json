@@ -1,0 +1,9 @@
+{
+  "name": "redbox-fm007-production-composition",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@researchdatabox/sails-hook-redbox-storage-mongo": "1.5.3",
+    "redbox-hook-dev": "1.0.0"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "cell": {
+    "profile": "direct",
+    "workload": "W1",
+    "concurrency": 1,
+    "id": "direct-W1-0-c1"
+  },
+  "smoke": true,
+  "startedUtc": "2026-11-04T20:06:37.536Z",
+  "image": "sha256:9e87833133322a9d4e9bf7baf64b6d17e2a15598b05706b07c917fffce833cd7",
+  "protocol": {
+    "version": 1,
+    "warmupMs": 30000,
+    "measureMs": 120000,
+    "requestTimeoutMs": 30000,
+    "drainMs": 60000,
+    "outerSeconds": 600,
+    "repetitions": 5,
+    "records": 1000,
+    "warmRecords": 100,
+    "metadataBytes": 8192,
+    "patchBytes": 1024,
+    "minCompletions": 100,
+    "mutationRecordsPerWorker": 1,
+    "seedRevision": 0,
+    "portalPort": 18570,
+    "controlPort": 18574,
+    "proxyPort": 18572,
+    "tlsPort": 18573,
+    "mongoPort": 19570,
+    "solrPort": 19571
+  },
+  "valid": false,
+  "error": "AssertionError [ERR_ASSERTION]: never overlap owner processes\n\n'5026006b85e5' !== ''\n\n    at main (/home/ubuntu/work/github/redbox-portal/support/integration-testing/fastify-performance/sample.cjs:87:10)",
+  "finishedUtc": "2026-11-04T20:06:37.564Z"
+}

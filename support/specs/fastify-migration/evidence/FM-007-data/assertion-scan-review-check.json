@@ -1,0 +1,48 @@
+{
+  "sourceFiles": 1158,
+  "sourceSha256": "0c231bf037902ca590bcd077fc8de3ccd6d5ad326c3179a0ca5bdc061cb0f0f5",
+  "counts": {
+    "Angular": 146,
+    "Mocha/other JS test sources": 611,
+    "Playwright/harness": 51,
+    "Bruno": 350
+  },
+  "parseErrors": [],
+  "candidateSites": 1747,
+  "candidateFiles": 402,
+  "classified": {
+    "F": 1003,
+    "G": 596,
+    "O": 61,
+    "H": 28,
+    "P": 59
+  },
+  "byFamily": {
+    "Mocha/other JS test sources": {
+      "F": 930,
+      "G": 522,
+      "H": 20,
+      "O": 27,
+      "P": 49
+    },
+    "Angular": {
+      "G": 60,
+      "F": 55,
+      "O": 7
+    },
+    "Playwright/harness": {
+      "F": 18,
+      "G": 9,
+      "O": 2,
+      "H": 8,
+      "P": 6
+    },
+    "Bruno": {
+      "O": 25,
+      "G": 5,
+      "P": 4
+    }
+  },
+  "unclassified": 0,
+  "errors": []
+}

@@ -1,0 +1,3757 @@
+{
+  "schema": 1,
+  "createdUtc": "2026-11-05T04:23:38.833936+00:00",
+  "pathBase": "FM-007-data; measured-harness/ contains the original measured harness",
+  "archive": {
+    "path": "/home/ubuntu/work/evidence-archive/fastify-migration/FM-007/raw-telemetry.tar.gz",
+    "size": 73760002,
+    "sha256": "f2909d4f58bbf40df66c357175544d9f8eae5a2067f92d58ce6b9ca9c02d69d3"
+  },
+  "files": [
+    {
+      "path": "build-cache-before.jsonl",
+      "size": 30909,
+      "sha256": "faa592129bd20f1a0c2db8276875080a90ce3dcf2c04fff85f4d7fdb3ea7e8a8"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-1/host.jsonl.gz",
+      "size": 276149,
+      "sha256": "1d3b3247eab0d7f1f97b7134008a80e78871532c2d992b038ec0f023c36bf2eb"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-1/node.jsonl.gz",
+      "size": 14483,
+      "sha256": "08d5c225cf62249748e293dfb2f458d7db1d0f34176905b425e8c37dfc5f57e3"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-1/requests.jsonl.gz",
+      "size": 103044,
+      "sha256": "1f1d399320bdc7c2c0299590eb9d506be4676aeb325bf1eebd2700f8b5777f7e"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-1/seed.json.gz",
+      "size": 52960,
+      "sha256": "dd47719d8f6bc63ae4f84311653707391fbaa741b648e7a1b42002112cc81f4f"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-2/host.jsonl.gz",
+      "size": 282497,
+      "sha256": "e295809836c8f9ec9625a6ef61b7864daec9c5f987ab2afbd9451994bb0608b6"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-2/node.jsonl.gz",
+      "size": 14588,
+      "sha256": "7515ccd132e7e1ec28be03fce2259a76e743224696f2cf62fc88395431ca9234"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-2/requests.jsonl.gz",
+      "size": 112339,
+      "sha256": "080d980e8784a6005858dd5c0dafcdbdb6dd9d9aa06d4a342425f4c76f962e6a"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "d507fbae9f376c454699778931ad69192a90194dcef3417319828b41f4388cb6"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-3/host.jsonl.gz",
+      "size": 281793,
+      "sha256": "0a1392df2e5865605ea0744141787888f6bb10a684d3b561556f4afa8cfb234c"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-3/node.jsonl.gz",
+      "size": 14340,
+      "sha256": "8a1710886fd407420183fabad3f8a4b5c308d02d6e1253c53627d17bf603ef1a"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-3/requests.jsonl.gz",
+      "size": 113464,
+      "sha256": "acde0c1fd1e81cb5587dd045f2533c2ee8e35e3d9ce952b91940d7e53dc2ed88"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "db0644558f3e34c03fe3aef6cdbcea42d63488345ad676b45f09b2be08dd3a9c"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-4/host.jsonl.gz",
+      "size": 279357,
+      "sha256": "6a4f9f80cfacf0cb1bcfd2cbda758372f8b242e44876d406398940d0a5330768"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-4/node.jsonl.gz",
+      "size": 14215,
+      "sha256": "7b6c179d03dac37ea740c07372e6bade00526474263a922a17ec08bef19df6db"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-4/requests.jsonl.gz",
+      "size": 110736,
+      "sha256": "4de6161cdc3f42acc8641fd3db46d657587c235e6f3de79f3259c0712a4eeea1"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "3801dff3726425914141ba18a002a864588c6f1892eab9f363d0a14b52485b1a"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-5/host.jsonl.gz",
+      "size": 277427,
+      "sha256": "2687ef4bd3485fea14201ba700248611be0085c71aa05e263c88ef893d99c89c"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-5/node.jsonl.gz",
+      "size": 14244,
+      "sha256": "00160c237e379747a7dc6f695f5f9149582889e4d900688fe53d26104423a22f"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-5/requests.jsonl.gz",
+      "size": 115550,
+      "sha256": "09f32c31ed22dcaeea3d3c5993d7d3bd6c60ec31272f0d13559d42dc1f671bcc"
+    },
+    {
+      "path": "express-01-direct-W1-0-c1-5/seed.json.gz",
+      "size": 52959,
+      "sha256": "55e8d1319f54db3eb313ea648915167bf1baed03b7c635718a0dd95384a47c8e"
+    },
+    {
+      "path": "express-01-direct-W1-0-c8-1/host.jsonl.gz",
+      "size": 284813,
+      "sha256": "444a76feacfd0e3587f64afcbb53945e5578f83d1412253526ea550b69a4f6af"
+    },
+    {
+      "path": "express-01-direct-W1-0-c8-1/node.jsonl.gz",
+      "size": 14675,
+      "sha256": "2b7a0f57cfa7628a1ebdf1c9cc454dd28d93e90368cd8a3a9bb776766df893c5"
+    },
+    {
+      "path": "express-01-direct-W1-0-c8-1/portal.log.gz",
+      "size": 20,
+      "sha256": "d1111b245f685176180e6f1631e6dc49badf6672368e9ce260c71355165effdf"
+    },
+    {
+      "path": "express-01-direct-W1-0-c8-1/requests.jsonl.gz",
+      "size": 109657,
+      "sha256": "cf7a4a25a7e553b315b605ec06a9c1f1be5ee21f5bcbd67c85f9ddfc5ae271b1"
+    },
+    {
+      "path": "express-01-direct-W1-0-c8-1/result-before-invalidation.json",
+      "size": 166671,
+      "sha256": "67fb062f7b19c8ea1311c028401ba8d53a215ff1fb1f95d9f90a08c4f8969670"
+    },
+    {
+      "path": "express-01-direct-W1-0-c8-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "80510b9ac07b7892d884373781178cb378969965906492ec553bd30fee9cdce9"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-1/host.jsonl.gz",
+      "size": 282175,
+      "sha256": "daccc1136b33ee85bfa35b9e147651c6f373d421a71d23ec22c42a9a95a6c7e9"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-1/node.jsonl.gz",
+      "size": 14249,
+      "sha256": "cf7e605ba9230003f53b2fa58ef5da99c3c6ad2bdb801e623c9a39315dbec78a"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-1/requests.jsonl.gz",
+      "size": 121047,
+      "sha256": "e49407b20a55e10c799f33d7e2dfd84a437bbe0b2823f0ba1587773d45278fe2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-1/seed.json.gz",
+      "size": 52956,
+      "sha256": "82faddaaccb131f648741a71d50ca5bb33facf451cfd4b75fc0ca2548b8002ec"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-2/host.jsonl.gz",
+      "size": 277694,
+      "sha256": "2eca5bdabb44214478c60c59d4373ebfd115b39aa506dfc9c679df972461da66"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-2/node.jsonl.gz",
+      "size": 14327,
+      "sha256": "d676c05b738b05b544ff23084d466dccd33daa4154c24d45ce3b9b9a62a11057"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-2/requests.jsonl.gz",
+      "size": 120036,
+      "sha256": "f1d2418e3d61c935f2eb156fe4e74eaf06f955341122e0d494ec9bc27896a329"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "a4e107f8c50e8e462e1b2732092765f1bbf08497fd93eaf164c2c74f40a55d69"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-3/host.jsonl.gz",
+      "size": 279636,
+      "sha256": "a9911443e03aec8c406a212ff9227ae11996c8cf41fcabbd086f372ee9e11030"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-3/node.jsonl.gz",
+      "size": 14226,
+      "sha256": "1f4cce39757e56aca8584f630f3b245dbffde6f231cebc58085fccef5ff6d2fd"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-3/requests.jsonl.gz",
+      "size": 121957,
+      "sha256": "a1f59acf034981e1cb7f9a1da624dc726e173fecc7cf8ecbe59e2055b17e6303"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-3/seed.json.gz",
+      "size": 52956,
+      "sha256": "8c096a0db66a0330d164bd71d26c2a39187967bd8610a3a86777a194cd86adc1"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-4/host.jsonl.gz",
+      "size": 274599,
+      "sha256": "c4249a856df73cfdccea7bd50e9727cdf55a5d91c84d8dec8438398795841504"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-4/node.jsonl.gz",
+      "size": 14293,
+      "sha256": "846452c3a55b8d5fdab2fb160f9a4c3a87892284a7ab73543c52fece40b3b852"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-4/requests.jsonl.gz",
+      "size": 122291,
+      "sha256": "1ab7353c13b7a1a7f0d8fbafd3f746da454fe61dd7c1c850e01c6a2e09665842"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-4/seed.json.gz",
+      "size": 52961,
+      "sha256": "1323b591f35c17fcadd4ce6afa7aeda462813d575be206ca88a03cafb2e8f2ff"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-5/host.jsonl.gz",
+      "size": 278960,
+      "sha256": "97ca3ac3354d4a823cdd0047aad59350b0adfee67a78fcc3bce1e84b7d6fc2a4"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-5/node.jsonl.gz",
+      "size": 14156,
+      "sha256": "154a58d2c3dbfe79ec464860069c463eae106dfa50e5d9c30accd22e538bfca7"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-5/requests.jsonl.gz",
+      "size": 121334,
+      "sha256": "816f88f8284dc34c9e47e5c3f0365762d32ce85016fce5d11b81eb97da8628d8"
+    },
+    {
+      "path": "express-02-direct-W1-0-c1-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "37ee76dc300d7b7398a079901b5c7bb5610620727e49a7fda805a12b3ccd9bff"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-1/host.jsonl.gz",
+      "size": 280273,
+      "sha256": "4a53efb6906670cf05f649e1808917425b6a084a57536b44fb61a4f84e1e7b12"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-1/node.jsonl.gz",
+      "size": 14123,
+      "sha256": "c015b28264bc0accc973bd99cf3837bf2d03fce8313c9b15d88a0510208831e2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-1/requests.jsonl.gz",
+      "size": 121650,
+      "sha256": "07ccaf7ebc9ac35b903822455c38a8278084b5f0f19001df5075b7cd768954f2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-1/seed.json.gz",
+      "size": 52956,
+      "sha256": "ea36426252823e1167b3649f92c15a736040a4aaff5a31ab85133fbc585286e6"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-2/host.jsonl.gz",
+      "size": 285168,
+      "sha256": "d0847beee2459210f0aef7284ab0281ea0bcdd05716f3fde0a38f72f2dd9a760"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-2/node.jsonl.gz",
+      "size": 14272,
+      "sha256": "b846c1e56ef11fd5e99976b43d31ce8e9edd906284da3be4ae5c3ef6351e55dd"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-2/requests.jsonl.gz",
+      "size": 120773,
+      "sha256": "c5fe56b4b73926a31f48090eaf0efa8f61fe3a7b1fcdb2bd8e6d23ae30842a7c"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-2/seed.json.gz",
+      "size": 52961,
+      "sha256": "905762b24200d2ebaade3ba88b4cda44fe6fe2c63a9304c7e02455653ad82788"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-3/host.jsonl.gz",
+      "size": 286309,
+      "sha256": "5a6f462590e46f2ec023fe952595dc3ddaa4d9e0ede55355984ac1914fa27174"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-3/node.jsonl.gz",
+      "size": 14324,
+      "sha256": "e938852ce87a7142cedb22569b50c0080100565396ca2adfd2cb36901a19fccd"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-3/requests.jsonl.gz",
+      "size": 120276,
+      "sha256": "bfd85a04dc0b81707d63f1c75a95489dd35d5e534a0ad50548c9c6226b5f21eb"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-3/seed.json.gz",
+      "size": 52962,
+      "sha256": "be72e2bdc2e05c910c9f29b19085761dd2a25a73267a34d10a8023306aaf8d8d"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-4/host.jsonl.gz",
+      "size": 283644,
+      "sha256": "fa6952022dfde26133f7f8d0307f1d0c22f368b79f92570f47274c7fa21cac24"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-4/node.jsonl.gz",
+      "size": 14399,
+      "sha256": "5de6b080c7132fcbeacca95a6ebe539db6aa42c33a91e898de54d043ec2c54c4"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-4/requests.jsonl.gz",
+      "size": 121276,
+      "sha256": "3adb1dfd21339e76784408c89dc83821d59a706fa5b54f8d7ea489b937e0f6df"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "424aee70b82a997b0554528f5ac679f048818152f76a0821b76579ec7a975ce3"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-5/host.jsonl.gz",
+      "size": 282297,
+      "sha256": "9aa5e0e401332bc5e59494518260b47a898e95e0a11f64d1c3bed55e769fc1c5"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-5/node.jsonl.gz",
+      "size": 14304,
+      "sha256": "944eaea5ed1e1476a384a8c7fb428a7231728fd99d44b83a075d6db0b8e30580"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-5/requests.jsonl.gz",
+      "size": 121995,
+      "sha256": "a216b843782393f483d45379b539be285acefb21607a2e4309d561f317e607b7"
+    },
+    {
+      "path": "express-02-direct-W1-0-c8-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "9eee3c2def3d3faaed895899ab5b16da077908b119905d203dd8b4771899c691"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-1/host.jsonl.gz",
+      "size": 277794,
+      "sha256": "57a413923927c1bd18b857583528e5e2d53874905471720a80873904d8ed577e"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-1/node.jsonl.gz",
+      "size": 14696,
+      "sha256": "79fd46327b6ba8223091820fc4612ba5f42e3d747591a38ee3ebc3b64fac0088"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-1/requests.jsonl.gz",
+      "size": 65155,
+      "sha256": "2ce8e62e42ca4ba0d20a33e9ccadd5f7d5ba5e90f76142de7b8a863124115639"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-1/seed.json.gz",
+      "size": 52957,
+      "sha256": "0b1dd42379a451e2bccc262282aee12d8944c45abb9ff320948ed2827909a963"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-2/host.jsonl.gz",
+      "size": 280488,
+      "sha256": "23e6e61f2fb291b3e456a02b18174afc4ae6b4e27ac3d00fd9ab00c09a3c1eb4"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-2/node.jsonl.gz",
+      "size": 14642,
+      "sha256": "98db5a419f0acd35c162d79cd57439701956cd9128a1619902b9c7faaefe341c"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-2/requests.jsonl.gz",
+      "size": 64496,
+      "sha256": "b23199ad4105e2e464b7ec1863d0824f7eaf64baed1d6cb14c728f3a9015d012"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "a172b993b04a0362351c74da02c8b5fcba1918f2b5f9dd1d02171b40bf27b3e2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-3/host.jsonl.gz",
+      "size": 278004,
+      "sha256": "8097ec52eccb0101ff7517ed53609fc25a40f7315d39c4c6fea8c48faaefca9f"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-3/node.jsonl.gz",
+      "size": 14722,
+      "sha256": "dae2bba131185c255b3b789348e3864d443acf7c92be6a3a4f57886248649d16"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-3/requests.jsonl.gz",
+      "size": 60864,
+      "sha256": "27f63a1ccec59a12ac2d1ccffa849b824ad3acafc329ee76358ea224e39cc6b5"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-3/seed.json.gz",
+      "size": 52958,
+      "sha256": "346107159568b750000a1f5e1fc6bf704189c0d4a65718aca76eb27370712069"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-4/host.jsonl.gz",
+      "size": 278496,
+      "sha256": "2ae9a95b78936ff66b45b4e33531f4a7dbea869d02183288135eddb245586990"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-4/node.jsonl.gz",
+      "size": 14710,
+      "sha256": "af193a92bc0e69e1d5cf51406aef048c31c80373115adea253909d8a5b3a9962"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-4/requests.jsonl.gz",
+      "size": 64538,
+      "sha256": "34271ad8bfc35bd0315f001a039cb80f5cd910965fd93b5e45b427904148df60"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-4/seed.json.gz",
+      "size": 52954,
+      "sha256": "5417e43eb40d0bf78fe39f4fc326d7dfa37a4b916fe03033becb1d35903161e9"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-5/host.jsonl.gz",
+      "size": 275399,
+      "sha256": "57a411f37e48a7c9fcdf0b1b545c583099f6df99a6f4bfcf4cb6364f09872db7"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-5/node.jsonl.gz",
+      "size": 14779,
+      "sha256": "fc7edcdc6f0f706f606ee13e2f130ba6972de22a41592cfd3e57bd38f95c50ed"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-5/requests.jsonl.gz",
+      "size": 64502,
+      "sha256": "f83ffabda44b6ecfef89d52a3e75eb11e705aa9b72f26fd55694804489c09193"
+    },
+    {
+      "path": "express-02-direct-W2-0-c1-5/seed.json.gz",
+      "size": 52954,
+      "sha256": "831c2c1f17e18f1a246d92d98ff52fb7b5e78d3749d6b694e0b1c4fdb731d0d6"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-1/host.jsonl.gz",
+      "size": 321179,
+      "sha256": "18835a2fc1f9691142a4238445509c1a3a196f796567d362af24416309d4281b"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-1/node.jsonl.gz",
+      "size": 16676,
+      "sha256": "899fa59ec13c511806916ba76fe5ad97b312c6cdf70aa605fc333046e0f6c45f"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-1/requests.jsonl.gz",
+      "size": 71717,
+      "sha256": "468c955ba67080f764725652ae03659121bcb7a28bc8e97376d215b98accd4cd"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-1/seed.json.gz",
+      "size": 52956,
+      "sha256": "c33b841daac1cf18345fba24cd4cf880dd3c75243955354fa9b92646e486f5af"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-2/host.jsonl.gz",
+      "size": 324191,
+      "sha256": "f7f01a516dd74f41f9b92489eca14aa685adcce933c21ce30584a444301affb0"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-2/node.jsonl.gz",
+      "size": 16898,
+      "sha256": "9afdf2233196b50ef00a948ebc901f9b90fa2900ddcf21229fb36e6e5c50fc05"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-2/requests.jsonl.gz",
+      "size": 71767,
+      "sha256": "29582c02bda80d67580579f96147d33b9208c3b9e6900cf1baa7e81e46096917"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "d073c80529cb363527417f23a4626feab11ef9698be434501a7fcf927f75d5d7"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-3/host.jsonl.gz",
+      "size": 317876,
+      "sha256": "bc107d208bd13acc7c86491369e143fa76f68fe200ce5859e090ff3dba6bc685"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-3/node.jsonl.gz",
+      "size": 16349,
+      "sha256": "2dc0a62cf1ae479afd55764176b0d6844be4012e63e7f33b70b3d7c3a3809ebd"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-3/requests.jsonl.gz",
+      "size": 68502,
+      "sha256": "672750913ad7238cba652d9cf44fb3716d1931622e8bb96f52406db0d1f3f4e7"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "6057338a05fb3bc15eab013bdb4039558147b037c593d836511798a76be167b5"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-4/host.jsonl.gz",
+      "size": 325956,
+      "sha256": "27f4fbb0427aeced3200ca5b0a79f32fa58ba9cc3acd7de53656ed324db067bf"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-4/node.jsonl.gz",
+      "size": 16747,
+      "sha256": "529ed8aaed09f87de72b605a6e970741323f9de71daf4923aa08947f32b2f7f2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-4/requests.jsonl.gz",
+      "size": 71234,
+      "sha256": "c2c0a2a765c80b2600b302ed7c9c9ed66bd9548366b38a59e59b699201263610"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-4/seed.json.gz",
+      "size": 52961,
+      "sha256": "ec66e1d0b5d99aadc5339e51e740ceea5feb4c8e0a6911fd96f47a4494ffd873"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-5/host.jsonl.gz",
+      "size": 318978,
+      "sha256": "fe5fd2698e740e9c8016f25f20b02a4c102643641a8d0046e63473cf605843bc"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-5/node.jsonl.gz",
+      "size": 16862,
+      "sha256": "0ee8eaedd5b6b73141e77c16e42584ea2196b98fe411a85eae95163b58b72735"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-5/requests.jsonl.gz",
+      "size": 71115,
+      "sha256": "3a923404c6b6122fa2b7ba3437f2ebfd5912be3ccc282119d401e5f2827cec54"
+    },
+    {
+      "path": "express-02-direct-W2-0-c4-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "9e16cc46c5ddaa404ee6975ff59b8c9cf1e69b974176cd79444fcaef46415cb3"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-1/host.jsonl.gz",
+      "size": 268443,
+      "sha256": "eda0db1347d43b00390acf70f6a91822288250c4d18c68f5fddd49d2c14e60f4"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-1/node.jsonl.gz",
+      "size": 14449,
+      "sha256": "5fc96071a485cae5a2fb0ecb9f9c4dec9aa50d0338714d67ec2b5d542410acf6"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-1/requests.jsonl.gz",
+      "size": 500294,
+      "sha256": "e6dd42fd2f9e4f57d17770ed9de7ae094120b136d0bf2102873bbd9fd3abe191"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "c8c47c5be588b31d161b0040d5fcf807d7a7c1575c17faa51e5887320da6065a"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-2/host.jsonl.gz",
+      "size": 274991,
+      "sha256": "31c431136f30733ff9c5824f959ffe7cd3811e091b1cc0c26ab742992ecf1d96"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-2/node.jsonl.gz",
+      "size": 14527,
+      "sha256": "f80701f0c5d4c1001b4ed5571424a8ea31333b91613d88fba9d8db53763988b8"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-2/requests.jsonl.gz",
+      "size": 506057,
+      "sha256": "d175a4d2255e8b5c51aacffb14bb11dbe8b48b8b158b11e5e6b853225d7d9958"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-2/seed.json.gz",
+      "size": 52956,
+      "sha256": "5c6305f16d3e624ae6773c139651fb279b5dd0e94185c51e270b97a4c2577abd"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-3/host.jsonl.gz",
+      "size": 274792,
+      "sha256": "22f6559c959db91fe59559da8dea0a19c4add610c777bb4d6e3c9d8caf7f76b6"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-3/node.jsonl.gz",
+      "size": 14528,
+      "sha256": "e5ba1f73ecbba1e9ad0f54da6626a7af45ea77776e893d407bacef3f55e14233"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-3/requests.jsonl.gz",
+      "size": 500916,
+      "sha256": "cf8da196db0d7018a0cff67e17868ea9183e6f5e03f27171125717505d477bca"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-3/seed.json.gz",
+      "size": 52957,
+      "sha256": "78a8c7a13b33bd6eaccef13c0c368d11e082ff2dacc489b7d79855ab9b197c67"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-4/host.jsonl.gz",
+      "size": 273300,
+      "sha256": "c0b69864154f93acffd9e8a707fe06e2fcab411cab7114619b8eed0dbf5446a3"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-4/node.jsonl.gz",
+      "size": 14534,
+      "sha256": "d3739a765c054b8b37e99022366ca918a0e21b631cb81374df3d3a40ae756232"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-4/requests.jsonl.gz",
+      "size": 494327,
+      "sha256": "97efa1852648a08e00234c1c59e8b756efbe79b8b177aa13f65060f4d5fd9cc7"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-4/seed.json.gz",
+      "size": 52960,
+      "sha256": "39a09ac1ab2d07f458025c297f79a576be300430762d51c3fe15ef4c390d687e"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-5/host.jsonl.gz",
+      "size": 271801,
+      "sha256": "e7b9f2b349587250dd7080bd54519dfeeb03b320b6556d6bfe2ad6f0b6ef5193"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-5/node.jsonl.gz",
+      "size": 14513,
+      "sha256": "c1cd0ab953058c3e15e2428e68e0e8430372cc1b4fc2b72d9b50c14173267e02"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-5/requests.jsonl.gz",
+      "size": 511625,
+      "sha256": "ada6c920ab3fe89502bdf309495a104c6f801e5c2f911d61f6ef4fe24c5e04f6"
+    },
+    {
+      "path": "express-02-direct-W3-0-c1-5/seed.json.gz",
+      "size": 52956,
+      "sha256": "fae3ddedc3e15732aff9cf7af5a42109e18bdcad232d5928fb7e5d45886b938b"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-1/host.jsonl.gz",
+      "size": 278057,
+      "sha256": "1fd8698615e680df07e1a47e96f793f6a2397ab5817315912bf66b86dabd2bd9"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-1/node.jsonl.gz",
+      "size": 15207,
+      "sha256": "1a1d33f688a10cb78e2da16a37ab47e4c2291b7c8ac39ce00e3eaf1a0d4225b2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-1/requests.jsonl.gz",
+      "size": 481659,
+      "sha256": "b1ce94c5981fa3f499259b92cccfe6ee41ab736ee755922becab8ea4d7cd5bf2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-1/seed.json.gz",
+      "size": 52960,
+      "sha256": "2df2c7e45cad76769d88d46ef27103d5fc42286733521a5aabf7b9e0096f836c"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-2/host.jsonl.gz",
+      "size": 278310,
+      "sha256": "0d97a71312ce669b0e99b98d113be6454d302f065b9ce69713f17ac6bf28c990"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-2/node.jsonl.gz",
+      "size": 15349,
+      "sha256": "2a047611f1e1902e3c3f2cb526117f95e776a660360232e409673b3861fd0d0c"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-2/requests.jsonl.gz",
+      "size": 511806,
+      "sha256": "94c4239f9fffe623d0ef4fb914dbb6834ac403136f80a58a819c6e3b721a272a"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-2/seed.json.gz",
+      "size": 52956,
+      "sha256": "2e21685b0cd254c496f69f3cc8e20d2764f9959e51a26b2229cd54387ada9a25"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-3/host.jsonl.gz",
+      "size": 280493,
+      "sha256": "9fb7686a727f321c785a2872b04d13b65a553b775aa776c2f5dc00ab6a6134c9"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-3/node.jsonl.gz",
+      "size": 15217,
+      "sha256": "aae3da205f3d6f9154c337301c1d52257e3f7f945fb44ef6c71718849375328c"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-3/requests.jsonl.gz",
+      "size": 496328,
+      "sha256": "5e5b31e70862f5b321573e2a889f8e4af23900c9700d81f901be59174b4771e2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-3/seed.json.gz",
+      "size": 52957,
+      "sha256": "60e620879a5b8d2586f8d79c288da051b8c85610a9dea4c801280efc028b2f29"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-4/host.jsonl.gz",
+      "size": 276106,
+      "sha256": "8fdb817001698ce35584488cc2dff3fcae048a06add7561b29fd3ad0857f52e3"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-4/node.jsonl.gz",
+      "size": 15324,
+      "sha256": "5e511dd9ea1b2848fe4d4d8971e4a9557a3a655e8a712437fb818ff83f1d50d2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-4/requests.jsonl.gz",
+      "size": 512352,
+      "sha256": "2783c913d3b8f870920279ab2fe1eb6d56ccd3787bad616780d4c833b563a0c3"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-4/seed.json.gz",
+      "size": 52961,
+      "sha256": "02e29588d383ce094987bcaccf8918970245922f44a98bb897d546e577e2e20a"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-5/host.jsonl.gz",
+      "size": 280798,
+      "sha256": "97ab40072e4cbffce73d1aa23b13440407366ee36d47ec98124ca1195effc4ff"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-5/node.jsonl.gz",
+      "size": 15228,
+      "sha256": "f8a8f426fa0e97da95e0dc029f861a738bd4da2bd388eb32bca95c3a12d63f0d"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-5/requests.jsonl.gz",
+      "size": 489866,
+      "sha256": "e9c28525f27ec66124e2b251bf7babf324f913dcca4e1ed8fd894ba642646351"
+    },
+    {
+      "path": "express-02-direct-W3-0-c8-5/seed.json.gz",
+      "size": 52956,
+      "sha256": "4ea866ffdd05239a2afe16096f0ff68d86f8632d2fc0bba4207ac4dc91c25b78"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-1/host.jsonl.gz",
+      "size": 268567,
+      "sha256": "a0ad23a1bc7e1acd42cacf1fab6c6db16987a442fc9e3edb0f159a5fdfd67cba"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-1/node.jsonl.gz",
+      "size": 14848,
+      "sha256": "737807cf5df76f366784fe74352c00394ae9c443a11036e8d1591c1fee789c42"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-1/requests.jsonl.gz",
+      "size": 269637,
+      "sha256": "4fd2771db3791aa4a3cbfcb1eb918c71c51ce7464be7ec4a356b2c03f3ef2cb1"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-1/seed.json.gz",
+      "size": 52956,
+      "sha256": "01f9769732c1703909fb808b38331d2d3d6d238f57aa325492cf79f36cdc138e"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-2/host.jsonl.gz",
+      "size": 274512,
+      "sha256": "f002f885f791cccb1563195fb7c9e14f314edb7b958032298953c9dd09a95e13"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-2/node.jsonl.gz",
+      "size": 14533,
+      "sha256": "21c0b153d00405f1047c6ad48ccebe3ec02c7015faa510f6542b81469a9bec05"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-2/requests.jsonl.gz",
+      "size": 269871,
+      "sha256": "848860dd454a75165cfc786ca6512bc5cefee34e72f93af62d737daeab2f5174"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-2/seed.json.gz",
+      "size": 52957,
+      "sha256": "331603616d29aa4c99a17a814f41d31094e80b9e64c36f0a21a2c32bfe2f94ec"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-3/host.jsonl.gz",
+      "size": 274594,
+      "sha256": "8c8eefb959741d6dba5c7fcf5801d7b4fa041a1b4bd67ec3e4ad728f0956b698"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-3/node.jsonl.gz",
+      "size": 14891,
+      "sha256": "285b1d85e14d4baa4594d6dfe7f139587c58a84a54712c4449cae399a229af7d"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-3/requests.jsonl.gz",
+      "size": 269003,
+      "sha256": "9a95ba5773079089b31366c717f5085d874a78020cfe4f68779640e71c9f059a"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "dfaa0e3fb0f4ca1533011aa3732a1c76618d77df6a8f830d271d9bd61ac0fd35"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-4/host.jsonl.gz",
+      "size": 281840,
+      "sha256": "bb044e74fc7f57457cf3d9af5e00f1e7b222f130d73b445d80927b152ef0c5ee"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-4/node.jsonl.gz",
+      "size": 14716,
+      "sha256": "f63135f8e6ce289153e4984ebeb59226a7f5c0f1766eb29363812d9523881070"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-4/requests.jsonl.gz",
+      "size": 256551,
+      "sha256": "ce3450bf8c29e648f8ca41629eee51f69b669f4461e5c2508328bb3f7d634934"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "a97bee4184b043f3a8691fc598b823184262cbacbf70072ce6b1913d078ec967"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-5/host.jsonl.gz",
+      "size": 275288,
+      "sha256": "0b27101d104089a100df6f7c99afa564dc8238a38cd4546d997644e1ce278c98"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-5/node.jsonl.gz",
+      "size": 14966,
+      "sha256": "c728862f2512c2d07c83c6ccfa69bd68d472574136cc3a5c019695ef7d9dce82"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-5/requests.jsonl.gz",
+      "size": 265147,
+      "sha256": "9f2d6a755ad6505fdc6a268afedde6450dc97d9ececb53fe2e4437f8cdbda756"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c1-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "4e3024f21d087a6efa2359b09e2624f7eefcb449aa3bb7717cfe5a8da390797f"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-1/host.jsonl.gz",
+      "size": 277186,
+      "sha256": "58240c4963fdf6560693328379632ba350cccb3dbf978bde4c2096dfa3d12763"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-1/node.jsonl.gz",
+      "size": 15091,
+      "sha256": "6dc1df66c3ba287c8beb98e6660dc41e6a20f0fb523fd058ffe4cdab076d0ae8"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-1/requests.jsonl.gz",
+      "size": 315191,
+      "sha256": "b1779fb29e3bf86132539775817d481280814c0366ab3f2b93925204f540cbef"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "5174b5bf2de44c368079446592a6c05199e977ea4939ff5ab2bd3be459718766"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-2/host.jsonl.gz",
+      "size": 272409,
+      "sha256": "6cf25564f5298882f8ee70251674975a5ed5e51253ff9ae3e41a7aca6b1f075a"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-2/node.jsonl.gz",
+      "size": 15180,
+      "sha256": "29bee310d4f9fd6dac1dd6ff59834be95633c92c8e39b3a9c5987567f0f0af98"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-2/requests.jsonl.gz",
+      "size": 313569,
+      "sha256": "6802ff2e7ee30b12f38c7031067c52326524b17bca7263191fbcd8cb4dc24eac"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-2/seed.json.gz",
+      "size": 52960,
+      "sha256": "5ff8f833a2bdf22208a204a1ada7d949ea81fab43ac3ab7cf6af3f27fa851ff4"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-3/host.jsonl.gz",
+      "size": 279741,
+      "sha256": "e04e5528e43b6ef272b25316291b704c3cb3058303ab9cb0716a19fe77d8403d"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-3/node.jsonl.gz",
+      "size": 15240,
+      "sha256": "15df19a84ff17d1d9e6f004e847dfc1262a169d294400cd2bf29c7c902d939c0"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-3/requests.jsonl.gz",
+      "size": 312823,
+      "sha256": "6546118492ae338822075ba54ceecfffd5e78a8977684d0356ce0d840f727d06"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-3/seed.json.gz",
+      "size": 52956,
+      "sha256": "639e84d991923bb45403597575d1f15fd45621df2d6f03ec0d1ee3aa688bd0da"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-4/host.jsonl.gz",
+      "size": 277638,
+      "sha256": "b56cdb29bbae5f3dbff8eb1f52c0ad2698eb3813066ef3277e63cd464dec24af"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-4/node.jsonl.gz",
+      "size": 15048,
+      "sha256": "9fdc51850e1d22882dad6a88c1e8a9d7d010090ca70d774d9299e6ea8da7428d"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-4/requests.jsonl.gz",
+      "size": 317718,
+      "sha256": "118db0480fd67dd418d77b222b7d02c78d38a19e5f6c90cb4ba4fe6bcda6c8f8"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-4/seed.json.gz",
+      "size": 52957,
+      "sha256": "6ada00d450dcb3f5a95faa063220417f257991d2926bf38e9437876bcaf039e1"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-5/host.jsonl.gz",
+      "size": 276479,
+      "sha256": "230873d529f9ac890ccd89480c8516920b73edf12d81a2efa0d917dcec6afece"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-5/node.jsonl.gz",
+      "size": 15022,
+      "sha256": "b9c05f5f69f49592de3d328a6f8b04130bd9eb3454b1e415d72922598ee7f43b"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-5/requests.jsonl.gz",
+      "size": 306451,
+      "sha256": "52654fd3fd4f7fe047fa92fa652bc1d5d6add0e59d0ee8ac6cb4f4170e7e8097"
+    },
+    {
+      "path": "express-02-direct-W4-1048576-c4-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "ed00e72387763dd5754eb5b96de62f0bf47685d25cb09ea2a10cea4e2486c9c4"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-1/host.jsonl.gz",
+      "size": 280567,
+      "sha256": "6c22e3019396b030c36c1ee81aa45f4fe4ccc3958f3e9ad0eda109e5f93fa0ad"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-1/node.jsonl.gz",
+      "size": 15110,
+      "sha256": "e19ebbf49efd74a0fd92eaa70c530611bcc2c6682d27b3004128f8d83e785bbd"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-1/requests.jsonl.gz",
+      "size": 22989,
+      "sha256": "83a83413a05e7289cc6b4e554937aea73b9bdfb5ba6bcb1389006c1c89779396"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "f9816b4ea882acafbb707f34b89cb410f78644255d0ef502952a8b72cde88c8e"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-2/host.jsonl.gz",
+      "size": 279694,
+      "sha256": "dba0f3c1a5ebc73f4ac20a9d69596dc2359f1c59084f3586dd10276fdd4042f7"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-2/node.jsonl.gz",
+      "size": 15512,
+      "sha256": "c90e2497ab4786ea5c46e65e43b620dc1ec970e9ecb94fe978b66947b6d01255"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-2/requests.jsonl.gz",
+      "size": 24273,
+      "sha256": "63b4ba2a491a6be1143c2caa83f15f5074e99eee9d1969a9be6905f66672404a"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-2/seed.json.gz",
+      "size": 52954,
+      "sha256": "b5f6582cb89c7cf0b45cb5d371a2f573bb99ab58a327b207819d0d366ab106cc"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-3/host.jsonl.gz",
+      "size": 281574,
+      "sha256": "abe70abb09f9b797bd1a1c72f714eecaf4a94b3d1c220879e4d01a9306b1254e"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-3/node.jsonl.gz",
+      "size": 15464,
+      "sha256": "e77f55026775a6b88a87b328cf13333f9b048e2b95298bfc7fb3a3de08d52e3a"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-3/requests.jsonl.gz",
+      "size": 24019,
+      "sha256": "e84a1b6c9d14e392ee5765460b06cee417399ae9ea9d53f8effce926ddc22d7b"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-3/seed.json.gz",
+      "size": 52956,
+      "sha256": "addcd32d4cb4489bf4d42af84aa267d92c41fad17f55bdff9c89797901b59b7b"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-4/host.jsonl.gz",
+      "size": 272764,
+      "sha256": "2b7dd82c00e55daa0eb031572d0dcaa66935f17e07c4ba7262d0a0ba0fb62e5b"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-4/node.jsonl.gz",
+      "size": 15241,
+      "sha256": "ae42a6a08f7cd567b2c8a954ba74f95564e77930796fe2e1be48f22657acc083"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-4/requests.jsonl.gz",
+      "size": 23341,
+      "sha256": "e3d8e4f34f8b7d72527fc36ff486b49d8dab8adc8d2fa40d8d035a198f5dea5d"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-4/seed.json.gz",
+      "size": 52962,
+      "sha256": "3c34af9d0a144fad66d9610ceec817759a6bbc7813351870f302f4f2ab12cb30"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-5/host.jsonl.gz",
+      "size": 277447,
+      "sha256": "0ddcd768eb4c1c3499b52bdcd460d1f842b7b1d98f3652963534ce76fd69a7b3"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-5/node.jsonl.gz",
+      "size": 14847,
+      "sha256": "e315a8e47fdc74b1af855abb19b58c1c4cca1d1ad10524a0eb8870d493a707f5"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-5/requests.jsonl.gz",
+      "size": 23862,
+      "sha256": "379463cd306d1cea39f9c8f154f833e3387412341d8b32b14f6a2b8df8445877"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c1-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "fd08497e5124767283e0c1f9b649f13d965022766990edce492a77755c1d5f6c"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-1/host.jsonl.gz",
+      "size": 275066,
+      "sha256": "5812b8d2d1c82de4a977d575202ebd55d719c56d43f9375a9783b9f8369a6000"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-1/node.jsonl.gz",
+      "size": 15188,
+      "sha256": "a14ef08662278af9482cfcc0823124f21672b031b9ec093ceb74332d6b8a9923"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-1/requests.jsonl.gz",
+      "size": 27989,
+      "sha256": "6b62f8ef71950879eb6a13bc97541a60ab8f9e04db86d36fe4968882acfaff83"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-1/seed.json.gz",
+      "size": 52957,
+      "sha256": "eb67b00801632c7f5c6656bc72a09ad6091a674abe916a10388dfbc0819ad31c"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-2/host.jsonl.gz",
+      "size": 271274,
+      "sha256": "5165272bf1b4b55c794ea42124016de0d2a702c0d85101548fb762b046308cc1"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-2/node.jsonl.gz",
+      "size": 15676,
+      "sha256": "d3361c7e7d2e0320fefd3d2ca0c52b5d0471aef1d4be57d5b546be4cf9d176fb"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-2/requests.jsonl.gz",
+      "size": 28516,
+      "sha256": "ab5c4aeabbd2cd0b38d39a00a4545a0eb662e65a3965c044ed58558c84d032c3"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "5977f1517f1f1efcb73d956e2544dd9b6a12e0dd04f34b117ba2500f4be5f201"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-3/host.jsonl.gz",
+      "size": 271682,
+      "sha256": "e7f3d62def658e7a8aa3b5ed4d811831e8ba90132614eb6d7558c54f9e1daf3b"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-3/node.jsonl.gz",
+      "size": 15773,
+      "sha256": "2b815bb9ea9226c447850bf908db3b2eb391dd4ebb53e8a73549c330c83ed40d"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-3/requests.jsonl.gz",
+      "size": 29989,
+      "sha256": "eba0623aab16084f07bd32cdfc0a44c163802b91c5b9a064b7c279eb740bde00"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "2b83bb4730fe18d41f66dab53cf8bf4d97e9679bbe9caa2fe20e4b1d0d50c921"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-4/host.jsonl.gz",
+      "size": 286431,
+      "sha256": "1046380154d53c4188d12047747a80b910d63806124693d494741c239943b95b"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-4/node.jsonl.gz",
+      "size": 15559,
+      "sha256": "7c243385a059198d16ad636bcefa0e1b83e5793d6672aa693064dcefe7eee331"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-4/requests.jsonl.gz",
+      "size": 25994,
+      "sha256": "e00c10b96888a83e1ed5eea151159d2da8e748dbf48dcb1eaf8ba3a999eae2a9"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "746b5211bdaef9904cddf9c60705195a5be385e5cc8c25600a533e8a6803940a"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-5/host.jsonl.gz",
+      "size": 285071,
+      "sha256": "846e704537c20427af895ef1576f28607061c24f7adfe113c114756bcc9935e2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-5/node.jsonl.gz",
+      "size": 15257,
+      "sha256": "aa386929f89453a265e4af2207ee262efc7a3ba45e699adea18956f806ef3e93"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-5/requests.jsonl.gz",
+      "size": 28309,
+      "sha256": "a4cd46f54431c73c5904e438a6be5f48176fc5e5e77b83fea11ac0aa7f49db53"
+    },
+    {
+      "path": "express-02-direct-W4-33554432-c4-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "1e88e12bb750f52f5b80d3e20c530356cacee8e1ea635dd7d06b5ea8e4ebe737"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-1/host.jsonl.gz",
+      "size": 279894,
+      "sha256": "1b0ffea5e85dddfa0d380aa4d0b1c872c6adf8e6d1dcbb2ac9c0754f042d7952"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-1/node.jsonl.gz",
+      "size": 14240,
+      "sha256": "537f2dffb90cbfcda652fe6958f7a4df62b3a4eb0ce8d1373f754669757e0dfd"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-1/requests.jsonl.gz",
+      "size": 109220,
+      "sha256": "d55de7e0f25bc87a3e0abc768712e160fe918c9696af030f5a2697224fbc2987"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "0b0a71ca40bc5216365504a61590e4d45a1225d540195c7b9a3a5ad33929db75"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-2/host.jsonl.gz",
+      "size": 281129,
+      "sha256": "8c2697be7ebbfe974c2d6845fb98b5a4bb947628d46ac8108824eda2f98c1c50"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-2/node.jsonl.gz",
+      "size": 14294,
+      "sha256": "da699746106691f4e26e71ef3ad3187ac4a10f8bb802d3c609889e249b0fb5e2"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-2/requests.jsonl.gz",
+      "size": 118355,
+      "sha256": "b61ed6bb91ce54bc1654b51d305e6a2c255983eca1b34de7398d36e9b5d37f51"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-2/seed.json.gz",
+      "size": 52958,
+      "sha256": "6ffc82c1d32f5a2354809d93ddf2ea10ced116d290e35cf4d612c2665e79292e"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-3/host.jsonl.gz",
+      "size": 275658,
+      "sha256": "a0ff4066580d72e63e08451115f719593fd920521a2ea405f53a99bf1a136461"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-3/node.jsonl.gz",
+      "size": 14211,
+      "sha256": "087182d6d904cc41087ab9e4e034a4a19a84cd34933d60f996ca6730d2244278"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-3/requests.jsonl.gz",
+      "size": 118484,
+      "sha256": "73bfb4188c6669820b97ead1b012b6efbfb26d5086077e41a510a77374fb6ea8"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "e4aa443f650695abbbe6843521c7e9ae5fda8534e9fb1b8a77706dfeef35854c"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-4/host.jsonl.gz",
+      "size": 277160,
+      "sha256": "a2fc5dc0ff13f80d68cba650029605465eeefa99d9120e49587b1f9653676790"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-4/node.jsonl.gz",
+      "size": 14210,
+      "sha256": "1f591e826551f43b87263a667e70492ad68d471c0dbc961de8f5c1dc8e4107c9"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-4/requests.jsonl.gz",
+      "size": 118138,
+      "sha256": "bbb005153b2c9965b357c52e33aefb35f2e9dd5b9ce61cb50992b95fe044fc17"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "d134464675ef66489bb7a2fa596b19747bc81d1b170c3547e70dbf082e89fbd8"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-5/host.jsonl.gz",
+      "size": 285445,
+      "sha256": "e50f305589aa0519aef18d9c4221d305421aff6d12fb7663aa6d18e359ef87ef"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-5/node.jsonl.gz",
+      "size": 14115,
+      "sha256": "b7a1704c1abe22285eef11beadd706ef9cc765fca53bed952137261fe9c27669"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-5/requests.jsonl.gz",
+      "size": 109282,
+      "sha256": "6544a2b355a4df8cc5995fc731ac7005fcd32aacffa113d8efd791ef33e8fcbb"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c1-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "333e21b7133b2c9c8efcceab6a3804e6e9fb52250ca2a61cd4b4d9e089fe909f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-1/host.jsonl.gz",
+      "size": 280777,
+      "sha256": "5715d8ef48661ec27948162320c0a8e00f60758da397d91091e4575d5c0607a1"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-1/node.jsonl.gz",
+      "size": 14413,
+      "sha256": "12b07b40768bf9d1c181efdea3c2ece245070597066dbea4a67b75e4b10ff78e"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-1/requests.jsonl.gz",
+      "size": 118715,
+      "sha256": "ee8dfd592c9834455bbba7d8b06f29cd905df22e038d753c8698bc8b986707b9"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-1/seed.json.gz",
+      "size": 52960,
+      "sha256": "76b3f082b6026f86a3b443bcd68a219c8245c80ad978edac19830e96a2257bc0"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-2/host.jsonl.gz",
+      "size": 285517,
+      "sha256": "705928fea53a3f2f98e734b40befafc9cad77001077b2a0d2eaed8e4347c8cb2"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-2/node.jsonl.gz",
+      "size": 14341,
+      "sha256": "46d7120b60efc9d2fcb3ed4338f42314b02821af95b1680a89855f18d9aab97c"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-2/requests.jsonl.gz",
+      "size": 119514,
+      "sha256": "39d7ba00963127dd3b33a27eda835d14c811550f181b006f783a8f06e07c2b5a"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-2/seed.json.gz",
+      "size": 52959,
+      "sha256": "382778c1deeb8583e84371b047f6a7ead2a415c4ac92fe1c34acbd9f8e630175"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-3/host.jsonl.gz",
+      "size": 271767,
+      "sha256": "ea763ea7f9c5ff6a1978af837fd879778a0e8e1a8c497aacb727f89057129426"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-3/node.jsonl.gz",
+      "size": 14376,
+      "sha256": "47800067d3b7a31f6f184abcd8b8a5bec5ba3213ca0a685d2ad42b6235e5d301"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-3/requests.jsonl.gz",
+      "size": 119290,
+      "sha256": "3eff42bdf43e7035daf859642a0229a8e2a995f4e1508defd522591a6111d31c"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-3/seed.json.gz",
+      "size": 52956,
+      "sha256": "a757c99484df54e14e4d10f8c60a89ba7ad9c46986d228646e6e5fc814779e69"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-4/host.jsonl.gz",
+      "size": 272187,
+      "sha256": "f39845ac2999f651bd2baa95cd82d6066b3c926ef6e038b9d963b9154d13ca43"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-4/node.jsonl.gz",
+      "size": 14214,
+      "sha256": "bee0dcd07c3f5fad2b635d6fc4990fe8ebc4dd84a585bf4e4a33f38ddd14dd52"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-4/requests.jsonl.gz",
+      "size": 119551,
+      "sha256": "7cd4ca993c6f8410847e73bc3126493a9d77b44d3a716a5c5172c4cfc8ea5c6b"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-4/seed.json.gz",
+      "size": 52958,
+      "sha256": "0fa724df4aa314532154c06747237d691e16238b808b6f65912299ec7eb65c1d"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-5/host.jsonl.gz",
+      "size": 276353,
+      "sha256": "f8f8a8372b3bccd400c43e3bf53e5604591bed3302223d152cd3bf670d864673"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-5/node.jsonl.gz",
+      "size": 14421,
+      "sha256": "cb2da11c39aec4cedd8d73c62ac614c10874ca558268903e19e73e2b84b8aed1"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-5/requests.jsonl.gz",
+      "size": 118749,
+      "sha256": "bf6eb36b657bbb426805573d9ea22e629e504b191bed6b1ad2ede2648c9af033"
+    },
+    {
+      "path": "express-02-proxy-W1-0-c8-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "4e0c9cc50cf57d66683cc708569307c48b8afc0d3fe7a35bf42575d76f876982"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-1/host.jsonl.gz",
+      "size": 284191,
+      "sha256": "1607a20f543deee1b9c40c3a3f479eef608ee07539a3ce7a373b3472797ddf4e"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-1/node.jsonl.gz",
+      "size": 14753,
+      "sha256": "ca5356d2832da802e3271927b347939f0f75abb1627e062da6a6bfe9573f8da3"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-1/requests.jsonl.gz",
+      "size": 64964,
+      "sha256": "18b34e74249bf47dcbac0ab5965f1a3c710245ad61d4c75a4735eb949796a643"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-1/seed.json.gz",
+      "size": 52956,
+      "sha256": "aeaf61f049585600f9beb46ea7fcdc48daac769d5a1284723d8df7a9028a6052"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-2/host.jsonl.gz",
+      "size": 275182,
+      "sha256": "f3b6b9d2d2ec26abb596b275a8b810ee5f765739852b7df8c43dc6a2b2b99cd8"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-2/node.jsonl.gz",
+      "size": 14553,
+      "sha256": "30fa2ca75b32ce7965748896d212e20cf51a0f78b413b90a1eed2d4ed60a7628"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-2/requests.jsonl.gz",
+      "size": 65926,
+      "sha256": "10ed13929b944d89224ffe55636071a6f8ceb46b3f343b48c4dd6481786237e8"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-2/seed.json.gz",
+      "size": 52962,
+      "sha256": "ac52d8d0307a39cf4faaddaa86d0a58bfa7375f3b86c95116f9d3b9b80675c60"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-3/host.jsonl.gz",
+      "size": 285420,
+      "sha256": "40de275004a810e71dc0364f6f8f58f4db1a160a92c59f9e86bddb6b39c12d72"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-3/node.jsonl.gz",
+      "size": 14530,
+      "sha256": "840812c6e21c8e1616c3116159b6da11697d9aede6ea951aeabd69a0bfa7d0e6"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-3/requests.jsonl.gz",
+      "size": 66588,
+      "sha256": "cc1374fb024977fd3b9e2ce58fdc8bb9913d5daf522584f3c98ded8706e92574"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-3/seed.json.gz",
+      "size": 52957,
+      "sha256": "700b9e022df53652cae06d7f711ceeacf04667b57dcb93d8fc2920a156d6ecc7"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-4/host.jsonl.gz",
+      "size": 279363,
+      "sha256": "a9a766967fa7724b3380d6a65c557b3616d8aadecab11eb7c000aabe7d61b3c3"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-4/node.jsonl.gz",
+      "size": 14710,
+      "sha256": "b46b24593398b39d16b97ca65abbc5f2fcde8c1804996292044daa6d1bae0279"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-4/requests.jsonl.gz",
+      "size": 64809,
+      "sha256": "1bb8177747287257133bc3d51acdd73332cad46b049f8b83da9ab21dc3e72906"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-4/seed.json.gz",
+      "size": 52957,
+      "sha256": "6502a42e28c42aad76c5316043c6edebe0f70eaf15fe06343766da3c13286d4c"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-5/host.jsonl.gz",
+      "size": 281838,
+      "sha256": "3afe614b5bdf9a52e42ebabf41a667099fce18b529eccc16dcfacb99a1ce0fe9"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-5/node.jsonl.gz",
+      "size": 14509,
+      "sha256": "eb88d7ae0e77807b0260c4ccf468424c8ee05f3c88e9cff202009be832465389"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-5/requests.jsonl.gz",
+      "size": 66455,
+      "sha256": "1cfd92fe7150ee104db2a1b088b8264522883406867038a4d77139ecd38e47d1"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c1-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "a4855d48bffd2e0bf6242a3c5fea47339678227b4e7c288401074492f16cfba4"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-1/host.jsonl.gz",
+      "size": 327443,
+      "sha256": "4f912d5e56d4005551e69f70cad27c55db6dd62b7b414ab9670f6907b9a180ca"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-1/node.jsonl.gz",
+      "size": 16618,
+      "sha256": "3ee8a0a0bae6416f994707fa8b7a0fd9e5f794d760932c3d10433b1d6317e8b0"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-1/requests.jsonl.gz",
+      "size": 71327,
+      "sha256": "651de98e2cdeaee3032aa8706a55a388c7cdceca07777e969a789046971733a9"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-1/seed.json.gz",
+      "size": 52960,
+      "sha256": "d360d9401787a5825b592b8d872918736ebf985650d22e67ebf05c7b2907a21d"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-2/host.jsonl.gz",
+      "size": 325418,
+      "sha256": "40eef4504f82347d36d86e9d1c419660ec4fb2224c94c2b37c08533b5d046ffd"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-2/node.jsonl.gz",
+      "size": 16386,
+      "sha256": "cdbc5dd023b160bb908d79dedc077fc0fa49d5932b9681812a489ffe2cb61dd6"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-2/requests.jsonl.gz",
+      "size": 70855,
+      "sha256": "d69fc0c5dcd6cbdaf37a4f67e6873ae26081e80274a762f29d98aae7162786c8"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "2d52c05707530eae96d1ad1f0653199e0f872b4c3856966ea9041b5a8ff0f376"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-3/host.jsonl.gz",
+      "size": 321044,
+      "sha256": "96e581de160f09644049038ceb88e3096c1399cc617e08ecb00a3fb8f903b7f8"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-3/node.jsonl.gz",
+      "size": 16637,
+      "sha256": "9eddfb37e7e0c66d96716f8ff8e63d89e5d0e4e01c9d18cba9f4624c1e5cfbfa"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-3/requests.jsonl.gz",
+      "size": 71339,
+      "sha256": "178034773888d8934b7e7ff0e722c8581a498bb740b6c795305bf016ba7aed65"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-3/seed.json.gz",
+      "size": 52960,
+      "sha256": "16ddd5cbdc0891bc65f1f86e1b272c3fd2b5a3fe3fd5c6e72d4f5a35de1cab6c"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-4/host.jsonl.gz",
+      "size": 327742,
+      "sha256": "1b7cd4fda8c5ac9abd3f19e0bcd80a9c23f4b91cc6db0b76e23aa6615480b15e"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-4/node.jsonl.gz",
+      "size": 16374,
+      "sha256": "6825ded230b6b2902901a523f4371b03c124b17f7603cc07ad0aabb36a02abb0"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-4/requests.jsonl.gz",
+      "size": 68346,
+      "sha256": "c2aac585abfc691fb9b58f3a3d25c8309549a06c768a6597015d19fd5fb99844"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "fa71287cae6aa60ffa03b7bb4893ff2e7de8bae16c28d9e350efc6cff8255315"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-5/host.jsonl.gz",
+      "size": 326276,
+      "sha256": "5d1238eb58b37fbe90a388289868867e0687dfec2c29dadde0702bc00116bbb1"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-5/node.jsonl.gz",
+      "size": 16670,
+      "sha256": "bb2494d8aecb47dafce5b7b7b8538a6bc1fa0d2df0373b5e47544d3d93dd234b"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-5/requests.jsonl.gz",
+      "size": 70891,
+      "sha256": "073ecceed5d6765cfcecbb46ad150d8a4928b396a0d29f2fb8f58b25722f9441"
+    },
+    {
+      "path": "express-02-proxy-W2-0-c4-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "fd118065fce4f163e54b9b7ebb6ec36b212727962a5883af3b6842ab8ecdc32e"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-1/host.jsonl.gz",
+      "size": 269850,
+      "sha256": "87eca91b5cec7a27077726cd197ee3ae0bee10cc044d5bf82110e2f5447a9669"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-1/node.jsonl.gz",
+      "size": 14499,
+      "sha256": "ec2017a311f0ae052947c3ec3e3ccd3752e9f7f534633c5c15abcbc68b5a3154"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-1/requests.jsonl.gz",
+      "size": 491925,
+      "sha256": "eef27d6bba67b508d67ebb3cfe34dd6db7fa794c65bc6b6c7ccf9d8c35b6b0fe"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-1/seed.json.gz",
+      "size": 52954,
+      "sha256": "e538ee8d687c2589efb705580878c5aec7052160b6d81aa3d65b5521a455fc93"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-2/host.jsonl.gz",
+      "size": 275559,
+      "sha256": "938384307574e118ac21fc909410172c445bc678cff01a8861e145772c97189e"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-2/node.jsonl.gz",
+      "size": 14671,
+      "sha256": "0c6a254057cdd02bd2bfd4040bdee3a0309d9c692d4dfa9d122168831b0cadb8"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-2/requests.jsonl.gz",
+      "size": 494526,
+      "sha256": "e7ff98fb669bd72de4b78e70293bd971f926661a70cbc8a31233578ab2dd5cb6"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "1a04920d93ee2397a41ae62d81fee78e29598a1bf4b839f380ac1e4a5eb4b80b"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-3/host.jsonl.gz",
+      "size": 278178,
+      "sha256": "2de3afd1d5848f86e730f189c2749f3fa77a477232aa66b3fbca9c5bf94424c4"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-3/node.jsonl.gz",
+      "size": 14315,
+      "sha256": "2ecb802a0e0ca4ea960ac0f86d22d4a8ca4877d11b9d27a767deaef5f6d6a232"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-3/requests.jsonl.gz",
+      "size": 491307,
+      "sha256": "a68cbf7f158daf30fdacebae8cfdca54f6f4247a7f1d285bfc1732ec10e5e00b"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "d4d03b8e47086264964072d51ad17133949ba1d8082e83d35fdc336e1d89b0c1"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-4/host.jsonl.gz",
+      "size": 275477,
+      "sha256": "0365a748f10aaeede61c228e26937f1c8a0a2ce64a5352a10e817aa8c5cccdb7"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-4/node.jsonl.gz",
+      "size": 14655,
+      "sha256": "e2466747da49ff00ce28e9522880f875b2f6760299820a6d7a029c26586b1b50"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-4/requests.jsonl.gz",
+      "size": 489119,
+      "sha256": "ba22eec7ef5eda3a795810f9e04cf772de1944d9c1c0e8d2514d070d5dc0946d"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-4/seed.json.gz",
+      "size": 52954,
+      "sha256": "a9d27959663e942a9ace391c636a24c1086cabefb7c71de2a13fbe12d64d5373"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-5/host.jsonl.gz",
+      "size": 275630,
+      "sha256": "9dd5839d4dc309ca5f5e4b4aa6835c50558312c09ce44bf3a68d2d28dd57759d"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-5/node.jsonl.gz",
+      "size": 14417,
+      "sha256": "648dddbed2f41773c6ff9dc91c978b2f582b5ade2b8f1429e2843a7f9e291c70"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-5/requests.jsonl.gz",
+      "size": 486455,
+      "sha256": "2f1115ae3e9632dec237f37fe68bc7f52cf997fac2d5d220e912d0962d69ba29"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c1-5/seed.json.gz",
+      "size": 52957,
+      "sha256": "9637445795d779a615518e66033154d49db877fa22eb44565530e36f44711e96"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-1/host.jsonl.gz",
+      "size": 278981,
+      "sha256": "e240c1ff5c83dafc144da846050eb3a729e9152493a90c1a29abc77ddcc4f4a7"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-1/node.jsonl.gz",
+      "size": 15617,
+      "sha256": "a69d257b4302780dbc5b6d101bfad12825141d43d591c166cc44bf1379966eeb"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-1/requests.jsonl.gz",
+      "size": 501154,
+      "sha256": "92ac63b664dc1b6e0762d69b79cc27371d1a9c506a396a5e8c88b627bf5d6b71"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-1/seed.json.gz",
+      "size": 52958,
+      "sha256": "71292ec917b9d6702692b0ddebef1c6d1e852d9039eecc5afd91c33309419996"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-2/host.jsonl.gz",
+      "size": 278580,
+      "sha256": "49686c2ef93ca3a5edf3b70afe139b6e7644c972700ef2d8c5237ebd7e587ebc"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-2/node.jsonl.gz",
+      "size": 15526,
+      "sha256": "5f6116c57ff6259d50f2b1aac2c3635173ae3bfaa2e86d9fa4825440600480a1"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-2/requests.jsonl.gz",
+      "size": 504790,
+      "sha256": "b4b0bf0a899256c3a77e9b0a93d6edf28748cf3f7fe942ca5ca5140e75598084"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-2/seed.json.gz",
+      "size": 52957,
+      "sha256": "099d4d0f0dfe9360e25f39cd7fb8ea216857dec9231e0a70585d1b974a748937"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-3/host.jsonl.gz",
+      "size": 274978,
+      "sha256": "eb4ae103cb14955960ce627799dc16902286860dedc4f826f2c4fa80b9ccb4d8"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-3/node.jsonl.gz",
+      "size": 15622,
+      "sha256": "e2106577ba90ca40058645d740e1876a2b73d26d482ec71575a92d317ef68be1"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-3/requests.jsonl.gz",
+      "size": 496078,
+      "sha256": "b3677e58b7e9f8c03587dccb593c69a0e4125fddc18c36d11ed064aae7569e7f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "a30117313111feb710423276ba2a7bafec94af3e279f00ef47010a23c1f64810"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-4/host.jsonl.gz",
+      "size": 278927,
+      "sha256": "4ab23ce5061b7e22cb6a20bfe04bc0d985af0903ab2b2e9323f67cdf2ee2f08d"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-4/node.jsonl.gz",
+      "size": 15257,
+      "sha256": "fdd77e6209de9e245b0089041f674129d379441f5422c7f4a49cf62eb1bcb377"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-4/requests.jsonl.gz",
+      "size": 507730,
+      "sha256": "a03af4b027cffa893cd141502eaedb7cb559ec0aa4c7cfdc1d47add6bb91cf24"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-4/seed.json.gz",
+      "size": 52956,
+      "sha256": "5999c6a6ebdd55b44d2e881000928baa81dbc5a78acd0621d68e8db82c524ca5"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-5/host.jsonl.gz",
+      "size": 272407,
+      "sha256": "28d43406baecf241a4f81015a1b38ecbee6d7e7982d67e08ea9e4abb0d69a5cd"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-5/node.jsonl.gz",
+      "size": 15517,
+      "sha256": "57910ee95a8142249c385fe762c223a3f18e808325853307234728574c333de9"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-5/requests.jsonl.gz",
+      "size": 511650,
+      "sha256": "784bec668dd769ada6c77c8c68db21ad8c98956a63969b42861739e820b44a41"
+    },
+    {
+      "path": "express-02-proxy-W3-0-c8-5/seed.json.gz",
+      "size": 52963,
+      "sha256": "849551edfb9e13293603e3c835ecfda437128926562f6d57690ab6735a034184"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-1/host.jsonl.gz",
+      "size": 280594,
+      "sha256": "2b76a2fa16e1d6c460e017cac1f37939b29fdfd7c1b4307387b03180219b5ce9"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-1/node.jsonl.gz",
+      "size": 14373,
+      "sha256": "436a081b87bbaff5e793c82d128f68cd73f7c95d7d9dacea038f5e6ca923a30d"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-1/requests.jsonl.gz",
+      "size": 218889,
+      "sha256": "99b99ee9f13fd69a15524e51d2e21b8220fc35793b803e424b3abcc4f1bb2c3c"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-1/seed.json.gz",
+      "size": 52954,
+      "sha256": "4b80c89466f883f605a512ae81549f8b6198641759f84972e8f65dc831f6be19"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-2/host.jsonl.gz",
+      "size": 272391,
+      "sha256": "37738881cbdcca029c4209e1c3c8fe7fed430557443f471e13cfd056a2238c45"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-2/node.jsonl.gz",
+      "size": 14752,
+      "sha256": "c4fa9a5b9b8122efa20e067dc233d01af81a820d08b5a83c67c02eb8c7832e8c"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-2/requests.jsonl.gz",
+      "size": 215470,
+      "sha256": "8409f41cb9c0880125c874d5a11ce774ff0e75291f58d3529b485e89c8b2e382"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "469c1909db2d8e332895a0e5ff692c686ae470f57e834d0814914aae1ebf8a3b"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-3/host.jsonl.gz",
+      "size": 267044,
+      "sha256": "fac3f54286c192757e7f36af918c67c1843561c63143ef7e0f922befd4cb6089"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-3/node.jsonl.gz",
+      "size": 14471,
+      "sha256": "ebf48528d907c1a3548ea8a0e9436810471f94a506fea1ad6bb1df306050d279"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-3/requests.jsonl.gz",
+      "size": 210858,
+      "sha256": "ace8b1cfab6658e12f356a829f20ff154c9b757644d02650d95ccb02382466cd"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "8fcf7243e1bf2c9e966db6ae95610528f609d81378c44e0bf92e927cb6f0e8be"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-4/host.jsonl.gz",
+      "size": 273948,
+      "sha256": "139692b26a678cd54b6dc9a90c1ceb74af0dcccd6dad5e9a649536808c98e9c8"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-4/node.jsonl.gz",
+      "size": 14404,
+      "sha256": "b0df5bbace059a6b68f225e5db5fb83f7805d6b16280fb227c96a715e477acce"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-4/requests.jsonl.gz",
+      "size": 217654,
+      "sha256": "c1ef5e1c92c519f2812dc5b144b11653e3f4cd6f16685ee684b91516ce5dda53"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "0282f1ce660a532db13fcbc857e4ef8bc9cfa987c0eea0d752c7cb67f0096825"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-5/host.jsonl.gz",
+      "size": 269420,
+      "sha256": "0de8b43ac66b041aa49dee3103f130535823ec4e3616e78680597f052d299d82"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-5/node.jsonl.gz",
+      "size": 14825,
+      "sha256": "d2515574b0eab4736e603526dd7d5e8740144514ea176a19157734265a4f959a"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-5/requests.jsonl.gz",
+      "size": 214412,
+      "sha256": "9a3cf9c16e34ad27b96cc6c3f211d08409b9589046eff5b396051c2a175e4056"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c1-5/seed.json.gz",
+      "size": 52956,
+      "sha256": "1738aa2544dbce604d7b62f72478070fd636a8ee43bf22dd797723c45a183c36"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-1/host.jsonl.gz",
+      "size": 270509,
+      "sha256": "0776ab984254bbfef2a7a0da4f9cec9e606f77314ac11269b6d75a2544930f03"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-1/node.jsonl.gz",
+      "size": 15350,
+      "sha256": "d9d65a8bd869759cd610304cf1dfa08fae66b59cb193706a71a96e736aee331a"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-1/requests.jsonl.gz",
+      "size": 251721,
+      "sha256": "d1dbe19abcd56b15b15f714a40bb812d2c24973148e1d5ff759c45e84e3c4567"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "f9ea97dec7102f791374a49662825e0c42ab8a7fab6b8e8ae8d44ec1502a787b"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-2/host.jsonl.gz",
+      "size": 274337,
+      "sha256": "2820335b4032ba12ef554b0513ab1e89bb84933f51664143a57b7a71514caa70"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-2/node.jsonl.gz",
+      "size": 14946,
+      "sha256": "7cd43f8cb95194fe24983711c98af133f101df9c90082f45e99d1495c742aa85"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-2/requests.jsonl.gz",
+      "size": 260116,
+      "sha256": "4bbc7d14544ad0079ef7b8d7af9a52bd1f8a77746bd22b4a8f06666b8b29f52d"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-2/seed.json.gz",
+      "size": 52952,
+      "sha256": "8db493f4c32f4bd0fd0aa8fb14b234da7dba2b894b79e7f356ed5dea9d8b9af7"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-3/host.jsonl.gz",
+      "size": 279008,
+      "sha256": "1e69c0a80d77b8d3e5231a2d4791b7cfb5446ff412c1764373e568285475b6a3"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-3/node.jsonl.gz",
+      "size": 14910,
+      "sha256": "863f24876e90843745c885463d017cbfd7a63fa3ae76120715dca700c4e77703"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-3/requests.jsonl.gz",
+      "size": 255530,
+      "sha256": "572ef3c188e34c741bbb277d089483bca505090270be1e013588d6d4507dfbbc"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-3/seed.json.gz",
+      "size": 52956,
+      "sha256": "f28cc7e446b8d80488ce83842539cc3b6fd3380a5ce38e9fdd839b62003d418c"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-4/host.jsonl.gz",
+      "size": 270394,
+      "sha256": "407ea4ebee3314fc2dde32897cf790819489881e8f0bd7e1fc4ad6bffbac1e23"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-4/node.jsonl.gz",
+      "size": 15446,
+      "sha256": "af2d6aa349c474d7e47b1c3a703554a2885049cea12de98f61a958a26dcc3ead"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-4/requests.jsonl.gz",
+      "size": 251496,
+      "sha256": "41832588687e9d4d029f2f20e8ac0c4aa35be08b38cd21d9adccdeafca9c0b1f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-4/seed.json.gz",
+      "size": 52963,
+      "sha256": "dd6b2a04f108ad2f323c94925247d54af8a60844d6f41c8cb13e2d61328699bb"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-5/host.jsonl.gz",
+      "size": 269959,
+      "sha256": "f2a65a7a815837fb3a9a5f8de688c416c93bc12e6cd88eaf99c55e377346f5b5"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-5/node.jsonl.gz",
+      "size": 15311,
+      "sha256": "b33fa41cd1a3a265c455d148626fe67f1ae8ebc8a9bb82a4627d244c89bd53ca"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-5/requests.jsonl.gz",
+      "size": 256589,
+      "sha256": "ba0d87b8f1179b8358e2c562cf8878ebdfb7fed781148b371ff21b62774fb60f"
+    },
+    {
+      "path": "express-02-proxy-W4-1048576-c4-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "bc4fbcd16ccf7d6c05f735a0e903740d8d32cfc155e69ae466903459a4f8574e"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-1/host.jsonl.gz",
+      "size": 267285,
+      "sha256": "31e0cfad712e859af36a8cc46279c27d40edc98648ba188de16ca4f2e403b38e"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-1/node.jsonl.gz",
+      "size": 14892,
+      "sha256": "87b85fdb7835cd2e8ccf4cddc7b97cf91ab17369a0427129ee19bbf26b9061ba"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-1/requests.jsonl.gz",
+      "size": 16335,
+      "sha256": "c3486697b4049a2651b1c6ad82d8788cee40188b98b77c3a9cbe15ec35dd99ac"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-1/seed.json.gz",
+      "size": 52956,
+      "sha256": "013bc9a48a6ab1eb2d4cb3e3db58fb76278d39da689e39c8a1a9f5e4cafb8d70"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-2/host.jsonl.gz",
+      "size": 271045,
+      "sha256": "a670394ffd5c36002d10b6c1272ed8dcb5b902a595ad78eaf4f183d54574f609"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-2/node.jsonl.gz",
+      "size": 15343,
+      "sha256": "2496a3cd317c530e2e1cf7f00281fea083bdbfca37917f121fc04dc1aa93beca"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-2/requests.jsonl.gz",
+      "size": 16254,
+      "sha256": "8ba36555cff3bcda3af6aac76d30a5862212dc8d61c5b00c387bb30f50cb82e2"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-2/seed.json.gz",
+      "size": 52957,
+      "sha256": "0e40976e913b8afa4f443ee80014f714cc8e0edd3a9df5967eda2e17de1f7ec0"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-3/host.jsonl.gz",
+      "size": 283707,
+      "sha256": "9f29dec4ff4c89538e27e7ed7c9050be9f4474e4f3e3f2e53d3e687337ace56c"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-3/node.jsonl.gz",
+      "size": 14853,
+      "sha256": "0d5ccc216c1d445bfc081832ec051864db5dfd00bf38fc1fb55bd576040c3574"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-3/requests.jsonl.gz",
+      "size": 17670,
+      "sha256": "db9ff16a001277c9c3fc47e393f85602ee0ef6ce99f9d25629b6b1d3ae054565"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "35c625f9cd00b1f3e7ad12b7bcd6c1b573ac44958d16c2f2297c06d5d5431855"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-4/host.jsonl.gz",
+      "size": 283844,
+      "sha256": "16ad9b718a2dfa79426e97b2968d8bfcab994300149134bcf0a999090f783ff8"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-4/node.jsonl.gz",
+      "size": 15323,
+      "sha256": "e2a0ef3616c2eb0ea959b5c979dc26121d12586b74dde45b669440c8f72e8de4"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-4/requests.jsonl.gz",
+      "size": 18029,
+      "sha256": "8bcf12eab13a6ad62bcd16e9d4db78b78e9754b238d3c15c32ebff6052e77abb"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-4/seed.json.gz",
+      "size": 52958,
+      "sha256": "33b12df761b84b80dc59bc2b93f30b0983b590ed0cdab598bdcfd4ac9a8fc707"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-5/host.jsonl.gz",
+      "size": 274796,
+      "sha256": "88f02f392581934ae99866fd582253d82209420d79fbcf8b44a5bfe953fa66c2"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-5/node.jsonl.gz",
+      "size": 14919,
+      "sha256": "c636ce6910cf985f18ce52cf4bbb362fc17e68e15f37c40a682bb6b194e848ac"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-5/requests.jsonl.gz",
+      "size": 17402,
+      "sha256": "6d1f345678af579c57ad75176cd971c5bd3a3e0da183479d72e99e471110bf34"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c1-5/seed.json.gz",
+      "size": 52958,
+      "sha256": "7233784116c60db07dd313e57af10e941b0b75c0a8d521abbf48bebe254e6ac3"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-1/host.jsonl.gz",
+      "size": 279200,
+      "sha256": "e0a5625e5f1ef66ee4d224e2b2dc60acedfc99e2a8f623ee75f3b8357c2db2c3"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-1/node.jsonl.gz",
+      "size": 15634,
+      "sha256": "13782c35895df5549fb58a6a40adcf7f51b4dc72bbe70641a94dbf36fc73b80c"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-1/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-1/requests.jsonl.gz",
+      "size": 21220,
+      "sha256": "b48155247a58617cca82c6e0a4008d16189f45ed36fe710b0c61d4065d9165ec"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "34cc095c663b1264382512d9c09b901c657e5b581c26af69ada7ae52d72dcdcc"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-2/host.jsonl.gz",
+      "size": 282920,
+      "sha256": "6a0e609ca71943db3fcb69d58a0d02a40ebee358b3631b8cf0643396690d96f9"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-2/node.jsonl.gz",
+      "size": 15792,
+      "sha256": "8e1df17cc98eb8ad9d0043e53f5315b715dae638e32679ec94094e29b769e18a"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-2/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-2/requests.jsonl.gz",
+      "size": 22741,
+      "sha256": "1f784b7cdd4f593bc0dea52da1e57f52cbd4f4d0047b7d3c10b6edc54e37b005"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "bc083531fa23ef78cf147cec5305d1f09db733fa5f190ab23f0e036014e2ad78"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-3/host.jsonl.gz",
+      "size": 282308,
+      "sha256": "6f20e808241ea34932fd39e965fbe931548a1c05e264c1d505f47cff6074e6a6"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-3/node.jsonl.gz",
+      "size": 15251,
+      "sha256": "bcfb3884e7d936c57ed69a59a75ff91b64925f6b0efd5f7c0572ebe871719fd6"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-3/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-3/requests.jsonl.gz",
+      "size": 23284,
+      "sha256": "41665578b1d173dd94013cff72a5076c738aa6da2db3db3772708811277d3db7"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-3/seed.json.gz",
+      "size": 52958,
+      "sha256": "e6151bb129d5f6990018aaa6f88e6f3d09833ad9a2f232df7463d2b02462c58a"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-4/host.jsonl.gz",
+      "size": 286190,
+      "sha256": "f4027673c754acdbfe4658c0072ccfb4ecd67dc07779512698b7144d1798a24c"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-4/node.jsonl.gz",
+      "size": 15103,
+      "sha256": "043342b77dfbbf385b6c19d4967f78b40bce4082b57d5ba272984d7712c17438"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-4/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-4/requests.jsonl.gz",
+      "size": 23842,
+      "sha256": "83a05de1a5763ed0b71f0cf7978457431e2b65bbb30956d64ad3f450634c442b"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-4/seed.json.gz",
+      "size": 52956,
+      "sha256": "15d8196781defa4843efb5feb1a24b0ef81770d17f16a8e4a2bcdcba71158852"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-5/host.jsonl.gz",
+      "size": 275892,
+      "sha256": "0d57d01f171d1956aea34c7a69a1ddf80a7695ffd59ae7ff455f4035aa5b33c1"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-5/node.jsonl.gz",
+      "size": 15124,
+      "sha256": "39632f4bc2dd38e318b4d264e142be21980179cdb99036f2887bcbfe0f02802c"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-5/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-5/requests.jsonl.gz",
+      "size": 22927,
+      "sha256": "4eb89d0a0da0ed3f747171cd302e6de5745e04ce00fbb6f675b93a05cefe1507"
+    },
+    {
+      "path": "express-02-proxy-W4-33554432-c4-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "908b0e71dc393c1bf4fe51c503f1d0ebc0f7909164f786bda8fb455b10e0f424"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-1/host.jsonl.gz",
+      "size": 284996,
+      "sha256": "9ed4f61e3122ab7ff9d5925091525e67418486efba668c8cf6641207968a159e"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-1/node.jsonl.gz",
+      "size": 14317,
+      "sha256": "ec1c036429991ea851b0855c889ea11e44f5ebb704f1c8045cf015c3c9f56f1e"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-1/requests.jsonl.gz",
+      "size": 131679,
+      "sha256": "0f4d4c2f5d55a3328e5e74b20ae617c486bf328cda08d8747f40e80fcbccba43"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-1/seed.json.gz",
+      "size": 52961,
+      "sha256": "64b9c589f54df3b93c5516ae1482d7ebcc9441753afe7d6deb7b0ca9e2e6309b"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-2/host.jsonl.gz",
+      "size": 274695,
+      "sha256": "186341f54d509f3e4fe3957611b4d54fd6ecd49cac7e8de2f5d4e1494b7a14a7"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-2/node.jsonl.gz",
+      "size": 14342,
+      "sha256": "4bc00cbaf92e14610905589625833d3c6340def718f6d35ef5b9632edf114e76"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-2/requests.jsonl.gz",
+      "size": 118909,
+      "sha256": "5a59c9a37e5c791def88ae217c7ddcb43212b8e4ede7cfd15d174cf5f1c84c17"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "4c6d3d0be195c6533e807dab744824371688191cc9f41ea13bd9b137d6654523"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-3/host.jsonl.gz",
+      "size": 275819,
+      "sha256": "8b42462d196ef354acf4fd1ff6c2aa73cdf430870ec70da51147ae880c6b38e6"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-3/node.jsonl.gz",
+      "size": 14302,
+      "sha256": "1940df3e20e68ee5cb45c66da7598be79975f63d1b366014b84363c95b549665"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-3/requests.jsonl.gz",
+      "size": 118888,
+      "sha256": "4331c15d992dfd5ef60262596ff0a9d93653e2149239b7cfe32d1cb166a0ab24"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "dc778a8e3308ba60b5a8c42903c325248e09d456fb7f9a7363b69d17ed2d86b9"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-4/host.jsonl.gz",
+      "size": 278031,
+      "sha256": "40575b99c54b61a9cf0cd489701d7dbc8daae7f329d503aa7b5c4dc5caa73c13"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-4/node.jsonl.gz",
+      "size": 14418,
+      "sha256": "ed753f308b78ffdfc5b30c191a32d12cba10bd4ff5d249f4938b44649f566d1b"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-4/requests.jsonl.gz",
+      "size": 117362,
+      "sha256": "8379c5fa12a1866ae4f54d1fd127eb939a5cec8cfdc6ec5061901ad67012f64b"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-4/seed.json.gz",
+      "size": 52957,
+      "sha256": "bee267e511a1480775704d3a7d34eaea029ae7d08e694f0fa62a3265da7be3f1"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-5/host.jsonl.gz",
+      "size": 272748,
+      "sha256": "684a18cac58ae3e2a3ea88b82d98d467625f3af5e914f9d86862a6c5d96e0694"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-5/node.jsonl.gz",
+      "size": 14176,
+      "sha256": "ed39ec1cf9a33a02950b19274ab695be0a5bc8a6374a550d4594d8a125d58f9c"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-5/requests.jsonl.gz",
+      "size": 119740,
+      "sha256": "4297d06ab8bbab9c14de0a4dce5a3309bab413a2c652ce9fa57c676b2a6fcc1a"
+    },
+    {
+      "path": "express-03-direct-W1-0-c1-5/seed.json.gz",
+      "size": 52962,
+      "sha256": "bd81b8f6e51215ddba8967ac98494aad66e1bb4681bd52e0856b88fdb4706842"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-1/host.jsonl.gz",
+      "size": 281999,
+      "sha256": "cacba949f96adc36669d21dad7f30ddd400e73170f49e84e369b0848436c99bd"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-1/node.jsonl.gz",
+      "size": 14175,
+      "sha256": "72a78db8e1294d2222823a1455dcb2d3603f42f8d746048c924512264cca93a6"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-1/requests.jsonl.gz",
+      "size": 120754,
+      "sha256": "1344e81ff7448d4b54a38759c0c10fc7401fe0bb6a85f34c665c10819947edd2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "39d8a4caba96066e55e924230ebbc2b13d420aae8009e389e5419f5670b89b5e"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-2/host.jsonl.gz",
+      "size": 277855,
+      "sha256": "5b8eefc9531ba05aa9cf7aef2b754419eb8550d702b22d501d85ba07ddeb1abd"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-2/node.jsonl.gz",
+      "size": 14216,
+      "sha256": "b2df4461330a18d766490674aadfee1636b9a242b9adf5a9a97058ac68f17586"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-2/requests.jsonl.gz",
+      "size": 118656,
+      "sha256": "147cabe4fd0fe275d7088921a009d7542306e1a74801ca4819c218d2013a0053"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "b089bf03f96e5302bd26610152e08c91742851ccec914fc655b8043862d50dfc"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-3/host.jsonl.gz",
+      "size": 289263,
+      "sha256": "964c47148d4b25f182bdaa8b06ea28f4f87a221cf3049e1b2f1558079f818b17"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-3/node.jsonl.gz",
+      "size": 13960,
+      "sha256": "979f086ee39a7fb489f4049c879c42d6d9c61f08d468eae7875e7ad799b8a86e"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-3/requests.jsonl.gz",
+      "size": 119658,
+      "sha256": "9f4f9d976379db800e39f579e74770184c338772f0823332e4f6a039e1524335"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-3/seed.json.gz",
+      "size": 52961,
+      "sha256": "173fff5b1c860a3d02cd2c3b6fa3190109d002dc3a8a70cccc1a1f06a62b0b83"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-4/host.jsonl.gz",
+      "size": 268458,
+      "sha256": "58fbc83274320419883d79bce4a35f6bbf9e58aa34621227e87b2688b5d632c4"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-4/node.jsonl.gz",
+      "size": 14185,
+      "sha256": "4c9a7955ad7d6cda4d5ceea560b278762ff53fa0a661d231c458e61c2ee11b1e"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-4/requests.jsonl.gz",
+      "size": 120523,
+      "sha256": "ac7243ee1bb765ad750916dadc3c905a9f00e1ac862dd8e395ed417ac2e788f5"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-4/seed.json.gz",
+      "size": 52959,
+      "sha256": "280fc1f3ed66b6fef01739b16621003edc9cc13f020ef5d21125e04c27187228"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-5/host.jsonl.gz",
+      "size": 278407,
+      "sha256": "ec292ab38ec0bcf262ca34f1a2eaaea59cb476fc5cc9cbf064e56c7099073686"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-5/node.jsonl.gz",
+      "size": 14106,
+      "sha256": "a0740f906dfb0c3ebf130647a1a1f55d5195e29810380675d83e7681284484d6"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-5/requests.jsonl.gz",
+      "size": 120279,
+      "sha256": "81f5aa76c6a21291720c6f4b89ac9a8dca42d22f1f04a179fd8d8ad6124d3861"
+    },
+    {
+      "path": "express-03-direct-W1-0-c8-5/seed.json.gz",
+      "size": 52957,
+      "sha256": "3c0047b9bf26670886c80129f21ef478cc85c2faea70489eacbf6bf05a4ad078"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-1/host.jsonl.gz",
+      "size": 282727,
+      "sha256": "b05a92b41531ec19cb7793af79c3b65cf8123a7e71e4abb6b1ee98c450ce7901"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-1/node.jsonl.gz",
+      "size": 14710,
+      "sha256": "ec85babe3c80c70edf92bc22e7fbe842e352158f654d291e8cd9562327e7953a"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-1/requests.jsonl.gz",
+      "size": 61293,
+      "sha256": "482f67051079a0d5124e46439e2ae5d20919ae53d83fa60da856810f60feb78a"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "6ba462bd8cbdad37a835c0f9af0513b8d5e5c46b46561f4a38f74ab3e6325f83"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-2/host.jsonl.gz",
+      "size": 282217,
+      "sha256": "9e429cd5c2347f2dd2e103f74ba896256296d0ee4c120826465a11b647a9c7fd"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-2/node.jsonl.gz",
+      "size": 14629,
+      "sha256": "bbf5fcde8c5e283e9084d45fcb796d4a06e04d11eb4060b0a0f0db24cd4ffdc6"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-2/requests.jsonl.gz",
+      "size": 61977,
+      "sha256": "0c8598a91a6f3d29e73105bc164cbde40cfb369f5405cd4f2ba7a7422d57cfc5"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-2/seed.json.gz",
+      "size": 52955,
+      "sha256": "411e94f09db2edab4a89066fe5f1187faa3cafb664434f674b1aa676ef271a65"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-3/host.jsonl.gz",
+      "size": 279093,
+      "sha256": "181f68210c5796b99e5da550a4dd6d79906a4f15ca56ff592c5643d041a88766"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-3/node.jsonl.gz",
+      "size": 14652,
+      "sha256": "39085192d2647edc50667e08aa9c7d30261978204fc453b2fedfe66ee295cdac"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-3/requests.jsonl.gz",
+      "size": 63387,
+      "sha256": "a9bf6b97468082a5878f87c5e0083ced851507499c5971cb58de071efc89ebf2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-3/seed.json.gz",
+      "size": 52955,
+      "sha256": "564298b0157842a7fa73a2ac85ddf9eec6d24478feb0480da70b074761e1e491"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-4/host.jsonl.gz",
+      "size": 272096,
+      "sha256": "36e47044fa8ca6bae1d281d15d69bf87aa3ce4d130d47b5f8e03708292e8b1b2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-4/node.jsonl.gz",
+      "size": 14478,
+      "sha256": "b4bcef7cecf4325afdf801b7714c8b41aaf69c184f9fed32a659de3cf76e9ade"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-4/requests.jsonl.gz",
+      "size": 66002,
+      "sha256": "3bbb9257b496b67818b3d9dc58399b6e4843f13150c4e0d974cbe48e6ed2960b"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-4/seed.json.gz",
+      "size": 52955,
+      "sha256": "619444b3dc4c204e43e65fdbbd60a153c04e11cf43fb628419150b87cfd87680"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-5/host.jsonl.gz",
+      "size": 276097,
+      "sha256": "3e3f5a09b450183c2550aad3288e5a21c8f69cbddd21bc489bac381cb27aa4eb"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-5/node.jsonl.gz",
+      "size": 14711,
+      "sha256": "be77a8a55bb523cc679b744d649c310742235913a5a9be6978acb98ee9dfca92"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-5/requests.jsonl.gz",
+      "size": 65113,
+      "sha256": "5fd06254a258cae6339ca40b0081dc81988d3b95de011850de31d439b341c557"
+    },
+    {
+      "path": "express-03-direct-W2-0-c1-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "afc73b983634f60b1e4314516537191e7291b4bf883d1a27d16972117a5f8c9b"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-1/host.jsonl.gz",
+      "size": 324045,
+      "sha256": "055a8acc76754893f35fdf2bf872d58401407767bbf975563801f686787e066e"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-1/node.jsonl.gz",
+      "size": 16711,
+      "sha256": "49adac040b0e202a7773a212436b43cfdd353c7acc58518ccfea47a102e6eac5"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-1/requests.jsonl.gz",
+      "size": 73157,
+      "sha256": "5ebecd077ee2272d8a3ab795275e463cc101efb608921c984e4a7505075420eb"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "b77849e766d3de314525a827805d2da6a6e5bcd3b369583f0af036be18a3c2e1"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-2/host.jsonl.gz",
+      "size": 324210,
+      "sha256": "cac0d0db80a17401b6ac642d86d006ec687787bce1c7750b88ca982e49397014"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-2/node.jsonl.gz",
+      "size": 16735,
+      "sha256": "aa3d773c5aa791a9a7b55d567d1b8c49a613aded9a83f6eb0f79ad0818d4e60f"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-2/requests.jsonl.gz",
+      "size": 71058,
+      "sha256": "3d70c200e55e3ab1e2146f9fb2f4e3b8016bf2dcc4a12731a09cf524dc76a7fc"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-2/seed.json.gz",
+      "size": 52958,
+      "sha256": "d0ca01d49561e249a195191157b96f31f33588fc0acdb0328845e57c0469f119"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-3/host.jsonl.gz",
+      "size": 323677,
+      "sha256": "3478c8839fe056c93d3f4d6edaeea8d3de5d3129254620e722700906f9dea4d1"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-3/node.jsonl.gz",
+      "size": 16164,
+      "sha256": "1c21c19a1ed96157e59b18c998d3b9250de6ec41d044ff2c1df4ae61c31b9df4"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-3/requests.jsonl.gz",
+      "size": 68390,
+      "sha256": "c60ac554d766af4dd266cfc4611cc804e62452474150b1dd053e1740766c8be4"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-3/seed.json.gz",
+      "size": 52958,
+      "sha256": "3f8de8f8a4378a2b0308898c474d589952a5aee833a0a765e4605ede2f1ab1f8"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-4/host.jsonl.gz",
+      "size": 173120,
+      "sha256": "54a04e30f4cd6850460287746496c1d90b32f7525b381b6a49da4512c5ea24f8"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-4/node.jsonl.gz",
+      "size": 9604,
+      "sha256": "2642cec15c27db5b864fd8f9c13aa3fe8e48130776a0531dc0f820911bbe30f2"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-4/partial-container.json",
+      "size": 8275,
+      "sha256": "57b76120a6297868d46883e29298c1e7b9e779b5e1a6565ca9eeb355bd710910"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-4/portal.log.gz",
+      "size": 260,
+      "sha256": "73efaf8c5fc253af5f3970806f31375ef72f3deedc59860536e37aa6f6f3e35d"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-4/requests.jsonl.gz",
+      "size": 16005,
+      "sha256": "7cb7cb9a783574d9cf4d16f91f8a26de8b38160d5b578849e7a48b722eee31e4"
+    },
+    {
+      "path": "express-03-direct-W2-0-c4-4/seed.json.gz",
+      "size": 59407,
+      "sha256": "f526961bfad9b6516492b04f72838f905bf2187e01b2877be13569afed354b1b"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-1/host.jsonl.gz",
+      "size": 272836,
+      "sha256": "8911675748c929fe2fc47b03f9483c5afefdad14a210e451b1a198d29ef3d803"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-1/node.jsonl.gz",
+      "size": 14276,
+      "sha256": "79054b2840ede9be9c94089e4b5840db11af5308b4b8cb9e73ad9195f3f6d290"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-1/requests.jsonl.gz",
+      "size": 484717,
+      "sha256": "284d2a4cfd5d51105c3897e93481a1206cb7607ff5ad47ad3557d25610764d91"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "ce07ba94aaba7cc02b417cb0e1f68d4bef15b2e7ea588c5eb518521f80b82fb3"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-2/host.jsonl.gz",
+      "size": 279042,
+      "sha256": "5bc9021539863613bffaa132c5ed6b35f78266f9adea7fd5062a039326596748"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-2/node.jsonl.gz",
+      "size": 14323,
+      "sha256": "17c58ec850008b0787039d71a94ad7b4f99ce443035be3349aaf4be0295b79fc"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-2/requests.jsonl.gz",
+      "size": 493645,
+      "sha256": "3b8930b8e6e81f9b5b977f76e641db885fa7cfce575ade0143a5496edd9e4017"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-2/seed.json.gz",
+      "size": 52956,
+      "sha256": "f51eab737494d18ce8dfa1b0b0451ef3c1d0d1af7535147461505d3a0fde7f0a"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-3/host.jsonl.gz",
+      "size": 278779,
+      "sha256": "df6e56fa2bda3bf6b6ee5e46400da6b720e0df9cd9255032a33099df3cc0b37a"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-3/node.jsonl.gz",
+      "size": 14374,
+      "sha256": "d2af273c061d041890c6765637f564276aac185495663298a57983df458f7522"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-3/requests.jsonl.gz",
+      "size": 502310,
+      "sha256": "bcb43a4acc871584734d6744451bd4c07b764c8a213a23913777b3e14c795a59"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-3/seed.json.gz",
+      "size": 52961,
+      "sha256": "517eeac46450f015568046ae54668361c129d1eaff47146accf7a895980a1544"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-4/host.jsonl.gz",
+      "size": 276982,
+      "sha256": "fb63cccf90e7a646e1b19915cb6b425e5e01ff8f676bca05e570e2e671dd6557"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-4/node.jsonl.gz",
+      "size": 14363,
+      "sha256": "7e0804c629284c6ccaabd4418f831197263782502ace5e3e93644a8e4a5e8b4c"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-4/requests.jsonl.gz",
+      "size": 497557,
+      "sha256": "93755b16d126481a2043a44f717995d3871c0ad8f86b625fafc26c24a32fad35"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-4/seed.json.gz",
+      "size": 52957,
+      "sha256": "c816fa02243a4ff7f5d9bdba2876cb74abee5dff03b8ea3d16b3cac29bac358e"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-5/host.jsonl.gz",
+      "size": 273226,
+      "sha256": "973aa46598d3bdedb9487e07461ffba28314916fc2e789eb99f51983c96c53e7"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-5/node.jsonl.gz",
+      "size": 14644,
+      "sha256": "4aca31eadbaa811670f0ec4dac61119967de22c6243e7223f3c6146c559cd251"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-5/requests.jsonl.gz",
+      "size": 503513,
+      "sha256": "bde02dd1fea5faa627f7e18fd49844bdaed13d612425abd3125511e1f1620dc2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c1-5/seed.json.gz",
+      "size": 52958,
+      "sha256": "dd58f222859f3c446d5ef2acffdd735233a46f0b5fac1b097597452d44972326"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-1/host.jsonl.gz",
+      "size": 281181,
+      "sha256": "4a146c9a7f12b02b0b866827c96a82ebccb5e36b78fcba22cc0a911de79d4caa"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-1/node.jsonl.gz",
+      "size": 15260,
+      "sha256": "b25915fc2739b50b81696d50f06c8a911212f314e25ac3c972c64c404734cd4c"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-1/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-1/requests.jsonl.gz",
+      "size": 495861,
+      "sha256": "6e4a943c95c69ea8840e26a76f914d3909f7a950419f41abf6a7fbff189967c8"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-1/seed.json.gz",
+      "size": 52955,
+      "sha256": "4e62d77eb9e2a287d3466c9e42caa199b41b11ba30d71994d893a2310b21fb17"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-2/host.jsonl.gz",
+      "size": 280450,
+      "sha256": "8c65d946967b0714a1e03096de05008c6d9fd58138269a2c628a32429908aa52"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-2/node.jsonl.gz",
+      "size": 15447,
+      "sha256": "fd7a9c6293fdae047423825b6c71509fe4c45b684803bb66a1dd8b73809df82e"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-2/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-2/requests.jsonl.gz",
+      "size": 495345,
+      "sha256": "53b3efc74206c5ce81b5d338b67606cb76263488b5d5bd85258713c4b8dd1c35"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-2/seed.json.gz",
+      "size": 52958,
+      "sha256": "22ddd7d8278a46d2265c05ba261a2dfbc4e196cbd30e7b97776a22dfde4213ac"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-3/host.jsonl.gz",
+      "size": 277107,
+      "sha256": "b4fa23e0e6f07d434fc6a832a788fa853cb5cf097e9c1cacb5e37afdd24e8aed"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-3/node.jsonl.gz",
+      "size": 15545,
+      "sha256": "d770f50d1a70d92188ea2b619d6c684f6de1ac844007ea8324ca75d878304b66"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-3/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-3/requests.jsonl.gz",
+      "size": 502840,
+      "sha256": "bffdd6be3d8b4deacee64bb6a1d740da9f19ff43b8530ecf4a4eb5d640616e62"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-3/seed.json.gz",
+      "size": 52956,
+      "sha256": "725a66da34c2c9d8088cd8bdad37fd4af6ef798a32978eb9c353cca1d7127a41"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-4/host.jsonl.gz",
+      "size": 277104,
+      "sha256": "a30b167d926e16eea9f54490cd4b8deea76619a92f6adc4a22d2ce6dcecd466f"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-4/node.jsonl.gz",
+      "size": 15468,
+      "sha256": "d9606cb550a06f8aba67cb1c3eba111f181ee7c3703a61ad8411bed967ae763c"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-4/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-4/requests.jsonl.gz",
+      "size": 510069,
+      "sha256": "cbe47b1c059c183e569db7bedbe127f04c9a790d94d1391760c233a1342eaf49"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-4/seed.json.gz",
+      "size": 52959,
+      "sha256": "0c49c7d94c585f810c631f229500bc092c6f69d67a0c738a87e3637c92a56fa7"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-5/host.jsonl.gz",
+      "size": 274937,
+      "sha256": "80928f0c491ee4c0469b8f1cfac501bb461b14cc597a7c79d379bfcf3606ed08"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-5/node.jsonl.gz",
+      "size": 15584,
+      "sha256": "51edb73418c235b9329b770a2a06ba139514f47ce17baa3a5c69d93bb100ef42"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-5/portal.log.gz",
+      "size": 247,
+      "sha256": "504e5db60ac7008862bd33c199ef17cf8596198e66c492b7520a37f54d8d4be2"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-5/requests.jsonl.gz",
+      "size": 489662,
+      "sha256": "b4e68d302032535fcedba89095045edcb86489b9d53acf810720fa49f0f6b543"
+    },
+    {
+      "path": "express-03-direct-W3-0-c8-5/seed.json.gz",
+      "size": 52955,
+      "sha256": "bb36a8d5e598681d52d8a89ab99dabbaba1793d5c1b326b33445ca0c7d215c58"
+    },
+    {
+      "path": "fm007-images-before.jsonl",
+      "size": 3635,
+      "sha256": "e8060e2d72a6021f0a23e70d08ee2e4f923ebbca471ae4ca49594febf767b0db"
+    },
+    {
+      "path": "fm007-measurement-02.log",
+      "size": 91961,
+      "sha256": "57fa358f3efbbf1ab0c6818a77bad956e22d030cba10ddfe40e1a700c0a51e78"
+    },
+    {
+      "path": "fm007-measurement-03.log",
+      "size": 25139,
+      "sha256": "382df9ce3c15e19161cded9ca3827ae658698fcc5e7024c12a9f313ba996454a"
+    },
+    {
+      "path": "fm007-measurement.log",
+      "size": 6432,
+      "sha256": "cd2787b9e2ae39aeadb4fac91beef0e6f437585d94aeb29f82ff4d9a8aeb91f8"
+    },
+    {
+      "path": "format-evidence.log",
+      "size": 146,
+      "sha256": "9564c8d3bfadbd721f4a374f2c6825aea266ee38b28ba62dc8af3f6645ebe6bd"
+    },
+    {
+      "path": "format-final.log",
+      "size": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "format-harness-check.log",
+      "size": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    },
+    {
+      "path": "freeze-01-failed.log",
+      "size": 2553,
+      "sha256": "a63bde43d7b162db134cf1517006000019d3b94f38b513dd1e432b6083538bbc"
+    },
+    {
+      "path": "freeze-02-timeout.log",
+      "size": 4218,
+      "sha256": "039a5588c04bed3952a5bea38fa79bc208ca4d169a40b96c3fe53ec251843998"
+    },
+    {
+      "path": "freeze-03-success.log",
+      "size": 576,
+      "sha256": "b7840f949391e49ff87261895a70e1d85ffde8f6f39954dee25676f28f9e56a6"
+    },
+    {
+      "path": "host-before-express-02.json",
+      "size": 11629,
+      "sha256": "d555a7c5853c608c2caf81be4210712942b4e2e7470883695c15481d53120d32"
+    },
+    {
+      "path": "host-before-express-03.json",
+      "size": 11617,
+      "sha256": "106eb9d1f24f392fcb0471cec65d1384a9a31ba40ff16a08ff092ea194c729a2"
+    },
+    {
+      "path": "host-before.json",
+      "size": 1558,
+      "sha256": "07911460eed6648667425ce881f79f9236c3a2e105d3a09c5f75f9196bcefe08"
+    },
+    {
+      "path": "image-build.log",
+      "size": 3516,
+      "sha256": "cea85befff61cc4e6830320f7129952be7da9dfa7628ea23fe8c42f0cf4358f3"
+    },
+    {
+      "path": "inventory-check-final.log",
+      "size": 161,
+      "sha256": "0b7aeaee1185074d05a378e0270dea334807664da27e3495986c2edfe66e4ffb"
+    },
+    {
+      "path": "measured-harness/Dockerfile",
+      "size": 286,
+      "sha256": "9f8781fb4c86d893538676927282591ca182c7a56c94287a506af69315a8f79c"
+    },
+    {
+      "path": "measured-harness/README.md",
+      "size": 8277,
+      "sha256": "b3369ebb7d507f67e02d6394bc97ab3d763d3e4ffdbf75bc79825db0d02f9503"
+    },
+    {
+      "path": "measured-harness/application.cjs",
+      "size": 1707,
+      "sha256": "a826cbce3e805041cae8dbe8735022307a48986ae68b9b60898f68b0113fc1c7"
+    },
+    {
+      "path": "measured-harness/client.cjs",
+      "size": 11665,
+      "sha256": "4dcc64eb5282699ada3d0684af48b8829a90ece4642c4d5d025fb765cbb2490e"
+    },
+    {
+      "path": "measured-harness/fixture-package.json",
+      "size": 214,
+      "sha256": "a50c75e663f5a91878665841f1954b4160f620641e7a5a95b8c84e87c7e71c25"
+    },
+    {
+      "path": "measured-harness/freeze.cjs",
+      "size": 6359,
+      "sha256": "9dc9b756d3a58c9808b7938d47878e751a465faa9341c767f78d5f1ad8d10ef8"
+    },
+    {
+      "path": "measured-harness/nginx.conf",
+      "size": 1051,
+      "sha256": "e02ca39e25d1da0348ef42898bbfd4ad7af56faf5e35aaeb5b6c09e232a2d93a"
+    },
+    {
+      "path": "measured-harness/owner.cjs",
+      "size": 14787,
+      "sha256": "0d102338bac81e0fa77f3890197a29243175f95d07264def956e045bdf226973"
+    },
+    {
+      "path": "measured-harness/protocol.cjs",
+      "size": 4410,
+      "sha256": "041ce080730a2e4555a867927a327b74c45e36187531284cdba6114ca89463ef"
+    },
+    {
+      "path": "measured-harness/protocol.test.cjs",
+      "size": 3491,
+      "sha256": "a5e010bc7b1d0b7b7c93b0a94844e07055a4459370447396d865857573e364de"
+    },
+    {
+      "path": "measured-harness/report.cjs",
+      "size": 6789,
+      "sha256": "2836bde75dab294936fd2c31df22148f98c43c6bd08a4d546937a258048c72a4"
+    },
+    {
+      "path": "measured-harness/run.cjs",
+      "size": 7134,
+      "sha256": "926b4bcd94553e08a9c4495f1dbc0f445f8760d2d09e494d814204fbb4488fcd"
+    },
+    {
+      "path": "measured-harness/sample.cjs",
+      "size": 11382,
+      "sha256": "7df851baafebdf484e38c92f4a91ae2c78d5bdd11bf61461a4613b0bc4391fbb"
+    },
+    {
+      "path": "ordering-check-final.log",
+      "size": 125,
+      "sha256": "8572ba15a9b6400c10fece321b10ca37a1ec6fdec47c7e0f78fc4ba3422e79d6"
+    },
+    {
+      "path": "owned-cache-cleanup-02.log",
+      "size": 139,
+      "sha256": "7abbb1fbf55cf0544cf383ab3e041cb784d9e6f1d2b1cb029807d4f54db238a7"
+    },
+    {
+      "path": "owned-cache-cleanup.log",
+      "size": 132,
+      "sha256": "7cab6f8a5ae86356b6c4d0b8d9d2f9e312552662981d5f2fe038d88ce6980d92"
+    },
+    {
+      "path": "report-final.log",
+      "size": 122271,
+      "sha256": "a23c56ee09ac3df25901d4b7c9c7016945e1adb0c8f870a11cc464c6f3134339"
+    },
+    {
+      "path": "report-initial.log",
+      "size": 98709,
+      "sha256": "eaed580091f4c4a2c70a585fa3990d6e500be5f9c734f1c6efd364b9aecf0b61"
+    },
+    {
+      "path": "selected-package-build.log",
+      "size": 3804,
+      "sha256": "0ad773499966f587d0ff3ba01f50447edcb43cc75a221214f18fdcea6d2e5dcd"
+    },
+    {
+      "path": "smoke-02/portal.log.gz",
+      "size": 91,
+      "sha256": "7ece39dd02fb5f056b9eb2929e08459896857cf94a02f2ebf982c39f62906d2a"
+    },
+    {
+      "path": "smoke-03/portal.log.gz",
+      "size": 365,
+      "sha256": "8515a4813cb070762dbeb245bff927929a94b91608b3d9f2bba0e20e32ede66a"
+    },
+    {
+      "path": "smoke-04/portal.log.gz",
+      "size": 249,
+      "sha256": "11bcb6bd83ca83a194470107104dcc1ef51b4d4cd0a722c20e9a3d94bd0fe26d"
+    },
+    {
+      "path": "smoke-05/portal.log.gz",
+      "size": 420,
+      "sha256": "da67e302368b65923da19b5aef5039a509ea13dcdcee61da933b4d3b3ef3e7a8"
+    },
+    {
+      "path": "smoke-06/node.jsonl.gz",
+      "size": 31,
+      "sha256": "7c7934df38ef2650ebf1958640374f0bea181e3c1758e92a76880c030cfee3ab"
+    },
+    {
+      "path": "smoke-06/portal.log.gz",
+      "size": 363,
+      "sha256": "b1cc201a5b12d8e25a370b6efca02fe3c9a82bc2ad5364c0a26c6d5048eecad0"
+    },
+    {
+      "path": "smoke-07/host.jsonl.gz",
+      "size": 5728,
+      "sha256": "3168377311ffd91a129cbceb003d5bd6b4e32ccdcda655dc46d7b8e68e1f7b5a"
+    },
+    {
+      "path": "smoke-07/node.jsonl.gz",
+      "size": 5528,
+      "sha256": "da27c407aa8b48f547bddc020313553b83287936052b428ce21fec5d4de27452"
+    },
+    {
+      "path": "smoke-07/portal.log.gz",
+      "size": 260,
+      "sha256": "df2ab247ebd9a4d9a02137a5b27602581e86d766638ce7aa338f0e9a43c73db6"
+    },
+    {
+      "path": "smoke-09/host.jsonl.gz",
+      "size": 132953,
+      "sha256": "ac289f9bf03fc44c00f5f6405d30654d714cb8ba9f556427d80f9424000aacee"
+    },
+    {
+      "path": "smoke-09/node.jsonl.gz",
+      "size": 7063,
+      "sha256": "da5d146d279a21c429c5711c5bc83777c3ba56c6baacd0b105337c70a5d89e10"
+    },
+    {
+      "path": "smoke-09/portal.log.gz",
+      "size": 260,
+      "sha256": "df2ab247ebd9a4d9a02137a5b27602581e86d766638ce7aa338f0e9a43c73db6"
+    },
+    {
+      "path": "smoke-10/host.jsonl.gz",
+      "size": 36076,
+      "sha256": "af94120c54c8e98465adc0479f32b24e56eeb16502b0b79e46d05d841eab219b"
+    },
+    {
+      "path": "smoke-10/node.jsonl.gz",
+      "size": 2764,
+      "sha256": "1db3d94204d651f5097e188a144ed590cdb47468278a504e8f209d42f4520f3a"
+    },
+    {
+      "path": "smoke-10/portal.log.gz",
+      "size": 260,
+      "sha256": "df2ab247ebd9a4d9a02137a5b27602581e86d766638ce7aa338f0e9a43c73db6"
+    },
+    {
+      "path": "smoke-10/requests.jsonl.gz",
+      "size": 1530,
+      "sha256": "71441a3a5f27af469ad3037588ee964255dd4c9bc24d3e9c70839d1da77d3b23"
+    },
+    {
+      "path": "smoke-10/seed.json.gz",
+      "size": 59446,
+      "sha256": "498e5604767a430c1d31ee94aca739280e6dc7dd53d43af252fb250e808a8679"
+    },
+    {
+      "path": "smoke-11/host.jsonl.gz",
+      "size": 43091,
+      "sha256": "f2bf784b000c3a22958c660208a78ec56441ec3c8f478695da15ac1dc754b02a"
+    },
+    {
+      "path": "smoke-11/node.jsonl.gz",
+      "size": 3002,
+      "sha256": "a5880b35c4bfc3656c49fa357479d06bb5518ddad2cf742a04e17df108b80fe6"
+    },
+    {
+      "path": "smoke-11/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "smoke-11/requests.jsonl.gz",
+      "size": 1400,
+      "sha256": "a1205edb313485f3f2ed314f0aaaad1693d9a183155fe3145d4c7e6d93ebc336"
+    },
+    {
+      "path": "smoke-11/seed.json.gz",
+      "size": 52990,
+      "sha256": "8d05e4d1984012943077ca5a6b681378d5bd4fca283e26c38cc1e16f6b2dfda5"
+    },
+    {
+      "path": "smoke-12-tls/host.jsonl.gz",
+      "size": 35729,
+      "sha256": "85836ccab8157c2b30ac502dc6c0e847c95cd9504ba04f6455de4d4759ac79a1"
+    },
+    {
+      "path": "smoke-12-tls/node.jsonl.gz",
+      "size": 2828,
+      "sha256": "4a8397ee6105733c595a170f7ff8a89609dee9effbe9bcc58ebeab44d27fe1df"
+    },
+    {
+      "path": "smoke-12-tls/portal.log.gz",
+      "size": 255,
+      "sha256": "e9fabd49eb388d466ee2b47adbd3f193e3f77ba1908923fe58c0ae687faeed84"
+    },
+    {
+      "path": "smoke-12-tls/requests.jsonl.gz",
+      "size": 9239,
+      "sha256": "5d409b16965fe9d29ef0dd6dee1411cccf9524e78c3e336f83e3f04d940c8e0e"
+    },
+    {
+      "path": "smoke-12-tls/seed.json.gz",
+      "size": 52988,
+      "sha256": "1f5c534512217f7018de6c143ba3701527ae0139c24a3b6b51c51d39057fcee0"
+    },
+    {
+      "path": "smoke-13/host.jsonl.gz",
+      "size": 35865,
+      "sha256": "b4f0d48244c43bb5cd20cdf20736301a783455ff0194c45fa99d4b6eb3d91eed"
+    },
+    {
+      "path": "smoke-13/node.jsonl.gz",
+      "size": 2761,
+      "sha256": "e90787715d117e9e1346628e075ba1d0fe9c563aadd0865758e1fdbb79f5113a"
+    },
+    {
+      "path": "smoke-13/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "smoke-13/requests.jsonl.gz",
+      "size": 729,
+      "sha256": "5e1e0230ae11f6032fcc61d88219a60b5c8160d2c08a16f3b26b87fb3170e288"
+    },
+    {
+      "path": "smoke-13/seed.json.gz",
+      "size": 52990,
+      "sha256": "2497eec64d5e997947cc68864f83c0c15ea3cc841be9accc87403eb1673e9684"
+    },
+    {
+      "path": "smoke-14-final/host.jsonl.gz",
+      "size": 33168,
+      "sha256": "655231f2dbe2f0760d402479a6fcec47232d6a9b3edd4816474735b13eff192f"
+    },
+    {
+      "path": "smoke-14-final/node.jsonl.gz",
+      "size": 2750,
+      "sha256": "29193a83c0fdefc16dad22d41c9b155effe0cc12347ecd379a77203265e5aba3"
+    },
+    {
+      "path": "smoke-14-final/portal.log.gz",
+      "size": 254,
+      "sha256": "73a0f47c9fdb6b08ff0e9c58aaba47ef96a68ede4a89f7626aab4c81d39a397f"
+    },
+    {
+      "path": "smoke-14-final/requests.jsonl.gz",
+      "size": 1238,
+      "sha256": "f7f139739194f1098007897c6d28c83cf266248b69346a95cc7d1004182949de"
+    },
+    {
+      "path": "smoke-14-final/seed.json.gz",
+      "size": 52962,
+      "sha256": "7acd7e41a4f386698274b599378a8c63b657f9a75ed5e6513d27a96cec2677ae"
+    }
+  ]
+}

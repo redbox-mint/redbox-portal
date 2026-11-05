@@ -1,0 +1,3 @@
+Filesystem        1B-blocks        Used   Available Use% Mounted on
+/dev/sdb       126227243008 95068037120 24893272064  80% /home/ubuntu/work
+/dev/sda1       82086711296 74671644672  7398289408  91% /
