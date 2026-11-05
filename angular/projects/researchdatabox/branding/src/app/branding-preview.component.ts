@@ -36,6 +36,8 @@ declare global {
       }
     `,
     `
+      .preview-sample-bold, .preview-sample-bold-italic { font-weight: 700; }
+      .preview-sample-italic, .preview-sample-bold-italic { font-style: italic; }
       .mainmenu-area ul.navbar-nav li a,
       .mainmenu-area ul.navbar-nav li a:hover {
         text-decoration: none !important;
