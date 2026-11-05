@@ -21,6 +21,8 @@ describe('Background admin CSV export integration', function () {
   const recordOids: string[] = [];
   const jobIds: string[] = [];
   const userIds: string[] = [];
+  let admin: supertest.Agent;
+  let adminId: string;
   let librarian: supertest.Agent;
   let otherLibrarian: supertest.Agent;
   let researcher: supertest.Agent;
@@ -87,6 +89,7 @@ describe('Background admin CSV export integration', function () {
     anonymous = supertest.agent(app);
     const agents: supertest.Agent[] = [];
     for (const [name, roles] of [
+      ['admin', RolesService.getRoleIds(brand.roles, ['Admin'])],
       ['owner', libRoleIds],
       ['other', libRoleIds],
       ['researcher', RolesService.getRoleIds(brand.roles, ['Researcher'])],
@@ -96,6 +99,7 @@ describe('Background admin CSV export integration', function () {
         UsersService.addLocalUser(username, `Export ${name}`, `${username}@example.test`, 'RBTest123!')
       );
       userIds.push(String(user.id));
+      if (name === 'admin') adminId = String(user.id);
       if (name === 'owner') ownerId = String(user.id);
       await firstValueFrom(UsersService.updateUserRoles(user.id, [...roles]));
       const agent = supertest.agent(app);
@@ -113,7 +117,7 @@ describe('Background admin CSV export integration', function () {
         .expect(200);
       agents.push(agent);
     }
-    [librarian, otherLibrarian, researcher] = agents;
+    [admin, librarian, otherLibrarian, researcher] = agents;
     for (let index = 0; index < 25; index += 1) {
       const redboxOid = `export-${suffix}-${index}`;
       recordOids.push(redboxOid);
@@ -394,6 +398,42 @@ describe('Background admin CSV export integration', function () {
     await librarian.delete(`${baseUrl}/${queued.id}`).set('X-Source', 'jsclient').expect(403);
     await librarian.get(`${baseUrl}/${queued.id}/download`).expect(200);
     await deleteExport(queued.id);
+  });
+
+  it('cancels an Admin-owned queued job with CSRF, rejects foreign scope, and ignores late delivery', async function () {
+    // A real completed request supplies validated metadata. The test creates an unsubmitted
+    // queued copy so the real queue cannot finish it before the HTTP authorization assertions.
+    const templateJob = await createExport(admin);
+    await waitUntilReady(templateJob.id, admin);
+    const template = await collection().findOne({ jobId: templateJob.id });
+    assert.ok(template);
+    const { _id: _ignored, ...fields } = template;
+    const id = randomUUID(); jobIds.push(id);
+    await collection().insertOne({ ...fields, jobId: id, status: 'queued', attemptId: null,
+      objectKey: null, completedAt: null, startedAt: null, expiresAt: null, cleanedAt: null });
+    const url = `${baseUrl}/${id}/cancel`;
+    if (sails.config.security.csrf) {
+      await admin.post(url).set('X-Source', 'jsclient').send({}).expect(403);
+      assert.equal((await collection().findOne({ jobId: id }))?.status, 'queued');
+    }
+    for (const agent of [anonymous, researcher, librarian]) {
+      await agent.post(url).set('X-Source', 'jsclient').send({ _csrf: await csrf(agent) }).expect(403);
+    }
+    for (const patch of [{ requestedByUserId: ownerId }, { brandId: 'another-brand' }, { portal: 'other' }]) {
+      await collection().updateOne({ jobId: id }, { $set: patch });
+      await admin.post(url).send({ _csrf: await csrf(admin) }).expect(404);
+      await collection().updateOne({ jobId: id }, { $set: { requestedByUserId: adminId, brandId: fields.brandId, portal: fields.portal } });
+    }
+    const cancelled = await admin.post(url).set('X-ReDBox-Api-Version', '2.0').send({ _csrf: await csrf(admin) }).expect(200);
+    assert.equal(cancelled.body.data.status, 'cancelled');
+    assert.equal(cancelled.body.data.downloadUrl, null);
+    assert.equal('objectKey' in cancelled.body.data, false);
+    await ExportService.generateCsvJob({ attrs: { data: { jobId: id } } });
+    assert.equal((await collection().findOne({ jobId: id }))?.status, 'cancelled');
+    await admin.post(url).send({ _csrf: await csrf(admin) }).expect(409);
+    await deleteExport(id, admin);
+    await admin.get(`${baseUrl}/${id}`).expect(404);
+    await admin.post(`${baseUrl}/not-a-uuid/cancel`).send({ _csrf: await csrf(admin) }).expect(400);
   });
 
   it('rejects malformed selections before creating or enqueueing a job', async function () {

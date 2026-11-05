@@ -7101,9 +7101,10 @@ export namespace Services {
       format: unknown,
       modBefore: unknown,
       modAfter: unknown,
-      recType: unknown
+      recType: unknown,
+      checkpoint?: () => Promise<void>
     ): Readable {
-      return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
+      return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint);
     }
 
     // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service

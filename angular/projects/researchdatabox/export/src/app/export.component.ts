@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
-import { Component, Inject, inject } from '@angular/core';
+import { Component, ElementRef, Inject, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
@@ -39,6 +39,10 @@ interface ExportFormatOption {
 })
 export class ExportComponent extends BaseComponent {
   readonly adminDates = inject(AdminDateService);
+  isAdmin = inject(ElementRef).nativeElement.getAttribute('is-admin') === 'true';
+  pendingCancel: ExportJobDto | null = null;
+  cancelPendingId: string | null = null;
+  cancelErrorKey = '';
   pendingDelete: ExportJobDto | null = null;
   private modalTrigger: HTMLElement | null = null;
   datePickerPlaceHolder = '';
@@ -59,7 +63,7 @@ export class ExportComponent extends BaseComponent {
   deleteErrorKey = '';
 
   private static readonly statusTones: Record<ExportJobStatus, string> = {
-    queued: 'info', running: 'info', ready: 'success', failed: 'danger', expired: 'warning'
+    queued: 'info', running: 'info', ready: 'success', failed: 'danger', expired: 'warning', cancelled: 'secondary'
   };
   private readonly pollIntervalMs = 3000;
   private refreshPromise: Promise<void> | null = null;
@@ -152,12 +156,56 @@ export class ExportComponent extends BaseComponent {
   }
 
   get mutationPending(): boolean {
-    return this.createPending || this.deletePendingId !== null;
+    return this.createPending || this.deletePendingId !== null || this.cancelPendingId !== null;
   }
 
   canDelete(job: ExportJobDto): boolean {
     const status = this.getStatus(job);
-    return status === 'ready' || status === 'failed' || status === 'expired';
+    return status === 'ready' || status === 'failed' || status === 'expired' || status === 'cancelled';
+  }
+
+  canCancel(job: ExportJobDto): boolean {
+    return this.isAdmin && (job.status === 'queued' || job.status === 'running');
+  }
+
+  requestCancel(job: ExportJobDto): void {
+    if (this.mutationPending || !this.canCancel(job)) { return; }
+    this.modalTrigger = document.activeElement as HTMLElement;
+    this.cancelErrorKey = '';
+    this.pendingCancel = job;
+  }
+
+  dismissCancel(): void {
+    if (this.mutationPending) { return; }
+    this.pendingCancel = null;
+    this.restoreDeleteFocus();
+  }
+
+  async cancelJob(job: ExportJobDto): Promise<void> {
+    if (this.disposed || this.mutationPending || !this.canCancel(job)) { return; }
+    this.cancelPendingId = job.id;
+    this.cancelErrorKey = '';
+    this.clearRefreshTimer();
+    try {
+      // Drain an older list request so it cannot overwrite the cancellation response.
+      await this.refreshPromise;
+      if (this.disposed) { return; }
+      const cancelled = await this.exportService.cancel(job.id);
+      if (!this.disposed) {
+        this.jobs = this.jobs.map(existing => existing.id === job.id ? cancelled : existing);
+        this.pendingCancel = null;
+        this.restoreDeleteFocus();
+        this.pollingBlocked = false;
+      }
+    } catch (error: unknown) {
+      if (!this.disposed) {
+        this.cancelErrorKey = this.isAccessError(error) ? 'export-session-error' : 'export-cancel-error';
+      }
+    } finally {
+      this.cancelPendingId = null;
+      // Refresh immediately, including when completion won the race and cancellation returned 409.
+      if (!this.disposed) { await this.refreshJobs(); }
+    }
   }
 
   requestDelete(job: ExportJobDto): void {

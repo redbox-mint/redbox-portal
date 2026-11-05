@@ -48,7 +48,7 @@ describe('ExportComponent', () => {
       waitForInit: async () => undefined,
       getAllTypes: jasmine.createSpy('getAllTypes').and.resolveTo([{ name: 'rdmp' }, { name: 'dataRecord' }])
     };
-    service = jasmine.createSpyObj<ExportService>('ExportService', ['waitForInit', 'list', 'create', 'get', 'remove', 'downloadUrl']);
+    service = jasmine.createSpyObj<ExportService>('ExportService', ['waitForInit', 'list', 'create', 'get', 'remove', 'cancel', 'downloadUrl']);
     service.waitForInit.and.resolveTo(service);
     service.list.and.resolveTo([]);
     service.create.and.resolveTo(job());
@@ -77,6 +77,60 @@ describe('ExportComponent', () => {
     flushMicrotasks();
     fixture.detectChanges();
   }
+
+  it('confirms cancellation, shows the terminal badge, and enables deletion immediately', fakeAsync(() => {
+    service.list.and.resolveTo([job({ status: 'running' })]);
+    initialize(); component.isAdmin = true; fixture.detectChanges();
+    service.cancel.and.resolveTo(job({ status: 'cancelled' }));
+    const cancel = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((b) => b.textContent?.trim() === 'export-cancel') as HTMLButtonElement;
+    cancel.click(); fixture.detectChanges();
+    expect(service.cancel).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('export-cancel-confirm');
+    service.list.and.resolveTo([job({ status: 'cancelled' })]);
+    fixture.nativeElement.querySelector('.rb-admin-danger-confirm').click(); flushMicrotasks(); tick(0); fixture.detectChanges();
+    expect(service.cancel).toHaveBeenCalledOnceWith('export-1');
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('export-status-cancelled');
+    expect(component.canDelete(component.jobs[0])).toBeTrue();
+    expect(component.hasActiveJobs()).toBeFalse(); fixture.destroy();
+  }));
+
+  it('limits cancellation to Admin and active jobs and dismisses without mutating', fakeAsync(() => {
+    initialize();
+    expect(component.canCancel(job())).toBeFalse();
+    component.isAdmin = true;
+    expect(component.canCancel(job({ status: 'running' }))).toBeTrue();
+    for (const status of ['ready', 'failed', 'expired', 'cancelled'] as const) {
+      expect(component.canCancel(job({ status }))).toBeFalse();
+    }
+    component.requestCancel(job()); component.dismissCancel(); tick(0);
+    expect(component.pendingCancel).toBeNull(); expect(service.cancel).not.toHaveBeenCalled(); fixture.destroy();
+  }));
+
+  it('refreshes after a completion race and keeps a visible cancellation error', fakeAsync(() => {
+    service.list.and.resolveTo([job()]); initialize(); component.isAdmin = true;
+    component.requestCancel(component.jobs[0]);
+    service.cancel.and.rejectWith({ status: 409 });
+    service.list.and.resolveTo([job({ status: 'ready' })]);
+    void component.cancelJob(component.jobs[0]); flushMicrotasks(); fixture.detectChanges();
+    expect(component.jobs[0].status).toBe('ready');
+    expect(component.cancelErrorKey).toBe('export-cancel-error');
+    expect(component.mutationPending).toBeFalse(); fixture.destroy();
+  }));
+
+  it('drains stale polling and prevents duplicate cancellation requests', fakeAsync(() => {
+    service.list.and.resolveTo([job()]); initialize(); component.isAdmin = true;
+    const old = deferred<ExportJobDto[]>(); service.list.and.returnValue(old.promise);
+    void component.refreshJobs();
+    const cancellation = deferred<ExportJobDto>(); service.cancel.and.returnValue(cancellation.promise);
+    void component.cancelJob(component.jobs[0]); void component.cancelJob(component.jobs[0]); flushMicrotasks();
+    expect(service.cancel).not.toHaveBeenCalled();
+    old.resolve([job({ status: 'running' })]); flushMicrotasks();
+    expect(service.cancel).toHaveBeenCalledTimes(1);
+    service.list.and.resolveTo([job({ status: 'cancelled' })]);
+    cancellation.resolve(job({ status: 'cancelled' })); flushMicrotasks(); tick(0);
+    expect(component.jobs[0].status).toBe('cancelled'); fixture.destroy();
+  }));
 
   it('restores recent jobs and prepares CSV instead of opening a download request', fakeAsync(() => {
     service.list.and.resolveTo([job({ id: 'older', status: 'failed' })]);

@@ -3076,13 +3076,15 @@ export namespace Services {
       };
     }
 
-    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false) {
+    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false, checkpoint?: () => Promise<void>) {
       let skip = 0;
       const limit = options.limit;
       options.skip = skip;
+      await checkpoint?.();
       let result = await this.recordCol.find(query, options).toArray();
 
       while (result.length > 0) {
+        await checkpoint?.();
         for (const record of result) {
           if (stringifyJSON) {
             yield JSON.stringify(record);
@@ -3092,11 +3094,12 @@ export namespace Services {
         }
         skip = skip + limit;
         options.skip = skip;
+        await checkpoint?.();
         result = await this.recordCol.find(query, options).toArray();
       }
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint?: () => Promise<void>): stream.Readable {
       const andArray = [];
       const query = {
         'metaMetadata.brandId': brand.id,
@@ -3146,7 +3149,7 @@ export namespace Services {
             // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
             // bail out when it is no longer writable.
             const isCancelled = () => passThrough.destroyed;
-            const fields = await this.collectCsvFields(query, options, isCancelled);
+            const fields = await this.collectCsvFields(query, options, isCancelled, checkpoint);
             if (isCancelled()) {
               return;
             }
@@ -3166,7 +3169,10 @@ export namespace Services {
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(
-              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              stream.Readable.from(this.fetchAllRecords(query, { ...options }, false, async () => {
+                if (isCancelled()) throw new Error('Export stream closed.');
+                await checkpoint?.();
+              })),
               sanitize,
               json2csv,
               passThrough
@@ -3187,10 +3193,10 @@ export namespace Services {
     // First export pass: iterate every matching record and accumulate the union of flattened column
     // keys (first-seen order) so the CSV header covers every record. A clone of options is used
     // because fetchAllRecords mutates options.skip while paging.
-    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
+    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false, checkpoint?: () => Promise<void>): Promise<string[]> {
       const flattener = flatten();
       const fields = new Set<string>();
-      for await (const record of this.fetchAllRecords(query, { ...options })) {
+      for await (const record of this.fetchAllRecords(query, { ...options }, false, checkpoint)) {
         // Stop paging Mongo if the consumer has disconnected so cancelled exports don't keep
         // scanning every matching record.
         if (isCancelled()) {

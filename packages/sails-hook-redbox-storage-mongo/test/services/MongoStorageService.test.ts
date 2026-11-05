@@ -2544,6 +2544,37 @@ describe('MongoStorageService', function () {
       toArray: async () => pagesBySkip[opts.skip ?? 0] ?? [],
     }));
 
+  it('checks cancellation between CSV discovery pages and before the writing pass', async function () {
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'one' } }]) };
+    let calls = 0;
+    const checkpoint = async () => { if (++calls === 3) throw new Error('cancelled at page boundary'); };
+    const source = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp', checkpoint);
+    try {
+      for await (const _chunk of source) { /* consume */ }
+      expect.fail('Expected cancellation');
+    } catch (error) {
+      expect((error as Error).message).to.equal('cancelled at page boundary');
+    }
+    expect(service.recordCol.find.callCount).to.equal(1);
+    expect(source.destroyed).to.equal(true);
+  });
+
+  it('checks cancellation between CSV writing pages', async function () {
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'one' } }]) };
+    const checkpoint = async () => {
+      if (service.recordCol.find.callCount === 3) throw new Error('cancelled while writing');
+    };
+    const source = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp', checkpoint);
+    try {
+      for await (const _chunk of source) { /* consume */ }
+      expect.fail('Expected cancellation');
+    } catch (error) {
+      expect((error as Error).message).to.equal('cancelled while writing');
+    }
+    expect(service.recordCol.find.callCount).to.equal(3);
+    expect(source.destroyed).to.equal(true);
+  });
+
   it('exports plans as UTF-8 BOM csv using streamed records', async function () {
     service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'Waldenström' } }]) };
 

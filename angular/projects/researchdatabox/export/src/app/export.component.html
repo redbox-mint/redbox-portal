@@ -213,6 +213,9 @@
                             {{ 'export-prepare-again' | i18next }}
                           </button>
                         }
+                        @if (canCancel(job)) {
+                          <button class="btn btn-sm rb-admin-ghost" type="button" [disabled]="mutationPending" (click)="requestCancel(job)">{{ 'export-cancel' | i18next }}</button>
+                        }
                         @if (canDelete(job)) {
                           <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false">
                             <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: job.filename || job.recordType }">⋯</summary>
@@ -230,6 +233,18 @@
       </div>
     </section>
   </div></div>
+  @if (pendingCancel) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="export-cancel-title" aria-describedby="export-cancel-description" (keydown.escape)="dismissCancel()">
+      <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-header"><h2 id="export-cancel-title" class="modal-title">{{ 'export-cancel-confirm' | i18next }}</h2></div>
+        <div class="modal-body"><p id="export-cancel-description">{{ 'export-cancel-description' | i18next }}</p>
+          @if (cancelErrorKey) { <div class="alert alert-danger" role="alert">{{ cancelErrorKey | i18next }}</div> }
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial [disabled]="mutationPending" (click)="dismissCancel()">{{ 'export-keep-preparing' | i18next }}</button><button class="btn rb-admin-danger-confirm" type="button" [disabled]="mutationPending" (click)="cancelJob(pendingCancel)">{{ (mutationPending ? 'export-cancelling' : 'export-cancel') | i18next }}</button></div>
+      </div></div>
+    </div>
+  }
   @if (pendingDelete) {
     <div class="modal-backdrop fade show"></div>
     <div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="export-delete-title" aria-describedby="export-delete-description" (keydown.escape)="cancelDelete()">
