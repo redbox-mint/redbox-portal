@@ -62,3 +62,34 @@ export function sectionSummary(fields: FormlyFieldConfig[], model: any, booleanL
   fields.forEach(field => walk(field, model));
   return values.join(' · ');
 }
+
+/** Only schema-declared identifying controls are safe to show in a collapsed dictionary row. */
+export function dictionarySummary(field: FormlyFieldConfig, value: any, booleanLabel: (value: boolean) => string): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || field.hide || field.props?.['secret']) return '';
+  const identifying = ['label', 'name', 'title', 'displayName', 'publicUrl', 'frontEndUrl', 'baseUrl', 'url', 'host', 'id', 'type'];
+  const fields = field.fieldGroup || [];
+  const values: string[] = [];
+  for (const key of [...identifying, 'enabled']) {
+    const control = fields.find(child => String(Array.isArray(child.key) ? child.key[0] : child.key) === key);
+    if (!control || control.hide || control.props?.['secret'] || control.props?.type === 'password' ||
+        !['string', 'number', 'integer', 'enum', 'app-config-checkbox'].includes(String(control.type))) continue;
+    const scalar = value[key];
+    if (scalar == null || scalar === '' || typeof scalar === 'object') continue;
+    let text = typeof scalar === 'boolean' ? booleanLabel(scalar) : String(scalar).trim();
+    if (!text || text.includes('__REDACTED')) continue;
+    if (/url$/i.test(key)) {
+      try {
+        const url = new URL(text);
+        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) continue;
+        url.search = ''; url.hash = '';
+        text = url.toString();
+      } catch { continue; }
+    }
+    text = text.replace(/\s+/g, ' ');
+    text = text.length > 65 ? text.slice(0, 64) + '…' : text;
+    if (!values.includes(text)) values.push(text);
+    if (values.length === 3) break;
+  }
+  const summary = values.join(' · ');
+  return summary.length > 160 ? summary.slice(0, 159) + '…' : summary;
+}
