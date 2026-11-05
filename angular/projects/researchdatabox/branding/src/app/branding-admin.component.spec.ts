@@ -647,7 +647,10 @@ describe('BrandingAdminComponent typography experience', () => {
     component.selectedGroup = 1;
     component.draftConfig['site-branding-area-background-color'] = '#000000';
     component.draftConfig['body-text-color'] = '#123456';
-    component.resetGroup();
+    fixture.detectChanges();
+    const reset: HTMLButtonElement = fixture.nativeElement.querySelector('.branding-colour-layout section .card-footer button');
+    expect(reset.classList.contains('btn-outline-secondary')).toBeTrue();
+    reset.click();
     expect(component.colour('site-branding-area-background-color')).toBe('#b1101a');
     expect(component.draftConfig['body-text-color']).toBe('#123456');
     expect(component.draftConfig['primary']).toBe('#112233');

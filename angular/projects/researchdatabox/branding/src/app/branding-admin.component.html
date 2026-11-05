@@ -135,15 +135,17 @@
                 </div>
               </div>
             </div>
+            <div class="card-footer">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="resetGroup()"
+                [disabled]="isUnavailable('save-draft')"
+              >
+                {{ 'admin-branding-reset-group' | i18next }}
+              </button>
+            </div>
           </section>
-          <button
-            type="button"
-            class="btn branding-ghost"
-            (click)="resetGroup()"
-            [disabled]="isUnavailable('save-draft')"
-          >
-            {{ 'admin-branding-reset-group' | i18next }}
-          </button>
         </div>
         <aside
           class="rb-admin-split-side branding-draft-preview"
