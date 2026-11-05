@@ -1,3 +1,4 @@
+import { deletedRecordsApiRoutes } from './groups/deleted-records';
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
 import { buildSailsRouteConfig, ensureUniqueApiRoutes, isRecord, toRouteMap, validateApiRouteConsistency } from './helpers';
@@ -31,6 +32,7 @@ const apiDocumentInfo = {
 
 const coreApiRouteGroups = [
   recordApiRoutes,
+  deletedRecordsApiRoutes,
   recordSchemaApiRoutes,
   userApiRoutes,
   searchApiRoutes,

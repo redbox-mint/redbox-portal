@@ -2877,11 +2877,20 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode: string = 'regex',
-      secondarySort = undefined
+      secondarySort = undefined,
+      deletionFilters: { deletedWithin?: string; deletedBy?: string } = {}
     ) {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      if (deletionFilters.deletedWithin && deletionFilters.deletedWithin !== 'any') {
+        if (!['7', '30'].includes(deletionFilters.deletedWithin)) throw new TypeError('Invalid deletion period');
+        query['dateDeleted'] = { $gte: new Date(Date.now() - Number(deletionFilters.deletedWithin) * 86400000).toISOString() };
+      }
+      if (deletionFilters.deletedBy) {
+        query['deletedBy.brandId'] = String(brand.id);
+        query['deletedBy.username'] = deletionFilters.deletedBy;
+      }
       const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
       const sortAliases = new Map([
         ['title', 'deletedRecordMetadata.metadata.title'],

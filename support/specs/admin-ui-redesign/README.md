@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/05-deleted-records`: record-type badges, original deletion actors, server-side deletion filters and bounded bulk restore/permanent delete with per-record results.
+
 Delivered on `admin-deferred/04-export-cancel`: Admin cancellation of queued/preparing exports, cooperative worker cleanup, Cancelled status and subsequent deletion.
 
 Delivered on `admin-deferred/03-harvest-stats`: brand-scoped global harvest statistics with database counts, latest successful completion and a filter-independent stats row.

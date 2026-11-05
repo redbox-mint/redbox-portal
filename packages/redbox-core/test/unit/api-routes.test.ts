@@ -6,6 +6,8 @@ import { z } from 'zod';
 import {
   ApiRouteDefinition,
   cancelExportJobRoute,
+  bulkDeletedRecordsRoute,
+  deletedRecordSessionListRoute,
   buildApiBlueprint,
   buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
@@ -1870,6 +1872,16 @@ describe('API routes contract layer', function () {
         meta: { outcome: 'not-saved' },
       }).success
     ).to.equal(false);
+  });
+
+  it('keeps deleted-record bulk actions on session Admin/CSRF contracts with bounded item input', () => {
+    expect(bulkDeletedRecordsRoute.csrf).to.equal(true);
+    expect(bulkDeletedRecordsRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(deletedRecordSessionListRoute.csrf).to.equal(true);
+    const request: any = { params: {}, query: {}, headers: { 'content-type': 'application/json' }, body: { action: 'restore', items: [] } };
+    expect(validateApiRouteRequest(request, bulkDeletedRecordsRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: ['7', '30'] } }, deletedRecordSessionListRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: '7', deletedBy: 'alice', start: '0', rows: '10' } }, deletedRecordSessionListRoute).valid).to.equal(true);
   });
 
   it('should document vocabulary creation as a 201 response', function () {

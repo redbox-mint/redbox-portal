@@ -1,3 +1,5 @@
+import { deletedRecordSummary } from '../../src/DeletedRecordSummary';
+import { bulkDeletedRecordsBody } from '../../src/api-routes/groups/deleted-records';
 import {createSinonStubLogger} from "../logger.test";
 
 let expect: Chai.ExpectStatic;
@@ -1502,7 +1504,8 @@ describe('RecordController getWorkflowSteps', () => {
           {
             redboxOid: 'oid-1',
             revision: 12,
-            deletedRecordMetadata: { metadata: { title: 'Deleted record' } },
+            deletedRecordMetadata: { metadata: { title: 'Deleted record' }, metaMetadata: { type: 'rdmp' } },
+            deletedBy: { id: 'user-1', username: 'alice', brandId: 'brand-1' },
             dateDeleted: '2026-01-03T00:00:00Z',
           },
         ],
@@ -1519,7 +1522,59 @@ describe('RecordController getWorkflowSteps', () => {
       { id: 'brand-1' }
     );
 
-    expect(response.items[0]).to.deep.include({ oid: 'oid-1', revision: 12 });
+    expect(response.items[0]).to.deep.include({ oid: 'oid-1', revision: 12, recordType: 'rdmp', deletedBy: { id: 'user-1', username: 'alice' } });
+  });
+
+  it('only exposes an actor from the active brand and resolves available type labels', () => {
+    const doc = { deletedRecordMetadata: { metaMetadata: { type: 'rdmp' } }, deletedBy: { brandId: 'other', username: 'private' } };
+    expect(deletedRecordSummary(doc, 'brand-1', key => key === 'rdmp-title' ? 'Plans' : key)).to.deep.equal({ recordType: 'rdmp', recordTypeLabel: 'Plans', deletedBy: null });
+    expect(deletedRecordSummary({}, 'brand-1', key => key)).to.deep.equal({ recordType: '', deletedBy: null });
+  });
+
+  it('bounds batches and rejects duplicates, invalid actions and missing preconditions', () => {
+    const item = { oid: 'one', entityTag: formatRecordEntityTag('one', 3) };
+    for (const body of [{ action: 'restore', items: [] }, { action: 'other', items: [item] }, { action: 'restore', items: [item, item] }, { action: 'destroy', items: [{ oid: 'one' }] }, { action: 'restore', items: Array.from({ length: 101 }, (_, i) => ({ ...item, oid: String(i) })) }]) {
+      expect(bulkDeletedRecordsBody.safeParse(body).success).to.equal(false);
+    }
+    expect(bulkDeletedRecordsBody.safeParse({ action: 'restore', items: Array.from({ length: 100 }, (_, i) => ({ ...item, oid: String(i) })) }).success).to.equal(true);
+  });
+
+  for (const action of ['restore', 'destroy']) {
+    it(`bulk ${action} checks each brand/edit permission and continues through failures and unknown outcomes`, async () => {
+      const unavailable = new Set(['missing', 'other-brand']);
+      const read = sinon.stub().callsFake(async (oid, brand) => unavailable.has(oid) ? null : { redboxOid: oid, metaMetadata: { brandId: brand.id } });
+      const mutate = sinon.stub().callsFake(async (oid) => {
+        if (oid === 'throw') throw new Error('private exception');
+        return { outcome: oid === 'stale' ? 'not-saved' : 'saved', wasPersisted: () => oid !== 'stale', problems: oid === 'stale' ? [{ kind: 'conflict' }] : [] };
+      });
+      controller.recordsService = { getDeletedRecordMeta: read, hasEditAccess: (_brand, _user, _roles, record) => record.redboxOid !== 'denied', restoreRecord: mutate, destroyDeletedRecord: mutate } as any;
+      const ids = ['ok', 'missing', 'denied', 'other-brand', 'stale', 'throw', 'last'];
+      const req: any = { body: { action, items: ids.map(oid => ({ oid, entityTag: formatRecordEntityTag(oid, 3) })) }, headers: {}, params: {}, query: {}, user: { username: 'alice' }, session: { branding: 'default' } };
+      const send = sinon.stub(controller as any, 'sendResp');
+      await controller.bulkDeletedRecords(req, {} as any);
+      expect(mutate.getCalls().map(call => call.args[0])).to.deep.equal(['ok', 'stale', 'throw', 'last']);
+      expect(read.getCalls().every(call => call.args[1].id === 'brand-1')).to.equal(true);
+      expect(send.firstCall.args[2].v1.results.map(item => item.status)).to.deep.equal(['succeeded', 'failed', 'failed', 'failed', 'failed', 'unknown', 'succeeded']);
+      expect(send.firstCall.args[2].v1.results[4].reason).to.equal('record-changed');
+      expect(JSON.stringify(send.firstCall.args[2])).not.to.include('private exception');
+    });
+  }
+
+  it('returns an invalid precondition for one item without dispatching its mutation', async () => {
+    (controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).resolves({ metaMetadata: { brandId: 'brand-1' } });
+    const mutate = sinon.stub();
+    Object.assign(controller.recordsService, { restoreRecord: mutate });
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.bulkDeletedRecords({ body: { action: 'restore', items: [{ oid: 'one', entityTag: 'invalid' }] }, user: {}, session: { branding: 'default' } } as any, {} as any);
+    expect(mutate.notCalled).to.equal(true);
+    expect(send.firstCall.args[2].v1.results).to.deep.equal([{ oid: 'one', status: 'failed', reason: 'invalid-precondition' }]);
+  });
+
+  it('rejects malformed bulk input without reading or mutating records', async () => {
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.bulkDeletedRecords({ body: { action: 'destroy', items: [] } } as any, {} as any);
+    expect(send.firstCall.args[2].status).to.equal(400);
+    expect((controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).notCalled).to.equal(true);
   });
 
   it('preserves the form-configuration failure response before operation discovery', async function () {

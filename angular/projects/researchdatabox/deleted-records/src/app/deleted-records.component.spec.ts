@@ -112,6 +112,60 @@ describe('DeletedRecordsComponent', () => {
     await testModule.compileComponents();
   });
 
+  it('selects only the current page, confirms the count, reports partial failures and clears selection after refresh', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const bulk = recordService.bulkDeletedRecords = jasmine.createSpy().and.resolveTo({ results: [
+      { oid: 'rdmp-record-1', status: 'succeeded', reason: 'completed' },
+      { oid: 'dataRecord-record-2', status: 'failed', reason: 'record-changed' },
+    ] });
+    const select = fixture.nativeElement.querySelector('thead input[type=checkbox]') as HTMLInputElement;
+    select.click(); fixture.detectChanges();
+    expect(component.selectedRecords.size).toBe(2);
+    expect(fixture.nativeElement.querySelector('.rb-admin-bulk-bar')).toBeTruthy();
+    component.showBulkDestroy(); fixture.detectChanges();
+    expect(component.bulkDestroy).toBeTrue();
+    expect(bulk).not.toHaveBeenCalled();
+    component.hideDestroyRecordModal();
+    expect(component.selectedRecords.size).toBe(2);
+    component.showBulkDestroy();
+    await component.confirmDestroyRecordModal(null);
+    fixture.detectChanges();
+    expect(bulk).toHaveBeenCalledOnceWith('destroy', jasmine.arrayContaining([jasmine.objectContaining({ oid: 'rdmp-record-1', revision: 3 })]));
+    expect(component.isDestroyRecordModalShown).toBeFalse();
+    expect(component.selectedRecords.size).toBe(0);
+    expect(component.bulkResults[1].reason).toBe('record-changed');
+    expect(fixture.nativeElement.querySelector('.action-feedback').textContent).toContain('dataRecord-record-2');
+  });
+
+  it('bulk restores selected rows and prevents repeated submissions while pending', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    let complete: any;
+    const bulk = recordService.bulkDeletedRecords = jasmine.createSpy().and.returnValue(new Promise(resolve => complete = resolve));
+    component.togglePage(true);
+    const pending = component.runBulk('restore');
+    await component.runBulk('restore');
+    expect(bulk).toHaveBeenCalledTimes(1);
+    complete({ results: [{ oid: 'rdmp-record-1', status: 'succeeded', reason: 'completed' }] });
+    await pending;
+    expect(component.selectedRecords.size).toBe(0);
+  });
+
+  it('passes deletion period and actor to server filtering and clears page selection', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    component.togglePage(true);
+    const read = spyOn(recordService, 'getDeletedRecords').and.callThrough();
+    component.filterParams.deletedWithin = '7'; component.filterParams.deletedBy = 'alice';
+    await component.filter();
+    expect(read.calls.mostRecent().args.slice(-2)).toEqual(['7', 'alice']);
+    expect(component.selectedRecords.size).toBe(0);
+  });
+
   for (const paginationFails of [false, true]) {
     it(`runs only the latest submitted filter after a pending page ${paginationFails ? 'fails' : 'succeeds'}, and retries its exact criteria`, async () => {
       configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
@@ -499,7 +553,7 @@ describe('DeletedRecordsComponent', () => {
       return mockData.deletedRecords;
     };
 
-    for (const header of app.tableHeaders) {
+    for (const header of app.tableHeaders.filter(header => header.sortable !== false)) {
       await app.headerSortChanged({ sort: 'asc' }, header);
       await app.headerSortChanged({ sort: 'desc' }, header);
     }
@@ -944,7 +998,7 @@ describe('DeletedRecordsComponent', () => {
         fixture.detectChanges();
         expect(app.actionNeedsRefresh).toBeFalse();
         expect(app.currentDestroyRecordModalOid).toBeUndefined();
-        expect(fixture.nativeElement.textContent).toContain('Verify the record state');
+        expect(fixture.nativeElement.textContent).toContain('admin-deleted-list-refreshed');
         expect(mutation).toHaveBeenCalledTimes(1);
         fixture.destroy();
       });
@@ -1028,7 +1082,7 @@ describe('DeletedRecordsComponent', () => {
         expect(app.actionPending).toBeFalse();
         expect(app.actionRefreshError).toBe('');
         expect(app.currentDestroyRecordModalOid).toBeUndefined();
-        expect(fixture.nativeElement.textContent).toContain('Verify the record state');
+        expect(fixture.nativeElement.textContent).toContain('admin-deleted-list-refreshed');
         expect(fixture.nativeElement.textContent).toContain('Verified page two');
         expect(fixture.nativeElement.querySelector('record-table .restore-record')).toBeTruthy();
         expect(activePage()).toBe('2');

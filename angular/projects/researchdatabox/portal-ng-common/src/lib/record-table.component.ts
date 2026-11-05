@@ -59,6 +59,9 @@ export class RecordTableComponent extends BaseComponent {
   // report name for template key construction (required for Handlebars templates)
   @Input() reportName: string = '';
   @Input() adminPresentation = false;
+  @Input() selectionHeaderTemplate?: TemplateRef<any>;
+  @Input() selectionTemplate?: TemplateRef<{ $implicit: any }>;
+  @Input() cellTemplates: { [property: string]: TemplateRef<{ $implicit: any }> } = {};
   @Input() actionTemplate?: TemplateRef<{ $implicit: any }>;
   // pagination
   @Input() paginationItemsPerPage: number = 10;

@@ -19,9 +19,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Deleted records | Bulk select with Restore / Delete permanently | Needs bulk restore/destroy endpoints |
-| Deleted records | "Deleted by" column and "Deleted within" filter | Deletion audit (who/when) isn't exposed for filtering |
-| Deleted records | Record-type column | The deleted-record list response must expose each record’s type; the current response contains only title, identifiers, lifecycle and dates. |
 
 ## People and access
 
