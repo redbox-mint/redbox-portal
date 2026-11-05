@@ -20,11 +20,11 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
       <div class="table-responsive" *ngIf="columns.length; else emptyTpl">
         <table class="table table-hover dc-columns-table"><thead><tr><th scope="col"><span class="visually-hidden">{{ 'admin-dashboard-reorder' | i18next }}</span></th><th scope="col">{{ 'admin-dashboard-heading' | i18next }}</th><th scope="col">{{ 'admin-dashboard-record-field' | i18next }}</th><th scope="col">{{ 'admin-dashboard-sort' | i18next }}</th><th scope="col" class="text-end">{{ 'admin-dashboard-actions' | i18next }}</th></tr></thead>
           <tbody><tr *ngFor="let col of columns; let i = index" [class.dc-column-selected]="selectedColumn === col">
-            <td><div class="dc-reorder"><button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="i === 0" (click)="moveColumn(i, -1)" [attr.aria-label]="'admin-dashboard-move-up' | i18next: { name: col.title }">↑</button><button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="i === columns.length - 1" (click)="moveColumn(i, 1)" [attr.aria-label]="'admin-dashboard-move-down' | i18next: { name: col.title }">↓</button></div></td>
-            <td><button type="button" class="dc-column-edit" (click)="selectColumn(col)" [attr.aria-expanded]="selectedColumn === col">{{ col.title || ('admin-dashboard-untitled' | i18next) }}</button></td>
+            <td><div class="dc-reorder"><button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="i === 0" (click)="moveColumn(i, -1)" [attr.aria-label]="'admin-dashboard-move-up' | i18next: { name: (col.title | i18next) }">↑</button><button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="i === columns.length - 1" (click)="moveColumn(i, 1)" [attr.aria-label]="'admin-dashboard-move-down' | i18next: { name: (col.title | i18next) }">↓</button></div></td>
+            <td><button type="button" class="dc-column-edit" (click)="selectColumn(col)" [attr.aria-expanded]="selectedColumn === col">{{ (col.title || 'admin-dashboard-untitled') | i18next }}</button></td>
             <td><code>{{ col.variable || '—' }}</code></td>
             <td><span *ngIf="col.defaultSort" class="badge rb-admin-badge-info">{{ 'admin-dashboard-default' | i18next }}</span> {{ col.initialSort || '—' }}</td>
-            <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeColumn(i, $event)" [attr.aria-label]="'admin-dashboard-remove-column' | i18next: { name: col.title }">×</button></td>
+            <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeColumn(i, $event)" [attr.aria-label]="'admin-dashboard-remove-column' | i18next: { name: (col.title | i18next) }">×</button></td>
           </tr></tbody>
         </table>
       </div>

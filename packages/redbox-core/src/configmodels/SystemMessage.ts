@@ -31,21 +31,21 @@ export class SystemMessage extends AppConfig {
 
 export const SYSTEM_MESSAGE_SCHEMA = {
     type: 'object',
-    title: 'System Messages',
+    title: 'admin-config-label-system-messages',
     properties: {
         enabled: {
             type: 'boolean',
-            title: 'Enabled',
+            title: 'admin-config-label-enabled',
             default: false
         },
         title: {
             type: 'string',
-            title: 'Message Title',
+            title: 'admin-config-label-message-title',
             default: ''
         },
         message: {
             type: 'string',
-            title: 'Message Body',
+            title: 'admin-config-label-message-body',
             default: '',
             widget: {
                 formlyConfig: {
@@ -55,7 +55,7 @@ export const SYSTEM_MESSAGE_SCHEMA = {
         },
         dismissalDurationHours: {
             type: 'number',
-            title: 'Dismissal Duration (hours)',
+            title: 'admin-config-label-dismissal-duration-hours',
             default: 8
         }
     },

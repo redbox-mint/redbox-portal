@@ -7,7 +7,7 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
     <div class="dc-column-detail" *ngIf="column">
       <h6 class="dc-column-detail-title">
         <i class="fa fa-pencil"></i>
-        {{ 'admin-dashboard-column-edit' | i18next: { name: column.title || ('admin-dashboard-untitled' | i18next) } }}
+        {{ 'admin-dashboard-column-edit' | i18next: { name: ((column.title || 'admin-dashboard-untitled') | i18next) } }}
       </h6>
       <div class="dc-column-detail-grid">
         <div class="form-group">

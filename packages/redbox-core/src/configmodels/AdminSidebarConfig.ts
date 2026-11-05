@@ -309,7 +309,7 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
   properties: {
     header: {
       type: 'object',
-      title: 'Header',
+      title: 'admin-config-label-header',
       description: 'Header configuration for the admin sidebar',
       widget: {
         formlyConfig: {
@@ -317,32 +317,32 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
         }
       },
       properties: {
-        titleKey: { type: 'string', title: 'Title Key', default: 'menu-admin' },
-        iconClass: { type: 'string', title: 'Icon Class', default: 'fa fa-cog' }
+        titleKey: { type: 'string', title: 'admin-config-label-title-key', default: 'menu-admin' },
+        iconClass: { type: 'string', title: 'admin-config-label-icon-class', default: 'fa fa-cog' }
       }
     },
     sections: {
       type: 'array',
-      title: 'Sections',
+      title: 'admin-config-label-sections',
       description: 'Collapsible sections in the admin sidebar',
       items: {
         type: 'object',
         properties: {
-          id: { type: 'string', title: 'ID' },
-          titleKey: { type: 'string', title: 'Title Key' },
-          defaultExpanded: { type: 'boolean', title: 'Default Expanded', default: true },
-          requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
-          hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+          id: { type: 'string', title: 'admin-config-label-id' },
+          titleKey: { type: 'string', title: 'admin-config-label-title-key' },
+          defaultExpanded: { type: 'boolean', title: 'admin-config-label-default-expanded', default: true },
+          requiresAuth: { type: 'boolean', title: 'admin-config-label-requires-authentication', default: true },
+          hideWhenAuth: { type: 'boolean', title: 'admin-config-label-hide-when-authenticated', default: false },
           requiredRoles: {
             type: 'array',
-            title: 'Required Roles',
+            title: 'admin-config-label-required-roles',
             items: { type: 'string' },
             default: []
           },
-          featureFlag: { type: 'string', title: 'Feature Flag' },
+          featureFlag: { type: 'string', title: 'admin-config-label-feature-flag' },
           items: {
             type: 'array',
-            title: 'Items',
+            title: 'admin-config-label-items',
             items: { $ref: '#/definitions/sidebarItem' },
             default: []
           }
@@ -353,7 +353,7 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
     },
     footerLinks: {
       type: 'array',
-      title: 'Footer Links',
+      title: 'admin-config-label-footer-links',
       description: 'Links displayed at the bottom of the sidebar',
       items: { $ref: '#/definitions/sidebarItem' },
       default: []
@@ -363,20 +363,20 @@ export const ADMIN_SIDEBAR_CONFIG_SCHEMA = {
     sidebarItem: {
       type: 'object',
       properties: {
-        id: { type: 'string', title: 'ID' },
-        labelKey: { type: 'string', title: 'Label Key' },
-        href: { type: 'string', title: 'URL' },
-        external: { type: 'boolean', title: 'External Link', default: false },
-        requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
-        hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+        id: { type: 'string', title: 'admin-config-label-id' },
+        labelKey: { type: 'string', title: 'admin-config-label-label-key' },
+        href: { type: 'string', title: 'admin-config-label-url' },
+        external: { type: 'boolean', title: 'admin-config-label-external-link', default: false },
+        requiresAuth: { type: 'boolean', title: 'admin-config-label-requires-authentication', default: true },
+        hideWhenAuth: { type: 'boolean', title: 'admin-config-label-hide-when-authenticated', default: false },
         requiredRoles: {
           type: 'array',
-          title: 'Required Roles',
+          title: 'admin-config-label-required-roles',
           items: { type: 'string' },
           default: []
         },
-        featureFlag: { type: 'string', title: 'Feature Flag' },
-        visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false }
+        featureFlag: { type: 'string', title: 'admin-config-label-feature-flag' },
+        visibleWhenTranslationExists: { type: 'boolean', title: 'admin-config-label-visible-when-translation-exists', default: false }
       },
       required: ['labelKey', 'href']
     }

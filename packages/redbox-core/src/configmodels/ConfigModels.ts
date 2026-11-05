@@ -54,7 +54,7 @@ export class ConfigModels {
         ['systemMessage', {
             descriptionKey: 'admin-config-description-systemMessage',
             modelName: 'SystemMessage',
-            title: 'System Messages',
+            title: 'admin-nav-system-msg',
             class: SystemMessage,
             schema: SYSTEM_MESSAGE_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/SystemMessage.ts')
@@ -62,7 +62,7 @@ export class ConfigModels {
         ['authorizedDomainsEmails', {
             descriptionKey: 'admin-config-description-authorizedDomainsEmails',
             modelName: 'AuthorizedDomainsEmails',
-            title: 'Authorized Domains and Emails',
+            title: 'admin-nav-domains',
             class: AuthorizedDomainsEmails,
             sections: [
                 { titleKey: 'admin-config-aaf', fields: ['domainsAaf', 'emailsAaf'] },
@@ -74,7 +74,7 @@ export class ConfigModels {
         ['menu', {
             descriptionKey: 'admin-config-description-menu',
             modelName: 'MenuConfig',
-            title: 'Menu Configuration',
+            title: 'admin-nav-menu',
             class: MenuConfig,
             schema: MENU_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/MenuConfig.ts')
@@ -82,7 +82,7 @@ export class ConfigModels {
         ['homePanels', {
             descriptionKey: 'admin-config-description-homePanels',
             modelName: 'HomePanelConfig',
-            title: 'Home Panels Configuration',
+            title: 'admin-nav-homepanels',
             class: HomePanelConfig,
             schema: HOME_PANEL_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/HomePanelConfig.ts')
@@ -90,7 +90,7 @@ export class ConfigModels {
         ['adminSidebar', {
             descriptionKey: 'admin-config-description-adminSidebar',
             modelName: 'AdminSidebarConfig',
-            title: 'Admin Sidebar Configuration',
+            title: 'admin-nav-adminsidebar',
             class: AdminSidebarConfig,
             schema: ADMIN_SIDEBAR_CONFIG_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/AdminSidebarConfig.ts')
@@ -98,7 +98,7 @@ export class ConfigModels {
         ['figsharePublishing', {
             descriptionKey: 'admin-config-description-figsharePublishing',
             modelName: 'FigsharePublishing',
-            title: 'Figshare Publishing',
+            title: 'admin-nav-figsharepublishing',
             class: FigsharePublishing,
             sections: [
                 { titleKey: 'admin-config-connection', fields: ['connection'] },
@@ -121,7 +121,7 @@ export class ConfigModels {
         ['oniPublishing', {
             descriptionKey: 'admin-config-description-oniPublishing',
             modelName: 'OniPublishing',
-            title: 'Oni Publishing',
+            title: 'admin-nav-onipublishing',
             class: OniPublishing,
             schema: ONI_PUBLISHING_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/OniPublishing.ts'),
@@ -130,7 +130,7 @@ export class ConfigModels {
         ['doiPublishing', {
             descriptionKey: 'admin-config-description-doiPublishing',
             modelName: 'DoiPublishing',
-            title: 'DOI Publishing',
+            title: 'admin-nav-doipublishing',
             class: DoiPublishing,
             schema: DOI_PUBLISHING_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/DoiPublishing.ts'),
@@ -143,7 +143,7 @@ export class ConfigModels {
         ['integrationNotification', {
             descriptionKey: 'admin-config-description-integrationNotification',
             modelName: 'IntegrationNotificationConfig',
-            title: 'Integration Notification',
+            title: 'admin-nav-notifications',
             class: IntegrationNotificationConfig,
             schema: INTEGRATION_NOTIFICATION_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/IntegrationNotificationConfig.ts')
@@ -151,7 +151,7 @@ export class ConfigModels {
         ['raidPublishing', {
             descriptionKey: 'admin-config-description-raidPublishing',
             modelName: 'RaidPublishing',
-            title: 'RAiD Publishing',
+            title: 'admin-nav-raidpublishing',
             class: RaidPublishing,
             schema: RAID_PUBLISHING_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/RaidPublishing.ts'),
@@ -160,7 +160,7 @@ export class ConfigModels {
         ['webAnalytics', {
             descriptionKey: 'admin-config-description-webAnalytics',
             modelName: 'WebAnalytics',
-            title: 'Web Analytics',
+            title: 'admin-nav-web-analytics',
             class: WebAnalytics,
             schema: WEB_ANALYTICS_SCHEMA,
             tsGlob: path.join(__dirname, '../../src/configmodels/WebAnalytics.ts')

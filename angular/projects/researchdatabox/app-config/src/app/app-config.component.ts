@@ -93,6 +93,19 @@ export class AppConfigComponent extends BaseComponent {
 
   private configureForm(result: ConfigForm): void {
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
+    // Translate presentation metadata only; property names and stored values stay intact.
+    const translateTitles = (value: any): void => {
+      if (!value || typeof value !== 'object') return;
+      if (typeof value.title === 'string') value.title = this.translationService.t(value.title);
+      // Only schema nodes: never translate default config data or enum values.
+      for (const child of Object.values(value.properties || {})) translateTitles(child);
+      if (Array.isArray(value.items)) value.items.forEach(translateTitles);
+      else translateTitles(value.items);
+      for (const keyword of ['allOf', 'anyOf', 'oneOf']) value[keyword]?.forEach(translateTitles);
+      for (const child of Object.values(value.definitions || {})) translateTitles(child);
+      for (const child of Object.values(value.$defs || {})) translateTitles(child);
+    };
+    translateTitles(jsonObject);
     const originalProperties = jsonObject.properties || {};
     // Older servers/hooks can supply an empty or partial field order. Never drop fields.
     const fieldOrder = [...new Set([...(result.fieldOrder || []), ...Object.keys(originalProperties)])];
@@ -100,9 +113,8 @@ export class AppConfigComponent extends BaseComponent {
     for (const field of fieldOrder) {
       if (Object.prototype.hasOwnProperty.call(originalProperties, field)) jsonObject.properties[field] = originalProperties[field];
     }
-    this.title = result.title || jsonObject.title || this.configKey;
+    this.title = this.translationService.t(result.title || jsonObject.title || this.configKey);
     this.descriptionKey = this.navigationEditor ? 'admin-navigation-description' : result.descriptionKey || 'admin-config-description';
-    if (this.navigationEditor) this.title = this.translationService.t('admin-navigation-title');
     this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
       ?.closest('section')?.querySelector('h2')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
