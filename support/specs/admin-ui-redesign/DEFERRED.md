@@ -34,6 +34,7 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
+| Figshare vocabularies | Change an existing source's scope (partial) | Source names, archive state and manual/daily/weekly schedules delivered on `admin-deferred/12-lookups`. Scope remains read-only because it identifies the remote mirror and approved crosswalks; changing it needs an explicit identity migration policy. Discovery can add a source with another scope. |
 
 ## Integrations
 
