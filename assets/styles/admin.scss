@@ -168,6 +168,15 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
     padding: 10px 16px; background: var(--admin-surface); border-top-color: var(--admin-line); font-size: 13px; color: var(--admin-muted);
   }
+  // Footer selects are page-size controls. Reserve text space plus the native arrow.
+  .card-footer .form-select {
+    width: auto;
+    min-width: calc(3ch + 48px);
+    flex: 0 0 auto;
+    padding-left: 12px;
+    padding-right: 32px;
+    font-size: 14px;
+  }
   .table-responsive { overflow-x: auto; }
   .table {
     --bs-table-bg: var(--admin-bg); --bs-table-color: var(--admin-ink);
