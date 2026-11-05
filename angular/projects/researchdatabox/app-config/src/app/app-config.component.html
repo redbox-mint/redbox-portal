@@ -23,10 +23,27 @@
             @if (enabledField) {
               <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" for="config-enabled">{{ 'admin-config-enabled' | i18next }}</label></div>
             }
+            @if (supportsConnectionTest) {
+              <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
+            }
             <button type="button" class="btn btn-outline-secondary" (click)="openJson()"><i class="fa fa-code" aria-hidden="true"></i> {{ 'admin-config-view-json' | i18next }}</button>
           </div>
         }
       </header>
+      @if (supportsConnectionTest && dirty) {
+        <p class="rb-admin-hint">{{ 'admin-config-connection-unsaved' | i18next }}</p>
+      }
+      <div aria-live="polite" aria-atomic="true">
+        @if (connectionResult; as result) {
+          <div class="alert app-config-connection-result" [class.alert-success]="result.ok" [class.alert-warning]="!result.ok && result.status === 'misconfigured'" [class.alert-danger]="!result.ok && result.status !== 'misconfigured'" [attr.role]="result.ok ? 'status' : 'alert'">
+            <strong>{{ connectionDetailKey | i18next }} · {{ 'admin-config-connection-latency' | i18next: { ms: result.latencyMs } }}</strong>
+            <div>{{ 'admin-config-connection-tested' | i18next: { time: (connectionTestedAt | date:'medium') } }} @if (connectionTestedDirty) { · {{ 'admin-config-connection-draft' | i18next }} }</div>
+          </div>
+        }
+        @if (connectionError) {
+          <div class="alert alert-warning app-config-connection-result" role="alert">{{ connectionError | i18next }}<div>{{ 'admin-config-connection-tested' | i18next: { time: (connectionTestedAt | date:'medium') } }}</div></div>
+        }
+      </div>
       @if (navigationEditor) {
         <nav [attr.aria-label]="'admin-navigation-tabs' | i18next"><ul class="nav nav-tabs rb-navigation-tabs">
           @for (tab of ['menu', 'homePanels', 'adminSidebar']; track tab) {

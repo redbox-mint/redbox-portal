@@ -3067,5 +3067,21 @@
   "admin-tx-import-stale": "Translations or defaults changed after the preview. Preview again before applying.",
   "admin-tx-import-apply-error": "The import could not finish. Preview again to check current values before retrying.",
   "admin-tx-import-retry": "Some keys failed. Successful changes remain saved. Preview again to check current values and retry the failed keys.",
-  "admin-tx-import-key-failed": "Entry or bundle write failed; preview again before retrying."
+  "admin-tx-import-key-failed": "Entry or bundle write failed; preview again before retrying.",
+  "admin-config-test-connection": "Test connection",
+  "admin-config-connection-testing": "Testing…",
+  "admin-config-connection-unsaved": "Testing your unsaved changes. This test does not save the configuration.",
+  "admin-config-connection-draft": "Unsaved changes tested",
+  "admin-config-connection-latency": "{{ms}} ms",
+  "admin-config-connection-tested": "Tested {{time}}",
+  "admin-config-connection-ok": "Connection OK",
+  "admin-config-connection-reachable": "Site reachable. Authentication and storage access were not tested because ingestion is not enabled.",
+  "admin-config-connection-auth_failed": "Authentication failed. Check the credentials and service account permissions.",
+  "admin-config-connection-unreachable": "Service could not be reached. Check the base URL, DNS and network access.",
+  "admin-config-connection-timeout": "Connection timed out. Check network access and the service availability.",
+  "admin-config-connection-tls_error": "TLS verification failed. Check the service certificate and the server trust configuration.",
+  "admin-config-connection-misconfigured": "Connection settings are incomplete or invalid. Check the base URL and required credentials.",
+  "admin-config-connection-unexpected_response": "Unexpected service response. Check the API base URL. Redirects are not followed.",
+  "admin-config-connection-rate-limit": "Please wait five seconds between connection tests.",
+  "admin-config-connection-request-error": "The connection test could not run. Check your session and try again."
 }

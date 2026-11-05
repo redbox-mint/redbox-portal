@@ -53,6 +53,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/admin/users/options', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/admin/roles/:id/description', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/roles/:id/users/:userId/remove', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/appconfig/:integration/test-connection', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/appconfig/:appConfigId/reset', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/appconfig/authorizedDomainsEmails/test', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin(/*)', role: 'Admin', can_update: true },

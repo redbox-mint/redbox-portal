@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/13-test-connection`: brand Admin and CSRF-protected, read-only integration connection tests for unsaved Figshare, DOI, RAiD and Oni drafts, with secret retention, bounded requests, cooldown and timestamped results. Oni without ingestion reports public-site reachability only.
+
 Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps; Figshare source metadata edits and real manual/daily/weekly mirror schedules. Existing source scope remains read-only pending an identity migration policy.
 
 Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
@@ -240,6 +242,25 @@ a 2 GB heap. Screenshot tooling should use the running container's configured `a
 (`REDBOX_BASE` for the shared capture script); an origin mismatch causes existing Angular API calls
 to fail under `connect-src 'self'`. The translation app currently renders the full bundle in one table,
 so its full-page screenshots can be very tall; use an additional viewport capture for review.
+
+### Integration connection tests
+
+The four publishing editors post their current draft to
+`POST /:branding/:portal/admin/appconfig/:integration/test-connection`. The route requires the
+route brand's Admin permission and session CSRF. The server merges the draft into a clone of the
+hydrated runtime configuration; blank or masked secrets retain their existing values. Figshare token
+and DataCite password environment references use the publishing resolvers, including DataCite's
+configured environment fallback. No configuration is saved and no publishing or indexing action runs.
+
+Each attempt shares one ten-second deadline (including RAiD OAuth), disables redirects, verifies TLS
+with the same system trust as publishing, limits response size, and accepts only configured HTTP(S)
+URLs without URL credentials, queries or fragments. One user/brand may attempt a test every five
+seconds across all four integrations. The cooldown is process-local; multiple portal workers each
+maintain their own cooldown. Failed requests return fixed safe messages without upstream bodies or
+credentials. The UI translates statuses, records the time and latency, disables duplicate requests,
+and clears results when the draft changes. Oni tests its default enabled site's ingestion status;
+without enabled ingestion it checks the public URL and explicitly reports that authentication and
+storage were not tested. The existing deferred Oni dictionary editor remains separate.
 
 ### Dashboard editor (phase 9)
 

@@ -112,4 +112,58 @@ export const resetAppConfigRoute = defineApiRoute({
   },
 });
 
-export const appConfigApiRoutes = [resetAppConfigRoute, testAuthorizedEmailRoute, getAppConfigByIdRoute, saveAppConfigByIdRoute];
+
+
+export const integrationKeySchema = z.enum(['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing']);
+export type IntegrationKey = z.infer<typeof integrationKeySchema>;
+
+// Only JSON drafts, bounded before recursive validation. Never accept external secret references.
+const connectionDraftSchema = z.preprocess((draft, ctx) => {
+  let nodes = 0;
+  const visit = (value: unknown, depth: number): boolean => {
+    if (++nodes > 15000 || depth > 30) return false;
+    if (value === null || ['string', 'boolean'].includes(typeof value)) return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (Array.isArray(value)) return value.every(item => visit(item, depth + 1));
+    if (typeof value !== 'object') return false;
+    return Object.entries(value).every(([key, child]) => !['__proto__', 'constructor', 'prototype', '$appConfigSecret'].includes(key) && visit(child, depth + 1));
+  };
+  if (!visit(draft, 0) || Buffer.byteLength(JSON.stringify(draft), 'utf8') > 256 * 1024) {
+    ctx.addIssue({ code: 'custom', message: 'Invalid or oversized connection draft' });
+    return z.NEVER;
+  }
+  return draft;
+}, z.record(z.string(), z.unknown()));
+export const integrationConnectionBody = z.object({ draft: connectionDraftSchema.optional() }).strict();
+export const integrationConnectionResult = z.object({
+  ok: z.boolean(),
+  status: z.enum(['ok', 'auth_failed', 'unreachable', 'timeout', 'tls_error', 'misconfigured', 'unexpected_response']),
+  httpStatus: z.number().int().min(100).max(599).optional(),
+  latencyMs: z.number().int().nonnegative(),
+  message: z.string(),
+});
+export type IntegrationConnectionResult = z.infer<typeof integrationConnectionResult>;
+export const testIntegrationConnectionRoute = defineApiRoute({
+  method: 'post',
+  path: '/:branding/:portal/admin/appconfig/:integration/test-connection',
+  controller: 'AppConfigController',
+  action: 'testConnection',
+  csrf: true,
+  request: {
+    params: z.object({ integration: integrationKeySchema }),
+    headers: z.object({ 'x-csrf-token': z.string().optional() }),
+    body: { required: true, content: { 'application/json': { schema: integrationConnectionBody } } },
+  },
+  extensions: { 'x-redbox-roles': ['Admin'] },
+  tags: ['AppConfig'],
+  summary: 'Test integration connectivity and authentication (brand Admin only)',
+  description: 'Session CSRF protected. Merges an optional unsaved JSON form draft over the route brand runtime config without persistence. Blank or masked secret fields retain stored values; the explicit clear marker tests without that secret. Drafts are limited to 256 KiB, 30 nesting levels and 15000 nodes. Only configured HTTP(S) base URLs and the configured RAiD OAuth URL are called; URL credentials, queries and fragments are rejected, and no redirects are followed. Shares publishing HTTP auth, TLS trust and timeouts, capped by a ten-second total deadline. Figshare GET /account, DataCite GET /clients/{username}, RAiD password-grant token acquisition when no static token then GET /service-point/, Oni default enabled site GET /admin/index/structural when ingestion enabled, otherwise public URL reachability only (not authentication or storage). No publishing, minting, indexing, config writes, token caching or upstream response/error logging. 200 includes safe diagnostic statuses; HTTP status refers to the upstream response when available. Per-process limit: one attempt per authenticated user and brand every five seconds, shared across integrations. 429 includes Retry-After. Credentials and upstream bodies are never returned.',
+  responses: {
+    200: responseField(integrationConnectionResult, 'Safe connection result'),
+    400: badRequestResponse,
+    403: responseField(apiErrorResponseSchema, 'Brand Admin permission and CSRF required'),
+    429: { ...responseField(integrationConnectionResult, 'Rate limited; retry after five seconds'), headers: { 'Retry-After': z.string() } },
+  },
+});
+
+export const appConfigApiRoutes = [testIntegrationConnectionRoute, resetAppConfigRoute, testAuthorizedEmailRoute, getAppConfigByIdRoute, saveAppConfigByIdRoute];

@@ -27,6 +27,8 @@ import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsE
 import * as TJS from "typescript-json-schema";
 import { globSync } from 'glob';
 import { AppConfigSecrets, isAppConfigSecretReference, type AppConfigBundleLease } from './AppConfigSecrets';
+import { integrationKeySchema, type IntegrationKey, type IntegrationConnectionResult } from '../api-routes/groups/appconfig';
+import { testIntegrationConnection } from './IntegrationConnectionTest';
 import { appConfigSecrets } from '../config/appConfigSecrets.config';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
@@ -47,6 +49,7 @@ export namespace Services {
     modelSchemaMap: Record<string, unknown> = {};
     private extraTsGlobs: Set<string> = new Set();
     private secretStore?: AppConfigSecrets;
+    private connectionAttempts = new Map<string, number>();
     private configWriteGates = new Map<string, Promise<void>>();
 
     protected override _exportedMethods: string[] = [
@@ -57,6 +60,7 @@ export namespace Services {
       'getMaskedAppConfigurationForBrand',
       'createOrUpdateConfig',
       'resetConfig',
+      'testConnection',
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
       'createConfig',
@@ -594,6 +598,34 @@ export namespace Services {
         this.brandingAppConfigMap[branding.name] = next;
         return { reset: existing != null };
       });
+    }
+
+    /** Tests only the hydrated runtime config shown in the form, without changing its cache or storage. */
+    public async testConnection(brandName: string, userId: string, key: IntegrationKey, draft: Record<string, unknown> = {}): Promise<{ result: IntegrationConnectionResult; retryAfter?: number }> {
+      const started = Date.now();
+      if (!integrationKeySchema.safeParse(key).success || !userId || !brandName) throw new Error('Invalid connection test scope');
+      // Bound idle entries, and reserve synchronously before any asynchronous work.
+      for (const [scope, at] of this.connectionAttempts) if (started - at >= 5000) this.connectionAttempts.delete(scope);
+      const scope = JSON.stringify([brandName, userId]);
+      const previous = this.connectionAttempts.get(scope);
+      if (previous !== undefined) return { retryAfter: Math.max(1, Math.ceil((5000 - (started - previous)) / 1000)), result: {
+        ok: false, status: 'misconfigured', latencyMs: 0, message: 'Please wait five seconds between connection tests.',
+      } };
+      this.connectionAttempts.set(scope, started);
+      const info = ConfigModels.getModelInfo(key)!;
+      const ctor = info.class as { new(): object };
+      const saved = _.get(this.getAppConfigurationForBrand(brandName), [key], new ctor());
+      const merged = _.mergeWith({}, saved, draft, (_value, source) => Array.isArray(source) ? _.cloneDeep(source) : undefined);
+      for (const path of this.getSecretPaths(key, merged, true)) {
+        const value = _.get(merged, path);
+        if (value != null && typeof value !== 'string') return { result: {
+          ok: false, status: 'misconfigured', latencyMs: Date.now() - started, message: 'Secret fields must contain text values.',
+        } };
+        // Blank inputs in the editor mean keep the current stored secret.
+        if (value === '' || value === APP_CONFIG_SECRET_MASK) _.set(merged, path, _.get(saved, path));
+        if (value === APP_CONFIG_SECRET_CLEAR) _.unset(merged, path);
+      }
+      return { result: await testIntegrationConnection(key, merged) };
     }
 
     public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[]; title?: string; descriptionKey?: string; secretFields: string[]; sections?: ConfigModelInfo['sections']; requiresSetup?: boolean; hasOverride: boolean }> {
