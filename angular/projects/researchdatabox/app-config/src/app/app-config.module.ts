@@ -1,3 +1,5 @@
+import { DictionaryTypeComponent } from './fieldTypes/dictionary.type';
+import { JsonTypeComponent } from './fieldTypes/json.type';
 import { NavigationRowComponent } from './fieldTypes/navigation-editor/navigation-row.component';
 import { NavigationFieldsComponent } from './fieldTypes/navigation-editor/navigation-fields.component';
 import { NavigationLinkDialogComponent } from './fieldTypes/navigation-editor/navigation-link-dialog.component';
@@ -28,7 +30,7 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
 
 @NgModule({
   declarations: [
-    AppConfigComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    AppConfigComponent, DictionaryTypeComponent, JsonTypeComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
   ],
   imports: [
     BrowserModule,
@@ -40,6 +42,8 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
    FormlyModule.forRoot({
     types: [
       { name: 'app-config-section', component: SectionTypeComponent },
+      { name: 'app-config-dictionary', component: DictionaryTypeComponent },
+      { name: 'app-config-json', component: JsonTypeComponent },
       { name: 'app-config-secret', component: SecretTypeComponent },
       { name: 'app-config-chips', component: ChipsTypeComponent },
       { name: 'array', component: ArrayTypeComponent },

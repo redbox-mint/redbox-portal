@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { validateIntegrationConfig } from '../configmodels/IntegrationConfigValidation';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
@@ -33,6 +34,7 @@ import { appConfigSecrets } from '../config/appConfigSecrets.config';
 
 export const APP_CONFIG_SECRET_MASK = '__REDACTED__'
 export const APP_CONFIG_SECRET_CLEAR = '__CLEAR_SECRET__';
+export const APP_CONFIG_SECRET_RETAIN_PREFIX = '__REDACTED_FROM__:';
 
 type AppConfigData = Record<string, unknown>;
 type AppConfigRecordLike = AppConfigAttributes & Record<string, unknown>;
@@ -205,7 +207,7 @@ export namespace Services {
       for (const field of this.getSecretPaths(configKey, stored, true)) {
         const value: unknown = _.get(stored, field);
         if (isAppConfigSecretReference(value)) {
-          if (bundle && value.$appConfigSecret.key === undefined) {
+          if (bundle && value.$appConfigSecret.key !== JSON.stringify([configKey, ...field])) {
             const key = JSON.stringify([configKey, ...field]);
             changes.set(key, await this.getSecretStore().resolve(value));
             bundledFields.push({ field, key });
@@ -297,7 +299,16 @@ export namespace Services {
       const merged = _.cloneDeep(incomingConfig);
       this.getSecretPaths(configKey, merged, true).forEach((fieldPath: string[]) => {
         const incomingValue = _.get(merged, fieldPath);
-        if (this.isMaskedSecretPlaceholder(incomingValue)) {
+        if (typeof incomingValue === 'string' && incomingValue.startsWith(APP_CONFIG_SECRET_RETAIN_PREFIX)) {
+          let source: unknown;
+          try { source = JSON.parse(incomingValue.slice(APP_CONFIG_SECRET_RETAIN_PREFIX.length)); } catch { /* Reject below. */ }
+          const allowed = this.getSecretPaths(configKey, existingConfig).some(path => JSON.stringify(path) === JSON.stringify(source));
+          if (!allowed || !Array.isArray(source) || !source.every(part => typeof part === 'string')) {
+            throw Object.assign(new Error('Invalid retained secret source'), { status: 400 });
+          }
+          // Only registered secret leaves from this brand/config's locked stored document are eligible.
+          this.setExistingSecretPath(merged as object, fieldPath, _.get(existingConfig, source));
+        } else if (this.isMaskedSecretPlaceholder(incomingValue)) {
           if (existingConfig != null && _.has(existingConfig, fieldPath)) {
             _.set(merged, fieldPath, _.get(existingConfig, fieldPath));
           } else {
@@ -530,6 +541,7 @@ export namespace Services {
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
+      validateIntegrationConfig(configKey, configData);
       if (configKey === 'systemMessage' && configData.style !== undefined &&
           !['info', 'warning', 'critical'].includes(configData.style as string)) {
         throw Object.assign(new Error('Invalid system message style'), { status: 400 });
@@ -557,6 +569,7 @@ export namespace Services {
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
+      validateIntegrationConfig(configKey, configData);
       if (configKey === 'systemMessage' && configData.style !== undefined &&
           !['info', 'warning', 'critical'].includes(configData.style as string)) {
         throw Object.assign(new Error('Invalid system message style'), { status: 400 });

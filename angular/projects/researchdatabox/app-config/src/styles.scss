@@ -37,3 +37,16 @@
 }
 
 .rb-admin .app-config-address-tester { margin-top: 16px; }
+
+.rb-admin .app-config-dictionary {
+  width: 100%; min-width: 0;
+  .app-config-dictionary-entry { border: 1px solid var(--admin-line); border-radius: 6px; margin: 0 0 12px; }
+  summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px; cursor: pointer; overflow-wrap: anywhere; background: var(--admin-surface); border-radius: 6px; }
+  .app-config-dictionary-toggle { margin-left: auto; color: var(--admin-muted); font-size: 13px; }
+  summary .rb-admin-hint { margin: 0; }
+  .app-config-dictionary-body, .app-config-dictionary-add { padding: 16px; }
+  .app-config-dictionary-body > .rb-admin-field { margin-bottom: 16px; }
+  .app-config-dictionary-add { border: 1px dashed var(--admin-line); border-radius: 6px; }
+  .rb-admin-field .form-control { min-width: 0; }
+  @media (max-width: 800px) { .rb-admin-field > .d-flex { flex-wrap: wrap; } }
+}

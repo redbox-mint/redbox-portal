@@ -1,3 +1,12 @@
+import { OniPublishing, ONI_PUBLISHING_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/OniPublishing';
+import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/RaidPublishing';
+import { INTEGRATION_NOTIFICATION_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/IntegrationNotificationConfig';
+import { By } from '@angular/platform-browser';
+import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
+import { configSchemaToField } from './dictionary-schema';
+import { sectionSummary } from './config-form';
+import { DictionaryTypeComponent } from './fieldTypes/dictionary.type';
+import { JsonTypeComponent } from './fieldTypes/json.type';
 import { NavigationRowComponent } from './fieldTypes/navigation-editor/navigation-row.component';
 import { NavigationFieldsComponent } from './fieldTypes/navigation-editor/navigation-fields.component';
 import { NavigationLinkDialogComponent } from './fieldTypes/navigation-editor/navigation-link-dialog.component';
@@ -77,7 +86,7 @@ describe('AppConfigComponent', () => {
     appConfigService = getStubAppConfigService();
     await TestBed.configureTestingModule({
       declarations: [
-        AppConfigComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, MockI18NextPipe, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent,
+        AppConfigComponent, DictionaryTypeComponent, JsonTypeComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, MockI18NextPipe, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent,
         ArrayTypeComponent,
         ObjectTypeComponent,
         CheckboxTypeComponent,
@@ -93,6 +102,8 @@ describe('AppConfigComponent', () => {
         FormlyModule.forRoot({
           types: [
             { name: 'app-config-section', component: SectionTypeComponent },
+            { name: 'app-config-dictionary', component: DictionaryTypeComponent },
+            { name: 'app-config-json', component: JsonTypeComponent },
             { name: 'app-config-secret', component: SecretTypeComponent },
             { name: 'app-config-chips', component: ChipsTypeComponent },
             { name: 'array', component: ArrayTypeComponent },
@@ -139,6 +150,137 @@ describe('AppConfigComponent', () => {
     TestBed.inject(UtilityService);
 
   });
+  for (const [key, schema, model] of [
+    ['oniPublishing', ONI_PUBLISHING_SCHEMA, new OniPublishing()],
+    ['raidPublishing', RAID_PUBLISHING_SCHEMA, { ...new RaidPublishing(), types: { title: { Primary: { id: 'primary', schemaUri: 'https://example.test/' } } }, mapping: { dmp: { title: { dest: 'title[0].text', engine: 'jsonata', expression: 'record.metadata.title' } } } }],
+    ['integrationNotification', INTEGRATION_NOTIFICATION_SCHEMA, { perIntegration: { oni: { recipients: ['admin@example.test'], statuses: ['failed'], unknown: { preserve: [null, false] } } } }],
+  ] as const) {
+    it(`${key}: renders its real schema and saves without changing existing nested values`, async () => {
+      spyOn(appConfigService, 'getAppConfigForm').and.returnValue({ schema, model, secretFields: key === 'oniPublishing' ? ['sites.*.ingestion.adminToken'] : [] });
+      const fixture = TestBed.createComponent(AppConfigComponent);
+      const component = fixture.componentInstance;
+      component.configKey = key; fixture.autoDetectChanges(true);
+      await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
+      const expected = JSON.parse(JSON.stringify(model));
+      expect(JSON.parse(JSON.stringify(component.model))).toEqual(expected);
+      expect(fixture.nativeElement.textContent).not.toContain('admin-config-no-editable-settings');
+      expect(component.form.valid).toBeTrue();
+      component.model.futureExtension = { preserved: true };
+      await component.onSubmit(component.model);
+      const saved = JSON.parse(JSON.stringify(appConfigService.lastSavedModel));
+      if (key === 'oniPublishing') Object.values(saved.sites).forEach((site: any) => { if (site.ingestion?.adminToken === '__REDACTED__') site.ingestion.adminToken = ''; });
+      expect(saved).toEqual({ ...expected, futureExtension: { preserved: true } });
+      fixture.destroy();
+    });
+  }
+
+  it('converts additionalProperties, patternProperties and nested dictionaries automatically', () => {
+    const converter = TestBed.inject(FormlyJsonschema);
+    const value = { type: 'object', additionalProperties: { type: 'string' } };
+    for (const schema of [
+      { type: 'object', additionalProperties: value },
+      { type: 'object', patternProperties: { '^[a-z]+$': value } },
+    ]) {
+      const field = configSchemaToField(converter, schema as any);
+      expect(field.type).toBe('app-config-dictionary');
+      const nested = field.props!['dictionaryField']('alpha');
+      expect(nested.key).toEqual(['alpha']);
+      expect(nested.type).toBe('app-config-dictionary');
+      expect(nested.props['dictionaryField']('a.b[0]').key).toEqual(['a.b[0]']);
+    }
+  });
+
+  it('edits dictionaries with literal keys, collisions, patterns, confirmation and lossless values', async () => {
+    const original = { 'old.key[0]': { label: '', extra: { future: [null, false, 0] } }, second: { label: 'Second' } };
+    spyOn(appConfigService, 'getAppConfigForm').and.returnValue({
+      schema: { type: 'object', properties: { sites: { type: 'object', additionalProperties: {
+        type: 'object', properties: { label: { type: 'string', default: 'Must not replace blank' }, count: { type: 'integer', minimum: 1 } }
+      } } } }, model: { sites: structuredClone(original) }
+    });
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const app = fixture.componentInstance;
+    app.configKey = 'oniPublishing'; fixture.autoDetectChanges(true);
+    await app.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
+    const editor = fixture.debugElement.query(By.directive(DictionaryTypeComponent)).componentInstance as DictionaryTypeComponent;
+    expect(app.model.sites).toEqual(original);
+    let first = editor.field.fieldGroup![0];
+    editor.rename(first, 'second');
+    expect(editor.error('second', 'old.key[0]')).toBe('admin-config-dictionary-key-duplicate');
+    expect(app.form.invalid).toBeTrue();
+    expect(app.model.sites).toEqual(original);
+    editor.rename(first, 'renamed.key[1]'); fixture.detectChanges(); await fixture.whenStable();
+    expect(Object.keys(app.model.sites)).toEqual(['renamed.key[1]', 'second']);
+    expect(app.model.sites['renamed.key[1]']).toEqual(original['old.key[0]']);
+    first = editor.field.fieldGroup![0];
+    first.formControl!.get('count')!.setValue(0);
+    expect(app.form.invalid).toBeTrue();
+    first.formControl!.get('count')!.setValue(2);
+    expect(app.form.valid).toBeTrue();
+    editor.startAdd(first); editor.newKey = 'copy'; editor.add();
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(app.model.sites.copy).toEqual({ ...original['old.key[0]'], count: 2 });
+    expect(app.model.sites.copy).not.toBe(app.model.sites['renamed.key[1]']);
+    editor.requestRemove(editor.field.fieldGroup![2], { currentTarget: document.createElement('button') } as any);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeTruthy();
+    expect(Object.keys(app.model.sites)).toContain('copy');
+    editor.cancelRemove(); expect(Object.keys(app.model.sites)).toContain('copy');
+    editor.requestRemove(editor.field.fieldGroup![2], { currentTarget: document.createElement('button') } as any); editor.remove();
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(Object.keys(app.model.sites)).toEqual(['renamed.key[1]', 'second']);
+    editor.props['dictionarySchema'] = { patternProperties: { '^[a-z]+$': {} } };
+    expect(editor.error('bad key')).toBe('admin-config-dictionary-key-pattern');
+    expect(editor.error('valid')).toBe('');
+    expect(editor.error('__proto__')).toBe('admin-config-dictionary-key-unsafe');
+    await app.onSubmit(app.model);
+    expect(appConfigService.lastSavedModel.sites['renamed.key[1]'].extra).toEqual(original['old.key[0]'].extra);
+    fixture.destroy();
+  });
+
+  it('retains masked credentials across dictionary rename and duplicate, including subsequent saves', async () => {
+    spyOn(appConfigService, 'getAppConfigForm').and.returnValue({
+      schema: ONI_PUBLISHING_SCHEMA, model: { ...new OniPublishing(), sites: { 'old.site[0]': { ingestion: { adminToken: '__REDACTED__' } } } },
+      secretFields: ['sites.*.ingestion.adminToken']
+    });
+    const fixture = TestBed.createComponent(AppConfigComponent), component = fixture.componentInstance;
+    component.configKey = 'oniPublishing'; fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable();
+    const editor = fixture.debugElement.queryAll(By.directive(DictionaryTypeComponent)).map(node => node.componentInstance as DictionaryTypeComponent).find(editor => editor.field.key === 'sites')!;
+    editor.rename(editor.field.fieldGroup![0], 'renamed');
+    editor.startAdd(editor.field.fieldGroup![0]); editor.newKey = 'copy'; editor.add();
+    await fixture.whenStable(); await component.onSubmit(component.model);
+    const marker = '__REDACTED_FROM__:' + JSON.stringify(['sites', 'old.site[0]', 'ingestion', 'adminToken']);
+    expect(appConfigService.lastSavedModel.sites.renamed.ingestion.adminToken).toBe(marker);
+    expect(appConfigService.lastSavedModel.sites.copy.ingestion.adminToken).toBe(marker);
+    component.model.defaultSite = 'copy'; await component.onSubmit(component.model);
+    expect(appConfigService.lastSavedModel.sites.copy.ingestion.adminToken).toBe('__REDACTED__');
+    fixture.destroy();
+  });
+
+  it('supports a dictionary at the schema root without replacing the shared form model', async () => {
+    spyOn(appConfigService, 'getAppConfigForm').and.returnValue({
+      schema: { type: 'object', additionalProperties: { type: 'string' } }, model: { 'old.key': '', second: 'Two' }
+    });
+    const fixture = TestBed.createComponent(AppConfigComponent), component = fixture.componentInstance;
+    component.configKey = 'oniPublishing'; fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable();
+    const editor = fixture.debugElement.query(By.directive(DictionaryTypeComponent)).componentInstance as DictionaryTypeComponent;
+    const model = component.model;
+    editor.rename(editor.field.fieldGroup![0], 'renamed.key');
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(component.model).toBe(model);
+    expect(Object.keys(component.model)).toEqual(['renamed.key', 'second']);
+    expect(component.model['renamed.key']).toBe('');
+    await component.onSubmit(component.model);
+    expect(appConfigService.lastSavedModel).toEqual({ 'renamed.key': '', second: 'Two' });
+    fixture.destroy();
+  });
+
+  it('summarises dictionary keys without exposing values', () => {
+    expect(sectionSummary([{ key: 'sites', type: 'app-config-dictionary', props: { label: 'sites' } }],
+      { sites: { public: { token: 'secret' }, staff: {}, archive: {} } }, String)).toBe('3 sites: public, staff, archive');
+  });
+
   for (const style of [undefined, 'info', 'warning', 'critical']) {
     it(`renders the system message style selector and matching preview for ${style}`, async () => {
       spyOn(appConfigService, 'getAppConfigForm').and.returnValue({

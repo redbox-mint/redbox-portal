@@ -1,3 +1,4 @@
+import { text, flag, list, object, dictionary } from './IntegrationSchemas';
 /* oxlint-disable typescript/no-explicit-any */
 import { AppConfig } from './AppConfig.interface';
 
@@ -36,6 +37,32 @@ export interface RaidPublishingConfigData {
   types: Record<string, any>;
   mapping: Record<string, Record<string, RaidMappingField>>;
 }
+
+const raidReferenceSchema = object('type-reference', { id: text('id'), schemaUri: text('schema-uri') });
+const raidTypeDictionary = dictionary('types', raidReferenceSchema);
+export const RAID_TYPES_SCHEMA = {
+  ...dictionary('types', {}), // Custom JSONata type namespaces can contain arbitrary JSON.
+  properties: {
+    title: raidTypeDictionary, description: raidTypeDictionary, language: raidTypeDictionary,
+    access: raidTypeDictionary, subject: raidTypeDictionary,
+    organisation: object('organisation', { role: raidTypeDictionary }),
+    contributor: object('contributor', {
+      position: dictionary('positions', raidReferenceSchema),
+      flags: dictionary('flags', list('positions', text('position'))),
+      // Runtime's historical spelling is part of the persisted contract.
+      hiearchy: object('hierarchy', { position: list('positions', text('position')) }),
+      roles: object('roles', { schemaUri: text('schema-uri'), types: dictionary('types', text('role')) }),
+    }),
+  },
+};
+export const RAID_MAPPING_FIELD_SCHEMA = object('mapping-rule', {
+  dest: text('destination'), engine: text('mapping-engine', ['jsonata', 'handlebars']),
+  expression: text('expression'), template: text('template'), parseJson: flag('parse-json'), omitIfEmpty: flag('omit-if-empty'),
+  contributorMap: dictionary('contributor-mapping', object('contributor', {
+    fieldMap: object('field-map', { id: text('orcid-field') }, ['id']), position: text('position'),
+    role: text('role'), requireOrcid: flag('require-orcid'),
+  }, ['fieldMap', 'position', 'role'])),
+}, ['dest', 'engine']);
 
 export const RAID_PUBLISHING_SCHEMA = {
   type: 'object',
@@ -82,8 +109,8 @@ export const RAID_PUBLISHING_SCHEMA = {
     saveBodyInMeta: { type: 'boolean', title: 'admin-config-label-save-request-body-in-record-metadata' },
     raidFieldName: { type: 'string', title: 'admin-config-label-raid-field-name' },
     orcidBaseUrl: { type: 'string', title: 'admin-config-label-orcid-base-url' },
-    types: { type: 'object', title: 'admin-config-label-types' },
-    mapping: { type: 'object', title: 'admin-config-label-field-mapping' }
+    types: RAID_TYPES_SCHEMA,
+    mapping: dictionary('field-mapping', dictionary('mapping-rules', RAID_MAPPING_FIELD_SCHEMA))
   }
 };
 
