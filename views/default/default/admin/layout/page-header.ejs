@@ -1,0 +1,21 @@
+<% /* All labels are translation keys; action/breadcrumb hrefs are already resolved URLs. */ %>
+<nav class="rb-admin-crumbs" aria-label="<%= TranslationService.t('admin-breadcrumb-label') %>">
+  <ol>
+    <% (typeof breadcrumbs !== 'undefined' ? breadcrumbs : []).forEach(function(crumb) { %>
+      <li><% if (crumb.href) { %><a href="<%= crumb.href %>"><%= TranslationService.t(crumb.labelKey) %></a><% } else { %><span aria-current="page"><%= TranslationService.t(crumb.labelKey) %></span><% } %></li>
+    <% }); %>
+  </ol>
+</nav>
+<header class="rb-admin-page-header">
+  <div>
+    <h1><%= TranslationService.t(titleKey) %></h1>
+    <% if (typeof descriptionKey !== 'undefined' && descriptionKey) { %><p><%= TranslationService.t(descriptionKey) %></p><% } %>
+  </div>
+  <% if (typeof actions !== 'undefined' && actions.length) { %>
+    <div class="rb-admin-page-actions">
+      <% actions.forEach(function(action) { %>
+        <a class="btn <%= action.primary ? 'btn-primary' : 'btn-outline-secondary' %>" href="<%= action.href %>"><%= TranslationService.t(action.labelKey) %></a>
+      <% }); %>
+    </div>
+  <% } %>
+</header>

@@ -1,37 +1,48 @@
-<div class="admin-sidebar">
-  <% if (typeof adminSidebar !== 'undefined' && adminSidebar && adminSidebar.header) { %>
-  <div class="admin-sidebar-header">
-    <i class="<%= adminSidebar.header.iconClass %>"></i>
-    <span><%= adminSidebar.header.title %></span>
+<%
+  const sidebar = typeof adminSidebar !== 'undefined' && adminSidebar ? adminSidebar : { sections: [], footerLinks: [] };
+  const overviewHref = BrandingService.getBrandAndPortalPath(req) + '/admin';
+  const overviewActive = req.path.replace(/\/$/, '') === overviewHref;
+%>
+<aside class="rb-admin-sidebar" aria-label="<%= TranslationService.t('admin-navigation-label') %>">
+  <div class="rb-admin-sidebar-search">
+    <i class="fa fa-search" aria-hidden="true"></i>
+    <input type="search" class="form-control" aria-label="<%= TranslationService.t('admin-setting-filter') %>" placeholder="<%= TranslationService.t('admin-setting-filter') %>" data-admin-filter>
   </div>
-  <% } %>
-
-  <% if (typeof adminSidebar !== 'undefined' && adminSidebar && adminSidebar.sections && Array.isArray(adminSidebar.sections)) { %>
-  <% adminSidebar.sections.forEach(function(section) { %>
-  <!-- <%= section.title %> Section -->
-  <div class="admin-sidebar-section">
-    <a class="admin-sidebar-section-header" data-bs-toggle="collapse" href="#<%= section.id %>Section" role="button" aria-expanded="<%= section.defaultExpanded ? 'true' : 'false' %>" aria-controls="<%= section.id %>Section">
-      <span><%= section.title %></span>
-      <i class="fa fa-chevron-down"></i>
+  <nav>
+    <a class="rb-admin-sidebar-item rb-admin-sidebar-home<%= overviewActive ? ' active' : '' %>" href="<%= overviewHref %>" <% if (overviewActive) { %>aria-current="page"<% } %> data-admin-filter-item>
+      <i class="fa fa-home" aria-hidden="true"></i> <%= TranslationService.t('admin-overview') %>
     </a>
-    <div class="collapse<%= section.defaultExpanded ? ' show' : '' %>" id="<%= section.id %>Section">
-      <div class="admin-sidebar-links">
+    <% (sidebar.sections || []).forEach(function(section) { %>
+      <section class="rb-admin-sidebar-section" data-admin-filter-section>
+        <h2 class="rb-admin-sidebar-heading"><%= section.title %></h2>
         <% section.items.forEach(function(item) { %>
-        <div class="admin-sidebar-link">
-          <a href="<%= item.href %>"<% if (item.external) { %><% if (item.target) { %> target="<%= item.target %>"<% } %> rel="noopener noreferrer"<% } %>><%= item.label %></a>
-        </div>
+          <a class="rb-admin-sidebar-item<%= item.active ? ' active' : '' %>" href="<%= item.href %>" <% if (item.active) { %>aria-current="page"<% } %> <% if (item.external) { %>target="<%= item.target || '_blank' %>" rel="noopener noreferrer"<% } %> data-admin-filter-item><%= item.label %></a>
         <% }); %>
-      </div>
-    </div>
-  </div>
-  <% }); %>
-  <% } %>
-
-  <% if (typeof adminSidebar !== 'undefined' && adminSidebar && adminSidebar.footerLinks && Array.isArray(adminSidebar.footerLinks)) { %>
-  <% adminSidebar.footerLinks.forEach(function(link) { %>
-  <div class="admin-sidebar-footer">
-    <a href="<%= link.href %>"<% if (link.external) { %><% if (link.target) { %> target="<%= link.target %>"<% } %> rel="noopener noreferrer"<% } %>><%= link.label %></a>
-  </div>
-  <% }); %>
-  <% } %>
-</div>
+      </section>
+    <% }); %>
+    <% (sidebar.footerLinks || []).forEach(function(item) { %>
+      <a class="rb-admin-sidebar-item<%= item.active ? ' active' : '' %>" href="<%= item.href %>" <% if (item.active) { %>aria-current="page"<% } %> <% if (item.external) { %>target="<%= item.target || '_blank' %>" rel="noopener noreferrer"<% } %> data-admin-filter-item><%= item.label %></a>
+    <% }); %>
+  </nav>
+  <p class="rb-admin-sidebar-no-results" role="status" hidden><%= TranslationService.t('admin-setting-no-results') %></p>
+</aside>
+<script <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+(function () {
+  const sidebar = document.querySelector('.rb-admin-sidebar');
+  const input = sidebar.querySelector('[data-admin-filter]');
+  input.addEventListener('input', function () {
+    const query = input.value.trim().toLocaleLowerCase();
+    let matches = 0;
+    sidebar.querySelectorAll('[data-admin-filter-item]').forEach(function (item) {
+      const section = item.closest('[data-admin-filter-section]');
+      const heading = section ? section.querySelector('h2').textContent : '';
+      item.hidden = !(item.textContent + ' ' + heading).toLocaleLowerCase().includes(query);
+      if (!item.hidden) matches++;
+    });
+    sidebar.querySelectorAll('[data-admin-filter-section]').forEach(function (section) {
+      section.hidden = !section.querySelector('[data-admin-filter-item]:not([hidden])');
+    });
+    sidebar.querySelector('[role="status"]').hidden = matches > 0;
+  });
+})();
+</script>

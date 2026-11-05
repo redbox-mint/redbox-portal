@@ -1,0 +1,256 @@
+// Reusable admin patterns. Only the outer spacing selector reaches outside .rb-admin.
+.maincontent-body:has(> .rb-admin) { padding: 0; }
+
+.rb-admin {
+  // Derive neutral/tint colours from the published brand, including older themes.
+  --admin-brand: var(--rb-admin-sidebar-text-color, var(--rb-panel-branding-background-color, #b1101a));
+  --admin-panel: var(--rb-panel-branding-background-color, #b1101a);
+  --admin-panel-text: var(--rb-panel-branding-color, #fff);
+  --admin-bg: var(--rb-body-background-color, #fff);
+  --admin-ink: var(--rb-body-text-color, #333);
+  --admin-heading: var(--rb-main-content-heading-text-branding-color, #1b1b1b);
+  --admin-muted: color-mix(in srgb, var(--admin-ink) 78%, var(--admin-bg));
+  --admin-line: var(--rb-panel-branding-border-color, #ddd);
+  --admin-soft-line: color-mix(in srgb, var(--admin-line) 55%, var(--admin-bg));
+  --admin-surface: color-mix(in srgb, var(--admin-ink) 4%, var(--admin-bg));
+  --admin-brand-tint: color-mix(in srgb, var(--admin-brand) 8%, var(--admin-bg));
+  --admin-primary: var(--rb-primary, #0d6efd);
+  --admin-primary-text: var(--rb-primary-text-color, #fff);
+  --admin-danger: var(--rb-danger, #dc3545);
+  --admin-danger-ink: color-mix(in srgb, var(--admin-danger) 78%, var(--admin-ink));
+  --admin-success: var(--rb-success, #198754);
+  --admin-warning: var(--rb-warning, #ffc107);
+  --admin-radius: 6px;
+
+  &.admin-layout {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    align-items: stretch;
+    margin: 0;
+    min-height: 70vh;
+  }
+  color: var(--admin-ink);
+  background: var(--admin-bg);
+  font-size: 15px;
+  line-height: 1.45;
+
+  [hidden] { display: none !important; }
+  :is(a, button, input, select, textarea, summary):focus-visible {
+    outline: 2px solid var(--admin-primary);
+    outline-offset: 3px;
+  }
+  h1, h2, h3, h4 { color: var(--admin-heading); }
+  a { color: var(--rb-anchor-color, #337ab7); }
+  a:hover { color: var(--rb-anchor-color-hover, #23527c); }
+
+  .rb-admin-main { min-width: 0; padding: 24px 32px 48px; }
+  .rb-admin-wrap { max-width: 1180px; min-width: 0; margin-inline: auto; }
+  // Constrain legacy fixed-width containers to the main column.
+  .rb-admin-wrap .container { max-width: 100%; }
+  // Older apps use Bootstrap containers; retain their grid gutters inside the shell.
+  .rb-admin-wrap > :is(app-root, manage-users, manage-roles, report-config, app-config) { display: block; }
+
+  .rb-admin-sidebar {
+    padding: 16px 0 24px;
+    background: var(--admin-surface);
+    border-right: 1px solid var(--admin-line);
+    font-size: 14px;
+    min-width: 0;
+  }
+  .rb-admin-sidebar-search { margin: 0 16px 12px; position: relative; }
+  .rb-admin-sidebar-search i { position: absolute; left: 10px; top: 11px; color: var(--admin-muted); }
+  .rb-admin-sidebar-search input { padding: 7px 10px 7px 30px; font-size: 13px; }
+  .rb-admin-sidebar-section { margin-top: 10px; }
+  .rb-admin-sidebar-heading {
+    margin: 0;
+    padding: 6px 16px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+    color: var(--admin-brand);
+  }
+  .rb-admin-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 16px 7px 25px;
+    border-left: 3px solid var(--admin-surface);
+    color: var(--admin-ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    &:hover { background: var(--admin-soft-line); color: var(--admin-ink); text-decoration: none; }
+    &.active { background: var(--admin-bg); border-left-color: var(--admin-brand); color: var(--admin-brand); font-weight: 600; }
+  }
+  .rb-admin-sidebar-home { padding-left: 16px; font-weight: 600; }
+  .rb-admin-sidebar-no-results { padding: 12px 16px; color: var(--admin-muted); }
+
+  .rb-admin-crumbs {
+    font-size: 13px;
+    color: var(--admin-muted);
+    margin-bottom: 10px;
+    ol { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; margin: 0; }
+    li + li::before { content: '/'; margin-right: 6px; }
+    a { color: var(--admin-muted); }
+  }
+  .rb-admin-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--admin-line);
+    h1 { font-size: 30px; font-weight: 700; line-height: 1.2; margin: 0; text-align: left; }
+    p { margin: 4px 0 0; max-width: 720px; color: var(--admin-muted); }
+  }
+  .rb-admin-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+  // Theme Bootstrap components rather than copying the mock's conflicting classes.
+  .btn {
+    border-radius: var(--admin-radius);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 8px 14px;
+    text-transform: none;
+    text-decoration: none;
+    box-shadow: none;
+    &:disabled, &.disabled { opacity: .5; }
+    &.btn-sm { padding: 5px 10px; font-size: 13px; }
+  }
+  .btn.btn-primary, button[type='submit'].btn, input[type='submit'].btn {
+    color: var(--admin-primary-text);
+    background: var(--admin-primary);
+    border: 1px solid var(--admin-primary);
+    text-transform: none;
+    &:hover { background: color-mix(in srgb, var(--admin-primary) 86%, var(--rb-dark, #212529)); }
+  }
+  .btn.btn-secondary, .btn.btn-outline-secondary, .btn.btn-info, .btn.btn-outline-info, .btn.btn-default {
+    color: var(--admin-heading);
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-line);
+    &:hover { background: var(--admin-surface); }
+  }
+  .btn.btn-danger, .btn.btn-outline-danger {
+    color: var(--admin-danger-ink);
+    background: var(--admin-bg);
+    border: 1px solid var(--admin-danger);
+    &:hover { background: color-mix(in srgb, var(--admin-danger) 8%, var(--admin-bg)); }
+  }
+  // Explicit opt-in only for a destructive action inside a confirmation dialog.
+  .btn.rb-admin-danger-confirm:where(.modal *, dialog *, [role='dialog'] *) {
+    color: var(--rb-danger-text-color, #fff); background: var(--admin-danger); border-color: var(--admin-danger);
+  }
+  .form-control, .form-select {
+    color: var(--admin-ink); background-color: var(--admin-bg); border-color: var(--admin-line); border-radius: var(--admin-radius);
+    &:focus { border-color: var(--admin-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--admin-primary) 20%, var(--admin-bg)); }
+  }
+  .card { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-bg); margin-bottom: 20px; min-width: 0; }
+  .card-header {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
+    padding: 11px 16px; background: var(--admin-panel); color: var(--admin-panel-text); border-bottom-color: var(--admin-line);
+    :is(h2, h3) { margin: 0; font-size: 16px; font-weight: 600; color: inherit; }
+  }
+  .card-body { padding: 16px; }
+  .card-footer {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--admin-surface); border-top-color: var(--admin-line); font-size: 13px; color: var(--admin-muted);
+  }
+  .table-responsive { overflow-x: auto; }
+  .table {
+    --bs-table-bg: var(--admin-bg); --bs-table-color: var(--admin-ink);
+    --bs-table-border-color: var(--admin-soft-line); --bs-table-hover-bg: var(--admin-surface); --bs-table-hover-color: var(--admin-ink);
+    font-size: 14px; margin-bottom: 0;
+    th { font-size: 12.5px; font-weight: 700; padding: 10px 12px; background: var(--admin-surface); border-bottom: 2px solid var(--admin-line); white-space: nowrap; }
+    td { padding: 10px 12px; vertical-align: middle; }
+  }
+  .badge { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+  // Semantic badge/alert foregrounds derive from the same brand tokens as backgrounds.
+  @each $state in primary, success, warning, danger, info {
+    .badge.rb-admin-badge-#{$state}, .alert-#{$state} {
+      color: color-mix(in srgb, var(--rb-#{$state}, #333) 40%, var(--admin-ink));
+      background: color-mix(in srgb, var(--rb-#{$state}, #333) 10%, var(--admin-bg));
+      border-color: color-mix(in srgb, var(--rb-#{$state}, #333) 35%, var(--admin-bg));
+    }
+  }
+  .alert { padding: 12px 14px; border-radius: var(--admin-radius); font-size: 14px; }
+  .nav-tabs { border-bottom-color: var(--admin-line); margin-bottom: 20px; gap: 2px; }
+  .nav-tabs .nav-link { color: var(--admin-muted); border: 0; border-bottom: 3px solid var(--admin-bg); padding: 10px 14px; font-weight: 600; }
+  .nav-tabs .nav-link.active { background: var(--admin-bg); color: var(--admin-brand); border-bottom-color: var(--admin-brand); }
+  .pagination { gap: 4px; margin-bottom: 0; }
+  .page-link { color: var(--admin-ink); background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: 4px; font-size: 13px; }
+  .active > .page-link { background: var(--admin-heading); border-color: var(--admin-heading); color: var(--admin-bg); }
+
+  .rb-admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; margin-bottom: 20px; }
+  .rb-admin-stat { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); padding: 14px 16px; background: var(--admin-bg); }
+  .rb-admin-stat b { display: block; font-size: 26px; color: var(--admin-heading); line-height: 1.1; }
+  .rb-admin-stat span, .rb-admin-hint { font-size: 13px; color: var(--admin-muted); }
+  .rb-admin-filter-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 14px 16px; border-bottom: 1px solid var(--admin-line); background: var(--admin-surface); }
+  .rb-admin-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 0 1 180px; }
+  .rb-admin-field-grow { flex: 1 1 240px; }
+  .rb-admin-field label { font-size: 12.5px; font-weight: 700; }
+  .rb-admin-empty { text-align: center; padding: 40px 24px; color: var(--admin-muted); }
+  .rb-admin-empty h3 { font-size: 17px; margin: 10px 0 4px; }
+  .rb-admin-empty p { margin: 0 auto 14px; max-width: 440px; }
+  .rb-admin-split { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+  .rb-admin-section-rail {
+    flex: 1 1 200px; max-width: 240px; position: sticky; top: 16px;
+    border: 1px solid var(--admin-line); border-radius: var(--admin-radius); padding: 8px 0; background: var(--admin-bg);
+    a { display: block; padding: 7px 14px; border-left: 3px solid var(--admin-bg); color: var(--admin-ink); }
+    a[aria-current] { border-left-color: var(--admin-brand); background: var(--admin-brand-tint); color: var(--admin-brand); font-weight: 600; }
+  }
+  .rb-admin-split-main { flex: 999 1 480px; min-width: 0; }
+  .rb-admin-split-side { flex: 1 1 300px; max-width: 360px; }
+  .rb-admin-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; }
+  .rb-admin-form-section { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); margin-bottom: 16px; background: var(--admin-bg); scroll-margin-top: 16px; }
+  .rb-admin-form-section-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--admin-line);
+    h3 { font-size: 16px; margin: 0; }
+    p { margin: 2px 0 0; font-size: 13px; color: var(--admin-muted); }
+    .form-check { margin-bottom: 0; flex-shrink: 0; }
+    .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
+  }
+  details.rb-admin-form-section:not([open]) > summary { border-bottom: 0; }
+  summary.rb-admin-form-section-header { cursor: pointer; }
+  .rb-admin-form-section-body { padding: 16px; }
+  .rb-admin-save-bar {
+    position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
+    padding: 12px 16px; background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); margin-top: 8px;
+    box-shadow: 0 -4px 14px color-mix(in srgb, var(--admin-ink) 6%, transparent);
+  }
+  .rb-admin-save-state { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--admin-muted); font-weight: 600; }
+  .rb-admin-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--admin-line); border-radius: 999px; font-size: 13px; background: var(--admin-bg); }
+  .rb-admin-segmented { display: inline-flex; flex-wrap: wrap; gap: 0; }
+  .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-heading); color: var(--admin-bg); }
+
+  .rb-admin-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; }
+  .rb-admin-tile { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-bg); overflow: hidden; }
+  .rb-admin-tile-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--admin-line); }
+  .rb-admin-tile-header h2 { font-size: 16px; font-weight: 600; line-height: 1.2; margin: 0; }
+  .rb-admin-tile-header p { font-size: 12.5px; color: var(--admin-muted); margin: 3px 0 0; }
+  .rb-admin-tile-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--admin-brand-tint); color: var(--admin-brand); display: flex; align-items: center; justify-content: center; flex: none; }
+  .rb-admin-tile ul { list-style: none; margin: 0; padding: 6px 0; }
+  .rb-admin-tile a { display: block; padding: 7px 16px; color: var(--admin-ink); text-decoration: none; }
+  .rb-admin-tile a:hover { background: var(--admin-surface); text-decoration: underline; }
+
+  @media (max-width: 991.98px) {
+    &.admin-layout { grid-template-columns: minmax(0, 1fr); }
+    .rb-admin-sidebar { border-right: 0; border-bottom: 1px solid var(--admin-line); }
+    .rb-admin-sidebar nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .rb-admin-sidebar-home { grid-column: 1 / -1; }
+    .rb-admin-sidebar-section { margin-top: 4px; }
+    .rb-admin-main { padding: 24px 20px 40px; }
+    // Legacy user toolbar turns vertical here; its 320px flex basis otherwise becomes a tall blank gap.
+    // Remove this compatibility rule when that app adopts rb-admin-filter-bar.
+    .mu-toolbar-search { flex-basis: auto; }
+    .rb-admin-section-rail { position: static; max-width: none; }
+  }
+  @media (max-width: 575.98px) {
+    .rb-admin-sidebar nav { grid-template-columns: minmax(0, 1fr); }
+    .rb-admin-main { padding-inline: 16px; }
+  }
+}
