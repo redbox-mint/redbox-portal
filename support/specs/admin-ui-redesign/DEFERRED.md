@@ -29,8 +29,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Branding | Draft / publish lifecycle for logo and favicon | Existing upload routes update live assets immediately; version history covers colours and typography only. Draft image storage and versioned publish/restore support are needed before these assets can join the draft lifecycle. The UI explains the immediate effect. |
-| Branding | Reset the entire saved draft to published branding | Existing Reset draft only reloads saved colours into the editor. Revert typeface draft is supported separately; an atomic reset endpoint would be needed for one action covering all saved draft state. |
 | Translations | "Missing" / "Changed" filters, "New default" badge, translated-count column | Needs per-key provenance (default vs override vs missing) from the translation service |
 | Translations | Import / Export buttons | Needs bundle import/export endpoints |
 | Translations | Display-name-only rename update | The existing rename posts and resynchronizes the whole bundle. It is slow and can prune parent labels that also have dotted child keys (for example `@dataPublication-dc:accessRights`). Needs a metadata-only display-name endpoint that preserves every translation entry. |

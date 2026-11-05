@@ -184,10 +184,14 @@ export class BrandingAdminService extends HttpClientService {
     return this.postState<BrandingAdminState>(`${this.base}/restore/${versionId}`, { expectedVersion, expectedDraftRevision });
   }
 
+  public async resetDraft(expectedVersion: number, expectedDraftRevision: number): Promise<BrandingAdminState> {
+    return this.postState<BrandingAdminState>(`${this.base}/draft/reset`, { expectedVersion, expectedDraftRevision });
+  }
+
   /**
    * Upload logo file
    */
-  public async uploadLogo(formData: FormData): Promise<unknown> {
+  public async uploadLogo(formData: FormData): Promise<BrandingAdminState> {
     const url = `${this.base}/logo`;
 
     // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
@@ -199,14 +203,15 @@ export class BrandingAdminService extends HttpClientService {
       context: fileUploadContext
     };
 
-    const result$ = this.http.post(url, formData, uploadOptions);
-    return await firstValueFrom(result$);
+    try {
+      return await firstValueFrom(this.http.post<BrandingAdminState>(url, formData, uploadOptions));
+    } catch (error) { this.normaliseError(error); }
   }
 
   /**
    * Upload favicon file
    */
-  public async uploadFavicon(formData: FormData): Promise<unknown> {
+  public async uploadFavicon(formData: FormData): Promise<BrandingAdminState> {
     const url = `${this.base}/favicon`;
 
     // Create HttpContext for FormData uploads - include CSRF but skip JSON content-type
@@ -218,7 +223,8 @@ export class BrandingAdminService extends HttpClientService {
       context: fileUploadContext
     };
 
-    const result$ = this.http.post(url, formData, uploadOptions);
-    return await firstValueFrom(result$);
+    try {
+      return await firstValueFrom(this.http.post<BrandingAdminState>(url, formData, uploadOptions));
+    } catch (error) { this.normaliseError(error); }
   }
 }

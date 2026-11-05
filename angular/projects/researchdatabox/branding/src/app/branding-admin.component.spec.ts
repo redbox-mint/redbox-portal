@@ -117,8 +117,9 @@ describe('BrandingAdminComponent typography experience', () => {
         Promise.resolve({ token: 'tok', url: 'u', hash: 'h', previewToken: 'tok', previewUrl: 'u' }),
       publish: (version: number, revision: number) => Promise.resolve(adminState()),
       restore: (id: string, version: number, revision: number) => Promise.resolve(adminState()),
-      uploadLogo: () => Promise.resolve({}),
-      uploadFavicon: () => Promise.resolve({}),
+      uploadLogo: () => Promise.resolve(adminState()),
+      uploadFavicon: () => Promise.resolve(adminState()),
+      resetDraft: () => Promise.resolve(adminState()),
     };
     await TestBed.configureTestingModule({
       imports: [BrandingAdminComponent, FormsModule, HttpClientTestingModule],
@@ -222,7 +223,7 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.draftConfig).toEqual({ primary: '#0000ff' });
   });
 
-  it('disables shared actions during a deferred upload while keeping image actions independent', async () => {
+  it('disables shared actions during a deferred upload including image actions', async () => {
     await initWith(adminState());
     let finish!: (state: BrandingAdminState) => void;
     const upload = spyOn(serviceStub, 'uploadFace').and.returnValue(
@@ -231,7 +232,7 @@ describe('BrandingAdminComponent typography experience', () => {
       })
     );
     const publish = spyOn(serviceStub, 'publish');
-    const logo = spyOn(serviceStub, 'uploadLogo').and.resolveTo({});
+    const logo = spyOn(serviceStub, 'uploadLogo').and.resolveTo(adminState());
     const inputs = Array.from(
       fixture.nativeElement.querySelectorAll('input[accept=".woff2,font/woff2"]')
     ) as HTMLInputElement[];
@@ -257,11 +258,11 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(inputs[1].files?.length).toBe(1);
     expect(upload).toHaveBeenCalledTimes(1);
     const logoInput = fixture.nativeElement.querySelector('#logoUpload') as HTMLInputElement;
-    expect(logoInput.disabled).toBeFalse();
+    expect(logoInput.disabled).toBeTrue();
     logoInput.files = selectedFiles();
     logoInput.dispatchEvent(new Event('change'));
     await Promise.resolve();
-    expect(logo).toHaveBeenCalledTimes(1);
+    expect(logo).not.toHaveBeenCalled();
     finish(adminState());
     await settled();
     expect(inputs.every(input => !input.disabled)).toBeTrue();
@@ -278,7 +279,7 @@ describe('BrandingAdminComponent typography experience', () => {
     fixture.detectChanges();
     expect(component.conflict).toBeTrue();
     expect(input.disabled).toBeTrue();
-    expect((fixture.nativeElement.querySelector('#faviconUpload') as HTMLInputElement).disabled).toBeFalse();
+    expect((fixture.nativeElement.querySelector('#faviconUpload') as HTMLInputElement).disabled).toBeTrue();
     serviceStub.loadConfig = () => Promise.resolve(adminState());
     await component.reloadState();
     fixture.detectChanges();
@@ -569,9 +570,9 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.message).toBe('branding-draft-saved');
     const file = new File(['img'], 'logo.png', { type: 'image/png' });
     await component.uploadLogo({ target: { files: [file] } } as unknown as Event);
-    expect(component.message).toBe('branding-logo-uploaded');
+    expect(component.message).toBe('branding-draft-logo-saved');
     await component.uploadFavicon({ target: { files: [file] } } as unknown as Event);
-    expect(component.message).toBe('branding-favicon-uploaded');
+    expect(component.message).toBe('branding-draft-favicon-saved');
     await component.publish();
     expect(component.message).toBe('branding-published');
   });
@@ -617,8 +618,28 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.draftChangeCount).toBe(1);
     expect(fixture.nativeElement.querySelector('.branding-mini-band').style.color).toBe('rgb(177, 16, 26)');
     expect(fixture.nativeElement.querySelector('.branding-contrast .rb-admin-badge-warning')).toBeTruthy();
-    component.resetDraft();
+    await component.resetDraft();
     expect(component.localChangeCount).toBe(0);
+  });
+
+  it('counts staged images, previews their exact snapshot and resets the saved draft after confirmation', async () => {
+    const state = adminState();
+    state.draft.dirty.logo = true;
+    state.draft.dirty.favicon = true;
+    await initWith(state);
+    expect(component.draftChangeCount).toBe(2);
+    expect(component.hasDraft).toBeTrue();
+    const reset = spyOn(serviceStub, 'resetDraft').and.resolveTo(adminState());
+    component.pendingAction = 'reset';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]').textContent).toContain('admin-branding-reset-all-help');
+    expect(reset).not.toHaveBeenCalled();
+    await component.confirmAction();
+    expect(reset).toHaveBeenCalledWith(state.active.version, state.draft.revision);
+    expect(component.hasDraft).toBeFalse();
+    serviceStub.createPreview = () => Promise.resolve({ token: 'snapshot', images: { logo: 'data:image/png;base64,bG9nbw==', favicon: null } });
+    await component.createPreview();
+    expect(component.previewLogoUrl).toBe('data:image/png;base64,bG9nbw==');
   });
 
   it('resets just the selected group to client defaults and retains other edits', async () => {

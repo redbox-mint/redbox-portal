@@ -133,7 +133,10 @@ export const harvestRunStatisticsSchema = withOpenApi(
     runningNow: z.number().int().nonnegative(),
     lastSuccessfulRun: z.object({ completedAt: z.string(), sourceName: z.string() }).nullable(),
   }),
-  { description: 'Global brand statistics over retained run summaries. Seven-day counts use startedAt within the inclusive rolling seven-day window. Running and failed match those exact statuses; success means completed. Latest success is ordered by completedAt across all retained history. List filters and pagination do not apply.' }
+  {
+    description:
+      'Global brand statistics over retained run summaries. Seven-day counts use startedAt within the inclusive rolling seven-day window. Running and failed match those exact statuses; success means completed. Latest success is ordered by completedAt across all retained history. List filters and pagination do not apply.',
+  }
 );
 
 export const harvestRunSummarySchema = withOpenApi(
@@ -679,6 +682,7 @@ export const brandingDraftResponseSchema = withOpenApi(
 
 export const brandingPreviewResponseSchema = withOpenApi(
   z.object({
+    images: z.object({ logo: z.string().nullable(), favicon: z.string().nullable() }).optional(),
     token: z.string(),
     url: z.string(),
     hash: z.string(),
@@ -757,6 +761,11 @@ export const brandingTypefaceStateSchema = withOpenApi(
   { description: 'Brand typeface state (default typography or custom faces)' }
 );
 
+export const brandingImagesSchema = z.object({
+  logo: jsonObjectSchema.nullable(),
+  favicon: jsonObjectSchema.nullable(),
+});
+
 export const brandingVersionEntrySchema = withOpenApi(
   z
     .object({
@@ -769,6 +778,7 @@ export const brandingVersionEntrySchema = withOpenApi(
       restoredFromVersion: z.number().int().optional(),
       variables: jsonObjectSchema.optional(),
       typeface: brandingTypefaceStateSchema.optional(),
+      images: brandingImagesSchema.optional(),
     })
     .passthrough(),
   { description: 'Retained branding version' }
@@ -784,6 +794,7 @@ export const brandingAdminStateSchema = withOpenApi(
           hash: z.string(),
           variables: jsonObjectSchema.optional(),
           typeface: brandingTypefaceStateSchema.optional(),
+          images: brandingImagesSchema.optional(),
         })
         .passthrough(),
       draft: z
@@ -791,7 +802,10 @@ export const brandingAdminStateSchema = withOpenApi(
           revision: z.number().int(),
           variables: jsonObjectSchema.optional(),
           typeface: brandingTypefaceStateSchema.optional(),
-          dirty: z.object({ colours: z.boolean(), typeface: z.boolean() }).passthrough(),
+          images: brandingImagesSchema.optional(),
+          dirty: z
+            .object({ colours: z.boolean(), typeface: z.boolean(), logo: z.boolean(), favicon: z.boolean() })
+            .passthrough(),
         })
         .passthrough(),
       versions: z.array(brandingVersionEntrySchema),

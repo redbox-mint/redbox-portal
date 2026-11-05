@@ -168,7 +168,7 @@
               [style.background-color]="colour('site-branding-area-background-color')"
               [style.color]="colour('logo-heading-text-color')"
             >
-              <img *ngIf="logoUrl" [src]="logoUrl" [alt]="'admin-branding-logo-preview' | i18next" /><span>{{
+              <img *ngIf="logoUrl" [src]="logoUrl" [alt]="'admin-branding-draft-logo-preview' | i18next" /><span>{{
                 'admin-branding-preview-portal' | i18next
               }}</span>
             </div>
@@ -247,7 +247,7 @@
       </div>
     </div>
     <section id="branding-assets" [hidden]="activeTab !== 'assets'" aria-labelledby="branding-tab-assets">
-      <div class="alert alert-info" role="status">{{ 'admin-branding-assets-live' | i18next }}</div>
+      <div class="alert alert-info" role="status">{{ 'admin-branding-assets-draft' | i18next }}</div>
       <div class="rb-admin-form-grid">
         <section class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
@@ -256,8 +256,9 @@
           </div>
           <div class="rb-admin-form-section-body">
             <div class="branding-upload-preview">
-              <img *ngIf="logoUrl" [src]="logoUrl" [alt]="'admin-branding-logo-preview' | i18next" />
+              <img *ngIf="logoUrl" [src]="logoUrl" [alt]="'admin-branding-draft-logo-preview' | i18next" />
             </div>
+            <p class="badge rb-admin-badge-warning" *ngIf="state?.draft?.dirty?.logo">{{ 'admin-branding-draft-logo' | i18next }}</p>
             <label for="logoUpload" class="form-label">{{ 'branding-logo-upload-label' | i18next }}</label
             ><input
               type="file"
@@ -278,8 +279,9 @@
           </div>
           <div class="rb-admin-form-section-body">
             <div class="branding-upload-preview branding-favicon">
-              <img *ngIf="faviconUrl" [src]="faviconUrl" [alt]="'admin-branding-favicon-preview' | i18next" />
+              <img *ngIf="faviconUrl" [src]="faviconUrl" [alt]="'admin-branding-draft-favicon-preview' | i18next" />
             </div>
+            <p class="badge rb-admin-badge-warning" *ngIf="state?.draft?.dirty?.favicon">{{ 'admin-branding-draft-favicon' | i18next }}</p>
             <label for="faviconUpload" class="form-label">{{ 'branding-favicon-upload-label' | i18next }}</label
             ><input
               type="file"
@@ -525,7 +527,8 @@
               *ngIf="previewCssUrl"
               [baseCssHref]="previewBaseCssUrl"
               [cssHref]="previewCssUrl"
-              [logoSrc]="logoUrl"
+              [logoSrc]="previewLogoUrl"
+              [faviconSrc]="previewFaviconUrl"
               [sampleText]="sampleText"
             ></branding-preview>
           </div>
@@ -555,7 +558,7 @@
           type="button"
           class="btn branding-reset"
           (click)="pendingAction = 'reset'"
-          [disabled]="!localChangeCount || isUnavailable('save-draft')"
+          [disabled]="(!hasDraft && !localChangeCount) || isUnavailable('reset-draft')"
         >
           {{ 'admin-branding-reset-draft' | i18next }}</button
         ><button
@@ -584,7 +587,7 @@
           <div class="modal-header">
             <h2 class="modal-title" id="branding-dialog-title">
               {{
-                (pendingAction === 'publish' ? 'admin-branding-publish-title' : 'admin-branding-reset-title') | i18next
+                (pendingAction === 'publish' ? 'admin-branding-publish-title' : 'admin-branding-reset-all-title') | i18next
               }}
             </h2>
             <button
@@ -597,7 +600,7 @@
           <div class="modal-body">
             <p id="branding-dialog-help">
               {{
-                (pendingAction === 'publish' ? 'admin-branding-publish-help' : 'admin-branding-reset-help') | i18next
+                (pendingAction === 'publish' ? 'admin-branding-publish-all-help' : 'admin-branding-reset-all-help') | i18next
               }}
             </p>
           </div>
