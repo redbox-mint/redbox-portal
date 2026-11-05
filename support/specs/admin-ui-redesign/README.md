@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/08-site-config`: system message styles with matching live banners and accessible roles, and brand-scoped Navigation resets to installation defaults.
+
 Delivered on `admin-deferred/07-auth-domain-tester`: authorized-address tester using the shared AAF/OIDC matcher, brand Admin and CSRF protection, and unsaved-form testing without persistence.
 
 Delivered on `admin-deferred/06-users-roles`: successful interactive last-login tracking, server-side sign-in filters, editable role descriptions, atomic replacement of sole roles, and the configured default-role marker.
@@ -296,3 +298,21 @@ This preserves the existing account-creation gate: incoming AAF/OIDC addresses a
 stored rules are case-sensitive, domains match exactly without subdomains, and empty lists for
 the selected provider allow all. Existing accounts and other authentication checks retain their
 current behavior. The reference mock's subdomain example is not the server's matching policy.
+
+### System messages and Navigation defaults
+
+System messages accept optional `style` values `info`, `warning` and `critical`; missing or
+unrecognised legacy styles render as information. The editor preview and shared portal banner
+use the same semantic theme tokens. Information and warning banners use `role="status"`;
+critical banners use `role="alert"`. Dismissal duration and brand/portal scoping remain in place.
+Changing the style changes the dismissal identity; legacy information messages keep their identity.
+
+Navigation offers Reset to default for the active Menu, Home panels or Admin sidebar tab.
+`POST /:branding/:portal/admin/appconfig/:appConfigId/reset` requires the route brand's Admin
+permission, session CSRF token and an empty JSON object. It returns `{ reset: boolean }`;
+`false` means no saved override existed. The operation accepts registered app-config keys,
+rejects retired dashboard keys, deletes only that brand/key's rows (including legacy duplicates),
+and refreshes its runtime cache entry using model defaults plus `brandingConfigurationDefaults`.
+It shares the save lock, preserves other config keys and brands, and retains external secret
+objects. The form response's `hasOverride` flag controls the disabled reset button and tooltip.
+The confirmation warns that saved and unsaved customisations will be lost on the live site.

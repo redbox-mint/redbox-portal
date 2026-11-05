@@ -1,5 +1,5 @@
 import { Controllers as controllers } from '../CoreController';
-import { authorizedEmailTestBody } from '../api-routes/groups/appconfig';
+import { authorizedEmailTestBody, resetAppConfigBody } from '../api-routes/groups/appconfig';
 import { evaluateAuthorizedEmail } from '../utilities/AuthorizedEmailAccess';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { ConfigModels } from '../configmodels/ConfigModels';
@@ -27,7 +27,8 @@ export namespace Controllers {
       'getAppConfigForm',
       'saveAppConfig',
       'editAppConfig',
-      'testAuthorizedEmail'
+      'testAuthorizedEmail',
+      'resetAppConfig'
     ];
 
     /**
@@ -52,6 +53,23 @@ export namespace Controllers {
       const config = draft ?? sails.config.brandingAware(brandName).authorizedDomainsEmails ?? {};
       // AAF and OIDC both normalize the incoming claim this way before the gate.
       return res.json(evaluateAuthorizedEmail(email.toLowerCase(), config as Partial<AuthorizedDomainsEmails>, provider));
+    }
+
+    public async resetAppConfig(req: Sails.Req, res: Sails.Res) {
+      try {
+        if (!resetAppConfigBody.safeParse(req.body).success) return res.badRequest({ message: 'Reset requires an empty object' });
+        const configKey = req.param('appConfigId');
+        if (typeof configKey !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(configKey) || !ConfigModels.getModelInfo(configKey)) {
+          return res.badRequest({ message: 'Unknown app config' });
+        }
+        const brand = this.brandingService.getBrand(this.brandingService.getBrandNameFromReq(req));
+        return res.json(await this.appConfigService.resetConfig(brand, configKey));
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (status === 400 || status === 410) return res.status(status).json({ message: (error as Error).message });
+        sails.log.error(error);
+        return res.serverError({ message: 'Unable to reset app config' });
+      }
     }
 
     public async editAppConfig(req: Sails.Req, res: Sails.Res) {
@@ -87,8 +105,8 @@ export namespace Controllers {
         const savedConfig = await this.appConfigService.createOrUpdateConfig(brand, appConfigId, appConfig)
         return res.json(savedConfig);
       } catch (error) {
-        if ((error as { status?: number })?.status === 410) {
-          return res.status(410).json({ message: (error as Error).message });
+        if ([400, 410].includes((error as { status?: number })?.status ?? 500)) {
+          return res.status((error as { status: number }).status).json({ message: (error as Error).message });
         }
         sails.log.error(error);
         return res.serverError(error);

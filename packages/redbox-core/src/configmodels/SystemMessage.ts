@@ -24,8 +24,11 @@ export class SystemMessage extends AppConfig {
      */
     dismissalDurationHours: number = 8;
 
+    /** @title Style */
+    style?: 'info' | 'warning' | 'critical' = 'info';
+
     public static getFieldOrder(): string[] {
-        return ["enabled", "title", "message", "dismissalDurationHours"]
+        return ["enabled", "title", "message", "dismissalDurationHours", "style"]
     }
 }
 
@@ -52,6 +55,12 @@ export const SYSTEM_MESSAGE_SCHEMA = {
                     type: 'textarea'
                 }
             }
+        },
+        style: {
+            type: 'string',
+            title: 'admin-config-label-message-style',
+            enum: ['info', 'warning', 'critical'],
+            default: 'info'
         },
         dismissalDurationHours: {
             type: 'number',

@@ -56,6 +56,7 @@ export namespace Services {
       'getAppConfigurationForBrand',
       'getMaskedAppConfigurationForBrand',
       'createOrUpdateConfig',
+      'resetConfig',
       'getAppConfigForm',
       'getAppConfigByBrandAndKey',
       'createConfig',
@@ -525,6 +526,10 @@ export namespace Services {
 
     public async createOrUpdateConfig(branding: BrandingModel, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
+      if (configKey === 'systemMessage' && configData.style !== undefined &&
+          !['info', 'warning', 'critical'].includes(configData.style as string)) {
+        throw Object.assign(new Error('Invalid system message style'), { status: 400 });
+      }
       return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
         const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
         const mergedConfigData = await this.storeSecretFields(String(branding.id), configKey, preparedConfigData, dbConfig?.configData ?? _.get(this.createDefaultConfiguration(), [configKey]), lease);
@@ -548,6 +553,10 @@ export namespace Services {
 
     public async createConfig(brandName: string, configKey: string, configData: AppConfigData): Promise<unknown> {
       this.assertWritableConfigKey(configKey);
+      if (configKey === 'systemMessage' && configData.style !== undefined &&
+          !['info', 'warning', 'critical'].includes(configData.style as string)) {
+        throw Object.assign(new Error('Invalid system message style'), { status: 400 });
+      }
       const branding: BrandingModel = BrandingService.getBrand(brandName);
       return this.withConfigWriteLock(String(branding.id), configKey, async (dbConfig, lease) => {
         const preparedConfigData = this.prepareConfigModelForSave(configKey, configData);
@@ -567,7 +576,27 @@ export namespace Services {
       });
     }
 
-    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[]; title?: string; descriptionKey?: string; secretFields: string[]; sections?: ConfigModelInfo['sections']; requiresSetup?: boolean }> {
+    /** Delete only this brand's override, including legacy duplicate rows. */
+    public async resetConfig(branding: BrandingModel, configKey: string): Promise<{ reset: boolean }> {
+      this.assertWritableConfigKey(configKey);
+      if (!ConfigModels.getModelInfo(configKey)) {
+        throw Object.assign(new Error('Unknown app config'), { status: 400 });
+      }
+      return this.withConfigWriteLock(String(branding.id), configKey, async (existing, lease) => {
+        const defaults = _.get(this.createDefaultConfiguration(), [configKey]) as AppConfigData;
+        const hydrated = await this.hydrateSecretFields(configKey, defaults);
+        if (lease) await this.getSecretStore().checkBundleSave(lease);
+        await AppConfig.destroy({ branding: branding.id, configKey });
+        // Publish after persistence; rebase so concurrent writes to other keys survive.
+        const next = this.prepareBrandingCache(branding, configKey, hydrated!);
+        const presentKeys: Set<string> = Reflect.get(next, APP_CONFIG_PRESENT_KEYS_SYMBOL);
+        presentKeys.delete(configKey);
+        this.brandingAppConfigMap[branding.name] = next;
+        return { reset: existing != null };
+      });
+    }
+
+    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[]; title?: string; descriptionKey?: string; secretFields: string[]; sections?: ConfigModelInfo['sections']; requiresSetup?: boolean; hasOverride: boolean }> {
 
       const appConfig = this.getAppConfigurationForBrand(branding.name);
 
@@ -586,7 +615,8 @@ export namespace Services {
       const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder,
         title: modelDefinition.title, descriptionKey: modelDefinition.descriptionKey,
         secretFields: modelDefinition.secretFields ?? [], sections: modelDefinition.sections,
-        requiresSetup: modelDefinition.requiresSetup };
+        requiresSetup: modelDefinition.requiresSetup,
+        hasOverride: (await this.findLatestConfigRecord(String(branding.id), configForm)) != null };
       return configData;
     }
 

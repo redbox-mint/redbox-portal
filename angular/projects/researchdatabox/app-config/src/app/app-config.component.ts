@@ -57,6 +57,11 @@ export class AppConfigComponent extends BaseComponent {
   longForm = false;
   empty = false;
   showJson = false;
+  hasOverride = false;
+  showReset = false;
+  resetSuccessful = false;
+  resetFailed = false;
+  private resetTrigger?: HTMLElement;
   pendingLeave = '';
   options: FormlyFormOptions = {};
   private loadedModel: any = {};
@@ -99,6 +104,7 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   private configureForm(result: ConfigForm): void {
+    this.hasOverride = result.hasOverride === true;
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
     // Translate presentation metadata only; property names and stored values stay intact.
     const translateTitles = (value: any): void => {
@@ -160,6 +166,9 @@ export class AppConfigComponent extends BaseComponent {
       field.props = { ...field.props };
       if (this.configKey === 'authorizedDomainsEmails' && /^(domains|emails)/.test(String(field.key))) field.props.label = this.translationService.t(String(field.key).startsWith('domains') ? 'admin-config-allowed-domains' : 'admin-config-allowed-emails');
       if (!field.props.label && field.key != null) field.props.label = String(field.key).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+      if (this.configKey === 'systemMessage' && field.key === 'style') {
+        field.props.options = ['info', 'warning', 'critical'].map(value => ({ value, label: this.translationService.t('admin-config-message-style-' + value) }));
+      }
       if (field.key === 'enabled') {
         field.props['switch'] = true;
         // Nested flags are rendered in their object's header.
@@ -206,6 +215,45 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   get navigationEditor(): boolean { return ['menu', 'homePanels', 'adminSidebar'].includes(this.configKey); }
+
+  get messageStyle(): string { return ['warning', 'critical'].includes(this.model.style) ? this.model.style : 'info'; }
+
+  openReset(event: Event): void {
+    if (!this.navigationEditor || !this.hasOverride || this.formSaving) return;
+    this.resetTrigger = event.currentTarget as HTMLElement;
+    this.showReset = true;
+  }
+
+  cancelReset(): void {
+    if (this.formSaving) return;
+    this.showReset = false;
+    if ((this.resetTrigger as HTMLButtonElement)?.disabled) this.resetTrigger?.parentElement?.focus();
+    else this.resetTrigger?.focus();
+  }
+
+  async resetConfig(): Promise<void> {
+    if (!this.navigationEditor || !this.showReset || !this.hasOverride || this.formSaving) return;
+    this.formSaving = true;
+    this.resetFailed = this.resetSuccessful = false;
+    this.formSaveSuccessful = this.formSaveUnsuccessful = false;
+    try {
+      await this.appConfigService.resetAppConfig(this.configKey);
+      // Fetch the server-resolved defaults, including installation overrides.
+      const result = await this.appConfigService.getAppConfigForm(this.configKey) as ConfigForm;
+      this.trackingReady = false;
+      this.form = new FormGroup({});
+      this.options = {};
+      this.currentConfig = cloneDeep(result);
+      this.configureForm(result);
+      this.resetSuccessful = true;
+      this.form.markAsPristine();
+    } catch {
+      this.resetFailed = true;
+    } finally {
+      this.formSaving = false;
+      this.cancelReset();
+    }
+  }
 
   private buildSections(root: FormlyFieldConfig, configured?: ConfigSection[]): void {
     if (this.navigationEditor) { this.sections = []; return; }
@@ -477,6 +525,9 @@ export class AppConfigComponent extends BaseComponent {
       // Rebuilding here would reintroduce schema defaults into custom bindings.
       this.loadedModel = cloneDeep(this.model);
       this.form.markAsPristine();
+      this.hasOverride = true;
+      if (this.currentConfig) this.currentConfig.hasOverride = true;
+      this.resetSuccessful = this.resetFailed = false;
       this.formSaveSuccessful = true;
     } catch (error) {
       this.formSaveUnsuccessful = true;
