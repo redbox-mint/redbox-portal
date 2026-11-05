@@ -1,6 +1,5 @@
 <% let appName = 'report'; %>
 <%- include('layout/start.ejs') %>
-    <a class="btn btn-large btn-primary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/reports"><i class="fa fa-arrow-left"></i> <%= TranslationService.t('report-return-to-reports-list') %></a>
     <report branding="<%= typeof branding == 'undefined'? data.branding : branding %>" portal="<%= typeof portal == 'undefined'? data.portal : portal %>" reportName="<%= req.param('name') %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
     </report>

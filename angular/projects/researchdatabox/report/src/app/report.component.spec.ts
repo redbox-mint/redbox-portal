@@ -121,7 +121,7 @@ describe('ReportComponent', () => {
       fixture.detectChanges();
       const page = http.expectOne(req => req.url.includes('getReportResults'));
       const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
-      const submit = fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement;
+      const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
       for (const title of ['discarded', 'latest']) {
         input.value = title;
         input.dispatchEvent(new Event('input'));
@@ -272,6 +272,38 @@ describe('ReportComponent', () => {
     expect(component.initTracker.resultsReturned).toBeTrue();
     expect(read).toHaveBeenCalledTimes(2);
     fixture.destroy();
+  });
+
+  it('shows only applied filters, removes one chip and clears filters', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+    app.filterParams = { title: 'applied', dateObjectModifiedRange_fromDate: new Date(2026, 9, 1) };
+    await app.filter();
+    expect(app.activeFilters.map(chip => chip.key)).toEqual(['dateObjectModifiedRange_fromDate', 'title']);
+    expect(app.activeFilters[0].value).toBe('01/10/2026');
+    app.filterParams.title = 'unfinished';
+    await app.removeFilter('dateObjectModifiedRange_fromDate');
+    expect(app.filterParams.title).toBe('applied');
+    expect(app.activeFilters.map(chip => chip.key)).toEqual(['title']);
+    await app.clearFilters();
+    expect(app.getParams()).toEqual({});
+    expect(app.activeFilters).toEqual([]);
+  });
+
+  it('sorts loaded rows by raw values without changing totals or paging', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const app = fixture.componentInstance;
+    app.reportResult = { records: [{ title: 'Plan 10' }, { title: 'Plan 2' }], total: 20, pageNum: 2, recordsPerPage: 2 } as any;
+    await app.headerSortChanged({ variable: 'title', sort: 'asc' }, {});
+    expect(app.reportResult.records.map((row: any) => row.title)).toEqual(['Plan 2', 'Plan 10']);
+    expect(app.reportResult.total).toBe(20);
+    expect(app.reportResult.pageNum).toBe(2);
+    await app.headerSortChanged({ variable: 'title', sort: 'desc' }, {});
+    expect(app.reportResult.records.map((row: any) => row.title)).toEqual(['Plan 10', 'Plan 2']);
   });
 
   it('should create the app, and apply report filters', async function() {
