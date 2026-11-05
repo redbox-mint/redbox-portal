@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './translation.component';
 import { FormBuilder } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
-import { signal } from '@angular/core';
+import { CSP_NONCE, signal } from '@angular/core';
+import { Subject } from 'rxjs';
 // Portal common services / stubs
 import {
   ConfigService,
@@ -16,6 +17,11 @@ import {
 
 // Custom richer mock translation service implementing the API used by the component
 class RichMockTranslationService {
+  translationChanges$ = new Subject<void>();
+  isInitializing() { return false; }
+  t(key: string) {
+    return ({ 'admin-tx-plain-text': 'Plain text', 'admin-tx-rich-text': 'Rich text', 'admin-tx-html-source': 'HTML source' })[key] || key;
+  }
   languages = [
     { code: 'en', displayName: 'English', enabled: true },
     { code: 'fr', displayName: 'French', enabled: true },
@@ -97,6 +103,7 @@ describe('AppComponent (translation)', () => {
       imports: [AppComponent],
       providers: [
         FormBuilder,
+        { provide: CSP_NONCE, useValue: 'translation-test-nonce' },
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
         UtilityService,
@@ -190,6 +197,7 @@ describe('AppComponent (translation)', () => {
     await comp.ngOnInit();
     const spy = spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
     comp.displayNameModalOpen.set(true);
+    comp.displayNameLanguage = 'en';
     comp.editDisplayName = 'en';
     await comp.loadCurrentDisplayName();
     expect(comp.readWarnings().displayName).toContain('could not be loaded');
@@ -207,6 +215,90 @@ describe('AppComponent (translation)', () => {
     await comp.loadCurrentDisplayName();
     expect(comp.editDisplayName).toBe('My unsaved name');
     expect(translationService.updateLanguageDisplayNameCalls).toEqual([]);
+  });
+
+  it('renders only a page from the full bundle, sorts all matches and resets filters to page one', async () => {
+    const { comp, fixture } = create();
+    const entries = Array.from({ length: 2093 }, (_, index) => ({
+      key: `key-${String(index).padStart(4, '0')}`, value: `Value ${index}`, category: index % 2 ? 'menu' : 'admin'
+    }));
+    translationService.entriesMap['en:translation'] = entries;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(comp.viewEntries().length).toBe(2093);
+    expect(fixture.nativeElement.querySelectorAll('.tx-data-table tbody tr').length).toBe(50);
+    expect([comp.rangeStart, comp.rangeEnd, comp.totalPages]).toEqual([1, 50, 42]);
+    comp.setPage(2);
+    expect(comp.pageEntries()[0].key).toBe('key-0050');
+    comp.setSort('key');
+    expect(comp.page).toBe(1);
+    expect(comp.pageEntries()[0].key).toBe('key-2092');
+    comp.setPage(42);
+    expect(comp.pageEntries().length).toBe(43);
+    comp.selectedCategory = 'menu';
+    comp.onCategoryChange();
+    expect(comp.page).toBe(1);
+    expect(comp.viewEntries().every(entry => entry.category === 'menu')).toBeTrue();
+    comp.setPage(2);
+    comp.filterText = 'VALUE 2091';
+    comp.onFilterTextChange();
+    expect([comp.page, comp.rangeStart, comp.rangeEnd]).toEqual([1, 1, 1]);
+    expect(comp.pageEntries()[0].key).toBe('key-2091');
+    comp.filterText = 'no-match';
+    comp.onFilterTextChange();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeTruthy();
+    expect([comp.rangeStart, comp.rangeEnd]).toEqual([0, 0]);
+    comp.clearAllFilters();
+    comp.pageSize = 100;
+    comp.onPageSizeChange();
+    expect(comp.pageEntries().length).toBe(100);
+    comp.setPage(99);
+    expect(comp.page).toBe(21);
+    comp.selectedLang = 'fr';
+    await comp.onLangChange();
+    expect(comp.page).toBe(1);
+    expect(comp.pageEntries().length).toBe(0);
+  });
+
+  it('renames an unavailable language without changing the language being edited', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.openDisplayNameModal('de');
+    await comp.loadCurrentDisplayName();
+    expect(comp.editDisplayName).toBe('German');
+    comp.editDisplayName = 'Deutsch';
+    await comp.updateDisplayName();
+    expect(comp.selectedLang).toBe('en');
+    expect(translationService.updateLanguageDisplayNameCalls).toEqual([{ code: 'de', ns: 'translation', displayName: 'Deutsch' }]);
+    expect(comp.languages().find(language => language.code === 'de').displayName).toBe('Deutsch');
+    expect(comp.isLanguageAvailable('de')).toBeFalse();
+  });
+
+  it('clears rows when the last available language is disabled and reloads when enabled', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.toggleAvailableLanguage('fr', false);
+    comp.toggleAvailableLanguage('en', false);
+    await comp.onLangChange();
+    expect(comp.selectedLang).toBe('');
+    expect(comp.pageEntries()).toEqual([]);
+    expect(comp.availabilityDirty()).toBeTrue();
+    comp.toggleAvailableLanguage('en', true);
+    await comp.onLangChange();
+    expect(comp.selectedLang).toBe('en');
+    expect(comp.pageEntries().length).toBe(3);
+    await comp.saveLanguages();
+    expect(comp.availabilityDirty()).toBeFalse();
+  });
+
+  it('uses the Angular CSP nonce for the editor stylesheet', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.openEdit(comp.entries()[0]);
+    expect(comp.richTextEditor?.options.injectNonce).toBe('translation-test-nonce');
+    comp.closeModal();
   });
 
   it('should create', async () => {
