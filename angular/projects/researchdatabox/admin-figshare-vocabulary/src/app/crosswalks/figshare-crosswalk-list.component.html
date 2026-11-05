@@ -17,7 +17,7 @@
         <option value="archived">{{ 'figshare-vocab-status-archived' | i18next }}</option>
       </select>
     </div>
-    <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-crosswalks-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-crosswalks-search" type="search" class="form-control" [(ngModel)]="search" / [placeholder]="'admin-filter-search-placeholder' | i18next"></div>
+    <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-crosswalks-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-crosswalks-search" type="search" class="form-control" [(ngModel)]="search" [placeholder]="'admin-filter-search-placeholder' | i18next" /></div>
   </div>
 
   @if (loading) {
