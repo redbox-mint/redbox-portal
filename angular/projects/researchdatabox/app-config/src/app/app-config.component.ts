@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { configLabel, protectConfigLabelTerms } from './config-label';
 import { configSchemaToField } from './dictionary-schema';
 import { Component, ElementRef, HostListener, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
@@ -154,7 +155,7 @@ export class AppConfigComponent extends BaseComponent {
     // Translate presentation metadata only; property names and stored values stay intact.
     const translateTitles = (value: any): void => {
       if (!value || typeof value !== 'object') return;
-      if (typeof value.title === 'string') value.title = this.translationService.t(value.title);
+      if (typeof value.title === 'string') value.title = protectConfigLabelTerms(this.translationService.t(value.title));
       // Only schema nodes: never translate default config data or enum values.
       for (const child of Object.values(value.properties || {})) translateTitles(child);
       for (const child of Object.values(value.patternProperties || {})) translateTitles(child);
@@ -220,7 +221,7 @@ export class AppConfigComponent extends BaseComponent {
         field.props.label = this.translationService.t(domain ? 'admin-config-allowed-domains' : 'admin-config-allowed-emails');
         field.props['normalizeChip'] = (value: string) => domain ? value.trim().toLowerCase().replace(/\.$/, '') : value.trim().toLowerCase();
       }
-      if (!field.props.label && field.key != null) field.props.label = String(field.key).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+      if (!field.props.label && field.key != null) field.props.label = configLabel(String(field.key));
       if (this.configKey === 'systemMessage' && field.key === 'style') {
         field.props.options = ['info', 'warning', 'critical'].map(value => ({ value, label: this.translationService.t('admin-config-message-style-' + value) }));
       }
@@ -347,7 +348,7 @@ export class AppConfigComponent extends BaseComponent {
     for (const group of configured || []) {
       const fields = group.fields.map(key => available.find(field => field.key === key)).filter((field): field is FormlyFieldConfig => !!field && !assigned.has(field));
       if (fields.length) {
-        groups.push({ label: this.translationService.t(group.titleKey), fields });
+        groups.push({ label: protectConfigLabelTerms(this.translationService.t(group.titleKey)), fields });
         fields.forEach(field => assigned.add(field));
       }
     }
