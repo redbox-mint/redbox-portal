@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import {Component, Input, Inject, ViewChildren, QueryList} from '@angular/core';
+import {Component, Input, Inject, TemplateRef, ViewChildren, QueryList} from '@angular/core';
 import { BaseComponent } from './base.component';
 import { LoggerService } from './logger.service';
 import { UtilityService } from './utility.service';
@@ -57,6 +57,7 @@ export class RecordTableComponent extends BaseComponent {
   // report name for template key construction (required for Handlebars templates)
   @Input() reportName: string = '';
   @Input() adminPresentation = false;
+  @Input() actionTemplate?: TemplateRef<{ $implicit: any }>;
   // pagination
   @Input() paginationItemsPerPage: number = 10;
   @Input() paginationDirectionLinks:boolean = false;
