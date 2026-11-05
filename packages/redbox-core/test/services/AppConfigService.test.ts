@@ -1,3 +1,6 @@
+import { OniPublishing, ONI_PUBLISHING_SCHEMA } from '../../src/configmodels/OniPublishing';
+import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from '../../src/configmodels/RaidPublishing';
+import { INTEGRATION_NOTIFICATION_SCHEMA, IntegrationNotificationConfig } from '../../src/configmodels/IntegrationNotificationConfig';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -7,7 +10,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { Services as ConfigServices } from '../../src/services/ConfigService';
 import { Controllers as WebserviceControllers } from '../../src/controllers/webservice/AdminController';
-import { APP_CONFIG_SECRET_CLEAR } from '../../src/services/AppConfigService';
+import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_RETAIN_PREFIX } from '../../src/services/AppConfigService';
 import { APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
 import { DoiPublishing, fromDoiPublishingFormModel, toDoiPublishingFormModel } from '../../src/configmodels/DoiPublishing';
@@ -51,6 +54,41 @@ describe('AppConfigService', function () {
     delete (global as any).AppConfig;
     delete (global as any).BrandingService;
     sinon.restore(); // Restores ConfigModels stubs
+  });
+
+  for (const [key, Model, schema, patch] of [
+    ['oniPublishing', OniPublishing, ONI_PUBLISHING_SCHEMA, { sites: { 'site.one[2]': { enabled: false, extension: { keep: [false, null, 0] } } } }],
+    ['raidPublishing', RaidPublishing, RAID_PUBLISHING_SCHEMA, { mapping: { dmp: { 'rule.one[2]': { engine: 'jsonata', dest: 'title', expression: 'record.metadata.title', future: { keep: [false, null, 0] } } } } }],
+    ['integrationNotification', IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA, { perIntegration: { oni: { recipients: [], extension: { keep: [false, null, 0] } } } }],
+  ] as const) {
+    it(`${key}: service save and reload round-trip preserves dictionary entries and unknown fields`, async () => {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: key, class: Model, schema });
+      const model = JSON.parse(JSON.stringify({ ...new Model(), ...patch }));
+      const expected = JSON.stringify(model);
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), key, model);
+      const stored = (AppConfig.create as unknown as sinon.SinonStub).lastCall.args[0];
+      expect(JSON.stringify(stored.configData)).to.equal(expected);
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([stored]);
+      service.brandingAppConfigMap.default = await service.loadAppConfigurationModel('brand1') as any;
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), key);
+      expect(JSON.stringify(form.model)).to.equal(expected);
+    });
+  }
+
+  it('retains database secrets through literal-key dictionary rename and rejects non-secret sources', async () => {
+    (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'MockModel', class: class {}, secretFields: ['sites.*.ingestion.adminToken'] });
+    const old = { sites: { 'old.site[0]': { ingestion: { adminToken: 'private-token' } } }, other: 'not-a-secret' };
+    (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: old }]);
+    await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', {
+      sites: { renamed: { ingestion: { adminToken: APP_CONFIG_SECRET_RETAIN_PREFIX + JSON.stringify(['sites', 'old.site[0]', 'ingestion', 'adminToken']) } } }
+    });
+    expect((AppConfig.updateOne as unknown as sinon.SinonStub).lastCall.returnValue.set.lastCall.args[0].configData.sites.renamed.ingestion.adminToken).to.equal('private-token');
+    for (const source of [['other'], ['sites', 'missing', 'ingestion', 'adminToken'], ['anotherBrand', 'token']]) {
+      try {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { sites: { bad: { ingestion: { adminToken: APP_CONFIG_SECRET_RETAIN_PREFIX + JSON.stringify(source) } } } });
+        expect.fail('Expected rejection');
+      } catch (error) { expect((error as any).status).to.equal(400); }
+    }
   });
 
   describe('reset to defaults', function () {

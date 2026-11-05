@@ -17,13 +17,14 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { configSchemaToField } from './dictionary-schema';
 import { Component, ElementRef, HostListener, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms';
 
 import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService, AuthorizedEmailTestResult, IntegrationConnectionResult } from '@researchdatabox/portal-ng-common';
 import { cloneDeep, isEqual } from 'lodash-es';
-import { ConfigForm, ConfigSection, SECRET_MASK, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
+import { ConfigForm, ConfigSection, SECRET_MASK, SECRET_RETAIN_PREFIX, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
 import { FormlyFormOptions } from '@ngx-formly/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
@@ -145,6 +146,8 @@ export class AppConfigComponent extends BaseComponent {
     this.configureForm(result);
   }
 
+  private retainedSecrets = new Map<string, string[]>();
+
   private configureForm(result: ConfigForm): void {
     this.hasOverride = result.hasOverride === true;
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
@@ -154,6 +157,8 @@ export class AppConfigComponent extends BaseComponent {
       if (typeof value.title === 'string') value.title = this.translationService.t(value.title);
       // Only schema nodes: never translate default config data or enum values.
       for (const child of Object.values(value.properties || {})) translateTitles(child);
+      for (const child of Object.values(value.patternProperties || {})) translateTitles(child);
+      translateTitles(value.additionalProperties);
       if (Array.isArray(value.items)) value.items.forEach(translateTitles);
       else translateTitles(value.items);
       for (const keyword of ['allOf', 'anyOf', 'oneOf']) value[keyword]?.forEach(translateTitles);
@@ -174,8 +179,12 @@ export class AppConfigComponent extends BaseComponent {
       ?.closest('section')?.querySelector('h2')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
     this.secretFields = result.secretFields || [];
+    this.retainedSecrets.clear();
+    visitSecrets(result.model, this.secretFields, (parent, key, path) => {
+      if (parent[key] === SECRET_MASK) this.retainedSecrets.set(JSON.stringify(path), path);
+    });
     this.model = this.editableModel(result.model || {});
-    const root = this.formlyJsonschema.toFieldConfig(jsonObject);
+    const root = configSchemaToField(this.formlyJsonschema, jsonObject, ['oniPublishing', 'raidPublishing', 'integrationNotification'].includes(this.configKey));
     this.fields = [root];
     this.applyCheckboxType(this.fields);
     this.applyCustomWidgetTypes(this.fields);
@@ -183,7 +192,7 @@ export class AppConfigComponent extends BaseComponent {
     this.empty = !hasEditableFields(root) || !!(result.requiresSetup && !Object.keys(result.model || {}).length);
     const navigation = ['menu', 'homePanels', 'adminSidebar'].includes(this.configKey);
     this.longForm = !navigation && this.configKey !== 'authorizedDomainsEmails' &&
-      (root.fieldGroup || []).filter(field => field.type === 'object' || field.type === 'array').length > 1;
+      (root.fieldGroup || []).filter(field => ['object', 'array', 'app-config-dictionary'].includes(String(field.type))).length > 1;
     this.buildSections(root, result.sections);
     root.props = { ...root.props, label: '', root: true };
     root.hooks = { ...root.hooks, onInit: () => queueMicrotask(() => {
@@ -240,6 +249,32 @@ export class AppConfigComponent extends BaseComponent {
         field.type = 'app-config-chips';
         field.wrappers = [];
         field.props['chipType'] = item.type;
+      }
+      if (field.type === 'app-config-dictionary') {
+        field.props['dictionaryChange'] = (oldKey: string, newKey?: string, duplicate = false) => {
+          // Resolve runtime keys so dictionaries inside array rows use their current numeric index.
+          const dictionaryPath: string[] = [];
+          let current: FormlyFieldConfig | undefined = field;
+          while (current) {
+            if (current.key != null) dictionaryPath.unshift(...(Array.isArray(current.key) ? current.key.map(String) : [String(current.key)]));
+            current = current.parent;
+          }
+          const prefix = [...dictionaryPath, oldKey];
+          for (const [target, source] of [...this.retainedSecrets]) {
+            const parts = JSON.parse(target) as string[];
+            if (!prefix.every((part, index) => parts[index] === part)) continue;
+            if (!duplicate) this.retainedSecrets.delete(target);
+            if (newKey !== undefined) this.retainedSecrets.set(JSON.stringify([...dictionaryPath, newKey, ...parts.slice(prefix.length)]), source);
+          }
+        };
+        const factory = field.props['dictionaryField'];
+        field.props['dictionaryField'] = (key: string) => {
+          const child = factory(key);
+          this.applyCheckboxType([child]);
+          // The key occupies one literal path segment, even when it contains punctuation.
+          this.decorateFields([child], path);
+          return child;
+        };
       }
       if (field.fieldGroup) this.decorateFields(field.fieldGroup, path);
       if (typeof arrayFactory === 'function') {
@@ -315,14 +350,14 @@ export class AppConfigComponent extends BaseComponent {
     const remaining = available.filter(field => !assigned.has(field));
     if (this.longForm) {
       // Keep top-level objects/arrays in schema order; collect scalar settings in one card.
-      const scalar = remaining.filter(field => !['object', 'array'].includes(String(field.type)) && field.type !== 'app-config-chips');
+      const scalar = remaining.filter(field => !['object', 'array', 'app-config-dictionary'].includes(String(field.type)) && field.type !== 'app-config-chips');
       if (scalar.length) groups.push({ label: this.translationService.t('admin-config-general'), fields: scalar });
       for (const field of remaining.filter(field => !scalar.includes(field))) groups.push({ label: field.props?.label || String(field.key), fields: [field] });
     } else if (remaining.length || enabled && !groups.length) {
       groups.push({ label: this.translationService.t(this.configKey === 'systemMessage' ? 'admin-config-banner' : this.configKey === 'webAnalytics' ? 'admin-config-analytics' : 'admin-config-settings'), fields: remaining });
     }
     this.sections = groups.map((group, index) => {
-      if (group.fields.length === 1 && group.fields[0].type === 'object') group.fields[0].props = { ...group.fields[0].props, flat: true };
+      if (group.fields.length === 1 && ['object', 'app-config-dictionary'].includes(String(group.fields[0].type))) group.fields[0].props = { ...group.fields[0].props, flat: true };
       const section: FormlyFieldConfig = {
         type: 'app-config-section', wrappers: [], fieldGroup: group.fields,
         props: { label: group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
@@ -552,11 +587,19 @@ export class AppConfigComponent extends BaseComponent {
     this.formSaveUnsuccessful = this.formSaveSuccessful = false;
     const payload = cloneDeep(model);
     // Only the server's reserved marker preserves a stored secret. Never invent a masked value.
-    visitSecrets(payload, this.secretFields, (parent, key) => { if (parent[key] == null || parent[key] === '') parent[key] = SECRET_MASK; });
+    visitSecrets(payload, this.secretFields, (parent, key, path) => {
+      if (parent[key] == null || parent[key] === '') {
+        const source = this.retainedSecrets.get(JSON.stringify(path));
+        parent[key] = source && JSON.stringify(source) !== JSON.stringify(path) ? SECRET_RETAIN_PREFIX + JSON.stringify(source) : SECRET_MASK;
+      }
+    });
     try {
       await this.appConfigService.saveAppConfig(this.configKey, payload);
       // Keep the form adapter's shape (e.g. DOI profiles) and clear newly entered secrets.
-      visitSecrets(model, this.secretFields, (parent, key) => { parent[key] = ''; });
+      visitSecrets(model, this.secretFields, (parent, key, path) => {
+        if (parent[key] || this.retainedSecrets.has(JSON.stringify(path))) this.retainedSecrets.set(JSON.stringify(path), path);
+        parent[key] = '';
+      });
       const clearSecretControls = (fields: FormlyFieldConfig[]): void => {
         for (const field of fields) {
           if (field.props?.['secret']) field.formControl?.setValue('', { emitEvent: false });

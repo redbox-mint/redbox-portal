@@ -19,15 +19,16 @@ export interface ConfigForm {
 }
 
 export const SECRET_MASK = '__REDACTED__';
+export const SECRET_RETAIN_PREFIX = '__REDACTED_FROM__:';
 
-export function visitSecrets(model: any, paths: string[], visit: (parent: any, key: string) => void): void {
-  const walk = (value: any, parts: string[]): void => {
+export function visitSecrets(model: any, paths: string[], visit: (parent: any, key: string, path: string[]) => void): void {
+  const walk = (value: any, parts: string[], path: string[] = []): void => {
     if (!value || typeof value !== 'object') return;
     const [part, ...rest] = parts;
     for (const key of part === '*' ? Object.keys(value) : [part]) {
       if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
-      if (rest.length) walk(value[key], rest);
-      else visit(value, key);
+      if (rest.length) walk(value[key], rest, [...path, key]);
+      else visit(value, key, [...path, key]);
     }
   };
   paths.forEach(path => walk(model, path.split('.')));
@@ -45,7 +46,10 @@ export function sectionSummary(fields: FormlyFieldConfig[], model: any, booleanL
   const walk = (field: FormlyFieldConfig, parent: any): void => {
     if (field.hide || field.props?.['secret'] || values.length >= 3) return;
     const value = field.key == null ? parent : parent?.[String(field.key)];
-    if (field.fieldGroup?.length && field.type !== 'array' && field.type !== 'app-config-chips') {
+    if (field.type === 'app-config-dictionary' && value && typeof value === 'object') {
+      const keys = Object.keys(value);
+      values.push(`${keys.length} ${field.props?.label || field.key}: ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '…' : ''}`);
+    } else if (field.fieldGroup?.length && field.type !== 'array' && field.type !== 'app-config-chips') {
       field.fieldGroup.forEach(child => walk(child, value));
     } else if (value !== undefined && value !== null && value !== '' && typeof value !== 'object') {
       const text = typeof value === 'boolean' ? booleanLabel(value) : String(value);

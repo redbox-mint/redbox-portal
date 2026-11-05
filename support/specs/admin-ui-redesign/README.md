@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/14-dictionary-editor`: reusable schema-driven dictionaries with literal-key validation, rename/copy/remove, complete Oni and RAiD schemas, per-integration notification overrides, lossless drafts and retained credentials.
+
 Delivered on `admin-deferred/13-test-connection`: brand Admin and CSRF-protected, read-only integration connection tests for unsaved Figshare, DOI, RAiD and Oni drafts, with secret retention, bounded requests, cooldown and timestamped results. Oni without ingestion reports public-site reachability only.
 
 Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps; Figshare source metadata edits and real manual/daily/weekly mirror schedules. Existing source scope remains read-only pending an identity migration policy.
@@ -260,7 +262,7 @@ maintain their own cooldown. Failed requests return fixed safe messages without 
 credentials. The UI translates statuses, records the time and latency, disables duplicate requests,
 and clears results when the draft changes. Oni tests its default enabled site's ingestion status;
 without enabled ingestion it checks the public URL and explicitly reports that authentication and
-storage were not tested. The existing deferred Oni dictionary editor remains separate.
+storage were not tested. Oni sites and mapping dictionaries use the shared dictionary editor described below.
 
 ### Dashboard editor (phase 9)
 
@@ -495,3 +497,39 @@ Migration `20261106T130000-lookup-claims` explicitly creates a native Mongo uniq
 the Figshare sync and party import claim namespaces. Model `unique` flags alone are insufficient under
 `migrate: safe`. Conflicting existing claims fail migration without deleting locks. Party preview consumption
 uses Mongo's atomic `deleteOne` count; Waterline's fetch-then-destroy operation is not a one-use boundary.
+
+### Integration dictionaries (phase 5 follow-up)
+
+The app-config converter recognizes object schemas with typed `additionalProperties` or
+`patternProperties`, including maps nested in objects, arrays and other dictionaries. Entries use
+literal Formly key segments: dots, brackets, spaces and JSON-LD property names remain actual keys.
+Each value uses the ordinary schema controls, including switches, chips, objects and arrays.
+Unconstrained JSON values (Oni binding defaults/context and custom RAiD type namespaces) use a
+validated JSON textarea. Existing unknown properties stay in the model and are never pruned.
+
+Entries start collapsed and show field names without exposing scalar/secret values. Add and duplicate
+ask for a unique name; rename preserves insertion order, and removal requires confirmation.
+Pattern-based maps validate new names against their patterns. Existing nonmatching names remain
+preservable; the editor reserves prototype-related names for new entries. Declared fixed properties
+in mixed object/map schemas keep their names. Invalid values also flag collapsed entry summaries.
+Section summaries show dictionary counts and names rather than the former empty-section message.
+
+Oni now declares all six sections, including site storage/ingestion, licenses, organization, IRI maps,
+root-dataset bindings, graph entities, context, validation, attachment selection and write-back.
+RAiD exposes record-type/rule maps and contributor maps, typed vocabulary references, contributor
+positions, flags, role names and the persisted `hiearchy` spelling. Custom type namespaces remain
+arbitrary JSON for compatibility with JSONata. Notification overrides share the ordinary channel
+schema. All three editors suppress schema-default insertion and optional-string coercion so opening
+or saving an existing configuration retains missing properties and empty strings.
+
+The existing Admin/session-CSRF save routes remain in use. Both service save paths validate supplied
+integration fields using the same schemas with no coercion, default insertion or removal of unknown
+fields. Top-level overrides may remain partial; runtime defaults and merging keep their existing
+behavior. Invalid input returns a value-free 400 response. No migrations or new dependencies run.
+
+Renaming/copying entries with masked credentials submits a reserved secret string
+`__REDACTED_FROM__:` followed by a JSON array of literal source-path segments. Under the existing
+brand/config save lock, the server accepts only a registered secret leaf in that same stored document
+(or resolved installation default). Arbitrary fields, other configs and missing paths are rejected.
+Credentials never enter the browser. Bundle storage copies/moves values to their destination keys
+before removing an omitted source; subsequent saves use the ordinary `__REDACTED__` marker.
