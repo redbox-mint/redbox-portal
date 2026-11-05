@@ -1552,6 +1552,11 @@ describe('API routes contract layer', function () {
     expect(asOpenApiSchema(legacyVariant?.items).properties).to.have.property('harvestId');
     expect(trackedVariant?.properties).to.have.property('run');
 
+    const statisticsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/summary']?.get);
+    expect((statisticsRoute as Record<string, unknown>)['x-redbox-roles']).to.deep.equal(['Admin']);
+    const statisticsSchema = asOpenApiSchema(statisticsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(statisticsSchema.properties).to.have.keys('runsLast7Days', 'failedLast7Days', 'runningNow', 'lastSuccessfulRun');
+
     const harvestRunsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs']?.get);
     const harvestRunsSchema = asOpenApiSchema(
       harvestRunsRoute.responses?.['200']?.content?.['application/json']?.schema

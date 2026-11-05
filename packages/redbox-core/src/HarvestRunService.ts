@@ -15,6 +15,7 @@ import {
   HarvestRunEventsResult,
   HarvestRunListQuery,
   HarvestRunListResult,
+  HarvestRunStatistics,
   HarvestRunChunkModel,
   HarvestRunModel,
 } from './model/storage/HarvestRunModel';
@@ -99,6 +100,7 @@ export interface HarvestRunService {
     user: UserModel,
     context?: RecordSaveContext
   ): Promise<HarvestTrackedChunkResponse>;
+  getStatistics(brand: BrandingModel): Promise<HarvestRunStatistics>;
   listRuns(brand: BrandingModel, params: Partial<HarvestRunListQuery>): Promise<HarvestRunListResult>;
   getRun(brand: BrandingModel, runId: string): Promise<HarvestRunDetailResult | null>;
   runExists(brand: BrandingModel, runId: string): Promise<boolean>;
