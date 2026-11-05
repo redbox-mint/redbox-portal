@@ -1,6 +1,7 @@
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
@@ -11,6 +12,7 @@ import { ReportConfigService } from './report-config.service';
   declarations: [ReportConfigComponent],
   imports: [
     BrowserModule,
+    A11yModule,
     FormsModule,
     HttpClientModule,
     RedboxPortalCoreModule

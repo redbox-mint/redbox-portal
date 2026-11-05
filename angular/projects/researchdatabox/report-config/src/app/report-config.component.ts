@@ -10,6 +10,10 @@ import { ReportConfigService } from './report-config.service';
   standalone: false
 })
 export class ReportConfigComponent extends BaseComponent {
+  readonly sources = ['all', 'database', 'solr'] as const;
+  pendingDelete: ReportConfigDto | null = null;
+  private modalTrigger: HTMLElement | null = null;
+  get hasNamedQueries(): boolean { return this.reports.some(report => !!report.databaseQuery?.queryName); }
   reports: ReportConfigDto[] = [];
   filteredReports: ReportConfigDto[] = [];
   selectedReport: ReportConfigDto | null = null;
@@ -89,6 +93,7 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   createReport(): void {
+    this.modalTrigger = document.activeElement as HTMLElement;
     this.errorMessage = '';
     this.previewResult = null;
     this.previewFilterValues = {};
@@ -97,6 +102,7 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   editReport(report: ReportConfigDto): void {
+    this.modalTrigger = document.activeElement as HTMLElement;
     this.errorMessage = '';
     this.previewResult = null;
     this.previewFilterValues = {};
@@ -110,6 +116,7 @@ export class ReportConfigComponent extends BaseComponent {
     this.previewFilterValues = {};
     this.errorMessage = '';
     this.isNewReport = false;
+    this.restoreModalFocus();
   }
 
   async saveReport(): Promise<void> {
@@ -134,14 +141,26 @@ export class ReportConfigComponent extends BaseComponent {
     }
   }
 
+  requestDelete(report: ReportConfigDto): void {
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
+    this.errorMessage = '';
+    this.pendingDelete = report;
+  }
+
+  cancelDelete(): void {
+    this.pendingDelete = null;
+    this.errorMessage = '';
+    this.restoreModalFocus();
+  }
+
   async deleteReport(report: ReportConfigDto): Promise<void> {
-    if (!window.confirm(`Delete ${report.title}?`)) {
-      return;
-    }
+    if (report.readOnly || !report.canDelete || this.pendingDelete !== report) return;
     this.errorMessage = '';
     try {
       await this.reportConfigService.delete(report.name);
       await this.loadReports();
+      this.cancelDelete();
     } catch (error: unknown) {
       this.errorMessage = this.getErrorMessage(error);
     }
@@ -189,6 +208,15 @@ export class ReportConfigComponent extends BaseComponent {
 
   trackByIndex(index: number): number {
     return index;
+  }
+
+  private restoreModalFocus(): void {
+    const trigger = this.modalTrigger;
+    setTimeout(() => {
+      const target = trigger && document.contains(trigger) ? trigger :
+        this.elementRef.nativeElement.querySelector('.rb-admin-page-actions button');
+      target?.focus();
+    }, 0);
   }
 
   private newReport(): ReportConfigDto {

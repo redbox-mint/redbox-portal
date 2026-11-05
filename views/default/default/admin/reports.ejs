@@ -6,13 +6,21 @@
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </report-config>
     <% } else { %>
-      <h1><%= TranslationService.t('reports-heading') %></h1>
-      <p><%= TranslationService.t('reports-description') %></p>
-      <ul>
-        <% for(var i=0; i<reports.length; i++) {%>
-          <li><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= reports[i].name %>"><%= reports[i].title %></a></li>
-        <% } %>
-      </ul>
+      <%- include('layout/page-header.ejs', {
+        breadcrumbs: [{ labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' }, { labelKey: 'admin-nav-records' }, { labelKey: 'reports-heading' }],
+        titleKey: 'reports-heading', descriptionKey: 'admin-reports-description'
+      }) %>
+      <section class="card">
+        <div class="card-header"><h2><%= TranslationService.t('report-configured-reports') %></h2></div>
+        <div class="table-responsive"><table class="table table-hover">
+          <thead><tr><th><%= TranslationService.t('admin-report-column') %></th><th class="text-end"><%= TranslationService.t('report-col-actions') %></th></tr></thead>
+          <tbody><% reports.forEach(function(report) { %>
+            <tr><td><a href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= encodeURIComponent(report.name) %>"><b><%= report.title %></b></a><code class="rb-admin-sub"><%= report.name %></code></td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/report/<%= encodeURIComponent(report.name) %>"><%= TranslationService.t('admin-report-run') %></a></td></tr>
+          <% }); %></tbody>
+        </table></div>
+        <% if (!reports.length) { %><div class="rb-admin-empty"><h3><%= TranslationService.t('report-none-found') %></h3></div><% } %>
+      </section>
     <% } %>
 <%- include('layout/end.ejs') %>
 <% if (userIsAdmin) { %>

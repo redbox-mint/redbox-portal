@@ -1,124 +1,62 @@
 @if (loadError) {
-  <div class="alert alert-danger" role="alert">
-    {{ loadError }}
-    <button type="button" class="btn btn-default" [disabled]="loadPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">Retry</button>
+  <div class="alert alert-danger" role="alert">{{ loadError }}
+    <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">{{ 'admin-report-retry' | i18next }}</button>
   </div>
 }
 @if (isReady) {
-  <!-- The report title -->
-  <div class="row">
-    <div class="col-xs-12">
-      @if (report && report.title) {
-        <h1 class="text-center">
-          {{ report.title }}
-        </h1>
-      }
+  <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+    <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+    <li><a [href]="brandingAndPortalUrl + '/admin/reports'">{{ 'reports-heading' | i18next }}</a></li>
+    <li><span aria-current="page">{{ report.title }}</span></li>
+  </ol></nav>
+  <header class="rb-admin-page-header">
+    <div><h1>{{ report.title }}</h1><p>
+      @if (!report.reportSource && !report.databaseQuery?.queryName) { {{ 'admin-report-description' | i18next }} }
+      @if (report.reportSource) { {{ 'admin-report-source-description' | i18next: { source: report.reportSource } }} }
+      @if (report.databaseQuery?.queryName) { · {{ 'report-field-named-query' | i18next }} <code>{{ report.databaseQuery?.queryName }}</code> }
+    </p></div>
+    <div class="rb-admin-page-actions"><a class="btn btn-primary" [class.disabled]="!!dateRangeError"
+      [attr.aria-disabled]="dateRangeError ? 'true' : null" [attr.tabindex]="dateRangeError ? -1 : null" [attr.href]="getDownloadCSVUrl()"
+      (click)="dateRangeError ? $event.preventDefault() : null">{{ 'report-csv-download' | i18next }}</a></div>
+  </header>
+  <section class="card" [attr.aria-busy]="!initTracker.resultsReturned">
+    <div class="card-header"><h2>{{ 'admin-report-results' | i18next }}</h2>
+      <span role="status">@if (!initTracker.resultsReturned) { {{ 'report-retrieving-results' | i18next }} } @else { {{ 'report-results-returned' | i18next: { count: reportResult.total } }} }</span>
     </div>
-  </div>
-  <!-- Render the report's filter UI elements -->
-  @if (report && report.filter != null) {
-    <div class="row">
-      <div class="panel panel-default">
-        <div class="panel-body">
-          <div class="row">
-            <div class="text-center h4-header mb-2">
-              {{ 'report-filters-heading' | i18next }}
-            </div>
-          </div>
-          @for (filter of report.filter; track filter) {
-            <!-- Text filter -->
-            @if (filter.type == 'text') {
-              <div class="row">
-                <div class="col-md-2"></div>
-                <div class="col-xs-2">
-                  <label [attr.for]="filter.paramName">{{filter.message}}</label>
-                </div>
-                <div class="col-xs-6">
-                  <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
-                </div>
-                <div class="col-md-2"></div>
-              </div>
-            }
-            <!-- Date filter -->
-            @if (filter.type == 'date-range') {
-              <div class="row">
-                <div class="col-md-2"></div>
-                <div class="col-12 col-sm-2 col-md-2">
-                  <label [attr.for]="filter.paramName" class="report-filter-date-range-label">{{filter.message}}</label>
-                </div>
-                <div class="col-12 col-sm-3 col-md-3">
-                  <div class="form-group">
-                    <label class="control-label mr-2">{{ 'report-filter-date-from' | i18next }}</label>
-                    <input type="text" [id]="filter.paramName + '_fromDate'"
-                      [attr.aria-invalid]="dateRangeError ? 'true' : null"
-                      [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
-                      [bsConfig] = "datePickerOpts"
-                      [placeholder] = "datePickerPlaceHolder"
-                      [(ngModel)]="filterParams[ filter['paramName'] + '_fromDate']"
-                      bsDatepicker />
-                  </div>
-                </div>
-                <div class="col-12 col-sm-3 col-md-3">
-                  <div class="form-group">
-                    <label class="control-label mr-2">{{ 'report-filter-date-to' | i18next }}</label>
-                    <input type="text" [id]="filter.paramName + '_toDate'"
-                      [attr.aria-invalid]="dateRangeError ? 'true' : null"
-                      [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
-                      [bsConfig] = "datePickerOpts"
-                      [placeholder] = "datePickerPlaceHolder"
-                      [(ngModel)]="filterParams[ filter['paramName'] + '_toDate']"
-                      bsDatepicker />
-                  </div>
-                </div>
-                <div class="col-md-2"></div>
+    @if (report.filter.length) {
+      <form class="rb-admin-filter-bar" (ngSubmit)="filter()">
+        @for (filter of report.filter; track filter.paramName) {
+          @if (filter.type === 'text') {
+            <div class="rb-admin-field rb-admin-field-grow"><label [attr.for]="filter.paramName">{{ filter.message | i18next }}</label>
+              <input [id]="filter.paramName" [name]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[filter.paramName]"></div>
+          }
+          @if (filter.type === 'date-range') {
+            @for (bound of ['fromDate', 'toDate']; track bound) {
+              <div class="rb-admin-field"><label [attr.for]="filter.paramName + '_' + bound">{{ filter.message | i18next }} {{ (bound === 'fromDate' ? 'report-filter-date-from' : 'report-filter-date-to') | i18next }}</label>
+                <input type="text" class="form-control" [id]="filter.paramName + '_' + bound" [name]="filter.paramName + '_' + bound"
+                  [attr.aria-invalid]="dateRangeError ? 'true' : null" [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="filterParams[filter.paramName + '_' + bound]" bsDatepicker>
               </div>
             }
           }
-          @if (dateRangeError; as error) {
-            <div class="alert alert-danger" role="alert" id="report-date-range-error">{{error}}</div>
-          }
-          <div class="row">
-            <div class="col-xs-2"></div>
-            <div class="col-xs-8" style="text-align:right; padding-top:15px;">
-              <a class="btn btn-large btn-primary" (click)="filter()">
-                <span class="glyphicon glyphicon-search"></span>
-                {{ 'report-filter-button' | i18next }}
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-  <!-- Result overview  -->
-  @if (initTracker) {
-    <div class="row">
-      <div class="col-xs-2">
-        @if (initTracker.resultsReturned == false) {
-          <span>
-            <span class="fa fa-spinner fa-spin fa-fw"></span>
-            {{ 'report-retrieving-results' | i18next }}
-          </span>
         }
-        @if (initTracker.resultsReturned == true) {
-          <span
-            [innerHTML]='"report-results-returned" | i18next: {count: reportResult.total }'>
-          </span>
+        <div class="rb-admin-page-actions"><button class="btn btn-primary" type="submit" [disabled]="!!dateRangeError || loadPending">{{ 'admin-report-apply' | i18next }}</button><button class="btn rb-admin-ghost" type="button" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
+        @if (dateRangeError; as error) { <div class="alert alert-danger report-filter-error" role="alert" id="report-date-range-error">{{ error }}</div> }
+      </form>
+    }
+    @if (activeFilters.length) {
+      <div class="rb-admin-active-filters"><span class="rb-admin-hint">{{ 'admin-report-active-filters' | i18next }}</span>
+        @for (chip of activeFilters; track chip.key) {
+          <span class="rb-admin-chip">{{ chip.label }} {{ chip.value }}<button class="btn btn-sm rb-admin-ghost" type="button" [attr.aria-label]="'admin-report-remove-filter' | i18next: { name: chip.label }" (click)="removeFilter(chip.key)">×</button></span>
         }
       </div>
-      <div class="col-xs-8"></div>
-      <div class="col-xs-2">
-        <a class="btn btn-large btn-primary" [class.disabled]="!!dateRangeError"
-          [attr.aria-disabled]="dateRangeError ? 'true' : null"
-          [attr.tabindex]="dateRangeError ? -1 : null" [attr.href]="getDownloadCSVUrl()"
-          (click)="dateRangeError ? $event.preventDefault() : null">
-          <span class="glyphicon glyphicon-download"></span>
-          {{ 'report-csv-download' | i18next }}
-        </a>
-      </div>
-    </div>
-  }
-  <!-- Result details -->
-  <record-table [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize">
-  </record-table>
+    }
+    @if (reportResult.total === 0 && initTracker.resultsReturned) {
+      <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'admin-report-empty' | i18next }}</h3><p>{{ 'admin-report-empty-help' | i18next }}</p><button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear-filters' | i18next }}</button></div>
+      <div class="card-footer">{{ 'report-results-returned' | i18next: { count: 0 } }}</div>
+    } @else {
+      @if (reportResult.total > recordsPerPage) { <p class="rb-admin-hint report-sort-hint">{{ 'admin-report-page-sort' | i18next }}</p> }
+      <record-table [adminPresentation]="true" [enableSort]="true" [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize"></record-table>
+    }
+  </section>
 }

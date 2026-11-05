@@ -1,6 +1,7 @@
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ReportConfigComponent } from './report-config.component';
@@ -20,7 +21,7 @@ describe('ReportConfigComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ReportConfigComponent, MockI18NextPipe],
-      imports: [FormsModule, HttpClientTestingModule],
+      imports: [FormsModule, HttpClientTestingModule, A11yModule],
       providers: [
         { provide: LoggerService, useValue: { error: () => undefined, warn: () => undefined } },
         { provide: TranslationService, useValue: { isReady: true, init: () => Promise.resolve() } },
@@ -50,6 +51,26 @@ describe('ReportConfigComponent', () => {
 
     expect(component.filteredReports.length).toBe(1);
     expect(component.filteredReports[0].readOnly).toBeTrue();
+  });
+
+  it('requires confirmation before deleting and retains read-only restrictions', async () => {
+    const service = TestBed.inject(ReportConfigService);
+    const remove = jasmine.createSpy().and.resolveTo({});
+    (service as any).delete = remove;
+    await component.loadReports();
+    const report = component.reports[0];
+    await component.deleteReport(report);
+    expect(remove).not.toHaveBeenCalled();
+    component.requestDelete(report);
+    component.cancelDelete();
+    expect(remove).not.toHaveBeenCalled();
+    component.requestDelete(component.reports[2]);
+    await component.deleteReport(component.reports[2]);
+    expect(remove).not.toHaveBeenCalled();
+    component.requestDelete(report);
+    await component.deleteReport(report);
+    expect(remove).toHaveBeenCalledWith('db');
+    expect(component.pendingDelete).toBeNull();
   });
 
   it('computes source summary counts', async () => {

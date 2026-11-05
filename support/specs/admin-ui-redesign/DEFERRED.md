@@ -26,3 +26,5 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 | Parties | "Import CSV" and "Add party" actions | No party create/import endpoints in the admin context |
 | Long app-configs (Figshare, DOI, RAiD, Oni) | "Test connection" button and "Connection OK" status | Needs a per-integration connectivity check endpoint |
 | Oni publishing | Fields inside the six nested sections | The config schema omits the nested properties; dictionary fields need a new editor type |
+| Report view | Sorting across all result pages | Result endpoints apply fixed Solr / named-query ordering and accept no sort parameter. Headers sort the currently loaded page; global sorting needs validated sort parameters for both sources. |
+| Report view | Source and named-query metadata in the description | The report-view DTO strips `reportSource` and `databaseQuery`; expose these existing config fields to report viewers. The view renders them when available and otherwise shows a general description. |
