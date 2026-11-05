@@ -289,6 +289,23 @@ describe('AppConfigComponent', () => {
     expect(flagsFieldArray?.wrappers).toEqual([]);
   });
 
+  for (const [configKey, fieldKey] of [['menu', 'items'], ['homePanels', 'panels'], ['adminSidebar', 'header']]) {
+    it(`renders validation feedback inside the unwrapped ${configKey} editor`, async () => {
+      const fixture = TestBed.createComponent(AppConfigComponent);
+      const app = fixture.componentInstance;
+      app.configKey = configKey;
+      fixture.autoDetectChanges(true);
+      await app.waitForInit();
+      await fixture.whenStable();
+      const field = findFieldByKey(app.fields, fieldKey)!;
+      field.formControl!.setErrors({ required: true });
+      app.options.showError = () => true;
+      fixture.detectChanges();
+      expect(field.wrappers).toEqual([]);
+      expect(fixture.nativeElement.querySelector('.rb-navigation-editor > .alert-danger formly-validation-message')).not.toBeNull();
+    });
+  }
+
   it('applies menu editor type and hides showSearch for menu config', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
     const app = fixture.componentInstance;
