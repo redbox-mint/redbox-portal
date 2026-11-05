@@ -22,6 +22,7 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 | Navigation editors | "Reset to default" button | Needs an endpoint to clear the saved brand override back to defaults |
 | Translations | "Missing" / "Changed" filters, "New default" badge, translated-count column | Needs per-key provenance (default vs override vs missing) from the translation service |
 | Translations | Import / Export buttons | Needs bundle import/export endpoints |
+| Translations | Display-name-only rename update | The existing rename posts and resynchronizes the whole bundle. It is slow and can prune parent labels that also have dotted child keys (for example `@dataPublication-dc:accessRights`). Needs a metadata-only display-name endpoint that preserves every translation entry. |
 | Vocabularies | "Last synced" column | Sync timestamp isn't returned by the vocabulary list API |
 | Parties | "Import CSV" and "Add party" actions | No party create/import endpoints in the admin context |
 | Long app-configs (Figshare, DOI, RAiD, Oni) | "Test connection" button and "Connection OK" status | Needs a per-integration connectivity check endpoint |

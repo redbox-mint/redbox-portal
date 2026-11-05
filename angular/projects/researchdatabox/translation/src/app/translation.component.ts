@@ -1,4 +1,5 @@
-import { Component, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -9,7 +10,7 @@ import TableRow from '@tiptap/extension-table-row';
 import Link from '@tiptap/extension-link';
 import { TiptapEditorDirective } from 'ngx-tiptap';
 import { DomSanitizer } from '@angular/platform-browser';
-import { ConfigService, TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, I18NextPipe, TranslationService as PortalTranslationService } from '@researchdatabox/portal-ng-common';
 import { getTranslationHtmlClasses } from '@researchdatabox/sails-ng-common';
 import { restoreTranslationTableSections, sanitizeTranslationEditorHtml, translationPresentationExtensions, translationTableView,
   TranslationTableHeader, TranslationTableCell } from './translation-html';
@@ -31,467 +32,15 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, TiptapEditorDirective],
+  imports: [CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
   templateUrl: './translation.component.html',
-  styles: [`
-    :host { display: block; }
-
-    /* PANEL CARD — mirrors vocab-panel-card */
-    .tx-panel-card {
-      background-color: #fff;
-      border-color: #d6dbe1;
-    }
-    .tx-panel-card .panel-heading {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    .tx-panel-card .panel-heading .text-muted {
-      color: inherit !important;
-      opacity: 0.9;
-    }
-    .tx-panel-card .btn {
-      border-radius: 0;
-    }
-    .tx-panel-card .btn .fa {
-      margin-right: 0.4rem;
-    }
-    .tx-action-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-
-    /* FILTER ROW */
-    .tx-filters { margin-bottom: 1rem; }
-    .tx-filters label {
-      margin-top: 0;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0;
-    }
-    .tx-filters .form-control {
-      min-height: 44px;
-      height: auto;
-      padding: 0.55rem 0.75rem;
-      font-size: 16px;
-      line-height: 1.35;
-    }
-    .tx-editing-language {
-      display: flex;
-      align-items: stretch;
-      gap: 0.75rem;
-    }
-    .tx-editing-language select {
-      min-width: 0;
-      flex: 1 1 260px;
-    }
-    .tx-display-name-btn {
-      flex: 0 0 auto;
-      white-space: nowrap;
-      min-height: 44px;
-      padding-left: 0.85rem;
-      padding-right: 0.85rem;
-    }
-    .tx-filters .btn-group .btn-light {
-      border-color: #ced4da;
-    }
-
-    /* SEARCH INPUT WITH ICON */
-    .tx-search-wrap { position: relative; }
-    .tx-search-wrap .fa-search {
-      position: absolute;
-      left: 0.8rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #6c757d;
-      font-size: 0.95rem;
-      pointer-events: none;
-    }
-    .tx-search-wrap input.form-control {
-      padding-left: 2.25rem;
-      padding-right: 2.2rem;
-    }
-    .tx-search-wrap .tx-search-clear {
-      position: absolute;
-      right: 0.35rem;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 22px;
-      height: 22px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      background: transparent;
-      color: #6c757d;
-      cursor: pointer;
-      border-radius: 50%;
-      padding: 0;
-    }
-    .tx-search-wrap .tx-search-clear:hover {
-      background: #e9ecef;
-      color: #212529;
-    }
-
-    /* STATS BADGES */
-    .tx-stat-badges .badge-light {
-      border: 1px solid #d4d9de;
-    }
-
-    /* LANGUAGE CHIPS */
-    .tx-lang-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 0.7rem;
-    }
-    .tx-lang-chip {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
-      min-height: 48px;
-      padding: 0.65rem 0.85rem;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      cursor: pointer;
-      background: #fff;
-      transition: border-color 120ms ease, background 120ms ease;
-      user-select: none;
-      margin: 0;
-    }
-    .tx-lang-chip:hover {
-      border-color: #6c757d;
-      background: #f8f9fa;
-    }
-    .tx-lang-chip__input {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-      width: 1px;
-      height: 1px;
-    }
-    .tx-lang-chip__input:focus-visible + .tx-lang-chip__code {
-      outline: 2px solid #b1101a;
-      outline-offset: 2px;
-    }
-    .tx-lang-chip .badge {
-      min-width: 48px;
-      padding: 0.35rem 0.6rem;
-      font-size: 13px;
-      letter-spacing: 0;
-    }
-    .tx-lang-chip__name {
-      flex: 1 1 auto;
-      font-size: 16px;
-      color: #2f353a;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .tx-lang-chip__check {
-      color: #b1101a;
-      opacity: 0;
-      transition: opacity 120ms ease;
-      font-size: 1rem;
-    }
-    .tx-lang-chip--on {
-      border-color: #b1101a;
-      background: #fff5f5;
-    }
-    .tx-lang-chip--on .tx-lang-chip__check { opacity: 1; }
-    .tx-lang-chip--on .tx-lang-chip__name { color: #1f1f1f; font-weight: 600; }
-
-    /* DATA TABLE — mirrors vocab-data-table */
-    .tx-table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      border: 1px solid #d6dbe1;
-      border-radius: 4px;
-      background: #fff;
-    }
-    .tx-data-table {
-      width: 100%;
-      min-width: 720px;
-      border-collapse: collapse;
-      border-spacing: 0;
-      table-layout: fixed;
-    }
-    .tx-data-table .tx-col-cat { width: 18%; }
-    .tx-data-table .tx-col-key { width: 28%; }
-    .tx-data-table .tx-col-val { width: auto; }
-    .tx-data-table .tx-col-act { width: 110px; }
-    .tx-data-table thead { background: #f8f9fa; }
-    .tx-data-table th,
-    .tx-data-table td {
-      padding: 0.65rem 0.7rem;
-      border-bottom: 1px solid #e5e8eb;
-      vertical-align: middle;
-      color: #2f353a;
-    }
-    .tx-data-table th {
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0;
-      color: #59626b;
-      text-align: left;
-    }
-    .tx-data-table tbody tr:hover { background: #f8fbff; }
-    .tx-data-table .text-right { text-align: right; }
-    .tx-data-table code {
-      color: #4b5560;
-      background: transparent;
-      padding: 0;
-      font-size: 0.92em;
-    }
-    .tx-data-table .action-button + .action-button { margin-left: 0.5rem; }
-    .tx-data-table .action-button {
-      border-radius: 0;
-    }
-    .tx-data-table .action-button .fa {
-      margin-right: 0.35rem;
-    }
-    .tx-data-table .tx-cell-val {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      word-break: break-word;
-      line-height: 1.45;
-    }
-    .tx-data-table .tx-empty-cell {
-      text-align: center;
-      padding: 1.5rem 0.6rem;
-    }
-
-    /* SORT BUTTONS */
-    .tx-sort {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0;
-      font: inherit;
-      letter-spacing: inherit;
-      text-transform: inherit;
-      color: inherit;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-    .tx-sort:hover { color: #212529; }
-    .tx-sort__icon { font-size: 0.7rem; color: #adb5bd; }
-    .tx-sort[aria-sort] { color: #212529; }
-    .tx-sort[aria-sort] .tx-sort__icon { color: #b1101a; }
-
-    @media (max-width: 767.98px) {
-      .tx-editing-language {
-        flex-direction: column;
-      }
-      .tx-display-name-btn {
-        width: 100%;
-      }
-    }
-
-    /* KEY HELP ICON */
-    .tx-key-help {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      margin-left: 0.4rem;
-      font-size: 0.75rem;
-      color: #6c757d;
-      text-decoration: none;
-      vertical-align: middle;
-      border-radius: 50%;
-    }
-    .tx-key-help:hover { color: #b1101a; background: #f5e7e8; }
-
-    /* MODALS — Bootstrap variants. Custom additions only. */
-    .tx-modal-key {
-      font-family: 'Consolas', 'Menlo', monospace;
-      font-size: 0.95rem;
-      background: #f1f3f5;
-      padding: 0.15rem 0.45rem;
-      border-radius: 3px;
-      color: #1f1f1f;
-    }
-    .tx-modal-desc {
-      margin: 0;
-      padding: 0.6rem 0.85rem;
-      background: #fdf2f3;
-      border-left: 3px solid #b1101a;
-      border-radius: 3px;
-      font-size: 0.92rem;
-      color: #2f353a;
-      line-height: 1.5;
-    }
-
-    /* RICH TEXT EDITOR */
-    .tx-editor-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.4rem;
-    }
-    .tx-editor-mode-group {
-      display: inline-flex;
-      gap: 0.35rem;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-    .tx-editor-mode-group .btn {
-      border-radius: 0;
-      font-size: 0.85rem;
-    }
-    .tx-editor-mode-group .btn .fa {
-      margin-right: 0.35rem;
-    }
-    .tx-toolbar-rich {
-      display: flex;
-      align-items: center;
-      gap: 0.15rem;
-      padding: 0.4rem 0.5rem;
-      background: #f8f9fa;
-      border: 1px solid #ced4da;
-      border-bottom: none;
-      border-radius: 4px 4px 0 0;
-      flex-wrap: wrap;
-    }
-    .tx-toolbar-rich--off { opacity: 0.5; pointer-events: none; }
-    .tx-toolbar-rich__divider {
-      width: 1px;
-      height: 18px;
-      background: #ced4da;
-      margin: 0 0.25rem;
-    }
-    .tx-tb-btn {
-      width: 30px;
-      height: 30px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid transparent;
-      border-radius: 3px;
-      background: transparent;
-      color: #2f353a;
-      cursor: pointer;
-      font-size: 0.9rem;
-      padding: 0;
-    }
-    .tx-tb-btn:hover:not(:disabled) {
-      background: #fff;
-      border-color: #ced4da;
-      color: #b1101a;
-    }
-    .tx-tb-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .tx-tb-btn:focus-visible {
-      outline: 2px solid #b1101a;
-      outline-offset: 1px;
-    }
-    .tx-rich {
-      border: 1px solid #ced4da;
-      border-radius: 0 0 4px 4px;
-      background: #fff;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror {
-      min-height: 220px;
-      max-height: 50vh;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      padding: 0.85rem 1rem;
-      outline: none;
-      font-size: 1rem;
-      line-height: 1.55;
-      color: #212529;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror > *:first-child { margin-top: 0; }
-    :host ::ng-deep .tx-rich .ProseMirror > *:last-child { margin-bottom: 0; }
-    :host ::ng-deep .tx-rich .ProseMirror p { margin: 0 0 0.55rem; }
-    :host ::ng-deep .tx-rich .ProseMirror h1,
-    :host ::ng-deep .tx-rich .ProseMirror h2,
-    :host ::ng-deep .tx-rich .ProseMirror h3 {
-      font-weight: 700;
-      margin: 0.85rem 0 0.45rem;
-      color: #1f1f1f;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror h2 { font-size: 1.25rem; }
-    :host ::ng-deep .tx-rich .ProseMirror ul,
-    :host ::ng-deep .tx-rich .ProseMirror ol {
-      padding-left: 1.4rem;
-      margin: 0 0 0.55rem;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror li { margin: 0.1rem 0; }
-    :host ::ng-deep .tx-rich .ProseMirror table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      margin: 0.6rem 0;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror th,
-    :host ::ng-deep .tx-rich .ProseMirror td {
-      border: 1px solid #ced4da;
-      padding: 0.45rem 0.55rem;
-      vertical-align: top;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror th:not([class]) {
-      background: #f1f3f5;
-      font-weight: 600;
-      text-align: left;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror a {
-      color: #b1101a;
-      text-decoration: underline;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror blockquote {
-      margin: 0.6rem 0;
-      padding-left: 0.85rem;
-      border-left: 3px solid #ced4da;
-      color: #495057;
-    }
-    :host ::ng-deep .tx-rich .ProseMirror code {
-      background: #f1f3f5;
-      padding: 0.05rem 0.3rem;
-      border-radius: 3px;
-      font-size: 0.9em;
-      font-family: 'Consolas', 'Menlo', monospace;
-    }
-    .tx-input-source {
-      width: 100%;
-      min-height: 220px;
-      padding: 0.65rem 0.85rem;
-      font-family: 'Consolas', 'Menlo', monospace;
-      font-size: 0.9rem;
-      line-height: 1.55;
-      color: #212529;
-      border: 1px solid #ced4da;
-      border-radius: 0 0 4px 4px;
-      border-top: none;
-      resize: vertical;
-    }
-    .tx-input-source--plain {
-      font-family: inherit;
-      font-size: 1rem;
-    }
-    .tx-input-source:focus {
-      outline: none;
-      border-color: #b1101a;
-      box-shadow: 0 0 0 0.15rem rgba(177, 16, 26, 0.18);
-    }
-  `]
+  styleUrls: ['./translation.component.scss']
 })
 export class AppComponent implements OnInit, OnDestroy {
   private svc = inject(PortalTranslationService);
   private configService = inject(ConfigService);
   private sanitizer = inject(DomSanitizer);
+  private cspNonce = inject(CSP_NONCE, { optional: true });
   private allowedClasses = getTranslationHtmlClasses();
 
   readWarnings = signal<Partial<Record<ReadKind, string>>>({});
@@ -528,6 +77,10 @@ export class AppComponent implements OnInit, OnDestroy {
   availableLanguages = signal<string[]>([]); // Language codes that can be shown
   selectedLang: string = '';
   namespace = 'translation';
+  brandingAndPortalUrl = '';
+  defaultLanguage = 'en';
+  displayNameLanguage = '';
+  availabilityDirty = signal(false);
 
   // Entries loaded from the webservice API (include metadata)
   entries = signal<TranslationEntry[]>([]);
@@ -539,6 +92,25 @@ export class AppComponent implements OnInit, OnDestroy {
   viewEntries = signal<TranslationEntry[]>([]);
   sortBy: 'key' | 'value' | 'category' = 'key';
   sortAsc = true;
+  page = 1;
+  pageSize = 50;
+  pageEntries = signal<TranslationEntry[]>([]);
+
+  get totalPages(): number { return Math.max(1, Math.ceil(this.viewEntries().length / this.pageSize)); }
+  get rangeStart(): number { return this.viewEntries().length ? (this.page - 1) * this.pageSize + 1 : 0; }
+  get rangeEnd(): number { return Math.min(this.page * this.pageSize, this.viewEntries().length); }
+  get visiblePages(): number[] {
+    const start = Math.max(1, Math.min(this.page - 2, this.totalPages - 4));
+    return Array.from({ length: Math.min(5, this.totalPages) }, (_, index) => start + index);
+  }
+
+  setPage(page: number) {
+    this.page = Math.max(1, Math.min(page, this.totalPages));
+    this.pageEntries.set(this.viewEntries().slice((this.page - 1) * this.pageSize, this.page * this.pageSize));
+  }
+
+  onPageSizeChange() { this.setPage(1); }
+  trackByKey(_index: number, entry: TranslationEntry): string { return entry.key; }
 
   // Modal state for editing entries
   modalOpen = signal(false);
@@ -587,6 +159,9 @@ export class AppComponent implements OnInit, OnDestroy {
       await this.svc.waitForInit();
       const config = await this.configService.getConfig();
       this.allowedClasses = getTranslationHtmlClasses(config?.translationEditor?.allowedClasses);
+      this.brandingAndPortalUrl = `${config.baseUrl || ''}/${config.branding}/${config.portal}`;
+      const fallback = config.i18NextOpts?.fallbackLng;
+      this.defaultLanguage = (Array.isArray(fallback) ? fallback[0] : fallback) || 'en';
       await this.loadLanguages();
       if (!this.readWarnings().languages) await this.loadAvailableLanguagesFromBundles();
     } catch (error) {
@@ -641,6 +216,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private bundleContexts = new Set<string>();
 
   async onLangChange() {
+    this.page = 1;
     await this.loadEntries();
   }
 
@@ -671,6 +247,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.sortBy = col;
       this.sortAsc = true;
     }
+    this.page = 1;
     this.refreshDerived();
   }
 
@@ -717,24 +294,27 @@ export class AppComponent implements OnInit, OnDestroy {
       return av.localeCompare(bv) * dir;
     });
     this.viewEntries.set(sorted);
-    // Reinitialize tooltips after DOM updates
-    this.initTooltipsAsync();
+    this.setPage(this.page);
   }
 
   onCategoryChange() {
+    this.page = 1;
     this.refreshDerived();
   }
 
   onFilterTextChange() {
+    this.page = 1;
     this.refreshDerived();
   }
 
   clearFilter() {
+    this.page = 1;
     this.filterText = '';
     this.refreshDerived();
   }
 
   clearAllFilters() {
+    this.page = 1;
     this.filterText = '';
     this.selectedCategory = '';
     this.refreshDerived();
@@ -742,6 +322,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   openEdit(entry: TranslationEntry) {
     this.destroyRichTextEditor();
+    this.saveError.set(false);
     this.editKey = entry.key;
     this.editContentFormat = this.normalizeContentFormat(entry.contentFormat);
     const rawValue = String(entry.value ?? '');
@@ -811,7 +392,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async saveEdit() {
-    if (!this.selectedLang || !this.editKey) return;
+    if (!this.selectedLang || !this.editKey || this.saving()) return;
     try {
       this.saving.set(true);
       this.saveSuccess.set(false);
@@ -840,6 +421,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   closeModal() {
+    if (this.saving()) return;
     this.modalOpen.set(false);
     this.destroyRichTextEditor();
     this.editorMode = 'rich';
@@ -911,12 +493,13 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  openDisplayNameModal() {
-    if (!this.selectedLang) return;
+  openDisplayNameModal(code = this.selectedLang) {
+    if (!code) return;
 
     // Load current display name for the language
+    this.displayNameLanguage = code;
     this.displayNameEdited = false;
-    this.editDisplayName = this.selectedLang; // Default to language code
+    this.editDisplayName = code; // Default to language code
     this.displayNameModalOpen.set(true);
 
     // Try to get the current display name from the bundle
@@ -937,10 +520,10 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async loadCurrentDisplayName() {
-    const lang = this.selectedLang;
+    const lang = this.displayNameLanguage;
     const namespace = this.namespace;
     const value = this.editDisplayName;
-    await this.read('displayName', () => this.displayNameModalOpen() && lang === this.selectedLang && namespace === this.namespace, async () => {
+    await this.read('displayName', () => this.displayNameModalOpen() && lang === this.displayNameLanguage && namespace === this.namespace, async () => {
       const bundle = await this.svc.getBundle(lang, namespace);
       return () => {
         if (!this.displayNameEdited && this.editDisplayName === value && bundle?.displayName) this.editDisplayName = bundle.displayName;
@@ -949,7 +532,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async updateDisplayName() {
-    if (!this.editDisplayName.trim() || !this.selectedLang) {
+    if (!this.editDisplayName.trim() || !this.displayNameLanguage) {
       return;
     }
 
@@ -959,7 +542,9 @@ export class AppComponent implements OnInit, OnDestroy {
       this.displayNameUpdateError.set(false);
 
       // Update the display name
-      await this.svc.updateLanguageDisplayName(this.selectedLang, this.namespace, this.editDisplayName.trim());
+      await this.svc.updateLanguageDisplayName(this.displayNameLanguage, this.namespace, this.editDisplayName.trim());
+      this.languages.update(languages => languages.map(language => language.code === this.displayNameLanguage
+        ? { ...language, displayName: this.editDisplayName.trim() } : language));
 
       this.updatingDisplayName.set(false);
       this.displayNameUpdateSuccess.set(true);
@@ -979,18 +564,15 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onAvailableLanguagesChange() {
-    // Filter the language dropdown to only show selected available languages
-    // If current selected language is not in available list, reset selection
-    if (this.selectedLang && !this.availableLanguages().includes(this.selectedLang)) {
-      this.selectedLang = this.availableLanguages().length > 0 ? this.availableLanguages()[0] : '';
-      if (this.selectedLang) {
-        this.onLangChange();
-      }
+    if (!this.availableLanguages().includes(this.selectedLang)) {
+      this.selectedLang = this.availableLanguages()[0] || '';
+      this.onLangChange();
     }
   }
 
   toggleAvailableLanguage(code: string, checked: boolean) {
     this.editedAvailability.add(code);
+    this.availabilityDirty.set(true);
     const current = this.availableLanguages();
     if (checked) {
       if (!current.includes(code)) {
@@ -1020,6 +602,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
       this.savingLanguages.set(false);
       this.saveLanguagesSuccess.set(true);
+      this.editedAvailability.clear();
+      this.availabilityDirty.set(false);
       // Auto-hide success after a short delay
       setTimeout(() => this.saveLanguagesSuccess.set(false), 5000);
 
@@ -1068,6 +652,7 @@ export class AppComponent implements OnInit, OnDestroy {
         extensions: this.buildRichTextExtensions(),
         content: content || '',
         editable: true,
+        injectNonce: this.cspNonce || undefined,
         onUpdate: ({ editor }) => this.onRichTextUpdateFromEditor(editor),
       });
       return editor;
@@ -1187,32 +772,4 @@ export class AppComponent implements OnInit, OnDestroy {
     return result;
   }
 
-  // Initialize Bootstrap tooltips (supports Bootstrap 3 and 5);
-  // called after viewEntries updates to ensure DOM is ready.
-  private initTooltipsAsync() {
-    // Defer until after change detection paints
-    setTimeout(() => this.initTooltipsSafe(), 0);
-  }
-
-  private initTooltipsSafe() {
-    try {
-      const w: any = window as any;
-      // Bootstrap 5: instantiate Tooltip on elements with data-bs-toggle
-      if (w.bootstrap && typeof w.bootstrap.Tooltip === 'function') {
-        const els = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]')) as HTMLElement[];
-        els.forEach(el => {
-          // If a tooltip instance already exists, skip
-          try { new w.bootstrap.Tooltip(el, { container: 'body' }); } catch (_) { /* no-op */ }
-        });
-        return;
-      }
-      // Bootstrap 3: use jQuery plugin $('[data-toggle="tooltip"]').tooltip()
-      const $: any = w.jQuery || w.$;
-      if ($ && typeof $.fn?.tooltip === 'function') {
-        $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
-      }
-    } catch (_) {
-      // ignore; native title still provides a fallback
-    }
-  }
 }
