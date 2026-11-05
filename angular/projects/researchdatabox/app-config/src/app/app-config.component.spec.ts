@@ -1,3 +1,6 @@
+import { NavigationRowComponent } from './fieldTypes/navigation-editor/navigation-row.component';
+import { NavigationFieldsComponent } from './fieldTypes/navigation-editor/navigation-fields.component';
+import { NavigationLinkDialogComponent } from './fieldTypes/navigation-editor/navigation-link-dialog.component';
 import { Pipe, PipeTransform } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { SectionTypeComponent } from './fieldTypes/section.type';
@@ -74,7 +77,7 @@ describe('AppConfigComponent', () => {
     appConfigService = getStubAppConfigService();
     await TestBed.configureTestingModule({
       declarations: [
-        AppConfigComponent, MockI18NextPipe, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent,
+        AppConfigComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, MockI18NextPipe, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent,
         ArrayTypeComponent,
         ObjectTypeComponent,
         CheckboxTypeComponent,
