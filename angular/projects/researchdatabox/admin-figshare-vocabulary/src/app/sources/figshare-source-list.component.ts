@@ -23,6 +23,7 @@ export class FigshareSourceListComponent {
   }
 
   @Output() scopeFilterChanged = new EventEmitter<'' | 'public' | 'account'>();
+  @Output() editRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() resyncRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() cloneRequested = new EventEmitter<FigshareSourceSummary>();
   @Output() historyRequested = new EventEmitter<FigshareSourceSummary>();

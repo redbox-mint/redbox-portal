@@ -12,7 +12,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
-Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps.
+Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps; Figshare source metadata edits and real manual/daily/weekly mirror schedules.
 
 Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
 
@@ -446,3 +446,26 @@ Vocabulary lists expose the existing `lastSyncedAt` field. The RVA sync path wri
 upserts; failure leaves the previous timestamp in place. The list shows localized admin date/time for RVA,
 Never for an unsynced RVA vocabulary, and a dash for local/external vocabularies. No migration or inferred
 historical timestamp is required, and the existing REST vocabulary schema already declares the field.
+
+### Figshare source metadata and schedules
+
+The contract-defined `PUT /api/figshare-vocabularies/sources/:sourceId` requires the route brand's
+Admin session, CSRF, expected settings revision, display name, current scope, archived flag and
+manual/daily/weekly schedule. Settings are persisted on FigshareVocabularySource; legacy sources
+default to manual and revision 0 without a backfill. Scope and taxonomy identify the source and its
+mirror/crosswalk relationships. Scope is deliberately read-only: use discovery to add another remote
+catalogue rather than silently rebinding approved mappings. Connection keys and tokens are never editable.
+
+Agenda's Mongo-backed `Figshare-Vocabulary-Schedules` dispatcher runs every five minutes. Daily means
+24 hours after enabling/attempting and weekly means seven days; name-only edits retain the next due
+time. Manual or archived sources have no next run. Due sources are processed sequentially, at most
+25 per dispatch. Failed attempts retain the last success cursor, record a safe failed status and wait
+until the next interval. Automatic work updates only the mirror, never crosswalk approvals.
+
+Manual apply (including initial import), metadata updates and scheduled sync all acquire the same
+unique persistent CacheEntry claim keyed by brand/scope/taxonomy. Claims are removed in finally and
+have no automatic time expiry: a slow worker cannot lose its claim to another worker. After a worker
+crash, an operator must confirm the worker has stopped and remove only its
+`figshare-vocabulary-sync:<brand-id>:<scope>:<taxonomy-id>` claim to resume that source. Other sources
+continue normally. This favors avoiding concurrent writes over automatic crash recovery. Agenda must
+run with its Mongo backend for recurring jobs, as with the project's existing dispatch jobs.

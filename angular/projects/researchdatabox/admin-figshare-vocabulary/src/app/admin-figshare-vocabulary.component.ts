@@ -38,6 +38,28 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   /** Id of the source whose row action is running, so that row can show progress. */
   public busySourceId = '';
 
+  public editingSource: FigshareSourceSummary | null = null;
+  public sourceDraft = { expectedRevision: 0, displayName: '', scope: '', archived: false, syncSchedule: 'manual' };
+  public sourceSaving = false;
+  public sourceEditError = '';
+
+  editSource(source: FigshareSourceSummary): void {
+    this.editingSource = source;
+    this.sourceEditError = '';
+    this.sourceDraft = { expectedRevision: source.settingsRevision ?? 0, displayName: source.displayName, scope: source.scope, archived: source.archived, syncSchedule: source.syncSchedule ?? 'manual' };
+  }
+  async saveSource(): Promise<void> {
+    if (!this.editingSource || this.sourceSaving) return;
+    this.sourceSaving = true; this.sourceEditError = '';
+    try {
+      await this.api.updateSource(this.editingSource.id, this.sourceDraft);
+      this.editingSource = null;
+      await this.loadSources();
+      this.message = this.translationService.t('figshare-vocab-source-saved');
+    } catch (error) { this.sourceEditError = this.errorText('figshare-vocab-source-save-error', error); }
+    finally { this.sourceSaving = false; }
+  }
+
   public crosswalks: FigshareCrosswalkSummary[] = [];
   public crosswalkTotal = 0;
   public crosswalkStatusFilter = '';

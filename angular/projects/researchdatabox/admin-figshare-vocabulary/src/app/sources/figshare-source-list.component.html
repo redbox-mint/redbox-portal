@@ -31,6 +31,7 @@
         <th scope="col">{{ 'figshare-vocab-source-column-source' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-source-column-scope' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-source-column-last-sync' | i18next }}</th>
+        <th scope="col">{{ 'figshare-vocab-schedule' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-source-column-status' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
       </tr>
@@ -46,6 +47,10 @@
         </th>
         <td>{{ scopeLabelKey(source.scope) | i18next }}</td>
         <td>{{ formatDate(source.lastSyncedAt) || ('figshare-vocab-never-synced' | i18next) }}</td>
+        <td>{{ ('figshare-vocab-schedule-' + (source.syncSchedule || 'manual')) | i18next }}
+          @if (source.nextSyncAt) {<small class="d-block text-muted">{{ 'figshare-vocab-next-sync' | i18next }}: {{ formatDate(source.nextSyncAt) }}</small>}
+          @if (source.lastScheduleStatus) {<small class="d-block">{{ ('figshare-vocab-schedule-status-' + source.lastScheduleStatus) | i18next }}</small>}
+        </td>
         <td>
           @if (source.historicalCount > 0) {
           <span class="badge rb-admin-badge-warning">{{
@@ -56,7 +61,7 @@
           }
         </td>
         <td>
-<div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">{{ 'figshare-vocab-action-resync' | i18next }}</button>
+<div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="editRequested.emit(source)">{{ 'figshare-vocab-action-edit' | i18next }}</button><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">{{ 'figshare-vocab-action-resync' | i18next }}</button>
         <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
           <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-clone' | i18next }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" (click)="historyRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-history' | i18next }}</button>

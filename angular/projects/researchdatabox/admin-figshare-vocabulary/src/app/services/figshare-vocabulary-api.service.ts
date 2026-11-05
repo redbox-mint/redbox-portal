@@ -23,6 +23,11 @@ export interface FigshareSourceSummary {
   vocabularyName: string;
   lastSyncedAt: string | null;
   archived: boolean;
+  syncSchedule?: 'manual' | 'daily' | 'weekly';
+  nextSyncAt?: string | null;
+  settingsRevision?: number;
+  lastScheduleStatus?: string | null;
+  lastScheduleAttemptAt?: string | null;
   mirroredCount: number;
   historicalCount: number;
   crosswalkCount: number;
@@ -263,6 +268,10 @@ export class FigshareVocabularyApiService extends HttpClientService {
       this.http.get(`${this.figshareUrl}/catalogues`, { ...this.getJsonRequestOptions(), params: { scope } })
     );
     return this.unwrap<FigshareTaxonomySummary[]>(response as ApiResponse<FigshareTaxonomySummary[]>) ?? [];
+  }
+
+  public async updateSource(sourceId: string, draft: { expectedRevision: number; displayName: string; scope: string; archived: boolean; syncSchedule: string }): Promise<FigshareSourceSummary> {
+    return this.unwrap(await firstValueFrom(this.http.put(`${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}`, draft, this.getJsonRequestOptions())) as any);
   }
 
   public async listSources(scope?: string, paging: { limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareSourceSummary>> {
