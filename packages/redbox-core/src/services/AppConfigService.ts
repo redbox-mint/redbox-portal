@@ -578,7 +578,10 @@ export namespace Services {
       const modelCtor = modelDefinition.class as { new(...args: never[]): object; getFieldOrder?: () => string[] };
       const model = _.get(appConfig, configForm, new modelCtor()) as object;
       const jsonSchema = this.getJsonSchema(modelDefinition);
-      const fieldOrder = typeof modelCtor.getFieldOrder === 'function' ? modelCtor.getFieldOrder() : [];
+      const properties = (jsonSchema as { properties?: Record<string, unknown> }).properties || {};
+      const configuredOrder = typeof modelCtor.getFieldOrder === 'function' ? modelCtor.getFieldOrder() : [];
+      const fieldOrder = [...new Set([...(configuredOrder || []), ...Object.keys(properties)])]
+        .filter(field => Object.prototype.hasOwnProperty.call(properties, field));
       const preparedModel = this.prepareConfigModelForForm(configForm, model);
       const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder };
       return configData;

@@ -70,11 +70,12 @@ export class AppConfigComponent extends BaseComponent {
   protected override async initComponent(): Promise<void> {
     let result: AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
     const jsonObject: JSONSchema7 = result.schema as JSONSchema7;
-    const fieldOrder = result.fieldOrder;
-    const originalProperties = jsonObject.properties ? { ...jsonObject.properties } : undefined;
+    const originalProperties = jsonObject.properties || {};
+    // Preserve schema fields when an older server supplies no order or a partial order.
+    const fieldOrder = [...new Set([...(result.fieldOrder || []), ...Object.keys(originalProperties)])];
     jsonObject.properties = {};
-    for (let field of fieldOrder) {
-      if (originalProperties) {
+    for (const field of fieldOrder) {
+      if (Object.prototype.hasOwnProperty.call(originalProperties, field)) {
         jsonObject.properties[field] = originalProperties[field];
       }
     }

@@ -123,6 +123,24 @@ describe('AppConfigComponent', () => {
     TestBed.inject(UtilityService);
 
   });
+  for (const order of [undefined, [], ['third', 'unknown', 'first', 'third']]) {
+    it(`renders every schema property with order ${JSON.stringify(order)}`, async () => {
+      spyOn(appConfigService, 'getAppConfigForm').and.returnValue({
+        fieldOrder: order,
+        schema: { type: 'object', properties: { first: { type: 'string' }, second: { type: 'string' }, third: { type: 'string' } } },
+        model: {}
+      });
+      const fixture = TestBed.createComponent(AppConfigComponent);
+      fixture.detectChanges();
+      await fixture.componentInstance.waitForInit();
+      fixture.detectChanges();
+      const fields = fixture.componentInstance.fields[0].fieldGroup || [];
+      expect(fields.map(field => field.key)).toEqual(order?.length ? ['third', 'first', 'second'] : ['first', 'second', 'third']);
+      expect(fixture.nativeElement.querySelectorAll('formly-field input').length).toBe(3);
+      fixture.destroy();
+    });
+  }
+
   it('shows an initial read error and recovers with retry', async () => {
     const original = appConfigService.getAppConfigForm.bind(appConfigService);
     const read = spyOn(appConfigService, 'getAppConfigForm').and.rejectWith({ status: 403 });
@@ -345,7 +363,8 @@ describe('AppConfigComponent', () => {
     expect(profilesField?.fieldArray).toBeTruthy();
     expect(retryField).toBeTruthy();
     expect(migrationField).toBeFalsy();
-    expect(operationsField).toBeFalsy();
+    // Fields omitted from a partial order remain editable.
+    expect(operationsField).toBeTruthy();
     expect(validationField?.hide).toBeTrue();
     expect(bindingField?.type).toBe('value-binding-editor');
 
