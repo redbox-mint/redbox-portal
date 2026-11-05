@@ -2235,6 +2235,7 @@
   "admin-config-on": "On",
   "admin-config-off": "Off",
   "admin-config-enabled": "Enabled",
+  "admin-config-disabled": "Disabled",
   "admin-config-view-json": "View JSON",
   "admin-config-retry": "Retry",
   "admin-config-not-setup": "{{name}} is not set up for this brand",

@@ -2,12 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { UntypedFormGroup } from '@angular/forms';
 import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
 import { cloneDeep } from 'lodash-es';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { dictionarySummary } from '../config-form';
 
 @Component({
   selector: 'app-config-dictionary', standalone: false,
   templateUrl: './dictionary.type.html'
 })
 export class DictionaryTypeComponent extends FieldType implements OnInit {
+  constructor(private translationService: TranslationService) { super(); }
+
   adding = false;
   newKey = '';
   duplicateKey?: string;
@@ -91,10 +95,8 @@ export class DictionaryTypeComponent extends FieldType implements OnInit {
     queueMicrotask(() => document.getElementById(this.id + '-add-entry')?.focus());
   }
   summary(child: FormlyFieldConfig): string {
-    // Never show string values here: a dictionary may hold credentials or arbitrary JSON.
-    const value = this.model?.[this.entryKey(child)];
-    if (value && typeof value === 'object') return Array.isArray(value) ? String(value.length) : Object.keys(value).slice(0, 4).join(', ');
-    return '';
+    return dictionarySummary(child, this.model?.[this.entryKey(child)], value =>
+      this.translationService.t(value ? 'admin-config-enabled' : 'admin-config-disabled'));
   }
   private assign(value: object): void {
     if (this.field.key == null) {
