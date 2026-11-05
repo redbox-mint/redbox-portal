@@ -1,6 +1,6 @@
 <% let appName = 'export'; %>
 <%- include('../admin/layout/start.ejs') %>
-    <export <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <export is-admin="<%= typeof isAdmin !== 'undefined' && isAdmin ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <div class="col-xs-12">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </div>

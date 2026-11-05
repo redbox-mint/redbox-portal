@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/04-export-cancel`: Admin cancellation of queued/preparing exports, cooperative worker cleanup, Cancelled status and subsequent deletion.
+
 Delivered on `admin-deferred/03-harvest-stats`: brand-scoped global harvest statistics with database counts, latest successful completion and a filter-independent stats row.
 
 Delivered on `admin-deferred/02-named-query-usage`: linked named-query usage in the list and editor, with server refusal and a consumer warning for in-use deletion.

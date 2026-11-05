@@ -400,6 +400,161 @@ describe('ExportService', function () {
     expect(records.exportAllPlans.firstCall.args[1][0].name).to.equal('CustomExport');
   });
 
+  function makeAdmin() {
+    user.roles = [Object.assign(new RoleModel(), { id: 'admin-role', name: 'Admin', branding: brand })];
+  }
+
+  it('cancels queued jobs, ignores late and duplicate deliveries, and allows deletion', async function () {
+    makeAdmin();
+    const dto = await service.createJob(context, request, filename);
+    const cancelled = await service.cancelJob(context, dto.id);
+    expect(cancelled.status).to.equal('cancelled');
+    expect(cancelled.downloadUrl).to.equal(null);
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+    await service.generateCsvJob({ attrs: { data: { jobId: dto.id } } });
+    await service.generateCsvJob({ attrs: { data: { jobId: dto.id } } });
+    expect(records.exportAllPlans.called).to.equal(false);
+    await error(service.openDownload(context, dto.id), 409);
+    await service.deleteJob(context, dto.id);
+    expect(rows[0].status).to.equal('deleted');
+  });
+
+  it('stops a preparing stream and cleans incomplete uploads after cancellation', async function () {
+    makeAdmin();
+    const source = new PassThrough();
+    records.exportAllPlans.returns(source);
+    const dto = await service.createJob(context, request, filename);
+    const running = service.generateCsvJob({ attrs: { data: { jobId: dto.id } } });
+    await clock.tickAsync(0);
+    files.set(rows[0].objectKey!, Buffer.from('partial'));
+    disk.exists.resolves(false);
+    disk.listIncompleteUploads.resolves([{ key: rows[0].objectKey, lastModified: new Date() }]);
+    await service.cancelJob(context, dto.id);
+    await clock.tickAsync(1000);
+    await running;
+    expect(source.destroyed).to.equal(true);
+    expect(rows[0].status).to.equal('cancelled');
+    expect(rows[0].errorCode).to.equal(null);
+    expect(files.size).to.equal(0);
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+  });
+
+  it('checks cancellation at producer batch boundaries before publishing', async function () {
+    makeAdmin();
+    let checkpoint!: () => Promise<void>;
+    records.exportAllPlans.callsFake((...args: unknown[]) => {
+      checkpoint = args[7] as () => Promise<void>;
+      return new PassThrough();
+    });
+    const dto = await service.createJob(context, request, filename);
+    const running = service.generateCsvJob({ attrs: { data: { jobId: dto.id } } });
+    await clock.tickAsync(0);
+    await service.cancelJob(context, dto.id);
+    await error(checkpoint(), 409, 'export-cancelled');
+    await running;
+    await clock.tickAsync(0);
+    expect(rows[0].status).to.equal('cancelled');
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+  });
+
+  it('keeps cancellation terminal when completion loses the atomic race', async function () {
+    makeAdmin();
+    const dto = await service.createJob(context, request, filename);
+    disk.getMetaData.callsFake(async () => {
+      await service.cancelJob(context, dto.id);
+      return { contentLength: 10 };
+    });
+    await service.generateCsvJob({ attrs: { data: { jobId: dto.id } } });
+    expect(rows[0].status).to.equal('cancelled');
+    expect(files.size).to.equal(0);
+  });
+
+  it('rejects cancellation when completion wins, preserving the ready artifact', async function () {
+    makeAdmin();
+    const id = await prepare();
+    await error(service.cancelJob(context, id), 409, 'export-not-cancellable');
+    expect(rows[0].status).to.equal('ready');
+    expect(files.size).to.equal(1);
+  });
+
+  it('can cancel after the current export disk configuration becomes invalid', async function () {
+    makeAdmin();
+    const dto = await service.createJob(context, request, filename);
+    manager.getDiskConfig.throws(new Error('disk removed'));
+    expect((await service.cancelJob(context, dto.id)).status).to.equal('cancelled');
+    expect(rows[0].status).to.equal('cancelled');
+  });
+
+  it('rejects all terminal cancellations', async function () {
+    makeAdmin();
+    const dto = await service.createJob(context, request, filename);
+    for (const status of ['ready', 'failed', 'expired', 'cancelled'] as const) {
+      rows[0].status = status;
+      await error(service.cancelJob(context, dto.id), 409, 'export-not-cancellable');
+      expect(rows[0].status).to.equal(status);
+    }
+  });
+
+  it('enforces current brand Admin permission and owner/portal/brand scope on cancellation', async function () {
+    const dto = await service.createJob(context, request, filename);
+    await error(service.cancelJob(context, dto.id), 403);
+    makeAdmin();
+    await error(service.cancelJob({ ...context, portal: 'other' }, dto.id), 404);
+    await error(service.cancelJob({ ...context, brand: { ...brand, id: 'other' } }, dto.id), 403);
+    user.id = 'other-user';
+    await error(service.cancelJob(context, dto.id), 404);
+    user.id = 'user-1';
+    user.loginDisabled = true;
+    await error(service.cancelJob(context, dto.id), 403);
+    expect(rows[0].status).to.equal('queued');
+  });
+
+  it('cleans a late remote upload after cancellation and immediate deletion', async function () {
+    makeAdmin();
+    let finishUpload!: () => void;
+    disk.putStream.callsFake(async (key: string) => {
+      await new Promise<void>(resolve => {
+        finishUpload = resolve;
+      });
+      files.set(key, Buffer.from('late'));
+    });
+    const dto = await service.createJob(context, request, filename);
+    const running = service.generateCsvJob({ attrs: { data: { jobId: dto.id } } });
+    await clock.tickAsync(0);
+    await service.cancelJob(context, dto.id);
+    await service.deleteJob(context, dto.id);
+    await clock.tickAsync(1000);
+    await running;
+    expect(rows[0].cleanedAt).to.equal(null);
+    finishUpload();
+    await clock.tickAsync(0);
+    expect(rows[0].status).to.equal('deleted');
+    expect(files.size).to.equal(0);
+    expect(rows[0].cleanedAt).to.equal(Date.now());
+  });
+
+  it('retries cancelled cleanup and prunes metadata without relabelling the cancelled status', async function () {
+    makeAdmin();
+    const dto = await service.createJob(context, request, filename);
+    rows[0].status = 'running';
+    rows[0].attemptId = 'lost-worker';
+    rows[0].objectKey = 'exports/partial.csv';
+    files.set(rows[0].objectKey, Buffer.from('partial'));
+    await service.cancelJob(context, dto.id);
+    disk.delete.rejects(new Error('offline'));
+    await clock.tickAsync(EXPORT_STALE_MS);
+    await service.maintenanceJob();
+    expect(rows[0].cleanedAt).to.equal(null);
+    disk.delete.callsFake(async (key: string) => {
+      files.delete(key);
+    });
+    await clock.tickAsync(48 * 60 * 60 * 1000);
+    expect((await service.getJob(context, dto.id)).status).to.equal('cancelled');
+    await service.maintenanceJob();
+    expect(files.size).to.equal(0);
+    expect(rows.length).to.equal(0);
+  });
+
   it('keeps the queue lease and job heartbeat alive during silent preparation', async function () {
     const source = new PassThrough();
     records.exportAllPlans.returns(source);

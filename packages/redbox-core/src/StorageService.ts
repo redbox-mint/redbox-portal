@@ -169,7 +169,8 @@ export interface StorageService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    checkpoint?: () => Promise<void>
   ): Readable;
 
   /**

@@ -1,5 +1,5 @@
 /** Browser contract for background admin CSV exports. */
-export type ExportJobStatus = 'queued' | 'running' | 'ready' | 'failed' | 'expired';
+export type ExportJobStatus = 'queued' | 'running' | 'ready' | 'failed' | 'expired' | 'cancelled';
 
 export interface ExportJobRequest {
   format: 'csv';

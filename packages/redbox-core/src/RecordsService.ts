@@ -379,7 +379,8 @@ export interface RecordsService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    checkpoint?: () => Promise<void>
   ): unknown;
   bootstrapData(): Promise<void>;
   // Probably to be retired or reimplemented in a different service

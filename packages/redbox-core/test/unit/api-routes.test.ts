@@ -5,6 +5,7 @@ import path from 'path';
 import { z } from 'zod';
 import {
   ApiRouteDefinition,
+  cancelExportJobRoute,
   buildApiBlueprint,
   buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
@@ -170,6 +171,20 @@ function responseStatuses(route: { responses?: Record<number, unknown> }): numbe
 
 describe('API routes contract layer', function () {
   this.timeout(10_000);
+  it('registers cancellation as an Admin-scoped CSRF-protected session contract', async function () {
+    expect(cancelExportJobRoute.csrf).to.equal(true);
+    expect(cancelExportJobRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(buildCoreApiRouteConfig()['post /:branding/:portal/export/jobs/:id/cancel']).to.deep.equal({
+      controller: 'ExportController', action: 'cancelJob', csrf: true,
+    });
+    expect(cancelExportJobRoute.request?.params?.safeParse({ id: 'not-a-uuid' }).success).to.equal(false);
+    const document = buildCoreApiOpenApiDocument();
+    const operation = document.paths['/{branding}/{portal}/export/jobs/{id}/cancel'].post;
+    expect(operation).to.have.property('responses');
+    expect(JSON.stringify(operation)).to.include('cancelled');
+    await SwaggerParser.validate(document as never);
+  });
+
   it('routes datastream filenames with extensions to the protected download action', function () {
     const routes = buildSailsRouteConfig([getDataStreamRoute]);
     expect(routes['get /:branding/:portal/api/records/datastreams/:oid/:datastreamId']).to.include({
