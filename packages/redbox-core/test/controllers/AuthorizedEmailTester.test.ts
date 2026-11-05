@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import { readFileSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/controllers/AppConfigController';
 import { Services as Branding } from '../../src/services/BrandingService';
@@ -19,7 +21,7 @@ describe('Authorized email admin tester', () => {
   let resolve: sinon.SinonStub;
   beforeEach(() => {
     previous = (global as any).sails;
-    saved = { enabled: true, domainsAaf: ['uni.edu.au'], emailsOidc: ['guest@other.org'] };
+    saved = { enabled: true, domainsAaf: [' Uni.EDU.au. '], emailsOidc: [' Guest@Other.org '] };
     (global as any).sails = createMockSails();
     resolve = (global as any).sails.config.brandingAware = sinon.stub().callsFake((brand: string) => ({
       authorizedDomainsEmails: brand === 'default' ? saved : { enabled: true, domainsAaf: ['other.org'] },
@@ -37,6 +39,17 @@ describe('Authorized email admin tester', () => {
     controller.testAuthorizedEmail({ body, params: { branding }, session: { branding: 'other' } } as any, response);
     return response.json.firstCall?.args[0];
   }
+  it('explains case-insensitive matching and unchanged policies in the UI help', () => {
+    const translations = JSON.parse(readFileSync(resolvePath(__dirname, '../../../../language-defaults/en/translation.json'), 'utf8'));
+    const template = readFileSync(resolvePath(__dirname, '../../../../angular/projects/researchdatabox/app-config/src/app/app-config.component.html'), 'utf8');
+    expect(template).to.include("'admin-config-address-matching-help' | i18next");
+    const help = translations['admin-config-address-matching-help'];
+    expect(help).to.include('Matching ignores letter case');
+    expect(help).to.include('when creating AAF and OIDC accounts');
+    expect(help).to.include('Domains match exactly, without subdomains');
+    expect(help).to.include('Empty lists for a provider allow everyone');
+    expect(help).not.to.include('case-sensitive');
+  });
   it('registers an Admin-only, CSRF-protected POST with the auth and validation policies', () => {
     const config: any = buildCoreApiRouteConfig();
     expect(config['post ' + testAuthorizedEmailRoute.path]).to.include({ controller: 'AppConfigController', action: 'testAuthorizedEmail', csrf: true });
@@ -84,7 +97,7 @@ describe('Authorized email admin tester', () => {
   });
   it('replaces saved settings with the unsaved draft without merging, mutation or persistence', () => {
     const before = JSON.stringify(saved);
-    const draft = Object.freeze({ enabled: true, domainsAaf: Object.freeze(['draft.org']) });
+    const draft = Object.freeze({ enabled: true, domainsAaf: Object.freeze([' Draft.ORG. ']) });
     expect(check({ email: 'person@draft.org', provider: 'aaf', draft })).to.deep.equal({ allowed: true, reason: 'allowed-domain', matchedRule: 'draft.org' });
     expect(resolve.called).to.equal(false);
     response.json.resetHistory();

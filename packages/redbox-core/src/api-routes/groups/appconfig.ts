@@ -38,6 +38,7 @@ export const saveAppConfigByIdRoute = apiRoute(
   {
     tags: ['AppConfig'],
     summary: 'Save app config',
+    description: 'Authorized domain/email rules are trimmed, lowercased and de-duplicated within each list on save; domain rules also ignore a trailing dot. The response retains the submitted payload shape; subsequent reads return normalized rules.',
     responses: {
       200: responseField(appConfigValueSchema, 'App config saved'),
       400: badRequestResponse,
@@ -47,7 +48,7 @@ export const saveAppConfigByIdRoute = apiRoute(
 );
 
 // Drafts replace this configuration in memory; omitted fields retain legacy defaults.
-// Do not trim or lowercase rules: doing so would disagree with the sign-in gate.
+// Keep drafts intact; the shared sign-in matcher normalizes both sides during evaluation.
 const rules = z.array(z.string().max(254)).max(500);
 export const authorizedEmailTestBody = z.object({
   email: z.email().max(254),
@@ -79,7 +80,7 @@ export const testAuthorizedEmailRoute = defineApiRoute({
   extensions: { 'x-redbox-roles': ['Admin'] },
   tags: ['AppConfig'],
   summary: 'Test an address against authorized domains and emails (brand Admin only)',
-  description: 'Session CSRF protected. Tests the current route brand configuration, or the optional draft as a complete replacement without saving. Email must be valid and at most 254 characters; each of the four draft lists accepts at most 500 strings of 254 characters. Both providers lowercase incoming addresses, then match stored rules case-sensitively. Domains match exactly (no subdomains). Empty lists for the selected provider allow all. Domain rules take precedence over exact email rules. disabled means restriction off; unrestricted means empty provider lists; denied means no rule matched. This is the account-creation restriction check, not a guarantee of authentication or existing-account access. No tested address or matched rule is logged by the tester.',
+  description: 'Session CSRF protected. Tests the current route brand configuration, or the optional draft as a complete replacement without saving. Email must be valid and at most 254 characters; each of the four draft lists accepts at most 500 strings of 254 characters. Both providers match addresses and rules ignoring letter case and surrounding whitespace; domains also ignore a trailing dot. Domains match exactly (no subdomains). Empty lists for the selected provider allow all. Domain rules take precedence over exact email rules. disabled means restriction off; unrestricted means empty provider lists; denied means no rule matched. This is the account-creation restriction check, not a guarantee of authentication or existing-account access. No tested address or matched rule is logged by the tester.',
   responses: {
     200: responseField(authorizedEmailTestResult, 'Allowed/denied, reason and matching rule when applicable'),
     400: badRequestResponse,

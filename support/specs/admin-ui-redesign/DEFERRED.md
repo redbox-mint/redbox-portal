@@ -22,6 +22,8 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 ## People and access
 
+Authorized-rule case normalization delivered on `admin-deferred/15-auth-domain-case`; account-creation-only restrictions and exact-domain policy remain unchanged.
+
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
 

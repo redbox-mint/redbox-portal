@@ -46,7 +46,12 @@ export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDest
       return;
     }
     const numeric = ['integer', 'number'].includes(this.props['chipType']);
-    const value = numeric ? Number(text) : text;
+    const normalize = this.props['normalizeChip'];
+    const value = numeric ? Number(text) : normalize ? normalize(text) : text;
+    if (normalize && this.model.some((rule: string) => normalize(rule) === value)) {
+      input.value = '';
+      return;
+    }
     if (numeric && !Number.isFinite(value)) {
       this.formControl.setErrors({ ...this.formControl.errors, chip: true });
       return;

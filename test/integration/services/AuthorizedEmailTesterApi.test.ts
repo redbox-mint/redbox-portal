@@ -45,9 +45,9 @@ describe('Authorized email tester API', function () {
     const saved = await check({ email: 'person@uni.edu.au', provider: 'aaf' }).expect(200);
     expect(saved.body).to.deep.equal(evaluateAuthorizedEmail('person@uni.edu.au', sails.config.brandingAware('default').authorizedDomainsEmails ?? {}, 'aaf'));
     for (const [email, provider, draft, reason] of [
-      ['Person@UNI.edu.au', 'aaf', { enabled: true, domainsAaf: ['uni.edu.au'] }, 'allowed-domain'],
-      ['Guest@OTHER.org', 'oidc', { enabled: true, emailsOidc: ['guest@other.org'] }, 'allowed-exception'],
-      ['person@staff.uni.edu.au', 'aaf', { enabled: true, domainsAaf: ['uni.edu.au'] }, 'denied'],
+      ['Person@UNI.edu.au', 'aaf', { enabled: true, domainsAaf: [' Uni.EDU.au. '] }, 'allowed-domain'],
+      ['Guest@OTHER.org', 'oidc', { enabled: true, emailsOidc: [' Guest@Other.org '] }, 'allowed-exception'],
+      ['person@staff.uni.edu.au', 'aaf', { enabled: true, domainsAaf: [' Uni.EDU.au. '] }, 'denied'],
       ['person@other.org', 'aaf', { enabled: false }, 'disabled'],
       ['person@other.org', 'oidc', { enabled: true }, 'unrestricted'],
     ] as const) {

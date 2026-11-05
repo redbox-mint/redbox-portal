@@ -1,3 +1,5 @@
+import { Controllers as AppConfigApiControllers } from '../../src/controllers/webservice/AppConfigController';
+import { AuthorizedDomainsEmails } from '../../src/configmodels/AuthorizedDomainsEmails';
 import { OniPublishing, ONI_PUBLISHING_SCHEMA } from '../../src/configmodels/OniPublishing';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from '../../src/configmodels/RaidPublishing';
 import { INTEGRATION_NOTIFICATION_SCHEMA, IntegrationNotificationConfig } from '../../src/configmodels/IntegrationNotificationConfig';
@@ -54,6 +56,62 @@ describe('AppConfigService', function () {
     delete (global as any).AppConfig;
     delete (global as any).BrandingService;
     sinon.restore(); // Restores ConfigModels stubs
+  });
+
+  describe('authorized rules save normalization', () => {
+    const input = () => ({ enabled: true,
+      domainsAaf: [' Uni.EDU.au. ', 'uni.edu.au', 'STAFF.uni.edu.au'],
+      emailsAaf: [' J.Smith@Uni.edu.au ', 'j.smith@uni.edu.au'],
+      domainsOidc: [' UNI.edu.au ', 'uni.edu.au.'],
+      emailsOidc: [' J.Smith@Uni.edu.au ', 'j.smith@uni.edu.au'],
+      futureExtension: { keep: true },
+    });
+    const expected = { enabled: true, domainsAaf: ['uni.edu.au', 'staff.uni.edu.au'],
+      emailsAaf: ['j.smith@uni.edu.au'], domainsOidc: ['uni.edu.au'],
+      emailsOidc: ['j.smith@uni.edu.au'], futureExtension: { keep: true } };
+    beforeEach(() => {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'AuthorizedDomainsEmails', class: AuthorizedDomainsEmails });
+    });
+    for (const mode of ['create', 'upsert', 'update', 'api', 'admin-api']) {
+      it(`normalizes every list independently through ${mode}, without mutating input`, async () => {
+        const body = input(), before = JSON.stringify(body);
+        const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+        (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+        if (mode === 'update') (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'authorizedDomainsEmails', configData: input() }]);
+        if (mode.endsWith('api')) {
+          const previous = (global as any).AppConfigService;
+          (global as any).AppConfigService = service;
+          Object.assign(BrandingService, { getBrandNameFromReq: () => 'default' });
+          try {
+            const controller = mode === 'api' ? new AppConfigApiControllers.AppConfig() : new WebserviceControllers.Admin();
+            const respond = sinon.stub(controller, 'apiRespond');
+            const request = { session: { branding: 'default' }, apiRequest: { params: { appConfigId: 'authorizedDomainsEmails', configKey: 'authorizedDomainsEmails' }, body, query: {} } } as unknown as Sails.Req;
+            if (mode === 'api') await (controller as AppConfigApiControllers.AppConfig).saveAppConfig(request, {} as Sails.Res);
+            else await (controller as WebserviceControllers.Admin).setAppConfig(request, {} as Sails.Res);
+            expect(respond.calledOnce).to.equal(true);
+          } finally { (global as any).AppConfigService = previous; }
+        } else if (mode === 'create') await service.createConfig('default', 'authorizedDomainsEmails', body);
+        else await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'authorizedDomainsEmails', body);
+        const stored = mode === 'update' ? set.firstCall.args[0] : (AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0];
+        expect(stored.configData).to.deep.equal(expected);
+        expect(service.getAppConfigurationForBrand('default').authorizedDomainsEmails).to.deep.include(expected);
+        expect(JSON.stringify(body)).to.equal(before);
+      });
+    }
+    it('preserves partial configurations and blank list entries', async () => {
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'authorizedDomainsEmails', { domainsAaf: [' ', ''] });
+      expect((AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData).to.deep.equal({ domainsAaf: [''] });
+    });
+    for (const invalid of [null, [], { domainsAaf: 'example.org' }, { emailsOidc: [42] }]) {
+      it('rejects non-string lists before writing', async () => {
+        try {
+          await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'authorizedDomainsEmails', invalid as any);
+          expect.fail('Expected rejection');
+        } catch (error) { expect((error as any).status).to.equal(400); }
+        expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+        expect((AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
+      });
+    }
   });
 
   for (const [key, Model, schema, patch] of [

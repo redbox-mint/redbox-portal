@@ -763,6 +763,39 @@ describe('AppConfigComponent', () => {
     } }, model: { enabled: true, domainsAaf: ['uni.edu.au'], emailsAaf: [] } }, 'authorizedDomainsEmails');
   }
 
+  it('normalizes authorized domain/email chips and suppresses duplicates without saving', async () => {
+    const fixture = await renderAddressTester();
+    const inputs = fixture.nativeElement.querySelectorAll('app-config-chips input');
+    const enter = async (index: number, value: string) => {
+      inputs[index].value = value;
+      inputs[index].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges(); await fixture.whenStable();
+    };
+    await enter(0, ' Research.ORG. ');
+    await enter(0, 'RESEARCH.org');
+    await enter(0, ' Uni.EDU.au. ');
+    await enter(1, ' J.Smith@UNI.edu.au ');
+    await enter(1, 'j.smith@uni.edu.au');
+    expect(fixture.componentInstance.model.domainsAaf).toEqual(['uni.edu.au', 'research.org']);
+    expect(fixture.componentInstance.model.emailsAaf).toEqual(['j.smith@uni.edu.au']);
+    expect(fixture.nativeElement.textContent).toContain('research.org');
+    expect(fixture.nativeElement.textContent).not.toContain('Research.ORG');
+    expect(fixture.nativeElement.textContent).toContain('admin-config-address-matching-help');
+    expect(appConfigService.lastSavedModel).toBeUndefined();
+    fixture.destroy();
+  });
+
+  it('leaves other chip inputs case-sensitive and permits duplicates', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { names: { type: 'array', items: { type: 'string' } } } }, model: { names: [] } });
+    const input = fixture.nativeElement.querySelector('app-config-chips input');
+    for (const value of ['Mixed.Case', 'Mixed.Case']) {
+      input.value = value; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      fixture.detectChanges(); await fixture.whenStable();
+    }
+    expect(fixture.componentInstance.model.names).toEqual(['Mixed.Case', 'Mixed.Case']);
+    fixture.destroy();
+  });
+
   it('renders the address tester only for authorized domains, and disables invalid input', async () => {
     const ordinary = await renderConfig({ schema: { type: 'object', properties: { enabled: { type: 'boolean' } } }, model: { enabled: true } });
     expect(ordinary.nativeElement.querySelector('#address-test-email')).toBeNull();
