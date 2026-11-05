@@ -19,11 +19,11 @@ import { FieldArrayType } from '@ngx-formly/core';
       }
     
       @for (field of field.fieldGroup; track field; let i = $index) {
-        <div class="row align-items-start">
-          <formly-field class="col-xs-10" [field]="field"></formly-field>
-          <div class="col-xs-2 text-right">
+        <div class="app-config-array-item d-flex gap-2 align-items-start mb-3">
+          <formly-field class="flex-grow-1" [field]="field"></formly-field>
+          <div class="text-end">
             <button type="button" (click)="remove(i)"
-            class="fa fa-minus-circle btn text-20 pull-right btn-danger" ></button>
+            class="btn btn-sm btn-outline-danger" [attr.aria-label]="'admin-config-remove-item' | i18next: { number: i + 1 }">×</button>
           </div>
         </div>
       }
@@ -31,7 +31,7 @@ import { FieldArrayType } from '@ngx-formly/core';
       <div class="row">
         <span class="col-xs-12">
           <button type='button' (click)="add()"
-          class="btn btn-primary fa fa-plus-circle btn text-20 pull-right btn-success"></button>
+          class="btn btn-sm btn-outline-secondary">+ {{ 'admin-config-add-item' | i18next }}</button>
         </span>
       </div>
     </div>

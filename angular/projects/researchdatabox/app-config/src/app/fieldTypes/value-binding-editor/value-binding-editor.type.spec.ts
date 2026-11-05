@@ -273,6 +273,13 @@ describe('ValueBindingEditorTypeComponent', () => {
     });
   });
 
+  it('leaves the crosswalk-only output control unset for a simple binding', async () => {
+    const { component, model, formControl } = setup({ model: { kind: 'path', path: 'metadata.title' } });
+    await component.ngOnInit();
+    expect(formControl.get('outputs')?.value).toBeUndefined();
+    expect((model as any).outputs).toBeUndefined();
+  });
+
   describe('switching kind', () => {
     it('carries an existing path inward when switching to crosswalk', async () => {
       const { component, model } = setup({ model: { kind: 'path', path: 'metadata.forCodes' } });

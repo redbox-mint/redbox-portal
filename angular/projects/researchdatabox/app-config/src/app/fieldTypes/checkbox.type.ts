@@ -4,10 +4,10 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 @Component({
   selector: 'formly-app-config-checkbox-type',
   template: `
-    <div class="app-config-checkbox form-group">
+    <div class="app-config-checkbox form-check" [class.form-switch]="props['switch']">
       <label [attr.for]="id" class="app-config-checkbox-label">
         <input
-          type="checkbox"
+          type="checkbox" class="form-check-input" [attr.role]="props['switch'] ? 'switch' : null"
           [id]="id"
           [formControl]="formControl"
           [formlyAttributes]="field">
@@ -17,7 +17,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
         }
       </label>
 
-      @if (props.description) {
+      @if (props.description && !props['switch']) {
         <p class="help-block">{{ props.description }}</p>
       }
       @if (showError && formControl.errors) {

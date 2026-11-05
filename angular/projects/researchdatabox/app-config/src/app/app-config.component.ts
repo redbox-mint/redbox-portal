@@ -17,15 +17,17 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, ElementRef, Inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { FormGroup, Validators, FormBuilder } from '@angular/forms';
+import { FormGroup, FormBuilder } from '@angular/forms';
 
 import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
+import { cloneDeep, isEqual } from 'lodash-es';
+import { ConfigForm, ConfigSection, SECRET_MASK, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
+import { FormlyFormOptions } from '@ngx-formly/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
 import { JSONSchema7 } from 'json-schema';
-import { AppConfig } from 'projects/researchdatabox/portal-ng-common/src/public-api';
 /**
  * Application Config  Component
  *
@@ -39,7 +41,23 @@ export class AppConfigComponent extends BaseComponent {
 
   window: any;
   form = new FormGroup({});
-  model = {};
+  model: any = {};
+  title = '';
+  descriptionKey = 'admin-config-description';
+  sidebarSection = '';
+  sections: FormlyFieldConfig[] = [];
+  activeSection = '';
+  longForm = false;
+  empty = false;
+  showJson = false;
+  pendingLeave = '';
+  options: FormlyFormOptions = {};
+  private loadedModel: any = {};
+  private currentConfig?: ConfigForm;
+  private secretFields: string[] = [];
+  private trackingReady = false;
+  private allowLeave = false;
+  private jsonTrigger?: HTMLElement;
   fields: FormlyFieldConfig[] = [
    
   ];
@@ -68,36 +86,224 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    let result: AppConfig = await this.appConfigService.getAppConfigForm(this.configKey)
-    const jsonObject: JSONSchema7 = result.schema as JSONSchema7;
+    const result = await this.appConfigService.getAppConfigForm(this.configKey) as ConfigForm;
+    this.currentConfig = cloneDeep(result);
+    this.configureForm(result);
+  }
+
+  private configureForm(result: ConfigForm): void {
+    const jsonObject = cloneDeep(result.schema) as JSONSchema7;
     const originalProperties = jsonObject.properties || {};
-    // Preserve schema fields when an older server supplies no order or a partial order.
+    // Older servers/hooks can supply an empty or partial field order. Never drop fields.
     const fieldOrder = [...new Set([...(result.fieldOrder || []), ...Object.keys(originalProperties)])];
     jsonObject.properties = {};
     for (const field of fieldOrder) {
-      if (Object.prototype.hasOwnProperty.call(originalProperties, field)) {
-        jsonObject.properties[field] = originalProperties[field];
+      if (Object.prototype.hasOwnProperty.call(originalProperties, field)) jsonObject.properties[field] = originalProperties[field];
+    }
+    this.title = result.title || jsonObject.title || this.configKey;
+    this.descriptionKey = result.descriptionKey || 'admin-config-description';
+    this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
+      ?.closest('section')?.querySelector('h2')?.textContent || '';
+    this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
+    this.secretFields = result.secretFields || [];
+    this.model = this.editableModel(result.model || {});
+    const root = this.formlyJsonschema.toFieldConfig(jsonObject);
+    this.fields = [root];
+    this.applyCheckboxType(this.fields);
+    this.applyCustomWidgetTypes(this.fields);
+    this.decorateFields(this.fields);
+    this.empty = !hasEditableFields(root) || !!(result.requiresSetup && !Object.keys(result.model || {}).length);
+    const navigation = ['menu', 'homePanels', 'adminSidebar'].includes(this.configKey);
+    this.longForm = !navigation && this.configKey !== 'authorizedDomainsEmails' &&
+      (root.fieldGroup || []).filter(field => field.type === 'object' || field.type === 'array').length > 1;
+    this.buildSections(root, result.sections);
+    root.props = { ...root.props, label: '', root: true };
+    root.hooks = { ...root.hooks, onInit: () => queueMicrotask(() => {
+      // Capture schema defaults and visual-editor initialization as part of the loaded state.
+      this.loadedModel = cloneDeep(this.model);
+      this.trackingReady = true;
+      this.requestRender();
+    }) };
+  }
+
+  private editableModel(model: any): any {
+    const editable = cloneDeep(model);
+    visitSecrets(editable, this.secretFields, (parent, key) => {
+      if (parent[key] === SECRET_MASK) parent[key] = '';
+    });
+    return editable;
+  }
+
+  private decorateFields(fields: FormlyFieldConfig[], parentPath: string[] = []): void {
+    for (const field of fields) {
+      const path = field.key == null ? parentPath : [...parentPath, String(field.key)];
+      field.props = { ...field.props };
+      if (this.configKey === 'authorizedDomainsEmails' && /^(domains|emails)/.test(String(field.key))) field.props.label = this.translationService.t(String(field.key).startsWith('domains') ? 'admin-config-allowed-domains' : 'admin-config-allowed-emails');
+      if (!field.props.label && field.key != null) field.props.label = String(field.key).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, char => char.toUpperCase());
+      if (field.key === 'enabled') {
+        field.props['switch'] = true;
+        // Nested flags are rendered in their object's header.
+        if (parentPath.length) field.props['headerEnabled'] = true;
+      }
+      if (this.secretFields.some(secret => secret.split('.').length === path.length && secret.split('.').every((part, index) => part === '*' || part === path[index]))) {
+        field.type = 'app-config-secret';
+        field.wrappers = [];
+        field.props['secret'] = true;
+        // A blank secret preserves its existing value; it must not fail a required validator.
+        field.props.required = false;
+        if (field.expressions) delete field.expressions['props.required'];
+        // JSON-schema's optional-string parser turns blank into undefined. Secrets
+        // need a literal blank so clearing an input still preserves the stored value.
+        field.parsers = [];
+      }
+      if (field.type === 'array') {
+        // JSON Schema requires the property, not an item. Empty arrays are valid
+        // unless minItems says otherwise (e.g. empty provider allow-lists).
+        field.props.required = false;
+        if (field.expressions) delete field.expressions['props.required'];
+      }
+      if (!['string', 'number', 'integer', 'enum', 'app-config-checkbox'].includes(String(field.type))) field.className = [field.className, 'app-config-wide-field'].filter(Boolean).join(' ');
+      const arrayFactory = field.fieldArray;
+      const item = typeof arrayFactory === 'function' ? arrayFactory(field) : arrayFactory;
+      if (field.type === 'array' && item && ['string', 'number', 'integer', 'enum'].includes(String(item.type))) {
+        field.type = 'app-config-chips';
+        field.wrappers = [];
+        field.props['chipType'] = item.type;
+      }
+      if (field.fieldGroup) this.decorateFields(field.fieldGroup, path);
+      if (typeof arrayFactory === 'function') {
+        // Formly creates array item fields lazily, including items added after loading.
+        field.fieldArray = root => {
+          const child = arrayFactory(root);
+          this.applyCheckboxType([child]);
+          this.decorateFields([child], [...path, '*']);
+          return child;
+        };
+      } else if (item) {
+        this.decorateFields([item], [...path, '*']);
       }
     }
-
-    let generatedField: FormlyFieldConfig;
-    try {
-      generatedField = this.formlyJsonschema.toFieldConfig(jsonObject);
-    } catch (error: any) {
-      // Emit a descriptive error to help diagnose schema conversion issues.
-      console.error('FormlyJsonschema conversion failed for configKey', this.configKey, error?.message, error);
-      throw error;
-    }
-
-    this.fields = [generatedField];
-    this.applyCheckboxType(this.fields);
-    
-    // Apply custom widget types for specific config models
-    this.applyCustomWidgetTypes(this.fields);
-    
-    this.model = result.model;
-    this.loggerService.debug(`AppConfig initialised.`);
   }
+
+  private buildSections(root: FormlyFieldConfig, configured?: ConfigSection[]): void {
+    const children = root.fieldGroup || [];
+    const enabled = children.find(field => field.key === 'enabled');
+    if (enabled) enabled.props = { ...enabled.props, pageEnabled: true };
+    const available = children.filter(field => field !== enabled && !field.hide);
+    const groups: { label: string; fields: FormlyFieldConfig[] }[] = [];
+    const assigned = new Set<FormlyFieldConfig>();
+    for (const group of configured || []) {
+      const fields = group.fields.map(key => available.find(field => field.key === key)).filter((field): field is FormlyFieldConfig => !!field && !assigned.has(field));
+      if (fields.length) {
+        groups.push({ label: this.translationService.t(group.titleKey), fields });
+        fields.forEach(field => assigned.add(field));
+      }
+    }
+    const remaining = available.filter(field => !assigned.has(field));
+    if (this.longForm) {
+      // Keep top-level objects/arrays in schema order; collect scalar settings in one card.
+      const scalar = remaining.filter(field => !['object', 'array'].includes(String(field.type)) && field.type !== 'app-config-chips');
+      if (scalar.length) groups.push({ label: this.translationService.t('admin-config-general'), fields: scalar });
+      for (const field of remaining.filter(field => !scalar.includes(field))) groups.push({ label: field.props?.label || String(field.key), fields: [field] });
+    } else if (remaining.length || enabled && !groups.length) {
+      groups.push({ label: this.translationService.t(this.configKey === 'systemMessage' ? 'admin-config-banner' : this.configKey === 'webAnalytics' ? 'admin-config-analytics' : 'admin-config-settings'), fields: remaining });
+    }
+    this.sections = groups.map((group, index) => {
+      if (group.fields.length === 1 && group.fields[0].type === 'object') group.fields[0].props = { ...group.fields[0].props, flat: true };
+      const section: FormlyFieldConfig = {
+        type: 'app-config-section', wrappers: [], fieldGroup: group.fields,
+        props: { label: group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
+          summary: () => group.fields.some(hasEditableFields)
+            ? sectionSummary(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off'))
+            : this.translationService.t('admin-config-no-editable-settings'),
+          activate: () => { this.activeSection = `config-section-${index}`; } }
+      };
+      return section;
+    });
+    this.activeSection = 'config-section-0';
+    if (enabled && !this.longForm && this.configKey !== 'authorizedDomainsEmails' && this.sections.length) {
+      this.sections[0].fieldGroup!.unshift(enabled);
+      if (this.configKey === 'systemMessage') {
+        enabled.props!.label = this.translationService.t('admin-config-show-banner');
+        this.sections[0].props!.description = this.translationService.t('admin-config-banner-help');
+      }
+    }
+    root.fieldGroup = [...(enabled && (this.longForm || this.configKey === 'authorizedDomainsEmails') ? [enabled] : []), ...this.sections, ...children.filter(field => field.hide)];
+  }
+
+  get dirty(): boolean { return this.trackingReady && !isEqual(this.model, this.loadedModel); }
+  get enabledField(): FormlyFieldConfig | undefined {
+    return this.fields[0]?.fieldGroup?.find(field => field.key === 'enabled');
+  }
+
+  setEnabled(event: Event): void {
+    const value = (event.target as HTMLInputElement).checked;
+    this.enabledField?.formControl?.setValue(value);
+    this.model.enabled = value;
+  }
+
+  discard(): void {
+    const model = cloneDeep(this.loadedModel);
+    this.trackingReady = false;
+    this.model = model;
+    this.fields = [];
+    this.form = new FormGroup({});
+    this.options = {};
+    this.formSaveSuccessful = this.formSaveUnsuccessful = false;
+    // Custom editors retain local draft state. Recreate them so discard restores
+    // both their controls and their previews, without reapplying defaults over a saved model.
+    this.requestRender();
+    queueMicrotask(() => {
+      this.configureForm({ ...this.currentConfig!, model });
+      this.requestRender();
+    });
+  }
+
+  activateSection(section: FormlyFieldConfig): void {
+    section.props!['expanded'] = true;
+    this.activeSection = section.props!['sectionId'];
+    const element = this.document.getElementById(this.activeSection);
+    if (element instanceof HTMLDetailsElement) element.open = true;
+    element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  @HostListener('window:scroll')
+  updateActiveSection(): void {
+    if (!this.longForm) return;
+    const current = this.sections.filter(section => {
+      const element = this.document.getElementById(section.props!['sectionId']);
+      return element && element.getBoundingClientRect().top <= 120;
+    }).pop();
+    if (current) this.activeSection = current.props!['sectionId'];
+  }
+
+  openJson(): void {
+    this.jsonTrigger = this.document.activeElement as HTMLElement;
+    this.showJson = true;
+  }
+  closeJson(): void { this.showJson = false; this.jsonTrigger?.focus(); }
+  get jsonModel(): string {
+    const model = cloneDeep(this.model);
+    visitSecrets(model, this.secretFields, (parent, key) => { if (parent[key]) parent[key] = SECRET_MASK; });
+    return JSON.stringify(model, null, 2);
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.dirty && !this.allowLeave) { event.preventDefault(); event.returnValue = ''; }
+  }
+
+  @HostListener('document:click', ['$event'])
+  confirmNavigation(event: MouseEvent): void {
+    if (!this.dirty || this.allowLeave || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+    event.preventDefault();
+    this.jsonTrigger = this.document.activeElement as HTMLElement;
+    this.pendingLeave = anchor.href;
+  }
+  cancelLeave(): void { this.pendingLeave = ''; this.jsonTrigger?.focus(); }
+  leavePage(): void { this.allowLeave = true; this.window.location.assign(this.pendingLeave); }
 
   private applyCheckboxType(fields: FormlyFieldConfig[]): void {
     for (const field of fields) {
@@ -179,20 +385,39 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
-  onSubmit(model: any) {
+  async onSubmit(model: any): Promise<void> {
+    if (this.formSaving || !this.dirty) return;
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      const invalid = this.sections.find(section => section.fieldGroup?.some(field => !field.hide && field.formControl?.invalid));
+      if (invalid) this.activateSection(invalid);
+      this.options.showError = field => !!field.formControl?.invalid;
+      return;
+    }
     this.formSaving = true;
-    this.formSaveUnsuccessful = false;
-    this.formSaveSuccessful = false;
-    this.appConfigService.saveAppConfig(this.configKey, model).then((result: AppConfig) => {
+    this.formSaveUnsuccessful = this.formSaveSuccessful = false;
+    const payload = cloneDeep(model);
+    // Only the server's reserved marker preserves a stored secret. Never invent a masked value.
+    visitSecrets(payload, this.secretFields, (parent, key) => { if (parent[key] == null || parent[key] === '') parent[key] = SECRET_MASK; });
+    try {
+      await this.appConfigService.saveAppConfig(this.configKey, payload);
+      // Keep the form adapter's shape (e.g. DOI profiles) and clear newly entered secrets.
+      visitSecrets(model, this.secretFields, (parent, key) => { parent[key] = ''; });
+      const clearSecretControls = (fields: FormlyFieldConfig[]): void => {
+        for (const field of fields) {
+          if (field.props?.['secret']) field.formControl?.setValue('', { emitEvent: false });
+          if (field.fieldGroup) clearSecretControls(field.fieldGroup);
+        }
+      };
+      clearSecretControls(this.fields);
+      // Rebuilding here would reintroduce schema defaults into custom bindings.
+      this.loadedModel = cloneDeep(this.model);
+      this.form.markAsPristine();
       this.formSaveSuccessful = true;
-      setTimeout(() => {
-        this.formSaveSuccessful = false;
-      }, 3000);
-      this.formSaving = false;
-    }).catch((error: any) => {
-      this.formSaveSuccessful = false;
+    } catch (error) {
       this.formSaveUnsuccessful = true;
+    } finally {
       this.formSaving = false;
-    });
+    }
   }
 }

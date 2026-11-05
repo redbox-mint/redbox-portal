@@ -1,3 +1,13 @@
+import { Pipe, PipeTransform } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
+import { SectionTypeComponent } from './fieldTypes/section.type';
+import { SecretTypeComponent } from './fieldTypes/secret.type';
+import { ChipsTypeComponent } from './fieldTypes/chips.type';
+
+@Pipe({ name: 'i18next', standalone: false })
+class MockI18NextPipe implements PipeTransform {
+  transform(value: string, options?: any): string { return value; }
+}
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF, CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -64,7 +74,7 @@ describe('AppConfigComponent', () => {
     appConfigService = getStubAppConfigService();
     await TestBed.configureTestingModule({
       declarations: [
-        AppConfigComponent,
+        AppConfigComponent, MockI18NextPipe, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent,
         ArrayTypeComponent,
         ObjectTypeComponent,
         CheckboxTypeComponent,
@@ -75,10 +85,13 @@ describe('AppConfigComponent', () => {
         FigshareCategoryMappingEditorTypeComponent
       ],
       imports: [
-        ReactiveFormsModule,
+        ReactiveFormsModule, A11yModule,
         CommonModule,
         FormlyModule.forRoot({
           types: [
+            { name: 'app-config-section', component: SectionTypeComponent },
+            { name: 'app-config-secret', component: SecretTypeComponent },
+            { name: 'app-config-chips', component: ChipsTypeComponent },
             { name: 'array', component: ArrayTypeComponent },
             { name: 'object', component: ObjectTypeComponent },
             { name: 'textarea', component: FormlyFieldTextArea },
@@ -134,7 +147,7 @@ describe('AppConfigComponent', () => {
       fixture.detectChanges();
       await fixture.componentInstance.waitForInit();
       fixture.detectChanges();
-      const fields = fixture.componentInstance.fields[0].fieldGroup || [];
+      const fields = fixture.componentInstance.sections[0].fieldGroup || [];
       expect(fields.map(field => field.key)).toEqual(order?.length ? ['third', 'first', 'second'] : ['first', 'second', 'third']);
       expect(fixture.nativeElement.querySelectorAll('formly-field input').length).toBe(3);
       fixture.destroy();
@@ -153,7 +166,7 @@ describe('AppConfigComponent', () => {
     fixture.detectChanges();
     expect(component.loadPending).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain('Sign in again');
-    expect(fixture.nativeElement.textContent).toContain('Retry');
+    expect(fixture.nativeElement.textContent).toContain('admin-config-retry');
     read.and.callFake(original);
     await component.retryLoad();
     await component.waitForInit();
@@ -210,9 +223,10 @@ describe('AppConfigComponent', () => {
     expect(textArea).toBeTruthy();
     
     // There should be a submit button
-    const button = compiled.querySelector('button');
+    const button = compiled.querySelector('button[type=submit]');
     expect(button).toBeTruthy();
-    expect(button.textContent).toBe('Submit')
+    expect(button.textContent.trim()).toBe('admin-config-save');
+    expect(button.disabled).toBeTrue();
     
   });
 
@@ -251,7 +265,7 @@ describe('AppConfigComponent', () => {
     const compiled = fixture.debugElement.nativeElement;
     const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
 
-    expect(checkboxLabel?.textContent).toContain('enabled');
+    expect(checkboxLabel?.textContent).toContain('Enabled');
   });
 
   it('applies the checkbox type to boolean array items', async () => {
@@ -368,11 +382,30 @@ describe('AppConfigComponent', () => {
     expect(validationField?.hide).toBeTrue();
     expect(bindingField?.type).toBe('value-binding-editor');
 
-    app.onSubmit(app.model);
+    (app.model as any).defaultProfile = 'changedProfile';
+    await app.onSubmit(app.model);
     await fixture.whenStable();
 
-    expect(appConfigService.lastSavedModel).toBe(app.model);
+    expect(appConfigService.lastSavedModel).toEqual(app.model);
     expect(appConfigService.lastSavedModel.profiles[0].name).toBe('dataPublication');
+  });
+
+  it('keeps custom binding defaults from making a saved form dirty and recreates drafts on discard', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const component = fixture.componentInstance;
+    component.configKey = 'figsharePublishing';
+    fixture.detectChanges(); await component.waitForInit(); fixture.detectChanges(); await fixture.whenStable();
+    const bindingField = findFieldByKey(component.fields, 'title')!;
+    const editor = fixture.nativeElement.querySelector('formly-value-binding-editor-type');
+    component.model.metadata.title.path = 'changed.path';
+    await component.onSubmit(component.model);
+    expect(component.dirty).toBeFalse();
+    component.model.metadata.title.path = 'discard.this';
+    component.discard(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(component.model.metadata.title.path).toBe('changed.path');
+    expect(fixture.nativeElement.querySelector('formly-value-binding-editor-type')).not.toBe(editor);
+    expect(component.dirty).toBeFalse();
+    fixture.destroy();
   });
 
   it('shows the DOI field key on binding editors', async () => {
@@ -388,6 +421,211 @@ describe('AppConfigComponent', () => {
     const compiled = fixture.debugElement.nativeElement;
     expect(compiled.textContent).toContain('publicationYear');
     expect(compiled.textContent).toContain('Field Key');
+  });
+
+  async function renderConfig(data: any, key = 'test') {
+    spyOn(appConfigService, 'getAppConfigForm').and.resolveTo(data);
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    fixture.componentInstance.configKey = key;
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('tracks edits, undo-to-loaded values, discard and a successful save', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { title: { type: 'string', default: 'Default' } } }, model: {} });
+    const component = fixture.componentInstance;
+    expect(component.dirty).toBeFalse();
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('input');
+    input.value = 'Changed'; input.dispatchEvent(new Event('input')); fixture.detectChanges();
+    await fixture.whenStable();
+    expect(component.dirty).toBeTrue();
+    component.discard(); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(component.model.title).toBe('Default');
+    expect(component.dirty).toBeFalse();
+    const restoredInput: HTMLInputElement = fixture.nativeElement.querySelector('input');
+    restoredInput.value = 'Saved'; restoredInput.dispatchEvent(new Event('input')); fixture.detectChanges();
+    await fixture.whenStable();
+    await component.onSubmit(component.model);
+    expect(appConfigService.lastSavedModel).toEqual({ title: 'Saved' });
+    expect(component.formSaveSuccessful).toBeTrue();
+    expect(component.dirty).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('keeps a failed save dirty and does not allow duplicate saves', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { title: { type: 'string' } } }, model: { title: 'Original' } });
+    const component = fixture.componentInstance;
+    component.model.title = 'Changed';
+    const save = spyOn(appConfigService, 'saveAppConfig').and.rejectWith(new Error('offline'));
+    await component.onSubmit(component.model);
+    expect(component.dirty).toBeTrue();
+    expect(component.formSaveUnsuccessful).toBeTrue();
+    component.formSaving = true;
+    await component.onSubmit(component.model);
+    expect(save).toHaveBeenCalledTimes(1);
+    fixture.destroy();
+  });
+
+  it('renders secrets blank, preserves them on save and redacts new values from JSON and summaries', async () => {
+    const fixture = await renderConfig({
+      title: 'Secret config', secretFields: ['connection.password'],
+      schema: { type: 'object', properties: {
+        connection: { type: 'object', properties: { username: { type: 'string' }, password: { type: 'string' } } },
+        retry: { type: 'object', properties: { attempts: { type: 'number' } } }
+      } }, model: { connection: { username: 'admin', password: '__REDACTED__' }, retry: { attempts: 3 } }
+    });
+    const component = fixture.componentInstance;
+    expect(fixture.nativeElement.querySelector('input[type=password]').value).toBe('');
+    component.model.connection.username = 'new admin';
+    await component.onSubmit(component.model);
+    expect(appConfigService.lastSavedModel.connection.password).toBe('__REDACTED__');
+    component.model.connection.password = 'new-secret';
+    expect(component.jsonModel).not.toContain('new-secret');
+    expect(component.sections[0].props!['summary']()).not.toContain('new-secret');
+    await component.onSubmit(component.model);
+    expect(appConfigService.lastSavedModel.connection.password).toBe('new-secret');
+    expect(component.model.connection.password).toBe('');
+    fixture.destroy();
+  });
+
+  it('keeps required secrets when a typed replacement is cleared before saving', async () => {
+    const fixture = await renderConfig({ secretFields: ['connection.password'],
+      schema: { type: 'object', properties: { connection: { type: 'object', required: ['password'], properties: { password: { type: 'string' }, username: { type: 'string' } } } } },
+      model: { connection: { password: '__REDACTED__', username: 'original' } }
+    });
+    const password: HTMLInputElement = fixture.nativeElement.querySelector('input[type=password]');
+    password.value = 'replacement'; password.dispatchEvent(new Event('input')); fixture.detectChanges();
+    password.value = ''; password.dispatchEvent(new Event('input')); fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.componentInstance.model.connection.username = 'changed';
+    await fixture.componentInstance.onSubmit(fixture.componentInstance.model);
+    expect(appConfigService.lastSavedModel.connection.password).toBe('__REDACTED__');
+    expect(fixture.componentInstance.formSaveSuccessful).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('allows empty required arrays while retaining explicit minimum item counts', async () => {
+    const fixture = await renderConfig({
+      schema: { type: 'object', required: ['domainsAaf', 'emailsAaf'], properties: {
+        domainsAaf: { type: 'array', items: { type: 'string' }, default: [] },
+        emailsAaf: { type: 'array', items: { type: 'string' }, default: [] }
+      } }, model: { domainsAaf: [], emailsAaf: [] }
+    });
+    expect(fixture.componentInstance.form.valid).toBeTrue();
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-config-chips input');
+    input.value = 'example.invalid'; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
+    await fixture.whenStable();
+    await fixture.componentInstance.onSubmit(fixture.componentInstance.model);
+    expect(appConfigService.lastSavedModel).toEqual({ domainsAaf: ['example.invalid'], emailsAaf: [] });
+    fixture.destroy();
+  });
+
+  it('enforces minItems on a required array', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', required: ['values'], properties: { values: { type: 'array', minItems: 1, items: { type: 'string' } } } }, model: { values: [] } });
+    expect(fixture.componentInstance.form.invalid).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('shows an empty state for an unusable schema and notes for empty nested sections', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { empty: { type: 'object' } } }, model: { empty: { preserved: true } } });
+    expect(fixture.nativeElement.textContent).toContain('admin-config-not-setup');
+    expect(fixture.nativeElement.querySelector('button[type=submit]')).toBeNull();
+    fixture.destroy();
+  });
+
+  it('shows a no-editable-settings note alongside supported scalar fields', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { site: { type: 'string' }, empty: { type: 'object' } } }, model: { site: 'public', empty: { preserved: true } } });
+    expect(fixture.nativeElement.textContent).toContain('admin-config-no-editable-settings');
+    expect(fixture.componentInstance.model.empty).toEqual({ preserved: true });
+    fixture.destroy();
+  });
+
+  it('does not describe preserved opaque objects as empty in collapsed summaries', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      site: { type: 'string' }, sites: { type: 'object' }, mapping: { type: 'object' }
+    } }, model: { site: 'public', sites: { public: { token: 'preserved' } }, mapping: { title: 'metadata.title' } } });
+    expect(fixture.componentInstance.longForm).toBeTrue();
+    expect(fixture.componentInstance.sections[1].props!['summary']()).toBe('admin-config-no-editable-settings');
+    expect(fixture.componentInstance.model.sites).toEqual({ public: { token: 'preserved' } });
+    fixture.destroy();
+  });
+
+  it('groups partial presentation metadata without dropping fields or changing keys', async () => {
+    const fixture = await renderConfig({ sections: [{ titleKey: 'First', fields: ['second', 'unknown'] }],
+      schema: { type: 'object', properties: { first: { type: 'string' }, second: { type: 'string' }, third: { type: 'string' } } }, model: { first: 'a', second: 'b', third: 'c' } });
+    expect(fixture.componentInstance.sections.flatMap(section => section.fieldGroup!.map(field => field.key))).toEqual(['second', 'first', 'third']);
+    expect(fixture.componentInstance.model).toEqual({ first: 'a', second: 'b', third: 'c' });
+    fixture.destroy();
+  });
+
+  it('adds numeric chips with the original numeric array shape and supports removal', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { statuses: { type: 'array', items: { type: 'integer', minimum: 100 } } } }, model: { statuses: [408] } });
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-config-chips input');
+    expect(input).toBeTruthy();
+    input.value = '429'; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.model.statuses).toEqual([408, 429]);
+    expect(fixture.componentInstance.dirty).toBeTrue();
+    fixture.nativeElement.querySelector('.rb-admin-chip button').click(); fixture.detectChanges();
+    expect(fixture.componentInstance.model.statuses).toEqual([429]);
+    fixture.destroy();
+  });
+
+  it('preserves numeric zero in scalar arrays', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { values: { type: 'array', items: { type: 'number' } } } }, model: { values: [] } });
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-config-chips input');
+    input.value = '0'; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
+    await fixture.whenStable();
+    expect(fixture.componentInstance.model.values).toEqual([0]);
+    fixture.destroy();
+  });
+
+  it('rejects invalid numeric chips and clears their error when discarding', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { statuses: { type: 'array', items: { type: 'integer' } } } }, model: { statuses: [408] } });
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-config-chips input');
+    input.value = 'not a number'; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
+    expect(fixture.componentInstance.model.statuses).toEqual([408]);
+    expect(fixture.componentInstance.form.invalid).toBeTrue();
+    fixture.componentInstance.discard(); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.app-config-chips.is-invalid')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-config-chips input').value).toBe('');
+    fixture.destroy();
+  });
+
+  it('retains array-item validation after replacing scalar rows with chips', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { statuses: { type: 'array', items: { type: 'integer', minimum: 100 } } } }, model: { statuses: [408] } });
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-config-chips input');
+    input.value = '50'; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
+    expect(fixture.componentInstance.model.statuses).toEqual([408, 50]);
+    expect(fixture.componentInstance.form.invalid).toBeTrue();
+    const save = spyOn(appConfigService, 'saveAppConfig').and.resolveTo({});
+    await fixture.componentInstance.onSubmit(fixture.componentInstance.model);
+    expect(save).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
+  it('opens a leave warning for navigation and beforeunload only while dirty', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { title: { type: 'string' } } }, model: { title: 'Original' } });
+    const component = fixture.componentInstance;
+    component.model.title = 'Changed';
+    const event = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(event);
+    expect(event.defaultPrevented).toBeTrue();
+    const anchor = fixture.nativeElement.querySelector('.rb-admin-crumbs a');
+    anchor.click(); fixture.detectChanges();
+    expect(component.pendingLeave).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[role=alertdialog]')).toBeTruthy();
+    component.cancelLeave(); component.discard();
+    const pristine = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(pristine);
+    expect(pristine.defaultPrevented).toBeFalse();
+    fixture.destroy();
   });
 
 });

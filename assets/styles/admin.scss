@@ -246,6 +246,70 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-segmented { display: inline-flex; flex-wrap: wrap; gap: 0; }
   .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-heading); color: var(--admin-bg); }
 
+  // Generic app-config forms; navigation editors retain their own controls.
+  .app-config-page {
+    formly-field { display: block; min-width: 0; }
+    .app-config-fields { min-width: 0; padding: 0; margin: 0; border: 0; }
+    .app-config-layout { display: grid; gap: 20px; align-items: start; }
+    .app-config-long { grid-template-columns: 200px minmax(0, 1fr); }
+    .app-config-with-preview { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+    .rb-admin-section-rail { width: 100%; max-height: calc(100vh - 32px); overflow-y: auto; }
+    .app-config-form-main { min-width: 0; }
+    // Keep the existing Navigation editor preview inside the new page shell.
+    .home-panels-editor .preview-panel .preview-panels-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .app-config-wide-field { grid-column: 1 / -1; }
+    .app-config-array-item > formly-field { min-width: 0; }
+    .app-config-subsection { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--admin-line); }
+    .app-config-subsection:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+    .app-config-subsection-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .app-config-subsection h4 { font-size: 15px; margin: 0; }
+    .app-config-subsection .app-config-subsection { padding-left: 0; padding-right: 0; }
+    .app-config-section-title { min-width: 0; }
+    .app-config-summary { overflow-wrap: anywhere; }
+    .app-config-section-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .app-config-expand { font-size: 12.5px; color: var(--admin-muted); white-space: nowrap; }
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    .app-config-checkbox { padding: 0; margin: 0 0 12px; }
+    .app-config-checkbox-label { min-height: 26px; font-size: 14px; font-weight: 600; margin: 0; display: inline-flex; align-items: center; gap: 8px; }
+    .app-config-checkbox input { position: static; float: none; margin: 0; }
+    .app-config-checkbox.form-switch { padding: 0; margin: 0; }
+    .form-switch .form-check-input { width: 2.4em; height: 1.3em; margin-top: 0; }
+    .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
+    .app-config-page-switch { display: flex; align-items: center; gap: 8px; padding-left: 0; margin: 0; }
+    .app-config-page-switch input { float: none; margin-left: 0; }
+    .app-config-providers formly-object-type > formly-field { margin: 0; }
+    .app-config-providers formly-object-type { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .app-config-providers .rb-admin-form-section { height: 100%; margin-bottom: 0; }
+    .app-config-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 44px; height: auto; padding: 7px; }
+    .app-config-chips:focus-within { outline: 2px solid var(--admin-primary); outline-offset: 1px; }
+    .app-config-chips > input { flex: 1 1 150px; width: 100%; min-width: 0; border: 0; outline: 0; padding: 3px; background: transparent; color: var(--admin-ink); font: inherit; font-size: 14px; }
+    .rb-admin-chip { max-width: 100%; overflow-wrap: anywhere; }
+    .rb-admin-chip button { padding: 0 3px; border: 0; background: transparent; color: var(--admin-muted); font-size: 18px; line-height: 1; }
+    .app-config-invalid-chip { border-color: var(--admin-danger); }
+    .app-config-empty-section { margin: 0; }
+    .app-config-preview h2 { margin: 0 0 8px; font-size: 14px; }
+    .app-config-banner-preview { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); overflow: hidden; }
+    .app-config-preview-brand { height: 10px; background: var(--admin-brand); }
+    .app-config-preview-nav { height: 14px; background: var(--rb-main-menu-branding-background-color, var(--admin-heading)); }
+    .app-config-preview-body { padding: 16px; }
+    .app-config-preview-message { display: block; overflow-wrap: anywhere; }
+    .app-config-preview-message h4 { font-size: 16px; margin-bottom: 6px; }
+    .app-config-preview-message .btn-close { position: absolute; right: 12px; top: 12px; }
+    .app-config-state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); }
+    .app-config-dirty { color: color-mix(in srgb, var(--admin-warning) 25%, var(--admin-ink)); }
+    .app-config-dirty .app-config-state-dot { background: var(--admin-warning); }
+    .modal-title { font-size: 18px; margin: 0; }
+    .app-config-json { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: var(--admin-surface); color: var(--admin-ink); font-size: 13px; }
+    textarea.form-control { min-height: 120px; }
+    @media (max-width: 1199px) { .app-config-with-preview { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 767px) {
+      .app-config-long, .app-config-providers formly-object-type { grid-template-columns: minmax(0, 1fr); }
+      .rb-admin-section-rail { position: static; max-height: none; }
+      .app-config-section-actions { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; }
+    }
+  }
+
   .btn.rb-admin-ghost { color: var(--admin-ink); border: 1px solid transparent; background: transparent; &:hover { background: var(--admin-surface); } }
   .rb-admin-row-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; white-space: nowrap; }
   .rb-admin-overflow {
