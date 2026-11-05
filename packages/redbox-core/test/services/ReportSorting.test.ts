@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { NamedQueryResponseRecord } from '../../src/services/NamedQueryService';
 import * as sinon from 'sinon';
 import { reportSortFields, requestedReportSort } from '../../src/services/reports/sorting';
 import { ReportConfig, ReportSource } from '../../src/model/config/ReportConfig';
@@ -72,6 +75,36 @@ describe('Report server sorting', () => {
     for (const key of ['RBReport', 'NamedQueryService', 'BrandingService']) Reflect.deleteProperty(globalThis, key);
     sinon.restore();
   });
+
+  for (const directory of ['bootstrap-data', 'support/resources/development/bootstrap-data']) {
+    it(`maps the stock RDMP modified date and sorts before paging and CSV (${directory})`, async () => {
+      const root = resolve(__dirname, '../../../..', directory);
+      const report = Object.assign(new ReportConfig(), JSON.parse(readFileSync(resolve(root, 'reports/rdmpRecords.json'), 'utf8')), { name: 'rdmpRecords' });
+      const query = new NamedQueryConfig(JSON.parse(readFileSync(resolve(root, 'namedqueries/listRDMPRecords.json'), 'utf8')));
+      const modified = report.columns.find(c => c.label === 'Date Modified')!;
+      const row = new NamedQueryResponseRecord({ oid: 'record-1', title: 'RDMP', metadata: {},
+        lastSaveDate: '2026-11-05T12:00:00.000Z', dateCreated: '2026-11-01T12:00:00.000Z' });
+      assert.equal((row as any)[modified.property], row.lastSaveDate);
+      assert.equal(reportSortFields(report, query).get(modified.property), 'lastSaveDate');
+      (global as any).RBReport = { findOne: () => createQueryObject(report) };
+      (NamedQueryService.getNamedQueryConfig as sinon.SinonStub).resolves(query);
+      const execute = NamedQueryService.performNamedQueryFromConfig as sinon.SinonStub;
+      execute.resolves({ summary: { numFound: 1, page: 1 }, records: [row] });
+      const service = new Services.Reports();
+      const dto = await service.getReportDto(report as any, brand);
+      assert.equal(dto.columns.find(c => c.property === modified.property)?.sortable, true);
+      for (const direction of ['asc', 'desc']) {
+        const req = request({ sortField: modified.property, sortDirection: direction });
+        await service.getResults(brand, 'rdmpRecords', req, 10, 5);
+        assert.deepEqual(execute.lastCall.args[0].sort, [{ lastSaveDate: direction.toUpperCase() }]);
+        assert.deepEqual(execute.lastCall.args.slice(3), [10, 5]);
+        const csv = await service.getCSVResult(brand, 'rdmpRecords', req);
+        assert.deepEqual(execute.lastCall.args[0].sort, [{ lastSaveDate: direction.toUpperCase() }]);
+        assert.ok(JSON.stringify(csv).includes('2026-11-05'));
+      }
+      assert.deepEqual(query.sort, [{ lastSaveDate: 'DESC' }]);
+    });
+  }
 
   it('maps database envelope and direct output aliases, excluding computed and unsafe fields', () => {
     assert.deepEqual(

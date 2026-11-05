@@ -17,6 +17,8 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 ## Records and reporting
 
+Default RDMP modified-date mapping corrected on `admin-deferred/16-polish` in both bootstrap report definitions. The normal bootstrap path also repairs unchanged stock saved copies, guarded by their update timestamp. Customized reports remain installation-owned: change their Date Modified property to `lastSaveDate` using the report editor if they still reference `dateModified`.
+
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
 
