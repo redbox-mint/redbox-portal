@@ -180,6 +180,42 @@ describe('RecordContractCompiler and core contributors', function () {
     }
   });
 
+  it('keeps reusable display annotations specific to each usage', async function () {
+    const usage = (name: string, display: boolean): FormConfigFrame['componentDefinitions'][number] => ({ name,
+      component: { class: 'GroupComponent', config: { componentDefinitions: [{ name: 'usage',
+        component: { class: 'ReusableComponent', config: { componentDefinitions: display ? [{
+          name: 'title', component: { class: 'SimpleInputComponent' }, relatedDisplay: { relationId: 'activities' },
+        }] : [] } }, overrides: { reusableFormName: 'title' },
+      }] } },
+    });
+    const reusableFormDefinitions: ReusableFormDefinitions = { title: [{ name: 'title',
+      component: { class: 'SimpleInputComponent' } }] };
+    const contract = expectCompiled(await compiler().compile({ form: form([usage('a', true), usage('b', false)]),
+      reusableFormDefinitions, context: publicContext }));
+    const a = contract.root.properties.a;
+    const b = contract.root.properties.b;
+    expect(a.kind).to.equal('object');
+    expect(b.kind).to.equal('object');
+    if (a.kind !== 'object' || b.kind !== 'object') throw new Error('Expected groups');
+    expect(a.properties.title.annotations?.extensions?.['x-redbox-related-display']).to.have.property('relationId', 'activities');
+    expect(b.properties.title.annotations?.extensions?.['x-redbox-related-display']).to.equal(undefined);
+    expect(a.properties.title.definitionKey).not.to.equal(b.properties.title.definitionKey);
+  });
+
+  it('compiles explicitly flattened reusable metadata paths', async function () {
+    const usage: ReusableFormComponentDefinitionFrame = { name: 'wrapper',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [{ name: 'template',
+        component: { class: 'GroupComponent' }, overrides: { replaceName: '' } }] } },
+      overrides: { reusableFormName: 'flattened' } };
+    const reusableFormDefinitions: ReusableFormDefinitions = { flattened: [{ name: 'template',
+      component: { class: 'GroupComponent', config: { componentDefinitions: [{ name: 'title',
+        component: { class: 'SimpleInputComponent' }, relatedDisplay: { relationId: 'activities' } }] } } }] };
+    const contract = expectCompiled(await compiler().compile({ form: form([usage]), reusableFormDefinitions, context: publicContext }));
+    expect(contract.root.properties).to.have.property('title');
+    expect(contract.root.properties).not.to.have.property('wrapper');
+    expect(contract.fieldOwners).to.have.property('/title');
+  });
+
   it('shares unnamed reusable wrapper metadata paths with related-display compilation', async function () {
     const usage: ReusableFormComponentDefinitionFrame = { name: 'actual',
       component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
@@ -814,8 +850,8 @@ describe('RecordContractCompiler and core contributors', function () {
       '/contributor_ci/email',
       '/contributor_data_creator/name',
       '/contributor_data_creator/email',
-      '/contributors/__record_schema_item/name',
-      '/contributors/__record_schema_item/email'
+      '/contributors/name',
+      '/contributors/email'
     );
     expect(contract.root.properties.contributors.kind).to.equal('array');
     if (contract.root.properties.contributors.kind === 'array') {

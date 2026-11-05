@@ -368,6 +368,9 @@ export class FormOverride {
     reusableFormDefs: ReusableFormDefinitions,
     visitedReusableFormNames: Set<string> = new Set<string>()
   ): AvailableFormComponentDefinitionFrames[] {
+    if (item.relatedDisplay !== undefined) {
+      throw new Error('Declare relatedDisplay on the effective reusable field or group, not on a ReusableComponent usage.');
+    }
     const reusableFormName = item?.overrides?.reusableFormName ?? '';
 
     if (visitedReusableFormNames.has(reusableFormName)) {
@@ -2064,7 +2067,7 @@ export function effectiveReusableComponents<T extends import('./form-component.o
   expanded: readonly T[]
 ): T[] {
   return expanded.map(component => {
-    if (component.name || !wrapper.name) return component;
+    if (component.name || !wrapper.name || component.overrides?.replaceName === '') return component;
     const overrides = { ...component.overrides };
     delete overrides.replaceName;
     return { ...component, name: wrapper.name,

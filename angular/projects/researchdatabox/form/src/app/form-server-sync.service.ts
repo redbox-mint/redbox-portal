@@ -349,7 +349,11 @@ export class FormServerSyncService {
     // Phase 2 observes actual references after successful, failed, and restored
     // concurrent writes from phase 1. Each target failure remains independent.
     try {
-      for (const [target, latest] of pendingTargets) await writeDisplay(target, latest);
+      for (const [target, latest] of pendingTargets) {
+        // Targets not overwritten by an ancestor still contain source updates,
+        // including silent population while any phase-one setter was awaiting.
+        await writeDisplay(target, latest ?? (!appliedTargets.has(target) ? form.getRawValue() : undefined));
+      }
     } finally {
       for (const subscription of targetSubscriptions) subscription?.unsubscribe();
     }

@@ -787,7 +787,15 @@ export class RecordContractCompiler {
         if (node.definitionKey) {
           return [propertyName, node] as const;
         }
-        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}`;
+        const propertyPointer = appendRecordContractPointer(parent, recordContractPointerFromTokens([propertyName]));
+        // A reusable's structure can have different transient display rules per usage.
+        // Scope the definition by relative targets so equivalent usages still share it.
+        const displays = [...(state.displayTargets ?? [])]
+          .filter(([path]) => path === propertyPointer || path.startsWith(propertyPointer + '/'))
+          .map(([path, relationId]) => [path.slice(propertyPointer.length), relationId])
+          .sort(([left], [right]) => left.localeCompare(right));
+        const displayKey = displays.length ? `:display:${JSON.stringify(displays)}` : '';
+        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}${displayKey}`;
         const referencedNode: ContractNode = { ...node, definitionKey };
         const prior = state.definitions[definitionKey];
         if (prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {

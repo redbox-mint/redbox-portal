@@ -34,6 +34,26 @@ const source = (config = {}): any => ({
 });
 
 describe('related display descriptors', () => {
+  it('rejects display declarations on reusable usages, including nested usages', () => {
+    const usage: any = { name: 'wrapper', relatedDisplay: { relationId: 'activities' },
+      component: { class: 'ReusableComponent' }, overrides: { reusableFormName: 'fields' } };
+    const definitions: any = { fields: [input('title')] };
+    expect(() => compile(form(usage), definitions)).to.throw('Declare relatedDisplay on the effective reusable');
+    definitions.nested = [usage];
+    expect(() => compile(form({ ...usage, relatedDisplay: undefined,
+      overrides: { reusableFormName: 'nested' } }), definitions)).to.throw('Declare relatedDisplay on the effective reusable');
+  });
+
+  it('preserves explicitly flattened reusable groups', () => {
+    const usage: any = { name: 'wrapper', component: { class: 'ReusableComponent', config: {
+      componentDefinitions: [{ name: 'template', component: { class: 'GroupComponent' }, overrides: { replaceName: '' } }],
+    } }, overrides: { reusableFormName: 'fields' } };
+    const definitions: any = { fields: [group('template', [input('title', 'activities')])] };
+    expect(compile(form(usage), definitions)?.displayTargets).to.deep.equal([
+      { metadataPointer: '/title', relationId: 'activities' },
+    ]);
+  });
+
   it('ignores unrelated opted-in reusables for a legacy hook component', () => {
     const legacy = form({ name: 'custom', component: { class: 'HookCustomComponent' } });
     expect(compile(legacy)).to.equal(undefined);
