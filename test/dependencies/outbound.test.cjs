@@ -110,19 +110,22 @@ test('follow-redirects protects custom credential names and array-form headers',
   const target = await server(t, (req, res) => { reached++; res.end(JSON.stringify(req.headers)); });
   const source = await server(t, (req, res) => { res.writeHead(302, { Location: target }); res.end(); });
   const headers = { 'X-Api^Key': 'secret', 'X-Token|Secret': 'secret', Authorization: 'Bearer secret', Cookie: 'private', 'X-Public': 'ok' };
-  const send = headers => new Promise((resolve, reject) => {
-    follow.http.get(source, { headers, sensitiveHeaders: ['X-Api^Key', 'X-Token|Secret'] }, res => {
+  const send = (headers, sensitiveHeaders) => new Promise((resolve, reject) => {
+    follow.http.get(source, { headers, sensitiveHeaders }, res => {
       let body = '';
       res.on('data', chunk => { body += chunk; });
       res.on('end', () => resolve(JSON.parse(body)));
     }).on('error', reject);
   });
+  const crossRealm = require('node:vm').runInNewContext("['X-Api^Key', 'X-Token|Secret']");
   for (const supplied of [headers, Object.entries(headers).flat()]) {
-    const received = await send(supplied);
-    assert.equal(received['x-public'], 'ok');
-    for (const key of ['x-api^key', 'x-token|secret', 'authorization', 'cookie']) assert.equal(received[key], undefined);
+    for (const sensitiveHeaders of [['X-Api^Key', 'X-Token|Secret'], crossRealm]) {
+      const received = await send(supplied, sensitiveHeaders);
+      assert.equal(received['x-public'], 'ok');
+      for (const key of ['x-api^key', 'x-token|secret', 'authorization', 'cookie']) assert.equal(received[key], undefined);
+    }
   }
-  assert.equal(reached, 2);
+  assert.equal(reached, 4);
 });
 
 test('Sails socket virtual requests retain IPv4/IPv6 trust boundaries and IP attribution', () => {
@@ -234,7 +237,8 @@ test('YAML loaders, glob expansion, temporary files and Moment preserve consumer
 test('legacy and current glob consumers bound hostile brace expansion', () => {
   const shell = createRequire(root.resolve('shelljs/package.json'));
   const glob = createRequire(core.resolve('glob/package.json'));
-  for (const consumer of [shell, root, glob]) {
+  const mocha = createRequire(root.resolve('mocha/package.json'));
+  for (const consumer of [shell, mocha, glob]) {
     const matcher = createRequire(consumer.resolve('minimatch/package.json'));
     const brace = matcher('brace-expansion');
     const expand = typeof brace === 'function' ? brace : brace.expand;
