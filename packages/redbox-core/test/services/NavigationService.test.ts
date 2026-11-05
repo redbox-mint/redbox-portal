@@ -235,6 +235,20 @@ describe('NavigationService', function () {
         .map((link: any) => link.href)).to.deep.equal(['/default/portal/admin/reports']);
     });
 
+    it('highlights Parties for old bookmarks and saved legacy sidebar links', async function () {
+      for (const href of ['/admin/parties', '/dashboard/party']) {
+        mockSails.config.brandingAware.returns({ adminSidebar: {
+          sections: [{ id: 'lookups', titleKey: 'admin-nav-lookups', items: [{ id: 'party', labelKey: 'admin-nav-party', href }] }]
+        } });
+        for (const route of ['/admin/parties', '/dashboard/party']) {
+          const result = await NavigationService.resolveAdminSidebar({
+            isAuthenticated: () => true, user: { roles: ['Admin'] }, path: '/default/portal' + route
+          });
+          expect(result.sections[0].items[0].active).to.equal(true);
+        }
+      }
+    });
+
     it('keeps records and reporting visible to other authenticated roles', async function () {
       mockSails.config.brandingAware.returns({});
       (global as any).UsersService.hasRole.returns(false);

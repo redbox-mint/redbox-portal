@@ -45,6 +45,11 @@ interface StepState {
   standalone: false
 })
 export class DashboardComponent extends BaseComponent {
+  adminParties = false;
+  readonly partyLookupFilters: FilterField[] = [
+    { name: 'admin-parties-name', path: 'metadata.fullName' },
+    { name: 'admin-parties-email', path: 'metadata.email' }
+  ];
   config: any = {};
   branding: string = '';
   portal: string = '';
@@ -99,6 +104,7 @@ export class DashboardComponent extends BaseComponent {
     elementRef: ElementRef
   ) {
     super();
+    this.adminParties = elementRef.nativeElement.getAttribute('adminParties') === 'true';
     this.recordType = _trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _trim(elementRef.nativeElement.getAttribute('packageType'));
     this.dashboardView = _trim(elementRef.nativeElement.getAttribute('dashboardView'));
@@ -703,6 +709,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   private getFirstTextFilter(step: string): FilterField {
+    if (this.adminParties) return this.partyLookupFilters[0];
     for (const queryFilter of this.getQueryFilters(step)) {
       if (queryFilter.filterType == 'text' && !_isEmpty(queryFilter.filterFields)) {
         return queryFilter.filterFields[0];
@@ -718,6 +725,9 @@ export class DashboardComponent extends BaseComponent {
         filterFields.push(...(queryFilter.filterFields ?? []));
       }
     }
+    if (this.adminParties) {
+      return [...this.partyLookupFilters, ...filterFields.filter(field => !this.partyLookupFilters.some(item => item.path === field.path))];
+    }
     return filterFields;
   }
 
@@ -725,7 +735,7 @@ export class DashboardComponent extends BaseComponent {
     return this.stepState[step]?.filterField?.name ?? this.defaultFilterField.name;
   }
 
-  private getFilterFieldPath(step: string): string {
+  public getFilterFieldPath(step: string): string {
     return this.stepState[step]?.filterField?.path ?? this.defaultFilterField.path;
   }
 
@@ -809,6 +819,20 @@ export class DashboardComponent extends BaseComponent {
     } finally {
       this.isSearching[step] = '';
     }
+  }
+
+  public selectAdminFilter(step: string, path: string): void {
+    const field = this.getTextFilters(step).find(item => item.path === path);
+    if (field) this.setFilterField(step, field, null);
+  }
+
+  public partyPageStart(step: string): number {
+    const page = this.records[step];
+    return page?.totalItems ? ((page.currentPage || 1) - 1) * 10 + 1 : 0;
+  }
+
+  public partyPageEnd(step: string): number {
+    return this.records[step]?.totalItems ? this.partyPageStart(step) + this.records[step].items.length - 1 : 0;
   }
 
   public setFilterField(step: string, filterField: FilterField, e: any) {

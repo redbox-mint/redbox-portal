@@ -102,6 +102,16 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).TranslationService = originalTranslationService;
   });
 
+  it('renders the admin Parties route with the existing party dashboard', () => {
+    const sendView = sinon.stub(controller as any, 'sendView');
+    const req = { options: { locals: {} }, param: sinon.stub(), session: { branding: 'default' } } as unknown as Sails.Req;
+    const res = {} as Sails.Res;
+    controller.renderParties(req, res);
+    expect(routes['get /:branding/:portal/admin/parties']).to.equal('RecordController.renderParties');
+    expect(sendView.firstCall.args[2]).to.equal('dashboard');
+    expect(sendView.firstCall.args[3]).to.include({ recordType: 'party', packageType: 'party', adminParties: true, showAdminSideBar: true });
+  });
+
   describe('metadata update timestamps', () => {
     let originalZone: typeof Settings.defaultZone;
 

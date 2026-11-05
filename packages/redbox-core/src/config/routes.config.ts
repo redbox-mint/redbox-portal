@@ -329,6 +329,7 @@ export const routes: RoutesConfig = {
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
   'get /:branding/:portal/dashboard/consolidated': 'RecordController.redirectLegacyConsolidatedDashboard',
+  'get /:branding/:portal/admin/parties': 'RecordController.renderParties',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
   'get /:branding/:portal/listRecords': 'RecordController.getRecordList',

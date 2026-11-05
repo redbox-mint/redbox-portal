@@ -113,6 +113,25 @@ describe('DashboardComponent', () => {
       });
     });
 
+    it('submits admin party name and email searches through the existing record query', async () => {
+      const component = create();
+      component.adminParties = true;
+      recordService.getWorkflowSteps.and.resolveTo([{ name: 'draft', config: { workflow: { stage: 'draft', stageLabel: 'Draft' }, displayIndex: 1 } }]);
+      recordService.getDashboardSettings.and.resolveTo({
+        revision: 7,
+        targets: { draft: { settings: settings('Party', { formatRules: { queryFilters: { rdmp: [{ filterType: 'text', filterFields: [{ name: 'Title', path: 'metadata.title' }] }] } } }), fingerprint: 'fp-party' } },
+      });
+      await init(component);
+      expect(component.getFilterFieldPath('draft')).toBe('metadata.fullName');
+      expect(component.getTextFilters('draft').map(field => field.path)).toContain('metadata.title');
+      component.selectAdminFilter('draft', 'metadata.email');
+      component.filterSearchString['draft'] = 'zoe@example.edu';
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.email', 'zoe@example.edu', '']);
+      await component.resetFilterAndSearch('draft', { preventDefault() {} });
+      expect(component.getFilterFieldPath('draft')).toBe('metadata.fullName');
+    });
+
     it('retains its stage snapshot and resets the actual paginator after a failed page then retries', async () => {
       const config = TestBed.inject(ConfigService) as any;
       config.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
