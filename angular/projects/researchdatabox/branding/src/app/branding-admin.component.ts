@@ -3,7 +3,7 @@ import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDatePipe, BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import {
   BRANDING_TYPEFACE_SLOTS,
@@ -45,7 +45,7 @@ interface TypefaceSlotCard {
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe],
+  imports: [CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe, AdminDatePipe],
   providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {

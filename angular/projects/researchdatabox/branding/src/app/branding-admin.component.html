@@ -452,7 +452,7 @@
                     'branding-history-active' | i18next
                   }}</span>
                 </td>
-                <td>{{ version.dateCreated | date: 'medium' }}</td>
+                <td>{{ version.dateCreated | adminDate }}</td>
                 <td>{{ version.actorDisplayName || version.actorId || '–' }}</td>
                 <td>{{ typefaceSummary(version.typeface) }}</td>
                 <td class="text-end">

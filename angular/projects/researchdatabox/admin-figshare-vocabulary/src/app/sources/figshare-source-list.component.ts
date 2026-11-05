@@ -1,6 +1,6 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FigshareSourceSummary } from '../services/figshare-vocabulary-api.service';
-import { formatFigshareTimestamp } from '../figshare-format';
 
 @Component({
   selector: 'figshare-source-list',
@@ -8,6 +8,7 @@ import { formatFigshareTimestamp } from '../figshare-format';
   standalone: false
 })
 export class FigshareSourceListComponent {
+  readonly adminDates = inject(AdminDateService);
   @Input() sources: FigshareSourceSummary[] = [];
   @Input() total = 0;
   @Input() scopeFilter: '' | 'public' | 'account' = '';
@@ -32,7 +33,7 @@ export class FigshareSourceListComponent {
   }
 
   formatDate(value?: string | null): string {
-    return formatFigshareTimestamp(value);
+    return this.adminDates.format(value);
   }
 
   isBusy(source: FigshareSourceSummary): boolean {

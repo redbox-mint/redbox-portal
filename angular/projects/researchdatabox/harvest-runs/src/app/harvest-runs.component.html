@@ -44,7 +44,7 @@
           </div>
           <div class="rb-admin-field">
             <label for="harvest-runs-source-name">{{ 'harvest-runs-filter-source' | i18next }}</label>
-            <input id="harvest-runs-source-name" type="text" class="form-control" [(ngModel)]="filters.sourceName" name="sourceName">
+            <input id="harvest-runs-source-name" type="text" class="form-control" [(ngModel)]="filters.sourceName" name="sourceName" [placeholder]="'admin-harvest-source-placeholder' | i18next">
           </div>
           <div class="rb-admin-field">
             <label for="harvest-runs-date-from">{{ 'harvest-runs-filter-date-from' | i18next }}</label>

@@ -1,4 +1,5 @@
-import { Component, Inject } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, Inject, inject } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkMapping,
@@ -11,7 +12,6 @@ import {
   FigshareTaxonomySummary,
   FigshareVocabularyApiService
 } from './services/figshare-vocabulary-api.service';
-import { formatFigshareTimestamp } from './figshare-format';
 import { FigshareImportRequest } from './import/figshare-import-wizard.component';
 import { PreviewFilterState } from './sync-preview/figshare-sync-preview.component';
 import { MappingChangeRequest, MappingSearchState } from './crosswalks/figshare-crosswalk-editor.component';
@@ -26,6 +26,7 @@ const MAPPING_PAGE_SIZE = 50;
   standalone: false
 })
 export class AdminFigshareVocabularyComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
   public view: FigshareView = 'sources';
   public message = '';
   public error = '';
@@ -520,7 +521,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   public formatDate(value?: string | null): string {
-    return formatFigshareTimestamp(value);
+    return this.adminDates.format(value);
   }
 
   public scopeLabelKey(scope: string): string {

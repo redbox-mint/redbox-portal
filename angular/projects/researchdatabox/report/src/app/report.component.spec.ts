@@ -274,6 +274,17 @@ describe('ReportComponent', () => {
     fixture.destroy();
   });
 
+  it('uses concise stock filter labels while preserving configured custom labels', () => {
+    translationService.translationMap['admin-report-modified-from'] = 'Modified from';
+    translationService.translationMap['custom-period'] = 'Archive review';
+    translationService.translationMap['report-filter-date-to'] = 'to';
+    const app = TestBed.createComponent(ReportComponent).componentInstance;
+    const stock = mockReportData.reportConfig.filter[0];
+    expect(app.filterLabel(stock, 'fromDate')).toBe('Modified from');
+    expect(app.filterLabel({ ...stock, message: 'custom-period' }, 'toDate')).toBe('Archive review to');
+    expect(stock.message).toBe('Filter by date modified');
+  });
+
   it('shows only applied filters, removes one chip and clears filters', async () => {
     const fixture = TestBed.createComponent(ReportComponent);
     fixture.detectChanges();

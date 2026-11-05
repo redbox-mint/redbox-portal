@@ -1,5 +1,6 @@
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
 import { NgModel } from '@angular/forms';
-import { Component, Inject, ElementRef } from '@angular/core';
+import { Component, Inject, ElementRef, inject } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import {
   BaseComponent,
@@ -45,6 +46,7 @@ interface StepState {
   standalone: false
 })
 export class DashboardComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
   adminParties = false;
   readonly partyLookupFilters: FilterField[] = [
     { name: 'admin-parties-name', path: 'metadata.fullName' },
@@ -455,7 +457,11 @@ export class DashboardComponent extends BaseComponent {
     const record: any = {};
     for (let i = 0; i < rows.length; i++) {
       const columnConfig = rows[i];
-      record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
+      const dateColumn = ['dateCreated', 'dateModified', 'dateDeleted'].includes(columnConfig.variable)
+        && /^\{\{formatDateLocale\s+\w+\s+"DATETIME_\w+"\}\}$/.test(columnConfig.template);
+      record[columnConfig.variable] = this.adminParties && dateColumn
+        ? this.adminDates.format(imports[columnConfig.variable])
+        : this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
     }
     return record;
   }

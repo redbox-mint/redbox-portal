@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, Inject, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
@@ -37,6 +38,7 @@ interface ExportFormatOption {
   standalone: false
 })
 export class ExportComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
   pendingDelete: ExportJobDto | null = null;
   private modalTrigger: HTMLElement | null = null;
   datePickerPlaceHolder = '';
@@ -85,7 +87,8 @@ export class ExportComponent extends BaseComponent {
     this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerOpts', {
       dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue'
     });
-    this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerPlaceHolder', 'dd/mm/yyyy');
+    this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
+    this.datePickerPlaceHolder = this.adminDates.placeholder;
     this.exportFormatTypes = ConfigService._getAppConfigProperty(sysConfig, appName, 'exportFormatTypes', [
       { name: 'CSV', id: 'csv', checked: 'true' }, { name: 'JSON', id: 'json', checked: null }
     ]);

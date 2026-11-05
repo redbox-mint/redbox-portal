@@ -1,4 +1,4 @@
-import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDateService, formatAdminDate, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { AdminFigshareVocabularyComponent } from './admin-figshare-vocabulary.component';
 import { FigshareVocabularyApiService } from './services/figshare-vocabulary-api.service';
@@ -10,6 +10,7 @@ describe('AdminFigshareVocabularyComponent', () => {
   beforeEach(() => {
     const injector = Injector.create({
       providers: [
+        { provide: AdminDateService, useValue: { format: formatAdminDate } },
         { provide: ChangeDetectorRef, useValue: jasmine.createSpyObj<ChangeDetectorRef>('ChangeDetectorRef', ['detectChanges']) },
         { provide: NgZone, useValue: jasmine.createSpyObj<NgZone>('NgZone', ['run']) },
         { provide: ApplicationRef, useValue: jasmine.createSpyObj<ApplicationRef>('ApplicationRef', ['tick']) }
