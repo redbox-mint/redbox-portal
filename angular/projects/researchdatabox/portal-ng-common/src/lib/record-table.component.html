@@ -8,14 +8,14 @@
               @for (col of columnConfig; track col) {
                 @if (!col.hide) {
                   <th>
-                    @if (enableSort) {
+                    @if (enableSort && col.sortable !== false) {
                       <header-sort
                         [title]="col.label | i18next"
                         [variable]="col.property"
                         (headerSortChanged)="dataSource.headerSortChanged($event, col); headerSortChanged($event, col);">
                       </header-sort>
                     }
-                    @if (!enableSort) {
+                    @if (!enableSort || col.sortable === false) {
                       <span
                         class="record-table-heading-no-sort">
                         {{col.label | i18next}}

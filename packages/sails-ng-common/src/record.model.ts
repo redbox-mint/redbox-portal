@@ -21,6 +21,8 @@
  * Defines the property/column rendering configuration
  */
 export interface RecordPropViewMetaDto {
+  /** Server-side sort capability, when provided by the source. */
+  sortable?: boolean;
   /**
    * control visibility
    *

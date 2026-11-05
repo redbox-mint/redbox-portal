@@ -19,8 +19,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Report view | Sorting across all result pages | Result endpoints apply fixed Solr / named-query ordering and accept no sort parameter. Headers sort the currently loaded page; global sorting needs validated sort parameters for both sources. |
-| Report view | Source and named-query metadata in the description | The report-view DTO strips `reportSource` and `databaseQuery`; expose these existing config fields to report viewers. The view renders them when available and otherwise shows a general description. |
 | Named queries | "Used by" column (which reports/dashboards use a query) | Needs a reverse-reference lookup across report and dashboard config |
 | Harvest runs | Global statistics (runs / failed in last 7 days, running now, last successful run) | The list API returns a filtered, paginated page and its count. Accurate cross-page statistics need an aggregate summary endpoint. |
 | Export | Cancel a preparing export | The job API only removes terminal jobs; cancellation needs a worker cancellation API and job-state handling. |
