@@ -40,6 +40,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
     await Promise.all([this.loadQueries(), this.loadCollections()]);
   }
 
@@ -62,6 +63,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   get totalQueries(): number {
     return this.queries.length;
+  }
+
+  get presentCollections(): string[] {
+    return [...new Set(this.queries.map(query => query.collectionName).filter(Boolean))].sort();
   }
 
   get uniqueCollections(): number {
@@ -98,20 +103,18 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   onListQueryChanged(query: NamedQueryListQueryState): void {
-    this.listQuery = { searchTerm: String(query.searchTerm ?? '') };
+    this.listQuery = { searchTerm: String(query.searchTerm ?? ''), collection: query.collection || '' };
     this.applyFilter();
   }
 
   private applyFilter(): void {
     const term = this.listQuery.searchTerm.trim().toLowerCase();
-    if (!term) {
-      this.filteredQueries = [...this.queries];
-      return;
-    }
+
     this.filteredQueries = this.queries.filter(q => {
       const name = (q.name || '').toLowerCase();
       const collection = (q.collectionName || '').toLowerCase();
-      return name.includes(term) || collection.includes(term);
+      return (!this.listQuery.collection || q.collectionName === this.listQuery.collection) &&
+        (name.includes(term) || collection.includes(term));
     });
   }
 
@@ -291,7 +294,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   private rememberDeleteModalTrigger(): void {
     const el = document.activeElement;
-    this.deleteModalTrigger = el instanceof HTMLElement ? el : null;
+    this.deleteModalTrigger = el instanceof HTMLElement ? el.closest('details')?.querySelector('summary') ?? el : null;
   }
 
   private restoreEditModalTrigger(): void {

@@ -63,6 +63,19 @@ describe('NqListComponent', () => {
     expect(query).toEqual({ searchTerm: 'search' });
   }));
 
+  it('keeps collection when searching and uses the latest text when switching collection', fakeAsync(() => {
+    component.query = { searchTerm: '', collection: 'record' };
+    const emit = spyOn(component.queryChanged, 'emit');
+    component.onSearchTermChanged('alpha');
+    tick(250);
+    expect(emit).toHaveBeenCalledWith({ searchTerm: 'alpha', collection: 'record' });
+    component.onSearchTermChanged('beta');
+    component.setCollection('user');
+    tick(250);
+    expect(emit.calls.count()).toBe(2);
+    expect(emit).toHaveBeenCalledWith({ searchTerm: 'beta', collection: 'user' });
+  }));
+
   it('clears debounce timer on destroy', fakeAsync(() => {
     component.onSearchTermChanged('test');
     expect((component as any).searchDebounceTimer).toBeTruthy();
