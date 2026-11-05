@@ -7,9 +7,13 @@
 <%- include('../default/admin/layout/start.ejs') %>
 <%- include('../default/admin/layout/page-header.ejs', {
   breadcrumbs: [{ labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' }, { labelKey: 'admin-nav-lookups' }, { labelKey: 'admin-nav-party' }],
-  titleKey: 'admin-nav-party', descriptionKey: 'admin-parties-description'
+  titleKey: req.query.import === 'csv' ? 'admin-parties-import-title' : 'admin-nav-party', descriptionKey: 'admin-parties-description',
+  actions: req.query.import === 'csv' ? [{ labelKey: 'admin-parties-back', href: BrandingService.getBrandAndPortalPath(req) + '/admin/parties' }] : [
+    { labelKey: 'admin-parties-import-title', href: BrandingService.getBrandAndPortalPath(req) + '/admin/parties?import=csv' },
+    { labelKey: 'admin-parties-add', href: BrandingService.getBrandAndPortalPath(req) + '/record/party/edit?returnTo=parties', primary: true }
+  ]
 }) %>
-<dashboard recordType="party" packageType="party" dashboardType="standard" adminParties="true" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+<dashboard recordType="party" packageType="party" dashboardType="standard" adminParties="true" adminPartyImport="<%= req.query.import === 'csv' %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
   <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
 </dashboard>
 <%- include('../default/admin/layout/end.ejs') %>

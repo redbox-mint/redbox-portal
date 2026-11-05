@@ -1,0 +1,26 @@
+<p class="alert alert-info">{{ 'admin-parties-import-help' | i18next }}</p>
+@if (error) { <div class="alert alert-danger" role="alert">{{ error | i18next }}</div> }
+<section class="rb-admin-form-section">
+  <div class="rb-admin-form-section-header"><h2>{{ 'admin-parties-import-upload' | i18next }}</h2></div>
+  <div class="rb-admin-form-section-body"><label for="party-csv">{{ 'admin-parties-import-file' | i18next }}</label><input id="party-csv" type="file" class="form-control" accept=".csv,text/csv" [disabled]="busy" (change)="chooseFile($event)" /><p class="rb-admin-hint">{{ 'admin-parties-import-limits' | i18next }}</p></div>
+</section>
+@if (headers.length) {
+<section class="rb-admin-form-section">
+  <div class="rb-admin-form-section-header"><h2>{{ 'admin-parties-import-mapping' | i18next }}</h2><span>{{ filename }} · {{ total }}</span></div>
+  <div class="rb-admin-form-section-body"><div class="rb-admin-form-grid">
+    @for (field of fields; track field) {
+    <div><label [for]="'mapping-' + field">{{ ('admin-parties-field-' + field) | i18next }}</label><select class="form-select" [id]="'mapping-' + field" [disabled]="busy || !!results" [(ngModel)]="mapping[field]" (ngModelChange)="clearPreview()"><option [ngValue]="null">{{ 'admin-parties-import-ignore' | i18next }}</option>@for (header of headers; track $index) { <option [ngValue]="$index">{{ $index + 1 }}. {{ header }}</option> }</select></div>
+    }
+  </div>
+  <div class="table-responsive mt-3"><table class="table"><caption>{{ 'admin-parties-import-sample' | i18next }}</caption><thead><tr>@for (header of headers; track $index) {<th>{{ header }}</th>}</tr></thead><tbody>@for (row of sample; track $index) {<tr>@for (cell of row; track $index) {<td>{{ cell }}</td>}</tr>}</tbody></table></div>
+  <button type="button" class="btn btn-outline-secondary" [disabled]="busy || !!results" (click)="run('preview')">{{ 'admin-parties-import-preview' | i18next }}</button></div>
+</section>
+}
+@if (preview || results) {
+<div class="card"><div class="card-header"><h2>{{ (results ? 'admin-parties-import-results' : 'admin-parties-import-preview') | i18next }}</h2>@if (!results) {<span>{{ 'admin-parties-import-counts' | i18next: { valid: preview.valid, invalid: preview.invalid } }}</span>}</div>
+<div class="table-responsive"><table class="table table-hover"><thead><tr><th>{{ 'admin-parties-import-row' | i18next }}</th><th>{{ 'admin-parties-name' | i18next }}</th><th>{{ 'admin-parties-email' | i18next }}</th><th>{{ 'admin-parties-import-status' | i18next }}</th><th>{{ 'admin-parties-import-reasons' | i18next }}</th></tr></thead><tbody>
+@for (row of rows; track row.row) {<tr><td>{{ row.row }}</td><td>{{ row.metadata.fullName }}</td><td>{{ row.metadata.email }}</td><td><span class="badge" [ngClass]="row.status === 'valid' || row.status === 'saved' ? 'rb-admin-badge-success' : 'rb-admin-badge-warning'">{{ ('admin-parties-import-status-' + row.status) | i18next }}</span>@if(row.oid) {<code class="d-block">{{ row.oid }}</code>}</td><td>@for (reason of row.reasons; track $index) {<span class="d-block">{{ ('admin-parties-import-reason-' + reason) | i18next }}</span>}</td></tr>}
+</tbody></table></div>
+<div class="card-footer"><span>{{ page * pageSize + 1 }}–{{ (page + 1) * pageSize > rowCount ? rowCount : (page + 1) * pageSize }} / {{ rowCount }}</span><div><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="page === 0" (click)="page = page - 1">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="(page + 1) * pageSize >= rowCount" (click)="page = page + 1">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></div></div></div>
+@if (!results) {<div class="rb-admin-save-bar"><span>{{ 'admin-parties-import-confirm' | i18next }}</span><button class="btn btn-primary" type="button" [disabled]="busy || !preview.valid || !preview.token" (click)="run('apply')">{{ (busy ? 'admin-parties-import-working' : 'admin-parties-import-create') | i18next }}</button></div>}
+}

@@ -12,7 +12,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
-Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search.
+Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation.
 
 Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
 
@@ -417,3 +417,27 @@ preserved. Writes run sequentially and report per-key applied/unchanged/ignored/
 standalone development deployment does not supply multi-document transactions: a failed entry/bundle sync
 can leave an entry write pending reconciliation, which is reported as failed and can be retried after a fresh
 preview. No migration runs and no historical new-default badge is inferred.
+
+### Party creation and CSV import
+
+Add party enters `/record/party/edit?returnTo=parties`, using the existing record form renderer and save path.
+The stock party workflow previously selected `generated-view-only`; migration
+`20261106T120000-party-record-form` changes only that stock starting selection and bootstraps
+`party-1.0-draft`. Custom form selections are preserved. The standard form supports given name,
+surname, email and ORCID; its save and return controls lead back to Parties. A one-column CSV name
+is preserved as given name, so the existing party name hook can derive fullName without guessing a name split.
+
+CSV inspect/preview/apply are contract-defined Admin session routes under `/admin/parties/import`.
+They accept UTF-8 CSV text in a JSON envelope (5 MiB transport allowance restricted to these paths),
+with 2 MiB file, 5,000 row, 50 column and 64 KiB row limits. Mapping is positional; CSV headers cannot
+become object paths. Formula prefixes (including leading whitespace), markup and controls are rejected
+without changing stored values. Existing export sanitization still protects CSV output.
+Preview checks structural fields and likely duplicate emails; full configured form validation runs during
+normal record creation, with hooks, permissions and indexing enabled. Duplicate and invalid rows are
+skipped. Email is compared case-insensitively within the path brand and current actor's permitted records;
+it is not a global unique identity. Concurrent independent imports can still race on duplicate checks.
+
+Preview tokens bind session, user, brand, file and mapping for 15 minutes. A unique CacheEntry claim is
+atomically removed before apply, preventing replay even across server processes. Only a hash is stored;
+expired claims are pruned on preview. Failed/unknown row outcomes are never automatically retried.
+No all-or-nothing transaction is promised: results report each row independently.

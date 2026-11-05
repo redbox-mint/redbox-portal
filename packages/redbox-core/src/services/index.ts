@@ -1,3 +1,4 @@
+import * as PartyImportServiceModule from './PartyImportService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -363,6 +364,7 @@ export const ServiceExports = {
       new VocabularyServiceModule.Services.VocabularyService().exports()
     );
   },
+  get PartyImportService() { return getOrCreateService('PartyImportService', () => new PartyImportServiceModule.Services.PartyImport().exports()); },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },
