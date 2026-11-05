@@ -1,9 +1,8 @@
-import { AfterViewInit } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-declare var bootstrap: any;
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { A11yModule } from '@angular/cdk/a11y';
 import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import {
@@ -46,7 +45,7 @@ interface TypefaceSlotCard {
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, BrandingPreviewComponent, I18NextPipe],
+  imports: [CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe],
   providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {
@@ -81,6 +80,140 @@ export class BrandingAdminComponent extends BaseComponent {
   // Keys align exactly with SCSS variable names (without the leading $)
   colourGroups: ColourGroup[] = [];
 
+  activeTab = 'colours';
+  selectedGroup = 1;
+  pendingAction: 'publish' | 'reset' | null = null;
+  readonly tabs = ['colours', 'assets', 'typography', 'history'];
+  readonly contexts = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'];
+
+  get localChangeCount(): number {
+    const saved = this.filterDraftVariables(this.state?.draft.variables);
+    return [...new Set([...Object.keys(saved), ...Object.keys(this.draftConfig)])].filter(
+      key => saved[key] !== this.draftConfig[key]
+    ).length;
+  }
+
+  get draftChangeCount(): number {
+    if (!this.state) return 0;
+    const colours = this.colourGroups
+      .flatMap(group => group.variables)
+      .filter(
+        variable =>
+          this.normaliseHex(this.getColourValue(variable)) !==
+          this.normaliseHex(this.getColourValue(variable, this.state!.active.variables))
+      ).length;
+    return colours + Number(this.state.draft.dirty.typeface);
+  }
+
+  get hasDraft(): boolean {
+    return this.draftChangeCount > 0 || !!this.state?.draft.dirty.colours || !!this.state?.draft.dirty.typeface;
+  }
+
+  get invalidColours(): boolean {
+    return Object.values(this.draftConfig).some(value => !this.normaliseHex(value));
+  }
+
+  /** Colour inputs accept three- and six-digit hex; the native picker requires six digits. */
+  normaliseHex(value: string): string | null {
+    if (/^#[0-9a-f]{3}$/i.test(value))
+      return (
+        '#' +
+        value
+          .slice(1)
+          .split('')
+          .map(c => c + c)
+          .join('')
+          .toLowerCase()
+      );
+    return /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : null;
+  }
+
+  colour(key: string): string {
+    const variable = this.colourGroups.flatMap(group => group.variables).find(variable => variable.key === key);
+    return variable ? this.normaliseHex(this.getColourValue(variable)) || this.normaliseHex(variable.default)! : '';
+  }
+
+  resetGroup(): void {
+    this.clearPreview();
+    for (const variable of this.colourGroups[this.selectedGroup].variables) delete this.draftConfig[variable.key];
+  }
+
+  /** WCAG 2.x relative luminance in linear sRGB; do not round before testing 4.5:1. */
+  contrastRatio(foreground: string, background: string): number | null {
+    const luminance = (hex: string): number => {
+      const rgb = [1, 3, 5]
+        .map(index => parseInt(hex.slice(index, index + 2), 16) / 255)
+        .map(channel => (channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4)));
+      return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+    };
+    const fg = this.normaliseHex(foreground),
+      bg = this.normaliseHex(background);
+    if (!fg || !bg) return null;
+    const a = luminance(fg),
+      b = luminance(bg);
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  }
+
+  get contrastChecks(): Array<{ label: string; ratio: number | null }> {
+    let pairs: string[][] = [];
+    switch (this.selectedGroup) {
+      case 0:
+        pairs = [
+          ['header-branding-text-color', 'header-branding-background-color'],
+          ['header-branding-link-color', 'header-branding-background-color'],
+        ];
+        break;
+      case 1:
+        pairs = [
+          ['logo-heading-text-color', 'site-branding-area-background-color'],
+          ['main-menu-inactive-item-color', 'main-menu-branding-background-color'],
+        ];
+        break;
+      case 2:
+        for (const item of ['active-item', 'inactive-item', 'active-dropdown-item', 'inactive-dropdown-item']) {
+          for (const suffix of ['', '-hover'])
+            pairs.push([`main-menu-${item}-color${suffix}`, `main-menu-${item}-background-color${suffix}`]);
+        }
+        break;
+      case 3:
+        pairs = [['body-text-color', 'body-background-color']];
+        break;
+      case 4:
+        pairs = ['anchor-color', 'anchor-color-hover', 'anchor-color-focus'].map(key => [key, 'body-background-color']);
+        break;
+      case 5:
+        pairs = [['panel-branding-color', 'panel-branding-background-color']];
+        break;
+      case 6:
+        pairs = [['admin-sidebar-text-color', 'body-background-color']];
+        break;
+      case 7:
+        pairs = [['footer-bottom-area-branding-color', 'footer-bottom-area-branding-background-color']];
+        break;
+      case 8:
+        pairs = this.contexts.map(key => [`${key}-text-color`, key]);
+        break;
+    }
+    const variables = this.colourGroups.flatMap(group => group.variables);
+    return pairs.map(([foreground, background]) => ({
+      label: this.i18n.t('admin-branding-contrast-pair', {
+        foreground: variables.find(variable => variable.key === foreground)!.label,
+        background: variables.find(variable => variable.key === background)!.label,
+      }),
+      ratio: this.contrastRatio(
+        this.getColourValue(variables.find(variable => variable.key === foreground)!),
+        this.getColourValue(variables.find(variable => variable.key === background)!)
+      ),
+    }));
+  }
+
+  async confirmAction(): Promise<void> {
+    const action = this.pendingAction;
+    this.pendingAction = null;
+    if (action === 'publish') await this.publish();
+    if (action === 'reset') this.resetDraft();
+  }
+
   readonly typefaceSlots: TypefaceSlotCard[] = [
     { slot: 'regular', label: 'branding-face-regular-label', required: true, hint: 'branding-face-required-hint' },
     { slot: 'bold', label: 'branding-face-bold-label', required: false, hint: 'branding-face-optional-hint' },
@@ -108,25 +241,9 @@ export class BrandingAdminComponent extends BaseComponent {
     this.initializeColourGroups();
     // Set logo URL
     const base = this.brandingService.getBrandingAndPortalUrl();
+    this.brandingAndPortalUrl = base;
     this.logoUrl = `${base}/images/logo`;
     this.faviconUrl = `${base}/images/favicon`;
-    // Initialize Bootstrap tooltips for all elements with data-bs-toggle="tooltip"
-    // (guarded: bootstrap JS is present in the portal layout, not in unit tests)
-    setTimeout(() => {
-      const globalBootstrap = (typeof bootstrap !== 'undefined' ? bootstrap : undefined) as
-        | { Tooltip?: new (el: Element, opts?: Record<string, unknown>) => unknown }
-        | undefined;
-      if (!globalBootstrap?.Tooltip) {
-        return;
-      }
-      const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipTriggerList.forEach((el: Element) => {
-        const tagged = el as Element & { _tooltipInstance?: unknown };
-        if (!tagged._tooltipInstance) {
-          tagged._tooltipInstance = new globalBootstrap.Tooltip!(el, { html: true });
-        }
-      });
-    }, 0);
     // Mark component as ready
     this.componentReady = true;
   }
@@ -279,31 +396,31 @@ export class BrandingAdminComponent extends BaseComponent {
         ],
       },
       {
-        name: this.i18n.t('branding-site-branding-name'),
+        name: this.i18n.t('admin-branding-group-site'),
         help: this.i18n.t('branding-site-branding-help'),
         variables: [
           {
             key: 'site-branding-area-background-color',
-            label: this.i18n.t('branding-site-branding-background-color-label'),
+            label: this.i18n.t('admin-branding-area-background'),
             default: '#b1101a',
             help: this.i18n.t('branding-site-branding-background-color-help'),
           },
           {
             key: 'logo-heading-text-color',
-            label: this.i18n.t('branding-logo-heading-text-color-label'),
+            label: this.i18n.t('admin-branding-heading-text'),
             default: '#ffffff',
             help: this.i18n.t('branding-logo-heading-text-color-help'),
           },
           {
             key: 'main-menu-branding-background-color',
-            label: this.i18n.t('branding-main-menu-background-color-label'),
+            label: this.i18n.t('admin-branding-menu-background'),
             default: '#500005',
             help: this.i18n.t('branding-main-menu-background-color-help'),
           },
         ],
       },
       {
-        name: this.i18n.t('branding-menu-name'),
+        name: this.i18n.t('admin-branding-group-menu'),
         help: this.i18n.t('branding-menu-help'),
         variables: [
           {
@@ -473,7 +590,7 @@ export class BrandingAdminComponent extends BaseComponent {
         ],
       },
       {
-        name: this.i18n.t('branding-admin-sidebar-name'),
+        name: this.i18n.t('admin-branding-group-sidebar'),
         help: this.i18n.t('branding-admin-sidebar-help'),
         variables: [
           {
@@ -503,7 +620,7 @@ export class BrandingAdminComponent extends BaseComponent {
         ],
       },
       {
-        name: this.i18n.t('branding-bootstrap-contextual-name'),
+        name: this.i18n.t('admin-branding-status-colours'),
         help: this.i18n.t('branding-bootstrap-contextual-help'),
         variables: [
           {
@@ -758,6 +875,7 @@ export class BrandingAdminComponent extends BaseComponent {
       const formData = new FormData();
       formData.append('logo', file);
       await this.brandingService.uploadLogo(formData);
+      this.logoUrl = `${this.brandingAndPortalUrl}/images/logo?t=${Date.now()}`;
       this.message = this.i18n.t('branding-logo-uploaded');
     });
   }
@@ -771,19 +889,21 @@ export class BrandingAdminComponent extends BaseComponent {
       const formData = new FormData();
       formData.append('favicon', file);
       await this.brandingService.uploadFavicon(formData);
+      this.faviconUrl = `${this.brandingAndPortalUrl}/images/favicon?t=${Date.now()}`;
       this.message = this.i18n.t('branding-favicon-uploaded');
     });
   }
 
-  getColourValue(variable: ColourVariable): string {
+  getColourValue(variable: ColourVariable, config = this.draftConfig): string {
     if (variable.key === 'admin-sidebar-text-color') {
-      return this.draftConfig[variable.key] || this.draftConfig['panel-branding-background-color'] || variable.default;
+      return config[variable.key] || config['panel-branding-background-color'] || variable.default;
     }
-    return this.draftConfig[variable.key] || variable.default;
+    return config[variable.key] || variable.default;
   }
 
   updateVariable(key: string, event: Event) {
     const value = (event.target as HTMLInputElement | null)?.value;
+    this.clearPreview();
     if (value) {
       this.draftConfig[key] = value;
     } else {
@@ -796,6 +916,7 @@ export class BrandingAdminComponent extends BaseComponent {
       return;
     }
     this.draftConfig = this.filterDraftVariables(this.state.draft.variables);
+    this.clearPreview();
     this.message = this.i18n.t('branding-draft-reset');
   }
 

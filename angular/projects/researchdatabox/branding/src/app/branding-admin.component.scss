@@ -1,103 +1,233 @@
-/* CSP-safe classes replacing previous inline styles */
-.colour-picker-narrow {
-  max-width: 50px;
+:host {
+  display: block;
 }
-
-.loading-min-height {
-  min-height: 400px;
-}
-
-.spinner-lg {
-  width: 3rem;
-  height: 3rem;
-}
-/* Branding Admin Component Styles */
-.branding-admin {
-  h2 { margin-top: 0; }
-  section { margin-bottom: 1.5rem; }
-  pre { background: #f6f8fa; padding: .75rem; border: 1px solid #ddd; max-height: 240px; overflow:auto; }
-  .actions { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
-  button { cursor:pointer; }
-  .status { .error { color:#b00020; } .message { color:#006400; } }
-
-  // Enhanced form styling
-  .form-control-color {
-    border-radius: 0.375rem 0 0 0.375rem;
-    border-right: none;
-    width: 50px;
-    height: calc(1.5em + 0.5rem + 2px);
-    padding: 0.125rem;
+:host-context(.rb-admin) {
+  .branding-tabs {
+    margin-bottom: 20px;
+  }
+  .branding-tabs .nav-link {
+    background: transparent;
+  }
+  .rb-admin-page-actions > .badge {
+    align-self: center;
+  }
+  .branding-colour-layout {
+    display: grid;
+    grid-template-columns: 170px minmax(250px, 1fr) minmax(240px, 0.95fr);
+    gap: 20px;
+  }
+  .branding-colour-layout > .rb-admin-section-rail {
+    width: 100%;
+    max-width: none;
+  }
+  .branding-colour-layout > .rb-admin-split-side {
+    max-width: none;
+    min-width: 0;
+  }
+  .branding-colour-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .branding-colour-fields > .rb-admin-field {
+    flex: 0 0 auto;
+    gap: 0;
+  }
+  .branding-colour-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .branding-colour-row .form-control-color {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 38px;
+    padding: 3px;
     cursor: pointer;
   }
-
-  .input-group .form-control-color + .form-control {
-    border-left: none;
-    padding-left: 0.5rem;
+  .branding-hex {
+    min-width: 0;
+    font-family: ui-monospace, monospace;
   }
-
-  .form-label.small {
+  .branding-colour-fields label {
+    display: block;
+    margin-bottom: 5px;
+  }
+  .branding-colour-fields .rb-admin-hint {
+    display: block;
+    margin-top: 4px;
+  }
+  .branding-contrast {
+    border-top: 1px solid var(--admin-soft-line);
+    padding-top: 12px;
+  }
+  .branding-contrast-check {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+  }
+  .branding-contrast-check .badge {
+    white-space: nowrap;
+  }
+  .branding-ghost {
+    background: transparent;
+    color: var(--admin-ink);
+  }
+  .branding-reset {
+    background: transparent;
+    color: var(--admin-danger-ink);
+  }
+  .branding-dirty {
+    color: var(--admin-ink);
+  }
+  .branding-dirty .fa-circle {
+    color: var(--admin-warning);
+  }
+  .branding-draft-preview {
+    position: sticky;
+    top: 16px;
+  }
+  .branding-draft-preview h2 {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .branding-miniature {
+    border: 1px solid var(--admin-line);
+    border-radius: var(--admin-radius);
+    overflow: hidden;
+    font-size: 12px;
+  }
+  .branding-mini-utility,
+  .branding-mini-footer {
+    padding: 6px 10px;
+  }
+  .branding-mini-band {
+    padding: 14px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
     font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.25rem;
   }
-
-  .card-body h6 {
-    border-bottom: 2px solid #e9ecef;
-    padding-bottom: 0.5rem;
+  .branding-mini-band img {
+    max-height: 44px;
+    max-width: 130px;
+    object-fit: contain;
   }
-
-  .input-group-text {
-    background-color: #f8f9fa;
-    border-color: #ced4da;
-    font-size: 0.8rem;
-    color: #6c757d;
+  .branding-mini-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    font-weight: 700;
+    text-transform: uppercase;
   }
-
-  // Color picker specific styling
-  input[type="color"] {
-    &::-webkit-color-swatch-wrapper {
-      padding: 0;
+  .branding-mini-menu > span {
+    padding: 7px;
+  }
+  .branding-mini-content {
+    padding: 12px;
+  }
+  .branding-mini-sidebar {
+    padding: 8px;
+    margin-bottom: 10px;
+  }
+  .branding-mini-panel {
+    border: 1px solid;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .branding-mini-panel-heading {
+    padding: 6px 8px;
+    font-weight: 600;
+  }
+  .branding-mini-panel-body {
+    padding: 10px 8px;
+  }
+  .branding-mini-link {
+    text-decoration: underline;
+  }
+  .branding-mini-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .branding-mini-status span {
+    border-radius: 4px;
+    padding: 4px 7px;
+    font-weight: 600;
+  }
+  .branding-highlight {
+    outline: 2px dashed var(--admin-primary);
+    outline-offset: -2px;
+  }
+  .branding-draft-preview > .rb-admin-hint {
+    margin-top: 8px;
+  }
+  .branding-upload-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    margin-bottom: 16px;
+    min-height: 110px;
+    border: 1px dashed var(--admin-line);
+    border-radius: var(--admin-radius);
+    background: var(--admin-surface);
+  }
+  .branding-upload-preview img {
+    max-width: 100%;
+    max-height: 100px;
+    object-fit: contain;
+  }
+  .branding-favicon img {
+    max-width: 48px;
+    max-height: 48px;
+  }
+  .branding-face {
+    min-width: 0;
+  }
+  .branding-face .form-label {
+    width: 100%;
+  }
+  .branding-face h6 {
+    font-size: 16px;
+  }
+  .branding-loading {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+  }
+  #branding-history .rb-admin-page-actions {
+    justify-content: flex-end;
+  }
+  @media (max-width: 1199px) {
+    .branding-colour-layout {
+      grid-template-columns: 150px minmax(0, 1fr);
     }
-    &::-webkit-color-swatch {
-      border: none;
-      border-radius: 0.25rem;
-    }
-    &::-moz-color-swatch {
-      border: none;
-      border-radius: 0.25rem;
+    .branding-draft-preview {
+      grid-column: 2;
+      position: static;
     }
   }
-
-  // Enhanced visual feedback
-  .variable-group {
-    transition: all 0.2s ease-in-out;
-    &:hover {
-      background-color: #f8f9fa;
-      border-radius: 0.375rem;
-      padding: 0.5rem;
-      margin: -0.5rem;
+  @media (max-width: 767px) {
+    .branding-colour-layout {
+      grid-template-columns: minmax(0, 1fr);
     }
-  }
-
-  // Loading states
-  .btn[disabled] {
-    cursor: not-allowed;
-    opacity: 0.65;
-  }
-
-  .spinner-border-sm {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  // Alert customizations
-  .alert {
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    &.alert-info {
-      background-color: #e7f3ff;
-      border-color: #b3d9ff;
-      color: #0c5460;
+    .branding-colour-layout > .rb-admin-section-rail {
+      position: static;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .branding-draft-preview {
+      grid-column: 1;
     }
   }
 }
