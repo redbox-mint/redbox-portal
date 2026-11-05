@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/06-users-roles`: successful interactive last-login tracking, server-side sign-in filters, editable role descriptions, atomic replacement of sole roles, and the configured default-role marker.
+
 Delivered on `admin-deferred/05-deleted-records`: record-type badges, original deletion actors, server-side deletion filters and bounded bulk restore/permanent delete with per-record results.
 
 Delivered on `admin-deferred/04-export-cancel`: Admin cancellation of queued/preparing exports, cooperative worker cleanup, Cancelled status and subsequent deletion.

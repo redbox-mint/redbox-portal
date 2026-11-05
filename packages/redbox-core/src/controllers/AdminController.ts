@@ -1,7 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
-import { of, firstValueFrom } from 'rxjs';
-import { mergeMap as flatMap } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 import { v4 as uuidv4 } from 'uuid';
 import { UserAttributes } from '../waterline-models/User';
 
@@ -22,6 +21,9 @@ export namespace Controllers {
         'usersIndex',
         'getBrandRoles',
         'getUsers',
+        'getUserOptions',
+        'updateRoleDescription',
+        'removeRoleMember',
         'updateUserRoles',
         'updateUserDetails',
         'addLocalUser',
@@ -75,7 +77,11 @@ export namespace Controllers {
       const brand = BrandingService.getBrand(req.session.branding as string);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
       try {
-        const users = await firstValueFrom(UsersService.getUsersForBrand(brand));
+        const signIn = req.query?.signIn;
+        if (signIn !== undefined && (typeof signIn !== 'string' || (signIn && !RolesService.getSignInMethods(brand).includes(signIn)))) {
+          return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid sign-in method' }], headers: this.getNoCacheHeaders() });
+        }
+        const users = await firstValueFrom(UsersService.getUsersForBrand(brand, signIn as string));
         const links = typeof UserLink !== 'undefined'
           ? await UserLink.find({ brandId: String(brandId), status: 'active' })
           : [];
@@ -114,25 +120,45 @@ export namespace Controllers {
       }
     }
 
-    public getBrandRoles(req: Sails.Req, res: Sails.Res) {
-      // basic roles page: view all users and their roles
-      const pageData: globalThis.Record<string, unknown> = {};
-      const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-      RolesService.getRolesWithBrand(brand).pipe(flatMap((roles) => {
-        _.map(roles, (role) => {
-          if (_.isEmpty(_.find(sails.config.auth.hiddenRoles, (hideRole: string) => { return hideRole == role.name }))) {
-            // not hidden, adding to view data...
-            if (_.isEmpty(pageData.roles)) {
-              pageData.roles = [];
-            }
-            (pageData.roles as unknown[]).push(role);
-          }
-        });
-        return of(pageData);
-      }))
-        .subscribe((pageData: globalThis.Record<string, unknown>) => {
-          this.sendResp(req, res, { data: pageData.roles, headers: this.getNoCacheHeaders() });
-        });
+    public async getBrandRoles(req: Sails.Req, res: Sails.Res) {
+      const brand = BrandingService.getBrand(req.session.branding as string);
+      const roles = await firstValueFrom(RolesService.getRolesWithBrand(brand));
+      const visible = roles.filter(role => !sails.config.auth.hiddenRoles.includes(role.name));
+      // No populated user objects (passwords/tokens) leave this endpoint.
+      this.sendResp(req, res, { data: RolesService.adminRoleSummary(brand, visible), headers: this.getNoCacheHeaders() });
+    }
+
+    public getUserOptions(req: Sails.Req, res: Sails.Res) {
+      const brand = BrandingService.getBrand(req.session.branding as string);
+      return this.sendResp(req, res, { data: { signInMethods: RolesService.getSignInMethods(brand) }, headers: this.getNoCacheHeaders() });
+    }
+
+    private requireBrandAdmin(req: Sails.Req, res: Sails.Res, brand: BrandingModel): boolean {
+      if (brand?.id && RolesService.getAdminFromBrand(brand) && UsersService.hasRole(req.user, RolesService.getAdminFromBrand(brand))) return true;
+      this.sendResp(req, res, { status: 403, displayErrors: [{ detail: 'Brand Admin permission required' }], headers: this.getNoCacheHeaders() });
+      return false;
+    }
+
+    public async updateRoleDescription(req: Sails.Req, res: Sails.Res) {
+      const brand = BrandingService.getBrand(req.session.branding as string);
+      if (!this.requireBrandAdmin(req, res, brand)) return;
+      try {
+        await RolesService.updateDescription(brand, String(req.param('id')), req.body.description);
+        return this.sendResp(req, res, { data: { status: true, message: 'Save OK.' }, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: (error as Error).message }], headers: this.getNoCacheHeaders() });
+      }
+    }
+
+    public async removeRoleMember(req: Sails.Req, res: Sails.Res) {
+      const brand = BrandingService.getBrand(req.session.branding as string);
+      if (!this.requireBrandAdmin(req, res, brand)) return;
+      try {
+        const roles = await UsersService.removeRoleForBrand(brand, String(req.param('userId')), String(req.param('id')));
+        return this.sendResp(req, res, { data: { status: true, roles: roles.map(role => ({ id: role.id, name: role.name })) }, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: (error as Error).message }], headers: this.getNoCacheHeaders() });
+      }
     }
 
     public async searchLinkCandidates(req: Sails.Req, res: Sails.Res) {
@@ -468,24 +494,15 @@ export namespace Controllers {
     /**
     * Updates a user's roles. Will be accepting the userid and the array of role names. Used role names instead of ids to prevent cross-brand poisoning.
     */
-    public updateUserRoles(req: Sails.Req, res: Sails.Res) {
-      const newRoleNames = req.body.roles;
-      const userid = req.body.userid;
-      if (userid && newRoleNames) {
-        // get the ids of the role names...
-        const brand: BrandingModel = BrandingService.getBrand(req.session.branding as string);
-        const roleIds = RolesService.getRoleIds(brand.roles, newRoleNames)
-        UsersService.updateUserRoles(userid, roleIds).subscribe((_user: unknown) => {
-          this.sendResp(req, res, { data: { status: true, message: "Save OK." }, headers: this.getNoCacheHeaders() });
-        }, (error: unknown) => {
-          sails.log.error("Failed to update user roles:");
-          sails.log.error(error);
-          this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
-        });
-      } else {
-        this.sendResp(req, res, { data: { status: false, message: "Please provide userid and/or roles names." }, headers: this.getNoCacheHeaders() });
+    public async updateUserRoles(req: Sails.Req, res: Sails.Res) {
+      const brand = BrandingService.getBrand(req.session.branding as string);
+      if (!this.requireBrandAdmin(req, res, brand)) return;
+      try {
+        await UsersService.updateUserRolesForBrand(brand, req.body.userid, req.body.roles);
+        return this.sendResp(req, res, { data: { status: true, message: 'Save OK.' }, headers: this.getNoCacheHeaders() });
+      } catch (error) {
+        return this.sendResp(req, res, { data: { status: false, message: (error as Error).message }, headers: this.getNoCacheHeaders() });
       }
-      return;
     }
 
     /**

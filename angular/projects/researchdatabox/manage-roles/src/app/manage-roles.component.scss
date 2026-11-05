@@ -1,0 +1,9 @@
+
+:host .people-default-note { padding: 1rem; }
+:host .people-role-description p { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+:host .people-role-header { display: block; }
+:host .people-role-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+:host .people-role-description { margin-top: .75rem; }
+:host .people-role-description p { margin-bottom: .5rem; }
+:host .people-role-description .rb-admin-hint { color: inherit; }

@@ -256,7 +256,6 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
   // Admin user management routes
-  'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
   'post /:branding/:portal/admin/users/update': 'AdminController.updateUserDetails',
   'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
   'post /:branding/:portal/admin/users/revokeKey': 'AdminController.revokeUserKey',
@@ -267,8 +266,6 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/admin/users/link': 'AdminController.linkAccounts',
   'post /:branding/:portal/admin/users/:id/disable': 'AdminController.disableUser',
   'post /:branding/:portal/admin/users/:id/enable': 'AdminController.enableUser',
-  'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
-  'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
 
   // Record routes
   'get /:branding/:portal/record/default/:name': 'RecordController.getMetaDefault',

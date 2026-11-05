@@ -16,6 +16,29 @@ export class ManageRolesComponent extends BaseComponent {
   selectedCandidateId = '';
   pendingRemoval: User | null = null;
   saving = false;
+  editingDescription = false;
+  descriptionDraft = '';
+  blockedRemoval = '';
+
+  get defaultRole(): Role | undefined { return this.roles.find(role => role.isDefault); }
+
+  startDescriptionEdit() {
+    this.descriptionDraft = this.selectedRole?.description || '';
+    this.editingDescription = true;
+    this.saveError = '';
+  }
+
+  async saveDescription() {
+    if (!this.selectedRole || this.saving || this.descriptionDraft.length > 500) return;
+    this.saving = true; this.saveError = '';
+    try {
+      const result = await this.userService.updateRoleDescription(this.selectedRole.id, this.descriptionDraft);
+      if (!result.status) throw new Error(this.translationService.t('admin-roles-save-error'));
+      this.selectedRole.description = this.descriptionDraft.trim();
+      this.editingDescription = false;
+    } catch { this.saveError = this.translationService.t('admin-roles-save-error'); }
+    finally { this.saving = false; }
+  }
   saveError = '';
   @ViewChild('removeMemberModal') removeMemberModal?: ModalDirective;
 
@@ -42,7 +65,7 @@ export class ManageRolesComponent extends BaseComponent {
   }
 
   selectRole(role: Role) {
-    if (this.saving || this.pendingRemoval) return;
+    if (this.saving || this.pendingRemoval || this.editingDescription) return;
     this.selectedRole = role;
     this.memberSearch = '';
     this.selectedCandidateId = '';
@@ -70,13 +93,14 @@ export class ManageRolesComponent extends BaseComponent {
   removeBlockedReason(user: User): string {
     if (user.accountLinkState === 'linked-alias') return 'admin-roles-linked-member';
     if (this.selectedRole?.name === 'Admin' && (this.members().length <= 1 || (!user.effectiveLoginDisabled && this.members().filter(member => !member.effectiveLoginDisabled && member.accountLinkState !== 'linked-alias').length <= 1))) return 'admin-roles-last-admin';
-    // The existing role editor requires every user to retain at least one role.
-    if (user.roles.length <= 1) return 'admin-roles-last-role';
+    if (user.roles.length <= 1 && (!this.defaultRole || this.selectedRole?.id === this.defaultRole.id)) return 'admin-roles-default-blocked';
     return '';
   }
 
   requestRemoval(user: User) {
-    if (this.saving || this.removeBlockedReason(user)) return;
+    if (this.saving) return;
+    this.blockedRemoval = this.removeBlockedReason(user);
+    if (this.blockedRemoval) return;
     this.saveError = '';
     this.pendingRemoval = user;
   }
@@ -89,9 +113,14 @@ export class ManageRolesComponent extends BaseComponent {
 
   async removeMember() {
     if (!this.pendingRemoval || this.saving || this.removeBlockedReason(this.pendingRemoval)) return;
-    if (await this.saveMembership(this.pendingRemoval, this.otherRoles(this.pendingRemoval))) {
+    this.saving = true; this.saveError = '';
+    try {
+      const result = await this.userService.removeRoleMember(this.selectedRole!.id, this.pendingRemoval.id);
+      if (!result.status) throw new Error('Membership update failed');
+      this.pendingRemoval.roles = result.roles;
       this.removeMemberModal?.hide();
-    }
+    } catch { this.saveError = this.translationService.t('admin-roles-save-error'); }
+    finally { this.saving = false; }
   }
 
   private async saveMembership(user: User, roles: Role[]): Promise<boolean> {

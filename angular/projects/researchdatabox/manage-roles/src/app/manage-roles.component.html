@@ -12,11 +12,23 @@
     @for (role of roles; track role.id) {
       <a [href]="'#role-' + role.id" (click)="$event.preventDefault(); selectRole(role)" [attr.aria-current]="selectedRole?.id === role.id ? 'true' : null" [attr.aria-disabled]="saving"><span>{{ role.name }}</span><span class="badge">{{ members(role).length }}</span></a>
     }
+    @if (defaultRole; as default) { <p class="rb-admin-hint people-default-note">{{ 'admin-roles-default-note' | i18next: { role: default.name } }}</p> }
   </nav>
   <div class="rb-admin-split-main">
     @if (selectedRole; as role) {
     <section class="card" [id]="'role-' + role.id">
-      <div class="card-header"><h2>{{ role.name }}</h2><span>{{ 'admin-roles-member-count' | i18next: { count: members().length } }}</span></div>
+      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><span>{{ 'admin-roles-member-count' | i18next: { count: members().length } }}</span></div>
+      <div class="people-role-description">
+        @if (editingDescription) {
+          <label for="role-description">{{ 'admin-roles-description-label' | i18next }}</label>
+          <textarea id="role-description" class="form-control" maxlength="500" rows="3" [(ngModel)]="descriptionDraft" [disabled]="saving" aria-describedby="role-description-limit"></textarea>
+          <p id="role-description-limit" class="rb-admin-hint">{{ 'admin-roles-description-limit' | i18next }}</p>
+          <div class="rb-admin-page-actions"><button type="button" class="btn btn-primary" (click)="saveDescription()" [disabled]="saving">{{ 'manage-users-save' | i18next }}</button><button type="button" class="btn btn-outline-secondary" (click)="editingDescription = false; saveError = ''" [disabled]="saving">{{ 'manage-users-cancel' | i18next }}</button></div>
+        } @else {
+          <p>{{ role.description || (role.descriptionKey ? (role.descriptionKey | i18next) : ('admin-roles-no-description' | i18next)) }}</p>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="startDescriptionEdit()" [disabled]="saving">{{ 'admin-roles-edit-description' | i18next }}</button>
+        }
+      </div></div>
       <div class="rb-admin-filter-bar">
         <div class="rb-admin-field rb-admin-field-grow"><label for="role-member-search">{{ 'admin-roles-add-member' | i18next }}</label><input id="role-member-search" type="search" class="form-control" [(ngModel)]="memberSearch" (ngModelChange)="searchMembers()" [disabled]="saving" [placeholder]="'admin-users-search-placeholder' | i18next" aria-controls="role-member-results"></div>
         <button type="button" class="btn btn-primary" [disabled]="!selectedCandidateId || saving" (click)="addMember()">{{ 'admin-roles-add' | i18next }}</button>
@@ -38,7 +50,7 @@
             <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span>@if (user.effectiveLoginDisabled) { <span class="badge rb-admin-badge-danger">{{ 'manage-users-account-status-disabled' | i18next }}</span> }</td>
               <td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
               <td><div class="people-badges">@for (other of otherRoles(user); track other.id) { <span class="badge" [class.rb-admin-badge-primary]="other.name === 'Admin'">{{ other.name }}</span> }</div></td>
-              <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving || !!removeBlockedReason(user)" [title]="removeBlockedReason(user) ? (removeBlockedReason(user) | i18next) : ''" (click)="requestRemoval(user)">{{ 'admin-roles-remove' | i18next }}</button></td>
+              <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving" [title]="removeBlockedReason(user) ? (removeBlockedReason(user) | i18next) : ''" (click)="requestRemoval(user)">{{ 'admin-roles-remove' | i18next }}</button></td>
             </tr>
           }</tbody>
         </table></div>
@@ -53,8 +65,14 @@
   <div [config]="{backdrop: 'static', show: true, keyboard: !saving}" bsModal #removeMemberModal="bs-modal" (onHidden)="pendingRemoval = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="remove-member-title">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin">
       <div class="modal-header"><h2 class="modal-title" id="remove-member-title">{{ 'admin-roles-remove-title' | i18next }}</h2></div>
-      <div class="modal-body"><p>{{ 'admin-roles-remove-confirm' | i18next: { name: user.name || user.username, role: selectedRole?.name } }}</p>@if (saveError) { <div class="alert alert-danger" role="alert">{{ saveError }}</div> }</div>
+      <div class="modal-body"><p>{{ (user.roles.length <= 1 ? 'admin-roles-replace-confirm' : 'admin-roles-remove-confirm') | i18next: { name: user.name || user.username, role: selectedRole?.name, defaultRole: defaultRole?.name } }}</p>@if (saveError) { <div class="alert alert-danger" role="alert">{{ saveError }}</div> }</div>
       <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="removeMemberModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="saving" (click)="removeMember()">{{ 'admin-roles-remove' | i18next }}</button></div>
     </div></div>
+  </div>
+}
+
+@if (blockedRemoval) {
+  <div [config]="{show: true}" bsModal #blockedModal="bs-modal" (onHidden)="blockedRemoval = ''" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="blocked-removal-title">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin"><div class="modal-header"><h2 id="blocked-removal-title" class="modal-title">{{ 'admin-roles-blocked-title' | i18next }}</h2></div><div class="modal-body"><p>{{ blockedRemoval | i18next }}</p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" (click)="blockedModal.hide()">{{ 'admin-roles-close' | i18next }}</button></div></div></div>
   </div>
 }
