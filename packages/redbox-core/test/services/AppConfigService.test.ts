@@ -53,6 +53,21 @@ describe('AppConfigService', function () {
     sinon.restore(); // Restores ConfigModels stubs
   });
 
+  describe('form field order', function () {
+    for (const order of [undefined, [], ['third', 'unknown', 'first', 'third']]) {
+      it(`preserves all schema properties with order ${JSON.stringify(order)}`, async function () {
+        class Model {}
+        if (order !== undefined) Object.assign(Model, { getFieldOrder: () => order });
+        (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+          modelName: 'OrderedModel', class: Model,
+          schema: { type: 'object', properties: { first: { type: 'string' }, second: { type: 'string' }, third: { type: 'string' } } }
+        });
+        const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+        expect(form.fieldOrder).to.deep.equal(order?.length ? ['third', 'first', 'second'] : ['first', 'second', 'third']);
+      });
+    }
+  });
+
   describe('AWS secret storage', function () {
     const arn = 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:test-123456';
     const reference = { $appConfigSecret: { provider: 'aws-secrets-manager', arn } };
