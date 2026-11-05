@@ -1,0 +1,52 @@
+<%
+  const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
+  const rootContext = BrandingService.getRootContext();
+  const headingKey = 'admin-api-docs-heading';
+  const loadingKey = 'admin-api-docs-loading';
+  const headingText = TranslationService.t(headingKey) === headingKey ? 'API Documentation' : TranslationService.t(headingKey);
+  const loadingText = TranslationService.t(loadingKey) === loadingKey ? 'Loading API documentation' : TranslationService.t(loadingKey);
+%>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= headingText %></title>
+    <link rel="stylesheet" href="<%= brandPortalPath %>/styles/theme.css">
+    <style nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>">
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100%;
+        background: var(--rb-body-background-color, #fff);
+        color: var(--rb-body-text-color, #333);
+        font-family: var(--rb-brand-font-family, "Titillium Web", sans-serif);
+      }
+
+      #redoc {
+        width: 100%;
+        min-height: 100vh;
+      }
+
+      .admin-api-docs-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+    </style>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-init.js" type="text/javascript" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
+    <!-- Redoc 3 is an ES module; admin-api-docs-bootstrap.js imports init from it. -->
+    <script src="<%= rootContext %>/default/default/js/redoc.standalone.js" type="module" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
+  </head>
+  <body>
+    <div id="redoc" data-openapi-url="<%= brandPortalPath %>/admin/api-docs/openapi.json">
+      <div class="admin-api-docs-loading">
+        <img class="center-block" src="<%= rootContext %>/images/loading.svg" alt="<%= loadingText %>">
+      </div>
+    </div>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-bootstrap.js" type="module" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
+  </body>
+</html>

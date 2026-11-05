@@ -84,7 +84,7 @@ Roboto Condensed by default). Brand typeface overrides still apply.
 
 ### EJS shell and header
 
-Every admin view except the standalone `api-docs.ejs` uses the paired shell partials. Keep Angular
+Every admin page uses the paired shell partials. API docs embeds its isolated viewer document below the shared header. Keep Angular
 bootstrap scripts/styles outside the shell, after `end.ejs`. For nested views, adjust relative include
 paths (Figshare vocabularies uses `../../layout/start.ejs`). Export (`views/default/default/export/index.ejs`)
 and the admin-only branch of `views/default/rdmp/dashboard.ejs` also use this shell, since they share
@@ -227,3 +227,23 @@ Keep derived select options keyed by value: Angular schedules select writes afte
 recreating all options each pass can cause an infinite change-detection cycle. Record-type inputs are
 also stable across renders. Guided-editor styles live in the app stylesheet under `.rb-admin` and use
 the shared theme aliases, avoiding local component palette and legacy root-rem sizing conflicts.
+
+### Lookups and API reference (phase 10)
+
+`admin-vocabulary` and `admin-figshare-vocabulary` own their Angular headers and use the shared patterns.
+Vocabulary stats use counts from the existing list endpoint, independent of list filters. Figshare reads
+all source/crosswalk catalogue pages through the existing endpoints so local search, filters and stats
+cover the catalogue. Category/mapping review continues to use its existing paginated APIs.
+
+`/admin/parties` uses `RecordController.renderParties`, the existing dashboard view and the party
+dashboard's configured settings, templates, filters, sorting and data endpoints. Admin visitors to the
+bookmarked `/dashboard/party` also get the admin shell; other dashboard users retain their normal page.
+The default sidebar points to `/admin/parties`. Both paths highlight a saved or default Parties link. Name and Email searches use the existing record
+query fields; configured search options remain available. The combined either-field option is deferred.
+
+`/admin/api-docs` uses the shared layout and header. Its bounded, responsive iframe loads the existing
+Redoc reference at `/admin/api-docs/reference`, with the same Admin authorization. The frame isolates
+Redoc's document styles and scrolling from the portal chrome. The response nonce is passed into
+Webpack/styled-components for generated viewer styles. Only the reference document allows same-origin
+framing and Redoc's existing inline style attributes; the surrounding admin page retains the normal CSP. JSON and YAML actions use the existing routes
+and native download links. Shared header action descriptors now accept an optional `download` filename.

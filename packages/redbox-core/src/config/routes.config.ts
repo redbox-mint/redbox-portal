@@ -403,7 +403,12 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/admin/api-docs': {
     controller: 'RenderViewController',
     action: 'render',
-    locals: { view: 'admin/api-docs', layout: false },
+    locals: { view: 'admin/api-docs' },
+  },
+  'get /:branding/:portal/admin/api-docs/reference': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { view: 'admin/api-docs-reference', layout: false },
   },
   'get /:branding/:portal/admin/api-docs/openapi.json': 'BrandingController.renderSwaggerJSON',
 

@@ -23,6 +23,9 @@ SOFTWARE.
 */
 // ReDoc 3 standalone adapter, built with our installed React and sanitizer.
 // Adapted from Redocly/redoc src/standalone.tsx at fc5257dc (MIT).
+// Webpack exposes this nonce to styled-components when it creates style elements.
+__webpack_nonce__ = window.__redboxApiDocsNonce || '';
+
 const React = require('react');
 const { createRoot, hydrateRoot } = require('react-dom/client');
 const { configure } = require('mobx');
