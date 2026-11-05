@@ -2764,8 +2764,8 @@
   "admin-config-label-oni-publishing": "Oni publishing",
   "admin-config-label-default-site": "Default site",
   "admin-config-label-root-collection": "Root collection",
-  "admin-config-label-ro-crate-metadata-mapping": "Ro-crate metadata mapping",
-  "admin-config-label-ro-crate-dataset-mapping": "Ro-crate dataset mapping",
+  "admin-config-label-ro-crate-metadata-mapping": "RO-Crate metadata mapping",
+  "admin-config-label-ro-crate-dataset-mapping": "RO-Crate dataset mapping",
   "admin-config-label-attachment-selection": "Attachment selection",
   "admin-config-label-record-write-back": "Record write-back",
   "admin-config-label-publishing-sites": "Publishing sites",
@@ -2864,5 +2864,6 @@
   "admin-report-modified-from": "Modified from",
   "admin-report-modified-to": "Modified to",
   "admin-report-created-from": "Created from",
-  "admin-report-created-to": "Created to"
+  "admin-report-created-to": "Created to",
+  "concurrencyTest-title": "Concurrency test"
 }

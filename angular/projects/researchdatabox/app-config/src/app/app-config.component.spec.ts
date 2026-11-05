@@ -467,8 +467,9 @@ describe('AppConfigComponent', () => {
     expect(findFieldByKey(app.fields, 'title')?.props?.label).toBe('Title');
     expect(app.model.title).toBe('admin-nav-menu');
     expect(schema.properties.title.title).toBe('admin-config-label-title');
+    app.model.title = 'admin-config-label-title';
     await app.onSubmit(app.model);
-    expect(appConfigService.lastSavedModel.title).toBe('admin-nav-menu');
+    expect(appConfigService.lastSavedModel.title).toBe('admin-config-label-title');
     fixture.destroy();
   });
 
