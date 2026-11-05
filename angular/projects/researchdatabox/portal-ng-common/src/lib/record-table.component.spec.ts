@@ -3,6 +3,7 @@ import { By } from '@angular/platform-browser';
 import { NgModel, FormsModule } from '@angular/forms';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { RecordPageDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
+import { AdminDateService } from './admin-date.service';
 import { RecordTableComponent } from './record-table.component';
 import { RecordSource } from './record.model';
 import { HeaderSortComponent } from './header-sort.component';
@@ -74,6 +75,26 @@ describe('RecordTableComponent', () => {
   function activePage() {
     return fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
   }
+
+  it('formats the named-query modified-date envelope using the shared admin locale', async () => {
+    const timestamp = '2026-11-05T23:06:12.085Z';
+    const format = spyOn(TestBed.inject(AdminDateService), 'format').and.returnValue('06/11/2026 09:36');
+    component.adminPresentation = true;
+    component.columnConfig = [{ property: 'lastSaveDate', label: 'Date Modified' }] as RecordPropViewMetaDto[];
+    currentPage.records = [{ lastSaveDate: timestamp }];
+    await render();
+    expect(format).toHaveBeenCalledWith(timestamp);
+    expect(fixture.nativeElement.textContent).toContain('06/11/2026 09:36');
+    expect(fixture.nativeElement.textContent).not.toContain(timestamp);
+    format.calls.reset();
+    component.adminPresentation = false;
+    expect(component.getEntryValue(currentPage.records[0], component.columnConfig[0])).toBe(timestamp);
+    expect(format).not.toHaveBeenCalled();
+    component.adminPresentation = true;
+    component.columnConfig[0].template = '{{lastSaveDate}}';
+    expect(component.getEntryValue(currentPage.records[0], component.columnConfig[0])).toContain('Rendered title');
+    expect(format).not.toHaveBeenCalled();
+  });
 
   it('restores the loaded selection after a failed request, permits retry, and blocks paging while pending or disabled', async () => {
     await render();

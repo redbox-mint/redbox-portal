@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/16-polish`: colour-reset card footer, readable page-size controls, untracked named-query caller note, protected config-label acronyms, safe dictionary value summaries and corrected default RDMP modified-date mapping.
+
 Delivered on `admin-deferred/15-auth-domain-case`: intentional case-insensitive authorized domain/email matching, canonical save rules and chip input, with AAF/OIDC and tester parity.
 
 Delivered on `admin-deferred/14-dictionary-editor`: reusable schema-driven dictionaries with literal-key validation, rename/copy/remove, complete Oni and RAiD schemas, per-integration notification overrides, lossless drafts and retained credentials.

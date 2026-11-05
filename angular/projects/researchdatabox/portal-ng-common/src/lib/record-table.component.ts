@@ -142,7 +142,7 @@ export class RecordTableComponent extends BaseComponent {
 
   getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
-    if (this.adminPresentation && !col.template && /(?:^|\.)(?:dateCreated|dateModified|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
+    if (this.adminPresentation && !col.template && /(?:^|\.)(?:dateCreated|dateModified|lastSaveDate|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
       return this.adminDates.format(_get(row, col.property, val));
     }
     if (!_isEmpty(col.template)) {

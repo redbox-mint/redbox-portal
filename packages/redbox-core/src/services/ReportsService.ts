@@ -169,6 +169,21 @@ export namespace Services {
 
           const existing = await this.getReportModel().findOne({ key: `${defBrand.id}_${name}` });
           if (existing) {
+            const updatedAt = (existing as typeof existing & { updatedAt?: number | Date }).updatedAt;
+            // Repair only an unchanged stock RDMP report through the same bootstrap path
+            // as a fresh install. Never replace an administrator's customized report.
+            if (name === 'rdmpRecords' && definition.reportSource === 'database' &&
+                definition.databaseQuery?.queryName === 'listRDMPRecords' && updatedAt != null &&
+                definition.columns.some(column => column.label === 'Date Modified' && column.property === 'lastSaveDate')) {
+              const previous = _.cloneDeep(definition);
+              previous.columns = previous.columns.map(column => column.label === 'Date Modified' && column.property === 'lastSaveDate'
+                ? { ...column, property: 'dateModified' } : column);
+              const previousConfig = this.getReportConfigDto({ ...previous, name } as unknown as ReportModel);
+              if (_.isEqual(this.getReportConfigDto(existing as unknown as ReportModel), previousConfig)) {
+                await this.getReportModel().updateOne({ key: `${defBrand.id}_${name}`, updatedAt })
+                  .set({ columns: definition.columns });
+              }
+            }
             sails.log.verbose(`Skipping existing report bootstrap data: ${name}`);
             continue;
           }
