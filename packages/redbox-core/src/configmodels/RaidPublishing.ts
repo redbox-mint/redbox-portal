@@ -41,49 +41,49 @@ export const RAID_PUBLISHING_SCHEMA = {
   type: 'object',
   required: ['enabled', 'connection', 'durableRetry', 'raidFieldName', 'orcidBaseUrl', 'types', 'mapping'],
   properties: {
-    enabled: { type: 'boolean', title: 'Enabled' },
+    enabled: { type: 'boolean', title: 'admin-config-label-enabled' },
     connection: {
-      type: 'object', title: 'Connection',
+      type: 'object', title: 'admin-config-label-connection',
       properties: {
-        baseUrl: { type: 'string', title: 'API Base URL' },
-        token: { type: 'string', title: 'API Token' },
-        timeoutMs: { type: 'number', title: 'Request Timeout (ms)' },
+        baseUrl: { type: 'string', title: 'admin-config-label-api-base-url' },
+        token: { type: 'string', title: 'admin-config-label-api-token' },
+        timeoutMs: { type: 'number', title: 'admin-config-label-request-timeout-ms' },
         oauth: {
-          type: 'object', title: 'OAuth',
+          type: 'object', title: 'admin-config-label-oauth',
           properties: {
-            url: { type: 'string', title: 'Token URL' },
-            clientId: { type: 'string', title: 'Client ID' },
-            username: { type: 'string', title: 'Username' },
-            password: { type: 'string', title: 'Password' },
-            timeoutMs: { type: 'number', title: 'Token Timeout (ms)' },
-            expirySkewMs: { type: 'number', title: 'Expiry Skew (ms)' }
+            url: { type: 'string', title: 'admin-config-label-token-url' },
+            clientId: { type: 'string', title: 'admin-config-label-client-id' },
+            username: { type: 'string', title: 'admin-config-label-username' },
+            password: { type: 'string', title: 'admin-config-label-password' },
+            timeoutMs: { type: 'number', title: 'admin-config-label-token-timeout-ms' },
+            expirySkewMs: { type: 'number', title: 'admin-config-label-expiry-skew-ms' }
           }
         },
         retry: {
-          type: 'object', title: 'Retries',
+          type: 'object', title: 'admin-config-label-retries',
           properties: {
-            maxAttempts: { type: 'number', title: 'Max Attempts' },
-            baseDelayMs: { type: 'number', title: 'Base Delay (ms)' },
-            maxDelayMs: { type: 'number', title: 'Max Delay (ms)' },
-            jitter: { type: 'boolean', title: 'Jitter' },
-            retryOnStatusCodes: { type: 'array', title: 'Retry On Status Codes', items: { type: 'integer' } }
+            maxAttempts: { type: 'number', title: 'admin-config-label-max-attempts' },
+            baseDelayMs: { type: 'number', title: 'admin-config-label-base-delay-ms' },
+            maxDelayMs: { type: 'number', title: 'admin-config-label-max-delay-ms' },
+            jitter: { type: 'boolean', title: 'admin-config-label-jitter' },
+            retryOnStatusCodes: { type: 'array', title: 'admin-config-label-retry-on-status-codes', items: { type: 'integer' } }
           }
         }
       }
     },
     durableRetry: {
-      type: 'object', title: 'Durable Retry Job',
+      type: 'object', title: 'admin-config-label-durable-retry-job',
       properties: {
-        jobName: { type: 'string', title: 'Job Name' },
-        schedule: { type: 'string', title: 'Schedule' },
-        maxAttempts: { type: 'number', title: 'Max Attempts' }
+        jobName: { type: 'string', title: 'admin-config-label-job-name' },
+        schedule: { type: 'string', title: 'admin-config-label-schedule' },
+        maxAttempts: { type: 'number', title: 'admin-config-label-max-attempts' }
       }
     },
-    saveBodyInMeta: { type: 'boolean', title: 'Save Request Body in Record Metadata' },
-    raidFieldName: { type: 'string', title: 'RAiD Field Name' },
-    orcidBaseUrl: { type: 'string', title: 'ORCID Base URL' },
-    types: { type: 'object', title: 'Types' },
-    mapping: { type: 'object', title: 'Field Mapping' }
+    saveBodyInMeta: { type: 'boolean', title: 'admin-config-label-save-request-body-in-record-metadata' },
+    raidFieldName: { type: 'string', title: 'admin-config-label-raid-field-name' },
+    orcidBaseUrl: { type: 'string', title: 'admin-config-label-orcid-base-url' },
+    types: { type: 'object', title: 'admin-config-label-types' },
+    mapping: { type: 'object', title: 'admin-config-label-field-mapping' }
   }
 };
 

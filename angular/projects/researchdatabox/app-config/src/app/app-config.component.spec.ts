@@ -455,6 +455,23 @@ describe('AppConfigComponent', () => {
     return fixture;
   }
 
+  it('translates schema presentation without translating stored title properties or defaults', async () => {
+    translationService.translationMap['admin-config-label-title'] = 'Title';
+    translationService.translationMap['admin-nav-menu'] = 'Menu';
+    const schema = { type: 'object', properties: {
+      title: { type: 'string', title: 'admin-config-label-title', default: 'admin-nav-menu' }
+    } };
+    const fixture = await renderConfig({ title: 'admin-nav-menu', schema, model: {} });
+    const app = fixture.componentInstance;
+    expect(app.title).toBe('Menu');
+    expect(findFieldByKey(app.fields, 'title')?.props?.label).toBe('Title');
+    expect(app.model.title).toBe('admin-nav-menu');
+    expect(schema.properties.title.title).toBe('admin-config-label-title');
+    await app.onSubmit(app.model);
+    expect(appConfigService.lastSavedModel.title).toBe('admin-nav-menu');
+    fixture.destroy();
+  });
+
   it('tracks edits, undo-to-loaded values, discard and a successful save', async () => {
     const fixture = await renderConfig({ schema: { type: 'object', properties: { title: { type: 'string', default: 'Default' } } }, model: {} });
     const component = fixture.componentInstance;

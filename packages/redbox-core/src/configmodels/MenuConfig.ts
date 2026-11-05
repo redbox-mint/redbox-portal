@@ -219,13 +219,13 @@ export const MENU_CONFIG_SCHEMA = {
   properties: {
     showSearch: {
       type: 'boolean',
-      title: 'Show Search Bar',
+      title: 'admin-config-label-show-search-bar',
       default: true,
       description: 'Whether to show the search bar in the navigation menu'
     },
     items: {
       type: 'array',
-      title: 'Menu Items',
+      title: 'admin-config-label-menu-items',
       description: 'Navigation menu items to display',
       widget: {
         formlyConfig: {
@@ -235,23 +235,23 @@ export const MENU_CONFIG_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          id: { type: 'string', title: 'ID' },
-          labelKey: { type: 'string', title: 'Label Key' },
-          href: { type: 'string', title: 'URL' },
-          external: { type: 'boolean', title: 'External Link', default: false },
-          requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
-          hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
+          id: { type: 'string', title: 'admin-config-label-id' },
+          labelKey: { type: 'string', title: 'admin-config-label-label-key' },
+          href: { type: 'string', title: 'admin-config-label-url' },
+          external: { type: 'boolean', title: 'admin-config-label-external-link', default: false },
+          requiresAuth: { type: 'boolean', title: 'admin-config-label-requires-authentication', default: true },
+          hideWhenAuth: { type: 'boolean', title: 'admin-config-label-hide-when-authenticated', default: false },
           requiredRoles: { 
             type: 'array', 
-            title: 'Required Roles',
+            title: 'admin-config-label-required-roles',
             items: { type: 'string' },
             default: []
           },
-          featureFlag: { type: 'string', title: 'Feature Flag' },
-          visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false },
+          featureFlag: { type: 'string', title: 'admin-config-label-feature-flag' },
+          visibleWhenTranslationExists: { type: 'boolean', title: 'admin-config-label-visible-when-translation-exists', default: false },
           children: {
             type: 'array',
-            title: 'Children',
+            title: 'admin-config-label-children',
             items: { $ref: '#/properties/items/items' },
             default: []
           }
