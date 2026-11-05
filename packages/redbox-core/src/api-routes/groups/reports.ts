@@ -1,5 +1,16 @@
 import { apiRoute } from '../route-factory';
-import { anyField, apiErrorResponseSchema, arrayField, listApiResponseSchema, namedQueryResponseRecordSchema, objectField, responseField, stringField } from '../schemas/common';
+import {
+  anyField,
+  booleanField,
+  numberField,
+  apiErrorResponseSchema,
+  arrayField,
+  listApiResponseSchema,
+  namedQueryResponseRecordSchema,
+  objectField,
+  responseField,
+  stringField,
+} from '../schemas/common';
 
 const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
@@ -11,7 +22,9 @@ const reportConfigBody = objectField(
     databaseQuery: objectField({ queryName: stringField() }).nullable(),
     solrQuery: objectField({ baseQuery: stringField(), searchCore: stringField() }).nullable(),
     filter: arrayField(objectField({}, [], 'Filter object', true)).nullable(),
-    columns: arrayField(objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)).nullable(),
+    columns: arrayField(
+      objectField({ label: stringField(), property: stringField() }, [], 'Column object', true)
+    ).nullable(),
   },
   ['name', 'title', 'reportSource'],
   'Report configuration payload',
@@ -37,7 +50,8 @@ export const executeNamedQueryRoute = apiRoute(
   {
     tags: ['Reports'],
     summary: 'Execute named query report',
-    description: 'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
+    description:
+      'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
     responses: {
       200: responseField(listApiResponseSchema(namedQueryResponseRecordSchema), 'Named query results'),
       400: badRequestResponse,
@@ -133,4 +147,103 @@ reportsApiRoutes.push(
   createReportConfigRoute,
   updateReportConfigRoute,
   deleteReportConfigRoute
+);
+
+// Session report routes retain CSRF protection and the existing Librarians authorization rules.
+const reportSortQuery = objectField(
+  {
+    name: stringField('Report name'),
+    start: stringField(),
+    rows: stringField(),
+    sortField: anyField(
+      'Column property from getReport with sortable=true; unsupported values retain default ordering'
+    ),
+    sortDirection: anyField('asc or desc; invalid values retain default ordering'),
+  },
+  ['name'],
+  'Report filters, pagination and optional server-side sort',
+  anyField('Configured filter value')
+);
+
+const reportViewResponse = objectField(
+  {
+    name: stringField(),
+    title: stringField(),
+    reportSource: stringField('database or solr'),
+    databaseQuery: objectField({ queryName: stringField() }, ['queryName']).nullable(),
+    filter: arrayField(anyField()),
+    columns: arrayField(
+      objectField(
+        { property: stringField(), label: stringField(), sortable: booleanField() },
+        ['property', 'label', 'sortable'],
+        'Report column',
+        true
+      )
+    ),
+  },
+  ['name', 'title', 'reportSource', 'databaseQuery', 'filter', 'columns']
+);
+const resultResponse = objectField(
+  {
+    records: arrayField(anyField()),
+    total: numberField(),
+    pageNum: numberField(),
+    recordsPerPage: numberField(),
+    success: booleanField(),
+  },
+  ['records', 'total', 'pageNum', 'recordsPerPage', 'success']
+);
+
+reportsApiRoutes.push(
+  {
+    ...apiRoute(
+      'get',
+      '/:branding/:portal/admin/getReport',
+      'ReportController',
+      'get',
+      { query: objectField({ name: stringField() }, ['name']) },
+      {
+        tags: ['Reports'],
+        summary: 'Get report viewer metadata',
+        description:
+          'Requires an authenticated session with report access (Librarians or administrators). Exposes source type, named-query name and column sort capabilities. Query bodies are omitted.',
+        responses: { 200: responseField(reportViewResponse, 'Safe report metadata') },
+      }
+    ),
+    csrf: true,
+  },
+  {
+    ...apiRoute(
+      'get',
+      '/:branding/:portal/admin/getReportResults',
+      'ReportController',
+      'getResults',
+      { query: reportSortQuery },
+      {
+        tags: ['Reports'],
+        summary: 'Get report results',
+        description:
+          'Requires report access. Applies a validated sortField and sortDirection before pagination for database and Solr reports. Unsupported columns or malformed sort input retain the existing default order.',
+        responses: { 200: responseField(resultResponse, 'Report page') },
+      }
+    ),
+    csrf: true,
+  },
+  {
+    ...apiRoute(
+      'get',
+      '/:branding/:portal/admin/downloadReportCSV',
+      'ReportController',
+      'downloadCSV',
+      { query: reportSortQuery },
+      {
+        tags: ['Reports'],
+        summary: 'Download sorted report CSV',
+        description:
+          'Requires report access. Accepts the same filters and validated sort as report results, exporting all matching rows in that order.',
+        responses: { 200: { description: 'CSV report', content: { 'text/csv': { schema: stringField() } } } },
+      }
+    ),
+    csrf: true,
+  }
 );

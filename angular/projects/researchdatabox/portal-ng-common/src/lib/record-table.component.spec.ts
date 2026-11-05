@@ -167,6 +167,19 @@ describe('RecordTableComponent', () => {
     expect(fixture.nativeElement.querySelector('td strong').textContent).toBe('Rendered title');
   });
 
+  it('renders unsupported server-sort columns as plain headers', async () => {
+    component.columnConfig = [
+      { label: 'Sortable', property: 'title', sortable: true },
+      { label: 'Computed', property: 'computed', sortable: false },
+    ] as any;
+    component.enableSort = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('header-sort').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.record-table-heading-no-sort').textContent).toContain('Computed');
+  });
+
   it('renders multivalue columns and routes row actions and sorting to the source', async () => {
     currentPage.records = [{ title: 'First', tags: ['One', 'Two'] }];
     component.columnConfig = [

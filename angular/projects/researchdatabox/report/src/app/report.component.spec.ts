@@ -303,18 +303,42 @@ describe('ReportComponent', () => {
     expect(app.activeFilters).toEqual([]);
   });
 
-  it('sorts loaded rows by raw values without changing totals or paging', async () => {
+  it('renders the safe source type and named-query name in the description', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.componentInstance.report.reportSource = 'database';
+    fixture.componentInstance.report.databaseQuery = { queryName: 'listRDMPRecords' };
+    translationService.translationMap['admin-report-source-description'] = 'Source: {{source}}';
+    fixture.detectChanges();
+    const description = fixture.nativeElement.querySelector('.rb-admin-page-header p');
+    expect(description.textContent).toContain('Source: database');
+    expect(description.querySelector('code').textContent).toBe('listRDMPRecords');
+  });
+
+  it('requests global sorting in both directions, resets paging and preserves applied filters and CSV order', async () => {
     const fixture = TestBed.createComponent(ReportComponent);
     fixture.detectChanges();
     await fixture.whenStable();
     const app = fixture.componentInstance;
-    app.reportResult = { records: [{ title: 'Plan 10' }, { title: 'Plan 2' }], total: 20, pageNum: 2, recordsPerPage: 2 } as any;
-    await app.headerSortChanged({ variable: 'title', sort: 'asc' }, {});
-    expect(app.reportResult.records.map((row: any) => row.title)).toEqual(['Plan 2', 'Plan 10']);
-    expect(app.reportResult.total).toBe(20);
-    expect(app.reportResult.pageNum).toBe(2);
-    await app.headerSortChanged({ variable: 'title', sort: 'desc' }, {});
-    expect(app.reportResult.records.map((row: any) => row.title)).toEqual(['Plan 10', 'Plan 2']);
+    app.report.columns = [{ property: 'title', label: 'Title', sortable: true }, { property: 'computed', label: 'Computed', sortable: false }] as any;
+    app.appliedFilterParams = { title: 'Applied' };
+    app.filterParams = { title: 'Unsubmitted' };
+    const read = spyOn(reportService, 'getReportResult').and.callFake(async () => ({ records: [{ title: 'Server order' }], total: 20, pageNum: 1, recordsPerPage: 10 }));
+    for (const sort of ['asc', 'desc']) {
+      app.reportResult.pageNum = 2;
+      await app.headerSortChanged({ variable: 'title', sort }, {});
+      expect(read).toHaveBeenCalledWith(app.reportName, 1, { title: 'Applied', sortField: 'title', sortDirection: sort }, app.recordsPerPage);
+      expect(app.reportResult.pageNum).toBe(1);
+      expect(app.reportResult.records).toEqual([{ title: 'Server order' }]);
+      expect(app.getDownloadCSVUrl()).toContain(`sortField=title&sortDirection=${sort}`);
+      await app.gotoPage(2, app.appliedFilterParams);
+      expect(read.calls.mostRecent().args[2]).toEqual({ title: 'Applied', sortField: 'title', sortDirection: sort });
+    }
+    const count = read.calls.count();
+    await app.headerSortChanged({ variable: 'computed', sort: 'asc' }, {});
+    expect(read.calls.count()).toBe(count);
+    expect(app.activeFilters.map(chip => chip.key)).toEqual(['title']);
   });
 
   it('should create the app, and apply report filters', async function() {

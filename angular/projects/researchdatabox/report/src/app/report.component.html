@@ -55,7 +55,6 @@
       <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'admin-report-empty' | i18next }}</h3><p>{{ 'admin-report-empty-help' | i18next }}</p><button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear-filters' | i18next }}</button></div>
       <div class="card-footer">{{ 'report-results-returned' | i18next: { count: 0 } }}</div>
     } @else {
-      @if (reportResult.total > recordsPerPage) { <p class="rb-admin-hint report-sort-hint">{{ 'admin-report-page-sort' | i18next }}</p> }
       <record-table [adminPresentation]="true" [enableSort]="true" [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize"></record-table>
     }
   </section>

@@ -386,9 +386,6 @@ export const routes: RoutesConfig = {
   // Report routes
   'get /:branding/:portal/admin/reports': 'ReportsController.render',
   'get /:branding/:portal/admin/report/:name': 'ReportController.render',
-  'get /:branding/:portal/admin/getReport': 'ReportController.get',
-  'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
-  'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
   'get /:branding/:portal/admin/report-config': 'ReportController.listConfigs',
   'post /:branding/:portal/admin/report-config/preview': 'ReportController.previewConfig',
   'get /:branding/:portal/admin/report-config/:name': 'ReportController.getConfig',

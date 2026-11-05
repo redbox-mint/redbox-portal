@@ -28,6 +28,7 @@ import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import {handlebarsCompile, ReportDto, TemplateCompileInput} from '@researchdatabox/sails-ng-common';
+import { reportSortFields, requestedReportSort } from './reports/sorting';
 import { stringify } from 'csv-stringify/sync';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -367,7 +368,9 @@ export namespace Services {
         throw new Error('Missing solrQuery in report config');
       }
       const params = new URLSearchParams(report.solrQuery.baseQuery);
-      params.append('sort', 'date_object_modified desc');
+      const sort = requestedReportSort(req, reportSortFields(report, undefined, sails.config.solr?.cores[report.solrQuery.searchCore]?.schema));
+      if (sort) params.set('sort', `${sort.field} ${sort.direction}`);
+      else params.append('sort', 'date_object_modified desc');
       params.append('version', '2.2');
       params.append('fl', report.columns.map(column => column.property).join(','));
       params.append('start', String(start));
@@ -418,7 +421,7 @@ export namespace Services {
           throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
         }
         const paramMap = this.buildNamedQueryParamMap(req, report)
-        const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        const dbResult = await NamedQueryService.performNamedQueryFromConfig(this.withReportSort(namedQueryConfig, report, req), paramMap, brand, start, rows);
         return this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
       } else {
         if (!report.solrQuery) {
@@ -542,7 +545,7 @@ export namespace Services {
           throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
         }
         const paramMap = this.buildNamedQueryParamMap(req, report);
-        const dbResult = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        const dbResult = await NamedQueryService.performNamedQueryFromConfig(this.withReportSort(namedQueryConfig, report, req), paramMap, brand, start, rows);
         result = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
       } else {
         if (!report.solrQuery) {
@@ -757,10 +760,25 @@ export namespace Services {
       return params;
     }
 
-    public getReportDto(reportModel: ReportModel): ReportDto {
-      return this.convertToType<ReportDto>(reportModel as unknown as Record<string, unknown>, new ReportDto() as unknown as Record<string, unknown>, {
-        "solr_query": "solrQuery"
-      }, true);
+    private withReportSort(query: NamedQueryConfig, report: ReportConfig, req: Sails.ReqParamProvider): NamedQueryConfig {
+      const sort = requestedReportSort(req, reportSortFields(report, query));
+      return sort ? { ...query, sort: [{ [sort.field]: sort.direction === 'asc' ? 'ASC' : 'DESC' }] } : query;
+    }
+
+    public async getReportDto(reportModel: ReportModel, brand: BrandingModel): Promise<ReportDto> {
+      const report = this.convertLegacyReport(reportModel);
+      const source = report.reportSource === ReportSource.database ? ReportSource.database : ReportSource.solr;
+      const query = source === ReportSource.database && report.databaseQuery
+        ? await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName) : undefined;
+      const fields = reportSortFields(report, query ?? undefined,
+        report.solrQuery ? sails.config.solr?.cores[report.solrQuery.searchCore]?.schema : undefined);
+      // Deliberate allowlist: report viewers never receive query bodies or connection details.
+      return Object.assign(new ReportDto(), {
+        name: report.name, title: report.title, filter: report.filter,
+        reportSource: source,
+        databaseQuery: source === ReportSource.database && report.databaseQuery ? { queryName: report.databaseQuery.queryName } : null,
+        columns: report.columns.map(column => ({ ...column, sortable: fields.has(column.property) }))
+      });
     }
 
     public getReportConfigDto(reportModel: ReportModel): ReportConfigDto {

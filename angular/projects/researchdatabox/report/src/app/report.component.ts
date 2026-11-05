@@ -22,7 +22,7 @@ import { Component, Inject, ElementRef, inject } from '@angular/core';
 import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
 import { RecordSource } from '@researchdatabox/portal-ng-common';
 import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set, get as _get } from 'lodash-es';
+import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { DateTime } from 'luxon';
 /**
  * Report Component
@@ -43,7 +43,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   private pageLoadPending = false;
   private pendingFilter: { params: any } | undefined;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
-  report: (ReportDto & { reportSource?: string; databaseQuery?: { queryName: string } }) = null as any;
+  report: ReportDto = null as any;
   appliedFilterParams: Record<string, string> = {};
   private sortState: { variable: string; sort: string } | null = null;
   reportResult: ReportResultDto = null as any;
@@ -87,9 +87,8 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.initTracker.resultsReturned = false;
     this.loadError = '';
     try {
-      this.reportResult = await this.reportService.getReportResult(this.reportName, pageNum, params, this.recordsPerPage);
+      this.reportResult = await this.reportService.getReportResult(this.reportName, pageNum, this.withSort(params), this.recordsPerPage);
       this.appliedFilterParams = { ...params };
-      this.sortCurrentPage();
     } catch (error) {
       // Initial load failures must reach BaseComponent's bootstrap error subject.
       if (!this.isReady) {
@@ -160,8 +159,8 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       return null;
     }
     const query = new URLSearchParams({ name: this.reportName });
-    for (const key in params) {
-      query.set(key, params[key]);
+    for (const [key, value] of Object.entries(this.withSort(params))) {
+      query.set(key, value);
     }
     return `${this.brandingAndPortalUrl}/admin/downloadReportCSV?${query}`;
   }
@@ -304,20 +303,20 @@ export class ReportComponent extends BaseComponent implements RecordSource {
 
   public async recordTableAction(event: any, data: any, actionName: string) { }
 
-  public async headerSortChanged(event: { variable: string; sort: string }, data: any) {
-    this.sortState = event;
-    this.sortCurrentPage();
+  private withSort(params: Record<string, string>): Record<string, string> {
+    return this.sortState ? { ...params, sortField: this.sortState.variable, sortDirection: this.sortState.sort } : params;
   }
 
-  private sortCurrentPage(): void {
-    if (!this.sortState || !this.reportResult?.records) return;
-    const { variable, sort } = this.sortState;
-    const direction = sort === 'desc' ? -1 : 1;
-    this.reportResult.records = [...this.reportResult.records].sort((a, b) => {
-      const left = _get(a, variable) ?? '';
-      const right = _get(b, variable) ?? '';
-      return direction * (typeof left === 'number' && typeof right === 'number'
-        ? left - right : String(left).localeCompare(String(right), undefined, { numeric: true }));
-    });
+  public async headerSortChanged(event: { variable: string; sort: string }, data: any) {
+    if (!this.report.columns.some(column => column.property === event.variable && column.sortable === true) ||
+      !['asc', 'desc'].includes(event.sort)) return;
+    this.sortState = event;
+    // Sorting preserves applied filters, including while another page request is in flight.
+    const params = { ...this.appliedFilterParams };
+    if (this.pageLoadPending) {
+      this.pendingFilter = { params };
+      return;
+    }
+    await this.gotoPage(1, params);
   }
 }
