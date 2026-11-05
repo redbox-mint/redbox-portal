@@ -766,11 +766,12 @@ export const http: HttpConfig = {
             // escaped quotes/whitespace can double its transport size. Keep this
             // allowance local to import routes; the controller checks file bytes.
             const translationImport = /^\/[^/]+\/[^/]+\/admin\/translation\/[^/]+\/[^/]+\/import\/(preview|apply)$/.test(normalizedRequestPath);
-            const skipperMiddleware = skipper(translationImport ? { limit: 5 * 1024 * 1024 } : {});
+            const partyImport = /^\/[^/]+\/[^/]+\/admin\/parties\/import\/(inspect|preview|apply)$/.test(normalizedRequestPath);
+            const skipperMiddleware = skipper(translationImport || partyImport ? { limit: 5 * 1024 * 1024 } : {});
             // Multipart parser events originate outside the request's async context.
             return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
                 bindMultipartUploadCallbacks(req);
-                if (translationImport && error) {
+                if ((translationImport || partyImport) && error) {
                     const status = (error as { status?: number }).status === 413 ? 413 : 400;
                     res.status(status).json({ message: status === 413 ? 'Import request exceeds the transport limit' : 'Invalid JSON request' });
                     return;

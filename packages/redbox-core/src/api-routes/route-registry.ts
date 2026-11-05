@@ -1,3 +1,4 @@
+import { partyImportApiRoutes } from './groups/party-import';
 import { dashboardRecordsApiRoutes } from './groups/dashboard-records';
 import { adminTranslationApiRoutes } from './groups/admin-translation';
 import { adminUsersApiRoutes } from './groups/admin-users';
@@ -35,6 +36,7 @@ const apiDocumentInfo = {
 
 const coreApiRouteGroups = [
   recordApiRoutes,
+  partyImportApiRoutes,
   dashboardRecordsApiRoutes,
   deletedRecordsApiRoutes,
   recordSchemaApiRoutes,

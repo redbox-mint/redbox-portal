@@ -1,3 +1,4 @@
+@if (adminPartyImport) { <party-csv-import></party-csv-import> } @else {
 @if (adminParties) {
   @if (loadError) {<div class="alert alert-danger" role="alert">{{ loadError }} <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending || isProcessingPageChange" (click)="retryLoad()">{{ 'admin-parties-retry' | i18next }}</button></div>}
   @if (settingsUnavailable) {<div class="alert alert-warning" role="alert">{{ 'dashboard-settings-unavailable' | i18next }}</div>}
@@ -121,6 +122,8 @@
       }
     </ng-container>
   </div>
+}
+
 }
 
 }

@@ -48,6 +48,7 @@ interface StepState {
 export class DashboardComponent extends BaseComponent {
   readonly adminDates = inject(AdminDateService);
   adminParties = false;
+  adminPartyImport = false;
   readonly partyLookupFilters: FilterField[] = [
     { name: 'admin-parties-name-or-email', path: 'metadata.fullName,metadata.email' },
     { name: 'admin-parties-name', path: 'metadata.fullName' },
@@ -107,6 +108,7 @@ export class DashboardComponent extends BaseComponent {
     elementRef: ElementRef
   ) {
     super();
+    this.adminPartyImport = elementRef.nativeElement.getAttribute('adminPartyImport') === 'true';
     this.adminParties = elementRef.nativeElement.getAttribute('adminParties') === 'true';
     this.recordType = _trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _trim(elementRef.nativeElement.getAttribute('packageType'));
@@ -126,6 +128,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
+    if (this.adminPartyImport) return;
     if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
       this.config = this.recordService.getConfig();
       this.baseUrl = _get(this.config, 'baseUrl');

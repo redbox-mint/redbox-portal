@@ -1,3 +1,4 @@
+import * as PartyImportControllerModule from './PartyImportController';
 /**
  * Controllers index - exports all controller classes
  */
@@ -56,6 +57,7 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
+    get PartyImportController() { return getOrCreate('PartyImportController', () => new PartyImportControllerModule.Controllers.PartyImport().exports()); },
     get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
@@ -105,6 +107,7 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
+    'PartyImportController',
     'ActionController',
     'AdminController',
     'AppConfigController',

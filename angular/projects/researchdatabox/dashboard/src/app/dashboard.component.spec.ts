@@ -1,3 +1,4 @@
+import { PartyImportComponent } from './party-import.component';
 import { SortComponent } from './sort/sort.component';
 import { CommonModule } from '@angular/common';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
@@ -105,7 +106,7 @@ describe('DashboardComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [DashboardComponent, SortComponent],
-      imports: [CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
+      imports: [PartyImportComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,

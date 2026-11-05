@@ -1,3 +1,6 @@
+<% if (recordType === 'party' && req.query.returnTo === 'parties') { %>
+<div class="rb-admin"><a class="btn btn-outline-secondary" href="<%= BrandingService.getBrandAndPortalPath(req) %>/admin/parties"><%= TranslationService.t('admin-parties-back') %></a></div>
+<% } %>
 
   <!-- Next Gen Form enabled -->
   <!-- TODO: Restore use of `appSelector` -->
