@@ -121,7 +121,10 @@ export namespace Services {
                 }
 
                 const mergedData = _.cloneDeep(existing.data || {});
-                _.defaultsDeep(mergedData, json);
+                for (const key of Object.keys(defaultFlat)) {
+                  if (!Object.prototype.hasOwnProperty.call(existingFlat, key)) this.setNested(mergedData, key, defaultFlat[key]);
+                }
+                if (json._meta) mergedData._meta = _.defaultsDeep(_.cloneDeep(mergedData._meta || {}), json._meta);
                 const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: mergedData });
                 const bundleToSync = updatedBundle || { ...existing, data: mergedData };
                 const createdCount = await this.addMissingDefaultEntriesFromBundle(bundleToSync, json);
@@ -155,71 +158,62 @@ export namespace Services {
       return out;
     }
 
-    // Minimal unflatten utility for dot-notation keys that i18next uses
+    // i18next accepts flat dotted keys as well as nested objects. Keep a whole
+    // root flat when nesting it would overwrite a value that is also a prefix.
     private unflatten(flatObj: I18nData): I18nData {
       const result: I18nData = {};
-      for (const flatKey of Object.keys(flatObj || {})) {
-        const parts = flatKey.split('.');
-        let poisoned = false;
-        for (const part of parts) {
-          if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-            poisoned = true;
-            break;
-          }
+      const keys = Object.keys(flatObj || {}).filter(key =>
+        !key.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part)));
+      const keySet = new Set(keys);
+      const flatRoots = new Set<string>();
+      for (const key of keys) {
+        const parts = key.split('.');
+        for (let i = 1; i < parts.length; i++) {
+          if (keySet.has(parts.slice(0, i).join('.'))) flatRoots.add(parts[0]);
         }
-        if (poisoned) continue;
-        let cursor: I18nData = result;
-        for (let i = 0; i < parts.length; i++) {
-          const p = parts[i];
-          if (i === parts.length - 1) {
-            cursor[p] = flatObj[flatKey];
-          } else {
-            if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-            cursor = cursor[p] as I18nData;
-          }
+      }
+      for (const key of keys) {
+        const parts = key.split('.');
+        if (flatRoots.has(parts[0])) {
+          result[key] = flatObj[key];
+          continue;
         }
+        let cursor = result;
+        for (const part of parts.slice(0, -1)) {
+          cursor[part] ??= {};
+          cursor = cursor[part] as I18nData;
+        }
+        cursor[parts[parts.length - 1]] = flatObj[key];
       }
       return result;
     }
 
-    // Minimal setter for dot-notation keys inside an object
     private setNested(obj: I18nData, dottedKey: string, value: unknown): void {
-      if (!obj) return;
-      const parts = String(dottedKey).split('.');
-      for (const part of parts) {
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-          return;
-        }
-      }
-      let cursor: I18nData = obj;
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        const isLast = i === parts.length - 1;
-        if (isLast) {
-          cursor[p] = value;
-        } else {
-          if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-          cursor = cursor[p] as I18nData;
-        }
-      }
+      if (!obj || dottedKey.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part))) return;
+      const { _meta, ...values } = obj;
+      const flat = this.flatten(values);
+      flat[dottedKey] = value;
+      const data = this.unflatten(flat);
+      Object.keys(obj).forEach(key => delete obj[key]);
+      Object.assign(obj, data);
+      if (_meta !== undefined) obj._meta = _meta;
     }
 
-    // Remove a dot-notation key from an object (best-effort, leaves empty parent objects in place)
     private removeNested(obj: I18nData, dottedKey: string): void {
-      if (!obj) return;
-      const parts = String(dottedKey).split('.');
-      for (const part of parts) {
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-          return;
-        }
-      }
-      let cursor: I18nData = obj;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i];
-        if (cursor[p] == null || typeof cursor[p] !== 'object') return;
-        cursor = cursor[p] as I18nData;
-      }
-      delete cursor[parts[parts.length - 1]];
+      if (!obj || dottedKey.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part))) return;
+      const { _meta, ...values } = obj;
+      const flat = this.flatten(values);
+      delete flat[dottedKey];
+      const data = this.unflatten(flat);
+      Object.keys(obj).forEach(key => delete obj[key]);
+      Object.assign(obj, data);
+      if (_meta !== undefined) obj._meta = _meta;
+    }
+
+    public async updateDisplayName(branding: BrandingModel, locale: string, namespace: string, displayName: string) {
+      // One metadata-only write: no entry reads, bundle sync or resource reload.
+      const bundle = await I18nBundle.updateOne({ branding: this.resolveBrandingId(branding), locale, namespace }).set({ displayName });
+      return bundle ? { locale: bundle.locale, namespace: bundle.namespace, displayName: bundle.displayName } : null;
     }
 
     private resolveBrandingId(

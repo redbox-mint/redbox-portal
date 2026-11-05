@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/11-translations`: metadata-only language rename and lossless leaf/prefix bundle synchronization.
+
 Delivered on `admin-deferred/10-branding-drafts`: brand-scoped logo/favicon drafts, preview snapshots, image-aware publication/history/restore, and an atomic whole-draft reset.
 
 Delivered on `admin-deferred/09-dashboard-types`: per-target rows per page, consumed by researcher dashboards. Retired dashboard-profile management removed from the deferred scope after runtime investigation.
@@ -385,3 +387,10 @@ all mutations with the shared revision, and confirms whole-draft reset before
 replacing the editor state from the server. Reset leaves published branding and
 version history untouched. Runtime publish/restore verification must use automated
 tests or a throwaway brand, never the development brand's real publication.
+
+### Translation language metadata
+
+Language renames use the contract-defined, brand Admin `POST /admin/translation/:locale/:namespace/display-name`
+route with session CSRF. This updates only `displayName`; values, entries and resource caches are untouched.
+Bundle composition and per-key saves preserve labels that are also prefixes of dotted child keys, using
+flat i18next keys within colliding roots. No database migration or automatic repair of previously pruned values runs.

@@ -382,22 +382,8 @@ export class TranslationService extends HttpClientService implements Service {
   public async updateLanguageDisplayName(locale: string, namespace = 'translation', displayName: string): Promise<any> {
     await this.waitForInit();
 
-    try {
-      // Get current bundle
-      const bundle = await this.getBundle(locale, namespace);
-      if (!bundle) {
-        throw new Error(`Bundle not found for ${locale}:${namespace}`);
-      }
-
-      // Update with new display name using POST (same endpoint as setBundle)
-      const url = `${this.brandingAndPortalUrl}/app/i18n/bundles/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}`;
-      const body = { data: bundle.data, displayName };
-      const req$ = this.http.post<any>(url, body, this.requestOptions).pipe(map(res => res));
-      return firstValueFrom(req$);
-    } catch (error) {
-      console.error(`Failed to update display name for ${locale}:`, error);
-      throw error;
-    }
+    const url = `${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/display-name`;
+    return firstValueFrom(this.http.post(url, { displayName }, this.requestOptions));
   }
 
   /** Ensure all languages have lang-<langcode> entries for the language selector */

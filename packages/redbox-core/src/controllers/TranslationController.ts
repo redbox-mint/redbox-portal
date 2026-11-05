@@ -1,3 +1,4 @@
+import { translationTarget, translationDisplayNameBody } from '../api-routes/groups/admin-translation';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -32,6 +33,7 @@ export namespace Controllers {
      * Exported methods, accessible from internet.
      */
     protected override _exportedMethods: string[] = [
+      'updateDisplayName',
       'getNamespace',
       'getLanguages',
       'listEntriesApp',
@@ -39,6 +41,31 @@ export namespace Controllers {
       'getBundleApp',
       'setBundleApp'
     ];
+
+    private adminBrand(req: Sails.Req, res: Sails.Res) {
+      const brand = BrandingService.getBrand(toParamString(req.params.branding));
+      if (!brand) { res.badRequest({ message: 'Unknown branding' }); return null; }
+      const admin = RolesService.getAdminFromBrand(brand);
+      if (!req.user || !admin || !UsersService.hasRole(req.user, admin)) {
+        res.forbidden({ message: 'Brand Admin permission required' });
+        return null;
+      }
+      return brand;
+    }
+
+    public async updateDisplayName(req: Sails.Req, res: Sails.Res) {
+      const brand = this.adminBrand(req, res);
+      if (!brand) return;
+      const target = translationTarget.safeParse(req.params);
+      const body = translationDisplayNameBody.safeParse(req.body);
+      if (!target.success || !body.success) return res.badRequest({ message: 'Invalid language metadata' });
+      try {
+        const result = await I18nEntriesService.updateDisplayName(brand, target.data.locale, target.data.namespace, body.data.displayName);
+        return result ? res.json(result) : res.notFound({ message: 'Bundle not found' });
+      } catch (_error) {
+        return res.serverError({ message: 'Unable to rename language' });
+      }
+    }
 
     public async getNamespace(req: Sails.Req, res: Sails.Res) {
       try {
