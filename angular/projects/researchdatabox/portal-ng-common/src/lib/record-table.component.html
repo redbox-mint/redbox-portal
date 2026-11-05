@@ -39,11 +39,15 @@
                 }
                 @if (enableActions && showActions && showActions.length > 0) {
                   <td>
+                    @if (actionTemplate) {
+                      <ng-container [ngTemplateOutlet]="actionTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container>
+                    } @else {
                     @for (showAction of showActions; track showAction) {
                       <button
                         type="button"
                         class="btn {{showAction.classes}}"
                       (click)="dataSource.recordTableAction($event, row, showAction.name)">{{showAction.label | i18next}}</button>&nbsp;
+                    }
                     }
                   </td>
                 }
