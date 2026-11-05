@@ -106,7 +106,7 @@ export namespace Services {
       }
       return { headers: parsed.headers, rows, valid: rows.filter(row => row.status === 'valid').length, invalid: rows.filter(row => row.status === 'invalid').length };
     }
-    public async apply(content: string, mapping: unknown, brand: BrandingModel, user: Record<string, unknown>) {
+    public async apply(content: string, mapping: unknown, brand: BrandingModel, user: Record<string, unknown>, portal?: string) {
       const preview = await this.preview(content, mapping, brand, user);
       const type = await firstValueFrom(RecordTypesService.get(brand, 'party'));
       for (const row of preview.rows) {
@@ -118,7 +118,7 @@ export namespace Services {
             metaMetadata: {}, metadata: row.metadata,
             authorization: { view: [user.username], edit: [user.username] },
           }, type, user, true, true, null, createRecordSaveContext({
-            operation: 'create', routeFamily: 'browser', validationRequestParameters: { recordType: 'party' },
+            operation: 'create', routeFamily: 'api', portal, validationRequestParameters: { recordType: 'party' },
           }));
           row.status = response.wasPersisted() ? response.outcome : response.outcome === 'unknown' ? 'unknown' : 'failed';
           if (response.wasPersisted()) row.oid = response.oid;

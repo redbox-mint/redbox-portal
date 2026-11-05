@@ -59,7 +59,7 @@ describe('PartyImportService', () => {
     expect(args[1].metadata.givenName).to.equal('Alice');
     expect(args[3]).to.equal(user);
     expect(args.slice(4, 6)).to.deep.equal([true, true]);
-    expect(args[7]).to.include({ routeFamily: 'browser', operation: 'create' });
+    expect(args[7]).to.include({ routeFamily: 'api', operation: 'create' });
     expect(result.rows.map(row => row.status)).to.deep.equal(['saved', 'skipped', 'skipped', 'skipped']);
   });
   it('continues after failed, warning and unknown creation outcomes without automatic replay', async () => {

@@ -39,7 +39,7 @@ export namespace Controllers {
             // Persist consumption before the first record write. A lost response
             // must not turn the same preview into a second batch of creations.
             await new Promise<void>((resolve, reject) => req.session!.save(error => error ? reject(error) : resolve()));
-            data = await PartyImportService.apply(input.csv, input.mapping, brand, user);
+            data = await PartyImportService.apply(input.csv, input.mapping, brand, user, String(req.params.portal ?? ''));
           }
         }
         return this.sendResp(req, res, { data, headers: this.getNoCacheHeaders() });
