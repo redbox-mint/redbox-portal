@@ -63,4 +63,19 @@ describe('Translation admin API', function () {
     await admin.post(base + '/display-name').set('X-CSRF-Token', csrf).send({ displayName: 'No', branding: 'other', data: {} }).expect(400);
     await admin.post(base + '/display-name').set('X-CSRF-Token', csrf).send({ displayName: '<script>' }).expect(400);
   });
+  it('returns provenance, translated counts and a sanitized revert without crossing brands', async () => {
+    const rows = (await admin.get(base + '/editor').expect(200)).body;
+    expect(rows.find(row => row.key === 'label').provenance).to.equal('override');
+    expect(rows.find(row => row.key === 'menu-admin').provenance).to.equal('missing');
+    const counts = (await admin.get('/default/rdmp/admin/translation/languages').expect(200)).body;
+    expect(counts.find(row => row.code === locale).translated).to.equal(2);
+    const defaults = await I18nEntriesService.defaultValues(locale, 'translation');
+    await admin.post(base + '/revert').set('X-CSRF-Token', csrf).send({ key: 'menu-admin' }).expect(200);
+    expect((await I18nEntriesService.getBundle(brand, locale, 'translation')).data['menu-admin']).to.equal(defaults['menu-admin']);
+    await admin.post(base + '/revert').set('X-CSRF-Token', csrf).send({ key: 'unknown' }).expect(404);
+    await ordinary.get(base + '/editor').expect(403);
+    await ordinary.get('/default/rdmp/admin/translation/languages').expect(403);
+    await ordinary.post(base + '/revert').set('X-CSRF-Token', await token(ordinary)).send({ key: 'menu-admin' }).expect(403);
+  });
+
 });

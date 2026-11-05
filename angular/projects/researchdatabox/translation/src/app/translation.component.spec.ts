@@ -35,6 +35,12 @@ class RichMockTranslationService {
     ]
   };
 
+  async revertEntry(code: string, ns: string, key: string) {
+    const entry = this.entriesMap[`${code}:${ns}`].find(e => e.key === key);
+    Object.assign(entry, { value: 'Default value', provenance: 'default' });
+    return entry;
+  }
+
   // Spies counters
   listLanguagesCalls = 0;
   getBundleCalls: string[] = [];
@@ -119,6 +125,32 @@ describe('AppComponent (translation)', () => {
     const comp = fixture.componentInstance;
     return { fixture, comp };
   }
+
+  it('filters Missing and Changed with badges, counts and a revert menu', async () => {
+    const { comp, fixture } = create();
+    translationService.entriesMap['en:translation'] = [
+      { key: 'default', value: 'Default value', provenance: 'default', hasDefault: true },
+      { key: 'empty', value: '', provenance: 'missing', hasDefault: true },
+      { key: 'custom', value: 'Custom value', provenance: 'override', hasDefault: true },
+      { key: 'unknown', value: 'New', provenance: 'override', hasDefault: false }
+    ];
+    Object.assign(translationService.languages[0], { translated: 3, total: 4 });
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.tx-translated').textContent).toContain('3 / 4');
+    comp.setShow('missing'); fixture.detectChanges();
+    expect(comp.pageEntries().map(e => e.key)).toEqual(['empty']);
+    expect(fixture.nativeElement.querySelector('.tx-row-missing')).toBeTruthy();
+    comp.setShow('override'); fixture.detectChanges();
+    expect(comp.pageEntries().map(e => e.key)).toEqual(['custom', 'unknown']);
+    expect(fixture.nativeElement.querySelectorAll('.rb-admin-badge-warning').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.rb-admin-overflow').length).toBe(1);
+    const revert = spyOn(translationService, 'revertEntry').and.callThrough();
+    await comp.revertEntry(comp.pageEntries()[0]); fixture.detectChanges();
+    expect(revert).toHaveBeenCalledWith('en', 'translation', 'custom');
+    expect(comp.pageEntries().map(e => e.key)).toEqual(['unknown']);
+    comp.clearAllFilters();
+    expect(comp.show).toBe('all'); expect(comp.pageEntries().length).toBe(4);
+  });
 
   it('shows a warning for failed entries, preserves editor data, and retries to a real empty list', async () => {
     const { comp, fixture } = create();

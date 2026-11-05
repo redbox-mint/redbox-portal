@@ -29,7 +29,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Translations | "Missing" / "Changed" filters, "New default" badge, translated-count column | Needs per-key provenance (default vs override vs missing) from the translation service |
 | Translations | Import / Export buttons | Needs bundle import/export endpoints |
 
 ## Lookups and vocabularies

@@ -210,6 +210,73 @@ export namespace Services {
       if (_meta !== undefined) obj._meta = _meta;
     }
 
+    /** Effective installation defaults: English keys, then locale-specific values. */
+    public async defaultValues(locale: string, namespace: string): Promise<Record<string, string>> {
+      if (![locale, namespace].every(value => /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(value))) throw new Error('Invalid translation target');
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const values: Record<string, string> = {};
+      for (const code of new Set(['en', locale])) {
+        let data: I18nData;
+        try {
+          data = JSON.parse(await fs.readFile(path.join(sails.config.appPath, 'language-defaults', code, `${namespace}.json`), 'utf8'));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+          throw error;
+        }
+        for (const [key, value] of Object.entries(this.flatten(data))) {
+          if (!key.startsWith('_meta.') && key !== '_meta' && typeof value === 'string') values[key] = value;
+        }
+      }
+      return values;
+    }
+
+    private editorRows(data: I18nData, defaults: Record<string, string>, entries: I18nTranslationAttributes[] = []) {
+      const values = this.flatten(data);
+      const metadata = new Map(entries.map(entry => [entry.key, entry]));
+      return Array.from(new Set([...Object.keys(defaults), ...Object.keys(values)]))
+        .filter(key => key !== '_meta' && !key.startsWith('_meta.'))
+        .sort().map(key => {
+          const value = typeof values[key] === 'string' ? values[key] as string : '';
+          const hasDefault = Object.prototype.hasOwnProperty.call(defaults, key);
+          const provenance = hasDefault && !value.trim() ? 'missing' : hasDefault && value === defaults[key] ? 'default' : 'override';
+          const entry = metadata.get(key);
+          return { key, value, category: entry?.category ?? undefined, description: entry?.description ?? undefined,
+            contentFormat: entry?.contentFormat ?? undefined, provenance, hasDefault };
+        });
+    }
+
+    public async editorEntries(branding: BrandingModel, locale: string, namespace: string) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const defaults = await this.defaultValues(locale, namespace);
+      const entries = await this.listEntries(branding, locale, namespace);
+      return this.editorRows(bundle.data || {}, defaults, entries);
+    }
+
+    public async languageSummaries(branding: BrandingModel) {
+      const bundles = (await this.listBundles(branding)).filter(bundle => bundle.namespace === 'translation');
+      const codes = new Set([...(sails.config.i18n?.next?.init?.supportedLngs || []), ...bundles.map(bundle => bundle.locale)]);
+      const result = [];
+      const names = await this.loadLanguageNames();
+      for (const code of codes) {
+        const bundle = bundles.find(b => b.locale === code);
+        const rows = this.editorRows(bundle?.data || {}, await this.defaultValues(code, 'translation'));
+        result.push({ code, displayName: bundle?.displayName || names[code] || code, enabled: bundle?.enabled !== false,
+          translated: rows.filter(row => row.value.trim().length > 0).length, total: rows.length });
+      }
+      return result.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    }
+
+    public async revertEntry(branding: BrandingModel, locale: string, namespace: string, key: string) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const defaults = await this.defaultValues(locale, namespace);
+      if (!Object.prototype.hasOwnProperty.call(defaults, key)) return null;
+      // Keep stored content-format metadata and its existing sanitization rules.
+      return this.setEntry(branding, locale, namespace, key, defaults[key]);
+    }
+
     public async updateDisplayName(branding: BrandingModel, locale: string, namespace: string, displayName: string) {
       // One metadata-only write: no entry reads, bundle sync or resource reload.
       const bundle = await I18nBundle.updateOne({ branding: this.resolveBrandingId(branding), locale, namespace }).set({ displayName });

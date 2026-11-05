@@ -2968,5 +2968,12 @@
   "branding-failed-reset-draft": "Could not reset the draft: {{detail}}",
   "branding-draft-logo-saved": "Logo saved to the draft.",
   "branding-draft-favicon-saved": "Favicon saved to the draft.",
-  "branding-entire-draft-reset": "The whole draft has been reset to published branding."
+  "branding-entire-draft-reset": "The whole draft has been reset to published branding.",
+  "admin-tx-show": "Show",
+  "admin-tx-all": "All",
+  "admin-tx-missing": "Missing",
+  "admin-tx-changed": "Changed",
+  "admin-tx-translated": "Translated",
+  "admin-tx-revert": "Revert to default",
+  "admin-tx-key-actions": "Actions for {{key}}"
 }
