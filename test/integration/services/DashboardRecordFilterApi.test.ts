@@ -37,6 +37,8 @@ describe('Dashboard record filter API', function () {
       expect(result.items[0].oid).to.equal(`${prefix}-visible`);
     }
     expect((await records({ filter: `${prefix}.*`, filterMode: 'any' }).expect(200)).body.data.totalItems).to.equal(0);
+    // A valid dotted path must still narrow the fixed route brand.
+    expect((await records({ filter: 'other-brand', filterFields: 'metaMetadata.brandId' }).expect(200)).body.data.totalItems).to.equal(0);
     await records({ filter: prefix, filterMode: 'unsupported' }).expect(400);
     await records({ filter: prefix, filterMode: 'any', filterFields: '$where' }).expect(400);
   });

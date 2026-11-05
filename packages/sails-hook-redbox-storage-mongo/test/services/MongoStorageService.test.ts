@@ -2471,8 +2471,12 @@ describe('MongoStorageService', function () {
     const args = ['', ['party', 'rdmp'], 0, 10, 'user', [], { id: 'brand-a' }, undefined, undefined, undefined, fields, 'a+.*(b)'];
     await service.getRecords(...args);
     const all = run.lastCall.args[1];
-    expect(all['metadata.fullName'].test('a+.*(b)')).to.equal(true);
-    expect(all['metadata.email'].test('aaaaab')).to.equal(false);
+    expect(all.$and[1]['metadata.fullName'].test('a+.*(b)')).to.equal(true);
+    expect(all.$and[2]['metadata.email'].test('aaaaab')).to.equal(false);
+    await service.getRecords(...args.slice(0, 10), ['metaMetadata.brandId', 'workflow.stage'], 'other-brand');
+    const scoped = run.lastCall.args[1];
+    expect(scoped['metaMetadata.brandId']).to.equal('brand-a');
+    expect(scoped.$and[1]['metaMetadata.brandId'].test('other-brand')).to.equal(true);
     await service.getRecords(...args, ['any']);
     const any = run.lastCall.args[1];
     expect(any['metaMetadata.brandId']).to.equal('brand-a');
@@ -2509,7 +2513,7 @@ describe('MongoStorageService', function () {
 
     expect(response.items).to.deep.equal(['x']);
     const query = runStub.firstCall.args[1];
-    expect(`${query['metadata.title']}`).to.include('a\\+b');
+    expect(`${query.$and[1]['metadata.title']}`).to.include('a\\+b');
   });
 
   it('builds record queries for array filters, package types, workflow, and equal matching', async function () {
@@ -2537,7 +2541,7 @@ describe('MongoStorageService', function () {
     expect(query.$or).to.have.length(2);
     expect(query['metaMetadata.packageType'].$or).to.have.length(2);
     expect(query['workflow.stage']).to.equal('review');
-    expect(query['metadata.title']).to.equal('Exact title');
+    expect(query.$and[1]['metadata.title']).to.equal('Exact title');
     expect(options.sort.lastSaveDate).to.equal(1);
     expect(options.sort.redboxOid).to.equal(-1);
   });
