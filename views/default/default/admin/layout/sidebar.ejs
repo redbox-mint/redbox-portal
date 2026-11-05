@@ -1,9 +1,16 @@
 <%
   const sidebar = typeof adminSidebar !== 'undefined' && adminSidebar ? adminSidebar : { sections: [], footerLinks: [] };
   const overviewHref = BrandingService.getBrandAndPortalPath(req) + '/admin';
+  const activeSection = (sidebar.sections || []).find(section => section.items.some(item => item.active));
+  const activeItem = activeSection ? activeSection.items.find(item => item.active) : (sidebar.footerLinks || []).find(item => item.active);
   const overviewActive = req.path.replace(/\/$/, '') === overviewHref;
 %>
 <aside class="rb-admin-sidebar" aria-label="<%= TranslationService.t('admin-navigation-label') %>">
+  <button type="button" class="rb-admin-sidebar-toggle" aria-expanded="false" aria-controls="rb-admin-navigation" data-admin-toggle>
+    <span><%= TranslationService.t('admin-menu-disclosure') %><small><%= activeSection ? activeSection.title + ' / ' : '' %><%= activeItem ? activeItem.label : TranslationService.t('admin-overview') %></small></span>
+    <i class="fa fa-chevron-down" aria-hidden="true"></i>
+  </button>
+  <div id="rb-admin-navigation" class="rb-admin-sidebar-content">
   <div class="rb-admin-sidebar-search">
     <i class="fa fa-search" aria-hidden="true"></i>
     <input type="search" class="form-control" aria-label="<%= TranslationService.t('admin-setting-filter') %>" placeholder="<%= TranslationService.t('admin-setting-filter') %>" data-admin-filter>
@@ -25,11 +32,25 @@
     <% }); %>
   </nav>
   <p class="rb-admin-sidebar-no-results" role="status" hidden><%= TranslationService.t('admin-setting-no-results') %></p>
+  </div>
 </aside>
 <script <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
 (function () {
   const sidebar = document.querySelector('.rb-admin-sidebar');
   const input = sidebar.querySelector('[data-admin-filter]');
+  const toggle = sidebar.querySelector('[data-admin-toggle]');
+  toggle.addEventListener('click', function () {
+    const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+    toggle.setAttribute('aria-expanded', String(expanded));
+    sidebar.classList.toggle('is-expanded', expanded);
+  });
+  sidebar.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+      toggle.setAttribute('aria-expanded', 'false');
+      sidebar.classList.remove('is-expanded');
+      toggle.focus();
+    }
+  });
   input.addEventListener('input', function () {
     const query = input.value.trim().toLocaleLowerCase();
     let matches = 0;

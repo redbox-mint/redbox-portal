@@ -48,6 +48,28 @@ describe('Admin foundation views', function () {
     } finally { dom.window.close(); }
   });
 
+  it('toggles compact navigation and returns focus on Escape', async function () {
+    const html = await ejs.renderFile(path.join(views, 'layout/sidebar.ejs'), {
+      ...locals, req: { path: '/brand/portal/admin/users' },
+      adminSidebar: { ...locals.adminSidebar, sections: [{ title: 'People', items: [{ label: 'Users', href: '/brand/portal/admin/users', active: true }] }] }
+    });
+    const dom = new JSDOM(html, { runScripts: 'dangerously' });
+    try {
+      const document = dom.window.document;
+      const toggle = document.querySelector<HTMLButtonElement>('[data-admin-toggle]')!;
+      expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+      expect(document.getElementById(toggle.getAttribute('aria-controls')!)).not.to.equal(null);
+      expect(toggle.textContent).to.contain('People / Users');
+      toggle.click();
+      expect(toggle.getAttribute('aria-expanded')).to.equal('true');
+      expect(document.querySelector('.rb-admin-sidebar.is-expanded')).not.to.equal(null);
+      document.querySelector('input')!.focus();
+      document.querySelector('input')!.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+      expect(document.activeElement).to.equal(toggle);
+    } finally { dom.window.close(); }
+  });
+
   it('builds overview tiles from the same resolved links, retaining custom external footer links', async function () {
     const html = await ejs.renderFile(path.join(views, 'home.ejs'), locals);
     const dom = new JSDOM(html);
