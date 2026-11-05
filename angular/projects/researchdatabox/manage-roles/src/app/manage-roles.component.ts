@@ -1,158 +1,118 @@
 import { Component, Inject, ViewChild } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
-import { LoggerService, TranslationService, UserService, BaseComponent } from '@researchdatabox/portal-ng-common';
-import { Role, User } from '@researchdatabox/portal-ng-common';
-import * as _ from 'lodash';
+import { LoggerService, TranslationService, UserService, BaseComponent, Role, User, SaveResult } from '@researchdatabox/portal-ng-common';
 
 @Component({
-    selector: 'manage-roles',
-    templateUrl: './manage-roles.component.html',
-    styleUrls: ['./manage-roles.component.scss'],
-    standalone: false
+  selector: 'manage-roles',
+  templateUrl: './manage-roles.component.html',
+  styleUrls: ['./manage-roles.component.scss'],
+  standalone: false
 })
 export class ManageRolesComponent extends BaseComponent {
-  title = '@researchdatabox/manage-roles';
-
-  users: User[] = [];
-  filteredUsers: any[] = [];
-  searchFilter: { 
-                  name: string, 
-                  role: any, 
-                  prevName: string, 
-                  prevRole: any, 
-                  roles: any[] } = { 
-                                     name: '', 
-                                     role: null, 
-                                     prevName: '', 
-                                     prevRole:null, 
-                                     roles: [ {value: null, label:'Any', checked:true}]
-                                    };
   roles: Role[] = [];
-  hiddenUsers = ['admin'];
-  currentUser: User = {username:'', name:'', email:'', roles:[]} as any;
-  saveMsg = "";
-  saveMsgType ="info";
+  users: User[] = [];
+  selectedRole: Role | null = null;
+  memberSearch = '';
+  selectedCandidateId = '';
+  pendingRemoval: User | null = null;
+  saving = false;
+  saveError = '';
+  @ViewChild('removeMemberModal') removeMemberModal?: ModalDirective;
 
-  isDetailsModalShown: boolean = false;
-  @ViewChild('roleDetailsModal', { static: false }) roleDetailsModal?: ModalDirective;
-
-  
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(UserService) private userService: UserService
   ) {
     super();
-    this.loggerService.debug(`Manage Roles waiting for deps to init...`); 
     this.initDependencies = [this.translationService, this.userService];
   }
 
-  protected override async initComponent():Promise<void> {
-    let roles: any = await this.userService.getBrandRoles();
-    this.roles = roles;
-    this.users = [];
-    this.searchFilter.roles = [{value: null, label: 'Any', checked: true}];
-    _.forEach(roles, (role:any) => {
-      this.searchFilter.roles.push({value:role.name, label:role.name, checked:false});
-      _.forEach(role.users, (user:any) => {
-        if (!_.includes(this.hiddenUsers, user.username)) {
-          // flattening the tree, match by username
-          let existingUser: any = _.find(this.users, (existingUser:any) => { return existingUser.username == user.username});
-          if (_.isEmpty(existingUser)) {
-            existingUser = user;
-            existingUser.roles = [role.name];
-            this.users.push(existingUser);
-          } else {
-            existingUser.roles.push(role.name);
-          }
-        }
-      });
-    });
-    _.map(this.users, (user:any)=> {user.roleStr = _.join(user.roles, ', ')});
-    this.filteredUsers = this.users;
-    this.loggerService.debug(`Manage Roles initComponent done`);
+  protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.userService.brandingAndPortalUrl;
+    this.roles = await this.userService.getBrandRoles() as unknown as Role[];
+    // The user endpoint includes populated roles and account/provider information.
+    // Include disabled accounts so membership counts reflect all assigned members.
+    this.users = await this.userService.getUsers({ includeDisabled: true }) as unknown as User[];
+    this.selectedRole = this.roles.find(role => role.id === this.selectedRole?.id) || this.roles.find(role => role.name === 'Admin') || this.roles[0] || null;
   }
 
-  editUser(username:string) {
-    this.setSaveMessage();
-    let currUser = _.find(this.users, (user:any)=>{return user.username == username});
-    if(!_.isUndefined(currUser)) {
-      this.currentUser = currUser;
-      this.currentUser.newRoles = _.map(this.roles, (r:any) => {
-        return {name: r.name, id:r.id, users: [], hasRole: _.includes(this.currentUser.roles, r.name)};
-      });
-      this.showDetailsModal();
+  members(role: Role | null = this.selectedRole): User[] {
+    return role ? this.users.filter(user => user.roles.some(item => item.name === role.name)) : [];
+  }
+
+  selectRole(role: Role) {
+    if (this.saving || this.pendingRemoval) return;
+    this.selectedRole = role;
+    this.memberSearch = '';
+    this.selectedCandidateId = '';
+    this.saveError = '';
+  }
+
+  otherRoles(user: User): Role[] {
+    return user.roles.filter(role => role.name !== this.selectedRole?.name);
+  }
+
+  get candidates(): User[] {
+    const query = this.memberSearch.trim().toLowerCase();
+    if (!query || !this.selectedRole) return [];
+    return this.users.filter(user =>
+      user.accountLinkState !== 'linked-alias' && !user.effectiveLoginDisabled &&
+      !user.roles.some(role => role.name === this.selectedRole!.name) &&
+      [user.name, user.email, user.username].some(value => (value || '').toLowerCase().includes(query))
+    );
+  }
+
+  searchMembers() {
+    this.selectedCandidateId = '';
+  }
+
+  removeBlockedReason(user: User): string {
+    if (user.accountLinkState === 'linked-alias') return 'admin-roles-linked-member';
+    if (this.selectedRole?.name === 'Admin' && (this.members().length <= 1 || (!user.effectiveLoginDisabled && this.members().filter(member => !member.effectiveLoginDisabled && member.accountLinkState !== 'linked-alias').length <= 1))) return 'admin-roles-last-admin';
+    // The existing role editor requires every user to retain at least one role.
+    if (user.roles.length <= 1) return 'admin-roles-last-role';
+    return '';
+  }
+
+  requestRemoval(user: User) {
+    if (this.saving || this.removeBlockedReason(user)) return;
+    this.saveError = '';
+    this.pendingRemoval = user;
+  }
+
+  async addMember() {
+    const user = this.candidates.find(candidate => candidate.id === this.selectedCandidateId);
+    if (!user || !this.selectedRole || this.saving) return;
+    await this.saveMembership(user, [...user.roles, this.selectedRole]);
+  }
+
+  async removeMember() {
+    if (!this.pendingRemoval || this.saving || this.removeBlockedReason(this.pendingRemoval)) return;
+    if (await this.saveMembership(this.pendingRemoval, this.otherRoles(this.pendingRemoval))) {
+      this.removeMemberModal?.hide();
     }
   }
 
-  showDetailsModal(): void {
-    this.isDetailsModalShown = true;
-    this.roleDetailsModal?.show();
-  }
-
-  hideDetailsModal(): void {
-    if(!_.isUndefined(this.roleDetailsModal)) {
-      this.roleDetailsModal.hide();
+  private async saveMembership(user: User, roles: Role[]): Promise<boolean> {
+    this.saving = true;
+    this.saveError = '';
+    try {
+      const result = await this.userService.updateUserRoles(user.id, roles.map(role => role.name)) as unknown as SaveResult;
+      if (!result.status) {
+        this.saveError = result.message || this.translationService.t('admin-roles-save-error');
+        return false;
+      }
+      user.roles = roles;
+      this.memberSearch = '';
+      this.selectedCandidateId = '';
+      return true;
+    } catch (error) {
+      this.loggerService.error('Failed to update role membership', error);
+      this.saveError = (error as Error)?.message || this.translationService.t('admin-roles-save-error');
+      return false;
+    } finally {
+      this.saving = false;
     }
   }
-
-  onDetailsModalHidden(): void {
-    this.isDetailsModalShown = false;
-  }
-
-  async saveCurrentUser($event:any) {
-    let hasRole:boolean = false;
-    let newRoles:any[] = [];
-    _.forEach(this.currentUser.newRoles, (role:any) => {
-      hasRole = hasRole || role.hasRole;
-      if (role.hasRole)
-        newRoles.push(role.name);
-    });
-    if (!hasRole) {
-      this.setSaveMessage("Please select at least one role!", "danger");
-      return;
-    }
-    this.setSaveMessage("Saving...", "primary");
-    let saveRes:any = await this.userService.updateUserRoles(this.currentUser.id, newRoles); //SaveResult
-    if (saveRes.status) {
-      this.currentUser.roles = newRoles;
-      this.currentUser.roleStr =  _.join(this.currentUser.roles);
-      this.setSaveMessage();
-      this.hideDetailsModal();
-    } else {
-      this.setSaveMessage(saveRes.message, "danger");
-    }
-  }
-
-  setSaveMessage(msg:string="", type:string="primary") {
-    this.saveMsg = msg;
-    this.saveMsgType = type;
-  }
-
-  onFilterChange(roleFilter:any=null) {
-    if (roleFilter) {
-      roleFilter.checked = true;
-      this.searchFilter.role = roleFilter.value;
-      _.map(this.searchFilter.roles, (role:any)=> role.checked = roleFilter.value == role.value );
-    }
-    if (this.searchFilter.name != this.searchFilter.prevName || this.searchFilter.role != this.searchFilter.prevRole) {
-      this.searchFilter.prevName = this.searchFilter.name;
-      this.searchFilter.prevRole = this.searchFilter.role;
-      var nameFilter =_.isEmpty(this.searchFilter.name) ? "" : _.trim(this.searchFilter.name);
-      // run filter change...
-      this.filteredUsers = _.filter(this.users, (user:any) => {
-        var hasRole = this.searchFilter.role == null ?  true : _.includes(user.roles, this.searchFilter.role);
-        var hasNameMatch = nameFilter == "" ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
-        return hasRole && hasNameMatch;
-      });
-    }
-  }
-
-  resetFilter() {
-    this.searchFilter.name = '';
-    this.searchFilter.role = null;
-    _.map(this.searchFilter.roles, (role:any)=> role.checked = role.value == null);
-    this.onFilterChange();
-  }
-
 }

@@ -102,6 +102,7 @@ describe('ManageUsersComponent', () => {
     auditRecords = cloneTestData(baseAuditRecords);
     configService = getStubConfigService();
     translationService = getStubTranslationService({
+      'admin-retry': 'Retry',
       'manage-users-audit-event-login': 'User logged in',
       'manage-users-audit-event-logout': 'User logged out',
       'manage-users-audit-event-disable': 'Admin disabled this account',
@@ -712,4 +713,98 @@ describe('ManageUsersComponent', () => {
     expect(app.filteredUsers.length).toBe(usersData.length);
     expect(app.searchFilter.users[0].checked).toBeTrue();
   });
+  it('combines role and email filters and retains them after refreshing users', async () => {
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.roleFilter = 'Admin';
+    app.searchFilter.name = 'alias@example.com';
+    app.onFilterChange();
+    expect(app.filteredUsers.length).toBe(0);
+    app.roleFilter = '';
+    await app.refreshUsers();
+    expect(app.filteredUsers.map(user => user.username)).toEqual(['alias']);
+    app.searchFilter.name = 'ADMIN';
+    app.onFilterChange();
+    expect(app.filteredUsers.map(user => user.username)).toEqual(['admin']);
+  });
+
+  it('requires confirmation before disabling and keeps failures available for retry', async () => {
+    const app = createBareComponent();
+    const disable = spyOn(userService, 'disableUser').and.resolveTo({ status: false, message: 'Try again' });
+    app.requestUserAction('disable', usersData[0] as any);
+    expect(disable).not.toHaveBeenCalled();
+    await app.confirmUserAction();
+    expect(app.actionError).toBe('Try again');
+    expect(app.pendingUserAction).not.toBeNull();
+    expect(app.actionPending).toBeFalse();
+    disable.and.resolveTo({ status: true, message: '' });
+    await app.confirmUserAction();
+    expect(disable).toHaveBeenCalledWith('ABC123');
+  });
+
+  it('revokes the selected user key without changing another open user', async () => {
+    const app = createBareComponent();
+    const revoke = spyOn(userService, 'revokeKey').and.resolveTo({ status: true, message: '' });
+    const user = { ...usersData[0], token: 'issued-key' };
+    app.currentUser = { ...usersData[1], token: 'other-key' } as any;
+    app.requestUserAction('revoke', user as any);
+    expect(revoke).not.toHaveBeenCalled();
+    await app.confirmUserAction();
+    expect(user.token).toBe('');
+    expect(app.currentUser?.token).toBe('other-key');
+  });
+
+  it('keeps a delayed generated key associated with its requested user', async () => {
+    const app = createBareComponent();
+    app.currentUser = { ...usersData[0] } as any;
+    let finish: (result: any) => void = () => {};
+    spyOn(userService, 'genKey').and.returnValue(new Promise(resolve => finish = resolve));
+    const pending = app.genKey(usersData[0].id);
+    app.currentUser = { ...usersData[1], token: 'other-key' } as any;
+    finish({ status: true, message: 'generated-secret' });
+    await pending;
+    expect(app.currentUser?.token).toBe('other-key');
+    expect(app.showToken).toBeFalse();
+    expect(app.keyPending).toBeFalse();
+  });
+
+  it('reports a key generation failure and permits another request', async () => {
+    const app = createBareComponent();
+    app.currentUser = usersData[0] as any;
+    const generate = spyOn(userService, 'genKey').and.rejectWith(new Error('Generation failed'));
+    await app.genKey(usersData[0].id);
+    expect(app.updateDetailsMsg).toBe('Generation failed');
+    expect(app.keyPending).toBeFalse();
+    generate.and.resolveTo({ status: true, message: 'generated-secret' });
+    await app.genKey(usersData[0].id);
+    expect(app.currentUser?.token).toBe('generated-secret');
+    expect(app.showToken).toBeTrue();
+  });
+
+  it('uses the brand and portal path for the Admin breadcrumb', async () => {
+    userService.brandingAndPortalUrl = '/default/rdmp';
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    fixtures.push(fixture);
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-crumbs a').getAttribute('href')).toBe('/default/rdmp/admin');
+  });
+
+  it('waits for the detail modal to close before opening linked accounts or audit', () => {
+    const app = createBareComponent();
+    app.currentUser = usersData[0] as any;
+    const links = spyOn(app, 'manageLinks').and.resolveTo();
+    const audit = spyOn(app, 'viewAudit').and.resolveTo();
+    app.navigateFromDetails('links');
+    expect(links).not.toHaveBeenCalled();
+    app.onDetailsModalHidden();
+    expect(links).toHaveBeenCalledWith(usersData[0].username);
+    expect(app.detailsDestination).toBeNull();
+    app.navigateFromDetails('audit');
+    expect(audit).not.toHaveBeenCalled();
+    app.onDetailsModalHidden();
+    expect(audit).toHaveBeenCalledWith(app.currentUser!);
+  });
+
 });

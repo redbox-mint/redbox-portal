@@ -31,3 +31,5 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 | Harvest runs | Global statistics (runs / failed in last 7 days, running now, last successful run) | The list API returns a filtered, paginated page and its count. Accurate cross-page statistics need an aggregate summary endpoint. |
 | Export | Cancel a preparing export | The job API only removes terminal jobs; cancellation needs a worker cancellation API and job-state handling. |
 | Deleted records | Record-type column | The deleted-record list response must expose each record’s type; the current response contains only title, identifiers, lifecycle and dates. |
+| Roles | Remove a user’s only role | `UsersService.updateUserRoles` rejects an empty role set. Assign another role first; allowing users with no roles requires a backend policy change. |
+| Roles | Default role for new users | The role list, user list and client configuration do not expose the brand’s auth default role. Expose that setting in an existing admin response before displaying it. |

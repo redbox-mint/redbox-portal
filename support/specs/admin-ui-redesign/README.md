@@ -73,7 +73,7 @@ replacing each Angular app's existing markup; the shell alone does not add a hea
 entry builds it into `.tmp/public/default/default/styles/style.min.css` (`npm run webpack`). No separate
 Angular stylesheet import is needed: global CSS reaches templates using Angular's emulated encapsulation.
 All component rules live under `.rb-admin`; `.rb-admin.admin-layout` supplies the two-column shell.
-The one outer selector, `.maincontent-body:has(> .rb-admin)`, removes the legacy portal's 80px/130px
+The outer spacing selector, `.maincontent-body:has(> .rb-admin)`, removes the legacy portal's 80px/130px
 vertical padding on admin pages only. Other portal pages retain their styling. The shell stacks at
 widths below 992px; navigation groups use two columns on tablets and one below 576px.
 
@@ -168,10 +168,11 @@ Use Bootstrap 5 structure for the standard components. Do not copy the mocks' `.
 Legacy `.btn-info`, `.btn-default` and `.btn-secondary` become neutral outlines within admin. Submit
 buttons lose the portal's uppercase transform and use the primary token; use sentence-case labels in
 translations. Existing app-specific CSS can still override global rules: later phases should remove
-conflicting local styles while adopting the kit. A temporary tablet compatibility rule resets the
-legacy Users toolbar's vertical flex basis to avoid a 320px blank gap; remove it when that app adopts
-`.rb-admin-filter-bar`. Body-appended modals need a `.rb-admin` scope on their
-content wrapper to inherit the kit; use `.admin-layout` only on the actual shell. Give icon-only actions
+conflicting local styles while adopting the kit. Users now uses the shared filter bar and form sections,
+without the legacy toolbar styles. Body-appended modals need a `.rb-admin` scope on their content
+wrapper to inherit the kit; use `.admin-layout` only on the actual shell.
+A body-level backdrop rule applies while an admin modal is open, so ngx-bootstrap’s body-appended
+backdrop also overrides the legacy portal `.show` opacity utility. Give icon-only actions
 translated accessible names, keep visible focus, and use real inputs for switches (not the mock's
 purely decorative `<i>`).
 
