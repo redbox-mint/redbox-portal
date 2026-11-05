@@ -7,9 +7,9 @@ let expect: Chai.ExpectStatic;
 describe('Portal logo heading scope', () => {
   before(async () => { expect = (await import('chai')).expect; });
   const template = fs.readFileSync(path.resolve(__dirname, '../../../views/default/default/layout/logo.ejs'), 'utf8');
-  const render = (route: string, heading = '', adminParties = false) => ejs.render(template, {
-    req: { path: '/default/rdmp' + route }, adminParties,
-    BrandingService: { getBrandAndPortalPath: () => '/default/rdmp' },
+  const render = (route: string, heading = '', adminParties = false, portalPath = '/default/rdmp') => ejs.render(template, {
+    req: { path: portalPath + route }, adminParties,
+    BrandingService: { getBrandAndPortalPath: () => portalPath },
     TranslationService: { t: (key: string) => key === 'logo-heading-text' ? heading : 'ReDBox Logo' }
   });
 
@@ -26,6 +26,14 @@ describe('Portal logo heading scope', () => {
       expect(render(route)).to.contain('<h1>');
       expect(render(route)).not.to.contain('rb-admin-site-logo');
       expect(render(route, 'Institution')).to.contain('<h1 class="logo-with-heading">');
+    }
+  });
+
+  it('does not treat brand names, portal names or record identifiers as admin routes', () => {
+    for (const portalPath of ['/admin/rdmp', '/default/admin', '/mount/default/rdmp']) {
+      expect(render('/record/view/admin', '', false, portalPath)).to.contain('<h1>');
+      expect(render('/researcher/home', '', false, portalPath)).to.contain('<h1>');
+      expect(render('/admin/users', '', false, portalPath)).not.to.contain('<h1');
     }
   });
 
