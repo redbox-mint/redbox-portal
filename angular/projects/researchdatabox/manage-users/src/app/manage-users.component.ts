@@ -80,6 +80,49 @@ type LinkingUserService = UserService & {
 export class ManageUsersComponent extends BaseComponent {
 
   title = '@researchdatabox/manage-users';
+  roleFilter = '';
+  pendingUserAction: { kind: 'disable' | 'revoke'; user: ManageUser } | null = null;
+  actionPending = false;
+  actionError = '';
+  keyPending = false;
+  @ViewChild('userActionModal') userActionModal?: ModalDirective;
+
+  requestUserAction(kind: 'disable' | 'revoke', user: ManageUser) {
+    this.actionError = '';
+    this.pendingUserAction = { kind, user };
+  }
+
+  async confirmUserAction() {
+    if (!this.pendingUserAction || this.actionPending) return;
+    const { kind, user } = this.pendingUserAction;
+    this.actionPending = true;
+    this.actionError = '';
+    try {
+      const response = kind === 'disable' ? await this.userService.disableUser(user.id) : await this.userService.revokeKey(user.id) as unknown as SaveResponse;
+      if (!response.status) {
+        this.actionError = response.message || this.translationService.t('admin-users-action-error');
+        return;
+      }
+      if (kind === 'revoke') user.token = '';
+      if (this.currentUser?.id === user.id) {
+        if (kind === 'revoke') this.currentUser.token = '';
+        else { this.currentUser.loginDisabled = true; this.currentUser.effectiveLoginDisabled = true; }
+      }
+      this.userActionModal?.hide();
+      this.setUpdateMessage(this.translationService.t(kind === 'disable' ? 'manage-users-disable-success' : 'admin-users-key-revoked'), 'success');
+      await this.refreshUsers();
+    } catch (error) {
+      this.actionError = (error as Error)?.message || this.translationService.t('admin-users-action-error');
+    } finally {
+      this.actionPending = false;
+    }
+  }
+
+  keyAction(user: ManageUser) {
+    if (user.token) this.requestUserAction('revoke', user);
+    else { this.editUser(user.username); this.genKey(user.id); }
+  }
+
 
   allUsers: ManageUser[] = [];
   filteredUsers: ManageUser[] = [];
@@ -109,6 +152,7 @@ export class ManageUsersComponent extends BaseComponent {
   @ViewChild('userAuditModal', { static: false }) userAuditModal?: ModalDirective;
 
   isDetailsModalShown: boolean = false;
+  detailsDestination: 'links' | 'audit' | null = null;
   isNewUserModalShown: boolean = false;
   isLinkModalShown: boolean = false;
   isAuditModalShown: boolean = false;
@@ -145,6 +189,7 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.userService.brandingAndPortalUrl;
     const roles = await this.userService.getBrandRoles() as unknown as Role[];
     this.allRoles = [...roles];
     await this.refreshUsers();
@@ -257,6 +302,7 @@ export class ManageUsersComponent extends BaseComponent {
       }
     });
     _.map(this.filteredUsers, (user) => { user.roleStr = _.join(_.map(user.roles, 'name'), ', '); });
+    this.onFilterChange();
   }
 
   editUser(username: string) {
@@ -287,8 +333,19 @@ export class ManageUsersComponent extends BaseComponent {
     }
   }
 
+  navigateFromDetails(destination: 'links' | 'audit'): void {
+    this.detailsDestination = destination;
+    this.hideDetailsModal();
+  }
+
   onDetailsModalHidden(): void {
     this.isDetailsModalShown = false;
+    // Finish the old modal's backdrop/scroll cleanup before opening the next one.
+    const destination = this.detailsDestination;
+    this.detailsDestination = null;
+    if (!this.currentUser) return;
+    if (destination === 'links') this.manageLinks(this.currentUser.username);
+    if (destination === 'audit') this.viewAudit(this.currentUser);
   }
 
   showNewUserModal(): void {
@@ -348,41 +405,26 @@ export class ManageUsersComponent extends BaseComponent {
     this.auditSummary = { returnedCount: 0, truncated: false };
   }
 
-  genKey(userid: string) {
-    this.setUpdateMessage('Generating...', 'primary');
-    const that = this;
-    this.userService.genKey(userid).then((response) => {
-      const saveRes = response as unknown as SaveResponse;
-      if (saveRes.status) {
-        that.showToken = true;
-        if (that.currentUser != null) {
-          that.currentUser.token = saveRes.message;
+  async genKey(userid: string) {
+    if (this.keyPending) return;
+    this.keyPending = true;
+    this.setUpdateMessage(this.translationService.t('admin-users-key-generating'), 'info');
+    try {
+      const result = await this.userService.genKey(userid) as unknown as SaveResponse;
+      // A request may finish after the user closes the editor and opens another.
+      if (this.currentUser?.id === userid) {
+        if (result.status) {
+          this.showToken = true;
+          this.currentUser.token = result.message;
         }
-        that.refreshUsers().then(() => {
-          that.setUpdateMessage('Token generated.', 'primary');
-        });
-      } else {
-        that.setUpdateMessage(saveRes.message, 'danger');
+        this.setUpdateMessage(result.status ? this.translationService.t('admin-users-key-generated') : result.message, result.status ? 'success' : 'danger');
       }
-    });
-  }
-
-  revokeKey(userid: string) {
-    this.setUpdateMessage('Revoking...', 'primary');
-    const that = this;
-    this.userService.revokeKey(userid).then((response) => {
-      const saveRes = response as unknown as SaveResponse;
-      if (saveRes.status) {
-        if (that.currentUser != null) {
-          that.currentUser.token = '';
-        }
-        that.refreshUsers().then(() => {
-          that.setUpdateMessage('Token revoked.', 'primary');
-        });
-      } else {
-        that.setUpdateMessage(saveRes.message, 'danger');
-      }
-    });
+      if (result.status) await this.refreshUsers();
+    } catch (error) {
+      this.setUpdateMessage((error as Error)?.message || this.translationService.t('admin-users-action-error'), 'danger');
+    } finally {
+      this.keyPending = false;
+    }
   }
 
   async updateUserSubmit(user: UserForm, isValid: boolean) {
@@ -396,7 +438,7 @@ export class ManageUsersComponent extends BaseComponent {
     _.forEach(user.roles, (role) => {
       details.roles.push(role.name);
     });
-    this.setUpdateMessage('Saving...', 'primary');
+    this.setUpdateMessage(this.translationService.t('admin-users-saving'), 'info');
 
     const saveRes = await this.userService.updateUserDetails(user.userid, details) as unknown as SaveResponse;
     if (saveRes.status) {
@@ -421,7 +463,7 @@ export class ManageUsersComponent extends BaseComponent {
       details.roles.push(role.name);
     });
 
-    this.setNewUserMessage('Saving...', 'primary');
+    this.setNewUserMessage(this.translationService.t('admin-users-saving'), 'info');
     const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
     if (saveRes.status) {
       this.hideNewUserModal();
@@ -610,6 +652,8 @@ export class ManageUsersComponent extends BaseComponent {
     try {
       const response = await this.userService.enableUser(user.id);
       if (response.status) {
+        user.loginDisabled = false;
+        user.effectiveLoginDisabled = false;
         this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
         await this.refreshUsers();
       } else {
@@ -633,20 +677,19 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   onFilterChange() {
-    if (this.searchFilter.name != this.searchFilter.prevName) {
-      this.searchFilter.prevName = this.searchFilter.name;
-      const nameFilter = _.isEmpty(this.searchFilter.name) ? '' : _.trim(this.searchFilter.name);
-
-      this.filteredUsers = _.filter(this.allUsers, (user) => {
-        const hasNameMatch = nameFilter == '' ? true : (_.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0);
-        return hasNameMatch;
-      });
-    }
+    this.searchFilter.prevName = this.searchFilter.name;
+    const query = this.searchFilter.name.trim().toLowerCase();
+    this.filteredUsers = this.allUsers.filter(user =>
+      !this.hiddenUsers.includes(user.username) &&
+      (!this.roleFilter || user.roles.some(role => role.name === this.roleFilter)) &&
+      (!query || [user.name, user.username, user.email].some(value => (value || '').toLowerCase().includes(query)))
+    );
   }
 
   resetFilter() {
     this.searchFilter.name = '';
-    _.map(this.searchFilter.users, (user) => user.checked = user.value == null);
+    this.roleFilter = '';
+    this.searchFilter.users.forEach(user => user.checked = user.value == null);
     this.onFilterChange();
   }
 

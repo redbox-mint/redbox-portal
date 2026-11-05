@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
 import { APP_BASE_HREF } from '@angular/common'; 
+import { ModalModule } from 'ngx-bootstrap/modal';
 import { FormsModule } from "@angular/forms";
 import { ConfigService, I18NextPipe, LoggerService, TranslationService, UserService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
@@ -52,7 +53,7 @@ let usersData = [
 describe('AppComponent', () => {
   beforeEach(async () => {
     configService = getStubConfigService();
-    translationService = getStubTranslationService();
+    translationService = getStubTranslationService({ 'admin-retry': 'Retry' });
     userService = getStubUserService(username, password, {}, usersData, rolesData);
     const testModule = TestBed.configureTestingModule({
       declarations: [
@@ -60,6 +61,7 @@ describe('AppComponent', () => {
       ],
       imports: [
         FormsModule,
+        ModalModule.forRoot(),
         I18NextPipe
       ],
       providers: [
@@ -109,22 +111,91 @@ describe('AppComponent', () => {
     fixture.destroy();
   });
 
-  it('should create the app and perform testing of basic functions', async () =>  {
+  async function createComponent() {
     const fixture = TestBed.createComponent(ManageRolesComponent);
-    const app = fixture.componentInstance;
-    fixture.autoDetectChanges(true);
-    expect(app).toBeTruthy();
-    await app.waitForInit();
-    await fixture.whenStable();
-    expect(app.roles.length).toBeGreaterThan(0);
-    app.users = usersData;
-    app.filteredUsers = usersData;
-    expect(app.users.length).toBeGreaterThan(0);
-    app.editUser('admin');
-    app.saveCurrentUser({});
-    expect(app.currentUser.roles.length).toBeGreaterThan(0);
-    expect(app.users.length).toBeGreaterThan(0);
-    app.resetFilter();
-    expect(app.filteredUsers.length).toBeGreaterThan(0);
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    // Isolate membership mutations between tests.
+    fixture.componentInstance.users = JSON.parse(JSON.stringify(usersData));
+    return { fixture, app: fixture.componentInstance };
+  }
+
+  it('loads members including admin from the user endpoint and displays counts', async () => {
+    const read = spyOn(userService, 'getUsers').and.resolveTo(usersData);
+    const { fixture, app } = await createComponent();
+    fixture.detectChanges();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: true });
+    expect(app.members().map(user => user.username)).toEqual(['admin']);
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('Local Admin');
+    fixture.destroy();
   });
+
+  it('preserves other roles when adding and removing a member', async () => {
+    const { fixture, app } = await createComponent();
+    const researcher = { id: 'r', name: 'Researcher', users: [], hasRole: true };
+    const user = { ...app.users[0], id: 'candidate', username: 'candidate', email: 'candidate@example.test', roles: [researcher] };
+    app.users.push(user);
+    app.memberSearch = 'EXAMPLE.TEST';
+    app.selectedCandidateId = user.id;
+    const save = spyOn(userService, 'updateUserRoles').and.resolveTo({ status: true, message: '' });
+    await app.addMember();
+    expect(save).toHaveBeenCalledWith('candidate', ['Researcher', 'Admin']);
+    expect(app.members().length).toBe(2);
+    app.requestRemoval(user);
+    await app.removeMember();
+    expect(save).toHaveBeenCalledWith('candidate', ['Researcher']);
+    expect(user.roles.map(role => role.name)).toEqual(['Researcher']);
+    fixture.destroy();
+  });
+
+  it('protects the last active admin and users with only one role', async () => {
+    const { fixture, app } = await createComponent();
+    const save = spyOn(userService, 'updateUserRoles');
+    const admin = app.users[0];
+    expect(app.removeBlockedReason(admin)).toBe('admin-roles-last-admin');
+    app.requestRemoval(admin);
+    expect(app.pendingRemoval).toBeNull();
+    expect(save).not.toHaveBeenCalled();
+    app.users.push({ ...admin, id: 'disabled-admin', effectiveLoginDisabled: true });
+    expect(app.removeBlockedReason(admin)).toBe('admin-roles-last-admin');
+    app.selectedRole = { id: 'r', name: 'Researcher', users: [], hasRole: true };
+    admin.roles = [app.selectedRole];
+    expect(app.removeBlockedReason(admin)).toBe('admin-roles-last-role');
+    fixture.destroy();
+  });
+
+  it('excludes existing members, disabled users and aliases from add search', async () => {
+    const { fixture, app } = await createComponent();
+    const base = { ...app.users[0], roles: [], email: 'person@example.test' };
+    app.users.push({ ...base, id: 'eligible' }, { ...base, id: 'disabled', effectiveLoginDisabled: true }, { ...base, id: 'alias', accountLinkState: 'linked-alias' });
+    app.memberSearch = 'person@';
+    expect(app.candidates.map(user => user.id)).toEqual(['eligible']);
+    fixture.destroy();
+  });
+
+  it('leaves membership unchanged when saving fails and permits retry', async () => {
+    const { fixture, app } = await createComponent();
+    const user: typeof app.users[number] = { ...app.users[0], id: 'candidate', roles: [] };
+    app.users.push(user);
+    app.memberSearch = 'Local';
+    app.selectedCandidateId = user.id;
+    const save = spyOn(userService, 'updateUserRoles').and.rejectWith(new Error('Save failed'));
+    await app.addMember();
+    expect(user.roles).toEqual([]);
+    expect(app.saveError).toBe('Save failed');
+    expect(app.saving).toBeFalse();
+    save.and.resolveTo({ status: true, message: '' });
+    await app.addMember();
+    expect(user.roles.map(role => role.name)).toEqual(['Admin']);
+    fixture.destroy();
+  });
+  it('uses the brand and portal path for navigation', async () => {
+    userService.brandingAndPortalUrl = '/default/rdmp';
+    const { fixture } = await createComponent();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-crumbs a').getAttribute('href')).toBe('/default/rdmp/admin');
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-actions a').getAttribute('href')).toBe('/default/rdmp/admin/users');
+    fixture.destroy();
+  });
+
 });
