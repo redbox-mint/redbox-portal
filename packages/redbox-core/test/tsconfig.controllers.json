@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node", "mocha"]
+  },
+  "include": ["http/fastify/fixtures/controllers.types.ts", "http/fastify/*.test.ts"]
+}

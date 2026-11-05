@@ -81,7 +81,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: clean install/build succeeds with exact pins; no general Express
     compatibility package or unsolicited dependency upgrade is introduced.
 
-- [ ] **FM-009 — Implement typed controller registration.**
+- [x] **FM-009 — Implement typed controller registration.**
   - Dependencies: FM-008.
   - Work: implement factory descriptors/typed helpers, explicit action allowlists,
     concrete offline bindings, instance/action resolution and bound `this`. Export
