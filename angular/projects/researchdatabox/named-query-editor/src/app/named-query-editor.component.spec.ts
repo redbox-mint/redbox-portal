@@ -112,6 +112,22 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.uniqueCollections).toBe(2);
   });
 
+  it('combines collection segments with search and keeps all collection choices', () => {
+    const component = TestBed.createComponent(NamedQueryEditorComponent).componentInstance;
+    component.queries = [
+      { name: 'alpha', collectionName: 'record' },
+      { name: 'beta', collectionName: 'user' },
+      { name: 'gamma', collectionName: 'record' }
+    ] as any;
+    component.onListQueryChanged({ searchTerm: 'a', collection: 'record' });
+    expect(component.filteredQueries.map(q => q.name)).toEqual(['alpha', 'gamma']);
+    expect(component.presentCollections).toEqual(['record', 'user']);
+    component.onListQueryChanged({ searchTerm: '', collection: 'user' });
+    expect(component.filteredQueries.map(q => q.name)).toEqual(['beta']);
+    component.onListQueryChanged({ searchTerm: '' });
+    expect(component.filteredQueries.length).toBe(3);
+  });
+
   it('filters queries by search term', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
