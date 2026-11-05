@@ -231,6 +231,12 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
+        'Branding-Images-Reconcile': {
+            fnName: 'brandinglogoservice.reconcileAssets',
+            backend: 'mongodb',
+            options: { lockLifetime: 10 * 60 * 1000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '1 day', opts: { skipImmediate: true } }
+        },
         [BRANDING_TYPEFACE_RECONCILE_JOB_NAME]: {
             fnName: 'brandingtypefaceservice.reconcileAssets',
             backend: 'mongodb',

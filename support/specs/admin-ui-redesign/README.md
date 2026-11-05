@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/10-branding-drafts`: brand-scoped logo/favicon drafts, preview snapshots, image-aware publication/history/restore, and an atomic whole-draft reset.
+
 Delivered on `admin-deferred/09-dashboard-types`: per-target rows per page, consumed by researcher dashboards. Retired dashboard-profile management removed from the deferred scope after runtime investigation.
 
 Delivered on `admin-deferred/08-site-config`: system message styles with matching live banners and accessible roles, and brand-scoped Navigation resets to installation defaults.
@@ -335,3 +337,51 @@ and refreshes its runtime cache entry using model defaults plus `brandingConfigu
 It shares the save lock, preserves other config keys and brands, and retains external secret
 objects. The form response's `hasOverride` flag controls the disabled reset button and tooltip.
 The confirmation warns that saved and unsaved customisations will be lost on the live site.
+
+### Branding saved drafts (phase 7 follow-up)
+
+Logo and favicon uploads stage immutable primary-disk objects under
+`branding-images/<brand-id>/<logo|favicon>/<uuid>.<ext>`. Existing live `logo` and
+`favicon` metadata remain the published state; visitor routes do not change.
+Uploads require `expectedDraftRevision` on both AJAX and REST surfaces. They keep
+existing MIME, size and SVG sanitisation checks and never overwrite a live object.
+The Admin state adds `active.images`, `draft.images` and image dirty flags; retained
+versions carry `images`. Generate preview and version preview return the exact
+image snapshot through the authenticated same-origin draft image route with a
+preview token, so changing or discarding a later draft cannot change an already
+generated preview. Image bytes are cached separately from the single-use CSS
+token and enforce the same preview TTL, brand and portal. The browser tab's real favicon stays published.
+
+Publish verifies persisted bytes before promoting both image references with
+colours and typography in the existing conditional publication update. Image-only
+changes create versions even when the CSS hash stays unchanged. Restoring a version
+restores its image references. Legacy versions lack image provenance: they preserve
+current published images when restored. Before replacing the current legacy
+publication, its live image metadata are lazily captured in its history row; no
+startup backfill is required. Older legacy history cannot reconstruct images that
+were replaced before this feature existed.
+
+`POST /:branding/:portal/app/branding/draft/reset` is brand Admin-only and session
+CSRF-protected. Its JSON body contains `expectedVersion` and
+`expectedDraftRevision`; success returns the full canonical Admin state. One
+compare-and-set on the branding document resets saved colours, draft typography
+(including all face references) and draft images together. This is a single-document
+atomic operation on the configured stores, so no multi-document transaction is
+needed. Failure before commit leaves every draft field untouched. A retry after a
+lost response recognizes an already aligned draft at the next revision.
+
+Physical deletion follows the logical reset, since an object store cannot join a
+database transaction. The same atomic update journals unreferenced draft image
+keys; failed deletions stay queued for a reset retry. Cleanup failures never expose
+a partially reset editor. Existing reference-aware font reconciliation reclaims
+discarded faces after its grace period. A daily image reconciliation job similarly
+reclaims abandoned uploads and pruned history objects after the configured typeface
+orphan grace period, rechecking active/draft/history references before deletion.
+Back up this prefix with the database, just as for branding fonts. Draft image GETs
+are Admin-only and no-store; generated contracts describe both new session routes.
+
+The editor labels staged images, includes them in the header draft count, serializes
+all mutations with the shared revision, and confirms whole-draft reset before
+replacing the editor state from the server. Reset leaves published branding and
+version history untouched. Runtime publish/restore verification must use automated
+tests or a throwaway brand, never the development brand's real publication.

@@ -2956,5 +2956,17 @@
   "admin-config-address-empty": "Allowed: no rules configured for this provider",
   "admin-config-address-denied": "Denied: no matching domain or email",
   "admin-config-address-invalid": "Enter a valid email address (up to 254 characters).",
-  "admin-config-address-error": "Could not check this address. Check your session and form values, then try again."
+  "admin-config-address-error": "Could not check this address. Check your session and form values, then try again.",
+  "admin-branding-assets-draft": "Uploads are saved to this brand’s draft. Preview them, then publish when ready.",
+  "admin-branding-draft-logo": "Draft logo, not yet published",
+  "admin-branding-draft-favicon": "Draft favicon, not yet published",
+  "admin-branding-draft-logo-preview": "Draft logo",
+  "admin-branding-draft-favicon-preview": "Draft favicon",
+  "admin-branding-reset-all-title": "Reset the whole draft?",
+  "admin-branding-reset-all-help": "Discard all saved and unsaved draft colours, typography and images? The editor will reload the published branding. This cannot be undone.",
+  "admin-branding-publish-all-help": "Publish the draft colours, typography, logo and favicon for everyone visiting this brand?",
+  "branding-failed-reset-draft": "Could not reset the draft: {{detail}}",
+  "branding-draft-logo-saved": "Logo saved to the draft.",
+  "branding-draft-favicon-saved": "Favicon saved to the draft.",
+  "branding-entire-draft-reset": "The whole draft has been reset to published branding."
 }

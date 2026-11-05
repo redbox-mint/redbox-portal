@@ -53,6 +53,8 @@ export class BrandingAdminComponent extends BaseComponent {
   previewCssUrl?: string;
   previewBaseCssUrl?: string;
   previewKind?: 'draft' | 'version';
+  previewLogoUrl?: string;
+  previewFaviconUrl?: string;
   logoUrl?: string;
   faviconUrl?: string;
 
@@ -102,7 +104,7 @@ export class BrandingAdminComponent extends BaseComponent {
           this.normaliseHex(this.getColourValue(variable)) !==
           this.normaliseHex(this.getColourValue(variable, this.state!.active.variables))
       ).length;
-    return colours + Number(this.state.draft.dirty.typeface);
+    return colours + Number(this.state.draft.dirty.typeface) + Number(!!this.state.draft.dirty.logo) + Number(!!this.state.draft.dirty.favicon);
   }
 
   get hasDraft(): boolean {
@@ -211,7 +213,7 @@ export class BrandingAdminComponent extends BaseComponent {
     const action = this.pendingAction;
     this.pendingAction = null;
     if (action === 'publish') await this.publish();
-    if (action === 'reset') this.resetDraft();
+    if (action === 'reset') await this.resetDraft();
   }
 
   readonly typefaceSlots: TypefaceSlotCard[] = [
@@ -242,8 +244,7 @@ export class BrandingAdminComponent extends BaseComponent {
     // Set logo URL
     const base = this.brandingService.getBrandingAndPortalUrl();
     this.brandingAndPortalUrl = base;
-    this.logoUrl = `${base}/images/logo`;
-    this.faviconUrl = `${base}/images/favicon`;
+    this.refreshDraftImages();
     // Mark component as ready
     this.componentReady = true;
   }
@@ -288,8 +289,7 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   isUnavailable(key: string): boolean {
-    if (key === 'logo' || key === 'favicon') return this.isBusy(key);
-    return this.conflict || Array.from(this.inFlight).some(action => action !== 'logo' && action !== 'favicon');
+    return this.conflict || this.inFlight.size > 0;
   }
 
   faceFor(slot: BrandingTypefaceSlot) {
@@ -298,6 +298,7 @@ export class BrandingAdminComponent extends BaseComponent {
 
   private replaceState(state: BrandingAdminState, preserveColours = false): void {
     this.state = state;
+    this.refreshDraftImages();
     if (!preserveColours) this.draftConfig = this.filterDraftVariables(state.draft.variables);
     this.conflict = false;
     this.pendingRestoreId = null;
@@ -748,6 +749,8 @@ export class BrandingAdminComponent extends BaseComponent {
     });
     if (preview) {
       this.previewKind = 'draft';
+      this.previewLogoUrl = preview.images?.logo || `${this.brandingAndPortalUrl}/app/branding/draft/images/logo?default=true`;
+      this.previewFaviconUrl = preview.images?.favicon || `${this.brandingAndPortalUrl}/app/branding/draft/images/favicon?default=true`;
       const base = this.brandingService.getBrandingAndPortalUrl();
       this.previewBaseCssUrl = `${base}/styles/style.min.css`;
       this.previewCssUrl = `${base}/preview/${preview.token}.css`;
@@ -761,6 +764,8 @@ export class BrandingAdminComponent extends BaseComponent {
     );
     if (preview) {
       this.previewKind = 'version';
+      this.previewLogoUrl = preview.images?.logo || `${this.brandingAndPortalUrl}/app/branding/draft/images/logo?default=true`;
+      this.previewFaviconUrl = preview.images?.favicon || `${this.brandingAndPortalUrl}/app/branding/draft/images/favicon?default=true`;
       const base = this.brandingService.getBrandingAndPortalUrl();
       this.previewBaseCssUrl = `${base}/styles/style.min.css`;
       this.previewCssUrl = `${base}/preview/${preview.token}.css`;
@@ -844,6 +849,8 @@ export class BrandingAdminComponent extends BaseComponent {
 
   /** A draft mutation invalidates any displayed preview: its CSS is bound to an older draft revision. */
   private clearPreview(): void {
+    this.previewLogoUrl = undefined;
+    this.previewFaviconUrl = undefined;
     this.previewCssUrl = undefined;
     this.previewBaseCssUrl = undefined;
     this.previewKind = undefined;
@@ -867,6 +874,7 @@ export class BrandingAdminComponent extends BaseComponent {
   }
 
   async uploadLogo(event: Event) {
+    if (this.isUnavailable('logo')) return;
     const file = this.selectedFile(event);
     if (!file) {
       return;
@@ -874,13 +882,15 @@ export class BrandingAdminComponent extends BaseComponent {
     await this.runMutation('logo', 'branding-failed-upload-logo', async () => {
       const formData = new FormData();
       formData.append('logo', file);
-      await this.brandingService.uploadLogo(formData);
-      this.logoUrl = `${this.brandingAndPortalUrl}/images/logo?t=${Date.now()}`;
-      this.message = this.i18n.t('branding-logo-uploaded');
+      formData.append('expectedDraftRevision', String(this.draftRevision));
+      this.replaceState(await this.brandingService.uploadLogo(formData), true);
+      this.clearPreview();
+      this.message = this.i18n.t('branding-draft-logo-saved');
     });
   }
 
   async uploadFavicon(event: Event) {
+    if (this.isUnavailable('favicon')) return;
     const file = this.selectedFile(event);
     if (!file) {
       return;
@@ -888,9 +898,10 @@ export class BrandingAdminComponent extends BaseComponent {
     await this.runMutation('favicon', 'branding-failed-upload-favicon', async () => {
       const formData = new FormData();
       formData.append('favicon', file);
-      await this.brandingService.uploadFavicon(formData);
-      this.faviconUrl = `${this.brandingAndPortalUrl}/images/favicon?t=${Date.now()}`;
-      this.message = this.i18n.t('branding-favicon-uploaded');
+      formData.append('expectedDraftRevision', String(this.draftRevision));
+      this.replaceState(await this.brandingService.uploadFavicon(formData), true);
+      this.clearPreview();
+      this.message = this.i18n.t('branding-draft-favicon-saved');
     });
   }
 
@@ -911,13 +922,20 @@ export class BrandingAdminComponent extends BaseComponent {
     }
   }
 
-  resetDraft() {
-    if (!this.state) {
-      return;
+  private refreshDraftImages(): void {
+    const base = this.brandingService.getBrandingAndPortalUrl();
+    this.logoUrl = `${base}/app/branding/draft/images/logo?r=${this.draftRevision}`;
+    this.faviconUrl = `${base}/app/branding/draft/images/favicon?r=${this.draftRevision}`;
+  }
+
+  async resetDraft() {
+    const state = await this.runMutation('reset-draft', 'branding-failed-reset-draft', () =>
+      this.brandingService.resetDraft(this.activeVersion, this.draftRevision));
+    if (state) {
+      this.replaceState(state);
+      this.clearPreview();
+      this.message = this.i18n.t('branding-entire-draft-reset');
     }
-    this.draftConfig = this.filterDraftVariables(this.state.draft.variables);
-    this.clearPreview();
-    this.message = this.i18n.t('branding-draft-reset');
   }
 
   typefaceSummary(typeface: BrandingAdminState['draft']['typeface']): string {

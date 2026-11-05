@@ -57,6 +57,7 @@ declare global {
 export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() baseCssHref?: string | null;
   @Input() cssHref?: string | null;
+  @Input() faviconSrc?: string | null;
   @Input() logoSrc?: string | null;
   /** Unsaved local sample text from the admin component; never sent to the server. */
   @Input() sampleText?: string | null;
