@@ -20,7 +20,7 @@
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AppConfigAttributes } from '../waterline-models/AppConfig';
 import { Services as services } from '../CoreService';
-import { ConfigModels, type ConfigModelInfo, type ConfigModelFormAdapter } from '../configmodels/ConfigModels';
+import { ConfigModels, type ConfigModelInfo } from '../configmodels/ConfigModels';
 import type { BrandingConfigurationDefaultsConfig } from '../config/brandingConfigurationDefaults.config';
 import { RESERVED_DASHBOARD_APP_CONFIG_KEYS } from './DashboardConfigService';
 import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
@@ -567,7 +567,7 @@ export namespace Services {
       });
     }
 
-    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[] }> {
+    public async getAppConfigForm(branding: BrandingModel, configForm: string): Promise<{ model: object; schema: unknown; fieldOrder: string[]; title?: string; descriptionKey?: string; secretFields: string[]; sections?: ConfigModelInfo['sections']; requiresSetup?: boolean }> {
 
       const appConfig = this.getAppConfigurationForBrand(branding.name);
 
@@ -583,7 +583,10 @@ export namespace Services {
       const fieldOrder = [...new Set([...(configuredOrder || []), ...Object.keys(properties)])]
         .filter(field => Object.prototype.hasOwnProperty.call(properties, field));
       const preparedModel = this.prepareConfigModelForForm(configForm, model);
-      const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder };
+      const configData = { model: this.maskSecretFields(configForm, preparedModel), schema: jsonSchema, fieldOrder: fieldOrder,
+        title: modelDefinition.title, descriptionKey: modelDefinition.descriptionKey,
+        secretFields: modelDefinition.secretFields ?? [], sections: modelDefinition.sections,
+        requiresSetup: modelDefinition.requiresSetup };
       return configData;
     }
 
@@ -631,9 +634,10 @@ export namespace Services {
      * - If a prebuilt JSON schema is provided, it will be cached and preferred.
      * - If a TS glob is provided, it will be used to find model types for schema generation.
      */
-    public registerConfigModel(info: { key: string; modelName: string; class: { new(...args: never[]): object; getFieldOrder?: () => string[] }; schema?: unknown; tsGlob?: string | string[]; secretFields?: string[]; formAdapter?: ConfigModelFormAdapter }): void {
+    public registerConfigModel(info: ConfigModelInfo & { key: string }): void {
       // persist in ConfigModels registry
-      ConfigModels.register(info.key, { modelName: info.modelName, class: info.class, schema: info.schema, tsGlob: info.tsGlob, secretFields: info.secretFields, formAdapter: info.formAdapter });
+      const { key, ...modelInfo } = info;
+      ConfigModels.register(key, modelInfo);
       // cache schema if provided
       if (info.schema) {
         this.modelSchemaMap[info.modelName] = info.schema;
