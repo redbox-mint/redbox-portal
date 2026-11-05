@@ -151,6 +151,8 @@ export interface ResolvedAdminSidebarItem {
   href: string;
   /** Whether to open in new tab */
   external: boolean;
+  /** Whether this link represents the current admin screen */
+  active?: boolean;
   /** Target attribute value */
   target?: string;
 }
@@ -228,57 +230,73 @@ export class AdminSidebarConfig extends AppConfig {
 }
 
 /**
- * Default admin sidebar configuration that mirrors the current static sidebar structure
+ * Canonical sidebar defaults shared by branding configuration and the app-config editor
  */
 export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
-  header: {
-    titleKey: 'menu-admin',
-    iconClass: 'fa fa-cog'
-  },
+  header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
   sections: [
     {
-      id: 'analyze',
-      titleKey: 'menu-analyze',
-      defaultExpanded: true,
+      id: 'records', titleKey: 'admin-nav-records', defaultExpanded: true,
       items: [
-        { id: 'reports', labelKey: 'reports-heading', href: '/admin/reports' },
-        { id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' },
-        { id: 'export', labelKey: 'menu-export', href: '/admin/export' },
-        { id: 'deleted', labelKey: 'deleted-records-heading', href: '/admin/deletedRecords' }
+        { id: 'reports', labelKey: 'admin-nav-reports', href: '/admin/reports' },
+        { id: 'named-query', labelKey: 'admin-nav-named-query', href: '/admin/named-query' },
+        { id: 'harvest-runs', labelKey: 'admin-nav-harvest-runs', href: '/admin/harvest-runs' },
+        { id: 'export', labelKey: 'admin-nav-export', href: '/admin/export' },
+        { id: 'deleted', labelKey: 'admin-nav-deleted', href: '/admin/deletedRecords' },
       ]
     },
     {
-      id: 'system',
-      titleKey: 'menu-syssettings',
-      defaultExpanded: true,
+      id: 'people', titleKey: 'admin-nav-people', defaultExpanded: true,
       requiredRoles: ['Admin'],
       items: [
-        { id: 'roles', labelKey: 'menu-rolemgmt', href: '/admin/roles' },
-        { id: 'users', labelKey: 'menu-usermgmt', href: '/admin/users' },
-        { id: 'system-msg', labelKey: 'menu-systemmessages', href: '/admin/appconfig/edit/systemMessage' },
-        { id: 'web-analytics', labelKey: 'menu-webanalytics', href: '/admin/appconfig/edit/webAnalytics' },
-        { id: 'domains', labelKey: 'menu-authorizeddomainsemails', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
-        { id: 'menu', labelKey: 'menu-menuconfiguration', href: '/admin/appconfig/edit/menu' },
-        { id: 'homepanels', labelKey: 'menu-homepanelsconfiguration', href: '/admin/appconfig/edit/homePanels' },
-        { id: 'adminsidebar', labelKey: 'menu-adminsidebarconfiguration', href: '/admin/appconfig/edit/adminSidebar' },
-        { id: 'figsharepublishing', labelKey: 'menu-figsharepublishingconfiguration', href: '/admin/appconfig/edit/figsharePublishing' },
-        { id: 'onipublishing', labelKey: 'menu-onipublishingconfiguration', href: '/admin/appconfig/edit/oniPublishing' }
+        { id: 'users', labelKey: 'admin-nav-users', href: '/admin/users' },
+        { id: 'roles', labelKey: 'admin-nav-roles', href: '/admin/roles' },
+        { id: 'domains', labelKey: 'admin-nav-domains', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
       ]
     },
     {
-      id: 'lookup',
-      titleKey: 'system-lookup-records',
-      defaultExpanded: true,
+      id: 'site', titleKey: 'admin-nav-site', defaultExpanded: true,
       requiredRoles: ['Admin'],
       items: [
-        { id: 'party', labelKey: 'system-lookup-record-item1', href: '/dashboard/party' }
+        { id: 'system-msg', labelKey: 'admin-nav-system-msg', href: '/admin/appconfig/edit/systemMessage' },
+        { id: 'menu', labelKey: 'admin-nav-menu', href: '/admin/appconfig/edit/menu' },
+        { id: 'homepanels', labelKey: 'admin-nav-homepanels', href: '/admin/appconfig/edit/homePanels' },
+        { id: 'adminsidebar', labelKey: 'admin-nav-adminsidebar', href: '/admin/appconfig/edit/adminSidebar' },
+        { id: 'dashboard-config', labelKey: 'admin-nav-dashboard-config', href: '/admin/dashboard-config' },
+        { id: 'branding', labelKey: 'admin-nav-branding', href: '/admin/branding' },
+        { id: 'translation', labelKey: 'admin-nav-translation', href: '/admin/translation' },
+        { id: 'web-analytics', labelKey: 'admin-nav-web-analytics', href: '/admin/appconfig/edit/webAnalytics' },
       ]
-    }
+    },
+    {
+      id: 'lookups', titleKey: 'admin-nav-lookups', defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'party', labelKey: 'admin-nav-party', href: '/dashboard/party' },
+        { id: 'vocabulary', labelKey: 'admin-nav-vocabulary', href: '/admin/vocabulary/manager' },
+        { id: 'figshare-vocabularies', labelKey: 'admin-nav-figshare-vocabularies', href: '/admin/integrations/figshare/vocabularies' },
+      ]
+    },
+    {
+      id: 'integrations', titleKey: 'admin-nav-integrations', defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'figsharepublishing', labelKey: 'admin-nav-figsharepublishing', href: '/admin/appconfig/edit/figsharePublishing' },
+        { id: 'onipublishing', labelKey: 'admin-nav-onipublishing', href: '/admin/appconfig/edit/oniPublishing' },
+        { id: 'doipublishing', labelKey: 'admin-nav-doipublishing', href: '/admin/appconfig/edit/doiPublishing' },
+        { id: 'raidpublishing', labelKey: 'admin-nav-raidpublishing', href: '/admin/appconfig/edit/raidPublishing' },
+        { id: 'notifications', labelKey: 'admin-nav-notifications', href: '/admin/appconfig/edit/integrationNotification' },
+      ]
+    },
+    {
+      id: 'developer', titleKey: 'admin-nav-developer', defaultExpanded: true,
+      requiredRoles: ['Admin'],
+      items: [
+        { id: 'api-docs', labelKey: 'admin-nav-api-docs', href: '/admin/api-docs' },
+      ]
+    },
   ],
-  footerLinks: [
-    { id: 'branding', labelKey: 'admin-configure-branding', href: '/admin/branding' },
-    { id: 'translation', labelKey: 'admin-configure-translation', href: '/admin/translation' }
-  ]
+  footerLinks: []
 };
 
 /**
