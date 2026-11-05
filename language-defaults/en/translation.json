@@ -2633,6 +2633,8 @@
   "figshare-vocab-history-empty-title": "No sync history yet",
   "figshare-vocab-page-title": "Figshare vocabularies",
   "admin-lookups-search": "Search",
+  "admin-vocabulary-last-synced": "Last synced",
+  "admin-vocabulary-never-synced": "Never",
   "admin-parties-details": "Party details",
   "admin-parties-save": "Save party",
   "admin-parties-back": "Back to parties",

@@ -12,7 +12,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
-Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation.
+Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search; standard party record form and Admin CSV mapping, preview and per-row creation; vocabulary Last synced timestamps.
 
 Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
 
@@ -441,3 +441,8 @@ Preview tokens bind session, user, brand, file and mapping for 15 minutes. A uni
 atomically removed before apply, preventing replay even across server processes. Only a hash is stored;
 expired claims are pruned on preview. Failed/unknown row outcomes are never automatically retried.
 No all-or-nothing transaction is promised: results report each row independently.
+
+Vocabulary lists expose the existing `lastSyncedAt` field. The RVA sync path writes it after successful entry
+upserts; failure leaves the previous timestamp in place. The list shows localized admin date/time for RVA,
+Never for an unsynced RVA vocabulary, and a dash for local/external vocabularies. No migration or inferred
+historical timestamp is required, and the existing REST vocabulary schema already declares the field.

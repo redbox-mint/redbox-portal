@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject } from '@angular/core';
 import { VocabularySummary } from './vocabulary-api.service';
 
 type SourceFilter = 'all' | 'local' | 'rva';
@@ -16,6 +17,7 @@ type VocabularyListQueryState = {
   standalone: false
 })
 export class VocabListComponent implements OnChanges, OnDestroy {
+  readonly adminDates = inject(AdminDateService);
   @Input() vocabularies: VocabularySummary[] = [];
   @Input() selectedId: string | null = null;
   @Input() totalCount = 0;
