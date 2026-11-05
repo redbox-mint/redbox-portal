@@ -443,6 +443,8 @@ describe('Branding public font delivery and layouts', function () {
       }
     }
     const brandingStyles = fs.readFileSync(path.join(appsRoot, 'branding', 'src', 'styles.scss'), 'utf8');
-    expect(brandingStyles).to.contain('var(--rb-brand-font-family, Arial, Helvetica, sans-serif)');
+    // The editor inherits the portal default as well as published brand fonts.
+    // A brand-variable fallback on body would replace Titillium Web when unset.
+    expect(brandingStyles).not.to.match(/(?:^|\n)\s*(?:body|html)\s*\{[^}]*font-family/);
   });
 });

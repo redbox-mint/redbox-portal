@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Directive, Input, Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { ConfigService, LoggerService, RecordService, TranslationService, getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDatePipe, ConfigService, LoggerService, RecordService, TranslationService, getStubConfigService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { ExportJobDto } from '@researchdatabox/sails-ng-common';
 import { ExportComponent } from './export.component';
 import { ExportService } from './export.service';
@@ -57,7 +57,7 @@ describe('ExportComponent', () => {
       ? `${baseUrl}/export/jobs/${encodeURIComponent(item.id)}/download` : null);
     await TestBed.configureTestingModule({
       declarations: [ExportComponent, MockTranslationPipe, MockDatepickerDirective],
-      imports: [CommonModule, FormsModule, A11yModule],
+      imports: [CommonModule, FormsModule, A11yModule, AdminDatePipe],
       providers: [
         { provide: ConfigService, useValue: configService },
         { provide: RecordService, useValue: records },

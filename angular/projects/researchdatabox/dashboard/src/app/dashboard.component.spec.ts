@@ -69,6 +69,23 @@ describe('DashboardComponent', () => {
     }
   }
 
+  it('formats standard admin date columns by their template input and preserves custom and non-admin templates', () => {
+    const component = create();
+    const rows = [
+      { title: 'Created', variable: 'metaMetadata.createdOn', template: '{{formatDateLocale dateCreated "DATETIME_MED"}}' },
+      { title: 'Custom', variable: 'custom', template: 'Created: {{formatDateLocale dateCreated "DATETIME_MED"}}' }
+    ];
+    const imports = { dateCreated: '2026-11-05T18:36:00' };
+    templates.compileAndRunTemplate.and.returnValue('Configured template');
+    component.adminParties = true;
+    const admin = (component as any).renderRow('draft', rows, 'rowConfig', imports);
+    expect(admin['metaMetadata.createdOn']).toBe('05/11/2026 18:36');
+    expect(admin.custom).toBe('Configured template');
+    component.adminParties = false;
+    const ordinary = (component as any).renderRow('draft', rows, 'rowConfig', imports);
+    expect(ordinary['metaMetadata.createdOn']).toBe('Configured template');
+  });
+
   beforeEach(async () => {
     attributes = { recordType: 'rdmp', dashboardType: 'standard' };
     recordService = jasmine.createSpyObj('RecordService', ['getDashboardType', 'getDashboardSettings', 'getWorkflowSteps', 'getRecords', 'getRelatedRecords', 'getDashboardView', 'getConfig', 'waitForInit', 'isInitializing']);

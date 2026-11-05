@@ -457,10 +457,11 @@ export class DashboardComponent extends BaseComponent {
     const record: any = {};
     for (let i = 0; i < rows.length; i++) {
       const columnConfig = rows[i];
-      const dateColumn = ['dateCreated', 'dateModified', 'dateDeleted'].includes(columnConfig.variable)
-        && /^\{\{formatDateLocale\s+\w+\s+"DATETIME_\w+"\}\}$/.test(columnConfig.template);
-      record[columnConfig.variable] = this.adminParties && dateColumn
-        ? this.adminDates.format(imports[columnConfig.variable])
+      // Standard dashboard templates refer to mapped imports (dateCreated),
+      // while their output column can be a nested path (metaMetadata.createdOn).
+      const dateTemplate = columnConfig.template?.match(/^\{\{\s*formatDateLocale\s+(dateCreated|dateModified|dateDeleted)\s+["']DATETIME_\w+["']\s*\}\}$/);
+      record[columnConfig.variable] = this.adminParties && dateTemplate
+        ? this.adminDates.format(imports[dateTemplate[1]])
         : this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
     }
     return record;
