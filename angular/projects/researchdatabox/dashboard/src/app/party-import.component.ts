@@ -23,11 +23,12 @@ export class PartyImportComponent {
     try {
       this.content = await file.text();
       const result = await this.api.request('inspect', { csv: this.content });
-      this.headers = result.headers; this.sample = result.sample; this.total = result.total; this.mapping = {};
+      this.headers = result.headers; this.sample = result.sample; this.total = result.total;
+      this.mapping = Object.fromEntries(this.fields.map(field => [field, null]));
       this.headers.forEach((header, index) => {
         const normalized = header.toLowerCase().replace(/[ _-]/g, '');
         const field = this.fields.find(name => name.toLowerCase() === normalized) ?? (normalized === 'name' ? 'fullName' : undefined);
-        if (field && this.mapping[field] === undefined) this.mapping[field] = index;
+        if (field && this.mapping[field] === null) this.mapping[field] = index;
       });
     } catch { this.error = 'admin-parties-import-file-error'; } finally { this.busy = false; }
   }

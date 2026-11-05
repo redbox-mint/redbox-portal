@@ -10,7 +10,7 @@ export class PartyImportApiService extends HttpClientService {
   async request(action: string, body: object): Promise<any> {
     await this.waitForInit();
     this.enableCsrfHeader();
-    const response: any = await firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/parties/import/${action}`, body, this.reqOptsJsonBodyOnly));
+    const response: any = await firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/parties/import/${action}`, body, { ...this.reqOptsJsonBodyOnly, context: this.httpContext }));
     return response?.data ?? response;
   }
 }

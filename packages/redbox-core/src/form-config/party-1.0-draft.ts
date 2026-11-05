@@ -8,10 +8,10 @@ const form: FormConfigFrame = {
     ...(['givenName', 'surname', 'email', 'orcid'] as const).map(name => ({
       name,
       component: { class: 'SimpleInputComponent' as const, config: { type: name === 'email' ? 'email' as const : 'text' as const } },
-      layout: { class: 'DefaultLayout' as const, config: { label: `@admin-parties-field-${name}` } },
+      layout: { class: 'DefaultLayout' as const, config: { label: `admin-parties-field-${name}` } },
       model: { class: 'SimpleInputModel' as const, config: { validators: name === 'email' ? [{ class: 'required' }, { class: 'email' }] : name === 'givenName' ? [{ class: 'required' }] : [] } },
     })),
-    { name: 'partySave', constraints: { allowModes: ['edit'] }, component: { class: 'SaveButtonComponent', config: { label: '@admin-parties-save', redirectLocation: '/@branding/@portal/admin/parties' } } },
+    { name: 'partySave', constraints: { allowModes: ['edit'] }, component: { class: 'SaveButtonComponent', config: { label: 'admin-parties-save', closeOnSave: true, redirectLocation: '/{{branding}}/{{portal}}/admin/parties' } } },
     { name: 'partyReturn', component: { class: 'ContentComponent', config: { content: {}, template: '<a class="btn btn-outline-secondary" href="{{concat "/" branding "/" portal "/admin/parties"}}">{{t "admin-parties-back"}}</a>' } } },
   ],
 };
