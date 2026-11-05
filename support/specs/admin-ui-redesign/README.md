@@ -10,6 +10,11 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 - `mocks/Patterns.dc.html`: the pattern kit. `mocks/Audit.dc.html`: the audit findings.
 - `DEFERRED.md`: mock features the backend doesn't support yet. Don't build these; list new ones there.
 
+## Status
+
+All admin screens are implemented on the shared foundation, including the final consistency pass.
+Backend-dependent features remain listed in [DEFERRED.md](DEFERRED.md).
+
 ## Principles (apply to every screen)
 
 1. **One page header.** Breadcrumb (`Admin / Section / Page`), left-aligned H1, a one-line description, and
@@ -57,7 +62,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 | Dashboards | `/admin/dashboard-config` | `DashboardConfig.dc.html` |
 | Vocabularies | `/admin/vocabulary/manager` | `Vocabularies.dc.html` |
 | Figshare vocabularies | `/admin/integrations/figshare/vocabularies` | `FigshareVocab.dc.html` |
-| Parties | `/dashboard/party` (sidebar link) | `Parties.dc.html` |
+| Parties | `/admin/parties` (legacy `/dashboard/party` supported) | `Parties.dc.html` |
 | API docs | `/admin/api-docs` | `ApiDocs.dc.html` |
 
 Notes in the mocks (dashed `note` boxes) and sample/`[placeholder]` content are explanations, not UI to ship.
@@ -247,3 +252,20 @@ Redoc's document styles and scrolling from the portal chrome. The response nonce
 Webpack/styled-components for generated viewer styles. Only the reference document allows same-origin
 framing and Redoc's existing inline style attributes; the surrounding admin page retains the normal CSP. JSON and YAML actions use the existing routes
 and native download links. Shared header action descriptors now accept an optional `download` filename.
+
+### Final consistency pass (phase 11)
+
+Admin dates use `AdminDateService` / `adminDate` for display only. The portal locale's
+`admin-date-format`, `admin-date-time-format` and `admin-date-placeholder` translations define the
+calendar convention; English uses `dd/MM/yyyy HH:mm` in local time. Datepicker hints derive from the
+same convention. Request serialization and report filter timezone boundaries are unchanged.
+Configured custom report labels and table templates remain supported. Only the three stock report
+filter messages map to concise presentation labels; the stored configuration is unchanged.
+
+App-config schema titles are translation keys, resolved on a cloned schema before Formly conversion.
+Property names, enum values, defaults, adapters and saved configuration retain their existing shape.
+The dashboard editor translates column headings for display while preserving editable stored keys.
+
+The site logo uses a non-heading element only on admin pages (including legacy admin Parties), so the
+content supplies the sole H1. Admin-scoped CSS preserves its portal layout. Ordinary portal pages keep
+the original logo heading and styles. Draft branding typography stays inside the preview shadow root.
