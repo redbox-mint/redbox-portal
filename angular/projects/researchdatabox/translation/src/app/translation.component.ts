@@ -302,6 +302,89 @@ export class AppComponent implements OnInit, OnDestroy {
     this.setPage(this.page);
   }
 
+  importModalOpen = signal(false);
+  importBusy = signal(false);
+  importError = signal('');
+  importPreview = signal<any>(null);
+  importResult = signal<any>(null);
+  importJson = '';
+  importFileName = '';
+  keepUnknown = false;
+  importLanguage = '';
+  private importNamespace = '';
+  private importRead = 0;
+
+  get exportUrl(): string { return this.svc.translationExportUrl(this.selectedLang, this.namespace); }
+
+  openImport() {
+    if (!this.selectedLang) return;
+    this.importLanguage = this.selectedLang;
+    this.importNamespace = this.namespace;
+    this.importJson = '';
+    this.importFileName = '';
+    this.keepUnknown = false;
+    this.importError.set('');
+    this.importPreview.set(null);
+    this.importResult.set(null);
+    this.importModalOpen.set(true);
+  }
+
+  closeImport() {
+    if (this.importBusy()) return;
+    ++this.importRead;
+    this.importModalOpen.set(false);
+  }
+
+  invalidateImportPreview() {
+    this.importPreview.set(null);
+    this.importResult.set(null);
+    this.importError.set('');
+  }
+
+  async readImportFile(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    const request = ++this.importRead;
+    this.invalidateImportPreview();
+    this.importJson = '';
+    this.importFileName = file?.name || '';
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { this.importError.set('admin-tx-import-size-error'); return; }
+    this.importBusy.set(true);
+    try {
+      const json = await file.text();
+      if (request === this.importRead && this.importModalOpen()) this.importJson = json;
+    } catch (_error) { this.importError.set('admin-tx-import-file-error'); }
+    finally { this.importBusy.set(false); }
+  }
+
+  async previewImport() {
+    if (!this.importJson || this.importBusy()) return;
+    this.importBusy.set(true);
+    this.importError.set('');
+    this.importPreview.set(null);
+    this.importResult.set(null);
+    try {
+      this.importPreview.set(await this.svc.previewTranslationImport(this.importLanguage, this.importNamespace, this.importJson, this.keepUnknown));
+    } catch (_error) { this.importError.set('admin-tx-import-preview-error'); }
+    finally { this.importBusy.set(false); }
+  }
+
+  async applyImport() {
+    const preview = this.importPreview();
+    if (!preview || this.importBusy()) return;
+    this.importBusy.set(true);
+    this.importError.set('');
+    try {
+      this.importResult.set(await this.svc.applyTranslationImport(this.importLanguage, this.importNamespace, this.importJson, this.keepUnknown, preview.previewToken));
+      this.importPreview.set(null);
+      await this.loadEntries();
+      await this.loadLanguages();
+    } catch (error) {
+      this.importPreview.set(null);
+      this.importError.set((error as { status?: number }).status === 409 ? 'admin-tx-import-stale' : 'admin-tx-import-apply-error');
+    } finally { this.importBusy.set(false); }
+  }
+
   setShow(show: 'all' | 'missing' | 'override') {
     this.show = show;
     this.page = 1;

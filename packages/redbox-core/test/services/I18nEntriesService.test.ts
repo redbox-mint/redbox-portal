@@ -157,6 +157,97 @@ describe('I18nEntriesService', function () {
     });
   });
 
+  describe('JSON import/export', function () {
+    let bundle: any;
+    beforeEach(function () {
+      bundle = { id: 'b', locale: 'en', namespace: 'translation', data: { same: 'Same', change: 'Before', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>', _meta: { rich: { contentFormat: 'html' } } } };
+      mockI18nBundle.findOne.callsFake(async () => bundle);
+      sinon.stub(I18nEntriesService, 'defaultValues').resolves({ same: 'Same', change: 'Default', added: 'Default', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>' });
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ rich: { contentFormat: 'html' } });
+      mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([{ key: 'rich', contentFormat: 'html' }]) });
+    });
+    const brand = { id: 'brand-1' };
+    async function rejected(operation: Promise<any>, status: number) {
+      let failure;
+      try { await operation; } catch (error) { failure = error; }
+      expect(failure?.status).to.equal(status);
+    }
+    for (const json of ['{', 'null', '[]', '"text"', '{"key":42}', '{"key":true}', '{"key":null}', '{"key":{}}', '{"key":[]}', '{"__proto__":"bad"}', '{"a.constructor.b":"bad"}', '{"_meta":"bad"}', '{"<script>":"bad"}', '{" ":"bad"}']) {
+      it('rejects malformed or non-flat/string-valued JSON: ' + json, async function () {
+        await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', json), 400);
+        expect(mockI18nBundle.updateOne.called).to.equal(false);
+        expect(mockI18nTranslation.create.called).to.equal(false);
+      });
+    }
+    it('rejects oversized UTF-8 input including multibyte characters', async function () {
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify({ key: 'a'.repeat(2 * 1024 * 1024) })), 413);
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify({ key: 'é'.repeat(1100000) })), 413);
+    });
+    it('previews counts, unknown-key exclusion and a sanitized diff without writing', async function () {
+      const json = JSON.stringify({ same: 'Same', change: 'After', added: 'Added', unknown: 'Ignored', rich: '<p>After</p><script>alert(1)</script>' });
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      expect(preview.counts).to.deep.equal({ added: 1, changed: 2, unchanged: 1, unknown: 1, ignored: 1 });
+      expect(preview.sample.find(item => item.key === 'rich').after).not.to.contain('<script>');
+      expect(mockI18nTranslation.create.called).to.equal(false);
+      expect(mockI18nBundle.updateOne.called).to.equal(false);
+      expect((global as any).TranslationService.reloadResources.called).to.equal(false);
+      expect(preview.previewToken).to.match(/^[a-f0-9]{64}$/);
+    });
+    it('caps the diff sample and rejects more than 10000 keys', async function () {
+      const values = Object.fromEntries(Array.from({ length: 25 }, (_, i) => ['key-' + i, 'value']));
+      expect((await I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify(values))).sample).to.have.length(20);
+      const tooMany = Object.fromEntries(Array.from({ length: 10001 }, (_, i) => ['key-' + i, '']));
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify(tooMany)), 400);
+    });
+    it('applies only eligible changes and reports every key including failures', async function () {
+      const json = JSON.stringify({ same: 'Same', change: 'After', added: 'Added', unknown: 'Ignored' });
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').callsFake(async (_b, _l, _n, key) => {
+        if (key === 'change') throw new Error('database failure with unsafe detail');
+        return { key, value: 'Added' };
+      });
+      const result = await I18nEntriesService.applyImport(brand, 'en', 'translation', json, false, preview.previewToken);
+      expect(result).to.include({ applied: 1, failed: 1 });
+      expect(result.results.map(item => [item.key, item.status])).to.deep.equal([['added', 'applied'], ['change', 'failed'], ['same', 'unchanged'], ['unknown', 'ignored']]);
+      expect(JSON.stringify(result)).not.to.contain('unsafe detail');
+      expect(save.firstCall.args[5]).to.include({ noReload: true, strictBundleSync: true });
+      expect((global as any).TranslationService.reloadResources.calledOnce).to.equal(true);
+    });
+    it('requires a fresh preview when bundle, input or unknown-key choice changes', async function () {
+      const json = '{"unknown":"New"}';
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({});
+      await rejected(I18nEntriesService.applyImport(brand, 'en', 'translation', json, true, preview.previewToken), 409);
+      await rejected(I18nEntriesService.applyImport(brand, 'fr', 'translation', json, false, preview.previewToken), 409);
+      bundle.data.same = 'Edited meanwhile';
+      await rejected(I18nEntriesService.applyImport(brand, 'en', 'translation', json, false, preview.previewToken), 409);
+      expect(save.called).to.equal(false);
+    });
+    it('keeps unknown keys only with explicit opt-in', async function () {
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', '{"unknown":"New"}', true);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({ key: 'unknown', value: 'New' });
+      const result = await I18nEntriesService.applyImport(brand, 'en', 'translation', '{"unknown":"New"}', true, preview.previewToken);
+      expect(result).to.include({ applied: 1, failed: 0 });
+      expect(save.firstCall.args[3]).to.equal('unknown');
+    });
+    it('exports flat strings without metadata, preserving leaf/prefix keys and empty values', async function () {
+      bundle.data.empty = '';
+      expect(await I18nEntriesService.exportBundle(brand, 'en', 'translation')).to.deep.equal({ same: 'Same', change: 'Before', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>', empty: '' });
+      expect(await I18nEntriesService.exportBundle(brand, 'en', 'translation', true)).to.deep.equal({ change: 'Before', empty: '' });
+    });
+    it('reports failure if the bundle disappears during the entry write', async function () {
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves(null) });
+      let failure;
+      try { await I18nEntriesService.setEntry(brand, 'en', 'translation', 'change', 'New', { strictBundleSync: true, noReload: true }); }
+      catch (error) { failure = error; }
+      expect(failure?.message).to.equal('Bundle no longer exists');
+    });
+    it('reports bundle synchronization failure rather than claiming an entry was applied', async function () {
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().rejects(new Error('write failed')) });
+      await rejected(I18nEntriesService.setEntry(brand, 'en', 'translation', 'change', 'New', { strictBundleSync: true, noReload: true }).then(() => { throw Object.assign(new Error('should reject'), { status: 0 }); }, error => { throw Object.assign(error, { status: 500 }); }), 500);
+    });
+  });
+
   describe('resolveBrandingId (private)', function () {
     it('should resolve branding id from object', function () {
       const result = I18nEntriesService.resolveBrandingId({ id: 'brand-1' });

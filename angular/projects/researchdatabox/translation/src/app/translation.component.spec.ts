@@ -35,6 +35,15 @@ class RichMockTranslationService {
     ]
   };
 
+  translationExportUrl(code: string, ns: string) { return `/admin/translation/${code}/${ns}/export`; }
+  async previewTranslationImport(_code: string, _ns: string, _json: string, _keepUnknown: boolean) {
+    return { previewToken: 'a'.repeat(64), counts: { added: 1, changed: 1, unchanged: 1, unknown: 1, ignored: 1 },
+      sample: [{ key: 'label', before: 'Before', after: '<img src=x onerror=alert(1)>', action: 'changed' }] };
+  }
+  async applyTranslationImport(_code: string, _ns: string, _json: string, _keepUnknown: boolean, _token: string) {
+    return { applied: 2, failed: 1, counts: { ignored: 1 }, results: [{ key: 'failed-key', status: 'failed' }] };
+  }
+
   async revertEntry(code: string, ns: string, key: string) {
     const entry = this.entriesMap[`${code}:${ns}`].find(e => e.key === key);
     Object.assign(entry, { value: 'Default value', provenance: 'default' });
@@ -150,6 +159,43 @@ describe('AppComponent (translation)', () => {
     expect(comp.pageEntries().map(e => e.key)).toEqual(['unknown']);
     comp.clearAllFilters();
     expect(comp.show).toBe('all'); expect(comp.pageEntries().length).toBe(4);
+  });
+
+  it('previews a JSON file before applying and escapes the diff sample', async () => {
+    const { comp, fixture } = create(); fixture.detectChanges(); await fixture.whenStable();
+    const preview = spyOn(translationService, 'previewTranslationImport').and.callThrough();
+    const apply = spyOn(translationService, 'applyTranslationImport').and.callThrough();
+    comp.openImport();
+    await comp.readImportFile({ target: { files: [new File(['{"label":"After"}'], 'translations.json', { type: 'application/json' })] } } as any);
+    fixture.detectChanges();
+    expect(apply).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[href="/admin/translation/en/translation/export"]')).toBeTruthy();
+    await comp.previewImport(); fixture.detectChanges();
+    expect(preview).toHaveBeenCalledWith('en', 'translation', '{"label":"After"}', false);
+    expect(fixture.nativeElement.querySelectorAll('.tx-import-counts .rb-admin-stat').length).toBe(5);
+    expect(fixture.nativeElement.querySelector('.tx-import-diff').textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(fixture.nativeElement.querySelector('.tx-import-diff img')).toBeNull();
+    comp.selectedLang = 'fr';
+    await comp.applyImport(); fixture.detectChanges();
+    expect(apply).toHaveBeenCalledWith('en', 'translation', '{"label":"After"}', false, 'a'.repeat(64));
+    expect(comp.importResult().failed).toBe(1);
+    expect(comp.importPreview()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('failed-key');
+  });
+  it('rejects oversized files, invalidates preview on options/file changes and handles stale preview', async () => {
+    const { comp, fixture } = create(); fixture.detectChanges(); await fixture.whenStable();
+    comp.openImport();
+    await comp.readImportFile({ target: { files: [new File(['x'.repeat(2 * 1024 * 1024 + 1)], 'large.json')] } } as any);
+    expect(comp.importJson).toBe(''); expect(comp.importError()).toBe('admin-tx-import-size-error');
+    comp.importJson = '{}'; await comp.previewImport();
+    comp.keepUnknown = true; comp.invalidateImportPreview();
+    expect(comp.importPreview()).toBeNull();
+    await comp.applyImport(); expect(comp.importResult()).toBeNull();
+    await comp.previewImport();
+    spyOn(translationService, 'applyTranslationImport').and.rejectWith({ status: 409 });
+    await comp.applyImport();
+    expect(comp.importPreview()).toBeNull(); expect(comp.importError()).toBe('admin-tx-import-stale');
+    comp.closeImport(); expect(comp.importModalOpen()).toBeFalse();
   });
 
   it('shows a warning for failed entries, preserves editor data, and retries to a real empty list', async () => {

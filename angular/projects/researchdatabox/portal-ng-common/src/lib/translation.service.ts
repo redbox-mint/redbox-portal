@@ -309,6 +309,20 @@ export class TranslationService extends HttpClientService implements Service {
     return firstValueFrom(req$);
   }
 
+  public translationExportUrl(locale: string, namespace: string): string {
+    return `${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/export`;
+  }
+
+  public async previewTranslationImport(locale: string, namespace: string, json: string, keepUnknown: boolean): Promise<any> {
+    await this.waitForInit();
+    return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/import/preview`, { json, keepUnknown }, this.requestOptions));
+  }
+
+  public async applyTranslationImport(locale: string, namespace: string, json: string, keepUnknown: boolean, previewToken: string): Promise<any> {
+    await this.waitForInit();
+    return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/import/apply`, { json, keepUnknown, previewToken }, this.requestOptions));
+  }
+
   public async revertEntry(locale: string, namespace: string, key: string): Promise<any> {
     await this.waitForInit();
     return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/revert`, { key }, this.requestOptions));

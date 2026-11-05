@@ -202,6 +202,7 @@ describe('Request chronicle controller integration', function () {
         const saved = { id: 'entry-1', data: { title: 'Private translation content' } };
         (global as any).I18nEntriesService = {
           setEntry: sinon.stub().resolves(saved),
+          defaultValues: sinon.stub().rejects(new Error('defaults unavailable')),
           setBundle: sinon.stub().resolves(saved),
         };
         (global as any).TranslationService.reloadResources = sinon.stub().rejects(new Error('reload failed'));

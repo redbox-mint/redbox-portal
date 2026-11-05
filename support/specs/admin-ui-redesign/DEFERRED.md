@@ -29,7 +29,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Translations | Import / Export buttons | Needs bundle import/export endpoints |
 
 ## Lookups and vocabularies
 

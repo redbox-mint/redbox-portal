@@ -1,4 +1,3 @@
-import { translationTarget, translationDisplayNameBody, revertTranslationBody } from '../api-routes/groups/admin-translation';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -18,6 +17,7 @@ import { translationTarget, translationDisplayNameBody, revertTranslationBody } 
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { translationTarget, translationDisplayNameBody, revertTranslationBody, translationImportBody, translationImportApplyBody, translationImportMaxBytes } from '../api-routes/groups/admin-translation';
 import { Controllers as controllers } from '../CoreController';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
@@ -33,6 +33,7 @@ export namespace Controllers {
      * Exported methods, accessible from internet.
      */
     protected override _exportedMethods: string[] = [
+      'previewImport', 'applyImport', 'exportBundle',
       'languageSummaries', 'editorEntries', 'revertEntry',
       'updateDisplayName',
       'getNamespace',
@@ -83,6 +84,49 @@ export namespace Controllers {
         return result ? res.json(result) : res.notFound({ message: 'Bundle or default key not found' });
       } catch (_error) { return res.serverError({ message: 'Unable to revert translation' }); }
     }
+
+    public async exportBundle(req: Sails.Req, res: Sails.Res) {
+      const brand = this.adminBrand(req, res);
+      if (!brand) return;
+      const target = translationTarget.safeParse(req.params);
+      if (!target.success || (req.query?.overridesOnly !== undefined && !['true', 'false'].includes(String(req.query.overridesOnly)))) {
+        return res.badRequest({ message: 'Invalid export request' });
+      }
+      try {
+        const { locale, namespace } = target.data;
+        const data = await I18nEntriesService.exportBundle(brand, locale, namespace, req.query?.overridesOnly === 'true');
+        if (!data) return res.notFound({ message: 'Bundle not found' });
+        res.set('Content-Disposition', `attachment; filename="translations-${locale}-${namespace}.json"`);
+        res.set('X-Content-Type-Options', 'nosniff');
+        return res.json(data);
+      } catch (_error) { return res.serverError({ message: 'Unable to export translations' }); }
+    }
+
+    private async importRequest(req: Sails.Req, res: Sails.Res, apply: boolean) {
+      const brand = this.adminBrand(req, res);
+      if (!brand) return;
+      const target = translationTarget.safeParse(req.params);
+      if (typeof req.body?.json === 'string' && Buffer.byteLength(req.body.json, 'utf8') > translationImportMaxBytes) {
+        return res.status(413).json({ message: 'Import exceeds 2 MiB' });
+      }
+      const body = (apply ? translationImportApplyBody : translationImportBody).safeParse(req.body);
+      if (!target.success || !body.success) return res.badRequest({ message: 'Invalid import request' });
+      try {
+        const { locale, namespace } = target.data;
+        const { json, keepUnknown } = body.data;
+        const result = apply
+          ? await I18nEntriesService.applyImport(brand, locale, namespace, json, keepUnknown, req.body.previewToken)
+          : await I18nEntriesService.previewImport(brand, locale, namespace, json, keepUnknown);
+        return res.json(result);
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (typeof status === 'number' && [400, 404, 409, 413].includes(status)) return res.status(status).json({ message: (error as Error).message });
+        return res.serverError({ message: 'Unable to process translation import' });
+      }
+    }
+
+    public async previewImport(req: Sails.Req, res: Sails.Res) { return this.importRequest(req, res, false); }
+    public async applyImport(req: Sails.Req, res: Sails.Res) { return this.importRequest(req, res, true); }
 
     public async updateDisplayName(req: Sails.Req, res: Sails.Res) {
       const brand = this.adminBrand(req, res);
@@ -252,11 +296,17 @@ export namespace Controllers {
           this.updateChronicle(req, {translationReloadFailed: true}, [e]);
         }
         this.updateChronicle(req, {translationSetEntrySuccess: true});
-        const defaults = await I18nEntriesService.defaultValues(locale, namespace);
-        const hasDefault = Object.prototype.hasOwnProperty.call(defaults, key);
-        const valueForProvenance = String(saved?.value ?? '');
-        return res.json({ ...saved, hasDefault, provenance: hasDefault && !valueForProvenance.trim() ? 'missing'
-          : hasDefault && valueForProvenance === defaults[key] ? 'default' : 'override' });
+        try {
+          const defaults = await I18nEntriesService.defaultValues(locale, namespace);
+          const hasDefault = Object.prototype.hasOwnProperty.call(defaults, key);
+          const valueForProvenance = String(saved?.value ?? '');
+          return res.json({ ...saved, hasDefault, provenance: hasDefault && !valueForProvenance.trim() ? 'missing'
+            : hasDefault && valueForProvenance === defaults[key] ? 'default' : 'override' });
+        } catch (_error) {
+          // A secondary provenance read must not turn a committed save into a failure.
+          this.updateChronicle(req, { translationProvenanceUnavailable: true });
+          return res.json(saved);
+        }
       } catch (err) {
         this.updateChronicle(req, {translationSetEntryFailed: true});
         return res.serverError(err);

@@ -35,6 +35,23 @@ export const translationKey = z.string().min(1).max(512).regex(/^[^\u0000-\u001f
   .refine(key => key.trim() === key && !!key.trim(), 'Invalid key whitespace')
   .refine(key => !key.split('.').some(part => ['__proto__', 'constructor', 'prototype', '_meta'].includes(part)), 'Invalid key');
 export const revertTranslationBody = z.object({ key: translationKey }).strict();
+export const translationImportMaxBytes = 2 * 1024 * 1024;
+export const translationImportBody = z.object({
+  json: z.string().min(2).max(translationImportMaxBytes),
+  keepUnknown: z.boolean().default(false),
+}).strict();
+export const translationImportApplyBody = translationImportBody.extend({ previewToken: z.string().regex(/^[a-f0-9]{64}$/) });
+// Validate raw own keys before any object-schema parsing: record parsers may
+// discard __proto__, but imports must reject it rather than silently accept it.
+export const translationImportValues = z.custom<Record<string, string>>(value =>
+  value !== null && typeof value === 'object' && !Array.isArray(value) &&
+  Object.keys(value).length <= 10000 && Object.entries(value).every(([key, entry]) =>
+    translationKey.safeParse(key).success && typeof entry === 'string'));
+const importCounts = z.object({ added: z.number(), changed: z.number(), unchanged: z.number(), unknown: z.number(), ignored: z.number() });
+const importSample = z.object({ key: z.string(), before: z.string().nullable(), after: z.string(), action: z.enum(['added', 'changed', 'unchanged', 'ignored']) });
+const importPreview = z.object({ counts: importCounts, sample: z.array(importSample), previewToken: z.string() });
+const importResult = z.object({ counts: importCounts, applied: z.number(), failed: z.number(),
+  results: z.array(z.object({ key: z.string(), status: z.enum(['applied', 'unchanged', 'ignored', 'failed']), message: z.string().optional() })) });
 const editorRow = z.object({
   key: z.string(), value: z.string(), provenance: z.enum(['default', 'override', 'missing']), hasDefault: z.boolean(),
   category: z.string().optional(), description: z.string().optional(), contentFormat: z.enum(['plain', 'html']).optional(),
@@ -54,6 +71,8 @@ function adminRoute(method: 'get' | 'post', tail: string, action: string, summar
       400: responseField(apiErrorResponseSchema, 'Invalid request'),
       403: responseField(apiErrorResponseSchema, 'Brand Admin permission and CSRF required'),
       404: responseField(apiErrorResponseSchema, 'Bundle or default key not found'),
+      409: responseField(apiErrorResponseSchema, 'Preview is stale; preview again'),
+      413: responseField(apiErrorResponseSchema, 'Import exceeds 2 MiB'),
     },
   });
 }
@@ -63,4 +82,19 @@ export const adminTranslationApiRoutes = [
     z.array(z.object({ code: z.string(), displayName: z.string(), enabled: z.boolean(), translated: z.number(), total: z.number() }))),
   adminRoute('get', ':locale/:namespace/editor', 'editorEntries', 'Translation entries with per-key provenance', z.array(editorRow)),
   adminRoute('post', ':locale/:namespace/revert', 'revertEntry', 'Revert one translation to installation defaults', z.object({}).passthrough(), revertTranslationBody),
+  adminRoute('post', ':locale/:namespace/import/preview', 'previewImport', 'Preview a flat JSON translation import without writing', importPreview, translationImportBody),
+  adminRoute('post', ':locale/:namespace/import/apply', 'applyImport', 'Apply a previewed import with per-key outcomes', importResult, translationImportApplyBody),
+  defineApiRoute({
+    method: 'get', path: '/:branding/:portal/admin/translation/:locale/:namespace/export',
+    controller: 'TranslationController', action: 'exportBundle', csrf: true,
+    request: { params: translationTarget, query: z.object({ overridesOnly: z.enum(['true', 'false']).optional() }).strict() },
+    extensions: { 'x-redbox-roles': ['Admin'] }, tags: ['Translation'],
+    summary: 'Download flat translation JSON (brand Admin only)',
+    description: 'Exports stored string values, including empty values, with metadata excluded and dotted parent/child keys retained. Optional overridesOnly=true restricts the download to keys with override provenance. Import accepts at most 2 MiB UTF-8 JSON, 10,000 flat string-valued keys; rejects markup/control characters and prototype/metadata key segments. Existing custom keys are known; keys absent from both defaults and storage are ignored unless keepUnknown is true. Preview includes sanitized values, counts and at most 20 diff rows. Applying requires its content token and rejects changed bundle/default/sanitization state with 409. Omitted keys are preserved. Apply reports every key result; entry/bundle sync failures are marked failed and may need retry after a fresh preview.',
+    responses: {
+      200: { ...responseField(z.record(z.string(), z.string()), 'Flat key/value JSON'), headers: { 'Content-Disposition': z.string() } },
+      403: responseField(apiErrorResponseSchema, 'Brand Admin permission required'),
+      404: responseField(apiErrorResponseSchema, 'Bundle not found'),
+    },
+  }),
 ];

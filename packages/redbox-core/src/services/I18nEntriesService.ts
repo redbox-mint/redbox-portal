@@ -17,6 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { createHash } from 'node:crypto';
+import { translationImportMaxBytes, translationImportValues } from '../api-routes/groups/admin-translation';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
@@ -277,6 +279,88 @@ export namespace Services {
       return this.setEntry(branding, locale, namespace, key, defaults[key]);
     }
 
+    public async exportBundle(branding: BrandingModel, locale: string, namespace: string, overridesOnly = false) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const rows = this.editorRows(bundle.data || {}, await this.defaultValues(locale, namespace));
+      const stored = this.flatten(bundle.data || {});
+      return Object.fromEntries(rows.filter(row => typeof stored[row.key] === 'string' &&
+        (!overridesOnly || row.provenance === 'override')).map(row => [row.key, row.value]));
+    }
+
+    private importError(message: string, status = 400): never {
+      throw Object.assign(new Error(message), { status });
+    }
+
+    private async importPlan(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown: boolean) {
+      if (typeof json !== 'string' || Buffer.byteLength(json, 'utf8') > translationImportMaxBytes) {
+        this.importError('Import exceeds 2 MiB', 413);
+      }
+      let parsed: unknown;
+      try { parsed = JSON.parse(json); } catch (_error) { this.importError('Invalid JSON'); }
+      const validated = translationImportValues.safeParse(parsed);
+      if (!validated.success) this.importError('Expected a flat JSON object of string values with valid keys (maximum 10000 keys)');
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) this.importError('Bundle not found', 404);
+      const defaults = await this.defaultValues(locale, namespace);
+      const stored = this.flatten(bundle.data || {});
+      const entries = await this.listEntries(branding, locale, namespace);
+      const metadata = new Map(entries.map(entry => [entry.key, entry]));
+      const centralizedMeta = await this.loadCentralizedMeta();
+      const fileMeta = bundle.data?._meta as MetaMap || {};
+      const counts = { added: 0, changed: 0, unchanged: 0, unknown: 0, ignored: 0 };
+      const items = Object.keys(validated.data).sort().map(key => {
+        const hasStored = Object.prototype.hasOwnProperty.call(stored, key);
+        const unknown = !hasStored && !Object.prototype.hasOwnProperty.call(defaults, key);
+        if (unknown) counts.unknown++;
+        const entry = metadata.get(key);
+        const format = this.normalizeContentFormat(entry?.contentFormat) ??
+          this.normalizeContentFormat(fileMeta[key]?.contentFormat ?? centralizedMeta[key]?.contentFormat);
+        const after = this.sanitizeHtmlValue(validated.data[key], format) as string;
+        const before = typeof stored[key] === 'string' ? stored[key] as string : null;
+        const action = unknown && !keepUnknown ? 'ignored' : !hasStored ? 'added' : before === after ? 'unchanged' : 'changed';
+        counts[action]++;
+        return { key, before, after, action, format };
+      });
+      // This token binds the language, brand, input, unknown-key choice and the
+      // exact values/defaults/formats used in the preview. No preview is persisted.
+      const previewToken = createHash('sha256').update(JSON.stringify([
+        this.resolveBrandingId(branding), locale, namespace, bundle.data, defaults, keepUnknown, items,
+      ])).digest('hex');
+      const sample = items.filter(item => item.action !== 'unchanged').slice(0, 20)
+        .map(({ key, before, after, action }) => ({ key, before, after, action }));
+      return { counts, sample, previewToken, items, bundleId: String(bundle.id) };
+    }
+
+    public async previewImport(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown = false) {
+      const { counts, sample, previewToken } = await this.importPlan(branding, locale, namespace, json, keepUnknown);
+      return { counts, sample, previewToken };
+    }
+
+    public async applyImport(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown: boolean, previewToken: string) {
+      const plan = await this.importPlan(branding, locale, namespace, json, keepUnknown);
+      if (previewToken !== plan.previewToken) this.importError('Preview is stale; preview again', 409);
+      const results: Array<{ key: string; status: string; message?: string }> = [];
+      for (const item of plan.items) {
+        if (item.action === 'ignored' || item.action === 'unchanged') {
+          results.push({ key: item.key, status: item.action });
+          continue;
+        }
+        try {
+          const saved = await this.setEntry(branding, locale, namespace, item.key, item.after, {
+            bundleId: plan.bundleId, contentFormat: item.format, noReload: true, strictBundleSync: true,
+          });
+          if (!saved) throw new Error('Entry not saved');
+          results.push({ key: item.key, status: 'applied' });
+        } catch (_error) {
+          results.push({ key: item.key, status: 'failed', message: 'Entry or bundle write failed; preview again before retrying' });
+        }
+      }
+      await TranslationService.reloadResources(this.resolveBrandingId(branding));
+      return { counts: plan.counts, results, applied: results.filter(item => item.status === 'applied').length,
+        failed: results.filter(item => item.status === 'failed').length };
+    }
+
     public async updateDisplayName(branding: BrandingModel, locale: string, namespace: string, displayName: string) {
       // One metadata-only write: no entry reads, bundle sync or resource reload.
       const bundle = await I18nBundle.updateOne({ branding: this.resolveBrandingId(branding), locale, namespace }).set({ displayName });
@@ -323,6 +407,7 @@ export namespace Services {
         contentFormat?: unknown;
         description?: string;
         noReload?: boolean;
+        strictBundleSync?: boolean;
       }
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
@@ -366,9 +451,11 @@ export namespace Services {
         } else {
           const data = bundle.data || {};
           this.setNested(data, key, sanitizedValue);
-          await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          const updatedBundle = await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          if (options?.strictBundleSync && !updatedBundle) throw new Error('Bundle no longer exists');
         }
       } catch (e) {
+        if (options?.strictBundleSync) throw e;
         this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
 

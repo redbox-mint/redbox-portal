@@ -12,7 +12,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
-Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts and revert to defaults.
+Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
 
 Delivered on `admin-deferred/10-branding-drafts`: brand-scoped logo/favicon drafts, preview snapshots, image-aware publication/history/restore, and an atomic whole-draft reset.
 
@@ -401,3 +401,17 @@ differing from installation defaults and custom keys. Default values combine Eng
 locale-specific values; custom keys count towards the total. Revert is available only where a current
 installation default exists and uses the stored content format's sanitization. “New default” is omitted:
 there is no reliable historical key inventory for an existing brand bundle.
+
+JSON export downloads flat stored strings with `Content-Disposition: attachment`; `overridesOnly=true`
+is available through the endpoint. Import accepts a JSON file as a string in a strict request envelope,
+limited server-side to 2 MiB UTF-8 and 10,000 keys. Only the import routes allow a bounded 5 MiB JSON transport envelope for escaping; parser failures there return safe 400/413 responses. The file must be an object of strings: arrays, nested
+values, metadata/prototype segments, blank/edge-whitespace keys and markup/control characters in keys
+are rejected. Ordinary natural-language keys remain supported for round trips of existing bundles.
+Preview sanitizes HTML using existing entry/default metadata and displays counts plus at most 20 diffs;
+it performs no writes. Unknown means absent from both installation defaults and the stored bundle, and
+is ignored unless explicitly opted in. Applying binds the preview to route brand/language, input, values,
+defaults, format and unknown-key choice; a changed state requires a fresh preview (409). Omitted keys are
+preserved. Writes run sequentially and report per-key applied/unchanged/ignored/failed outcomes. MongoDB's
+standalone development deployment does not supply multi-document transactions: a failed entry/bundle sync
+can leave an entry write pending reconciliation, which is reported as failed and can be retried after a fresh
+preview. No migration runs and no historical new-default badge is inferred.
