@@ -293,6 +293,8 @@ describe('BrandingAdminComponent typography experience', () => {
     serviceStub.loadConfig = () => Promise.resolve(state);
     fixture.detectChanges();
     await fixture.whenStable();
+    component.activeTab = 'typography';
+    component.selectedGroup = 8;
     fixture.detectChanges();
     await fixture.whenStable();
   }
@@ -330,6 +332,8 @@ describe('BrandingAdminComponent typography experience', () => {
   it('displays the inherited sidebar colour in both inputs after clearing the setting', async () => {
     await initWith(adminState());
 
+    component.selectedGroup = 6;
+    fixture.detectChanges();
     const picker: HTMLInputElement = fixture.nativeElement.querySelector('#admin-sidebar-text-color');
     const text: HTMLInputElement = picker.parentElement!.querySelector('input[type="text"]')!;
     expect(picker.value).toBe('#b1101a');
@@ -350,9 +354,7 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(picker.value).toBe('#123456');
     expect(text.value).toBe('#123456');
 
-    const panelPicker = fixture.nativeElement.querySelector('#panel-branding-background-color') as HTMLInputElement;
-    panelPicker.value = '#654321';
-    panelPicker.dispatchEvent(new Event('input'));
+    component.updateVariable('panel-branding-background-color', { target: { value: '#654321' } } as unknown as Event);
     fixture.detectChanges();
     expect(picker.value).toBe('#654321');
     expect(text.value).toBe('#654321');
@@ -390,9 +392,9 @@ describe('BrandingAdminComponent typography experience', () => {
     await settled();
     text = fixture.nativeElement.textContent;
     expect(text).toContain('branding-typography-incomplete');
-    const publishButton = fixture.debugElement.query(By.css('button.btn-success'));
+    const publishButton = fixture.debugElement.query(By.css('button.branding-publish'));
     expect(publishButton.nativeElement.disabled).toBe(true);
-    const previewButton = fixture.debugElement.query(By.css('button.btn-info'));
+    const previewButton = fixture.debugElement.query(By.css('button.branding-generate'));
     expect(previewButton.nativeElement.disabled).toBe(true);
 
     const warned = adminState({
@@ -447,7 +449,7 @@ describe('BrandingAdminComponent typography experience', () => {
     await initWith(evil);
     const html = fixture.nativeElement.innerHTML;
     expect(html).not.toContain('<img src=x');
-    expect(fixture.nativeElement.querySelectorAll('img').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('img[src="x"]')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 
@@ -591,5 +593,68 @@ describe('BrandingAdminComponent typography experience', () => {
     await component.createPreview();
     await component.revertTypefaceDraft();
     expect(component.previewCssUrl).toBeUndefined();
+  });
+  it('calculates WCAG contrast without rounding the AA threshold', () => {
+    expect(component.contrastRatio('#000', '#fff')).toBe(21);
+    expect(component.contrastRatio('#FFFFFF', '#ffffff')).toBe(1);
+    expect(component.contrastRatio('#777', '#fff')).toBeCloseTo(4.478, 3);
+    expect(component.contrastRatio('#badhex', '#fff')).toBeNull();
+  });
+
+  it('shows only the selected colour group and updates contrast and preview from unsaved edits', async () => {
+    await initWith(adminState());
+    component.activeTab = 'colours';
+    component.selectedGroup = 1;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#site-branding-area-background-color')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#primary')).toBeNull();
+    const input = fixture.nativeElement.querySelector('#logo-heading-text-color-hex') as HTMLInputElement;
+    input.value = '#b1101a';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(component.contrastChecks[0].ratio).toBe(1);
+    expect(component.localChangeCount).toBe(1);
+    expect(component.draftChangeCount).toBe(1);
+    expect(fixture.nativeElement.querySelector('.branding-mini-band').style.color).toBe('rgb(177, 16, 26)');
+    expect(fixture.nativeElement.querySelector('.branding-contrast .rb-admin-badge-warning')).toBeTruthy();
+    component.resetDraft();
+    expect(component.localChangeCount).toBe(0);
+  });
+
+  it('resets just the selected group to client defaults and retains other edits', async () => {
+    await initWith(adminState());
+    component.selectedGroup = 1;
+    component.draftConfig['site-branding-area-background-color'] = '#000000';
+    component.draftConfig['body-text-color'] = '#123456';
+    component.resetGroup();
+    expect(component.colour('site-branding-area-background-color')).toBe('#b1101a');
+    expect(component.draftConfig['body-text-color']).toBe('#123456');
+    expect(component.draftConfig['primary']).toBe('#112233');
+  });
+
+  it('does not publish when opening or cancelling confirmation and traps focus in the dialog', async () => {
+    await initWith(adminState());
+    const publish = spyOn(serviceStub, 'publish').and.callThrough();
+    fixture.nativeElement.querySelector('.branding-publish').click();
+    fixture.detectChanges();
+    expect(component.pendingAction).toBe('publish');
+    expect(publish).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeTruthy();
+    component.pendingAction = null;
+    fixture.detectChanges();
+    expect(publish).not.toHaveBeenCalled();
+    component.pendingAction = 'publish';
+    await component.confirmAction();
+    expect(publish).toHaveBeenCalledWith(1, 2);
+  });
+
+  it('marks invalid hex and disables save, generate and publish', async () => {
+    await initWith(adminState());
+    component.draftConfig['primary'] = '#oops';
+    fixture.detectChanges();
+    expect(component.invalidColours).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.branding-publish').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.branding-generate').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('#primary-hex').getAttribute('aria-invalid')).toBe('true');
   });
 });
