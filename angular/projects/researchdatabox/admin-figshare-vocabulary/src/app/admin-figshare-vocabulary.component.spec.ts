@@ -31,12 +31,25 @@ describe('AdminFigshareVocabularyComponent', () => {
       'listCrosswalks',
       'listSyncRuns',
       'listLocalVocabularies',
-      'discoverTaxonomies'
+      'discoverTaxonomies',
+      'updateSource'
     ]);
     component = runInInjectionContext(
       injector,
       () => new AdminFigshareVocabularyComponent(logger, translations, api)
     );
+  });
+
+  it('edits a detached draft and submits revision-checked metadata and schedule', async () => {
+    const source: any = { id: 's1', displayName: 'Old', scope: 'public', archived: false, settingsRevision: 3, syncSchedule: 'manual' };
+    component.editSource(source);
+    component.sourceDraft.displayName = 'New'; component.sourceDraft.syncSchedule = 'weekly';
+    expect(source.displayName).toBe('Old');
+    api.updateSource.and.resolveTo({ ...source, displayName: 'New', settingsRevision: 4, syncSchedule: 'weekly' });
+    api.listSources.and.resolveTo({ records: [], total: 0 });
+    await component.saveSource();
+    expect(api.updateSource).toHaveBeenCalledWith('s1', { expectedRevision: 3, displayName: 'New', scope: 'public', archived: false, syncSchedule: 'weekly' });
+    expect(component.editingSource).toBeNull(); expect(component.sourceSaving).toBeFalse();
   });
 
   it('summarises sources, approved crosswalks, and historical warnings', () => {

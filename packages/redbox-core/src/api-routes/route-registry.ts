@@ -1,3 +1,4 @@
+import { updateFigshareSourceRoute } from './groups/figshare-source-update';
 import { partyImportApiRoutes } from './groups/party-import';
 import { dashboardRecordsApiRoutes } from './groups/dashboard-records';
 import { adminTranslationApiRoutes } from './groups/admin-translation';
@@ -47,6 +48,7 @@ const coreApiRouteGroups = [
   harvestRunApiRoutes,
   vocabularyApiRoutes,
   figshareVocabularyApiRoutes,
+  [updateFigshareSourceRoute],
   figshareCrosswalkApiRoutes,
   recordTypeApiRoutes,
   adminApiRoutes,

@@ -103,7 +103,7 @@ const applyResultSchema = objectField(
   ['runId', 'state', 'sourceId', 'vocabularyId', 'appliedAt']
 );
 
-const figshareSourceSchema = objectField(
+export const figshareSourceSchema = objectField(
   {
     id: stringField(),
     displayName: stringField(),
@@ -113,6 +113,11 @@ const figshareSourceSchema = objectField(
     vocabularyName: stringField(),
     lastSyncedAt: stringField().nullable(),
     archived: booleanField(),
+    syncSchedule: stringField('manual (default), daily or weekly'),
+    nextSyncAt: stringField().nullable(),
+    settingsRevision: integerField(),
+    lastScheduleStatus: stringField().nullable(),
+    lastScheduleAttemptAt: stringField().nullable(),
     mirroredCount: integerField(),
     historicalCount: integerField(),
     crosswalkCount: integerField(),

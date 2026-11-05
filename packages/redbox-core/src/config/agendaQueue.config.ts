@@ -206,6 +206,11 @@ export const agendaQueue: AgendaQueueConfig = {
                 intervalOrSchedule: '5 minutes'
             }
         },
+        'Figshare-Vocabulary-Schedules': {
+            fnName: 'figsharevocabularyservice.scheduledSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '5 minutes', opts: { skipImmediate: true } },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 30 * 60 * 1000 }
+        },
         'Figshare-SyncRecord': {
             fnName: 'figshareservice.syncRecordJob',
             options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
