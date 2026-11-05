@@ -80,7 +80,9 @@ test('Mocha and coverage consumers preserve include and exclude discovery', () =
   const TestExclude = nyc('test-exclude');
   const exclude = new TestExclude({ cwd: process.cwd(), include: ['packages/**/src/**/*.ts'], exclude: ['**/*.test.ts'] });
   assert.equal(exclude.shouldInstrument('packages/redbox-core/src/services/AppConfigService.ts'), true);
-  assert.equal(exclude.shouldInstrument('packages/redbox-core/test/example.test.ts'), false);
+  const testFile = 'packages/redbox-core/src/services/example.test.ts';
+  assert.equal(new TestExclude({ cwd: process.cwd(), include: ['packages/**/src/**/*.ts'], exclude: [] }).shouldInstrument(testFile), true);
+  assert.equal(exclude.shouldInstrument(testFile), false);
 });
 
 test('WebDAV filtering preserves basename, braces, extglobs and hidden files', async () => {
