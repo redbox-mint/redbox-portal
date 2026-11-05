@@ -82,6 +82,14 @@ describe('Webservice VocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.data?.summary?.page).to.equal(1);
   });
 
+  it('returns persisted last successful sync timestamps in the list API without manufacturing one', async () => {
+    const records = [{ id: 'synced', source: 'rva', lastSyncedAt: '2026-11-06T00:00:00Z' }, { id: 'never', source: 'rva' }, { id: 'local', source: 'local' }];
+    (global as any).VocabularyService.list.resolves({ data: records, meta: { total: 3, offset: 0, limit: 25 } });
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.list(makeReq({}), {} as Sails.Res);
+    expect(send.firstCall.args[2].data.records).to.deep.equal(records);
+  });
+
   it('gets vocabulary details with tree', async () => {
     const req = makeReq({ params: { id: 'v1' }, param: sinon.stub().withArgs('id').returns('v1') });
     const res = {} as Sails.Res;
