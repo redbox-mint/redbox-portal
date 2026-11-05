@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { dashboardRecordFilters } from '../api-routes/groups/dashboard-records';
 import { bulkDeletedRecordsBody, deletionFiltersSchema } from '../api-routes/groups/deleted-records';
 import { deletedRecordSummary } from '../DeletedRecordSummary';
 import { pipeline } from 'node:stream/promises';
@@ -2640,6 +2641,7 @@ export namespace Controllers {
     }
 
     public async getRecordList(req: Sails.Req, res: Sails.Res) {
+      if (!dashboardRecordFilters.safeParse(req.query).success) return this.sendResp(req, res, { status: 400 });
       const brand: BrandingModel = this.getReqBrand(req);
 
       const editAccessOnly = req.query.editOnly;

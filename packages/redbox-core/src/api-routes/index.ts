@@ -36,3 +36,5 @@ export * from './groups/deleted-records';
 export * from './groups/admin-users';
 
 export * from './groups/admin-translation';
+
+export * from './groups/dashboard-records';

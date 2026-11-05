@@ -49,6 +49,7 @@ export class DashboardComponent extends BaseComponent {
   readonly adminDates = inject(AdminDateService);
   adminParties = false;
   readonly partyLookupFilters: FilterField[] = [
+    { name: 'admin-parties-name-or-email', path: 'metadata.fullName,metadata.email' },
     { name: 'admin-parties-name', path: 'metadata.fullName' },
     { name: 'admin-parties-email', path: 'metadata.email' }
   ];
@@ -334,7 +335,7 @@ export class DashboardComponent extends BaseComponent {
       return {
         filterFields: this.getFilterFieldPath(stepKey),
         filterString: this.submittedSearch[stepKey],
-        filterMode: ''
+        filterMode: this.adminParties && this.getFilterFieldPath(stepKey) === this.partyLookupFilters[0].path ? 'any' : ''
       };
     }
     return this.getStepFilter(stepKey);

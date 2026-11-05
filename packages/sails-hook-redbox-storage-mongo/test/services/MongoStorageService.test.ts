@@ -2465,6 +2465,29 @@ describe('MongoStorageService', function () {
     expect(options.sort.redboxOid).to.equal(-1);
   });
 
+  it('keeps AND as default and groups opt-in literal OR behind brand, type and permissions', async function () {
+    const run = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
+    const fields = ['metadata.fullName', 'metadata.email'];
+    const args = ['', ['party', 'rdmp'], 0, 10, 'user', [], { id: 'brand-a' }, undefined, undefined, undefined, fields, 'a+.*(b)'];
+    await service.getRecords(...args);
+    const all = run.lastCall.args[1];
+    expect(all['metadata.fullName'].test('a+.*(b)')).to.equal(true);
+    expect(all['metadata.email'].test('aaaaab')).to.equal(false);
+    await service.getRecords(...args, ['any']);
+    const any = run.lastCall.args[1];
+    expect(any['metaMetadata.brandId']).to.equal('brand-a');
+    expect(any.$or).to.have.length(2);
+    expect(any.$and).to.have.length(2);
+    expect(any.$and[0].$or).to.have.length(4);
+    expect(any.$and[1].$or.map(row => Object.keys(row)[0])).to.deep.equal(fields);
+    expect(any.$and[1].$or[1]['metadata.email'].test('a+.*(b)')).to.equal(true);
+    expect(any.$and[1].$or[1]['metadata.email'].test('aaaaab')).to.equal(false);
+    for (const mode of ['bogus', ['$where']]) await expectRejects(() => service.getRecords(...args, mode), 'Invalid filter mode');
+    for (const field of ['$where', 'metadata.$ne', '__proto__.x']) {
+      await expectRejects(() => service.getRecords(...args.slice(0, 10), [field], 'x', 'any'), 'Invalid filter fields');
+    }
+  });
+
   it('queries records with escaped regex filters', async function () {
     const runStub = sandbox.stub(service, 'runRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 
