@@ -8,7 +8,7 @@
     <div [attr.inert]="showJson || pendingLeave ? '' : null">
       <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
         <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
-        @if (sidebarSection) { <li>{{ sidebarSection }}</li> }
+        @if (navigationEditor || sidebarSection) { <li>{{ navigationEditor ? ('admin-nav-site' | i18next) : sidebarSection }}</li> }
         <li><span aria-current="page">{{ title }}</span></li>
       </ol></nav>
       <header class="rb-admin-page-header">
@@ -22,6 +22,13 @@
           </div>
         }
       </header>
+      @if (navigationEditor) {
+        <nav [attr.aria-label]="'admin-navigation-tabs' | i18next"><ul class="nav nav-tabs rb-navigation-tabs">
+          @for (tab of ['menu', 'homePanels', 'adminSidebar']; track tab) {
+            <li class="nav-item"><a class="nav-link" [class.active]="configKey === tab" [attr.aria-current]="configKey === tab ? 'page' : null" [href]="brandingAndPortalUrl + '/admin/appconfig/edit/' + tab">{{ ('admin-navigation-tab-' + tab) | i18next }}</a></li>
+          }
+        </ul></nav>
+      }
       @if (empty) {
         <section class="rb-admin-form-section rb-admin-empty"><i class="fa fa-link" aria-hidden="true"></i>
           <h3>{{ 'admin-config-not-setup' | i18next: { name: title } }}</h3><p>{{ 'admin-config-setup-help' | i18next }}</p>

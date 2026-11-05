@@ -1,0 +1,27 @@
+<div class="rb-navigation-row" [class.rb-navigation-selected]="selected">
+  <button type="button" class="rb-navigation-select" [attr.aria-pressed]="selected" (click)="selectItem.emit()">
+    <span class="rb-navigation-position" aria-hidden="true">{{ position + 1 }}</span>
+    <span class="rb-navigation-summary"><strong>{{ label || item.id }}</strong><span class="rb-navigation-meta">{{ item.id }}@if (item.href) { · {{ item.href }} }@if (container && (item.children?.length || item.items)) { · {{ 'admin-navigation-child-count' | i18next: { count: (item.children || item.items || []).length } }} }</span></span>
+    <span class="rb-navigation-badges"><span class="badge">{{ visibility | i18next }}</span>@if (item.requiredRoles?.length) { <span class="badge rb-admin-badge-primary">{{ item.requiredRoles.join(', ') }}</span> }</span>
+  </button>
+  <details class="rb-navigation-actions" (keydown.escape)="closeMenu(); $event.stopPropagation()">
+    <summary [attr.aria-label]="('admin-navigation-actions' | i18next) + ': ' + label">⋯</summary>
+    <div class="rb-navigation-action-list" role="group" [attr.aria-label]="'admin-navigation-actions' | i18next">
+      <button type="button" [disabled]="position === 0" (click)="run('up')">{{ 'admin-navigation-move-up' | i18next }}</button>
+      <button type="button" [disabled]="position === count - 1" (click)="run('down')">{{ 'admin-navigation-move-down' | i18next }}</button>
+      <button type="button" (click)="run('duplicate')">{{ 'admin-navigation-duplicate' | i18next }}</button>
+      @if (canAddChild) { <button type="button" (click)="run('add')">{{ 'admin-navigation-add-child' | i18next }}</button> }
+      <button type="button" class="rb-navigation-remove" (click)="run('remove')">{{ 'admin-navigation-remove' | i18next }}</button>
+    </div>
+  </details>
+</div>
+@if (confirming) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="navigation-remove-title" aria-describedby="navigation-remove-help" (keydown.escape)="confirming = false; $event.stopPropagation()">
+    <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+      <div class="modal-header"><h2 class="modal-title" id="navigation-remove-title">{{ 'admin-navigation-remove-title' | i18next: { label: label, interpolation: { escapeValue: false } } }}</h2></div>
+      <div class="modal-body"><p id="navigation-remove-help">{{ 'admin-navigation-remove-help' | i18next }}</p></div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="confirming = false">{{ 'admin-navigation-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" (click)="confirming = false; action.emit('remove')">{{ 'admin-navigation-remove' | i18next }}</button></div>
+    </div></div>
+  </div>
+}

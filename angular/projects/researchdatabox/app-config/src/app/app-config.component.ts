@@ -101,7 +101,8 @@ export class AppConfigComponent extends BaseComponent {
       if (Object.prototype.hasOwnProperty.call(originalProperties, field)) jsonObject.properties[field] = originalProperties[field];
     }
     this.title = result.title || jsonObject.title || this.configKey;
-    this.descriptionKey = result.descriptionKey || 'admin-config-description';
+    this.descriptionKey = this.navigationEditor ? 'admin-navigation-description' : result.descriptionKey || 'admin-config-description';
+    if (this.navigationEditor) this.title = this.translationService.t('admin-navigation-title');
     this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
       ?.closest('section')?.querySelector('h2')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
@@ -185,7 +186,10 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
+  get navigationEditor(): boolean { return ['menu', 'homePanels', 'adminSidebar'].includes(this.configKey); }
+
   private buildSections(root: FormlyFieldConfig, configured?: ConfigSection[]): void {
+    if (this.navigationEditor) { this.sections = []; return; }
     const children = root.fieldGroup || [];
     const enabled = children.find(field => field.key === 'enabled');
     if (enabled) enabled.props = { ...enabled.props, pageEnabled: true };
@@ -359,6 +363,8 @@ export class AppConfigComponent extends BaseComponent {
     for (const field of fields) {
       if (field.key === key) {
         field.type = widgetType;
+        field.wrappers = [];
+        field.props = { ...field.props, label: '' };
         // Clear fieldGroup since the custom widget handles its own rendering
         field.fieldGroup = undefined;
         field.fieldArray = undefined;

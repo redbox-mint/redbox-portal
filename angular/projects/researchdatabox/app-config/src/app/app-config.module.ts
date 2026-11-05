@@ -1,3 +1,6 @@
+import { NavigationRowComponent } from './fieldTypes/navigation-editor/navigation-row.component';
+import { NavigationFieldsComponent } from './fieldTypes/navigation-editor/navigation-fields.component';
+import { NavigationLinkDialogComponent } from './fieldTypes/navigation-editor/navigation-link-dialog.component';
 import { ChipsTypeComponent } from './fieldTypes/chips.type';
 import { SecretTypeComponent } from './fieldTypes/secret.type';
 import { SectionTypeComponent } from './fieldTypes/section.type';
@@ -25,7 +28,7 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
 
 @NgModule({
   declarations: [
-    AppConfigComponent, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    AppConfigComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
   ],
   imports: [
     BrowserModule,
