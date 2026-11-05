@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/15-auth-domain-case`: intentional case-insensitive authorized domain/email matching, canonical save rules and chip input, with AAF/OIDC and tester parity.
+
 Delivered on `admin-deferred/14-dictionary-editor`: reusable schema-driven dictionaries with literal-key validation, rename/copy/remove, complete Oni and RAiD schemas, per-integration notification overrides, lossless drafts and retained credentials.
 
 Delivered on `admin-deferred/13-test-connection`: brand Admin and CSRF-protected, read-only integration connection tests for unsaved Figshare, DOI, RAiD and Oni drafts, with secret retention, bounded requests, cooldown and timestamped results. Oni without ingestion reports public-site reachability only.
@@ -342,10 +344,19 @@ may omit `draft` to test saved runtime configuration. The draft is a complete re
 never merged or saved. Results distinguish an exact domain or email rule, restriction off,
 empty provider lists (allowed), and no match (denied). Results disappear when inputs change.
 
-This preserves the existing account-creation gate: incoming AAF/OIDC addresses are lowercased,
-stored rules are case-sensitive, domains match exactly without subdomains, and empty lists for
+The account-creation gate trims and lowercases incoming addresses and stored rules; domain
+comparisons also strip a trailing dot. Domains match exactly without subdomains, and empty lists for
 the selected provider allow all. Existing accounts and other authentication checks retain their
 current behavior. The reference mock's subdomain example is not the server's matching policy.
+
+Branch `admin-deferred/15-auth-domain-case` intentionally fixes the characterized case-sensitive
+rule bug. Both server save paths (including API saves) trim, lowercase and de-duplicate each
+provider list independently; domain rules also lose a trailing dot. New chips use the same
+normalization and suppress duplicate entries. Existing mixed-case saved rules work immediately
+through the matcher, so no data migration is needed. Blank rules are retained as blank entries
+rather than removed, preserving the distinction between populated and empty allow-lists. The
+updated help uses a new translation key so normal missing-default bootstrap also delivers the
+corrected policy text to existing installations without overwriting customized translations.
 
 ### System messages and Navigation defaults
 

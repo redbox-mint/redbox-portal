@@ -3011,7 +3011,7 @@
   "admin-roles-close": "Close",
   "admin-config-address-title": "Test an address",
   "admin-config-address-help": "Check the current form before you save. This does not change your configuration.",
-  "admin-config-address-semantics": "Tests the restriction applied when creating AAF and OIDC accounts. Sign-in lowercases incoming addresses; stored rules are case-sensitive. Domains match exactly, without subdomains. Empty lists for a provider allow everyone. Other sign-in checks still apply.",
+  "admin-config-address-matching-help": "Tests the restriction applied when creating AAF and OIDC accounts. Matching ignores letter case and surrounding whitespace; domains also ignore a trailing dot. Domains match exactly, without subdomains. Empty lists for a provider allow everyone. Other sign-in checks still apply.",
   "admin-config-address-unsaved": "Testing your unsaved changes",
   "admin-config-address-current": "Testing the current form",
   "admin-config-address-email": "Email",

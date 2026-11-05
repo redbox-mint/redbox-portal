@@ -1513,6 +1513,40 @@ describe('UsersService', function () {
     });
   });
 
+  describe('provider callbacks with existing mixed-case rules', () => {
+    for (const provider of ['aaf', 'oidc']) {
+      for (const ruleType of ['domain', 'email', 'subdomain']) {
+        it(`${provider} applies normalized ${ruleType} rules only when creating accounts`, async () => {
+          const rules = { enabled: true, [ruleType === 'email' ? `emails${provider === 'aaf' ? 'Aaf' : 'Oidc'}` : `domains${provider === 'aaf' ? 'Aaf' : 'Oidc'}`]:
+            [ruleType === 'email' ? ' Person@UNI.edu ' : ' UNI.edu. '] };
+          mockSails.config.brandingAware.returns({ authorizedDomainsEmails: rules });
+          const email = ruleType === 'subdomain' ? 'Person@Staff.UNI.edu' : 'Person@UNI.edu';
+          const user = { id: 'user-1', username: 'person', email: email.toLowerCase(), roles: [] };
+          configureModelMethod(mockUser.create, user);
+          configureModelMethod(mockUser.update, [user]);
+          sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(user);
+          let callback: Function;
+          if (provider === 'aaf') {
+            sinon.stub(UsersService, 'getAuthConfig').returns({ active: ['aaf'], aaf: { opts: { secretOrKey: 'key' }, attributesField: 'attributes' } });
+            const use = sinon.stub(); mockSails.config.passport = { use };
+            UsersService.aafAuthInit(); await mockSails.on.firstCall.args[1]();
+            callback = done => use.firstCall.args[1]._verify({}, { sub: 'person', attributes: { mail: email } }, done);
+          } else callback = done => UsersService.openIdConnectAuthVerifyCallback(
+            { opts: {}, claimMappings: { username: 'sub', email: 'email' } }, {}, {}, {}, { sub: 'person', email }, done);
+          for (const existing of [false, true]) {
+            mockUser.findOne.callsFake((_query: unknown, cb: Function) => cb(null, existing ? user : null));
+            const done = sinon.spy(); callback(done);
+            await new Promise(resolve => setImmediate(resolve));
+            expect(done.calledOnce).to.equal(true);
+            if (!existing && ruleType === 'subdomain') expect(done.firstCall.args.slice(0, 2)).to.deep.equal(['authorized-email-denied', false]);
+            else expect(done.firstCall.args[0]).to.equal(null);
+          }
+          expect(mockUser.create.called).to.equal(ruleType !== 'subdomain');
+        });
+      }
+    }
+  });
+
   describe('provider callbacks use the shared authorized-email evaluator', () => {
     for (const provider of ['aaf', 'oidc']) {
       for (const allowed of [true, false]) {

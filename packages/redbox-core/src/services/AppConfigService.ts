@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { normalizeAuthorizedRule } from '../utilities/AuthorizedEmailAccess';
 import { validateIntegrationConfig } from '../configmodels/IntegrationConfigValidation';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AppConfigAttributes } from '../waterline-models/AppConfig';
@@ -335,6 +336,19 @@ export namespace Services {
       const transformed = typeof formAdapter === 'function'
         ? formAdapter(_.cloneDeep(model))
         : _.cloneDeep(model);
+      if (configKey === 'authorizedDomainsEmails') {
+        if (!transformed || typeof transformed !== 'object' || Array.isArray(transformed)) {
+          throw Object.assign(new Error('Invalid authorized domains and emails configuration'), { status: 400 });
+        }
+        for (const key of ['domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc']) {
+          const rules = (transformed as AppConfigData)[key];
+          if (rules === undefined) continue;
+          if (!Array.isArray(rules) || rules.some(rule => typeof rule !== 'string')) {
+            throw Object.assign(new Error('Authorized rules must be lists of strings'), { status: 400 });
+          }
+          (transformed as AppConfigData)[key] = [...new Set(rules.map(rule => normalizeAuthorizedRule(rule, key.startsWith('domains'))))];
+        }
+      }
       return transformed as AppConfigData;
     }
 
