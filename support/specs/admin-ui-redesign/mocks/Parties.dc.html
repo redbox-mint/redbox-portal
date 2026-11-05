@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parties</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="parties" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Lookups &amp; vocabularies</span><span>/</span><span>Parties</span></nav>
+      <header class="ph">
+        <div><h1>Parties</h1><p>People and organisations that forms can look up as contributors, supervisors and data managers.</p></div>
+        <div class="ph-actions"><button class="btn btn-secondary" type="button">Import CSV</button><button class="btn btn-primary" type="button">+ Add party</button></div>
+      </header>
+
+      <div class="card">
+        <div class="card-h"><h2>Party records</h2><span class="meta">[total] records</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="p-s">Search</label><input id="p-s" class="inp" placeholder="Name or email"></div>
+          <div class="field"><label for="p-in">Search in</label><select id="p-in" class="inp"><option>Name and email</option><option>Name</option><option>Email</option></select></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Name ↑</th><th>Email</th><th>Created</th><th>Modified</th><th class="act"><span style="position: absolute; left: -9999px">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td><a href="#">Zoe Murphy</a></td><td>zoe.murphy@researchcollective.edu</td><td>05/11/2026</td><td>05/11/2026</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button></td></tr>
+            <tr><td><a href="#">William Chen</a></td><td>william.chen@sciencehub.org</td><td>05/11/2026</td><td>05/11/2026</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button></td></tr>
+            <tr><td><a href="#">Sofia Almeida</a></td><td>sofia.almeida@quantlab.edu.au</td><td>05/11/2026</td><td>05/11/2026</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button></td></tr>
+            <tr><td><a href="#">Samuel Khan</a></td><td>samuel.khan@bioinfo.net</td><td>05/11/2026</td><td>05/11/2026</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button></td></tr>
+            <tr><td><a href="#">Olivia Bennett</a></td><td>olivia.bennett@unimail.edu.au</td><td>05/11/2026</td><td>05/11/2026</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button></td></tr>
+            <tr><td><a href="#">Noah Patel</a></td><td>noah.patel@institute.org</td><td>05/11/2026</td><td>05/11/2026</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button></td></tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 1–10</span><div class="pager"><button type="button">‹</button><button type="button" class="on">1</button><button type="button">2</button><button type="button">›</button></div></div>
+      </div>
+      <p class="note">Rows are the dev seed data. Today this link opens <span class="mono">/dashboard/party</span>, which leaves the admin shell. Its heading now reads “Update Party” after round 1. This mock keeps the page in the shell, under its section.</p>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
