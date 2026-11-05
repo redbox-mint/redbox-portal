@@ -63,16 +63,18 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     this.initDependencies = [this.translationService, this.vocabularyApi];
   }
 
+  catalogueCounts = { total: 0, local: 0, rva: 0 };
+
   get totalVocabularies(): number {
-    return this.totalVocabularyCount;
+    return this.catalogueCounts.total;
   }
 
   get localVocabularies(): number {
-    return this.vocabularies.filter((vocabulary: VocabularySummary) => vocabulary.source === 'local').length;
+    return this.catalogueCounts.local;
   }
 
   get rvaVocabularies(): number {
-    return this.vocabularies.filter((vocabulary: VocabularySummary) => vocabulary.source === 'rva').length;
+    return this.catalogueCounts.rva;
   }
 
   /**
@@ -93,6 +95,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   }
 
   protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.vocabularyApi.brandingAndPortalUrl;
     await this.refresh();
   }
 
@@ -104,6 +107,21 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
 
   async refresh(): Promise<void> {
     await this.loadVocabularyPage();
+    try {
+      const all = await this.vocabularyApi.list({ limit: 1, offset: 0 });
+      const local = await this.vocabularyApi.list({ source: 'local', limit: 1, offset: 0 });
+      const rva = await this.vocabularyApi.list({ source: 'rva', limit: 1, offset: 0 });
+      this.catalogueCounts = { total: all.meta.total, local: local.meta.total, rva: rva.meta.total };
+    } catch (err) {
+      this.logger.error('Could not load vocabulary counts', err);
+    }
+  }
+
+  async openForSync(id: string): Promise<void> {
+    await this.openVocabulary(id);
+    if (this.selectedVocabulary?.id === id && this.canSyncSelected) {
+      await this.syncSelected();
+    }
   }
 
   async onListQueryChanged(query: VocabularyListQueryState): Promise<void> {
