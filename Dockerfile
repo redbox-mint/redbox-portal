@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
-FROM node:26.12.1-bookworm@sha256:3b764117159bda01d2396391e7789b6a9106af9729cfd001ef55e98557868310 AS base
+FROM node:26.13.0-bookworm@sha256:fa52d1669505e29b58c042875b1d65c229e0787a3610fd52869b22b68e480853 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -136,7 +136,7 @@ FROM builder AS runtime-files
 RUN find packages -type d -name node_modules -prune -exec rm -rf '{}' +
 COPY --from=prod-deps /opt/redbox-portal/packages ./packages
 
-FROM node:26.12.1-bookworm-slim@sha256:88e480776c6149ff1d098cd304f44bf18057fb5d284a3329b78162d29821e28c AS runtime
+FROM node:26.13-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9 AS runtime
 
 ENV NODE_ENV=production
 ENV TZ=Australia/Brisbane
