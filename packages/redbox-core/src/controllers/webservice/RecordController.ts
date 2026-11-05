@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { deletedRecordSummary } from '../../DeletedRecordSummary';
 import { pipeline } from 'node:stream/promises';
 import { firstValueFrom, from } from 'rxjs';
 import * as path from 'path';
@@ -1581,7 +1582,8 @@ export namespace Controllers {
       packageType: unknown = undefined,
       sort: unknown = undefined,
       fieldNames: unknown = undefined,
-      filterString: unknown = undefined
+      filterString: unknown = undefined,
+      deletionFilters?: { deletedWithin?: string; deletedBy?: string }
     ) {
       const username = (user as globalThis.Record<string, unknown>).username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -1608,7 +1610,9 @@ export namespace Controllers {
         packageType,
         sort,
         fieldNames,
-        filterString
+        filterString,
+        undefined,
+        deletionFilters
       );
       sails.log.debug(results);
       const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
@@ -1629,6 +1633,7 @@ export namespace Controllers {
         const item: { [key: string]: unknown } = {};
         const deletedRecord = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
         const deletedRecordMetadata = (deletedRecord['metadata'] ?? {}) as globalThis.Record<string, unknown>;
+        Object.assign(item, deletedRecordSummary(doc, (brand as BrandingModel).id, key => TranslationService.t(key)));
         item['oid'] = doc['redboxOid'];
         item['revision'] = recordRepresentationRevision(doc);
         item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';
@@ -2353,7 +2358,7 @@ export namespace Controllers {
       let filterFields: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
-        filterFields = filterString!.split(',');
+        filterFields = (filterFieldString as string).split(',');
       } else {
         filterString = undefined;
       }
@@ -2373,7 +2378,8 @@ export namespace Controllers {
           packageType,
           sort,
           filterFields,
-          filterString
+          filterString,
+          { deletedWithin: query.deletedWithin as string | undefined, deletedBy: query.deletedBy as string | undefined }
         )
           .then(response => {
             this.sendResp(req, res, { data: response });

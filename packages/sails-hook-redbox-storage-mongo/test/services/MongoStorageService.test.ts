@@ -2035,7 +2035,22 @@ describe('MongoStorageService', function () {
     await expectRejects(() => service.getDeletedRecordMeta(''), 'refusing to search using an empty OID');
   });
 
-  it('queries deleted records through the collection helper', async function () {
+  for (const period of ['7', '30', 'any']) {
+    it(`filters deleted records by ${period} days and original actor before pagination`, async () => {
+      const run = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+      const now = Date.now();
+      await service.getDeletedRecords(undefined, ['rdmp'], 20, 10, 'admin', [], { id: 'brand-1' }, undefined, undefined, undefined, undefined, undefined, 'regex', undefined, { deletedWithin: period, deletedBy: 'alice' });
+      const query = run.firstCall.args[1];
+      expect(query['deletedRecordMetadata.metaMetadata.brandId']).to.equal('brand-1');
+      expect(query['deletedBy.brandId']).to.equal('brand-1');
+      expect(query['deletedBy.username']).to.equal('alice');
+      if (period === 'any') expect(query).not.to.have.property('dateDeleted');
+      else expect(Date.parse(query.dateDeleted.$gte)).to.be.within(now - Number(period) * 86400000, Date.now() - Number(period) * 86400000);
+      expect(run.firstCall.args[2]).to.include({ skip: 20, limit: 10 });
+    });
+  }
+
+  it('queries deleted records through the collection helper' , async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 
     const response = await service.getDeletedRecords('draft', ['rdmp'], 0, 10, 'user', [], { id: 'brand-1' });

@@ -68,14 +68,17 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       message: "Filter by record type",
       property: '',
     },
+    { paramName: 'deletedWithin', type: 'drop-down', message: 'admin-deleted-within', property: '' },
+    { paramName: 'deletedBy', type: 'text', message: 'admin-deleted-by', property: '' },
   ];
   sort: string | undefined;
   dropDownProperties: { [key: string]: { title: string, value: string }[] } = {
+    'deletedWithin': [{ title: 'admin-deleted-any-time', value: '' }, { title: 'admin-deleted-last-7', value: '7' }, { title: 'admin-deleted-last-30', value: '30' }],
     'recordType': [{title: 'admin-all-record-types', value: ''}]
   };
 
   // Filter values entered by user
-  filterParams: any = { title: '', recordType: '' };
+  filterParams: any = { title: '', recordType: '', deletedWithin: '', deletedBy: '' };
 
   // Record table properties
   tableHeaders: DeletedRecordTableHeader[] = [
@@ -87,6 +90,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       hide: false,
       multivalue: false
     },
+    { label: 'export-record-type', property: 'recordType', sortProperty: '', template: '', hide: false, multivalue: false, sortable: false },
     {
       label: "admin-deleted-created",
       property: "dateCreatedDisplay",
@@ -111,6 +115,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       hide: false,
       multivalue: false
     },
+    { label: 'admin-deleted-by', property: 'deletedBy', sortProperty: '', template: '', hide: false, multivalue: false, sortable: false },
   ];
   optTemplateData: any = {};
   showActions = [
@@ -120,6 +125,56 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   // Record list data
   deletedRecordsResult: ReportResultDto = null as any;
+
+  selectedRecords = new Map<string, { oid: string; revision: number }>();
+  bulkDestroy = false;
+  bulkResults: { oid: string; status: string; reason: string }[] = [];
+  get selectionDisabled(): boolean {
+    return this.actionPending || this.actionNeedsRefresh || this.pageLoadPending || this.loadPending || this.isDestroyRecordModalShown;
+  }
+  get allSelected(): boolean {
+    return !!this.deletedRecordsResult?.records.length && this.deletedRecordsResult.records.every((row: any) => this.selectedRecords.has(row.oid));
+  }
+  toggleRecord(row: any, checked: boolean): void {
+    if (this.selectionDisabled) return;
+    if (checked && this.selectedRecords.size < 100) this.selectedRecords.set(row.oid, { oid: row.oid, revision: row.revision });
+    else this.selectedRecords.delete(row.oid);
+  }
+  togglePage(checked: boolean): void {
+    if (this.selectionDisabled) return;
+    this.selectedRecords.clear();
+    if (checked) this.deletedRecordsResult.records.slice(0, 100).forEach((row: any) => this.toggleRecord(row, true));
+  }
+  showBulkDestroy(): void {
+    if (this.selectionDisabled || !this.selectedRecords.size) return;
+    this.actionMessage = '';
+    this.bulkDestroy = true;
+    this.showDestroyRecordModal();
+  }
+  async runBulk(action: 'restore' | 'destroy'): Promise<void> {
+    if (this.actionPending || this.actionNeedsRefresh || this.pageLoadPending || this.loadPending || !this.selectedRecords.size) return;
+    this.actionPending = true;
+    this.bulkResults = [];
+    this.actionMessage = '';
+    this.actionRefreshError = '';
+    this.retryRestoreOid = undefined;
+    try {
+      const response = await this.recordService.bulkDeletedRecords(action, Array.from(this.selectedRecords.values()));
+      this.bulkResults = response.results;
+      const succeeded = this.bulkResults.filter(item => item.status === 'succeeded').length;
+      const failed = this.bulkResults.length - succeeded;
+      this.actionMessage = this.translationService.t('admin-deleted-bulk-result', { succeeded, failed });
+      this.actionNeedsRefresh = true;
+      this.closeDestroyRecordModal();
+      await this.refreshAfterAction();
+    } catch {
+      this.actionNeedsRefresh = true;
+      this.actionMessage = this.translationService.t('admin-deleted-bulk-unknown');
+      this.closeDestroyRecordModal();
+    } finally {
+      this.actionPending = false;
+    }
+  }
 
   actionPending = false;
   actionMessage = '';
@@ -203,6 +258,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
           }
         }
       }
+      this.selectedRecords.clear();
       this.deletedRecordsResult = result;
       this.currentPageNumber = this.deletedRecordsResult.pageNum;
       this.appliedSort = sort;
@@ -243,7 +299,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public async clearFilters(): Promise<void> {
-    this.filterParams = { title: '', recordType: '' };
+    this.filterParams = { title: '', recordType: '', deletedWithin: '', deletedBy: '' };
     await this.filter();
   }
 
@@ -261,6 +317,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       return;
     }
     this.actionMessage = '';
+    this.bulkResults = [];
     this.actionRefreshError = '';
     this.retryRestoreOid = undefined;
     if (actionName === 'restore') {
@@ -289,6 +346,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   private closeDestroyRecordModal(): void {
+    this.bulkDestroy = false;
     this.currentDestroyRecordModalOid = undefined;
     this.currentDestroyRecordModalRevision = undefined;
     this.isDestroyRecordModalShown = false;
@@ -301,6 +359,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public async confirmDestroyRecordModal(event: any) {
+    if (this.bulkDestroy) return this.runBulk('destroy');
     if (!_isUndefined(this.currentDestroyRecordModalOid)) {
       await this.mutateDeletedRecord('destroy', this.currentDestroyRecordModalOid, this.currentDestroyRecordModalRevision);
     }
@@ -415,7 +474,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       this.actionNeedsRefresh = false;
       this.closeDestroyRecordModal();
       this.actionRefreshError = '';
-      this.actionMessage += ' List refreshed. Verify the record state before choosing another action.';
+      this.actionMessage += ' ' + this.translationService.t('admin-deleted-list-refreshed');
     } catch (error) {
       // Preserve the successful/unknown mutation message across refresh retries.
       this.actionRefreshError = 'Unable to refresh the list. Refresh the list before choosing another action.';
@@ -468,7 +527,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     const filterFields = 'title';
 
     const records: RecordResponseTable = await this.recordService.getDeletedRecords(
-      recordType, workflowState, pageNum, packageType, sort, filterFields, filterString, filterMode, this.recordsPerPage);
+      recordType, workflowState, pageNum, packageType, sort, filterFields, filterString, filterMode, this.recordsPerPage, _get(params, 'deletedWithin', ''), _get(params, 'deletedBy', ''));
 
     return {
       recordsPerPage: this.recordsPerPage,

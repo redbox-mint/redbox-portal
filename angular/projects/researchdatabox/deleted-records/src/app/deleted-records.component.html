@@ -14,6 +14,13 @@
   @if (actionMessage && !isDestroyRecordModalShown) {
     <div class="alert alert-warning action-feedback" role="alert">
       {{ actionMessage }} {{ actionRefreshError }}
+      @if (bulkResults.length) {
+        <ul class="mb-0">
+          @for (item of bulkResults; track item.oid) {
+            @if (item.status !== 'succeeded') { <li>{{ item.oid }} — {{ ('admin-deleted-reason-' + item.reason) | i18next }}</li> }
+          }
+        </ul>
+      }
       @if (canRetryRestore) {
         <button type="button" class="btn btn-outline-secondary retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">{{ 'admin-deleted-retry-restore' | i18next }}</button>
       }
@@ -31,11 +38,24 @@
           @for (item of dropDownProperties['recordType']; track item.value) { <option [value]="item.value">{{ (item.value ? item.value + '-title' : 'admin-all-record-types') | i18next }}</option> }
         </select>
       </div>
+      <div class="rb-admin-field"><label for="deletedWithin">{{ 'admin-deleted-within' | i18next }}</label>
+        <select id="deletedWithin" name="deletedWithin" class="form-select" [(ngModel)]="filterParams.deletedWithin">
+          @for (item of dropDownProperties['deletedWithin']; track item.value) { <option [value]="item.value">{{ item.title | i18next }}</option> }
+        </select>
+      </div>
+      <div class="rb-admin-field"><label for="deletedBy">{{ 'admin-deleted-by' | i18next }}</label><input id="deletedBy" name="deletedBy" class="form-control" [(ngModel)]="filterParams.deletedBy" [placeholder]="'admin-deleted-any-user' | i18next" maxlength="256"></div>
       <div class="rb-admin-page-actions"><button class="btn btn-primary" type="submit" [disabled]="loadPending || actionPending">{{ 'admin-report-apply' | i18next }}</button><button class="btn rb-admin-ghost" type="button" [disabled]="loadPending || actionPending" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
     </form>
     @if (!initTracker.resultsReturned) { <div class="deleted-loading" role="status"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> {{ 'deleted-records-retrieving-results' | i18next }}</div> }
+    @if (selectedRecords.size) {
+      <div class="rb-admin-filter-bar rb-admin-bulk-bar" role="region" [attr.aria-label]="'admin-deleted-bulk-actions' | i18next">
+        <strong aria-live="polite">{{ 'admin-deleted-selected' | i18next: { count: selectedRecords.size } }}</strong>
+        <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="selectionDisabled" (click)="runBulk('restore')">{{ 'action-restore' | i18next }}</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="selectionDisabled" (click)="showBulkDestroy()">{{ 'admin-deleted-permanent' | i18next }}</button>
+      </div>
+    }
   <!-- Result details -->
-  <record-table [adminPresentation]="true" [actionTemplate]="rowActions" [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
+  <record-table [selectionHeaderTemplate]="selectPage" [selectionTemplate]="selectRow" [cellTemplates]="{ recordType: typeCell, deletedBy: actorCell }" [adminPresentation]="true" [actionTemplate]="rowActions" [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
     [columnConfig]="tableHeaders"
     [dataSource]="this"
     [optTemplateData]="optTemplateData"
@@ -49,6 +69,10 @@
       <div class="rb-admin-empty"><i class="fa fa-2x fa-trash-can" aria-hidden="true"></i><h3>{{ 'admin-deleted-empty' | i18next }}</h3><p>{{ 'admin-deleted-empty-help' | i18next }}</p></div>
     }
   </section>
+  <ng-template #selectPage><input type="checkbox" class="form-check-input" [attr.aria-label]="'admin-deleted-select-page' | i18next" [checked]="allSelected" [indeterminate]="selectedRecords.size > 0 && !allSelected" [disabled]="selectionDisabled" (change)="togglePage($any($event.target).checked)"></ng-template>
+  <ng-template #selectRow let-record><input type="checkbox" class="form-check-input" [attr.aria-label]="'admin-deleted-select-record' | i18next: { title: record.title }" [checked]="selectedRecords.has(record.oid)" [disabled]="selectionDisabled" (change)="toggleRecord(record, $any($event.target).checked)"></ng-template>
+  <ng-template #typeCell let-record><span class="badge rb-admin-badge-primary">{{ record.recordTypeLabel || record.recordType || ('admin-deleted-unknown' | i18next) }}</span></ng-template>
+  <ng-template #actorCell let-record>{{ record.deletedBy?.username || record.deletedBy?.id || ('admin-deleted-unknown' | i18next) }}</ng-template>
   <ng-template #rowActions let-record>
     <div class="rb-admin-row-actions">
       <button class="btn btn-sm btn-outline-secondary restore-record" type="button" (click)="recordTableAction($event, record, 'restore')">{{ 'action-restore' | i18next }}</button>
@@ -72,7 +96,7 @@
             </h2>
           </div>
           <div class="modal-body" id="deleted-records-confirm-modal-description">
-            {{ 'admin-deleted-confirm-message' | i18next }}
+            @if (bulkDestroy) { {{ 'admin-deleted-bulk-confirm' | i18next: { count: selectedRecords.size } }} } @else { {{ 'admin-deleted-confirm-message' | i18next }} }
           </div>
           @if (actionMessage) {
             <div class="alert alert-warning action-feedback" role="alert">

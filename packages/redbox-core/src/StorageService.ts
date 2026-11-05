@@ -159,7 +159,9 @@ export interface StorageService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    secondarySort?: unknown,
+    deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(

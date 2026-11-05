@@ -334,7 +334,6 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
   'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
-  'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 
   // Vocab routes
   'get /:branding/:portal/vocab/:vocabIdOrSlug': {

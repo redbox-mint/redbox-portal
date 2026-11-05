@@ -1122,4 +1122,31 @@ describe('RecordService', () => {
     }));
   }
 
+  it('bulk dispatches exact selected tags with CSRF options and retains preflight failures', fakeAsync(() => {
+    const promise = recordService.bulkDeletedRecords('restore', [{ oid: 'one', revision: 3 }, { oid: 'two', revision: 3 }]);
+    let result: any; promise.then(value => result = value);
+    const first = httpTestingController.expectOne(req => req.url.endsWith('/record/delete/one'));
+    first.flush({ data: {}, meta: { revision: 3, entityTag: entityTag(3) } }, { headers: { ETag: entityTag(3) } });
+    flushMicrotasks();
+    const second = httpTestingController.expectOne(req => req.url.endsWith('/record/delete/two'));
+    second.flush({ data: {}, meta: { revision: 4, entityTag: entityTag(4) } }, { headers: { ETag: entityTag(4) } });
+    flushMicrotasks();
+    const bulk = httpTestingController.expectOne(req => req.url.endsWith('/admin/deletedRecords/bulk'));
+    expect(bulk.request.method).toBe('POST');
+    expect(bulk.request.body).toEqual({ action: 'restore', items: [{ oid: 'one', entityTag: entityTag(3) }] });
+    bulk.flush({ results: [{ oid: 'one', status: 'succeeded', reason: 'completed' }] });
+    flushMicrotasks();
+    expect(result.results).toEqual(jasmine.arrayContaining([{ oid: 'two', status: 'failed', reason: 'record-changed' }, { oid: 'one', status: 'succeeded', reason: 'completed' }]));
+  }));
+
+  it('treats a missing bulk result as unknown and never silently reports success', fakeAsync(() => {
+    let result: any;
+    recordService.bulkDeletedRecords('destroy', [{ oid: 'one', revision: 3 }]).then(value => result = value);
+    httpTestingController.expectOne(req => req.url.endsWith('/record/delete/one')).flush({ data: {}, meta: { revision: 3, entityTag: entityTag(3) } }, { headers: { ETag: entityTag(3) } });
+    flushMicrotasks();
+    httpTestingController.expectOne(req => req.url.endsWith('/admin/deletedRecords/bulk')).flush({ results: [] });
+    flushMicrotasks();
+    expect(result.results).toEqual([{ oid: 'one', status: 'unknown', reason: 'outcome-unknown' }]);
+  }));
+
 });

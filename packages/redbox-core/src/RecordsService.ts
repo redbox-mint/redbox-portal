@@ -275,7 +275,8 @@ export interface RecordsService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
   getRecords(
     workflowState: unknown,
