@@ -90,7 +90,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     inherited actions; missing/forbidden/non-callable/unlisted actions and bindings
     fail composition. Losing replacement factories never run.
 
-- [ ] **FM-010 — Normalize routes and collision identities.**
+- [x] **FM-010 — Normalize routes and collision identities.**
   - Dependencies: FM-009, FM-003.
   - Work: translate concrete Express patterns, derive API registration view, preserve
     stable names and effective access metadata, configure path matching, and check
