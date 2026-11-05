@@ -3,7 +3,17 @@
 <link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
 <% } %>
 <% let appName='dashboard' ; %>
-<% if (typeof showAdminSideBar !== 'undefined' && showAdminSideBar) { %>
+<% if (typeof adminParties !== 'undefined' && adminParties) { %>
+<%- include('../default/admin/layout/start.ejs') %>
+<%- include('../default/admin/layout/page-header.ejs', {
+  breadcrumbs: [{ labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' }, { labelKey: 'admin-nav-lookups' }, { labelKey: 'admin-nav-party' }],
+  titleKey: 'admin-nav-party', descriptionKey: 'admin-parties-description'
+}) %>
+<dashboard recordType="party" packageType="party" dashboardType="standard" adminParties="true" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+  <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+</dashboard>
+<%- include('../default/admin/layout/end.ejs') %>
+<% } else if (typeof showAdminSideBar !== 'undefined' && showAdminSideBar) { %>
 <%- include('../default/admin/layout/start.ejs') %>
     <div class="default-page">
       <div class="header">

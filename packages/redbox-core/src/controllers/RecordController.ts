@@ -156,6 +156,7 @@ export namespace Controllers {
       'delete',
       'getRelatedRecords',
       'render',
+      'renderParties',
       'getRecordList',
       'listWorkspaces',
       'getAllDashboardTypes',
@@ -2620,8 +2621,27 @@ export namespace Controllers {
       return res.redirect(url);
     }
 
+    /** The admin page uses the ordinary party dashboard and its existing data APIs. */
+    public renderParties(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      const titleLabel = this.translate('admin-nav-party', locals);
+      return this.sendView(req, res, 'dashboard', {
+        recordType: 'party', packageType: 'party', dashboardType: 'standard', dashboardView: '',
+        adminParties: true, showAdminSideBar: true, titleLabel,
+        title: this.formatDocumentTitle(titleLabel, locals),
+      });
+    }
+
     public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
+      // Keep old bookmarks in the admin shell for admins; other dashboard users
+      // retain the existing page and its permissions.
+      if (recordType === 'party' && req.user) {
+        const adminRole = RolesService.getRoleByName(this.getReqBrand(req), 'Admin');
+        if (adminRole && UsersService.hasRole(req.user, adminRole)) {
+          return this.renderParties(req, res);
+        }
+      }
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;

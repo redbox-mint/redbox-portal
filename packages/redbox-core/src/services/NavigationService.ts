@@ -574,6 +574,8 @@ export namespace Services {
         href,
         external,
         active: !external && (this.isActive(href, context.currentPath) ||
+          ([context.brandPortalPath + '/admin/parties', context.brandPortalPath + '/dashboard/party'].includes(href) &&
+           [context.brandPortalPath + '/admin/parties', context.brandPortalPath + '/dashboard/party'].includes(context.currentPath)) ||
           (href === context.brandPortalPath + '/admin/reports' &&
            context.currentPath.startsWith(context.brandPortalPath + '/admin/report/')))
       };

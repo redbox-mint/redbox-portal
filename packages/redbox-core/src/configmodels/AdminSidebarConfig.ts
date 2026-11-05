@@ -272,7 +272,7 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
       id: 'lookups', titleKey: 'admin-nav-lookups', defaultExpanded: true,
       requiredRoles: ['Admin'],
       items: [
-        { id: 'party', labelKey: 'admin-nav-party', href: '/dashboard/party' },
+        { id: 'party', labelKey: 'admin-nav-party', href: '/admin/parties' },
         { id: 'vocabulary', labelKey: 'admin-nav-vocabulary', href: '/admin/vocabulary/manager' },
         { id: 'figshare-vocabularies', labelKey: 'admin-nav-figshare-vocabularies', href: '/admin/integrations/figshare/vocabularies' },
       ]
