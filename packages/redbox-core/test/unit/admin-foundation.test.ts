@@ -110,7 +110,7 @@ describe('Admin foundation views', function () {
     const html = await ejs.renderFile(path.join(views, 'layout/page-header.ejs'), {
       ...locals, titleKey: '<script>title</script>', descriptionKey: 'description',
       breadcrumbs: [{ labelKey: 'menu-admin', href: '/admin?x="' }, { labelKey: 'current' }],
-      actions: [{ labelKey: 'save', href: '/save', primary: true }]
+      actions: [{ labelKey: 'save', href: '/save', primary: true }, { labelKey: 'download', href: '/api-docs.json', download: 'openapi.json' }]
     });
     const dom = new JSDOM(html);
     try {
@@ -118,6 +118,7 @@ describe('Admin foundation views', function () {
       expect(document.querySelector('script')).to.equal(null);
       expect(document.querySelector('h1')!.textContent).to.equal('<script>title</script>');
       expect(document.querySelector('.btn-primary')!.textContent).to.equal('save');
+      expect(document.querySelector('a[download]')!.getAttribute('download')).to.equal('openapi.json');
       expect(document.querySelector('[aria-current="page"]')!.textContent).to.equal('current');
     } finally { dom.window.close(); }
   });

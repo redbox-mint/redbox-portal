@@ -46,7 +46,7 @@ describe('admin API docs', function () {
         expect(routes['get /:branding/:portal/admin/api-docs']).to.deep.equal({
             controller: 'RenderViewController',
             action: 'render',
-            locals: { view: 'admin/api-docs', layout: false },
+            locals: { view: 'admin/api-docs' },
         });
         expect(routes['get /:branding/:portal/admin/api-docs/openapi.json']).to.equal('BrandingController.renderSwaggerJSON');
     });
@@ -88,20 +88,25 @@ describe('admin API docs', function () {
         expect(doc.paths).to.not.have.property('/{branding}/{portal}/api/users');
     });
 
-    it('keeps the EJS view self-contained and local to the portal', function () {
+    it('isolates the local viewer inside the shared admin shell', function () {
         const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs.ejs');
         const contents = fs.readFileSync(viewPath, 'utf8');
 
-        expect(contents).to.include('<!doctype html>');
-        expect(contents).to.include('/default/default/js/admin-api-docs-init.js');
-        expect(contents).to.include('/default/default/js/admin-api-docs-bootstrap.js');
-        expect(contents).to.include('/admin/api-docs/openapi.json');
-        expect(contents).to.include('/default/default/js/redoc.standalone.js');
-        expect(contents).to.not.include('cdn.redoc.ly');
+        expect(contents).to.include("include('layout/start.ejs')");
+        expect(contents).to.include('<iframe');
+        expect(contents).to.include('/admin/api-docs/reference');
+        const reference = fs.readFileSync(path.resolve(__dirname, '../../../../views/default/default/admin/api-docs-reference.ejs'), 'utf8');
+        expect(reference).to.include('<!doctype html>');
+        expect(reference).to.include('contentSecurityPolicyNonce');
+        expect(reference).to.include('/default/default/js/admin-api-docs-init.js');
+        expect(reference).to.include('/default/default/js/admin-api-docs-bootstrap.js');
+        expect(reference).to.include('/admin/api-docs/openapi.json');
+        expect(reference).to.include('/default/default/js/redoc.standalone.js');
+        expect(reference).to.not.include('cdn.redoc.ly');
     });
 
     it('loads the Redoc 3 ES module bundle through a module bootstrap', function () {
-        const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs.ejs');
+        const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs-reference.ejs');
         const view = fs.readFileSync(viewPath, 'utf8');
         expect(view).to.match(/js\/redoc\.standalone\.js" type="module"/);
         expect(view).to.match(/js\/admin-api-docs-bootstrap\.js" type="module"/);
