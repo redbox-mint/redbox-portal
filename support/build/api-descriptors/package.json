@@ -13,11 +13,12 @@
     "ejs": "7.0.2"
   },
   "overrides": {
-    "brace-expansion": "5.0.9",
+    "brace-expansion": "5.0.12",
     "minimatch": "10.2.5",
     "filelist": {
-      "brace-expansion": "5.0.9",
+      "brace-expansion": "5.0.12",
       "minimatch": "10.2.5"
-    }
+    },
+    "js-yaml@4": "4.3.2"
   }
 }

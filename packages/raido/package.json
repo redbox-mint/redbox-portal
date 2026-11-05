@@ -25,5 +25,8 @@
   },
   "dependencies": {
     "axios": "1.21.0"
+  },
+  "overrides": {
+    "follow-redirects": "1.16.1"
   }
 }

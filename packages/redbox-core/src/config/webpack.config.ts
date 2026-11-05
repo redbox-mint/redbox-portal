@@ -31,6 +31,7 @@ export interface WebpackConfig {
 export const webpack: WebpackConfig = {
     config: [
         {
+            name: 'portal-assets',
             stats: {
                 loggingDebug: ["sass-loader"],
             },
@@ -73,10 +74,6 @@ export const webpack: WebpackConfig = {
                         },
                         {
                             from: './node_modules/jquery/dist/jquery.min.js',
-                            to: './default/default/js/'
-                        },
-                        {
-                            from: './node_modules/redoc/bundles/redoc.standalone.js',
                             to: './default/default/js/'
                         }
                     ],
@@ -125,6 +122,27 @@ export const webpack: WebpackConfig = {
                     module: /sass-loader/,
                 }
             ],
+        },
+        {
+            name: 'api-docs',
+            experiments: { outputModule: true },
+            module: {
+                rules: [{
+                    test: /[\\/]redoc[\\/]bundles[\\/]redoc\.js$/,
+                    use: path.resolve(__dirname, '../../browser/redoc-library-loader.cjs'),
+                }],
+            },
+            dependencies: ['portal-assets'],
+            // The published library also embeds its own older DOMPurify.
+            // Bundle the library with our pinned dependencies so security fixes
+            // also reach the API documentation asset served by the portal.
+            mode: isDevelopmentAssetMode ? 'development' : 'production',
+            entry: path.resolve(__dirname, '../../browser/redoc-standalone.js'),
+            output: {
+                filename: './default/default/js/redoc.standalone.js',
+                path: outputDir,
+                library: { type: 'module' },
+            },
         }
     ],
     watch: false,
