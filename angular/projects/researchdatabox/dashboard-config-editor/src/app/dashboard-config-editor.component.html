@@ -61,6 +61,13 @@
                   <header class="rb-admin-form-section-header"><h3>{{ 'admin-dashboard-display' | i18next }}</h3></header>
                   <div class="rb-admin-form-section-body rb-admin-form-grid">
                     <div><div class="form-check form-switch"><input id="dc-searchable" type="checkbox" class="form-check-input" role="switch" [(ngModel)]="draft.searchable" (ngModelChange)="onDraftChanged()" [disabled]="selected.target.kind === 'view' && !draft.searchable" /><label for="dc-searchable" class="form-check-label">{{ 'admin-dashboard-search-box' | i18next }}</label></div><p class="rb-admin-hint">{{ (selected.target.kind === 'view' ? 'admin-dashboard-view-search-help' : 'admin-dashboard-search-help') | i18next }}</p></div>
+                    <div>
+                      <label for="dc-rows-per-page" class="form-label">{{ 'admin-dashboard-rows-per-page' | i18next }}</label>
+                      <select id="dc-rows-per-page" class="form-select" [ngModel]="draft.rowsPerPage ?? 10" (ngModelChange)="draft.rowsPerPage = $event; onDraftChanged()" aria-describedby="dc-rows-per-page-help">
+                        <option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option>
+                      </select>
+                      <p id="dc-rows-per-page-help" class="rb-admin-hint">{{ 'admin-dashboard-rows-per-page-help' | i18next }}</p>
+                    </div>
                     <div><div class="form-check form-switch"><input id="dc-stage-title" type="checkbox" class="form-check-input" role="switch" [(ngModel)]="draft.showStageTitle" (ngModelChange)="onDraftChanged()" /><label for="dc-stage-title" class="form-check-label">{{ 'admin-dashboard-stage-title' | i18next }}</label></div><p class="rb-admin-hint">{{ 'admin-dashboard-stage-title-help' | i18next }}</p></div>
                   </div>
                 </section>
@@ -193,7 +200,7 @@
         <ng-container *ngFor="let group of groups">
           <tr class="dc-changes-group"><th colspan="3">{{ group.label | i18next }} <small *ngIf="!group.changed">{{ 'admin-dashboard-no-change' | i18next }}</small></th></tr>
           <tr *ngFor="let item of group.items" [class.dc-change-cleared]="item.cleared" [class.dc-change-same]="item.before === item.after">
-            <td>{{ item.label }}</td>
+            <td>{{ item.label | i18next }}</td>
             <td class="dc-change-value">{{ item.before }}</td>
             <td class="dc-change-value">{{ item.after }}<span *ngIf="item.cleared" class="dc-badge dc-badge-cleared">{{ 'admin-dashboard-cleared' | i18next }}</span></td>
           </tr>

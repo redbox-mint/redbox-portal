@@ -29,8 +29,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Dashboards | Dashboard types group and “Add dashboard type” form | The current target catalogue and DashboardConfigController expose only existing workflow-stage and view-step targets. Legacy profile rows are used for migration, with no supported list/create/edit API for dashboard types. Needs a dashboard-type management API before showing these controls. |
-| Dashboards | Rows per page | The current editor settings and dashboard configuration validation expose no persisted per-target page-size setting. Needs a supported field and runtime consumption before adding this mock control. |
 | Branding | Draft / publish lifecycle for logo and favicon | Existing upload routes update live assets immediately; version history covers colours and typography only. Draft image storage and versioned publish/restore support are needed before these assets can join the draft lifecycle. The UI explains the immediate effect. |
 | Branding | Reset the entire saved draft to published branding | Existing Reset draft only reloads saved colours into the editor. Revert typeface draft is supported separately; an atomic reset endpoint would be needed for one action covering all saved draft state. |
 | Translations | "Missing" / "Changed" filters, "New default" badge, translated-count column | Needs per-key provenance (default vs override vs missing) from the translation service |

@@ -184,6 +184,30 @@ describe('DashboardConfigService', function () {
       await seed({ rdmp: { draft: stageSettings('Draft'), review: stageSettings('Review') } });
     });
 
+    it('persists page size for one target and brand and exposes it at runtime', async function () {
+      await store.model.create({ id: '', branding: 'brand2', revision: 8, configData: { schemaVersion: 1, workflows: { rdmp: { draft: stageSettings('Other brand') } }, views: {}, contexts: {} } });
+      const untouchedBrand = JSON.stringify(store.docs[1]);
+      await service.saveTargetSettings(brand, draft, { expectedRevision: 1, settings: { ...stageSettings('Draft'), rowsPerPage: 25 } });
+      expect((await service.getTargetSettings(brand, draft)).settings.rowsPerPage).to.equal(25);
+      expect((await service.getRuntimeTargetSettings(brand, draft))!.settings.rowsPerPage).to.equal(25);
+      expect(store.docs[0].configData.workflows.rdmp.review).to.not.have.property('rowsPerPage');
+      expect(JSON.stringify(store.docs[1])).to.equal(untouchedBrand);
+    });
+
+    it('rejects invalid page sizes without writing', async function () {
+      const before = JSON.stringify(store.docs);
+      for (const rowsPerPage of [null, '25', 11, 0, 101]) {
+        try {
+          await service.saveTargetSettings(brand, draft, { expectedRevision: 1, settings: { ...stageSettings('Draft'), rowsPerPage } });
+          expect.fail('should reject');
+        } catch (e: any) {
+          expect(e.code).to.equal('invalid-settings');
+          expect(e.details.errors.some((f: any) => f.path === 'rowsPerPage')).to.equal(true);
+        }
+      }
+      expect(JSON.stringify(store.docs)).to.equal(before);
+    });
+
     it('saves one stage and leaves others unchanged', async function () {
       const next = stageSettings('Changed');
       const saved = await service.saveTargetSettings(brand, draft, { expectedRevision: 1, settings: next });
