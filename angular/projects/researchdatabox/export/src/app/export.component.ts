@@ -37,6 +37,8 @@ interface ExportFormatOption {
   standalone: false
 })
 export class ExportComponent extends BaseComponent {
+  pendingDelete: ExportJobDto | null = null;
+  private modalTrigger: HTMLElement | null = null;
   datePickerPlaceHolder = '';
   modBefore: Date | string | null | undefined = null;
   modAfter: Date | string | null | undefined = null;
@@ -55,7 +57,7 @@ export class ExportComponent extends BaseComponent {
   deleteErrorKey = '';
 
   private static readonly statusTones: Record<ExportJobStatus, string> = {
-    queued: 'secondary', running: 'info', ready: 'success', failed: 'danger', expired: 'secondary'
+    queued: 'info', running: 'info', ready: 'success', failed: 'danger', expired: 'warning'
   };
   private readonly pollIntervalMs = 3000;
   private refreshPromise: Promise<void> | null = null;
@@ -78,6 +80,7 @@ export class ExportComponent extends BaseComponent {
 
   protected override async initComponent(): Promise<void> {
     const sysConfig = await this.configService.getConfig();
+    this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
     const appName = 'export';
     this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerOpts', {
       dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue'
@@ -154,6 +157,30 @@ export class ExportComponent extends BaseComponent {
     return status === 'ready' || status === 'failed' || status === 'expired';
   }
 
+  requestDelete(job: ExportJobDto): void {
+    if (this.mutationPending || !this.canDelete(job)) { return; }
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
+    this.deleteErrorKey = '';
+    this.pendingDelete = job;
+  }
+
+  cancelDelete(): void {
+    if (this.mutationPending) { return; }
+    this.pendingDelete = null;
+    this.restoreDeleteFocus();
+  }
+
+  private restoreDeleteFocus(): void {
+    const trigger = this.modalTrigger;
+    this.modalTrigger = null;
+    setTimeout(() => {
+      if (this.disposed) { return; }
+      const target = trigger?.isConnected ? trigger : document.querySelector<HTMLElement>('.export-app button[type="submit"]');
+      target?.focus();
+    }, 0);
+  }
+
   async deleteJob(job: ExportJobDto): Promise<void> {
     if (this.disposed || this.mutationPending || !this.canDelete(job)) {
       return;
@@ -170,6 +197,8 @@ export class ExportComponent extends BaseComponent {
       await this.exportService.remove(job.id);
       if (!this.disposed) {
         this.jobs = this.jobs.filter(existing => existing.id !== job.id);
+        this.pendingDelete = null;
+        this.restoreDeleteFocus();
         this.pollingBlocked = false;
       }
     } catch (error: unknown) {
@@ -196,7 +225,7 @@ export class ExportComponent extends BaseComponent {
 
   getStatusBadgeClass(status: ExportJobStatus): string {
     const tone = ExportComponent.statusTones[status] ?? 'secondary';
-    return `badge rounded-pill ex-badge bg-${tone}-subtle text-${tone}-emphasis border border-${tone}-subtle`;
+    return `badge rb-admin-badge-${tone}`;
   }
 
   formatSize(bytes: number | null): string {

@@ -1,3 +1,4 @@
+import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { Directive, Input, Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
@@ -56,7 +57,7 @@ describe('ExportComponent', () => {
       ? `${baseUrl}/export/jobs/${encodeURIComponent(item.id)}/download` : null);
     await TestBed.configureTestingModule({
       declarations: [ExportComponent, MockTranslationPipe, MockDatepickerDirective],
-      imports: [CommonModule, FormsModule],
+      imports: [CommonModule, FormsModule, A11yModule],
       providers: [
         { provide: ConfigService, useValue: configService },
         { provide: RecordService, useValue: records },
@@ -258,7 +259,7 @@ describe('ExportComponent', () => {
     initialize();
     expect(component.jobsErrorKey).toBe('export-list-error');
     expect(fixture.nativeElement.querySelector('.alert-warning').textContent).toContain('export-list-error');
-    expect(fixture.nativeElement.querySelector('.ex-empty')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     expect(fixture.nativeElement.querySelector('button[type="submit"]').disabled).toBeFalse();
     service.list.and.resolveTo([job({ status: 'failed' })]);
@@ -328,10 +329,11 @@ describe('ExportComponent', () => {
     service.remove.and.returnValue(deleted.promise);
     const selected = component.jobs[0];
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-outline-danger');
-    button.click(); flushMicrotasks(); fixture.detectChanges();
+    button.click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rb-admin-danger-confirm') as HTMLButtonElement).click(); flushMicrotasks(); fixture.detectChanges();
     expect(service.remove).toHaveBeenCalledOnceWith('export-1');
     expect(button.disabled).toBeTrue();
-    expect(button.textContent).toContain('export-deleting');
+    expect(fixture.nativeElement.querySelector('.rb-admin-danger-confirm').textContent).toContain('export-deleting');
     expect(fixture.nativeElement.querySelector('a[download]')).toBeNull();
     const prepare: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-primary');
     expect(prepare.disabled).toBeTrue();
@@ -363,7 +365,8 @@ describe('ExportComponent', () => {
     service.remove.and.resolveTo();
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('button.btn-outline-danger');
     expect(button.disabled).toBeFalse();
-    button.click(); flushMicrotasks(); fixture.detectChanges();
+    button.click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rb-admin-danger-confirm') as HTMLButtonElement).click(); flushMicrotasks(); fixture.detectChanges();
     expect(component.jobs).toEqual([]);
     expect(component.deleteErrorKey).toBe('');
     expect(fixture.nativeElement.querySelector('.alert-danger')).toBeNull();
@@ -450,19 +453,37 @@ describe('ExportComponent', () => {
     expect(configService.refreshConfig).toHaveBeenCalled();
     fixture.destroy();
   }));
+  it('asks before deleting, supports cancellation, and confirms the selected job', fakeAsync(() => {
+    service.list.and.resolveTo([job({ status: 'failed' })]);
+    initialize();
+    const remove = () => fixture.nativeElement.querySelector('button.btn-outline-danger') as HTMLButtonElement;
+    remove().click(); fixture.detectChanges();
+    expect(service.remove).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[aria-modal="true"]')).not.toBeNull();
+    component.cancelDelete(); fixture.detectChanges();
+    expect(component.jobs.length).toBe(1);
+    expect(service.remove).not.toHaveBeenCalled();
+    remove().click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.rb-admin-danger-confirm') as HTMLButtonElement).click();
+    flushMicrotasks(); fixture.detectChanges();
+    expect(service.remove).toHaveBeenCalledOnceWith('export-1');
+    expect(component.pendingDelete).toBeNull();
+    expect(component.jobs).toEqual([]);
+  }));
+
   it('renders a status badge per job and shows the empty state without jobs', fakeAsync(() => {
     initialize();
-    expect(fixture.nativeElement.querySelector('.ex-empty')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('table')).toBeNull();
     component.jobs = [job({ id: 'q' }), job({ id: 'f', status: 'failed' })];
     fixture.detectChanges();
     const badges: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody .badge'));
     expect(badges.map(badge => badge.className)).toEqual([
-      jasmine.stringContaining('bg-secondary-subtle'),
-      jasmine.stringContaining('bg-danger-subtle')
+      jasmine.stringContaining('rb-admin-badge-info'),
+      jasmine.stringContaining('rb-admin-badge-danger')
     ]);
     expect(badges[0].querySelector('.fa-spin')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.ex-empty')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
     fixture.destroy();
   }));
 

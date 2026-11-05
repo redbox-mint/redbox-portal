@@ -1,7 +1,8 @@
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { APP_BASE_HREF } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, RecordService, getStubConfigService, getStubRecordService, LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService, HarvestRunDetail } from './harvest-run-api.service';
 import { HarvestRunsComponent } from './harvest-runs.component';
 
@@ -36,9 +37,11 @@ describe('HarvestRunsComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [HarvestRunsComponent],
-      imports: [FormsModule, RedboxPortalCoreModule],
+      imports: [FormsModule, RedboxPortalCoreModule, BsDatepickerModule.forRoot()],
       providers: [
         LoggerService,
+        { provide: ConfigService, useValue: getStubConfigService() },
+        { provide: RecordService, useValue: getStubRecordService({ types: [{ name: 'rdmp' }, { name: 'dataRecord' }] }) },
         {
           provide: APP_BASE_HREF,
           useValue: 'base'
@@ -50,6 +53,7 @@ describe('HarvestRunsComponent', () => {
             'harvest-runs-heading': 'Harvest runs',
             'harvest-runs-loading': 'Loading harvest runs',
             'harvest-runs-empty': 'No harvest runs found.',
+            'admin-harvest-empty': 'No harvest runs yet',
             'harvest-runs-filter-apply': 'Apply filters',
             'harvest-runs-filter-clear': 'Clear filters',
             'harvest-runs-detail-summary': 'Summary',
@@ -80,6 +84,27 @@ describe('HarvestRunsComponent', () => {
 
     fixture = TestBed.createComponent(HarvestRunsComponent);
     component = fixture.componentInstance;
+  });
+
+  it('uses inclusive local date bounds and refuses invalid dates without querying', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    apiService.listRuns.calls.reset();
+    component.dateFrom = new Date(2026, 9, 1);
+    component.dateTo = new Date(2026, 9, 31);
+    await component.applyFilters();
+    const query = apiService.listRuns.calls.mostRecent().args[0]!;
+    expect(query.dateFrom).toBe(new Date(2026, 9, 1, 0, 0, 0, 0).toISOString());
+    expect(query.dateTo).toBe(new Date(2026, 9, 31, 23, 59, 59, 999).toISOString());
+    apiService.listRuns.calls.reset();
+    component.dateFrom = 'invalid';
+    await component.applyFilters();
+    expect(apiService.listRuns).not.toHaveBeenCalled();
+    expect(component.listError).toBeTruthy();
+    await component.clearFilters();
+    expect(component.dateFrom).toBeNull();
+    expect(component.dateTo).toBeNull();
+    expect(apiService.listRuns.calls.mostRecent().args[0]!.dateFrom).toBe('');
   });
 
   it('loads runs and the initial selected run detail on init', async () => {
@@ -130,7 +155,7 @@ describe('HarvestRunsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('No harvest runs found.');
+    expect(fixture.nativeElement.textContent).toContain('No harvest runs yet');
   });
   it('ignores repeated clicks on the selected run, including while it is loading', async () => {
     let resolveDetail!: (value: HarvestRunDetail) => void;

@@ -21,7 +21,6 @@ import { Component, Inject, ElementRef, ViewChild } from '@angular/core';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent, RecordSource, RecordResponseTable, RecordActionResult, RecordTableComponent } from '@researchdatabox/portal-ng-common';
 import { RecordPropViewMetaDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
 import { isEmpty as _isEmpty, set as _set, get as _get, isUndefined as _isUndefined } from 'lodash-es';
-import { ModalDirective } from "ngx-bootstrap/modal";
 import { DateTime } from 'luxon';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -72,11 +71,11 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   ];
   sort: string | undefined;
   dropDownProperties: { [key: string]: { title: string, value: string }[] } = {
-    'recordType': [{title: 'All', value: ''}]
+    'recordType': [{title: 'admin-all-record-types', value: ''}]
   };
 
   // Filter values entered by user
-  filterParams: any = {};
+  filterParams: any = { title: '', recordType: '' };
 
   // Record table properties
   tableHeaders: DeletedRecordTableHeader[] = [
@@ -89,7 +88,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       multivalue: false
     },
     {
-      label: "deleted-records-results-table-header-created-date",
+      label: "admin-deleted-created",
       property: "dateCreatedDisplay",
       sortProperty: "deletedRecordMetadata.dateCreated",
       template: "",
@@ -97,7 +96,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       multivalue: false
     },
     {
-      label: "deleted-records-results-table-header-modified-date",
+      label: "admin-deleted-modified",
       property: "dateModifiedDisplay",
       sortProperty: "deletedRecordMetadata.lastSaveDate",
       template: "",
@@ -105,7 +104,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       multivalue: false
     },
     {
-      label: "deleted-records-results-table-header-deleted-date",
+      label: "admin-deleted-deleted",
       property: "dateDeletedDisplay",
       sortProperty: "dateDeleted",
       template: "",
@@ -115,7 +114,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   ];
   optTemplateData: any = {};
   showActions = [
-    {name: 'restore', classes: 'btn-primary', label: 'action-restore'},
+    {name: 'restore', classes: 'btn-outline-secondary', label: 'action-restore'},
     {name: 'destroy', classes: 'btn-danger', label: 'action-destroy'},
   ]
 
@@ -133,14 +132,14 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   currentDestroyRecordModalOid: string | undefined;
   currentDestroyRecordModalRevision: number | undefined;
   isDestroyRecordModalShown: boolean = false;
-  @ViewChild('destroyRecordModal') destroyRecordModal?: ModalDirective;
+  private modalTrigger: HTMLElement | null = null;
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(RecordService) protected recordService: RecordService,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(ElementRef) elementRef: ElementRef
+    @Inject(ElementRef) private elementRef: ElementRef
   ) {
     super();
     this.initDependencies = [this.translationService, this.recordService];
@@ -243,6 +242,11 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     await this.gotoPage(1, params);
   }
 
+  public async clearFilters(): Promise<void> {
+    this.filterParams = { title: '', recordType: '' };
+    await this.filter();
+  }
+
   public async headerSortChanged(event: any, data: DeletedRecordTableHeader) {
     if (this.loadPending || this.actionPending) {
       this.restoreAppliedSort();
@@ -272,8 +276,9 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   public showDestroyRecordModal(): void {
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
     this.isDestroyRecordModalShown = true;
-    this.destroyRecordModal?.show();
   }
 
   public hideDestroyRecordModal(): void {
@@ -284,14 +289,15 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   }
 
   private closeDestroyRecordModal(): void {
-    this.destroyRecordModal?.hide();
     this.currentDestroyRecordModalOid = undefined;
     this.currentDestroyRecordModalRevision = undefined;
     this.isDestroyRecordModalShown = false;
-  }
-
-  public onDestroyRecordModalHidden(): void {
-    this.isDestroyRecordModalShown = false;
+    const trigger = this.modalTrigger;
+    this.modalTrigger = null;
+    setTimeout(() => {
+      const target = trigger?.isConnected ? trigger : this.elementRef.nativeElement.querySelector('form button[type="submit"]');
+      target?.focus();
+    }, 0);
   }
 
   public async confirmDestroyRecordModal(event: any) {
@@ -436,7 +442,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       searchFilters: [];
       searchable: boolean
     }[] = await this.recordService.getAllTypes();
-    this.dropDownProperties['recordType'] = [{title: 'All', value: ''}];
+    this.dropDownProperties['recordType'] = [{title: 'admin-all-record-types', value: ''}];
     recordTypes.forEach(recordType => {
       this.dropDownProperties['recordType'].push({
         title: recordType.name,
