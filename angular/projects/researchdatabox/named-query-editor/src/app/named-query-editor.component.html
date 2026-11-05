@@ -10,7 +10,7 @@
     </header>
     <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
     <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-    <nq-list [queries]="filteredQueries" [total]="totalQueries" [collections]="presentCollections"
+    <nq-list [brandingAndPortalUrl]="brandingAndPortalUrl" [queries]="filteredQueries" [total]="totalQueries" [collections]="presentCollections"
       [selectedName]="selectedQuery?.name || null" [query]="listQuery"
       (queryChanged)="onListQueryChanged($event)" (selected)="openQuery($event)" (deleted)="requestDelete($event)"></nq-list>
   </div>
@@ -41,12 +41,16 @@
         <p *ngIf="pendingDeleteDisplayName" class="mb-0 text-muted">
           {{ 'named-query-confirm-delete-detail' | i18next: { name: pendingDeleteDisplayName } }}
         </p>
+        <div *ngIf="pendingDeleteConsumers.length" class="alert alert-warning mt-3 mb-0" role="alert">
+          <p>{{ 'named-query-in-use-warning' | i18next }}</p>
+          <ul class="mb-0"><li *ngFor="let consumer of pendingDeleteConsumers"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li></ul>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="cancelDelete()" cdkFocusInitial>
           {{ 'named-query-cancel' | i18next }}
         </button>
-        <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDelete()">
+        <button type="button" class="btn rb-admin-danger-confirm" [disabled]="pendingDeleteConsumers.length > 0" (click)="confirmDelete()">
           {{ 'named-query-delete' | i18next }}
         </button>
       </div>
@@ -75,7 +79,7 @@
       </div>
       <div class="modal-body">
         <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-        <nq-detail [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
+        <nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">

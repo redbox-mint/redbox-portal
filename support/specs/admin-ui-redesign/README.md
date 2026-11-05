@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/02-named-query-usage`: linked named-query usage in the list and editor, with server refusal and a consumer warning for in-use deletion.
+
 Delivered on `admin-deferred/01-report-view`: validated server-side report sorting for Solr and named queries, matching CSV ordering, and safe source/named-query metadata in the description.
 
 All admin screens are implemented on the shared foundation, including the final consistency pass.

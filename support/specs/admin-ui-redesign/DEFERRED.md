@@ -19,7 +19,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
-| Named queries | "Used by" column (which reports/dashboards use a query) | Needs a reverse-reference lookup across report and dashboard config |
 | Harvest runs | Global statistics (runs / failed in last 7 days, running now, last successful run) | The list API returns a filtered, paginated page and its count. Accurate cross-page statistics need an aggregate summary endpoint. |
 | Export | Cancel a preparing export | The job API only removes terminal jobs; cancellation needs a worker cancellation API and job-state handling. |
 | Deleted records | Bulk select with Restore / Delete permanently | Needs bulk restore/destroy endpoints |

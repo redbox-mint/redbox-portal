@@ -120,4 +120,15 @@ describe('NqListComponent', () => {
     expect(component.trackByName(0, q)).toBe('q1');
     expect(component.trackByName(0, { ...q, name: undefined })).toBe('named-query-0');
   });
+  it('renders linked consumers and a muted empty state in Used by', () => {
+    component.brandingAndPortalUrl = '/brand/portal';
+    const query = { name: 'q1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.queries = [{ ...query, usedBy: [{ type: 'report', name: 'Report title', path: '/admin/report/report' }] }, { ...query, name: 'q2', usedBy: [] }];
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('thead')?.textContent).toContain('named-query-used-by');
+    expect(element.querySelector('a[href="/brand/portal/admin/report/report"]')?.textContent).toContain('Report title');
+    expect(element.querySelector('tbody .text-muted')?.textContent).toContain('named-query-not-used');
+  });
+
 });

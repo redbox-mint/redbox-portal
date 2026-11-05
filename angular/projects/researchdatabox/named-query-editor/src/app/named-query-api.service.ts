@@ -21,7 +21,14 @@ export interface RelatedRecordFilterDefinition {
   foreignField: string;
 }
 
+export interface NamedQueryConsumer {
+  type: 'report' | 'dashboard' | 'vocabulary' | 'form' | 'configuration';
+  name: string;
+  path: string;
+}
+
 export interface NamedQueryDefinition {
+  usedBy?: NamedQueryConsumer[];
   name?: string;
   collectionName: string;
   brandIdFieldPath?: string;

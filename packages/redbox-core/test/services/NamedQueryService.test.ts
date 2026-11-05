@@ -376,6 +376,7 @@ describe('NamedQueryService', function() {
   });
 
   describe('delete', function() {
+    beforeEach(() => sinon.stub(NamedQueryService, 'getUsage').resolves({}));
     it('should delete named query by composite key', async function() {
       const brand = { id: 'brand-1' };
 
@@ -388,6 +389,18 @@ describe('NamedQueryService', function() {
       expect(mockNamedQuery.destroyOne.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
       expect(result).to.deep.equal({ id: 'deleted-query' });
     });
+  });
+
+  it('refuses deleting a query with configured consumers', async () => {
+    mockNamedQuery.findOne.resolves({ name: 'test-query' });
+    sinon.stub(NamedQueryService, 'getUsage').resolves({ 'test-query': [{ type: 'report', name: 'Report', path: '/admin/report/report' }] });
+    try {
+      await NamedQueryService.delete({ id: 'brand-1' }, 'test-query');
+      throw new Error('Expected deletion to fail');
+    } catch (error) {
+      expect((error as Error).message).to.include('in use');
+      expect(mockNamedQuery.destroyOne.called).to.equal(false);
+    }
   });
 
   describe('getNamedQueryConfig', function() {

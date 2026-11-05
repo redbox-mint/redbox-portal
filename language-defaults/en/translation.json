@@ -2866,5 +2866,13 @@
   "admin-report-modified-to": "Modified to",
   "admin-report-created-from": "Created from",
   "admin-report-created-to": "Created to",
-  "concurrencyTest-title": "Concurrency test"
+  "concurrencyTest-title": "Concurrency test",
+  "named-query-used-by": "Used by",
+  "named-query-not-used": "Not used",
+  "named-query-in-use-warning": "This query is in use and cannot be deleted. Remove the following references first to avoid breaking their data source.",
+  "named-query-consumer-report": "Report",
+  "named-query-consumer-dashboard": "Dashboard",
+  "named-query-consumer-vocabulary": "Vocabulary",
+  "named-query-consumer-form": "Form",
+  "named-query-consumer-configuration": "Configuration"
 }

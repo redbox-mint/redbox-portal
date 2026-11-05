@@ -1,10 +1,23 @@
 import { apiRoute } from '../route-factory';
-import { anyField, objectField, responseField, stringField } from '../schemas/common';
+import { anyField, arrayField, objectField, responseField, stringField } from '../schemas/common';
 
 const namedQueryResponse = responseField(
   objectField({ data: anyField('Named query data') }, ['data'], 'Named query response', true),
   'Named query response'
 );
+
+const consumer = objectField({
+  type: stringField('Consumer kind: report, dashboard, vocabulary, form or configuration'),
+  name: stringField('Consumer display name or translation key'),
+  path: stringField('Link relative to the current brand and portal'),
+}, ['type', 'name', 'path']);
+const queryWithUsage = objectField({ usedBy: arrayField(consumer, 'Configured consumers in this brand') }, ['usedBy'], 'Named query definition with usage metadata', true);
+const listWithUsageResponse = responseField(objectField({ data: arrayField(queryWithUsage) }, ['data']), 'Brand named queries with usage');
+const queryWithUsageResponse = responseField(objectField({ data: queryWithUsage }, ['data']), 'Named query with usage');
+const inUseResponse = responseField(objectField({
+  meta: objectField({ usedBy: arrayField(consumer) }, ['usedBy']),
+  errors: arrayField(anyField('Error explaining that configured references must be removed first')),
+}, ['meta', 'errors']), 'Query is in use; deletion refused');
 
 const namedQueryBody = objectField({}, [], 'Named query payload', true);
 
@@ -24,7 +37,8 @@ export const listNamedQueriesRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'List all named queries for the brand',
-    responses: { 200: namedQueryResponse },
+    description: 'Admin-only. Includes usedBy consumers, aggregated once for the whole list. Links are relative to the current brand/portal. Runtime API callers are not tracked.',
+    responses: { 200: listWithUsageResponse },
   }
 );
 
@@ -50,7 +64,8 @@ export const getNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Get a named query by name',
-    responses: { 200: namedQueryResponse },
+    description: 'Admin-only, brand-scoped definition including current configured usedBy consumers.',
+    responses: { 200: queryWithUsageResponse },
   }
 );
 
@@ -94,7 +109,8 @@ export const deleteNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Delete a named query',
-    responses: { 200: namedQueryResponse },
+    description: 'Admin-only. Rechecks brand-scoped usage and refuses an in-use query with 409 and meta.usedBy. No force override: remove the references first.',
+    responses: { 200: namedQueryResponse, 409: inUseResponse },
   }
 );
 
