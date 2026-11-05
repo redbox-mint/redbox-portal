@@ -3057,7 +3057,8 @@ export namespace Services {
           // Keep search OR separate from the type and authorization OR clauses.
           andArray.push({ $or: filterFields.map(field => ({ [field]: value })) });
         } else {
-          for (const field of filterFields) query[field] = value;
+          // Field filters must narrow, never replace, brand/type/workflow scope.
+          for (const field of filterFields) andArray.push({ [field]: value });
         }
       }
 
