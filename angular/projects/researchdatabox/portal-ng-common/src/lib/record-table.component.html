@@ -1,8 +1,8 @@
 @if (isReady && dataSource) {
   @if (dataSource.getCurrentPage(); as currentPage) {
-    <div class="row">
+    <div [class.table-responsive]="adminPresentation" [class.row]="!adminPresentation">
       @if (columnConfig) {
-        <table class="table">
+        <table class="table" [class.table-hover]="adminPresentation">
           <thead>
             <tr>
               @for (col of columnConfig; track col) {
@@ -55,7 +55,8 @@
     </div>
     <!-- Pagination -->
     @if (currentPage.total > 0) {
-      <div class="row">
+      <div [class.card-footer]="adminPresentation" [class.row]="!adminPresentation">
+        @if (adminPresentation) { <span>{{ 'admin-report-page-count' | i18next: { page: currentPage.pageNum, total: currentPage.total } }}</span> }
         <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
           [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [ngModel]="currentPage.pageNum"
         (ngModelChange)="gotoPage($event, pageModel)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>

@@ -56,6 +56,7 @@ export class RecordTableComponent extends BaseComponent {
   @Input() optTemplateData: any = {};
   // report name for template key construction (required for Handlebars templates)
   @Input() reportName: string = '';
+  @Input() adminPresentation = false;
   // pagination
   @Input() paginationItemsPerPage: number = 10;
   @Input() paginationDirectionLinks:boolean = false;

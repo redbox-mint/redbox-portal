@@ -57,6 +57,7 @@
     font-size: 14px;
     min-width: 0;
   }
+  .rb-admin-sidebar-toggle { display: none; }
   .rb-admin-sidebar-search { margin: 0 16px 12px; position: relative; }
   .rb-admin-sidebar-search i { position: absolute; left: 10px; top: 11px; color: var(--admin-muted); }
   .rb-admin-sidebar-search input { padding: 7px 10px 7px 30px; font-size: 13px; }
@@ -106,6 +107,7 @@
     h1 { font-size: 30px; font-weight: 700; line-height: 1.2; margin: 0; text-align: left; }
     p { margin: 4px 0 0; max-width: 720px; color: var(--admin-muted); }
   }
+  .rb-admin-page-header > div:first-child { flex: 1 1 400px; min-width: 0; }
   .rb-admin-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
   // Theme Bootstrap components rather than copying the mock's conflicting classes.
@@ -227,6 +229,26 @@
   .rb-admin-segmented { display: inline-flex; flex-wrap: wrap; gap: 0; }
   .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-heading); color: var(--admin-bg); }
 
+  .btn.rb-admin-ghost { color: var(--admin-ink); border: 1px solid transparent; background: transparent; &:hover { background: var(--admin-surface); } }
+  .rb-admin-row-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; white-space: nowrap; }
+  .rb-admin-overflow {
+    position: relative; display: inline-block;
+    summary { list-style: none; &::-webkit-details-marker { display: none; } }
+    > div { position: absolute; z-index: 20; right: 0; min-width: 130px; padding: 6px; background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); box-shadow: 0 4px 12px color-mix(in srgb, var(--admin-ink) 12%, transparent); }
+  }
+  // Keep the last row's menu inside the scroll container.
+  tr:last-child .rb-admin-overflow > div { bottom: 100%; }
+  .rb-admin-sub { display: block; color: var(--admin-muted); font-size: 13px; }
+  code { color: var(--admin-muted); font-size: 13px; background: transparent; padding: 0; }
+  a > code { color: inherit; }
+  // The legacy portal .show utility forces opacity: 1 !important.
+  .modal-backdrop.show { opacity: .45 !important; background: var(--admin-heading); }
+  .rb-admin-active-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--admin-line); }
+  .rb-admin-form-section-body label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .rb-admin-form-section-body .form-check label { display: inline; }
+  .rb-admin-segmented-field { flex-basis: auto; }
+  .rb-admin-segmented .btn { border-radius: 0; & + .btn { margin-left: -1px; } &:first-child { border-radius: var(--admin-radius) 0 0 var(--admin-radius); } &:last-child { border-radius: 0 var(--admin-radius) var(--admin-radius) 0; } }
+
   .rb-admin-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; }
   .rb-admin-tile { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-bg); overflow: hidden; }
   .rb-admin-tile-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--admin-line); }
@@ -239,7 +261,16 @@
 
   @media (max-width: 991.98px) {
     &.admin-layout { grid-template-columns: minmax(0, 1fr); }
-    .rb-admin-sidebar { border-right: 0; border-bottom: 1px solid var(--admin-line); }
+    .rb-admin-sidebar { padding: 0; border-right: 0; border-bottom: 1px solid var(--admin-line); }
+    .rb-admin-sidebar-toggle {
+      display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 20px; border: 0; background: var(--admin-surface); color: var(--admin-heading);
+      font: inherit; font-weight: 600; text-align: left;
+      small { display: block; font-size: 13px; font-weight: 400; color: var(--admin-muted); }
+      &[aria-expanded='true'] > i { transform: rotate(180deg); }
+    }
+    .rb-admin-sidebar-content { display: none; padding: 12px 0; }
+    .rb-admin-sidebar.is-expanded .rb-admin-sidebar-content { display: block; }
     .rb-admin-sidebar nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
     .rb-admin-sidebar-home { grid-column: 1 / -1; }
     .rb-admin-sidebar-section { margin-top: 4px; }
