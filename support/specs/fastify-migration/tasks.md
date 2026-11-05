@@ -74,7 +74,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P1 — Fastify host and registration
 
-- [ ] **FM-008 — Select and pin native host dependencies.**
+- [x] **FM-008 — Select and pin native host dependencies.**
   - Dependencies: G0.
   - Work: choose a supported Fastify release and compatible native plugin candidates;
     document runtime compatibility, exact versions and affected lockfiles.
