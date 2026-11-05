@@ -41,6 +41,9 @@
         <p *ngIf="pendingDeleteDisplayName" class="mb-0 text-muted">
           {{ 'named-query-confirm-delete-detail' | i18next: { name: pendingDeleteDisplayName } }}
         </p>
+        <p *ngIf="!pendingDeleteConsumers.length" class="text-muted mt-3 mb-0" data-testid="untracked-callers-note">
+          {{ 'named-query-untracked-callers-note' | i18next }}
+        </p>
         <div *ngIf="pendingDeleteConsumers.length" class="alert alert-warning mt-3 mb-0" role="alert">
           <p>{{ 'named-query-in-use-warning' | i18next }}</p>
           <ul class="mb-0"><li *ngFor="let consumer of pendingDeleteConsumers"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li></ul>

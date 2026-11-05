@@ -680,6 +680,20 @@ describe('NamedQueryEditorComponent', () => {
     const msg = (component as any).asErrorMessage({ error: { message: 'nested' } });
     expect(msg).toBe('nested');
   });
+  it('warns that external API callers are untracked when no configured consumer uses the query', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    component.queries = [{ name: 'unused', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {}, usedBy: [] }];
+    component.requestDelete('unused');
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('[role="alertdialog"]');
+    expect(dialog.querySelector('[data-testid="untracked-callers-note"]').textContent).toContain('named-query-untracked-callers-note');
+    expect(dialog.querySelector('.rb-admin-danger-confirm').disabled).toBeFalse();
+    fixture.destroy();
+  });
+
   it('lists consumers in the delete dialog and prevents deletion of an in-use query', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
@@ -693,6 +707,7 @@ describe('NamedQueryEditorComponent', () => {
     const dialog = fixture.nativeElement.querySelector('[role="alertdialog"]');
     expect(dialog.textContent).toContain('named-query-in-use-warning');
     expect(dialog.querySelector('a').textContent).toContain('List RDMP records');
+    expect(dialog.querySelector('[data-testid="untracked-callers-note"]')).toBeNull();
     expect(dialog.querySelector('.rb-admin-danger-confirm').disabled).toBeTrue();
     await component.confirmDelete();
     expect(remove).not.toHaveBeenCalled();

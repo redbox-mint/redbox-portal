@@ -2963,6 +2963,7 @@
   "concurrencyTest-title": "Concurrency test",
   "named-query-used-by": "Used by",
   "named-query-not-used": "Not used",
+  "named-query-untracked-callers-note": "Not used by reports, dashboards, vocabularies or forms. Callers of the named-query API aren't tracked.",
   "named-query-in-use-warning": "This query is in use and cannot be deleted. Remove the following references first to avoid breaking their data source.",
   "named-query-consumer-report": "Report",
   "named-query-consumer-dashboard": "Dashboard",
