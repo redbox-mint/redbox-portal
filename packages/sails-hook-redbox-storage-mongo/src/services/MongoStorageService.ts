@@ -2987,6 +2987,15 @@ export namespace Services {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
       }
+      // Legacy callers pass a one-element array; never accept query operators as paths.
+      const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
+      if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
+      if (filterFields != null && (!Array.isArray(filterFields) || filterFields.length > 20 ||
+        filterFields.some(field => typeof field !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) ||
+          field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment))))) {
+        throw new Error('Invalid filter fields');
+      }
+      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024)) throw new Error('Invalid filter');
       const query = {
         'metaMetadata.brandId': brand.id,
       };
@@ -3043,14 +3052,12 @@ export namespace Services {
         query['workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
-        const escapedFilterString = this.escapeRegExp(filterString);
-        sails.log.verbose('escapedFilterString ' + escapedFilterString);
-        for (const filterField of filterFields) {
-          if (filterMode == 'equal') {
-            query[filterField] = filterString;
-          } else if (filterMode == 'regex') {
-            query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
-          }
+        const value = mode === 'equal' ? filterString : new RegExp(this.escapeRegExp(filterString), 'i');
+        if (mode === 'any') {
+          // Keep search OR separate from the type and authorization OR clauses.
+          andArray.push({ $or: filterFields.map(field => ({ [field]: value })) });
+        } else {
+          for (const field of filterFields) query[field] = value;
         }
       }
 

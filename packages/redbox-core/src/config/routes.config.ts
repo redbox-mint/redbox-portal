@@ -330,7 +330,6 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/admin/parties': 'RecordController.renderParties',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
-  'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
 
   // Vocab routes
   'get /:branding/:portal/vocab/:vocabIdOrSlug': {

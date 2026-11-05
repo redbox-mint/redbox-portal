@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/12-lookups`: opt-in literal OR dashboard filtering and default Parties name-or-email search.
+
 Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts, revert to defaults, JSON downloads and validated import preview/apply.
 
 Delivered on `admin-deferred/10-branding-drafts`: brand-scoped logo/favicon drafts, preview snapshots, image-aware publication/history/restore, and an atomic whole-draft reset.

@@ -35,7 +35,6 @@ colour-contrast checks, collapse/expand, chip inputs) are **not** deferred. Buil
 | Screen | Feature | Why deferred / backend needed |
 |---|---|---|
 | Parties | "Import CSV" and "Add party" actions | No party create/import endpoints in the admin context |
-| Parties | Combined “Name and email” search option | The existing dashboard records endpoint combines multiple `filterFields` with AND. The UI supports Name and Email individually and retains configured search fields; a combined either-field search needs supported OR semantics in that endpoint. |
 | Vocabularies | "Last synced" column | Sync timestamp isn't returned by the vocabulary list API |
 | Figshare vocabularies | Edit a source’s metadata / sync schedule | The current source API supports discovery, preview/apply, clone and history, but has no update-source endpoint or persisted schedule settings. Keep the existing add/discovery wizard and Sync action; source editing needs a validated update contract. |
 
