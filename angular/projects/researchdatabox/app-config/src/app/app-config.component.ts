@@ -19,9 +19,9 @@
 
 import { Component, ElementRef, HostListener, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { FormGroup, FormBuilder } from '@angular/forms';
+import { FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms';
 
-import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService, AuthorizedEmailTestResult } from '@researchdatabox/portal-ng-common';
 import { cloneDeep, isEqual } from 'lodash-es';
 import { ConfigForm, ConfigSection, SECRET_MASK, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
 import { FormlyFormOptions } from '@ngx-formly/core';
@@ -38,6 +38,13 @@ import { JSONSchema7 } from 'json-schema';
     standalone: false
 })
 export class AppConfigComponent extends BaseComponent {
+
+  addressEmail = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email, Validators.maxLength(254)] });
+  addressProvider = new FormControl<'aaf' | 'oidc'>('aaf', { nonNullable: true });
+  addressChecking = false;
+  private addressCheckedState?: { email: string; provider: 'aaf' | 'oidc'; draft: any };
+  private addressCheckedResult?: AuthorizedEmailTestResult;
+  private addressCheckFailed = false;
 
   window: any;
   form = new FormGroup({});
@@ -245,6 +252,45 @@ export class AppConfigComponent extends BaseComponent {
       }
     }
     root.fieldGroup = [...(enabled && (this.longForm || this.configKey === 'authorizedDomainsEmails') ? [enabled] : []), ...this.sections, ...children.filter(field => field.hide)];
+  }
+
+  private addressState() {
+    return { email: this.addressEmail.value, provider: this.addressProvider.value, draft: this.model };
+  }
+
+  get addressResult(): AuthorizedEmailTestResult | undefined {
+    return isEqual(this.addressCheckedState, this.addressState()) ? this.addressCheckedResult : undefined;
+  }
+
+  get addressError(): boolean {
+    return this.addressCheckFailed && isEqual(this.addressCheckedState, this.addressState());
+  }
+
+  get addressResultKey(): string {
+    switch (this.addressResult?.reason) {
+      case 'allowed-domain':
+      case 'allowed-exception': return 'admin-config-address-allowed-rule';
+      case 'disabled': return 'admin-config-address-off';
+      case 'unrestricted': return 'admin-config-address-empty';
+      default: return 'admin-config-address-denied';
+    }
+  }
+
+  async checkAddress(): Promise<void> {
+    if (this.addressChecking || this.addressEmail.invalid || this.configKey !== 'authorizedDomainsEmails') return;
+    this.addressChecking = true;
+    this.addressCheckedResult = undefined;
+    this.addressCheckFailed = false;
+    this.addressCheckedState = cloneDeep(this.addressState());
+    try {
+      const { email, provider, draft } = this.addressCheckedState;
+      this.addressCheckedResult = await this.appConfigService.testAuthorizedEmail(email, provider, draft);
+    } catch {
+      this.addressCheckFailed = true;
+    } finally {
+      this.addressChecking = false;
+      this.requestRender();
+    }
   }
 
   get dirty(): boolean { return this.trackingReady && !isEqual(this.model, this.loadedModel); }

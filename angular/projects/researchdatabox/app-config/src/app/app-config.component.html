@@ -72,6 +72,31 @@
               </aside>
             }
           </div>
+          @if (configKey === 'authorizedDomainsEmails') {
+            <section class="rb-admin-form-section app-config-address-tester" aria-labelledby="address-test-heading">
+              <div class="rb-admin-form-section-header"><div><h3 id="address-test-heading">{{ 'admin-config-address-title' | i18next }}</h3><p>{{ 'admin-config-address-help' | i18next }}</p></div></div>
+              <div class="rb-admin-form-section-body">
+                <p class="rb-admin-hint" id="address-test-help">{{ 'admin-config-address-semantics' | i18next }}</p>
+                <p class="rb-admin-hint" aria-live="polite">{{ (dirty ? 'admin-config-address-unsaved' : 'admin-config-address-current') | i18next }}</p>
+                <div class="rb-admin-filter-bar app-config-address-check" [attr.aria-busy]="addressChecking">
+                  <div class="rb-admin-field rb-admin-field-grow"><label for="address-test-email">{{ 'admin-config-address-email' | i18next }}</label>
+                    <input id="address-test-email" type="email" class="form-control" maxlength="254" autocomplete="off" [formControl]="addressEmail" aria-describedby="address-test-help address-test-invalid" [attr.aria-invalid]="addressEmail.touched && addressEmail.invalid" (keydown.enter)="$event.preventDefault(); checkAddress()">
+                  </div>
+                  <div class="rb-admin-field"><label for="address-test-provider">{{ 'admin-config-address-provider' | i18next }}</label><select id="address-test-provider" class="form-select" [formControl]="addressProvider">
+                    <option value="aaf">{{ 'admin-config-aaf' | i18next }}</option><option value="oidc">{{ 'admin-config-oidc' | i18next }}</option>
+                  </select></div>
+                  <button type="button" class="btn btn-outline-secondary" [disabled]="addressChecking || addressEmail.invalid" (click)="checkAddress()">{{ (addressChecking ? 'admin-config-address-checking' : 'admin-config-address-check') | i18next }}</button>
+                </div>
+                <div id="address-test-invalid" class="rb-admin-hint" [hidden]="!addressEmail.touched || !addressEmail.invalid">{{ 'admin-config-address-invalid' | i18next }}</div>
+                <div role="status" aria-live="polite" aria-atomic="true">
+                  @if (addressResult; as result) {
+                    <span class="badge app-config-address-result" [class.rb-admin-badge-success]="result.allowed" [class.rb-admin-badge-danger]="!result.allowed">{{ addressResultKey | i18next: { rule: result.matchedRule } }}</span>
+                  }
+                </div>
+                @if (addressError) { <p class="alert alert-danger" role="alert">{{ 'admin-config-address-error' | i18next }}</p> }
+              </div>
+            </section>
+          }
           <div class="rb-admin-save-bar">
             <span class="rb-admin-save-state" [class.app-config-dirty]="dirty" aria-live="polite"><span class="app-config-state-dot" aria-hidden="true"></span>{{ (formSaving ? 'admin-config-saving' : dirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
             <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="!dirty || formSaving" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="submit" class="btn btn-primary" [disabled]="!dirty || formSaving">{{ 'admin-config-save' | i18next }}</button></div>

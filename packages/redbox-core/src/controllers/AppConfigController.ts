@@ -1,4 +1,7 @@
 import { Controllers as controllers } from '../CoreController';
+import { authorizedEmailTestBody } from '../api-routes/groups/appconfig';
+import { evaluateAuthorizedEmail } from '../utilities/AuthorizedEmailAccess';
+import type { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { ConfigModels } from '../configmodels/ConfigModels';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as AppConfigServiceModule } from '../services/AppConfigService';
@@ -23,7 +26,8 @@ export namespace Controllers {
     protected override _exportedMethods: string[] = [
       'getAppConfigForm',
       'saveAppConfig',
-      'editAppConfig'
+      'editAppConfig',
+      'testAuthorizedEmail'
     ];
 
     /**
@@ -38,6 +42,17 @@ export namespace Controllers {
     }
 
     public bootstrap() { }
+
+    public testAuthorizedEmail(req: Sails.Req, res: Sails.Res) {
+      // Also validate here for direct controller adapters; never echo or log inputs.
+      const parsed = authorizedEmailTestBody.safeParse(req.body);
+      if (!parsed.success) return res.badRequest({ message: 'Invalid address test request' });
+      const { email, provider, draft } = parsed.data;
+      const brandName = this.brandingService.getBrandNameFromReq(req);
+      const config = draft ?? sails.config.brandingAware(brandName).authorizedDomainsEmails ?? {};
+      // AAF and OIDC both normalize the incoming claim this way before the gate.
+      return res.json(evaluateAuthorizedEmail(email.toLowerCase(), config as Partial<AuthorizedDomainsEmails>, provider));
+    }
 
     public async editAppConfig(req: Sails.Req, res: Sails.Res) {
       try {

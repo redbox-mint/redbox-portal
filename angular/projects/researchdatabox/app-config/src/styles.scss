@@ -23,3 +23,17 @@
 .app-config-checkbox-required {
   margin-left: -4px;
 }
+
+.rb-admin .app-config-address-check {
+  padding: 0;
+  margin-bottom: 12px;
+  border: 0;
+  background: transparent;
+}
+.rb-admin .app-config-address-result {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.rb-admin .app-config-address-tester { margin-top: 16px; }

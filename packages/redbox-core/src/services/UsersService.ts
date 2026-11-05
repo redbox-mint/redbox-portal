@@ -24,6 +24,7 @@ import { isObservable } from 'rxjs';
 
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
+import { evaluateAuthorizedEmail } from '../utilities/AuthorizedEmailAccess';
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
@@ -2580,68 +2581,13 @@ export namespace Services {
      * @private
      */
     public checkAuthorizedEmail(email: string, branding: string, authType: string): boolean {
-      // Must pass email.
-      if (!email) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'missing-email' }, [], 'warn');
-        return false;
-      }
-
-      // Assess email address.
-      const emailParts = email.includes('@') ? email.split('@') : [];
-      if (emailParts.length !== 2) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'invalid-address' }, [], 'warn');
-        return false;
-      }
-
-      // Get the configuration data.
-      const brandingAwareData = sails.config.brandingAware(branding);
-      const authorizedDomainsEmails = _.get(
-        brandingAwareData,
-        'authorizedDomainsEmails',
-        {}
-      ) as AuthorizedDomainsEmails;
-
-      if (authorizedDomainsEmails.enabled?.toString() !== 'true') {
-        this.updateChronicle({ usersEmailAccessOutcome: 'disabled' }, [], 'warn');
-        return true;
-      }
-
-      const domains = [];
-      const emails = [];
-      if (authType === 'aaf') {
-        domains.push(...(authorizedDomainsEmails.domainsAaf || []));
-        emails.push(...(authorizedDomainsEmails.emailsAaf || []));
-      } else if (authType === 'oidc') {
-        domains.push(...(authorizedDomainsEmails.domainsOidc || []));
-        emails.push(...(authorizedDomainsEmails.emailsOidc || []));
-      } else {
-        this.updateChronicle({ usersEmailAccessOutcome: 'unsupported-provider' }, [], 'warn');
-        return false;
-      }
-
-      // Check configuration.
-      if (domains.length === 0 && emails.length === 0) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'unrestricted' });
-        return true;
-      }
-
-      // Assess domains and exceptions.
-      const emailDomain = emailParts[1];
-      const isAllowedDomain = domains.indexOf(emailDomain) !== -1;
-      if (isAllowedDomain) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'allowed-domain' });
-        return true;
-      }
-
-      const isAllowedException = emails.indexOf(email) !== -1;
-      if (isAllowedException) {
-        this.updateChronicle({ usersEmailAccessOutcome: 'allowed-exception' });
-        return true;
-      }
-
-      // Checks did not pass, so email is not allowed.
-      this.updateChronicle({ usersEmailAccessOutcome: 'denied', usersAuthProvider: authType }, [], 'warn');
-      return false;
+      const config = _.get(sails.config.brandingAware(branding), 'authorizedDomainsEmails', {}) as AuthorizedDomainsEmails;
+      const result = evaluateAuthorizedEmail(email, config, authType);
+      const details = result.reason === 'denied' ? { usersAuthProvider: authType } : {};
+      // Retain sign-in outcome logging; never log an address or the matched rule.
+      const level = result.reason === 'disabled' || !result.allowed ? 'warn' : 'debug';
+      this.updateChronicle({ usersEmailAccessOutcome: result.reason, ...details }, [], level);
+      return result.allowed;
     }
   }
 }
