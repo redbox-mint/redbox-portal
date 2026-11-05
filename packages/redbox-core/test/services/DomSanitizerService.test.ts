@@ -210,6 +210,41 @@ describe('DomSanitizerService', function() {
       expect(result).not.to.include('script');
     });
 
+    ['html', 'minimal'].forEach(profile => {
+      it(`should preserve safe schemes and relative links with the ${profile} profile`, function() {
+        mockSails.config.dompurify = dompurifyConfig;
+        const references = [
+          'https://example.org/path', 'http://example.org/path',
+          'ftp://example.org/file', 'ftps://example.org/file',
+          'mailto:test@example.org', 'tel:+61123456789',
+          'records/item', 'record-1/view', 'record.1/view', 'record+1/view',
+          'record,1/view', './records/item', '../records/item',
+          '/records/item', '#section', '?page=2'
+        ];
+        for (const reference of references) {
+          const result = DomSanitizerService.sanitizeWithProfile(`<a href="${reference}">link</a>`, profile);
+          expect(result, reference).to.include(`href="${reference}"`);
+        }
+      });
+
+      it(`should remove unsafe and unknown schemes with the ${profile} profile`, function() {
+        mockSails.config.dompurify = dompurifyConfig;
+        const references = [
+          'javascript:alert(1)', 'JaVaScRiPt:alert(1)',
+          'java&#9;script:alert(1)', 'java&#10;script:alert(1)',
+          '&#106;avascript:alert(1)', 'vbscript:msgbox(1)',
+          'data:text/html,unsafe', 'file:///etc/passwd',
+          'custom+scheme:payload', 'custom-scheme:payload',
+          'custom.scheme:payload', 'custom0:payload'
+        ];
+        for (const reference of references) {
+          const result = DomSanitizerService.sanitizeWithProfile(`<a href="${reference}">link</a>`, profile);
+          expect(result, reference).not.to.include('href=');
+          expect(result).to.include('link');
+        }
+      });
+    });
+
     it('should throw for non-string input', function() {
       expect(() => DomSanitizerService.sanitizeWithProfile(123 as any, 'html')).to.throw('Content must be a string');
     });

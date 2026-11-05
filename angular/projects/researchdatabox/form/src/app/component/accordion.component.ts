@@ -10,7 +10,7 @@ import {
   inject,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { FormFieldBaseComponent, FormFieldCompMapEntry } from '@researchdatabox/portal-ng-common';
+import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from '@researchdatabox/portal-ng-common';
 import {
   AccordionComponentName,
   AccordionFieldComponentConfigFrame,
@@ -347,7 +347,7 @@ export class AccordionPanelComponent extends FormFieldBaseComponent<undefined> i
     const layoutConfig = this.panel?.layout?.config as { buttonLabel?: string; label?: string } | undefined;
     const componentConfig = this.panel?.component?.config as { label?: string } | undefined;
     const label = layoutConfig?.buttonLabel ?? layoutConfig?.label ?? componentConfig?.label ?? this.panel?.name ?? `${this.panelIndex}`;
-    return this.translate(label);
+    return labelToPlainText(this.translate(label));
   }
 
   protected translate(value?: string): string {

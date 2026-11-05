@@ -6,7 +6,7 @@ import {
   createFormSaveFailureEvent,
   createFormSaveSuccessEvent,
 } from '../form-state';
-import { createTestbedModule } from '../helpers.spec';
+import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { WorkspaceSelectorComponent } from './workspace.component';
 
 describe('WorkspaceSelectorComponent', () => {
@@ -45,6 +45,21 @@ describe('WorkspaceSelectorComponent', () => {
       changeLocationHref: jasmine.createSpy('changeLocationHref'),
     };
     (component as any).formComponentFromAppRef = { instance: formComponent };
+  });
+
+  it('renders the selector field label as plain text', async () => {
+    const { fixture } = await createFormAndWaitForReady({
+      name: 'workspace-label',
+      componentDefinitions: [{
+        name: 'workspace',
+        component: { class: 'WorkspaceSelectorComponent', config: {
+          label: '<a href="/help">Research &amp; partners</a>', defaultSelection: [configured],
+        } },
+      }],
+    }, { editMode: true });
+    const label = (fixture.nativeElement as HTMLElement).querySelector('label');
+    expect(label?.textContent).toBe('Research & partners');
+    expect(label?.querySelector('a')).toBeNull();
   });
 
   it('normalizes configured types and merges server values while retaining selection', () => {

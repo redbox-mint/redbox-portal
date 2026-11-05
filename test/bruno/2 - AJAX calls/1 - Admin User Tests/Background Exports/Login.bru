@@ -1,0 +1,31 @@
+meta {
+  name: Background Exports - Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/user/login_local
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+}
+
+body:json {
+  { "username": "admin", "password": "rbadmin", "branding": "default", "portal": "rdmp" }
+}
+
+tests {
+  test("Admin login succeeds", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().user.username).to.equal("admin");
+    const raw = res.getHeader("set-cookie");
+    const cookies = (Array.isArray(raw) ? raw : [raw]).filter(Boolean).map(value => value.split(";")[0]).join("; ");
+    expect(cookies).to.not.equal("");
+    bru.setVar("backgroundExportCookie", cookies);
+  });
+}

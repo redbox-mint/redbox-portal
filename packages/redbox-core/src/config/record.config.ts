@@ -29,6 +29,18 @@ export interface RecordContextVariableConfig {
 
 export interface RecordExportConfig {
   maxRecords: number;
+  background?: RecordExportBackgroundConfig;
+}
+
+export interface RecordExportBackgroundConfig {
+  /** Name of a private disk from storage.disks. */
+  diskName?: string;
+  /** Download availability, measured from successful completion. */
+  retentionHours?: number;
+  /** Maximum time spent preparing a CSV after a worker claims it. */
+  maxRunMinutes?: number;
+  /** Maximum acknowledged queue wait before failing a request, independently of worker execution. */
+  maxQueueMinutes?: number;
 }
 
 export interface RecordTransferConfig {
@@ -164,6 +176,12 @@ export const record: RecordConfig = {
   },
   export: {
     maxRecords: 20,
+    background: {
+      diskName: 'exports',
+      retentionHours: 24,
+      maxRunMinutes: 60,
+      maxQueueMinutes: 24 * 60,
+    },
   },
   transfer: {
     maxRecordsPerPage: 1000000,
