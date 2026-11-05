@@ -23,6 +23,8 @@ type TranslationEntry = {
   description?: string;
   category?: string;
   contentFormat?: TranslationContentFormat;
+  provenance?: 'default' | 'override' | 'missing';
+  hasDefault?: boolean;
 };
 
 type ReadKind = 'languages' | 'entries' | 'bundles' | 'displayName';
@@ -88,6 +90,7 @@ export class AppComponent implements OnInit, OnDestroy {
   categories = signal<string[]>([]);
   selectedCategory: string = '';
   filterText = '';
+  show: 'all' | 'missing' | 'override' = 'all';
   // View model: filtered + sorted entries for display
   viewEntries = signal<TranslationEntry[]>([]);
   sortBy: 'key' | 'value' | 'category' = 'key';
@@ -178,7 +181,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private async loadLanguages() {
     await this.read('languages', () => true, async () => {
-      const list = await this.svc.listLanguages();
+      const list = await this.svc.listLanguages(true);
       return () => this.languages.set(Array.isArray(list) ? list : []);
     }, 'Languages could not be loaded. The list may be incomplete; an empty list does not confirm that no languages exist.');
     if (!this.destroyed && !this.selectedLang && this.languages().length > 0) {
@@ -267,6 +270,8 @@ export class AppComponent implements OnInit, OnDestroy {
       filtered = data.filter(e => (e.category || '') === this.selectedCategory);
     }
 
+    if (this.show !== 'all') filtered = filtered.filter(e => e.provenance === this.show);
+
     const filter = this.filterText.trim().toLowerCase();
     if (filter) {
       filtered = filtered.filter(e => {
@@ -297,6 +302,25 @@ export class AppComponent implements OnInit, OnDestroy {
     this.setPage(this.page);
   }
 
+  setShow(show: 'all' | 'missing' | 'override') {
+    this.show = show;
+    this.page = 1;
+    this.refreshDerived();
+  }
+
+  async revertEntry(entry: TranslationEntry) {
+    if (this.saving() || entry.provenance !== 'override' || !entry.hasDefault) return;
+    this.saving.set(true);
+    this.saveError.set(false);
+    try {
+      await this.svc.revertEntry(this.selectedLang, this.namespace, entry.key);
+      await this.loadEntries();
+      await this.loadLanguages();
+      this.saveSuccess.set(true);
+    } catch (_error) { this.saveError.set(true); }
+    finally { this.saving.set(false); }
+  }
+
   onCategoryChange() {
     this.page = 1;
     this.refreshDerived();
@@ -317,6 +341,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.page = 1;
     this.filterText = '';
     this.selectedCategory = '';
+    this.show = 'all';
     this.refreshDerived();
   }
 
@@ -402,9 +427,11 @@ export class AppComponent implements OnInit, OnDestroy {
       const saved: unknown = await this.svc.setEntry(this.selectedLang, this.namespace, this.editKey, { value, contentFormat });
       const savedValue = saved && typeof saved === 'object' && 'value' in saved ? saved.value : value;
       // Update local state
-      const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value: savedValue, contentFormat } : e);
+      const provenance = saved && typeof saved === 'object' && 'provenance' in saved ? (saved as TranslationEntry).provenance : undefined;
+      const updated = this.entries().map(e => e.key === this.editKey ? { ...e, value: savedValue, contentFormat, ...(provenance ? { provenance } : {}) } : e);
       this.entries.set(updated);
       this.refreshDerived();
+      await this.loadLanguages();
       this.destroyRichTextEditor();
       this.modalOpen.set(false);
       this.saving.set(false);

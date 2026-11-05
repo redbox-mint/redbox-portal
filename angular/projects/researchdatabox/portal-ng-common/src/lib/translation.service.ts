@@ -302,13 +302,16 @@ export class TranslationService extends HttpClientService implements Service {
 
   // ===== Admin translation API (Angular app) =====
   /** List i18n entries for the current branding */
-  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string; contentFormat?: 'plain' | 'html' }>> {
+  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string; contentFormat?: 'plain' | 'html'; provenance?: 'default' | 'override' | 'missing'; hasDefault?: boolean }>> {
     await this.waitForInit();
-    const params = new URLSearchParams({ locale, namespace });
-    if (keyPrefix) params.set('keyPrefix', keyPrefix);
-    const url = `${this.brandingAndPortalUrl}/app/i18n/entries?${params.toString()}`;
-    const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
+    const url = `${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/editor`;
+    const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res.filter(entry => !keyPrefix || entry.key.startsWith(keyPrefix)) : []));
     return firstValueFrom(req$);
+  }
+
+  public async revertEntry(locale: string, namespace: string, key: string): Promise<any> {
+    await this.waitForInit();
+    return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/revert`, { key }, this.requestOptions));
   }
 
   /** Create/update a single entry for the current branding */
@@ -320,9 +323,9 @@ export class TranslationService extends HttpClientService implements Service {
   }
 
   /** List supported languages for current branding */
-  public async listLanguages(): Promise<{ code: string; displayName: string; }[]> {
+  public async listLanguages(includeCounts = false): Promise<{ code: string; displayName: string; enabled?: boolean; translated?: number; total?: number }[]> {
     await this.waitForInit();
-    const url = `${this.brandingAndPortalUrl}/locales`;
+    const url = `${this.brandingAndPortalUrl}/${includeCounts ? 'admin/translation/languages' : 'locales'}`;
     const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
     return firstValueFrom(req$);
   }

@@ -1,4 +1,4 @@
-import { translationTarget, translationDisplayNameBody } from '../api-routes/groups/admin-translation';
+import { translationTarget, translationDisplayNameBody, revertTranslationBody } from '../api-routes/groups/admin-translation';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -33,6 +33,7 @@ export namespace Controllers {
      * Exported methods, accessible from internet.
      */
     protected override _exportedMethods: string[] = [
+      'languageSummaries', 'editorEntries', 'revertEntry',
       'updateDisplayName',
       'getNamespace',
       'getLanguages',
@@ -51,6 +52,36 @@ export namespace Controllers {
         return null;
       }
       return brand;
+    }
+
+    public async languageSummaries(req: Sails.Req, res: Sails.Res) {
+      const brand = this.adminBrand(req, res);
+      if (!brand) return;
+      try { return res.json(await I18nEntriesService.languageSummaries(brand)); }
+      catch (_error) { return res.serverError({ message: 'Unable to load language counts' }); }
+    }
+
+    public async editorEntries(req: Sails.Req, res: Sails.Res) {
+      const brand = this.adminBrand(req, res);
+      if (!brand) return;
+      const target = translationTarget.safeParse(req.params);
+      if (!target.success) return res.badRequest({ message: 'Invalid language' });
+      try {
+        const rows = await I18nEntriesService.editorEntries(brand, target.data.locale, target.data.namespace);
+        return rows ? res.json(rows) : res.notFound({ message: 'Bundle not found' });
+      } catch (_error) { return res.serverError({ message: 'Unable to load translation provenance' }); }
+    }
+
+    public async revertEntry(req: Sails.Req, res: Sails.Res) {
+      const brand = this.adminBrand(req, res);
+      if (!brand) return;
+      const target = translationTarget.safeParse(req.params);
+      const body = revertTranslationBody.safeParse(req.body);
+      if (!target.success || !body.success) return res.badRequest({ message: 'Invalid revert request' });
+      try {
+        const result = await I18nEntriesService.revertEntry(brand, target.data.locale, target.data.namespace, body.data.key);
+        return result ? res.json(result) : res.notFound({ message: 'Bundle or default key not found' });
+      } catch (_error) { return res.serverError({ message: 'Unable to revert translation' }); }
     }
 
     public async updateDisplayName(req: Sails.Req, res: Sails.Res) {
@@ -221,7 +252,11 @@ export namespace Controllers {
           this.updateChronicle(req, {translationReloadFailed: true}, [e]);
         }
         this.updateChronicle(req, {translationSetEntrySuccess: true});
-        return res.json(saved);
+        const defaults = await I18nEntriesService.defaultValues(locale, namespace);
+        const hasDefault = Object.prototype.hasOwnProperty.call(defaults, key);
+        const valueForProvenance = String(saved?.value ?? '');
+        return res.json({ ...saved, hasDefault, provenance: hasDefault && !valueForProvenance.trim() ? 'missing'
+          : hasDefault && valueForProvenance === defaults[key] ? 'default' : 'override' });
       } catch (err) {
         this.updateChronicle(req, {translationSetEntryFailed: true});
         return res.serverError(err);

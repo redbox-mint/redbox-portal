@@ -57,6 +57,27 @@ describe('Translation admin endpoints', () => {
     expect(res.forbidden.callCount).to.equal(2);
     expect(service.updateDisplayName.called).to.equal(false);
   });
+  it('loads provenance/counts and reverts only for the route brand', async () => {
+    service.editorEntries = sinon.stub().resolves([{ key: 'label', value: 'Custom', provenance: 'override' }]);
+    service.languageSummaries = sinon.stub().resolves([{ code: 'en', translated: 1, total: 2 }]);
+    service.revertEntry = sinon.stub().resolves({ key: 'label', value: 'Default' });
+    await controller.editorEntries(req, res);
+    expect(service.editorEntries.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'en', 'translation']);
+    await controller.languageSummaries(req, res);
+    expect(service.languageSummaries.firstCall.args).to.deep.equal([{ id: 'brand-1' }]);
+    req.body = { key: 'label' };
+    await controller.revertEntry(req, res);
+    expect(service.revertEntry.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'en', 'translation', 'label']);
+    service.revertEntry.resolves(null);
+    await controller.revertEntry(req, res);
+    expect(res.notFound.calledOnce).to.equal(true);
+  });
+  it('denies non-Admins on every provenance route', async () => {
+    (global as any).UsersService.hasRole.returns(false);
+    for (const action of ['editorEntries', 'languageSummaries', 'revertEntry']) await controller[action](req, res);
+    expect(res.forbidden.callCount).to.equal(3);
+  });
+
   it('registers contract routes with CSRF and brand Admin protection', () => {
     for (const route of adminTranslationApiRoutes) {
       expect(route.csrf).to.equal(true);

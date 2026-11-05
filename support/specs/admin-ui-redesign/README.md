@@ -12,7 +12,7 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
-Delivered on `admin-deferred/11-translations`: metadata-only language rename and lossless leaf/prefix bundle synchronization.
+Delivered on `admin-deferred/11-translations`: metadata-only language rename, lossless leaf/prefix bundle synchronization, server-derived provenance, Missing/Changed filters, translated counts and revert to defaults.
 
 Delivered on `admin-deferred/10-branding-drafts`: brand-scoped logo/favicon drafts, preview snapshots, image-aware publication/history/restore, and an atomic whole-draft reset.
 
@@ -394,3 +394,10 @@ Language renames use the contract-defined, brand Admin `POST /admin/translation/
 route with session CSRF. This updates only `displayName`; values, entries and resource caches are untouched.
 Bundle composition and per-key saves preserve labels that are also prefixes of dotted child keys, using
 flat i18next keys within colliding roots. No database migration or automatic repair of previously pruned values runs.
+
+The translation editor reads provenance and language counts through brand Admin session routes under
+`/admin/translation`. Missing includes absent/empty/whitespace-only default keys. Changed includes values
+differing from installation defaults and custom keys. Default values combine English key coverage and
+locale-specific values; custom keys count towards the total. Revert is available only where a current
+installation default exists and uses the stored content format's sanitization. “New default” is omitted:
+there is no reliable historical key inventory for an existing brand bundle.

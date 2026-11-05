@@ -121,6 +121,42 @@ describe('I18nEntriesService', function () {
     expect((global as any).TranslationService.reloadResources.called).to.equal(false);
   });
 
+  describe('editor provenance', function () {
+    beforeEach(function () {
+      fs.mkdirSync(path.join(testLocalesDir, 'en'), { recursive: true });
+      fs.mkdirSync(path.join(testLocalesDir, 'fr'), { recursive: true });
+      fs.writeFileSync(path.join(testLocalesDir, 'en', 'translation.json'), JSON.stringify({ same: 'Default', changed: 'Original', missing: 'Missing', absent: 'Absent', label: 'Parent', 'label.help': 'Help', _meta: { same: { category: 'ignored' } } }));
+      fs.writeFileSync(path.join(testLocalesDir, 'fr', 'translation.json'), JSON.stringify({ same: 'Par défaut' }));
+      mockI18nBundle.findOne.resolves({ id: 'b', data: { same: 'Par défaut', changed: 'Custom', missing: '', label: 'Parent', 'label.help': 'Help', extra: 'Extra' } });
+    });
+    it('classifies locale defaults, overrides, empty and absent default keys in one batch', async function () {
+      const rows = await I18nEntriesService.editorEntries({ id: 'brand-1' }, 'fr', 'translation');
+      expect(Object.fromEntries(rows.map(row => [row.key, row.provenance]))).to.deep.equal({ same: 'default', changed: 'override', missing: 'missing', absent: 'missing', label: 'default', 'label.help': 'default', extra: 'override' });
+      expect(rows.find(row => row.key === 'extra').hasDefault).to.equal(false);
+      expect(mockI18nTranslation.find.callCount).to.equal(1);
+      expect(mockI18nTranslation.findOne.called).to.equal(false);
+    });
+    it('counts non-empty values against the union of default and custom keys', async function () {
+      mockI18nBundle.find.resolves([{ locale: 'fr', namespace: 'translation', displayName: 'French', data: { same: 'Par défaut', changed: 'Custom', missing: '  ', extra: 'Extra' } }]);
+      const result = await I18nEntriesService.languageSummaries({ id: 'brand-1' });
+      expect(result.find(row => row.code === 'fr')).to.include({ translated: 3, total: 7 });
+      expect(mockI18nTranslation.find.called).to.equal(false);
+      expect(mockI18nBundle.find.callCount).to.equal(1);
+    });
+    it('reverts using the current localized default and existing sanitization', async function () {
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({ value: 'Par défaut' });
+      await I18nEntriesService.revertEntry({ id: 'brand-1' }, 'fr', 'translation', 'same');
+      expect(save.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'fr', 'translation', 'same', 'Par défaut']);
+      expect(await I18nEntriesService.revertEntry({ id: 'brand-1' }, 'fr', 'translation', 'extra')).to.equal(null);
+      expect(save.calledOnce).to.equal(true);
+    });
+    it('rejects traversal before reading defaults', async function () {
+      let error;
+      try { await I18nEntriesService.defaultValues('../en', 'translation'); } catch (e) { error = e; }
+      expect(error.message).to.equal('Invalid translation target');
+    });
+  });
+
   describe('resolveBrandingId (private)', function () {
     it('should resolve branding id from object', function () {
       const result = I18nEntriesService.resolveBrandingId({ id: 'brand-1' });
