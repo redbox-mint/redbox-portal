@@ -340,11 +340,15 @@ export class DashboardComponent extends BaseComponent {
     return this.getStepFilter(stepKey);
   }
 
+  public getRowsPerPage(stepKey: string): number {
+    return this.stepState[stepKey]?.settings.rowsPerPage ?? 10;
+  }
+
   public async initStep(stepName: string, stepKey: string, recordType: string, packageType: string, startIndex: number) {
     const { filterFields, filterString, filterMode } = this.getActiveFilter(stepKey);
     const sortByString = this.getSortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
     const secondarySortString = this.getSecondarySortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
-    const stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, secondarySortString);
+    const stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, secondarySortString, this.getRowsPerPage(stepKey));
 
     let planTable: PlanTable;
     const formatRules = this.getFormatRules(stepKey);
@@ -357,7 +361,7 @@ export class DashboardComponent extends BaseComponent {
       if (groupBy == 'groupedByRelationships' && !_isEmpty(sortGroupBy)) {
         allItemsByGroup = await this.getAllItemsGroupedByRelationships(_get(stagedRecords, 'items'), sortGroupBy as SortGroupBy[]);
       } else if (groupBy == 'groupedByRecordType' && !_isEmpty(sortGroupBy)) {
-        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy as SortGroupBy[], stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
+        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy as SortGroupBy[], stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, this.getRowsPerPage(stepKey));
       }
       const groupedRecords: any = {
         totalItems: _get(stagedRecords, 'totalItems'),
@@ -375,12 +379,12 @@ export class DashboardComponent extends BaseComponent {
     this.records[stepKey] = planTable;
   }
 
-  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any) {
+  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any, rowsPerPage: number) {
     const allItemsByGroup: any[] = [];
     for (let i = 0; i < sortGroupBy.length; i++) {
       const rule = _find(sortGroupBy, (o) => _get(o, 'rowLevel') == i);
       const compareFieldValue = _get(rule, 'compareFieldValue', '');
-      const itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
+      const itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, '', rowsPerPage);
       allItemsByGroup.push(itemsGroupRelated);
     }
     return allItemsByGroup;
@@ -835,7 +839,7 @@ export class DashboardComponent extends BaseComponent {
 
   public partyPageStart(step: string): number {
     const page = this.records[step];
-    return page?.totalItems ? ((page.currentPage || 1) - 1) * 10 + 1 : 0;
+    return page?.totalItems ? ((page.currentPage || 1) - 1) * this.getRowsPerPage(step) + 1 : 0;
   }
 
   public partyPageEnd(step: string): number {

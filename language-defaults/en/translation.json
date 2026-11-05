@@ -1,4 +1,5 @@
 {
+  "dashboard-rows-per-page": "{{count}} rows per page",
   "dashboard-heading": "My {{stage}} {{recordTypeName}}",
   "dashboard-heading-one-step": "My {{recordTypeName}}",
   "dashboard-filter-by": "Filter by {{field}}",
@@ -2502,6 +2503,8 @@
   "admin-dashboard-hidden-help": "Hidden stages are not shown on ordinary dashboards.",
   "admin-dashboard-settings": "Settings",
   "admin-dashboard-acknowledge": "(tick to acknowledge)",
+  "admin-dashboard-rows-per-page": "Rows per page",
+  "admin-dashboard-rows-per-page-help": "Number of records per page on this dashboard. The default is 10.",
   "admin-dashboard-display": "Display",
   "admin-dashboard-search-box": "Show search box",
   "admin-dashboard-stage-title": "Show stage title",
@@ -2581,7 +2584,7 @@
   "Columns and row actions": "Columns and row actions",
   "Columns, headings, templates, column sorting and named row action rule sets.": "Columns, headings, templates, column sorting and named row action rule sets.",
   "Filters, sorting and search": "Filters, sorting and search",
-  "Record filter, search filter fields, overall sort, search box and stage title visibility.": "Record filter, search filter fields, overall sort, search box and stage title visibility.",
+  "Record filter, search filter fields, overall sort, search box, stage title visibility and rows per page.": "Record filter, search filter fields, overall sort, search box, stage title visibility and rows per page.",
   "Grouping and group rows": "Grouping and group rows",
   "Group by, group levels, group row columns and group row rules.": "Group by, group levels, group row columns and group row rules.",
   "admin-dashboard-column-sort-help": "Records use the initial sort on the {{column}} column in Columns. The order below applies when no column has an initial sort.",

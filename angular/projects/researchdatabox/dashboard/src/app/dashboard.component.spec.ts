@@ -130,6 +130,46 @@ describe('DashboardComponent', () => {
       });
     });
 
+    it('uses independent page sizes on initial load, page changes and search, defaulting legacy stages to 10', async () => {
+      const snapshot = await recordService.getDashboardSettings();
+      snapshot.targets.draft.settings.rowsPerPage = 25;
+      const component = create();
+      await init(component);
+      expect(recordService.getRecords.calls.argsFor(0)[9]).toBe(25);
+      expect(recordService.getRecords.calls.argsFor(1)[9]).toBe(10);
+      expect(component.getRowsPerPage('draft')).toBe(25);
+      expect(component.getRowsPerPage('review')).toBe(10);
+      await component.pageChanged({ page: 2, itemsPerPage: 25 }, 'draft');
+      expect(recordService.getRecords.calls.mostRecent().args[2]).toBe(2);
+      expect(recordService.getRecords.calls.mostRecent().args[9]).toBe(25);
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args[2]).toBe(1);
+      expect(recordService.getRecords.calls.mostRecent().args[9]).toBe(25);
+      component.records.draft = { totalItems: 60, currentPage: 2, items: Array(25) };
+      expect(component.partyPageStart('draft')).toBe(26);
+      expect(component.partyPageEnd('draft')).toBe(50);
+    });
+
+    it('binds each real paginator to its target page size', async () => {
+      const snapshot = await recordService.getDashboardSettings();
+      snapshot.targets.draft.settings.rowsPerPage = 25;
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const component = fixture.componentInstance;
+      component.recordType = 'rdmp';
+      component.dashboardTypeSelected = 'standard';
+      (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy().and.resolveTo({});
+      recordService.getRecords.and.resolveTo({ ...records, totalItems: 60 });
+      fixture.detectChanges();
+      await component.waitForInit();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const pages = fixture.nativeElement.querySelectorAll('pagination');
+      expect(pages[0].querySelectorAll('.pagination-page').length).toBe(3);
+      expect(pages[1].querySelectorAll('.pagination-page').length).toBe(6);
+      fixture.destroy();
+    });
+
     it('submits admin party name and email searches through the existing record query', async () => {
       const component = create();
       component.adminParties = true;
@@ -364,7 +404,7 @@ describe('DashboardComponent', () => {
           settings: settings('Title', {
             groupRowConfig: [{ title: 'Group', variable: 'g', template: 'group' }],
             formatRules: { groupBy: 'groupedByRecordType', sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: '', relatedTo: '' }] },
-          }, { searchable: false }),
+          }, { searchable: false, rowsPerPage: 50 }),
           fingerprint: 'v',
         },
       },
@@ -373,6 +413,7 @@ describe('DashboardComponent', () => {
     await init(component);
     expect(recordService.getDashboardSettings).toHaveBeenCalledWith('view', 'consolidated');
     expect(templates.loadDashboardTargetTemplates).toHaveBeenCalledWith('default', 'rdmp', { kind: 'view', view: 'consolidated', step: 'main' }, 'v');
+    expect(recordService.getRecords.calls.allArgs().every((args: any[]) => args[9] === 50)).toBeTrue();
     // One record row plus one group row.
     expect(component.records['main'].items.length).toBe(2);
     expect(component.records['main'].items[1]['g']).toContain('default|view|consolidated|main|v|groupRowConfig|0|g');

@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/09-dashboard-types`: per-target rows per page, consumed by researcher dashboards. Retired dashboard-profile management removed from the deferred scope after runtime investigation.
+
 Delivered on `admin-deferred/08-site-config`: system message styles with matching live banners and accessible roles, and brand-scoped Navigation resets to installation defaults.
 
 Delivered on `admin-deferred/07-auth-domain-tester`: authorized-address tester using the shared AAF/OIDC matcher, brand Admin and CSRF protection, and unsaved-form testing without persistence.
@@ -242,7 +244,24 @@ restores the loaded draft locally; switching targets and leaving the page protec
 Selection uses `#target=<encoded target key>` while retaining the editor path (the portal has a root
 `<base href>`). Column counts appear after a target has loaded; no extra settings requests are made for
 rail badges. At tablet widths the target rail stacks above the editor and scrolls within a bounded area.
-Dashboard types and rows per page are deferred: the current editor API does not support them.
+Display settings include optional `rowsPerPage` (10, 25, 50 or 100), saved independently
+for each workflow stage and view step through the existing revision-checked, brand Admin APIs.
+Omitted values keep the existing 10-row behaviour and do not change stored shapes or fingerprints.
+The researcher dashboard passes the target's size to list requests and pagination; filters/search
+copy includes this display setting and shows it in the before/after summary.
+
+The mock's Dashboard types group and Add dashboard type action are intentionally retired.
+`standard`, `workspace` and `consolidated` are fixed runtime modes, not editable layout profiles.
+`RecordController.render` chooses the mode from routing/request context (with workspace special-cased);
+record-type dashboard settings only control admin-sidebar presentation. The Angular dashboard reads
+columns, filters and display settings from independent workflow-stage/view-step targets in the brand's
+`DashboardConfiguration` document. Structural workspace constraints come from its read-only `contexts`.
+Legacy `DashboardType` rows and `AppConfig.dashboardTableConfig` feed migration
+`20260925T000000-dashboard-stage-configuration`, which keeps recovery snapshots and materialises prior
+behaviour into these targets and contexts. Compatibility type responses obtain structural rules from
+the migrated context, not saved profile rules. Creating/editing a legacy profile would not create a
+supported mode or change a target's layout; adding CRUD would revive retired configuration. See
+[the independent-stage design](../dashboard-stage-configuration/design.md).
 
 Keep derived select options keyed by value: Angular schedules select writes after rendering, so
 recreating all options each pass can cause an infinite change-detection cycle. Record-type inputs are

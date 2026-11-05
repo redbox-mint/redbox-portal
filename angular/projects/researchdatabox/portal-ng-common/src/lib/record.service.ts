@@ -627,9 +627,9 @@ export class RecordService extends HttpClientService {
     filterFields: string = '',
     filterString: string = '',
     filterMode: string = '',
-    secondarySort: string = ''
+    secondarySort: string = '',
+    rows: number = 10
   ) {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {

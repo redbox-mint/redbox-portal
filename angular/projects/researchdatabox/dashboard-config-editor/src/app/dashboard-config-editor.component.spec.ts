@@ -295,6 +295,33 @@ describe('DashboardConfigEditorComponent', () => {
     expect(api.validate).toHaveBeenCalledWith(source, 5, component.draft);
   });
 
+  it('shows the legacy default without dirtying the draft and saves a numeric page size', async () => {
+    const info: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'Plan', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    const original = settingsWithColumn('Title');
+    api.getSettings.and.resolveTo({ target: info.target, settings: original, revision: 2, schemaVersion: 1, hidden: false });
+    api.getTargets.and.resolveTo({ targets: [info], catalogueFingerprint: 'f' });
+    await component['initComponent']();
+    await component.selectTarget(info, true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const select: HTMLSelectElement = fixture.nativeElement.querySelector('#dc-rows-per-page');
+    expect(select.options[select.selectedIndex].textContent).toBe('10');
+    expect(component.isDirty).toBeFalse();
+    expect(Object.hasOwn(component.draft!, 'rowsPerPage')).toBeFalse();
+    select.selectedIndex = 1;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(component.draft?.rowsPerPage).toBe(25);
+    expect(component.isDirty).toBeTrue();
+    api.validate.and.resolveTo({ errors: [], warnings: [], validationFingerprint: 'v' } as any);
+    api.save.and.resolveTo({ target: info.target, settings: { ...original, rowsPerPage: 25 }, revision: 3, schemaVersion: 1, hidden: false });
+    await component.save();
+    expect(api.save.calls.mostRecent().args[1].settings.rowsPerPage).toBe(25);
+    expect(api.save.calls.mostRecent().args[1].expectedRevision).toBe(2);
+    expect(component.isDirty).toBeFalse();
+  });
+
   it('starts with a choice of targets and does not load or save an arbitrary dashboard', async () => {
     window.history.replaceState(null, '', window.location.pathname);
     api.getTargets.and.resolveTo({ targets: [], catalogueFingerprint: 'targets' });

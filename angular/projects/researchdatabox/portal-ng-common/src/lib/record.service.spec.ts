@@ -40,6 +40,19 @@ describe('RecordService', () => {
     httpTestingController.verify();
   });
 
+  it('sends the configured dashboard page size and matching offset while preserving the default', async () => {
+    recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
+    for (const rows of [undefined, 25, 100]) {
+      const promise = recordService.getRecords('rdmp', 'draft', 3, '', '', '', '', '', '', rows);
+      const request = httpTestingController.expectOne(req => req.url.includes('/listRecords'));
+      const url = new URL(request.request.url);
+      expect(url.searchParams.get('rows')).toBe(String(rows ?? 10));
+      expect(url.searchParams.get('start')).toBe(String(2 * (rows ?? 10)));
+      request.flush({ items: [], currentPage: 3 });
+      await promise;
+    }
+  });
+
   it('creates a UUID save request header', async () => {
     const createPromise = recordService.create({ title: 'Test record' }, 'rdmp');
     const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/recordmeta/rdmp`);
