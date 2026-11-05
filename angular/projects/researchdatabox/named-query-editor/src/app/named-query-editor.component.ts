@@ -91,6 +91,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return this.pendingDeleteName ?? '';
   }
 
+  get pendingDeleteConsumers() {
+    return this.queries.find(query => query.name === this.pendingDeleteName)?.usedBy ?? [];
+  }
+
   async loadQueries(): Promise<void> {
     this.error = '';
     try {
@@ -198,6 +202,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   async confirmDelete(): Promise<void> {
+    if (this.pendingDeleteConsumers.length) return;
     if (!this.pendingDeleteName) {
       this.closeDeleteModal();
       return;
@@ -316,7 +321,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   private asErrorMessage(err: unknown): string {
     if (err instanceof Error) return err.message;
     if (typeof err === 'object' && err !== null) {
-      const maybe = err as { message?: string; error?: { message?: string } };
+      const maybe = err as { message?: string; error?: { message?: string; errors?: { detail?: string }[] } };
+      if (maybe.error?.errors?.[0]?.detail) return maybe.error.errors[0].detail;
       if (typeof maybe.message === 'string' && maybe.message) return maybe.message;
       if (maybe.error && typeof maybe.error.message === 'string') return maybe.error.message;
     }

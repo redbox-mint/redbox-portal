@@ -1,3 +1,4 @@
+import { NamedQueryInUseError } from '../../services/named-query/usage';
 import { Controllers as controllers } from '../../CoreController';
 import type { NamedQueryDefinition } from '../../config/namedQuery.config';
 import { BrandingModel } from '../../model/storage/BrandingModel';
@@ -18,6 +19,7 @@ export namespace Controllers {
     }
 
     private statusForError(error: unknown): number {
+      if (error instanceof NamedQueryInUseError) return 409;
       const message = this.asError(error).message;
       if (/Named query .*not found/i.test(message)) {
         return 404;
@@ -32,6 +34,10 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      if (error instanceof NamedQueryInUseError) {
+        return this.sendResp(req, res, { status: 409, meta: { usedBy: error.consumers },
+          displayErrors: [{ detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
+      }
       return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
     }
 
@@ -43,7 +49,8 @@ export namespace Controllers {
       try {
         const brand = this.resolveBrand(req);
         const queries = await NamedQueryService.list(brand);
-        return this.sendResp(req, res, { data: queries, headers: this.getNoCacheHeaders() });
+        const usage = await NamedQueryService.getUsage(brand);
+        return this.sendResp(req, res, { data: queries.map(query => ({ ...query, usedBy: usage[query.name ?? ''] ?? [] })), headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
       }
@@ -69,7 +76,8 @@ export namespace Controllers {
         if (!query) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ detail: `Named query '${name}' not found`, status: '404' }], headers: this.getNoCacheHeaders() });
         }
-        return this.sendResp(req, res, { data: query, headers: this.getNoCacheHeaders() });
+        const usage = await NamedQueryService.getUsage(brand);
+        return this.sendResp(req, res, { data: { ...query, usedBy: usage[name] ?? [] }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
       }

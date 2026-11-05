@@ -81,4 +81,17 @@ describe('NqDetailComponent', () => {
     expect(component.sortCount).toBe(0);
     expect(component.filterCount).toBe(0);
   });
+  it('shows the Used by section with links when editing an existing query', () => {
+    component.isNew = false;
+    component.brandingAndPortalUrl = '/brand/portal';
+    component.draft.usedBy = [{ type: 'dashboard', name: 'Party · Draft', path: '/admin/dashboard-config#target=party' }];
+    fixture.detectChanges();
+    const section = fixture.nativeElement.querySelector('[aria-labelledby="nq-used-by-title"]');
+    expect(section.textContent).toContain('Party · Draft');
+    expect(section.querySelector('a').getAttribute('href')).toBe('/brand/portal/admin/dashboard-config#target=party');
+    component.isNew = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="nq-used-by-title"]')).toBeNull();
+  });
+
 });

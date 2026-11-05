@@ -13,6 +13,7 @@ export type NamedQueryListQueryState = {
   standalone: false
 })
 export class NqListComponent implements OnChanges, OnDestroy {
+  @Input() brandingAndPortalUrl = '';
   @Input() queries: NamedQueryDefinition[] = [];
   @Input() total = 0;
   @Input() collections: string[] = [];

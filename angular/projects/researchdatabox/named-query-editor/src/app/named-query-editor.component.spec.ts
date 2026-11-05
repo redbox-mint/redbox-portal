@@ -680,4 +680,38 @@ describe('NamedQueryEditorComponent', () => {
     const msg = (component as any).asErrorMessage({ error: { message: 'nested' } });
     expect(msg).toBe('nested');
   });
+  it('lists consumers in the delete dialog and prevents deletion of an in-use query', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    await component.waitForInit();
+    const remove = spyOn(TestBed.inject(NamedQueryApiService), 'delete');
+    component.queries = [{ name: 'query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {},
+      usedBy: [{ type: 'report', name: 'List RDMP records', path: '/admin/report/rdmpRecords' }] }];
+    component.requestDelete('query');
+    fixture.detectChanges();
+    const dialog = fixture.nativeElement.querySelector('[role="alertdialog"]');
+    expect(dialog.textContent).toContain('named-query-in-use-warning');
+    expect(dialog.querySelector('a').textContent).toContain('List RDMP records');
+    expect(dialog.querySelector('.rb-admin-danger-confirm').disabled).toBeTrue();
+    await component.confirmDelete();
+    expect(remove).not.toHaveBeenCalled();
+    expect(component.isDeleteModalOpen).toBeTrue();
+    component.cancelDelete();
+  });
+
+  it('shows the server explanation if a new reference blocks a stale-list deletion', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    spyOn(api, 'delete').and.rejectWith({ message: 'Http failure response', error: {
+      errors: [{ detail: 'Named query is in use. Remove its configured references before deleting it.' }]
+    } });
+    fixture.detectChanges();
+    await component.waitForInit();
+    component.requestDelete('query');
+    await component.confirmDelete();
+    expect(component.error).toContain('Remove its configured references');
+  });
+
 });
