@@ -85,7 +85,8 @@ export interface DomPurifyConfig {
     globalSettings: DomPurifyGlobalSettings;
 }
 
-export const safeHtmlUriRegexp = /^(?:(?:https?|ftps?|mailto|tel):|(?:[^a-z:]|[a-z][a-z0-9.+-]*(?:[^a-z0-9.+-:]|$)))/i;
+// A scheme may contain letters, digits, +, . and -; other characters start a relative path.
+export const safeHtmlUriRegexp = /^(?:(?:https?|ftps?|mailto|tel):|(?:[^a-z:]|[a-z][a-z0-9.+-]*(?:[^a-z0-9.+\-:]|$)))/i;
 export const safeSvgUriRegexp = /^(?:#[^\s]*|(?:\.{1,2}\/|\/(?!\/))?[^\\/:?#\s]+(?:\/[^\\/:?#\s]+)*(?:[?#][^\s]*)?)$/i;
 
 export const dompurify: DomPurifyConfig = {
