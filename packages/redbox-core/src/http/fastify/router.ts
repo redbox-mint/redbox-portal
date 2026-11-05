@@ -2,6 +2,8 @@ import fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import qs from 'qs';
 import Router from 'find-my-way';
 import { ExtensionError } from '../../extensions/loading';
+import { parse as parseUrl } from 'node:url';
+import { STATUS_CODES } from 'node:http';
 
 /** Express's extended query parser, with the FM-003 bounds/defaults explicit. */
 function querystringParser(query: string): Record<string, unknown> {
@@ -34,14 +36,37 @@ export const portalRouterOptions = Object.freeze({
   maxParamLength: Number.MAX_SAFE_INTEGER,
 });
 
+/** Express/parseurl's origin-form fast path and Node URL fallback. Keep raw
+ * escapes, duplicate slashes and dot segments; WHATWG URL would normalize paths.
+ * Absolute-form targets and fragments must have the same path for routing and
+ * admission. The original target is restored before request hooks run below.
+ */
+function requestTargetPath(url: string): string | undefined {
+  if (url.startsWith('/') && !/[#\t\n\f\r \u00a0\ufeff]/.test(url)) return url;
+  try {
+    return parseUrl(url).path ?? url;
+  } catch {
+    // rewriteUrl and synchronous constraint derivation run before Fastify's
+    // request error boundary. A malformed authority/userinfo must not escape.
+    return undefined;
+  }
+}
+
+export function requestPathname(url: string): string | undefined {
+  return requestTargetPath(url)?.split('?')[0];
+}
+
 /** Keep escapes literal through find-my-way's eager URI decoding. Only captures
  * are decoded later, once, after raw static/suffix matching, as Express does.
  * The query string must remain byte-for-byte unchanged for qs's tolerant decoder.
  */
 export function routerUrl(url: string): string {
-  const query = url.indexOf('?');
-  const end = query < 0 ? url.length : query;
-  return url.slice(0, end).replaceAll('%', '%25') + url.slice(end);
+  // Enter the normal request hooks on parse failure, where the first root hook
+  // responds before admission, plugin hooks or the selected action can run.
+  const target = requestTargetPath(url) ?? '/';
+  const query = target.indexOf('?');
+  const end = query < 0 ? target.length : query;
+  return target.slice(0, end).replaceAll('%', '%25') + target.slice(end);
 }
 
 /** A required wildcard cannot capture the root route's separator. This native
@@ -50,7 +75,7 @@ export function routerUrl(url: string): string {
  * the same derived value as real HTTP lookup.
  */
 export function routerConstraints(url: string) {
-  return { redboxNonemptyPath: url.split('?')[0] !== '/' ? 'nonempty' : 'empty' };
+  return { redboxNonemptyPath: requestPathname(url) !== '/' ? 'nonempty' : 'empty' };
 }
 
 const configuredRouters = new WeakSet<FastifyInstance>();
@@ -75,19 +100,66 @@ export function createNativeRouter() {
  * Raw-path preparation must precede routing; installing a later hook cannot do it.
  */
 export function createPortalRouter(
-  options: Omit<FastifyServerOptions, 'routerOptions' | 'rewriteUrl' | 'querystringParser'> = {}
+  options: Omit<
+    FastifyServerOptions,
+    'routerOptions' | 'rewriteUrl' | 'querystringParser' | 'frameworkErrors' | 'clientErrorHandler'
+  > = {}
 ): FastifyInstance {
   const app = fastify({
     ...options,
     routerOptions: portalRouterOptions,
     rewriteUrl: request => routerUrl(request.url ?? '/'),
+    // These callbacks also run outside the request hook/error-handler boundary.
+    // Emit only fixed headers and bounded bodies, never the target/provider error.
+    frameworkErrors(error, _request, reply) {
+      const status = error.code === 'FST_ERR_BAD_URL' ? 400 : error.code === 'FST_ERR_MAX_PARAM_LENGTH' ? 414 : 500;
+      const body = status === 500 ? '{"error":"internal-server-error"}' : '{"error":"invalid-request"}';
+      reply.hijack();
+      reply.raw.writeHead(status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+      });
+      reply.raw.end(body);
+    },
+    clientErrorHandler(error, socket) {
+      // Match Node's default HTTP/1 parser responses used by ExpressHost. Node's
+      // socketOnError installs its error sink before emitting clientError.
+      const status =
+        error.code === 'HPE_HEADER_OVERFLOW'
+          ? 431
+          : error.code === 'HPE_CHUNK_EXTENSIONS_OVERFLOW'
+            ? 413
+            : error.code === 'ERR_HTTP_REQUEST_TIMEOUT'
+              ? 408
+              : 400;
+      const response: unknown = Reflect.get(socket, '_httpMessage');
+      if (
+        !socket.destroyed &&
+        socket.writable &&
+        (!response || (typeof response === 'object' && !Reflect.get(response, '_headerSent')))
+      )
+        socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\nConnection: close\r\n\r\n`);
+      socket.destroy();
+    },
   });
   app.addConstraintStrategy(nonemptyPathConstraint());
-  app.addHook('onRequest', (request, _reply, done) => {
+  app.addHook('onRequest', (request, reply, done) => {
     // Fastify retains the original before rewriteUrl. Restore it for guards,
     // actions, redirects and not-found handling, including malformed captures.
     const original: unknown = Reflect.get(request.raw, 'originalUrl');
     if (typeof original === 'string') request.raw.url = original;
+    if (requestPathname(request.raw.url ?? '/') === undefined) {
+      // Express's finalhandler uses this fixed resource name when parseurl fails.
+      // Node validates/bounds the method; no raw target or exception is reflected.
+      const body = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot ${request.method} resource</pre>\n</body>\n</html>\n`;
+      reply
+        .code(404)
+        .header('Content-Security-Policy', "default-src 'none'")
+        .header('X-Content-Type-Options', 'nosniff')
+        .type('text/html; charset=utf-8')
+        .send(body);
+      return;
+    }
     done();
   });
   configuredRouters.add(app);

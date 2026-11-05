@@ -99,7 +99,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     collisions and missing replacement targets fail; source metadata cannot drift
     from runtime declarations. Real-router tests confirm identity rules.
 
-- [ ] **FM-011 — Add late-listening host and admission gates.**
+- [x] **FM-011 — Add late-listening host and admission gates.**
   - Dependencies: FM-008, FM-009.
   - Work: compose one application/server, initialize before readiness/listen,
     prepare complete plugin graph, then activate and open ingress. Port health/
