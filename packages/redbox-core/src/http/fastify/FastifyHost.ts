@@ -3,29 +3,41 @@ import { lookup } from 'node:dns';
 import type { AddressInfo } from 'node:net';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
 import type { Application } from '../../application';
+import type { PersistenceOwner } from '../../persistence/owner';
+import { runAcceptedPersistenceWork } from '../../persistence/runtime';
+import { beginHttpRequest, registerHttpRequestDrain, runHttpRequestContext } from '../../middleware/requestLifetime';
 import { withTimeout } from '../../utilities/withTimeout';
 import { createPortalRouter, requestPathname } from './router';
+import { requestOwnership } from './requestOwnership';
+import { sealPreparation, type FastifyPreparation } from './preparation';
 
 export interface FastifyHostOptions {
   readonly hostname: string;
   readonly port: number;
   readonly stopDeadlineMs?: number;
   readonly trustProxy?: FastifyServerOptions['trustProxy'];
+  /** The application's persistence owner, when handlers borrow its operations. */
+  readonly owner?: PersistenceOwner;
   /** Register the complete graph after application initialization. Never listen here.
    * Integrations borrow this server; register their cleanup with the application.
    * Route composition owns the configured root context; probes remain global.
    */
-  readonly prepare: (app: FastifyInstance, server: Server) => Promise<void>;
+  readonly prepare: (app: FastifyPreparation, server: Server) => Promise<void>;
 }
 
 /** Internal, late-listening composition. The production executable still uses Express. */
 export class FastifyHost {
   private readonly fastify: FastifyInstance;
+  private readonly owner: PersistenceOwner;
+  private readonly preparation: FastifyPreparation;
   private initializing?: Promise<void>;
   private activating?: Promise<void>;
   private inFlight?: Promise<void>;
   private closing?: Promise<void>;
+  private pluginReadiness?: Promise<void>;
   private applicationStop?: Promise<void>;
+  private applicationCleaned = false;
+  private readonly requests = new Set<Promise<void>>();
   private stopping?: Promise<void>;
   private prepared = false;
   private activated = false;
@@ -43,9 +55,27 @@ export class FastifyHost {
       throw new TypeError('Fastify host requires an explicit hostname and port (0 is allowed for tests).');
     if (options.stopDeadlineMs !== undefined && !validDeadline(options.stopDeadlineMs))
       throw new TypeError('Host stopDeadlineMs must be a positive timer interval.');
+    if (!application.registerHttpHost)
+      throw new TypeError(
+        'FastifyHost requires application.registerHttpHost for concurrent application/request drain and dependency-safe cleanup. Use ApplicationRuntime.'
+      );
+    this.owner = application.registerHttpHost(
+      {
+        quiesce: () => {
+          this.activated = false;
+        },
+        drain: () => this.drainRequests(),
+        close: async () => {},
+      },
+      options.owner
+    );
+    registerHttpRequestDrain(this.owner, () => this.drainRequests());
     this.fastify = createPortalRouter({
       trustProxy: options.trustProxy ?? false,
       exposeHeadRoutes: false,
+      // A framework plugin timeout cannot cancel its raw acquisition promise.
+      // Caller stop deadlines bound waiting while retaining that acquisition.
+      pluginTimeout: 0,
       // Keep our admission envelope while close hooks run, until the listener closes.
       return503OnClosing: false,
       forceCloseConnections: false,
@@ -64,6 +94,34 @@ export class FastifyHost {
       if (!ready) return reply.code(503).send({ error: 'application-not-ready' });
     });
     this.fastify.setNotFoundHandler((_request, reply) => reply.code(404).send({ error: 'not-found' }));
+    // Callback form keeps Fastify's continuation in the accepted persistence and
+    // HTTP contexts. The lease outlives finish/disconnect while actions, session
+    // callbacks or explicit follow-ups still own work (trackHttpRequestWork).
+    this.fastify.addHook('onRequest', (request, reply, done) => {
+      const { promise, resolve } = Promise.withResolvers<void>();
+      this.requests.add(promise);
+      beginHttpRequest(
+        request,
+        reply.raw,
+        () => {
+          this.requests.delete(promise);
+          resolve();
+        },
+        this.owner
+      );
+      const dispatch = () => {
+        runHttpRequestContext(request, () => {
+          captureRequest(request, reply, done);
+        });
+        return promise;
+      };
+      void runAcceptedPersistenceWork(this.owner, dispatch).catch(() => {
+        void reply.code(503).send({ error: 'application-not-ready' });
+      });
+    });
+    const ownership = requestOwnership(this.owner);
+    const captureRequest = ownership.capture;
+    this.preparation = sealPreparation(this.fastify, ownership);
   }
 
   /** Initialize, prepare all plugins and bind one listener with admission still closed. */
@@ -74,10 +132,18 @@ export class FastifyHost {
       this.assertRunning();
       await this.application.initialize();
       this.assertRunning();
-      await this.options.prepare(this.fastify, this.fastify.server);
-      this.assertRunning();
-      await this.fastify.ready();
-      this.assertRunning();
+      await runAcceptedPersistenceWork(this.owner, async () => {
+        try {
+          await this.options.prepare(this.preparation, this.fastify.server);
+          this.assertRunning();
+          await this.settlePlugins();
+          this.assertRunning();
+        } finally {
+          // Even a failed prepare may have queued plugins. Their acquisition is
+          // part of this accepted stage, including persistence access after stop.
+          await this.settlePlugins().catch(() => {});
+        }
+      });
       this.prepared = true;
       // Fastify creates secondary servers for a literal 'localhost' listen host.
       // Resolve once to one address, preserving Node's resolver order and Fastify's
@@ -126,14 +192,40 @@ export class FastifyHost {
       // Wait for raw stage work, never its failure handler (which can await stop).
       // In particular, partial preparation may still use initialized collaborators.
       await this.withDeadline(this.inFlight?.catch(() => {}) ?? Promise.resolve(), deadline);
-      this.closing ??= this.fastify.close();
-      await this.withDeadline(this.closing, deadline);
-      if (quiesceFailure) throw quiesceFailure;
-      // A caller deadline does not cancel an earlier application stop attempt.
-      await this.withDeadline(this.applicationStop?.catch(() => {}) ?? Promise.resolve(), deadline);
-      if (Date.now() >= deadline) throw stopDeadlineError();
-      this.applicationStop = this.application.stop({ deadlineMs: Math.max(1, deadline - Date.now()) });
-      await this.withDeadline(this.applicationStop, deadline);
+      // close() itself boots queued plugins. Settle that acquisition first so it
+      // cannot race application cleanup after interrupted/failed prepare().
+      await this.withDeadline(
+        this.settlePlugins().catch(() => {}),
+        deadline
+      );
+      this.closing ??= this.closeTransport();
+      const cleanup = (async () => {
+        if (quiesceFailure) throw quiesceFailure;
+        // Caller timeouts do not cancel an existing cleanup. Join it before an
+        // explicit retry; never restart cleanup automatically after this deadline.
+        await this.withDeadline(this.applicationStop?.catch(() => {}) ?? Promise.resolve(), deadline);
+        // Application-owned producer drains and registered HTTP request drain
+        // start together, including when options.owner was omitted.
+        if (Date.now() >= deadline) throw stopDeadlineError();
+        if (!this.applicationCleaned) {
+          this.applicationStop = Promise.resolve().then(async () => {
+            await this.application.stop({ deadlineMs: Math.max(1, deadline - Date.now()), deadline });
+            this.applicationCleaned = true;
+          });
+          await this.applicationStop;
+        }
+      })();
+      // A rejected transport close must not prevent retrying application cleanup.
+      // Conversely an application failure never authorizes another Fastify close.
+      await this.withDeadline(
+        (async () => {
+          const outcomes = await Promise.allSettled([this.closing, cleanup]);
+          const errors = outcomes.filter(result => result.status === 'rejected').map(result => result.reason);
+          if (errors.length === 1) throw errors[0];
+          if (errors.length) throw new AggregateError(errors, 'Transport and application cleanup failed.');
+        })(),
+        deadline
+      );
       this.stopped = true;
       this.stopFailed = false;
       this.removeSignals?.();
@@ -200,6 +292,38 @@ export class FastifyHost {
 
   private assertRunning(): void {
     if (this.stopRequested) throw new Error('Host stop has begun.');
+  }
+
+  private settlePlugins(): Promise<void> {
+    return (this.pluginReadiness ??= Promise.resolve(this.fastify.ready()).then(() => {}));
+  }
+
+  private async drainRequests(): Promise<void> {
+    while (this.requests.size) await Promise.allSettled(this.requests);
+  }
+
+  private async closeTransport(): Promise<void> {
+    const server = this.fastify.server;
+    const close = server.close;
+    let transportError: Error | undefined;
+    // Fastify 5.12.8 discards native server.close callback errors. Observe that
+    // boundary ourselves while leaving Fastify as the sole close/hook owner.
+    // ERR_SERVER_NOT_RUNNING is expected for stop before late listening.
+    server.close = function (callback) {
+      return close.call(this, (error?: NodeJS.ErrnoException) => {
+        if (error && error.code !== 'ERR_SERVER_NOT_RUNNING') transportError = error;
+        callback?.(error);
+      });
+    };
+    try {
+      await this.fastify.close();
+    } catch (error) {
+      if (transportError) throw new AggregateError([transportError, error], 'Transport close failed.');
+      throw error;
+    } finally {
+      server.close = close;
+    }
+    if (transportError) throw transportError;
   }
 
   private async failed(error: unknown, phase: 'initialize' | 'activate'): Promise<never> {

@@ -4,6 +4,7 @@ const { ApplicationRuntime } = require('../../../../dist/application');
 const { ExpressHost } = require('../../../../dist/http/express/ExpressHost');
 const { FastifyHost } = require('../../../../dist/http/fastify/FastifyHost');
 
+const native = process.argv[2] === 'native';
 const fastify = process.argv[2] === 'fastify';
 const application = new ApplicationRuntime({ config: {}, log: { warn() {} } });
 let socketError;
@@ -16,41 +17,50 @@ application.status = () => {
   }
   return status();
 };
-const host = new (fastify ? FastifyHost : ExpressHost)(application, {
-  hostname: '127.0.0.1',
-  port: 0,
-  async prepare(app, server) {
-    // Node installs its HTTP socket error listener before this listener runs.
-    server.on('connection', socket => {
-      if (!socketError) return;
-      const code = socketError;
-      socketError = undefined;
-      // Read a partial method first so close cannot race unread client bytes.
-      socket.once('data', () => {
-        socket.emit('error', Object.assign(new Error('injected socket failure'), { code }));
-      });
-    });
-    if (fastify) {
+const host = native
+  ? (() => {
+      const app = require('../../../../dist/http/fastify/router').createPortalRouter();
       app.addConstraintStrategy({
         name: 'survival',
         storage: () => new Map(),
         deriveConstraint(req, _context, done) {
-          setImmediate(() => done(req.url === '/framework-error' ? new Error('private constraint error') : null));
+          setImmediate(() => done(new Error('private constraint error')));
         },
         mustMatchWhenDerived: false,
       });
       app.get('/constraint', { constraints: { survival: 'enabled' } }, async () => ({ ok: true }));
-      app.addHook('onRequest', (req, _reply, done) => {
-        if (req.url === '/sync-hook-error') throw new Error('injected synchronous hook failure');
-        done();
-      });
-      app.addHook('onRequest', async req => {
-        if (req.url === '/async-hook-error') throw new Error('injected asynchronous hook failure');
-      });
-      app.get('/probe', async () => ({ ok: true }));
-    } else app.get('/probe', (_req, res) => res.json({ ok: true }));
-  },
-});
+      return {
+        initialize: () => app.listen({ host: '127.0.0.1', port: 0 }),
+        address: () => app.server.address(),
+        stop: () => app.close(),
+      };
+    })()
+  : new (fastify ? FastifyHost : ExpressHost)(application, {
+      hostname: '127.0.0.1',
+      port: 0,
+      async prepare(app, server) {
+        // Node installs its HTTP socket error listener before this listener runs.
+        server.on('connection', socket => {
+          if (!socketError) return;
+          const code = socketError;
+          socketError = undefined;
+          // Read a partial method first so close cannot race unread client bytes.
+          socket.once('data', () => {
+            socket.emit('error', Object.assign(new Error('injected socket failure'), { code }));
+          });
+        });
+        if (fastify) {
+          app.addHook('onRequest', (req, _reply, done) => {
+            if (req.url === '/sync-hook-error') throw new Error('injected synchronous hook failure');
+            done();
+          });
+          app.addHook('onRequest', async req => {
+            if (req.url === '/async-hook-error') throw new Error('injected asynchronous hook failure');
+          });
+          app.get('/probe', async () => ({ ok: true }));
+        } else app.get('/probe', (_req, res) => res.json({ ok: true }));
+      },
+    });
 
 process.on('message', message => {
   // Rejection here must also terminate the child, rather than hide a fault.

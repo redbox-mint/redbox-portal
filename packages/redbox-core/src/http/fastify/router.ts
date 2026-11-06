@@ -78,7 +78,7 @@ export function routerConstraints(url: string) {
   return { redboxNonemptyPath: requestPathname(url) !== '/' ? 'nonempty' : 'empty' };
 }
 
-const configuredRouters = new WeakSet<FastifyInstance>();
+const configuredRouters = new WeakSet<object>();
 
 const nonemptyPathConstraint = () => ({
   name: 'redboxNonemptyPath',
@@ -166,7 +166,15 @@ export function createPortalRouter(
   return app;
 }
 
-export function assertPortalRouter(app: FastifyInstance): void {
+/** Register a sealed core view without exposing an unwrap capability. @internal */
+export function registerPortalRouterView(source: object, view: object): void {
+  let ancestor: object | null = source;
+  while (ancestor && !configuredRouters.has(ancestor)) ancestor = Object.getPrototypeOf(ancestor);
+  if (!ancestor) throw new TypeError('Expected the core portal router.');
+  configuredRouters.add(view);
+}
+
+export function assertPortalRouter(app: Pick<FastifyInstance, 'initialConfig'>): void {
   const config = app.initialConfig.routerOptions ?? app.initialConfig;
   for (const [key, value] of Object.entries(portalRouterOptions))
     if (Reflect.get(config, key) !== value)

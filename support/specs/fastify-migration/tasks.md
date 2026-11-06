@@ -107,7 +107,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: no startup listener before preparation; once listening, ordinary
     traffic remains gated through activation; failure and stop close admission.
 
-- [ ] **FM-012 — Prove close, ownership and retry.**
+- [x] **FM-012 — Prove close, ownership and retry.**
   - Dependencies: FM-011, FM-004.
   - Work: coordinate one tracked transport close with retryable application cleanup;
     exercise preparation/activation races, disconnects, after-response work,

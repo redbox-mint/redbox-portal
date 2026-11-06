@@ -18,6 +18,10 @@ export interface ApplicationModule extends PersistenceResource {
 /** Resolved before construction. Dependencies are wired into each factory's closure. */
 export interface ApplicationModuleFactory {
   readonly name: string;
+  /** Borrowed module names that must remain live until this module closes successfully.
+   * Startup order remains the supplied factory order.
+   */
+  readonly requires?: readonly string[];
   create(): ApplicationModule;
 }
 
@@ -38,14 +42,7 @@ export interface ApplicationInitialization {
 }
 
 export type ApplicationState =
-  | 'constructed'
-  | 'initializing'
-  | 'initialized'
-  | 'activating'
-  | 'active'
-  | 'stopping'
-  | 'stopped'
-  | 'failed';
+  'constructed' | 'initializing' | 'initialized' | 'activating' | 'active' | 'stopping' | 'stopped' | 'failed';
 
 export interface ApplicationStatus {
   readonly state: ApplicationState;
@@ -60,8 +57,10 @@ export interface Application {
   initialize(): Promise<void>;
   activate(): Promise<void>;
   quiesce?(): void;
-  stop(options?: { deadlineMs?: number }): Promise<void>;
+  stop(options?: { deadlineMs?: number; /** @internal Host absolute deadline. */ deadline?: number }): Promise<void>;
   status(): ApplicationStatus;
+  /** Bind transport drain before startup; enables dependency-safe application cleanup. @internal */
+  registerHttpHost?(resource: PersistenceResource, owner?: PersistenceOwner): PersistenceOwner;
 }
 
 export class ApplicationLifecycleError extends Error {
@@ -93,12 +92,15 @@ export class ApplicationRuntime implements Application {
   private activating?: Promise<void>;
   private inFlight?: Promise<void>;
   private stopping?: Promise<void>;
+  private cleanup?: Promise<void>;
   private stopRequested = false;
   private cleanedUp = false;
   private stopFailed = false;
   private failure?: ApplicationStatus['failure'];
   private stage?: string;
   private readonly initialization: ApplicationInitialization;
+  private httpHostRegistered = false;
+  private readonly cleanupGraph: ReadonlyMap<string, readonly string[]>;
 
   public constructor(
     private readonly owner: PersistenceOwner,
@@ -121,8 +123,31 @@ export class ApplicationRuntime implements Application {
       if (!/^[A-Za-z][A-Za-z0-9_-]{0,99}$/.test(factory.name) || names.has(factory.name))
         throw new ApplicationLifecycleError('Application module names must be unique, bounded identifiers.');
       names.add(factory.name);
-      return { name: factory.name, create: factory.create.bind(factory) };
+      return {
+        name: factory.name,
+        requires: factory.requires && [...factory.requires],
+        create: factory.create.bind(factory),
+      };
     });
+    // One complete, offline graph. Registration order breaks ties; it never
+    // invents borrowing edges. Cleanup only projects this graph onto acquisitions.
+    const dependencies = new Map(
+      this.factories.map(factory => ['module:' + factory.name, (factory.requires ?? []).map(name => 'module:' + name)])
+    );
+    for (const [name, required] of dependencies)
+      if (required.some(target => target === name || !dependencies.has(target)))
+        throw new ApplicationLifecycleError('Module cleanup requires a different available module.');
+    const pending = new Set(dependencies.keys());
+    const ordered = new Map<string, readonly string[]>();
+    while (pending.size) {
+      const next = [...pending].find(
+        name => ![...pending].some(consumer => dependencies.get(consumer)!.includes(name))
+      );
+      if (!next) throw new ApplicationLifecycleError('Module cleanup dependencies contain a cycle.');
+      ordered.set(next, Object.freeze(dependencies.get(next)!));
+      pending.delete(next);
+    }
+    this.cleanupGraph = ordered;
     for (const stage of [
       initialization.coreBootstrap,
       initialization.extensionBootstrap,
@@ -232,7 +257,18 @@ export class ApplicationRuntime implements Application {
     quiescePersistence(this.owner);
   }
 
-  public stop(options: { deadlineMs?: number } = {}): Promise<void> {
+  /** The host borrows this owner; registration acquires no resource or listener. */
+  public registerHttpHost(resource: PersistenceResource, owner?: PersistenceOwner): PersistenceOwner {
+    if (this.state !== 'constructed' || this.httpHostRegistered)
+      throw new ApplicationLifecycleError('Register one HTTP host before application initialization.');
+    if (owner && owner !== this.owner)
+      throw new ApplicationLifecycleError('HTTP host must use the same persistence owner as its application.');
+    registerPersistenceResource(this.owner, 'http-requests', resource);
+    this.httpHostRegistered = true;
+    return this.owner;
+  }
+
+  public stop(options: { deadlineMs?: number; deadline?: number } = {}): Promise<void> {
     if (this.stopping) return this.stopping;
     if (this.cleanedUp) return Promise.resolve();
     const deadlineMs = options.deadlineMs ?? this.initialization.stopDeadlineMs ?? 30_000;
@@ -244,13 +280,30 @@ export class ApplicationRuntime implements Application {
     } catch (error) {
       quiesceFailure = error;
     }
-    const deadline = Date.now() + deadlineMs;
+    if (options.deadline !== undefined && (!Number.isSafeInteger(options.deadline) || options.deadline <= 0))
+      return Promise.reject(
+        new ApplicationLifecycleError('Application absolute deadline must be a positive timestamp.')
+      );
+    const deadline = Math.min(Date.now() + deadlineMs, options.deadline ?? Infinity);
     const attempt = Promise.resolve().then(async () => {
       // Wait for acquisition/activation to settle before initiating cleanup. This
       // is the stage work, not its failure handler (which may itself await stop).
       await this.withDeadline(this.inFlight?.catch(() => {}) ?? Promise.resolve(), deadline);
       if (quiesceFailure) throw quiesceFailure;
-      await this.withDeadline(cleanupPersistence(this.owner, { deadline }), deadline);
+      // A caller timeout does not settle the underlying resource drains/closes.
+      // Join that owned work before an explicit retry starts a fresh cleanup.
+      if (this.httpHostRegistered) {
+        await this.withDeadline(this.cleanup?.catch(() => {}) ?? Promise.resolve(), deadline);
+        if (Date.now() >= deadline)
+          throw new ApplicationLifecycleError(
+            'Application stop deadline exceeded. Resources remain owned; retry stop.'
+          );
+      }
+      this.cleanup = cleanupPersistence(this.owner, {
+        deadline,
+        cleanupGraph: this.httpHostRegistered ? this.cleanupGraph : undefined,
+      });
+      await this.withDeadline(this.cleanup, deadline);
       this.cleanedUp = true;
       this.stopFailed = false;
       this.state = 'stopped';

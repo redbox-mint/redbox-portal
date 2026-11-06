@@ -130,6 +130,64 @@ dependencies and acquire no resources. Request state never lives in controller
 fields. Stateful collaborators are initialized and closed by application modules;
 controllers borrow their operations. There are no global controller instances.
 
+### 4.1 Sealed HTTP composition boundary
+
+The seal prevents accidental misuse by trusted in-process first-party and
+extension code using Fastify's documented public API. Core composition receives
+an explicit registration capability; extensions use the typed controller, route
+and named-hook stages, never a raw Fastify instance. Unqualified registration APIs
+fail during composition. Public request/reply properties, method results and route
+metadata/configuration must preserve that capability boundary, including public
+keys read through descriptors, `Reflect.get`, destructuring or object spread.
+Capability view prototypes are null; allowlisted inherited public methods/getters
+remain available through ordinary property access. The framework itself uses raw
+objects. Views wrap only Fastify capabilities: instance/server, request/reply,
+route options/configuration, transports and capability-bearing logger/signal
+access. Request data (`body`, `query`, `params`, `headers`, cookies, validation
+results and raw HTTP data fields) stays native, including its identity, mutation,
+array methods, deletion, enumeration and JSON behavior. Never generically unwrap
+arguments to application functions. Only identified framework handoffs inside
+owned adapters may convert a capability back to a native framework object.
+
+Every exposed request/reply method that schedules callbacks or submits/returns
+work needs a qualified ownership adapter. The FM-012 contract retains `reply.then`
+completion callbacks, submitted `send(promise)` work, trailers, serializers and
+validation handles; `hijack` uses retained handler work and module/request drains.
+Unqualified early-hints callbacks, raw stream/event/AbortSignal callbacks and
+`send(stream/Response)` fail before work starts. No-callback early hints and
+no-callback raw writes/end remain available. Later integrations must qualify a
+specific addition through the documented stages and real ownership tests; they
+must not recover an unrestricted raw method. The exact pinned-version method
+table and its regression mapping live in [FM-012](evidence/FM-012.md#round-5-capability-only-views).
+
+One outgoing-payload classifier must match the selected Fastify version's own
+detection, including its Response brand check across implementations. Apply the
+union of every payload-consumption predicate, independent of status or method:
+Fastify 5.12.8 also consumes callable `resume` without `pipe` when discarding
+bodyless responses and generated HEAD payloads. Callable `pipe`, `resume`,
+`getReader` or the Response brand therefore identifies an unqualified producer.
+Audit the complete selected `lib/` implementation when upgrading. Apply the
+same policy to explicit/implicit sends, handler and fallback/error returns,
+promise and callback hook replacements, and serializer output/handles. An
+undefined hook replacement retains the original payload, which must still pass
+the policy after any in-place changes. Preserve native byte/string/object
+serialization behavior; do not treat bare async iterables as streams unless the
+selected Fastify version consumes them as streams. A rejected handoff must not
+start an unqualified producer. Producers started independently before handoff
+remain their application/module owner's responsibility.
+
+This is not an isolation sandbox for adversarial in-process JavaScript. Private
+Fastify Symbols, private implementation fields, constructor/prototype reflection
+and intentional access to raw integration internals are outside the supported
+contract. Request/reply views omit Fastify-private Symbol-keyed properties as an
+inexpensive guard against accidental private-context access. Core lifetime helpers
+retain their existing private Symbol seam across source/built modules; frozen
+metadata snapshots retain native array iteration. Application-owned handles stay
+native at explicit borrowing boundaries; the core server seam is reserved for
+qualified integration owners. Do not add reflection hardening or a parallel
+Fastify API to claim stronger isolation. Qualify additions to the public
+registration allowlist with ownership tests against the pinned Fastify version.
+
 ## 5. Controller and route contracts
 
 ### 5.1 Typed factories and declared actions
@@ -488,6 +546,11 @@ Offline checks validate declared names, dependencies, bindings and allowlist
 membership. Actual method callability and binding to the selected instance are
 checked in step 4, before readiness/listening. Do not run factories during offline
 inspection merely to claim instance checks happened before resource acquisition.
+Module borrowing edges come only from explicit `requires`; an omitted list and
+an empty list declare no borrowed modules. Validate the complete factory graph
+before any acquisition. Registration order breaks ties between eligible nodes;
+it never infers another edge. Rollback and stop use that same validated graph,
+projected onto resources actually acquired.
 
 Before step 5 there is no HTTP listener, including health. Once bound, `/healthz`
 reports liveness independently of `/readyz`; readiness and ordinary ingress remain
@@ -510,15 +573,17 @@ application cleanup protocol with `fastify.close()`.
 1. Set stop intent, close ordinary admission and mark not-ready immediately. Join
    concurrent stop calls. Quiesce the application and integrations.
 2. Await any in-flight acquisition/preparation/activation within the caller's
-   absolute deadline. Keep partially prepared resources owned meanwhile.
+   absolute deadline, including queued plugin initialization before transport
+   close can boot it. Keep partially prepared resources owned meanwhile.
 3. Stop accepting transport connections and begin the one tracked Fastify-close
    operation. Drain accepted request work, retained callbacks, session operations,
    uploads, jobs, transfers, sockets and streams through their owners. Transport
    closure and accepted work completion are independent observations.
 4. Application dependency-order cleanup releases consumers before their borrowed
-   dependencies, only after their work drains. Fastify close hooks release only
-   Fastify-owned resources. They must not close shared Mongo/domain clients or
-   wait cyclically for the application stop that is awaiting Fastify closure.
+   dependencies, only after their work drains. A failed consumer retains its
+   dependency frontier; independent branches may close. Fastify close hooks
+   release only Fastify-owned resources. They must not close shared Mongo/domain
+   clients or wait cyclically for the application stop awaiting Fastify closure.
 5. Mark stopped and remove owned signal handlers only after both transport and
    application cleanup succeed.
 

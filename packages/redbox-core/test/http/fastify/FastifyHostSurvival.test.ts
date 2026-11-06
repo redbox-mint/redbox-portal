@@ -39,7 +39,7 @@ function raw(port: number, target: string, method = 'GET', wire?: string): Promi
   });
 }
 
-async function inProcess<T>(kind: 'express' | 'fastify', run: (fixture: Fixture) => Promise<T>): Promise<T> {
+async function inProcess<T>(kind: 'express' | 'fastify' | 'native', run: (fixture: Fixture) => Promise<T>): Promise<T> {
   const child = fork(join(__dirname, 'fixtures/host-survival.cjs'), [kind], {
     execArgv: ['--unhandled-rejections=strict'],
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
@@ -169,18 +169,28 @@ describe('Fastify host process survival at request boundaries', function () {
     });
   });
 
-  it('handles synchronous/async hooks, admission rejection and native framework errors without process failure', async () => {
+  it('handles synchronous/async hooks, admission rejection and admission rejection without process failure', async () => {
     await inProcess('fastify', async fixture => {
       for (const active of [false, true]) {
         if (active) await fixture.command('activate');
-        for (const target of ['/sync-hook-error', '/async-hook-error', '/framework-error', '/probe']) {
+        for (const target of ['/sync-hook-error', '/async-hook-error', '/probe']) {
           if (target === '/probe') await fixture.command('status-error');
           const response = await raw(fixture.port, target);
-          const status = active || target === '/framework-error' || target === '/probe' ? 500 : 503;
+          const status = active || target === '/probe' ? 500 : 503;
           assert.match(response.status, new RegExp(`^HTTP/1.1 ${status} `));
-          if (target === '/framework-error') assert.equal(response.body, '{"error":"internal-server-error"}');
           await fixture.survives(active);
         }
+      }
+    });
+  });
+
+  it('keeps the raw core router framework-error boundary safe for asynchronous constraint errors', async () => {
+    await inProcess('native', async fixture => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const response = await raw(fixture.port, '/framework-error');
+        assert.match(response.status, /^HTTP\/1.1 500 /);
+        assert.equal(response.body, '{"error":"internal-server-error"}');
+        await fixture.command('ping');
       }
     });
   });

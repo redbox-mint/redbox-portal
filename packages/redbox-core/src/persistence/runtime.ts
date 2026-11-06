@@ -311,6 +311,14 @@ export function runAcceptedPersistenceWork<T>(app: PersistenceOwner, operation: 
   return promise;
 }
 
+/** Re-enter one still-owned accepted scope without replacing other plugin contexts. @internal */
+export function bindAcceptedPersistenceContext(app: PersistenceOwner): <T>(invoke: () => T) => T {
+  const state = stateFor(app);
+  const scope = state.context.getStore();
+  if (!scope?.active) throw new PersistenceError('lifecycle', 'An active accepted persistence scope is required.');
+  return invoke => state.context.run(scope, invoke);
+}
+
 export function persistenceOperation<T>(app: PersistenceOwner, operation: () => Promise<T>): Promise<T> {
   return runAcceptedPersistenceWork(app, () => Promise.resolve().then(operation));
 }
@@ -336,7 +344,10 @@ export async function drainAcceptedPersistenceWork(app: PersistenceOwner): Promi
   while (state.active.size) await Promise.allSettled(state.active);
 }
 
-export async function cleanupPersistence(app: PersistenceOwner, options: { deadline?: number } = {}): Promise<void> {
+export async function cleanupPersistence(
+  app: PersistenceOwner,
+  options: { deadline?: number; cleanupGraph?: ReadonlyMap<string, readonly string[]> } = {}
+): Promise<void> {
   const state = stateFor(app);
   if (state.closing) return state.closing;
   state.needsCleanup = true;
@@ -344,12 +355,18 @@ export async function cleanupPersistence(app: PersistenceOwner, options: { deadl
   state.ready = false;
   state.closing = (async () => {
     try {
-      await Promise.all(
-        Array.from(state.resources.values(), resource => Promise.resolve().then(() => resource.drain?.(options)))
+      const drains = Array.from(state.resources.values(), resource =>
+        Promise.resolve().then(() => resource.drain?.(options))
       );
+      if (options.cleanupGraph) {
+        // A failed drain cannot discard ownership of another still-running drain.
+        // Caller deadlines bound the wait; retries join this attempt until settled.
+        const outcomes = await Promise.allSettled(drains);
+        if (outcomes.some(result => result.status === 'rejected')) throw new Error('Resource drain failed.');
+      } else await Promise.all(drains);
     } catch {
-      // Report a deadline/failure without waiting for another live drain. All
-      // resources and operations stay owned; no failure can authorize closure.
+      // Legacy callers retain fail-fast drain behavior. Dependency-safe cleanup
+      // joins every drain; either path retains resources after a drain failure.
       throw new PersistenceError(
         'cleanup',
         'Persistence resource drain failed. Pools remain owned; stop users and retry cleanup.'
@@ -361,7 +378,32 @@ export async function cleanupPersistence(app: PersistenceOwner, options: { deadl
     await Promise.allSettled(Array.from(state.prisma.values(), entry => entry.client));
     await drainAcceptedPersistenceWork(app);
     const failures: unknown[] = [];
-    for (const [name, resource] of state.resources) {
+    const assertDeadline = () => {
+      if (options.cleanupGraph && options.deadline !== undefined && Date.now() >= options.deadline)
+        throw new PersistenceError('cleanup', 'Cleanup deadline exceeded. Resources remain owned; retry stop.');
+    };
+    // Keep registration order for unannotated resources. The prevalidated module
+    // graph supplies the order for modules, including when startup acquired a subset.
+    const acquiredModules = [...(options.cleanupGraph?.keys() ?? [])].filter(name => state.resources.has(name));
+    let moduleIndex = 0;
+    const names = options.cleanupGraph
+      ? [...state.resources.keys()].map(name =>
+          options.cleanupGraph!.has(name) ? acquiredModules[moduleIndex++] : name
+        )
+      : state.resources.keys();
+    for (const name of names) {
+      const resource = state.resources.get(name);
+      if (!resource) continue;
+      // Failed consumers remain in the registry, retaining their immediate and
+      // transitive dependencies. Independent branches can still close safely.
+      if (
+        options.cleanupGraph &&
+        [...options.cleanupGraph].some(
+          ([consumer, dependencies]) => state.resources.has(consumer) && dependencies.includes(name)
+        )
+      )
+        continue;
+      assertDeadline();
       try {
         await resource.close();
         state.resources.delete(name);
@@ -374,7 +416,9 @@ export async function cleanupPersistence(app: PersistenceOwner, options: { deadl
         'cleanup',
         'Persistence resource close failed; retry cleanup before closing borrowed pools.'
       );
+    assertDeadline();
     for (const [name, entry] of state.prisma) {
+      assertDeadline();
       try {
         const client = await entry.client.catch(() => undefined);
         await client?.close();
@@ -389,6 +433,7 @@ export async function cleanupPersistence(app: PersistenceOwner, options: { deadl
         'Unable to close all Prisma clients. Retry cleanup before closing borrowed pools.'
       );
     for (const [key, pool] of state.pools) {
+      assertDeadline();
       try {
         await pool.client.close();
         state.pools.delete(key);
@@ -397,6 +442,7 @@ export async function cleanupPersistence(app: PersistenceOwner, options: { deadl
       }
     }
     for (const client of state.failedClients) {
+      assertDeadline();
       try {
         await client.close();
         state.failedClients.delete(client);

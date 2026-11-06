@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { ServerResponse } from 'node:http';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 interface RequestLifetime {
@@ -59,7 +59,7 @@ function promiseLike(value: unknown): value is PromiseLike<unknown> {
 }
 
 /** Own transport and controller work separately: a disconnected client does not cancel a write. */
-export function beginHttpRequest(request: object, response: Response, complete: () => void, app?: object): void {
+export function beginHttpRequest(request: object, response: ServerResponse, complete: () => void, app?: object): void {
   const existing = lifetime(request);
   if (existing) {
     if (app && existing.app !== app) throw new Error('HTTP lifetime belongs to a different application.');
@@ -110,7 +110,7 @@ export function beginHttpRequest(request: object, response: Response, complete: 
   const originalEnd = response.end;
   // Install before express-session. Its saved-session callback reaches this end
   // only after the session write, including when no finish event follows an abort.
-  response.end = function (this: Response, ...args: unknown[]) {
+  response.end = function (this: ServerResponse, ...args: unknown[]) {
     try {
       return Reflect.apply(originalEnd, this, args);
     } finally {
@@ -119,7 +119,7 @@ export function beginHttpRequest(request: object, response: Response, complete: 
       state.callbackPending = false;
       state.check();
     }
-  } as Response['end'];
+  } as ServerResponse['end'];
 }
 
 /** Response middleware retains its own callback independently of action errors. */
@@ -200,6 +200,21 @@ export function runHttpRequestHandler<T>(request: unknown, invoke: () => T): T |
   } catch (error) {
     state.callbackPending = false;
     throw error;
+  } finally {
+    state.dispatching--;
+    state.check();
+  }
+}
+
+/** Native request entry points own returned work without Express callback handoff rules. @internal */
+export function runHttpRequestWork<T>(request: unknown, invoke: () => T): T {
+  const state = lifetime(request);
+  if (!state || state.completed) return invoke();
+  state.dispatching++;
+  try {
+    const result = runHttpRequestContext(request, invoke);
+    if (promiseLike(result)) ownWork(state, result);
+    return result;
   } finally {
     state.dispatching--;
     state.check();

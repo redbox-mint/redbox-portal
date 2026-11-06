@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { METHODS } from 'node:http';
 import { Readable } from 'node:stream';
-import type { FastifyInstance, FastifyRequest, FastifyReply, HTTPMethods } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply, HTTPMethods, RouteOptions } from 'fastify';
 import type { HTTPMethod as NativeMethod } from 'find-my-way';
 import { parse, type Token } from 'path-to-regexp';
 import { canonicalHttpRoutePath, type ResolvedRegistration } from '../../extensions/resolution';
@@ -18,6 +18,15 @@ import { adminApiRoutes } from '../../api-routes/groups/admin';
 import { assertPortalRouter, createNativeRouter, routerConstraints, routerUrl } from './router';
 export { createPortalRouter, portalRouterOptions } from './router';
 export { coreRoutePrecedence } from './precedence';
+/** The route plan needs only these registration capabilities; both the native
+ * offline routing probes and sealed host facade implement this protocol. */
+interface RouteInstaller {
+  readonly initialConfig: FastifyInstance['initialConfig'];
+  readonly supportedMethods: readonly string[];
+  addHttpMethod(...args: Parameters<FastifyInstance['addHttpMethod']>): unknown;
+  addHook(name: 'onRequest', hook: (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>): unknown;
+  route(options: RouteOptions): unknown;
+}
 type NativeRouter = ReturnType<typeof createNativeRouter>;
 
 export type HeadPolicy =
@@ -308,7 +317,7 @@ function validateAccess(
 }
 
 /** Add the Node methods supported by find-my-way, so ALL retains e.g. PROPFIND. */
-function configureMethods(app: FastifyInstance): void {
+function configureMethods(app: Pick<RouteInstaller, 'supportedMethods' | 'addHttpMethod'>): void {
   for (const method of METHODS)
     if (!app.supportedMethods.includes(method)) app.addHttpMethod(method, { hasBody: true });
 }
@@ -477,7 +486,7 @@ export interface RouteComposition {
   readonly bindings: readonly RouteBinding[];
   readonly overlaps: readonly RouteOverlap[];
   /** Guards own policy/CSRF/validation ordering; called even for implicit/denied HEAD. */
-  install(app: FastifyInstance, controllers: Pick<ControllerInstances, 'action'>, guards: RouteGuards): void;
+  install(app: RouteInstaller, controllers: Pick<ControllerInstances, 'action'>, guards: RouteGuards): void;
 }
 export type RouteGuards = (binding: RouteBinding, request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 
