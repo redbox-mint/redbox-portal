@@ -41,7 +41,7 @@
             <label class="people-member-result" [class.people-member-selected]="selectedCandidateId === user.id"><input type="radio" name="new-role-member" [value]="user.id" [(ngModel)]="selectedCandidateId"><span><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span></span></label>
           } @empty { @if (!candidatesLoading) { <p class="rb-admin-hint" role="status">{{ 'admin-roles-no-candidates' | i18next }}</p> } }
           </fieldset>
-          <nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: candidatePage, totalPages: candidatePages }"><button type="button" class="btn btn-outline-secondary" [disabled]="saving || candidatesLoading || candidatePage <= 1" (click)="searchMembers(candidatePage - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ candidatePage }} / {{ candidatePages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="saving || candidatesLoading || candidatePage >= candidatePages" (click)="searchMembers(candidatePage + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav>
+          <rb-admin-pager [page]="candidatePage" [totalPages]="candidatePages" [disabled]="saving || candidatesLoading" (pageChange)="searchMembers($event)"></rb-admin-pager>
         </div>
       }
       @if (saveError && !pendingRemoval) { <div class="alert alert-danger" role="alert">{{ saveError }} <button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers" (click)="loadMembers(page)">{{ 'admin-retry' | i18next }}</button></div> }
@@ -58,7 +58,7 @@
           }</tbody>
         </table></div>
       } @else { <div class="rb-admin-empty"><i class="fa fa-users fa-2x" aria-hidden="true"></i><h3>{{ 'admin-roles-empty' | i18next }}</h3><p>{{ 'admin-roles-empty-help' | i18next }}</p></div> }
-      <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStart, end: pageStart ? pageStart + users.length - 1 : 0, total: totalMembers } }}</span><nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: page, totalPages: totalPages }"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers || saving || page <= 1" (click)="loadMembers(page - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ page }} / {{ totalPages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers || saving || page >= totalPages" (click)="loadMembers(page + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav></div>
+      <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStart, end: pageStart ? pageStart + users.length - 1 : 0, total: totalMembers } }}</span><rb-admin-pager [page]="page" [totalPages]="totalPages" [disabled]="loadingMembers || saving" (pageChange)="loadMembers($event)"></rb-admin-pager></div>
       <div class="card-footer"><span id="role-admin-protection">{{ (role.name === 'Admin' ? 'admin-roles-admin-protection' : 'admin-roles-members-hint') | i18next }}</span></div>
     </section>
     } @else { <div class="rb-admin-empty"><h3>{{ 'admin-roles-no-roles' | i18next }}</h3></div> }

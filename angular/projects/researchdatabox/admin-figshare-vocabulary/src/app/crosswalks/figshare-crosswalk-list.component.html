@@ -1,3 +1,5 @@
+
+<div [attr.inert]="pendingDelete ? '' : null">
 <div class="card">
   <div class="card-header"><h2>{{ 'figshare-vocab-tab-crosswalks' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ filteredItems.length | adminCount: 'crosswalk': total }}</span></div>
   <div *ngIf="total > 0 || search || statusFilter" class="rb-admin-filter-bar">
@@ -63,7 +65,7 @@
         <td>{{ crosswalk.approvedMappingCount }} / {{ crosswalk.workingMappingCount }}</td>
         <td class="rb-admin-actions-col">
 <div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="editRequested.emit(crosswalk)">{{ 'figshare-vocab-action-manage' | i18next }}</button>
-        <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div><button type="button" class="btn btn-sm btn-outline-danger" (click)="requestDelete(crosswalk); actions.open = false">{{ 'figshare-vocab-action-delete' | i18next }}</button></div></details></div>
+        <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: crosswalk.name }">⋯</summary><div><button type="button" class="btn btn-sm btn-outline-danger" (click)="requestDelete(crosswalk); actions.open = false">{{ 'figshare-vocab-action-delete' | i18next }}</button></div></details></div>
         </td>
       </tr>
       }
@@ -73,6 +75,7 @@
   <rb-admin-list-footer [total]="filteredItems.length" [end]="filteredItems.length"></rb-admin-list-footer>
 </div>
 
+</div>
 @if (pendingDelete) {
 <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
   aria-labelledby="figshareCrosswalkDeleteTitle" (keydown.escape)="cancelDelete()">

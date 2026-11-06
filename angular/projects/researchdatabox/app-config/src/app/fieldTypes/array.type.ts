@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { FieldArrayType } from '@ngx-formly/core';
 
 @Component({
@@ -22,7 +22,7 @@ import { FieldArrayType } from '@ngx-formly/core';
         <div class="app-config-array-item d-flex gap-2 align-items-start mb-3">
           <formly-field class="flex-grow-1" [field]="field"></formly-field>
           <div class="text-end">
-            <button type="button" (click)="remove(i)"
+            <button #removeButton type="button" (click)="remove(i)"
             class="btn btn-sm btn-outline-danger" [attr.aria-label]="'admin-config-remove-item' | i18next: { number: i + 1 }">×</button>
           </div>
         </div>
@@ -30,7 +30,7 @@ import { FieldArrayType } from '@ngx-formly/core';
     
       <div class="row">
         <span class="col-xs-12">
-          <button type='button' (click)="add()"
+          <button #addButton type='button' (click)="add()"
           class="btn btn-sm btn-outline-secondary">+ {{ 'admin-config-add-item' | i18next }}</button>
         </span>
       </div>
@@ -38,4 +38,15 @@ import { FieldArrayType } from '@ngx-formly/core';
     `,
     standalone: false
 })
-export class ArrayTypeComponent extends FieldArrayType {}
+export class ArrayTypeComponent extends FieldArrayType {
+  @ViewChildren('removeButton') removeButtons!: QueryList<ElementRef<HTMLButtonElement>>;
+  @ViewChild('addButton') addButton?: ElementRef<HTMLButtonElement>;
+
+  override remove(index: number): void {
+    super.remove(index);
+    setTimeout(() => {
+      const buttons = this.removeButtons.toArray();
+      (buttons[Math.min(index, buttons.length - 1)]?.nativeElement ?? this.addButton?.nativeElement)?.focus();
+    });
+  }
+}

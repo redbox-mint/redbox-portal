@@ -112,11 +112,14 @@
             </small>
 
           }
+
+        </div>
+      </div>
+      <div class="rb-admin-filter-bar justify-content-end">
           <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="jobsLoading || mutationPending" (click)="refreshJobs()">
             <i class="fa fa-refresh" [class.fa-spin]="jobsLoading" aria-hidden="true"></i>
             {{ (jobsLoading ? 'export-refreshing' : 'export-refresh') | i18next }}
           </button>
-        </div>
       </div>
       <div>
         @if (jobsErrorKey) {

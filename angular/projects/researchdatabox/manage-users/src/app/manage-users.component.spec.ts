@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { A11yModule, CdkTrapFocus } from '@angular/cdk/a11y';
-import { AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { By } from '@angular/platform-browser';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
@@ -140,7 +140,7 @@ describe('ManageUsersComponent', () => {
       declarations: [
         ManageUsersComponent
       ],
-      imports: [AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
+      imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,

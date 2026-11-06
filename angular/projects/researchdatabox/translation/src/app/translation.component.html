@@ -105,11 +105,7 @@
       <span aria-live="polite">{{ 'admin-tx-range' | i18next: { start: (rangeStart | number), end: (rangeEnd | number), total: (viewEntries().length | number) } }}</span>
       <div class="tx-pagination-controls">
         <label for="tx-page-size">{{ 'admin-tx-per-page' | i18next }}</label><select id="tx-page-size" class="form-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()"><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select>
-        <nav [attr.aria-label]="'admin-tx-pagination' | i18next"><ul class="pagination">
-          <li class="page-item" [class.disabled]="page === 1"><button type="button" class="page-link" [disabled]="page === 1" (click)="setPage(page - 1)" [attr.aria-label]="'admin-tx-previous' | i18next">‹</button></li>
-          <li *ngFor="let n of visiblePages" class="page-item" [class.active]="page === n"><button type="button" class="page-link" [attr.aria-current]="page === n ? 'page' : null" [attr.aria-label]="'admin-tx-page' | i18next: { page: n }" (click)="setPage(n)">{{ n }}</button></li>
-          <li class="page-item" [class.disabled]="page === totalPages"><button type="button" class="page-link" [disabled]="page === totalPages" (click)="setPage(page + 1)" [attr.aria-label]="'admin-tx-next' | i18next">›</button></li>
-        </ul></nav>
+        <rb-admin-pager [page]="page" [totalPages]="totalPages" (pageChange)="setPage($event)"></rb-admin-pager>
       </div>
     </div>
   </section>

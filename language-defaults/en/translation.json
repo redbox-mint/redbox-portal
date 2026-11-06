@@ -3553,5 +3553,17 @@
   "admin-config-binding-crosswalk-required": "Select an approved crosswalk.",
   "admin-config-binding-crosswalk-unavailable": "The selected crosswalk is not available for this brand.",
   "admin-config-binding-vocabulary-mismatch": "The crosswalk maps a different local vocabulary.",
-  "admin-config-binding-approval-required": "Approve a mapping revision before selecting this crosswalk."
+  "admin-config-binding-approval-required": "Approve a mapping revision before selecting this crosswalk.",
+  "admin-config-category-title": "Category mappings",
+  "admin-config-category-add": "Add row",
+  "admin-config-category-source": "Source code",
+  "admin-config-category-target": "Figshare category ID",
+  "admin-config-category-remove": "Remove",
+  "admin-config-category-remove-row": "Remove category mapping {{name}}",
+  "admin-config-category-empty": "No mappings configured.",
+  "admin-config-category-help": "Used only when the Categories binding is not a crosswalk binding. Setting that binding’s type to crosswalk resolves categories through the crosswalk instead, leaving these rows unchanged.",
+  "admin-config-using-defaults": "Using defaults",
+  "admin-row-control": "{{label}} — {{row}}",
+  "admin-pagination": "Pagination",
+  "admin-pagination-page": "Page {{page}}"
 }

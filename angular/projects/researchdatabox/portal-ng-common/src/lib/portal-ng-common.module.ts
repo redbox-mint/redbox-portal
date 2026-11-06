@@ -1,3 +1,4 @@
+import { AdminPagerComponent } from './admin-pager.component';
 import { AdminListFooterComponent } from './admin-list-footer.component';
 import { AdminDiscardDialogComponent } from './admin-discard-dialog.component';
 import { AdminOverflowDirective } from './admin-overflow.directive';
@@ -67,6 +68,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   ],
   imports: [
     AdminListFooterComponent,
+    AdminPagerComponent,
     AdminModalDirective,
     AdminOverflowDirective,
     AdminDiscardDialogComponent,
@@ -84,6 +86,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   ],
   exports: [
     AdminListFooterComponent,
+    AdminPagerComponent,
     AdminModalDirective,
     AdminOverflowDirective,
     AdminDiscardDialogComponent,
