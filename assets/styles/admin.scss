@@ -193,6 +193,12 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     :is(h2, h3) { margin: 0; font-size: 16px; font-weight: 600; color: inherit; }
     .btn-outline-secondary { color: inherit; border: 1px solid currentColor; background: transparent; &:hover { background: color-mix(in srgb, currentColor 12%, transparent); } }
   }
+  .card.rb-admin-card-secondary > .card-header {
+    background: var(--admin-bg); color: var(--admin-heading);
+    .btn-outline-secondary { color: var(--admin-ink); border-color: var(--admin-line);
+      &:hover, &:focus-visible { background: var(--admin-surface); border-color: var(--admin-muted); }
+    }
+  }
   .card-body { padding: 16px; }
   .card-footer {
     display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
@@ -352,8 +358,6 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-empty-section { margin: 0; }
     .app-config-preview h2 { margin: 0 0 8px; font-size: 14px; }
     .app-config-banner-preview { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); overflow: hidden; }
-    .app-config-preview-brand { height: 10px; background: var(--admin-brand); }
-    .app-config-preview-nav { height: 14px; background: var(--rb-main-menu-branding-background-color, var(--admin-heading)); }
     .app-config-preview-body { padding: 16px; }
     .app-config-preview-message { display: block; overflow-wrap: anywhere; }
     .app-config-preview-message h4 { font-size: 16px; margin-bottom: 6px; }
