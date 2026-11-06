@@ -11,7 +11,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
       <div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div>
     } @else {
       <section class="app-config-subsection">
-        <div class="app-config-subsection-header"><h4>{{ props.label || field.key }}</h4>
+        <div class="app-config-subsection-header"><h3>{{ props.label || field.key }}</h3>
           @if (enabledField; as enabled) { <formly-field [field]="enabled"></formly-field> }
         </div>
         @if (props.description) { <p class="rb-admin-hint">{{ props.description }}</p> }
