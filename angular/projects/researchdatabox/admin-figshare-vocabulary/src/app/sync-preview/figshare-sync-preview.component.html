@@ -6,6 +6,7 @@
   @if (!preview) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else {
+  <div [attr.inert]="confirming ? '' : null">
   <div class="rb-admin-stats">
     <div class="rb-admin-stat">
       <b>{{ preview.summary.added }}</b>
@@ -184,6 +185,7 @@
     </button>
   </div>
 
+  </div>
   @if (confirming) {
   <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
     aria-labelledby="figshareApplyTitle" (keydown.escape)="cancelApply()">

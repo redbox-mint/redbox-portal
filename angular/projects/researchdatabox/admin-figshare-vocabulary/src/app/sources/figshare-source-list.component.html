@@ -63,7 +63,7 @@
         </td>
         <td class="rb-admin-actions-col">
 <div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="editRequested.emit(source)">{{ 'figshare-vocab-action-edit' | i18next }}</button><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">{{ 'figshare-vocab-action-resync' | i18next }}</button>
-        <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
+        <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: source.displayName }">⋯</summary><div>
           <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-clone' | i18next }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" (click)="historyRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-history' | i18next }}</button>
         </div></details></div>

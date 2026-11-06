@@ -119,23 +119,23 @@
                       @for (filter of selectedReport.filter; track trackByIndex($index)) {
                         <tr>
                           <td>
-                            <select class="form-select" [attr.aria-label]="'report-filter-type' | i18next" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
+                            <select class="form-select" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-type' | i18next), row: $index + 1 }" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
                               <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
                               <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
                             </select>
                           </td>
-                          <td><input class="form-control" type="text" [attr.aria-label]="'report-filter-parameter' | i18next" [(ngModel)]="filter.paramName"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-parameter' | i18next), row: $index + 1 }" [(ngModel)]="filter.paramName"></td>
                           <td>
                             @if (filter.type === 'date-range' && filter.database) {
-                              <input class="form-control report-editor-stacked" type="text" [placeholder]="'report-filter-from-property' | i18next" [attr.aria-label]="'report-filter-from-property' | i18next" [(ngModel)]="filter.database.fromProperty">
-                              <input class="form-control" type="text" [placeholder]="'report-filter-to-property' | i18next" [attr.aria-label]="'report-filter-to-property' | i18next" [(ngModel)]="filter.database.toProperty">
+                              <input class="form-control report-editor-stacked" type="text" [placeholder]="'report-filter-from-property' | i18next" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-from-property' | i18next), row: $index + 1 }" [(ngModel)]="filter.database.fromProperty">
+                              <input class="form-control" type="text" [placeholder]="'report-filter-to-property' | i18next" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-to-property' | i18next), row: $index + 1 }" [(ngModel)]="filter.database.toProperty">
                             } @else {
-                              <input class="form-control" type="text" [attr.aria-label]="'report-filter-property' | i18next" [(ngModel)]="filter.property">
+                              <input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-property' | i18next), row: $index + 1 }" [(ngModel)]="filter.property">
                             }
                           </td>
-                          <td><input class="form-control" type="text" [attr.aria-label]="'report-filter-label' | i18next" [(ngModel)]="filter.message"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-label' | i18next), row: $index + 1 }" [(ngModel)]="filter.message"></td>
                           <td class="rb-admin-actions-col text-center">
-                            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeFilter($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeFilter($index)" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-action-remove' | i18next), row: $index + 1 }"><i class="fa fa-times" aria-hidden="true"></i></button>
                           </td>
                         </tr>
                       }
@@ -164,12 +164,12 @@
                     <tbody>
                       @for (column of selectedReport.columns; track trackByIndex($index)) {
                         <tr>
-                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-label' | i18next" [(ngModel)]="column.label"></td>
-                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-property' | i18next" [(ngModel)]="column.property"></td>
-                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-display-template' | i18next" [(ngModel)]="column.template"></td>
-                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-export-template' | i18next" [(ngModel)]="column.exportTemplate"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-label' | i18next), row: $index + 1 }" [(ngModel)]="column.label"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-property' | i18next), row: $index + 1 }" [(ngModel)]="column.property"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-display-template' | i18next), row: $index + 1 }" [(ngModel)]="column.template"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-export-template' | i18next), row: $index + 1 }" [(ngModel)]="column.exportTemplate"></td>
                           <td class="rb-admin-actions-col text-center">
-                            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeColumn($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeColumn($index)" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-action-remove' | i18next), row: $index + 1 }"><i class="fa fa-times" aria-hidden="true"></i></button>
                           </td>
                         </tr>
                       }

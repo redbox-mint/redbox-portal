@@ -81,6 +81,8 @@ export class RecordTableComponent extends BaseComponent {
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
 
+  get adminTotalPages(): number { return Math.max(1, Math.ceil(this.dataSource.getCurrentPage().total / this.paginationItemsPerPage)); }
+
   get adminPageEnd(): number {
     const page = this.dataSource.getCurrentPage();
     return Math.min(page.pageNum * this.paginationItemsPerPage, page.total);
@@ -168,7 +170,7 @@ export class RecordTableComponent extends BaseComponent {
     return retVal;
   }
 
-  async gotoPage(page: number, pageModel: NgModel) {
+  async gotoPage(page: number, pageModel?: NgModel) {
     if (this.paginationPending || this.paginationDisabled || page === this.dataSource.getCurrentPage().pageNum) {
       return;
     }
@@ -178,7 +180,7 @@ export class RecordTableComponent extends BaseComponent {
     } finally {
       // Reset both NgModel's cached value and the control, even when the loaded
       // page is unchanged. Keep the guard set while reset emits ngModelChange.
-      pageModel.reset(this.dataSource.getCurrentPage().pageNum);
+      pageModel?.reset(this.dataSource.getCurrentPage().pageNum);
       this.paginationPending = false;
     }
   }

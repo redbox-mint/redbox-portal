@@ -309,7 +309,7 @@ describe('AppConfigComponent', () => {
   }
 
   for (const configKey of ['menu', 'homePanels', 'adminSidebar']) {
-    it(`confirms reset, reloads defaults and disables reset for ${configKey}`, async () => {
+    it(`confirms reset, reloads defaults and shows a default badge for ${configKey}`, async () => {
       const read = spyOn(appConfigService, 'getAppConfigForm').and.returnValue({ schema: { type: 'object', properties: { label: { type: 'string' } } }, model: { label: 'custom' }, hasOverride: true });
       const fixture = TestBed.createComponent(AppConfigComponent);
       const component = fixture.componentInstance;
@@ -328,8 +328,8 @@ describe('AppConfigComponent', () => {
       expect(appConfigService.resetAppConfig).toHaveBeenCalledOnceWith(configKey);
       expect(component.model.label).toBe('default');
       expect(component.dirty).toBeFalse();
-      expect(button.disabled).toBeTrue();
-      expect(fixture.nativeElement.querySelector('.rb-admin-page-header .rb-admin-hint')?.textContent).toContain('admin-config-reset-defaults-hint');
+      expect(fixture.nativeElement.querySelector('.rb-admin-page-header button')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.rb-admin-page-header .badge')?.textContent).toContain('admin-config-using-defaults');
       expect(fixture.nativeElement.textContent).toContain('admin-config-reset-success');
       expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeFalsy();
       fixture.destroy();
@@ -1230,6 +1230,40 @@ describe('AppConfigComponent', () => {
       schema: { type: 'object', properties: { first: { type: 'string' }, second: { type: 'string' }, third: { type: 'string' } } }, model: { first: 'a', second: 'b', third: 'c' } });
     expect(fixture.componentInstance.sections.flatMap(section => section.fieldGroup!.map(field => field.key))).toEqual(['second', 'first', 'third']);
     expect(fixture.componentInstance.model).toEqual({ first: 'a', second: 'b', third: 'c' });
+    fixture.destroy();
+  });
+
+  it('keeps removal focus on the next chip, then previous chip, then add input', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { values: { type: 'array', items: { type: 'string' } } } }, model: { values: ['One', 'Two', 'Three'] } });
+    const buttons = () => Array.from(fixture.nativeElement.querySelectorAll('.rb-admin-chip button')) as HTMLButtonElement[];
+    buttons()[1].focus(); buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(buttons()[1]);
+    buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(buttons()[0]);
+    buttons()[0].click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('app-config-chips input'));
+    fixture.destroy();
+  });
+
+  it('keeps array removal focus on adjacent rows and falls back to Add item', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { rows: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } } } } }, model: { rows: [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }] } });
+    const buttons = () => Array.from(fixture.nativeElement.querySelectorAll('.app-config-array-item > .text-end button')) as HTMLButtonElement[];
+    buttons()[1].focus(); buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(buttons()[1]);
+    buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(buttons()[0]);
+    buttons()[0].click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('formly-array-type > div > .row button'));
+    fixture.destroy();
+  });
+
+  it('gives category editors separate ids with local label associations', async () => {
+    const mapping = { type: 'array', widget: { formlyConfig: { type: 'figshare-category-mapping-editor' } }, items: { type: 'object', properties: { sourceCode: { type: 'string' }, figshareCategoryId: { type: 'integer' } } } };
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { first: mapping, second: mapping } }, model: { first: [{ sourceCode: 'A', figshareCategoryId: 1 }], second: [{ sourceCode: 'B', figshareCategoryId: 2 }] } });
+    const inputs = Array.from(fixture.nativeElement.querySelectorAll('formly-figshare-category-mapping-editor-type input')) as HTMLInputElement[];
+    expect(inputs.length).toBe(4);
+    expect(new Set(inputs.map(input => input.id)).size).toBe(4);
+    fixture.nativeElement.querySelectorAll('formly-figshare-category-mapping-editor-type label').forEach((label: HTMLLabelElement) => expect(label.control?.closest('formly-figshare-category-mapping-editor-type')).toBe(label.closest('formly-figshare-category-mapping-editor-type')));
     fixture.destroy();
   });
 

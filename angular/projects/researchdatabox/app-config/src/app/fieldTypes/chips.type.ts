@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { FieldArrayType } from '@ngx-formly/core';
 
@@ -12,7 +12,7 @@ import { FieldArrayType } from '@ngx-formly/core';
         @for (child of field.fieldGroup; track child; let i = $index) {
           <span class="rb-admin-chip" [class.app-config-invalid-chip]="child.formControl?.invalid">
             {{ child.formControl?.value }}
-            <button type="button" [disabled]="props.disabled" [attr.aria-label]="'admin-config-remove-chip' | i18next: { value: child.formControl?.value }" (click)="remove(i)">×</button>
+            <button #removeButton type="button" [disabled]="props.disabled" [attr.aria-label]="'admin-config-remove-chip' | i18next: { value: child.formControl?.value }" (click)="remove(i)">×</button>
           </span>
         }
         <input #entry type="text" [id]="id + '-add'" [disabled]="!!props.disabled" [attr.aria-describedby]="id + '-hint'" [placeholder]="'admin-config-chip-placeholder' | i18next" (keydown.enter)="commit($event, entry)" (keydown.comma)="commit($event, entry)" (blur)="commit($event, entry)">
@@ -27,7 +27,16 @@ import { FieldArrayType } from '@ngx-formly/core';
 })
 export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDestroy {
   @ViewChild('entry') entry?: ElementRef<HTMLInputElement>;
+  @ViewChildren('removeButton') removeButtons!: QueryList<ElementRef<HTMLButtonElement>>;
   private changes?: Subscription;
+
+  override remove(index: number): void {
+    super.remove(index);
+    setTimeout(() => {
+      const buttons = this.removeButtons.toArray();
+      (buttons[Math.min(index, buttons.length - 1)]?.nativeElement ?? this.entry?.nativeElement)?.focus();
+    });
+  }
 
   ngOnInit(): void {
     this.changes = this.formControl.valueChanges.subscribe(() => {

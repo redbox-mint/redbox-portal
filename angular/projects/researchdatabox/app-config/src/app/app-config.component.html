@@ -14,9 +14,11 @@
       <header class="rb-admin-page-header">
         <div><h1>{{ title }}</h1><p>{{ descriptionKey | i18next }}</p></div>
         @if (navigationEditor) {
-          <div class="rb-admin-page-actions"><span [attr.tabindex]="!hasOverride ? -1 : null">
-            <button type="button" class="btn btn-outline-secondary" [disabled]="!hasOverride || formSaving" (click)="openReset($event)">{{ 'admin-config-reset' | i18next }}</button>
-          </span>@if (!hasOverride) { <span class="rb-admin-hint">{{ 'admin-config-reset-defaults-hint' | i18next }}</span> }</div>
+          <div class="rb-admin-page-actions">
+            @if (hasOverride) {
+              <button type="button" class="btn btn-outline-secondary" [disabled]="formSaving" (click)="openReset($event)">{{ 'admin-config-reset' | i18next }}</button>
+            } @else { <span class="badge">{{ 'admin-config-using-defaults' | i18next }}</span> }
+          </div>
         }
         @if ((longForm || enabledField) && !empty) {
           <div class="rb-admin-page-actions">

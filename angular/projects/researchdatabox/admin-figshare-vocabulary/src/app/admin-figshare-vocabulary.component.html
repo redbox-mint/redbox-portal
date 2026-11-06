@@ -7,7 +7,7 @@
     <div><h1>{{ 'figshare-vocab-page-title' | i18next }}</h1><p>{{ 'figshare-vocab-page-description' | i18next }}</p></div>
     <div class="rb-admin-page-actions">
       <a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/appconfig/edit/figsharePublishing'">{{ 'figshare-vocab-publishing-settings' | i18next }}</a>
-      <button *ngIf="view === 'sources' || view === 'crosswalks' || view === 'history'" type="button" class="btn btn-primary" (click)="startImport()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'figshare-vocab-add-action' | i18next }}</button>
+      <button *ngIf="view === 'sources' || view === 'crosswalks' || view === 'history'" type="button" class="btn btn-primary figshare-add-source" (click)="startImport()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'figshare-vocab-add-action' | i18next }}</button>
     </div>
   </header>
   <div *ngIf="showStatistics && (view === 'sources' || view === 'crosswalks' || view === 'history')" class="rb-admin-stats">
