@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/17-council-ux` (v2 round 6): red standalone card headers, linked field descriptions and connection hints, and automatic Connection expansion when a base URL is required.
+
 Delivered on `admin-deferred/17-council-ux` (batch 9): soft system-message banners, guarded nested editors, predictable removal focus, named controls, translated category mappings, shared ellipsis pagination, and consistent cards, defaults and row actions.
 
 Delivered on `admin-deferred/17-council-ux` (batch 6): deliberate role assignment, dirty-editor discard confirmation, unique binding controls, tablet layout fixes, consistent technical values and action buttons, and navigation/translation accessibility polish.
@@ -58,8 +60,8 @@ Backend-dependent features remain listed in [DEFERRED.md](DEFERRED.md).
 1. **One page header.** Breadcrumb (`Admin / Section / Page`), left-aligned H1, a one-line description, and
    right-aligned actions with at most one primary button. No centred titles, no H1 repeated as an H2, no
    empty gap above the content.
-2. **One container.** The existing red panel header (`card` + `card-h`) for primary lists. White section cards
-   (`fsec`) for forms.
+2. **One container.** The existing red panel header for standalone list and form cards. Collapsible app-config
+   sections, dashboard subsections, dialogs and nested query editors retain neutral headers.
 3. **One button scale.** Primary = theme `--rb-primary` (blue). Secondary = outline. Destructive = outline red;
    solid red only inside a confirmation dialog. No cyan/info buttons, no uppercase "SUBMIT", no legacy
    `#428bca` submit colour. Labels in sentence case.

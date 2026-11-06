@@ -190,6 +190,11 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .form-switch .form-check-label { margin: 0; }
   .form-switch .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
   .app-config-settings-off { filter: grayscale(1); }
+  // An off integration mutes its controls without changing standalone header colours.
+  .app-config-form-main.app-config-settings-off {
+    filter: none;
+    :is(.rb-admin-form-section-body, summary.rb-admin-form-section-header) { filter: grayscale(1); }
+  }
   .rb-admin-mono:not(:has(input, textarea)), .rb-admin-mono :is(input, textarea), code { font-family: var(--admin-mono); font-size: var(--admin-mono-size); }
   .rb-admin-discard-backdrop { z-index: 1060; }
   .rb-admin-discard-modal { z-index: 1070; }
@@ -204,7 +209,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     :is(h2, h3) { margin: 0; font-size: 16px; font-weight: 600; color: inherit; }
     .btn-outline-secondary { color: inherit; border: 1px solid currentColor; background: transparent; &:hover { background: color-mix(in srgb, currentColor 12%, transparent); } }
   }
-  .card.rb-admin-card-secondary > .card-header {
+  // Nested query clauses are inline editors, rather than standalone cards.
+  .card.nq-inline-card > .card-header {
     background: var(--admin-bg); color: var(--admin-heading);
     .btn-outline-secondary { color: var(--admin-ink); border-color: var(--admin-line);
       &:hover, &:focus-visible { background: var(--admin-surface); border-color: var(--admin-muted); }
@@ -309,6 +315,17 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     p { margin: 2px 0 0; font-size: 13px; color: var(--admin-muted); }
     .form-check { margin-bottom: 0; flex-shrink: 0; }
     .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
+  }
+  // Standalone form cards share the list-card header. Keep collapsible sections,
+  // dashboard subsections and dialog content on their existing neutral surfaces.
+  .rb-admin-form-section-header:not(:where(details > summary, dashboard-config-editor *, .modal *, dialog *, [role='dialog'] *, [role='alertdialog'] *)) {
+    background: var(--admin-panel); color: var(--admin-panel-text);
+    border-radius: calc(var(--admin-radius) - 1px) calc(var(--admin-radius) - 1px) 0 0;
+    :is(h2, h3, p, a, .rb-admin-hint, .form-check-label) { color: inherit; }
+    .btn-outline-secondary {
+      color: inherit; border-color: transparent; background: transparent;
+      &:hover, &:focus-visible { background: color-mix(in srgb, var(--admin-panel-text) 15%, transparent); border-color: currentColor; }
+    }
   }
   details.rb-admin-form-section:not([open]) > summary { border-bottom: 0; }
   summary.rb-admin-form-section-header { cursor: pointer; }
