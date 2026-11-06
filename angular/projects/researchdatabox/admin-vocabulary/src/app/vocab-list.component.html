@@ -29,7 +29,7 @@
         <td>{{ vocabulary.source === 'rva' ? (vocabulary.lastSyncedAt ? adminDates.format(vocabulary.lastSyncedAt) : ('admin-vocabulary-never-synced' | i18next)) : '—' }}</td>
         <td class="rb-admin-actions-col text-end"><div class="rb-admin-row-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" (click)="vocabulary.source === 'rva' ? syncRequested.emit(vocabulary.id) : open(vocabulary.id)">{{ (vocabulary.source === 'rva' ? 'admin-vocabulary-sync-action' : isReadOnly(vocabulary) ? 'admin-vocabulary-view' : 'admin-vocabulary-edit') | i18next }}</button>
-          <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false">
+          <details rbAdminOverflow class="rb-admin-overflow" #actions>
             <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
               <button class="btn btn-sm btn-outline-secondary" type="button" (click)="open(vocabulary.id); actions.open = false">{{ (isReadOnly(vocabulary) ? 'admin-vocabulary-view' : 'admin-vocabulary-edit') | i18next }}</button>
               <button *ngIf="vocabulary.source === 'rva'" class="btn btn-sm btn-outline-secondary" type="button" (click)="syncRequested.emit(vocabulary.id); actions.open = false">{{ 'admin-vocabulary-sync-action' | i18next }}</button>
