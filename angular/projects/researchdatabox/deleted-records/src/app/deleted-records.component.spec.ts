@@ -197,7 +197,7 @@ describe('DeletedRecordsComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       fixture.detectChanges();
-      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '2')!;
       pageTwo.click();
       fixture.detectChanges();
@@ -271,7 +271,7 @@ describe('DeletedRecordsComponent', () => {
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:1');
     expect(header.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
-    const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === '2')!;
     pageTwo.click();
     fixture.detectChanges();
@@ -381,9 +381,9 @@ describe('DeletedRecordsComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === String(page))!;
-    const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+    const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager [aria-current="page"]')?.textContent.trim();
     let reject!: (reason: unknown) => void;
     const read = spyOn(recordService, 'getDeletedRecords').and.returnValue(new Promise((_resolve, rejectRequest) => { reject = rejectRequest; }));
     expect(activePage()).toBe('1');
@@ -1039,8 +1039,8 @@ describe('DeletedRecordsComponent', () => {
       it(`${action}: ${outcome} with failed refresh retains the real page and retries only the read`, async () => {
         const { fixture, app, mutation, reload, run } = await setupAction();
         const previous = app.deletedRecordsResult;
-        const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
-        const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+        const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager [aria-current="page"]')?.textContent.trim();
+        const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
           .find(link => link.textContent?.trim() === String(page))!;
         expect(activePage()).toBe('2');
         if (outcome === 'success') {
@@ -1116,7 +1116,7 @@ describe('DeletedRecordsComponent', () => {
       }
       let finishRead!: (result: any) => void;
       reload.and.returnValue(new Promise(resolve => { finishRead = resolve; }));
-      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '3')!;
       pageThree.click();
       // Exercise method guards before Angular updates disabled/hidden controls.
@@ -1162,7 +1162,7 @@ describe('DeletedRecordsComponent', () => {
       await app.recordTableAction(null, { oid: 'another-record' }, 'destroy');
       await app.confirmDestroyRecordModal(null);
       expect(mutation).toHaveBeenCalledTimes(1);
-      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '3')!;
       fixture.detectChanges();
       pageThree.click();
