@@ -46,7 +46,7 @@
         (change)="updateField('kind', $any($event.target).value)"
       >
         @for (bindingKind of bindingKinds; track bindingKind) {
-        <option [value]="bindingKind" [selected]="bindingKind === kind">{{ bindingKind }}</option>
+        <option [value]="bindingKind" [selected]="bindingKind === kind">{{ ('admin-config-enum-' + bindingKind) | i18next }}</option>
         }
       </select>
     </div>
@@ -55,7 +55,7 @@
       <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-path'">Record Path</label>
       <input
         [attr.id]="fieldKey + '-path'"
-        class="form-control form-control-sm"
+        class="rb-admin-mono form-control form-control-sm"
         type="text"
         [value]="value.path || ''"
         (input)="updateField('path', $any($event.target).value)"
@@ -95,7 +95,7 @@
           (change)="updateSourceField('kind', $any($event.target).value)"
         >
           @for (simpleKind of simpleKinds; track simpleKind) {
-          <option [value]="simpleKind" [selected]="simpleKind === sourceKind">{{ simpleKind }}</option>
+          <option [value]="simpleKind" [selected]="simpleKind === sourceKind">{{ ('admin-config-enum-' + simpleKind) | i18next }}</option>
           }
         </select>
       </div>
@@ -104,7 +104,7 @@
         <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-path'">Record Path</label>
         <input
           [attr.id]="fieldKey + '-source-path'"
-          class="form-control form-control-sm"
+          class="rb-admin-mono form-control form-control-sm"
           type="text"
           [value]="value.source?.path || ''"
           (input)="updateSourceField('path', $any($event.target).value)"
@@ -191,7 +191,7 @@
         (change)="updateField('outputs', $any($event.target).value)"
       >
         @for (output of crosswalkOutputs; track output) {
-        <option [value]="output" [selected]="output === (value.outputs || 'categoryId')">{{ output }}</option>
+        <option [value]="output" [selected]="output === (value.outputs || 'categoryId')">{{ ('admin-config-enum-' + output) | i18next }}</option>
         }
       </select>
       <div class="form-text small">
