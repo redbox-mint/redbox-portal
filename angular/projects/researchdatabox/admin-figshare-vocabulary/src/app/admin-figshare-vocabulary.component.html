@@ -1,3 +1,4 @@
+@if (pendingSourceAction) { <rb-admin-discard-dialog (keepEditing)="pendingSourceAction = undefined" (discard)="discardSourceChanges()"></rb-admin-discard-dialog> }
 @if (isReady) {
 <div class="rb-figshare-vocabulary">
   <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
@@ -60,7 +61,7 @@
         <div class="form-check form-switch"><input id="figshare-source-archived" name="archived" type="checkbox" class="form-check-input" [(ngModel)]="sourceDraft.archived" [disabled]="sourceSaving" /><label class="form-check-label" for="figshare-source-archived">{{ 'figshare-vocab-source-archived' | i18next }}</label></div>
       </div>
       <p class="rb-admin-hint mt-3">{{ 'figshare-vocab-schedule-help' | i18next }}</p>
-      <div class="rb-admin-page-actions"><button class="btn btn-outline-secondary" type="button" [disabled]="sourceSaving" (click)="editingSource = null">{{ 'figshare-vocab-source-edit-cancel' | i18next }}</button><button type="submit" class="btn btn-primary" [disabled]="sourceSaving || !sourceDraft.displayName.trim()">{{ 'figshare-vocab-source-edit-save' | i18next }}</button></div>
+      <div class="rb-admin-page-actions"><button class="btn btn-outline-secondary" type="button" [disabled]="sourceSaving" (click)="cancelSource()">{{ 'figshare-vocab-source-edit-cancel' | i18next }}</button><button type="submit" class="btn btn-primary" [disabled]="sourceSaving || !sourceDraft.displayName.trim()">{{ 'figshare-vocab-source-edit-save' | i18next }}</button></div>
     </div>
   </form>
   }
