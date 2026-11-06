@@ -298,6 +298,10 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
     await this.gotoPage(1, params);
   }
 
+  get hasFilters(): boolean {
+    return Object.values(this.filterParams).some(value => String(value ?? '').trim().length > 0);
+  }
+
   public async clearFilters(): Promise<void> {
     this.filterParams = { title: '', recordType: '', deletedWithin: '', deletedBy: '' };
     await this.filter();

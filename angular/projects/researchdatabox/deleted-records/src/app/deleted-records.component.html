@@ -66,7 +66,7 @@
     [enableActions]="!loadPending && initTracker.resultsReturned && !actionPending && !actionNeedsRefresh && !isDestroyRecordModalShown">
   </record-table>
     @if (initTracker.resultsReturned && deletedRecordsResult.total === 0 && !loadError) {
-      <div class="rb-admin-empty"><i class="fa fa-2x fa-trash-can" aria-hidden="true"></i><h3>{{ 'admin-deleted-empty' | i18next }}</h3><p>{{ 'admin-deleted-empty-help' | i18next }}</p></div>
+      <div class="rb-admin-empty"><i class="fa fa-2x fa-trash-can" aria-hidden="true"></i><h3>{{ (hasFilters ? 'admin-no-filter-results' : 'admin-deleted-empty') | i18next }}</h3>@if (hasFilters) { <button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button> } @else { <p>{{ 'admin-deleted-empty-help' | i18next }}</p> }</div>
     }
   </section>
   <ng-template #selectPage><input type="checkbox" class="form-check-input" [attr.aria-label]="'admin-deleted-select-page' | i18next" [checked]="allSelected" [indeterminate]="selectedRecords.size > 0 && !allSelected" [disabled]="selectionDisabled" (change)="togglePage($any($event.target).checked)"></ng-template>

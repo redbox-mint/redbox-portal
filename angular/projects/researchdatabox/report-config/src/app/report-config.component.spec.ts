@@ -24,10 +24,11 @@ describe('ReportConfigComponent', () => {
       imports: [FormsModule, HttpClientTestingModule, A11yModule],
       providers: [
         { provide: LoggerService, useValue: { error: () => undefined, warn: () => undefined } },
-        { provide: TranslationService, useValue: { isReady: true, init: () => Promise.resolve() } },
+        { provide: TranslationService, useValue: { isReady: true, init: () => Promise.resolve(), waitForInit: () => Promise.resolve() } },
         {
           provide: ReportConfigService,
           useValue: {
+            waitForInit: () => Promise.resolve(),
             list: () => Promise.resolve([
               { name: 'db', title: 'Database', reportSource: 'database', readOnly: false, columns: [{ label: 'A', property: 'a' }], filter: [{ type: 'text', paramName: 'p', property: 'a', message: '' }], canEdit: true, canDelete: true, canPreview: true },
               { name: 'db2', title: 'Database 2', reportSource: 'database', readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true },
@@ -112,4 +113,19 @@ describe('ReportConfigComponent', () => {
 
     expect(service.preview).toHaveBeenCalledWith(report, component.previewFilterValues);
   });
+  it('replaces filtered empty table headers with a working clear-filters action', async () => {
+    fixture.detectChanges();
+    await component.waitForInit();
+    component.searchText = 'no-match-123';
+    component.applyFilter();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('thead')).toBeNull();
+    const empty = fixture.nativeElement.querySelector('.rb-admin-empty');
+    expect(empty.textContent).toContain('admin-no-filter-results');
+    empty.querySelector('button').click();
+    fixture.detectChanges();
+    expect(component.searchText).toBe('');
+    expect(fixture.nativeElement.querySelector('thead')).toBeTruthy();
+  });
+
 });

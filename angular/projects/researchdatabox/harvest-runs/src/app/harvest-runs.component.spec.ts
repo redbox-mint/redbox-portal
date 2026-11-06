@@ -570,4 +570,31 @@ describe('HarvestRunsComponent', () => {
     expect(apiService.listRunEvents).toHaveBeenCalledTimes(1);
   });
 
+  it('opens run details with a labelled disclosure button', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    component.selectedRunId = '';
+    apiService.getRun.calls.reset();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button[aria-controls="harvest-run-detail"]');
+    expect(button).toBeTruthy();
+    expect(button.hasAttribute('aria-label')).toBeTrue();
+    expect(button.closest('tr').hasAttribute('tabindex')).toBeFalse();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    button.click();
+    await fixture.whenStable();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#harvest-run-detail .hr-detail')).toBeTruthy();
+    expect(apiService.getRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits table headers for an empty run list', async () => {
+    apiService.listRuns.and.resolveTo({ summary: { numFound: 0, page: 1, start: 0 }, records: [] });
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.hr-table--runs')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeTruthy();
+  });
 });

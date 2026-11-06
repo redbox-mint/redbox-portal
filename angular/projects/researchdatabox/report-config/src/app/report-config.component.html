@@ -29,7 +29,7 @@
           </div>
         </div>
       </div>
-      <div class="table-responsive"><table class="table table-hover">
+      @if (filteredReports.length) { <div class="table-responsive"><table class="table table-hover">
         <thead><tr><th>{{ 'admin-report-column' | i18next }}</th><th>{{ 'report-col-source' | i18next }}</th>
           @if (hasNamedQueries) { <th>{{ 'report-field-named-query' | i18next }}</th> }
           <th class="text-end">{{ 'report-col-filters' | i18next }}</th><th class="text-end">{{ 'report-col-columns' | i18next }}</th><th class="text-end">{{ 'report-col-actions' | i18next }}</th></tr></thead>
@@ -48,8 +48,8 @@
               </div></td></tr>
           }
         </tbody>
-      </table></div>
-      @if (filteredReports.length === 0) { <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'report-none-found' | i18next }}</h3></div> }
+      </table></div> }
+      @if (filteredReports.length === 0) { <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ (searchText || sourceFilter !== 'all' ? 'admin-no-filter-results' : 'report-none-found') | i18next }}</h3>@if (searchText || sourceFilter !== 'all') { <button type="button" class="btn btn-outline-secondary" (click)="searchText = ''; setSourceFilter('all')">{{ 'admin-report-clear' | i18next }}</button> }</div> }
       <div class="card-footer">{{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}</div>
     </section>
     </div>

@@ -52,6 +52,11 @@ export class NqListComponent implements OnChanges, OnDestroy {
     }
   }
 
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.setCollection('');
+  }
+
   setCollection(collection: string): void {
     if (this.searchDebounceTimer) { clearTimeout(this.searchDebounceTimer); this.searchDebounceTimer = null; }
     this.queryChanged.emit({ searchTerm: this.searchTerm, collection });

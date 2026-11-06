@@ -10,7 +10,7 @@
       </div>
     </div>
   </div>
-  <div class="table-responsive"><table class="table table-hover" [attr.aria-label]="'named-query-list-aria-label' | i18next">
+  <div *ngIf="queries.length" class="table-responsive"><table class="table table-hover" [attr.aria-label]="'named-query-list-aria-label' | i18next">
     <thead><tr><th>{{ 'named-query-name' | i18next }}</th><th>{{ 'named-query-collection' | i18next }}</th>
       <th class="text-end">{{ 'named-query-params' | i18next }}</th><th class="text-end">{{ 'named-query-mappings' | i18next }}</th><th class="text-end">{{ 'named-query-related-filters' | i18next }}</th><th>{{ 'named-query-used-by' | i18next }}</th><th class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th>
     </tr></thead>
@@ -34,6 +34,6 @@
       </tr>
     </tbody>
   </table></div>
-  <div *ngIf="queries.length === 0" class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'named-query-empty-filtered' | i18next }}</h3></div>
+  <div *ngIf="queries.length === 0" class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ (query.searchTerm || query.collection ? 'admin-no-filter-results' : 'admin-named-query-empty') | i18next }}</h3><button *ngIf="query.searchTerm || query.collection" type="button" class="btn btn-outline-secondary" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
   <div class="card-footer">{{ 'admin-named-query-showing' | i18next: { count: queries.length, total: total } }}</div>
 </section>

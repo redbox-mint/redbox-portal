@@ -729,4 +729,20 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.error).toContain('Remove its configured references');
   });
 
+  it('omits an empty named-query table and clears filters including a pending search', fakeAsync(() => {
+    const fixture = TestBed.createComponent(NqListComponent);
+    const list = fixture.componentInstance;
+    list.query = { searchTerm: 'missing', collection: 'record' };
+    list.searchTerm = 'missing';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('thead')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('admin-no-filter-results');
+    const changed = spyOn(list.queryChanged, 'emit');
+    list.onSearchTermChanged('pending');
+    fixture.nativeElement.querySelector('.rb-admin-empty button').click();
+    tick(300);
+    expect(changed).toHaveBeenCalledOnceWith({ searchTerm: '', collection: '' });
+    fixture.destroy();
+  }));
+
 });
