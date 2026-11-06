@@ -1,5 +1,5 @@
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
-import { Component, ElementRef, Inject, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild, inject, afterNextRender, Injector } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { BaseComponent, ConfigService, RecordService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
@@ -64,6 +64,8 @@ export class HarvestRunsComponent extends BaseComponent {
   filters: HarvestRunListQuery = this.createEmptyFilters();
   listResponse: ListApiResponse<HarvestRunSummary> = this.emptyListResponse<HarvestRunSummary>();
   eventResponse: ListApiResponse<HarvestRunEvent> = this.emptyListResponse<HarvestRunEvent>();
+  private readonly viewInjector = inject(Injector);
+  @ViewChild('detailHeading') detailHeading?: ElementRef<HTMLElement>;
   selectedRun: HarvestRunDetail | null = null;
   selectedRunId = '';
   loadingRuns = false;
@@ -183,6 +185,8 @@ export class HarvestRunsComponent extends BaseComponent {
         return;
       }
       this.selectedRun = detail;
+      // Move keyboard users to the newly opened detail without moving focus on refresh.
+      if (!force) afterNextRender(() => this.detailHeading?.nativeElement.focus(), { injector: this.viewInjector });
       this.loadedChunkPage = 1;
       this.chunkResponse = {
         summary: { numFound: detail.chunksTotal, page: 1, start: 0 },
@@ -433,6 +437,13 @@ export class HarvestRunsComponent extends BaseComponent {
     return [event.errorCode, event.message, event.details].filter(Boolean).join(' ').trim();
   }
 
+  public getEventPreview(event: HarvestRunEvent): string {
+    const message = this.getEventMessage(event);
+    if (event.outcome !== 'failed' && event.status !== false) return message;
+    const firstLine = message.split(/\r?\n/, 1)[0];
+    return firstLine.length > 160 ? firstLine.slice(0, 160) + '…' : firstLine;
+  }
+
   public getRecordUrl(oid?: string): string {
     return `${this.harvestRunApiService.getBrandingAndPortalUrl()}/record/view/${encodeURIComponent(String(oid ?? '').trim())}`;
   }
@@ -537,12 +548,6 @@ export class HarvestRunsComponent extends BaseComponent {
         this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
       }
 
-      if (!this.selectedRunId && this.listResponse.records.length > 0) {
-        const firstRunId = String(this.listResponse.records[0].id ?? '').trim();
-        if (firstRunId) {
-          await this.selectRun(firstRunId);
-        }
-      }
     } catch (error) {
       if (requestId !== this.runRequestId) {
         return;

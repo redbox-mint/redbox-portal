@@ -147,7 +147,7 @@
     @if (selectedRunId || loadingDetail || detailError) {
       <section class="card rb-admin-card-secondary hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
         <div class="card-header">
-          <h2>{{ 'harvest-runs-detail-summary' | i18next }}</h2>
+          <h2 #detailHeading tabindex="-1">{{ 'harvest-runs-detail-summary' | i18next }}</h2>
           @if (selectedRun) {
             <span [class]="getStatusBadgeClass(selectedRun.run.status)">{{ getStatusLabel(selectedRun.run.status) }}</span>
           }
@@ -288,7 +288,12 @@
                           </td>
                           <td>{{ event.operation }}</td>
                           <td><span [class]="getOutcomeBadgeClass(event.outcome)">{{ event.outcome }}</span></td>
-                          <td class="hr-message">{{ getEventMessage(event) || '—' }}</td>
+                          <td class="hr-message">
+                            <span>{{ getEventPreview(event) || '—' }}</span>
+                            @if (getEventMessage(event) !== getEventPreview(event)) {
+                              <details><summary>{{ 'harvest-runs-show-full-error' | i18next }}</summary><p class="hr-full-error">{{ getEventMessage(event) }}</p></details>
+                            }
+                          </td>
                         </tr>
                       }
                     </tbody>
