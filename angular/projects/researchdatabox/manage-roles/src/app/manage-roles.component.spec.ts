@@ -235,6 +235,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
+    expect(document.activeElement?.textContent).toBe('manage-users-cancel');
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('admin-roles-replace-confirm');
     const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [guest] });
     await app.removeMember();
