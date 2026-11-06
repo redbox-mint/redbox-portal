@@ -27,6 +27,7 @@
   .dc-nav-section h2 { font-size: 13px; font-weight: 700; padding: 8px 14px; margin: 0; color: var(--admin-muted); line-height: 1.45; }
   .dc-nav-item { display: flex; gap: 8px; justify-content: space-between; align-items: center; font-size: 14px; overflow-wrap: anywhere; }
   .dc-nav-item:hover { background: var(--admin-surface); text-decoration: none; }
+  .dc-nav-item .dc-target-id { display: block; font-size: 12px; color: var(--admin-muted); }
   .dc-nav-item small { display: block; font-size: 12.5px; color: var(--admin-muted); }
   .dc-nav-item[aria-disabled='true'] { pointer-events: none; opacity: .6; }
   .dc-nav-empty { padding: 6px 14px; font-size: 13px; color: var(--admin-muted); }
@@ -103,7 +104,7 @@
 
   @media (max-width: 1150px) {
     .dc-layout { flex-wrap: wrap; }
-    .dc-nav-pane { position: static; flex: 1 1 100%; max-width: none; max-height: 250px; }
+    .dc-nav-pane { position: static; flex: 1 1 100%; max-width: none; max-height: none; }
     .dc-editor-pane { flex-basis: 100%; }
   }
   @media (max-width: 767px) {

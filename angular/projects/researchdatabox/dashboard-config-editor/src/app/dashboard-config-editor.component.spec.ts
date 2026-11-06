@@ -70,6 +70,16 @@ describe('DashboardConfigEditorComponent', () => {
     spyOn(component, 'waitForDeps').and.resolveTo();
   });
 
+  it('humanizes untranslated target IDs while preserving the raw identifier', () => {
+    const workflow: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'concurrencyTest', stage: 'draft' }, key: 'test', ownerLabel: 'concurrencyTest', stepLabel: 'draft', hidden: false, recordType: 'concurrencyTest', queryFilterKeys: [] };
+    expect(component.targetLabel(workflow)).toBe('Concurrency test · Draft');
+    expect(component.targetId(workflow)).toBe('concurrencyTest');
+    expect(component.targetLabel({ ...workflow, target: { kind: 'view', view: 'existing-locations', step: 'draft' }, ownerLabel: 'existing-locations' })).toBe('Existing locations · Draft');
+    const translations = TestBed.inject(TranslationService) as any;
+    translations.t = (key: string) => key === 'concurrencyTest-name' ? 'Concurrency checks' : key;
+    expect(component.targetLabel(workflow)).toBe('Concurrency checks · Draft');
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });
