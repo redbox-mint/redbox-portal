@@ -81,6 +81,11 @@ export class RecordTableComponent extends BaseComponent {
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
 
+  get adminPageEnd(): number {
+    const page = this.dataSource.getCurrentPage();
+    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total);
+  }
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(UtilityService) private utilService: UtilityService,

@@ -76,6 +76,16 @@ describe('RecordTableComponent', () => {
     return fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
   }
 
+  it('uses previous/next links and caps the last admin page range at the result total', async () => {
+    component.adminPresentation = true;
+    component.paginationItemsPerPage = 10;
+    currentPage = { records: [{ title: 'Last' }], total: 21, pageNum: 3 };
+    await render();
+    expect(component.adminPageEnd).toBe(21);
+    expect(fixture.nativeElement.querySelector('.pagination-prev')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.pagination-first')).toBeNull();
+  });
+
   it('formats the named-query modified-date envelope using the shared admin locale', async () => {
     const timestamp = '2026-11-05T23:06:12.085Z';
     const format = spyOn(TestBed.inject(AdminDateService), 'format').and.returnValue('06/11/2026 09:36');

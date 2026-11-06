@@ -64,8 +64,8 @@
     <!-- Pagination -->
     @if (currentPage.total > 0) {
       <div [class.card-footer]="adminPresentation" [class.row]="!adminPresentation">
-        @if (adminPresentation) { <span>{{ 'admin-report-page-count' | i18next: { page: currentPage.pageNum, total: currentPage.total } }}</span> }
-        <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
+        @if (adminPresentation) { <span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: (currentPage.pageNum - 1) * paginationItemsPerPage + 1, end: adminPageEnd, total: currentPage.total } }}</span> }
+        <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="adminPresentation || paginationDirectionLinks" [boundaryLinks]="!adminPresentation && paginationBoundaryLinks"
           [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [ngModel]="currentPage.pageNum"
         (ngModelChange)="gotoPage($event, pageModel)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
       </div>
