@@ -371,7 +371,15 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-checkbox-label { min-height: 26px; font-size: 14px; font-weight: 600; margin: 0; display: inline-flex; align-items: center; gap: 8px; }
     .app-config-checkbox input { position: static; float: none; margin: 0; }
     .app-config-checkbox.form-switch { padding: 0; margin: 0; }
-    .form-switch .form-check-input { width: 2.4em; height: 1.3em; margin-top: 0; }
+    .form-switch .form-check-input {
+      // Transparent border extends the real checkbox hit area; its painted
+      // switch remains 34 x 18px and label clicks retain native activation.
+      box-sizing: content-box; width: 2.4em; height: 1.3em; margin-top: 0;
+      border: 3px solid transparent; background-clip: padding-box;
+      box-shadow: inset 0 0 0 1px var(--admin-control-border);
+    }
+    .form-switch .form-check-input:checked { border-color: transparent; box-shadow: inset 0 0 0 1px var(--admin-success); }
+    .form-switch .form-check-input:focus-visible { outline-offset: 0; }
     .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
     .app-config-page-switch { display: flex; align-items: center; gap: 8px; padding: 7px 12px; margin: 0; border: 1px solid var(--admin-line); border-radius: 999px; background: var(--admin-surface); font-size: 14px; }
     .app-config-page-switch input { float: none; margin-left: 0; }
@@ -591,6 +599,7 @@ html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-heig
 .rb-admin {
   .people-table .rb-admin-email { white-space: normal; overflow-wrap: break-word; word-break: normal; min-width: 18ch; }
   .nq-more-consumers { display: none; }
+  :is(.nq-consumers, .nq-more-consumers) a { display: inline-flex; align-items: center; min-height: 24px; }
   @media (max-width: 991px) {
     .nq-consumers .nq-extra-consumer { display: none; }
     .rb-admin-filter-bar > .rb-admin-field-grow { flex-basis: 180px; min-width: 140px; }
