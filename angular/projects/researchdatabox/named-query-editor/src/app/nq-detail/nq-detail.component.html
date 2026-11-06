@@ -46,7 +46,7 @@
       <div class="rb-admin-form-grid">
         <div class="rb-admin-field">
           <label for="nq-name">{{ 'named-query-name' | i18next }}</label>
-          <input id="nq-name" type="text" class="form-control"
+          <input cdkFocusInitial id="nq-name" type="text" class="form-control"
                  [(ngModel)]="draft.name"
                  [readonly]="!isNew"
                  pattern="[A-Za-z0-9_-]+"

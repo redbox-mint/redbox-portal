@@ -3,12 +3,12 @@
   [attr.aria-hidden]="isRemoveEntryModalOpen ? 'true' : null"
   [attr.inert]="isRemoveEntryModalOpen ? '' : null"
 >
-  <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h3>{{ 'admin-vocabulary-details-heading' | i18next }}</h3></div><div class="rb-admin-form-section-body">
+  <fieldset [disabled]="readOnly"><section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h3>{{ 'admin-vocabulary-details-heading' | i18next }}</h3></div><div class="rb-admin-form-section-body">
   <div class="rb-admin-form-grid">
     <div class="rb-admin-field">
       <label for="vocab-name">{{ 'admin-vocabulary-name' | i18next }}</label>
       <input
-        id="vocab-name"
+        id="vocab-name" cdkFocusInitial
         class="form-control"
         [(ngModel)]="draft.name"
         [attr.placeholder]="'admin-vocabulary-name-placeholder' | i18next"
@@ -53,7 +53,7 @@
     ></textarea>
   </div>
 
-  </div></section>
+  </div></section></fieldset>
   @if (draft.type === 'tree' && hasEntries) {
     <div class="mb-3">
       <button class="btn btn-sm btn-outline-secondary" type="button" (click)="toggleTreePreview()">
@@ -87,11 +87,11 @@
     </div>
   }
 
-  <section class="rb-admin-form-section"><div class="rb-admin-form-section-body">
+  <fieldset [disabled]="readOnly"><section class="rb-admin-form-section"><div class="rb-admin-form-section-body">
 
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h3 class="h6 mb-0">{{ 'admin-vocabulary-entries' | i18next }}</h3>
-    <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
+    <button class="btn btn-sm btn-outline-primary" type="button" *ngIf="!readOnly" (click)="addEntry()">
       {{ 'admin-vocabulary-add-entry' | i18next }}
     </button>
   </div>
@@ -182,7 +182,7 @@
               <button
                 class="btn btn-sm btn-outline-secondary me-1"
                 type="button"
-                (click)="moveEntryUp(idx)"
+                *ngIf="!readOnly" (click)="moveEntryUp(idx)"
                 [disabled]="idx === 0"
               >
                 {{ 'admin-vocabulary-up' | i18next }}
@@ -190,12 +190,12 @@
               <button
                 class="btn btn-sm btn-outline-secondary me-1"
                 type="button"
-                (click)="moveEntryDown(idx)"
+                *ngIf="!readOnly" (click)="moveEntryDown(idx)"
                 [disabled]="idx === (draft.entries?.length || 1) - 1"
               >
                 {{ 'admin-vocabulary-down' | i18next }}
               </button>
-              <button class="btn btn-sm btn-outline-danger" type="button" (click)="requestRemoveEntry(idx)">
+              <button class="btn btn-sm btn-outline-danger" type="button" *ngIf="!readOnly" (click)="requestRemoveEntry(idx)">
                 {{ 'admin-vocabulary-remove' | i18next }}
               </button>
             </td>
@@ -206,7 +206,7 @@
   } @else {
     <p class="text-muted mb-0">{{ 'admin-vocabulary-empty-entries' | i18next }}</p>
   }
-  </div></section>
+  </div></section></fieldset>
 </div>
 
 @if (isRemoveEntryModalOpen) {
@@ -219,7 +219,7 @@
     aria-describedby="removeEntryModalDescription"
     (keydown.escape)="cancelRemoveEntry()"
   >
-    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
           <h2 class="modal-title h4-header" id="removeEntryModalTitle">{{

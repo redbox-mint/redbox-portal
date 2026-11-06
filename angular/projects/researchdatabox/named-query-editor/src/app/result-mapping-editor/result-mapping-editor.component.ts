@@ -6,12 +6,15 @@ interface MappingEntry {
   value: string;
 }
 
+let nextEditorId = 0;
+
 @Component({
   selector: 'result-mapping-editor',
   templateUrl: './result-mapping-editor.component.html',
   standalone: false
 })
 export class ResultMappingEditorComponent implements OnChanges {
+  readonly idPrefix = 'result-mapping-editor-' + nextEditorId++;
   @Input() resultObjectMapping: Record<string, string> = {};
   @Output() resultObjectMappingChange = new EventEmitter<Record<string, string>>();
 

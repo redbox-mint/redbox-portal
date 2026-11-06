@@ -16,12 +16,14 @@
       <tbody>
         <tr *ngFor="let entry of entries; trackBy: trackById">
           <td>
-            <input type="text" class="form-control form-control-sm"
+            <label class="visually-hidden" [for]="idPrefix + '-entry-key' + '-' + entry.id">{{ 'named-query-mapping-field' | i18next }}</label>
+            <input [id]="idPrefix + '-entry-key' + '-' + entry.id" type="text" class="form-control form-control-sm"
                    [ngModel]="entry.key"
                    (ngModelChange)="onKeyChange(entry, $event)">
           </td>
           <td>
-            <input type="text" class="form-control form-control-sm font-monospace"
+            <label class="visually-hidden" [for]="idPrefix + '-entry-value' + '-' + entry.id">{{ 'named-query-mapping-template' | i18next }}</label>
+            <input [id]="idPrefix + '-entry-value' + '-' + entry.id" type="text" class="form-control form-control-sm font-monospace"
                    [ngModel]="entry.value"
                    (ngModelChange)="onValueChange(entry, $event)"
                    spellcheck="false">
@@ -39,9 +41,11 @@
   <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
 
   <div class="d-flex flex-wrap nq-add-row mt-2">
-    <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newKey"
+    <label class="visually-hidden" [for]="idPrefix + '-newKey'">{{ 'named-query-mapping-field' | i18next }}</label>
+    <input [id]="idPrefix + '-newKey'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newKey"
            [attr.placeholder]="'named-query-mapping-field-placeholder' | i18next">
-    <input type="text" class="form-control form-control-sm nq-add-grow-wide font-monospace" [(ngModel)]="newValue"
+    <label class="visually-hidden" [for]="idPrefix + '-newValue'">{{ 'named-query-mapping-template' | i18next }}</label>
+    <input [id]="idPrefix + '-newValue'" type="text" class="form-control form-control-sm nq-add-grow-wide font-monospace" [(ngModel)]="newValue"
            [attr.placeholder]="'named-query-mapping-template-placeholder' | i18next"
            spellcheck="false">
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">

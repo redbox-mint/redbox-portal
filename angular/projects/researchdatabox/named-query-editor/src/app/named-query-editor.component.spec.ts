@@ -1,4 +1,4 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
@@ -62,7 +62,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub
       ],
-      imports: [AdminCountPipe, FormsModule, A11yModule],
+      imports: [AdminModalDirective, AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },
@@ -746,5 +746,27 @@ describe('NamedQueryEditorComponent', () => {
     expect(changed).toHaveBeenCalledOnceWith({ searchTerm: '', collection: '' });
     fixture.destroy();
   }));
+
+  it('blocks duplicate saves and dismissal while pending, then retains the draft on failure', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    component.newQuery();
+    component.draft = { name: 'pending', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    let reject!: (error: Error) => void;
+    const create = spyOn(TestBed.inject(NamedQueryApiService), 'create').and.returnValue(new Promise((_, fail) => reject = fail));
+    const pending = component.save();
+    expect(component.isSaving).toBeTrue();
+    expect(component.canSave).toBeFalse();
+    component.closeEditModal();
+    await component.save();
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(component.isEditModalOpen).toBeTrue();
+    reject(new Error('Save rejected'));
+    await pending;
+    expect(component.isSaving).toBeFalse();
+    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.draft.name).toBe('pending');
+    expect(component.error).toContain('Save rejected');
+  });
 
 });

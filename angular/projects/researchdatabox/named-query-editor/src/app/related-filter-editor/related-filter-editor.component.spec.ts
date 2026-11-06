@@ -148,4 +148,23 @@ describe('RelatedFilterEditorComponent', () => {
   it('trackById returns filter id', () => {
     expect(component.trackById(0, { id: 7, collectionName: 'c', mongoQuery: {}, mongoQueryJson: '{}', localField: 'l', foreignField: 'f' })).toBe(7);
   });
+  it('provides button disclosures with separate removal and uniquely labelled fields', () => {
+    component.relatedRecordFilters = [{ collectionName: 'one', localField: 'a', foreignField: 'b', mongoQuery: {} }, { collectionName: 'two', localField: 'c', foreignField: 'd', mongoQuery: {} }];
+    component.ngOnChanges({ relatedRecordFilters: { currentValue: component.relatedRecordFilters, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    fixture.detectChanges();
+    const buttons = fixture.nativeElement.querySelectorAll('button[aria-expanded]') as NodeListOf<HTMLButtonElement>;
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].getAttribute('aria-expanded')).toBe('false');
+    buttons[0].click();
+    fixture.detectChanges();
+    expect(buttons[0].getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#' + buttons[0].getAttribute('aria-controls'))).not.toBeNull();
+    const controls = Array.from(fixture.nativeElement.querySelectorAll('input,select,textarea')) as HTMLInputElement[];
+    expect(new Set(controls.map(control => control.id)).size).toBe(controls.length);
+    for (const control of controls) {
+      expect(control.id).toBeTruthy();
+      expect(control.labels?.length).toBeGreaterThan(0);
+    }
+  });
+
 });

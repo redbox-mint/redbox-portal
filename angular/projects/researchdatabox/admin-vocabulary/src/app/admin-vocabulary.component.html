@@ -57,7 +57,7 @@
     aria-describedby="deleteVocabularyModalDescription"
     (keydown.escape)="cancelDeleteVocabulary()"
   >
-    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
           <h2 class="modal-title h4-header" id="deleteVocabularyModalTitle">{{
@@ -101,10 +101,10 @@
     aria-labelledby="vocabModalTitle"
     (keydown.escape)="!isSyncInProgress && closeEditModal()"
   >
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <h2 class="modal-title h4-header" id="vocabModalTitle">{{
+          <h2 class="modal-title h4-header" id="vocabModalTitle" tabindex="-1" [attr.cdkFocusInitial]="isSelectedReadOnly ? '' : null">{{
             isSelectedReadOnly
               ? ('admin-vocabulary-view-title' | i18next)
               : selectedVocabulary?.id
@@ -117,7 +117,6 @@
             [attr.aria-label]="'admin-vocabulary-close' | i18next"
             (click)="closeEditModal()"
             [disabled]="isSyncInProgress"
-            cdkFocusInitial
           ></button>
         </div>
         <div class="modal-body">
@@ -125,7 +124,7 @@
             <div class="alert alert-info" role="status">{{ 'admin-vocabulary-read-only-notice' | i18next }}</div>
           }
           <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-          <vocab-detail [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
+          <vocab-detail [readOnly]="isSelectedReadOnly" [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
         </div>
         <div class="modal-footer">
           @if (syncStatusMessage) {
@@ -201,7 +200,7 @@
     aria-labelledby="importModalTitle"
     (keydown.escape)="!isImportInProgress && closeImportModal()"
   >
-    <div class="modal-dialog modal-lg" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-lg" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
           <h2 class="modal-title h4-header" id="importModalTitle">{{
@@ -213,7 +212,6 @@
             [attr.aria-label]="'admin-vocabulary-close' | i18next"
             (click)="closeImportModal()"
             [disabled]="isImportInProgress"
-            cdkFocusInitial
           ></button>
         </div>
         <div class="modal-body">
