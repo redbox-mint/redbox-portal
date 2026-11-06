@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 import * as sinon from 'sinon';
 
@@ -117,6 +118,52 @@ describe('admin API docs', function () {
         expect(bootstrap).to.include('disableTelemetry: true');
         expect(bootstrap).to.include('hideDownloadButtons: true');
         expect(bootstrap).to.not.include('Redoc.init');
+    });
+
+    it('resizes the same-origin frame on content changes and follows outer scrolling without trapping the page', function () {
+        const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js'), 'utf8')
+            .replace("import { init } from './redoc.standalone.js';", '');
+        const properties: Record<string, string> = {};
+        let contentHeight = 4200;
+        const mountEvents: Record<string, Function> = {};
+        const referenceSections: any[] = [];
+        const mount = { addEventListener: (event: string, callback: Function) => mountEvents[event] = callback, removeEventListener: (event: string) => delete mountEvents[event], querySelectorAll: () => referenceSections, getBoundingClientRect: () => ({ height: contentHeight }), getAttribute: () => '/spec', style: { setProperty: (name: string, value: string) => properties[name] = value } };
+        const frame = { style: { height: '' }, getBoundingClientRect: () => ({ top: -1200 }) };
+        const listeners: Record<string, Function> = {};
+        const cleanup: Record<string, Function> = {};
+        let resize: Function;
+        let queued: Function;
+        let disconnected = false;
+        const parent = {
+            location: { origin: 'http://portal', hash: '#/users' }, innerHeight: 900, scrollY: 1800, scrollTo: sinon.spy(),
+            requestAnimationFrame: (callback: Function) => { queued = callback; return 1; }, cancelAnimationFrame: () => {},
+            addEventListener: (event: string, callback: Function) => listeners[event] = callback,
+            removeEventListener: (event: string) => delete listeners[event]
+        };
+        vm.runInNewContext(source, {
+            init: () => {}, document: { getElementById: () => mount },
+            window: { frameElement: frame, parent, location: parent.location, addEventListener: (event: string, callback: Function) => cleanup[event] = callback },
+            ResizeObserver: class { constructor(callback: Function) { resize = callback; } observe() {} disconnect() { disconnected = true; } }
+        });
+        queued!();
+        expect(frame.style.height).to.equal('4200px');
+        expect(properties['--admin-api-sidebar-offset']).to.equal('1200px');
+        contentHeight = 1800;
+        resize!(); queued!();
+        expect(frame.style.height).to.equal('1800px');
+        expect(properties['--admin-api-sidebar-offset']).to.equal('900px');
+        parent.innerHeight = 768; listeners.resize(); queued!();
+        expect(properties['--admin-api-viewport-height']).to.equal('768px');
+        mountEvents.click({ target: { closest: () => ({ getAttribute: () => '#/users' }) }, button: 0 });
+        queued!();
+        expect(parent.scrollTo.called).to.equal(false);
+        referenceSections.push({ getAttribute: () => '/Users', getBoundingClientRect: () => ({ top: 1600 }) });
+        resize!(); queued!();
+        expect(parent.scrollTo.calledWith({ top: 2200, behavior: 'instant' })).to.equal(true);
+        cleanup.pagehide();
+        expect(mountEvents).to.deep.equal({});
+        expect(disconnected).to.equal(true);
+        expect(listeners).to.deep.equal({});
     });
 
     it('builds the local redoc bundle into the public output after asset cleaning', function () {

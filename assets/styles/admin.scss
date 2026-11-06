@@ -543,10 +543,10 @@ body:has(.rb-admin.admin-layout) {
   }
 }
 
-// Phase 10: the reference viewer owns its styles inside a bounded document.
+// Phase 10: the reference viewer owns its styles inside an isolated document.
 .rb-admin {
   .rb-admin-api-reference { min-width: 0; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-bg); overflow: hidden; }
-  .rb-admin-api-frame { display: block; width: 100%; height: 900px; border: 0; }
+  .rb-admin-api-frame { display: block; width: 100%; min-height: 600px; border: 0; }
   .rb-parties-panel .pagination { margin: 0; }
   .rb-parties-panel td:first-child { font-weight: 600; }
   .rb-vocabulary-detail .rb-admin-form-grid { margin-bottom: 16px; }
