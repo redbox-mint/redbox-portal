@@ -8,7 +8,7 @@
   <header class="rb-admin-page-header">
     <div><h1>{{ 'admin-tx-title' | i18next }}</h1><p>{{ 'admin-tx-description' | i18next }}</p></div>
     <div class="rb-admin-page-actions">
-      <a class="btn btn-outline-secondary" *ngIf="selectedLang" [href]="exportUrl" download>{{ 'admin-tx-export' | i18next }}</a>
+      <a class="btn btn-outline-secondary" [attr.href]="selectedLang ? exportUrl : null" [attr.aria-disabled]="selectedLang ? null : 'true'" [class.disabled]="!selectedLang" download>{{ 'admin-tx-export' | i18next }}</a>
       <button type="button" class="btn btn-outline-secondary" [disabled]="!selectedLang" (click)="openImport()">{{ 'admin-tx-import' | i18next }}</button>
       <button type="button" class="btn btn-primary" (click)="openLanguageModal()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-language' | i18next }}</button></div>
   </header>
@@ -27,7 +27,7 @@
 
   <section class="card rb-admin-card-secondary" aria-labelledby="tx-languages-title">
     <div class="card-header"><h2 id="tx-languages-title">{{ 'admin-tx-languages' | i18next }}</h2><span>{{ languages().length | adminCount: 'language' }}</span></div>
-    <div class="table-responsive"><table class="table table-hover tx-languages">
+    <div class="table-responsive tx-languages-region"><table class="table table-hover tx-languages">
       <thead><tr><th>{{ 'admin-tx-language' | i18next }}</th><th>{{ 'admin-tx-code' | i18next }}</th><th class="text-end">{{ 'admin-tx-translated' | i18next }}</th><th>{{ 'admin-tx-available' | i18next }}</th><th class="rb-admin-actions-col text-end"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th></tr></thead>
       <tbody><tr *ngFor="let lang of languages()">
         <td><strong>{{ lang.displayName }}</strong> <span *ngIf="lang.code === defaultLanguage" class="badge rb-admin-badge-primary">{{ 'admin-tx-default' | i18next }}</span></td>
@@ -41,7 +41,7 @@
         <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm rb-admin-ghost" (click)="openDisplayNameModal(lang.code)" [attr.aria-label]="'admin-tx-rename-language' | i18next: { name: lang.displayName }">{{ 'admin-tx-rename' | i18next }}</button></td>
       </tr></tbody>
     </table></div>
-    <div *ngIf="!languages().length && !readWarnings().languages && !readPending().languages" class="rb-admin-empty"><h3>{{ 'admin-tx-no-languages' | i18next }}</h3><p>{{ 'admin-tx-add-hint' | i18next }}</p></div>
+    <div *ngIf="!initializing() && !languages().length && !readWarnings().languages && !readPending().languages" class="rb-admin-empty"><h3>{{ 'admin-tx-no-languages' | i18next }}</h3><p>{{ 'admin-tx-add-hint' | i18next }}</p></div>
     <div class="card-footer" *ngIf="availabilityDirty() || savingLanguages() || saveLanguagesSuccess() || saveLanguagesError()">
       <span role="status">{{ (saveLanguagesError() ? 'admin-tx-settings-error' : saveLanguagesSuccess() ? 'admin-tx-settings-saved' : 'admin-tx-unsaved') | i18next }}</span>
       <button class="btn btn-outline-secondary" type="button" (click)="confirmAvailabilityDiscard = true" [disabled]="savingLanguages() || !availabilityDirty()">{{ 'admin-discard-changes' | i18next }}</button>
@@ -76,6 +76,7 @@
   </div>
     <div *ngIf="saveError() && !modalOpen()" class="alert alert-danger m-3" role="alert">{{ 'admin-tx-save-error' | i18next }}</div>
     <div *ngIf="saveSuccess()" class="alert alert-success m-3" role="status">{{ 'admin-tx-saved' | i18next }}</div>
+    <div class="tx-entry-results">
     <div *ngIf="readPending().entries" class="p-3" role="status">{{ 'admin-tx-loading' | i18next }}</div>
     <div *ngIf="selectedLang && viewEntries().length" class="table-responsive">
       <table class="table table-hover tx-data-table" [attr.aria-label]="'admin-tx-title' | i18next">
@@ -97,10 +98,11 @@
         </tr></tbody>
       </table>
     </div>
-    <div *ngIf="!viewEntries().length && !readWarnings().entries && !readPending().entries" class="rb-admin-empty">
+    <div *ngIf="!initializing() && !viewEntries().length && !readWarnings().entries && !readPending().entries" class="rb-admin-empty">
       <i class="fa fa-search" aria-hidden="true"></i><h3>{{ (filterText.trim() || selectedCategory || show !== 'all' ? 'admin-tx-no-matches' : 'admin-tx-no-strings') | i18next }}</h3>
       <p>{{ (selectedLang ? 'admin-tx-filter-hint' : 'admin-tx-select-language') | i18next }}</p>
       <button *ngIf="filterText.trim() || selectedCategory || show !== 'all'" type="button" class="btn btn-outline-secondary" (click)="clearAllFilters()">{{ 'admin-tx-clear-filters' | i18next }}</button>
+    </div>
     </div>
     <div class="card-footer">
       <span aria-live="polite">{{ 'admin-tx-range' | i18next: { start: (rangeStart | number), end: (rangeEnd | number), total: (viewEntries().length | number) } }}</span>

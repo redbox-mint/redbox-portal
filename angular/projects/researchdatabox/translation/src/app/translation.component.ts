@@ -47,6 +47,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private allowedClasses = getTranslationHtmlClasses();
 
   readWarnings = signal<Partial<Record<ReadKind, string>>>({});
+  initializing = signal(true);
   readPending = signal<Partial<Record<ReadKind, boolean>>>({});
   private readRequests: Record<ReadKind, number> = { languages: 0, entries: 0, bundles: 0, displayName: 0 };
   private destroyed = false;
@@ -213,6 +214,8 @@ export class AppComponent implements OnInit, OnDestroy {
       console.error('Failed to initialise translation reads', error);
       if (!this.destroyed) this.readWarnings.update(state => ({ ...state,
         languages: 'Languages could not be loaded. The list may be incomplete; retry to load the current configuration.' }));
+    } finally {
+      this.initializing.set(false);
     }
   }
 
