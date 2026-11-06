@@ -254,6 +254,18 @@ describe('AppComponent', () => {
     fixture.destroy();
   });
 
+  it('disables last-admin removal and describes the reason beside the button', async () => {
+    const { fixture, app } = await createComponent();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('tbody button.btn-outline-danger');
+    expect(app.removeBlockedReason(app.users[0])).toBe('admin-roles-last-admin');
+    expect(button.disabled).toBeTrue();
+    const reason = fixture.nativeElement.querySelector('[id="' + button.getAttribute('aria-describedby') + '"]');
+    expect(reason.textContent.trim()).toBeTruthy();
+    expect(button.title).toBe(reason.textContent.trim());
+    fixture.destroy();
+  });
+
   it('pages members and rejects stale candidate searches after switching roles', async () => {
     const { fixture, app } = await createComponent();
     const result = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: { Researcher: { active: 130, disabled: 10, removableActive: 130 } } };
