@@ -8,19 +8,19 @@
 <header class="rb-admin-page-header"><div><h1>{{ 'admin-nav-users' | i18next }}</h1><p>{{ 'admin-users-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newUser()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'manage-users-add-local' | i18next }}</button></div></header>
 @if (updateDetailsMsg && !isDetailsModalShown) { <div class="alert alert-{{ updateDetailsMsgType }}" role="status">{{ updateDetailsMsg }}</div> }
 <section class="card" [attr.aria-busy]="usersLoading">
-  <div class="card-header"><h2>{{ 'admin-nav-users' | i18next }}</h2><span>{{ 'admin-users-count' | i18next: { count: filteredUsers.length, total: totalUsers } }}</span></div>
+  <div class="card-header"><h2>{{ 'admin-nav-users' | i18next }}</h2><span>{{ totalUsers | adminCount: 'user' }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field rb-admin-field-grow"><label for="manage-users-search">{{ 'admin-users-search' | i18next }}</label><input id="manage-users-search" type="search" class="form-control" [(ngModel)]="searchFilter.name" (ngModelChange)="onFilterChange()" [placeholder]="'admin-users-search-placeholder' | i18next"></div>
     <div class="rb-admin-field"><label for="manage-users-role">{{ 'manage-users-role' | i18next }}</label><select id="manage-users-role" class="form-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilterChange()"><option value="">{{ 'admin-users-any-role' | i18next }}</option>@for (role of allRoles; track role.id) { <option [value]="role.name">{{ role.name }}</option> }</select></div>
     <div class="rb-admin-field"><label for="manage-users-sign-in">{{ 'admin-users-sign-in' | i18next }}</label><select id="manage-users-sign-in" class="form-select" [(ngModel)]="signInFilter" (ngModelChange)="changeSignInFilter()"><option value="">{{ 'admin-users-any-sign-in' | i18next }}</option>@for (method of signInMethods; track method) { <option [value]="method">{{ method === 'local' ? ('admin-users-local' | i18next) : method }}</option> }</select></div>
     <div class="form-check form-switch people-show-disabled"><input id="show-disabled-users" class="form-check-input" type="checkbox" [checked]="showDisabledUsers" (change)="toggleShowDisabled()"><label class="form-check-label" for="show-disabled-users">{{ 'manage-users-show-disabled' | i18next }}</label></div>
-    @if (searchFilter.name || roleFilter || signInFilter) { <button type="button" class="btn rb-admin-ghost" (click)="resetFilter()">{{ 'admin-report-clear' | i18next }}</button> }
+    @if (searchFilter.name || roleFilter || signInFilter || showDisabledUsers) { <button type="button" class="btn rb-admin-ghost" (click)="resetFilter()">{{ 'admin-report-clear' | i18next }}</button> }
   </div>
   @if (filteredUsers.length) {
   <div class="table-responsive people-table"><table class="table table-hover">
-    <thead><tr><th [attr.aria-sort]="order === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortUsers()">{{ 'admin-users-user' | i18next }} {{ order === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'manage-users-role' | i18next }}</th><th>{{ 'manage-users-account-status' | i18next }}</th><th class="text-nowrap">{{ 'admin-users-api-key' | i18next }}</th><th class="text-end">{{ 'manage-users-action' | i18next }}</th></tr></thead>
+    <thead><tr><th [attr.aria-sort]="order === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortUsers()">{{ 'admin-users-user' | i18next }} {{ order === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'manage-users-role' | i18next }}</th><th>{{ 'manage-users-account-status' | i18next }}</th><th class="text-nowrap">{{ 'admin-users-api-key' | i18next }}</th><th class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
     <tbody>@for (user of filteredUsers; track user.id) {
-      <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span><span class="rb-admin-sub">{{ 'admin-users-last-login' | i18next }}: {{ user.lastLogin ? (user.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</span></td><td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
+      <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub rb-admin-email" [title]="user.email || user.username">{{ user.email || user.username }}</span><span class="rb-admin-sub">{{ 'admin-users-last-login' | i18next }}: {{ user.lastLogin ? (user.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</span></td><td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
         <td><div class="people-badges">@for (role of user.roles; track role.id) { <span class="badge" [class.rb-admin-badge-primary]="role.name === 'Admin'">{{ role.name }}</span> }</div></td>
         <td><span class="badge" [class.rb-admin-badge-danger]="isEffectivelyDisabled(user)" [class.rb-admin-badge-info]="isLinkedAlias(user)" [class.rb-admin-badge-success]="!isEffectivelyDisabled(user) && !isLinkedAlias(user)">{{ getAccountStatusBadge(user) }}</span>@if (getAccountStatusContext(user); as context) { <span class="rb-admin-sub">{{ context }}</span> }</td>
         <td><span class="rb-admin-hint">{{ (user.token ? 'admin-users-key-issued' : 'admin-users-key-none') | i18next }}</span></td>
@@ -39,7 +39,7 @@
     }</tbody>
   </table></div>
   } @else { <div class="rb-admin-empty"><i class="fa fa-users fa-2x" aria-hidden="true"></i><h3>{{ 'admin-users-empty' | i18next }}</h3><p>{{ 'admin-users-empty-help' | i18next }}</p><button type="button" class="btn btn-outline-secondary" (click)="resetFilter()">{{ 'manage-users-filter-reset' | i18next }}</button></div> }
-  <div class="card-footer"><span>{{ 'admin-users-count' | i18next: { count: filteredUsers.length, total: totalUsers } }}</span><nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: page, totalPages: totalPages }"><button type="button" class="btn btn-outline-secondary" [disabled]="usersLoading || page <= 1" (click)="changePage(page - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ page }} / {{ totalPages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="usersLoading || page >= totalPages" (click)="changePage(page + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav></div>
+  <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStart, end: pageStart ? pageStart + filteredUsers.length - 1 : 0, total: totalUsers } }}</span><nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: page, totalPages: totalPages }"><button type="button" class="btn btn-outline-secondary" [disabled]="usersLoading || page <= 1" (click)="changePage(page - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ page }} / {{ totalPages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="usersLoading || page >= totalPages" (click)="changePage(page + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav></div>
 </section>
 }
 <!-- Manage Links Modal -->
@@ -59,10 +59,10 @@
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content rb-admin">
           <div class="modal-header">
-            <h4 class="modal-title" id="userlinkform">
+            <h2 class="modal-title h4" id="userlinkform">
               <i class="fa fa-link" aria-hidden="true"></i>
               {{ 'manage-users-link-title' | i18next }}
-            </h4>
+            </h2>
           </div>
           <div class="modal-body">
             <p>
@@ -86,7 +86,7 @@
               <strong>{{ 'manage-users-link-irreversible' | i18next }}</strong>
             </div>
 
-            <h5>{{ 'manage-users-link-existing' | i18next }}</h5>
+            <h3 class="h5">{{ 'manage-users-link-existing' | i18next }}</h3>
             @if (linkedAccounts.length === 0) {
               <p class="mu-empty-state">{{ 'manage-users-link-no-linked-accounts' | i18next }}</p>
             }
@@ -98,7 +98,7 @@
               </ul>
             }
 
-            <h5>{{ 'manage-users-link-search-title' | i18next }}</h5>
+            <h3 class="h5">{{ 'manage-users-link-search-title' | i18next }}</h3>
             <div class="input-group">
               <input
                 type="text"
@@ -124,7 +124,7 @@
                       <th>{{ 'manage-users-name' | i18next }}</th>
                       <th>{{ 'manage-users-email' | i18next }}</th>
                       <th>{{ 'manage-users-account-status' | i18next }}</th>
-                      <th>{{ 'manage-users-action' | i18next }}</th>
+                      <th>{{ 'record-table-results-table-header-actions' | i18next }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -207,10 +207,10 @@
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content rb-admin">
           <div class="modal-header">
-            <h4 class="modal-title" id="userauditform">
+            <h2 class="modal-title h4" id="userauditform">
               <i class="fa fa-history" aria-hidden="true"></i>
               {{ getAuditTitle() }}
-            </h4>
+            </h2>
           </div>
           <div class="modal-body">
             @if (isAuditLoading) {
@@ -297,10 +297,10 @@
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
           <div class="modal-content rb-admin">
             <div class="modal-header">
-              <h4 class="modal-title" id="edit-user-title">
+              <h2 class="modal-title h4" id="edit-user-title">
                 <i class="fa fa-user" aria-hidden="true"></i>
                 {{ 'manage-users-edit' | i18next }}
-              </h4>
+              </h2>
             </div>
             <div class="modal-body">
               @if (isEffectivelyDisabled(currentUser)) {
@@ -332,9 +332,9 @@
                 <div class="people-form-sections">
                   <!-- Account Information -->
                   <div class="rb-admin-form-section">
-                    <h5 class="rb-admin-form-section-header">
+                    <h3 class="h5 rb-admin-form-section-header">
                       {{ 'manage-users-account-information' | i18next }}
-                    </h5><div class="rb-admin-form-section-body">
+                    </h3><div class="rb-admin-form-section-body">
                     <dl class="people-summary"><dt>{{ 'manage-users-username' | i18next }}</dt><dd>{{ currentUser.username }}</dd><dt>{{ 'admin-users-sign-in' | i18next }}</dt><dd>{{ currentUser.type === 'local' ? ('admin-users-local' | i18next) : currentUser.type }}</dd></dl>
                     <div class="people-form-group">
                       <label class="form-label" for="detailsform-name">{{ 'manage-users-name' | i18next }}</label>
@@ -377,9 +377,9 @@
 
                   <!-- Security -->
                   <div class="rb-admin-form-section">
-                    <h5 class="rb-admin-form-section-header">
+                    <h3 class="h5 rb-admin-form-section-header">
                       {{ 'manage-users-security' | i18next }}
-                    </h5><div class="rb-admin-form-section-body">
+                    </h3><div class="rb-admin-form-section-body">
                     <div class="people-form-group">
                       <label class="form-label" for="detailsform-password">{{ 'manage-users-password' | i18next }}</label>
                       @if (currentUser.accountLinkState === 'linked-alias') {
@@ -460,9 +460,9 @@
 
                   <!-- Roles & Permissions -->
                   <div class="rb-admin-form-section">
-                    <h5 class="rb-admin-form-section-header">
+                    <h3 class="h5 rb-admin-form-section-header">
                       {{ 'manage-users-roles-and-permissions' | i18next }}
-                    </h5><div class="rb-admin-form-section-body">
+                    </h3><div class="rb-admin-form-section-body">
                     @if (currentUser.accountLinkState === 'linked-alias') {
                       <em>{{ 'manage-users-roles-linked-notice' | i18next }}</em>
                     } @else {
@@ -541,10 +541,10 @@
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content rb-admin">
           <div class="modal-header">
-            <h4 class="modal-title" id="newuserform">
+            <h2 class="modal-title h4" id="newuserform">
               <i class="fa fa-user-plus" aria-hidden="true"></i>
               {{ 'manage-users-new' | i18next }}
-            </h4>
+            </h2>
           </div>
           <div class="modal-body">
             <form
@@ -556,9 +556,9 @@
               <div class="people-form-sections">
                 <!-- Account Details -->
                 <div class="rb-admin-form-section">
-                  <h5 class="rb-admin-form-section-header">
+                  <h3 class="h5 rb-admin-form-section-header">
                     {{ 'manage-users-account-details' | i18next }}
-                  </h5><div class="rb-admin-form-section-body">
+                  </h3><div class="rb-admin-form-section-body">
                   <div class="people-form-group">
                     <label class="form-label" for="newform-username">{{ 'manage-users-username' | i18next }}</label>
                     <div class="people-form-control">
@@ -620,9 +620,9 @@
 
                 <!-- Security -->
                 <div class="rb-admin-form-section">
-                  <h5 class="rb-admin-form-section-header">
+                  <h3 class="h5 rb-admin-form-section-header">
                     {{ 'manage-users-security' | i18next }}
-                  </h5><div class="rb-admin-form-section-body">
+                  </h3><div class="rb-admin-form-section-body">
                   <div class="people-form-group">
                     <label class="form-label" for="newform-password">{{ 'manage-users-password' | i18next }}</label>
                     <div class="people-form-control" formGroupName="passwords">
@@ -672,9 +672,9 @@
 
                 <!-- Roles -->
                 <div class="rb-admin-form-section">
-                  <h5 class="rb-admin-form-section-header">
+                  <h3 class="h5 rb-admin-form-section-header">
                     {{ 'manage-users-roles-and-permissions' | i18next }}
-                  </h5><div class="rb-admin-form-section-body">
+                  </h3><div class="rb-admin-form-section-body">
                   <div [formArrayName]="'allRoles'" class="people-roles-grid">
                     @for (role of getNewUserFormControls(); track role; let i = $index) {
                       <div [formGroup]="role" class="form-check">

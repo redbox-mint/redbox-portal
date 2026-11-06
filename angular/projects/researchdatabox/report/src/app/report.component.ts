@@ -278,6 +278,10 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     });
   }
 
+  get hasFilters(): boolean {
+    return this.activeFilters.length > 0 || Object.values(this.filterParams).some(value => value != null && String(value).trim() !== '');
+  }
+
   public async clearFilters(): Promise<void> {
     this.filterParams = {};
     await this.filter();

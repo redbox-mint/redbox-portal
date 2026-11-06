@@ -30,7 +30,7 @@
     </div>
   }
   <section class="card">
-    <div class="card-header"><h2>{{ 'admin-deleted-title' | i18next }}</h2><span>{{ 'admin-deleted-count' | i18next: { count: deletedRecordsResult.total } }}</span></div>
+    <div class="card-header"><h2>{{ 'admin-deleted-title' | i18next }}</h2><span>{{ deletedRecordsResult.total | adminCount: 'record' }}</span></div>
     <form class="rb-admin-filter-bar" (ngSubmit)="filter()">
       <div class="rb-admin-field rb-admin-field-grow"><label for="title">{{ 'admin-deleted-title-filter' | i18next }}</label><input id="title" name="title" type="search" class="form-control" [placeholder]="'admin-deleted-any-title' | i18next" [(ngModel)]="filterParams.title"></div>
       <div class="rb-admin-field"><label for="recordType">{{ 'export-record-type' | i18next }}</label>
@@ -44,7 +44,7 @@
         </select>
       </div>
       <div class="rb-admin-field"><label for="deletedBy">{{ 'admin-deleted-by' | i18next }}</label><input id="deletedBy" name="deletedBy" class="form-control" [(ngModel)]="filterParams.deletedBy" [placeholder]="'admin-deleted-any-user' | i18next" maxlength="256"></div>
-      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="submit" [disabled]="loadPending || actionPending">{{ 'admin-report-apply' | i18next }}</button><button class="btn rb-admin-ghost" type="button" [disabled]="loadPending || actionPending" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
+      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="submit" [disabled]="loadPending || actionPending"><i class="fa fa-filter" aria-hidden="true"></i> {{ 'admin-apply-filters' | i18next }}</button><button *ngIf="hasFilters" class="btn rb-admin-ghost" type="button" [disabled]="loadPending || actionPending" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
     </form>
     @if (!initTracker.resultsReturned) { <div class="deleted-loading" role="status"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> {{ 'deleted-records-retrieving-results' | i18next }}</div> }
     @if (selectedRecords.size) {
