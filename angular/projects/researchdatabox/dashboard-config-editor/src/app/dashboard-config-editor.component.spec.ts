@@ -71,6 +71,32 @@ describe('DashboardConfigEditorComponent', () => {
     spyOn(component, 'waitForDeps').and.resolveTo();
   });
 
+  it('keeps a labelled loading state until translations and target navigation are ready together', async () => {
+    const dependencies = deferred<void>();
+    (component.waitForDeps as jasmine.Spy).and.returnValue(dependencies.promise);
+    const metadata = deferred<any>();
+    api.getTargets.and.returnValue(metadata.promise);
+    component.loadingLabel = 'Loading content';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('Loading content');
+    expect(fixture.nativeElement.querySelector('.dc-layout')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header')).toBeNull();
+
+    dependencies.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    fixture.detectChanges();
+    expect(api.getTargets).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.dc-layout')).toBeNull();
+
+    metadata.resolve({ targets: [], catalogueFingerprint: 'empty' });
+    await component.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.dc-layout')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h2').textContent).toContain('admin-dashboard-pick');
+  });
+
   it('humanizes untranslated target IDs while preserving the raw identifier', () => {
     const workflow: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'concurrencyTest', stage: 'draft' }, key: 'test', ownerLabel: 'concurrencyTest', stepLabel: 'draft', hidden: false, recordType: 'concurrencyTest', queryFilterKeys: [] };
     expect(component.targetLabel(workflow)).toBe('Concurrency test · Draft');

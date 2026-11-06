@@ -1,4 +1,4 @@
-import { Component, HostListener, Inject, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, HostListener, Inject, Attribute, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   DashboardConfigApiError,
@@ -42,6 +42,9 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     }
   }
 
+  // The frame needs translated labels and its target list together. Rendering
+  // empty navigation first moves the editor when those rows arrive on mobile.
+  layoutReady = false;
   targets: DashboardTargetInfo[] = [];
   recordTypes: string[] = [];
   selected: DashboardTargetInfo | null = null;
@@ -99,6 +102,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   };
 
   constructor(
+    @Attribute('loadingLabel') public loadingLabel: string,
     @Inject(LoggerService) private logger: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(DashboardConfigApiService) private api: DashboardConfigApiService
@@ -110,6 +114,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
     await this.reloadTargets();
+    this.layoutReady = true;
     await this.selectFromHash();
   }
 

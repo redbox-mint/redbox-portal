@@ -1,6 +1,6 @@
 <% let appName = 'dashboard-config-editor'; %>
 <%- include('layout/start.ejs') %>
-    <dashboard-config-editor <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <dashboard-config-editor loadingLabel="<%= TranslationService.t('loading-alt-text') %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
       <div class="col-xs-12">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </div>
