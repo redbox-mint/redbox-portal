@@ -12,7 +12,7 @@
   <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
   <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'harvest-runs-heading' | i18next }}</span></li>
 </ol></nav>
-<header class="rb-admin-page-header"><div><h1>{{ 'harvest-runs-heading' | i18next }}</h1><p>{{ 'admin-harvest-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingRuns" (click)="refreshRuns()">{{ 'export-refresh' | i18next }}</button></div></header>
+<header class="rb-admin-page-header"><div><h1>{{ 'harvest-runs-heading' | i18next }}</h1><p>{{ 'admin-harvest-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingRuns" (click)="refreshRuns()"><i class="fa fa-refresh" aria-hidden="true"></i> {{ 'export-refresh' | i18next }}</button></div></header>
     @if (statisticsError) { <div class="alert alert-danger" role="alert">{{ statisticsError }}</div> }
     <div class="rb-admin-stats hr-global-stats" [attr.aria-busy]="loadingStatistics">
       <div class="rb-admin-stat"><b>{{ loadingStatistics ? '—' : (statistics?.runsLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-runs' | i18next }}</span></div>
@@ -33,7 +33,7 @@
       <div class="card-header">
         <h2>{{ 'admin-harvest-runs' | i18next }}</h2>
         @if (!loadingRuns) {
-          <small>{{ 'harvest-runs-count' | i18next: { count: listResponse.summary.numFound } }}</small>
+          <small>{{ listResponse.summary.numFound | adminCount: 'run' }}</small>
         }
       </div>
       <div>
@@ -72,9 +72,9 @@
           <div class="rb-admin-page-actions">
             <button type="submit" class="btn btn-primary" [disabled]="loadingRuns">
               <i class="fa fa-filter" aria-hidden="true"></i>
-              {{ 'admin-report-apply' | i18next }}
+              {{ 'admin-apply-filters' | i18next }}
             </button>
-            <button type="button" class="btn rb-admin-ghost" (click)="clearFilters()" [disabled]="loadingRuns">
+            <button type="button" class="btn rb-admin-ghost" *ngIf="hasFilters" (click)="clearFilters()" [disabled]="loadingRuns">
               {{ 'admin-report-clear' | i18next }}
             </button>
           </div>
@@ -135,8 +135,8 @@
                 [(ngModel)]="listResponse.summary.page"
                 [ngModelOptions]="{ standalone: true }"
                 [maxSize]="7"
-                [boundaryLinks]="true"
-                [directionLinks]="false"
+                [boundaryLinks]="false"
+                [directionLinks]="true"
                 class="pagination-sm"
                 (pageChanged)="onRunPageChanged($event)">
               </pagination>
@@ -256,9 +256,9 @@
                 <div class="rb-admin-page-actions">
                   <button type="submit" class="btn btn-primary" [disabled]="loadingEvents">
                     <i class="fa fa-filter" aria-hidden="true"></i>
-                    {{ 'admin-report-apply' | i18next }}
+                    {{ 'admin-apply-filters' | i18next }}
                   </button>
-                  <button type="button" class="btn rb-admin-ghost" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'admin-report-clear' | i18next }}</button>
+                  <button type="button" class="btn rb-admin-ghost" *ngIf="hasEventFilters" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'admin-report-clear' | i18next }}</button>
                 </div>
               </form>
 
@@ -313,8 +313,8 @@
                       [(ngModel)]="eventResponse.summary.page"
                       [ngModelOptions]="{ standalone: true }"
                       [maxSize]="7"
-                      [boundaryLinks]="true"
-                      [directionLinks]="false"
+                      [boundaryLinks]="false"
+                      [directionLinks]="true"
                       class="pagination-sm"
                       (pageChanged)="onEventPageChanged($event)">
                     </pagination>
@@ -413,8 +413,8 @@
                       [(ngModel)]="chunkResponse.summary.page"
                       [ngModelOptions]="{ standalone: true }"
                       [maxSize]="7"
-                      [boundaryLinks]="true"
-                      [directionLinks]="false"
+                      [boundaryLinks]="false"
+                      [directionLinks]="true"
                       class="pagination-sm"
                       (pageChanged)="onChunkPageChanged($event)">
                     </pagination>

@@ -1,3 +1,4 @@
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -21,10 +22,10 @@ describe('ReportConfigComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ReportConfigComponent, MockI18NextPipe],
-      imports: [FormsModule, HttpClientTestingModule, A11yModule],
+      imports: [AdminCountPipe, FormsModule, HttpClientTestingModule, A11yModule],
       providers: [
         { provide: LoggerService, useValue: { error: () => undefined, warn: () => undefined } },
-        { provide: TranslationService, useValue: { isReady: true, init: () => Promise.resolve(), waitForInit: () => Promise.resolve() } },
+        { provide: TranslationService, useValue: { t: (key: string) => key, isReady: true, init: () => Promise.resolve(), waitForInit: () => Promise.resolve() } },
         {
           provide: ReportConfigService,
           useValue: {

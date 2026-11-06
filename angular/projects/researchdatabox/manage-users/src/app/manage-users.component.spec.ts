@@ -1,3 +1,4 @@
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
@@ -136,7 +137,7 @@ describe('ManageUsersComponent', () => {
       declarations: [
         ManageUsersComponent
       ],
-      imports: [
+      imports: [AdminCountPipe,
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
@@ -715,6 +716,21 @@ describe('ManageUsersComponent', () => {
     expect(app.searchFilter.name).toBe('');
     expect(app.roleFilter).toBe('');
   });
+  it('clears disabled-users and sign-in filters in one refresh', async () => {
+    const app = createBareComponent();
+    app.showDisabledUsers = true;
+    app.signInFilter = 'local';
+    app.roleFilter = 'Admin';
+    app.searchFilter.name = 'someone';
+    const refresh = spyOn(app, 'refreshUsers').and.resolveTo();
+    await app.resetFilter();
+    expect(app.showDisabledUsers).toBeFalse();
+    expect(app.signInFilter).toBe('');
+    expect(app.roleFilter).toBe('');
+    expect(app.searchFilter.name).toBe('');
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
   it('combines role and email filters and retains them after refreshing users', async () => {
     const app = createBareComponent();
     app.allUsers = usersData as any;

@@ -104,13 +104,13 @@
           {{ 'admin-export-recent' | i18next }}
         </h2>
         <div class="ex-panel__tools">
+          <span>{{ jobs.length | adminCount: 'export' }}</span>
           @if (isUpdatingAutomatically()) {
             <small class="ex-auto-refresh">
               <span class="fa fa-circle-notch fa-spin" aria-hidden="true"></span>
               {{ 'export-auto-refresh' | i18next }}
             </small>
-          } @else if (jobs.length) {
-            <small>{{ 'export-count' | i18next: { count: jobs.length } }}</small>
+
           }
           <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="jobsLoading || mutationPending" (click)="refreshJobs()">
             <i class="fa fa-refresh" [class.fa-spin]="jobsLoading" aria-hidden="true"></i>
@@ -229,6 +229,7 @@
           </div>
         }
       </div>
+      <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: jobs.length ? 1 : 0, end: jobs.length, total: jobs.length } }}</div>
     </section>
   </div></div>
   @if (pendingCancel) {

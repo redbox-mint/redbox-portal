@@ -5,13 +5,13 @@
   @if (isReady) {
     @for (workflowStep of workflowSteps; track getStepKey(workflowStep)) {
       <div class="card rb-parties-panel">
-        <div class="card-header"><h2>{{ 'admin-parties-records' | i18next }}</h2><span>{{ 'admin-parties-count' | i18next: { count: records[getStepKey(workflowStep)]?.totalItems || 0 } }}</span></div>
+        <div class="card-header"><h2>{{ 'admin-parties-records' | i18next }}</h2><span>{{ (records[getStepKey(workflowStep)]?.totalItems || 0) | adminCount: 'party' }}</span></div>
         @if (isSearchEnabled(getStepKey(workflowStep))) {
           <form class="rb-admin-filter-bar" (ngSubmit)="filterChanged(getStepKey(workflowStep))">
             <div class="rb-admin-field rb-admin-field-grow"><label [for]="'party-search-' + getStepKey(workflowStep)">{{ 'admin-vocabulary-search' | i18next }}</label><input [id]="'party-search-' + getStepKey(workflowStep)" type="search" class="form-control" [name]="'search-' + getStepKey(workflowStep)" [(ngModel)]="filterSearchString[getStepKey(workflowStep)]" [placeholder]="'admin-parties-search-placeholder' | i18next" /></div>
             <div class="rb-admin-field"><label [for]="'party-search-in-' + getStepKey(workflowStep)">{{ 'admin-parties-search-in' | i18next }}</label><select [id]="'party-search-in-' + getStepKey(workflowStep)" class="form-select" [name]="'field-' + getStepKey(workflowStep)" [ngModel]="getFilterFieldPath(getStepKey(workflowStep))" (ngModelChange)="selectAdminFilter(getStepKey(workflowStep), $event)">@for (filter of getTextFilters(getStepKey(workflowStep)); track filter.path) {<option [value]="filter.path">{{ filter.name | i18next }}</option>}</select></div>
-            <button class="btn btn-outline-secondary" type="submit" [disabled]="getIsSearching(getStepKey(workflowStep))">{{ 'record-search-basic-search' | i18next }}</button>
-            @if (getFilterSearchDisplayed(getStepKey(workflowStep))) {<button class="btn rb-admin-ghost" type="button" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'record-search-reset' | i18next }}</button>}
+            <button class="btn btn-primary" type="submit" [disabled]="getIsSearching(getStepKey(workflowStep))"><i class="fa fa-filter" aria-hidden="true"></i> {{ 'admin-apply-filters' | i18next }}</button>
+            @if (getFilterSearchDisplayed(getStepKey(workflowStep)) || filterSearchString[getStepKey(workflowStep)] || getFilterFieldPath(getStepKey(workflowStep)) !== getTextFilters(getStepKey(workflowStep))[0]?.path) {<button class="btn rb-admin-ghost" type="button" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'admin-report-clear' | i18next }}</button>}
           </form>
         }
         @if (records[getStepKey(workflowStep)]; as page) {

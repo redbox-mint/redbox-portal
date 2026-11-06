@@ -17,7 +17,7 @@
   <div class="rb-admin-split-main">
     @if (selectedRole; as role) {
     <section class="card" [attr.aria-busy]="loadingMembers" [id]="'role-' + role.id">
-      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><span>{{ 'admin-roles-member-count' | i18next: { count: totalMembers } }}</span></div>
+      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><span>{{ totalMembers | adminCount: 'member' }}</span></div>
       <div class="people-role-description">
         @if (editingDescription) {
           <label for="role-description">{{ 'admin-roles-description-label' | i18next }}</label>
@@ -32,7 +32,8 @@
       <div class="rb-admin-filter-bar">
         <div class="rb-admin-field rb-admin-field-grow"><label for="role-member-search">{{ 'admin-roles-add-member' | i18next }}</label><input id="role-member-search" type="search" class="form-control" [(ngModel)]="memberSearch" (ngModelChange)="searchMembers()" [disabled]="saving" [placeholder]="'admin-users-search-placeholder' | i18next" aria-controls="role-member-results"></div>
         <button type="button" class="btn btn-primary" [disabled]="!selectedCandidateId || saving" (click)="addMember()">{{ 'admin-roles-add' | i18next }}</button>
-      </div>
+      <button *ngIf="memberSearch" type="button" class="btn rb-admin-ghost" (click)="memberSearch = ''; selectedCandidateId = ''; searchMembers()">{{ 'admin-report-clear' | i18next }}</button>
+  </div>
       @if (memberSearch.trim()) {
         <div class="people-member-results" id="role-member-results" [attr.aria-busy]="candidatesLoading">
           @if (candidatesLoading) { <p role="status">{{ 'manage-users-link-searching' | i18next }}</p> }
@@ -48,7 +49,7 @@
       <div class="rb-admin-filter-bar"><div class="rb-admin-field rb-admin-field-grow"><label for="role-members-filter">{{ 'admin-users-search' | i18next }}</label><input id="role-members-filter" class="form-control" type="search" [(ngModel)]="memberFilter" (ngModelChange)="loadMembers(1)"></div></div>
       @if (members().length) {
         <div class="table-responsive"><table class="table table-hover">
-          <thead><tr><th [attr.aria-sort]="memberOrder === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortMembers()">{{ 'admin-roles-member' | i18next }} {{ memberOrder === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'admin-roles-other-roles' | i18next }}</th><th class="text-end">{{ 'manage-users-action' | i18next }}</th></tr></thead>
+          <thead><tr><th [attr.aria-sort]="memberOrder === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortMembers()">{{ 'admin-roles-member' | i18next }} {{ memberOrder === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'admin-roles-other-roles' | i18next }}</th><th class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
           <tbody>@for (user of members(); track user.id) {
             <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span>@if (user.effectiveLoginDisabled) { <span class="badge rb-admin-badge-danger">{{ 'manage-users-account-status-disabled' | i18next }}</span> }</td>
               <td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>

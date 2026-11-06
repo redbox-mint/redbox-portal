@@ -9,7 +9,7 @@
       <div><h1>{{ 'reports-heading' | i18next }}</h1><p>{{ 'admin-reports-description' | i18next }}</p></div>
       <div class="rb-admin-page-actions">
         <a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query'">{{ 'admin-nav-named-query' | i18next }}</a>
-        <button class="btn btn-primary" type="button" (click)="createReport()"><span aria-hidden="true">+</span> {{ 'report-create' | i18next }}</button>
+        <button class="btn btn-primary" type="button" (click)="createReport()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-report' | i18next }}</button>
       </div>
     </header>
     @if (errorMessage && !selectedReport && !pendingDelete) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }
@@ -19,7 +19,7 @@
       <div class="rb-admin-stat"><b>{{ solrReports }}</b><span>{{ 'report-source-solr' | i18next }}</span></div>
     </div>
     <section class="card">
-      <div class="card-header"><h2>{{ 'report-configured-reports' | i18next }}</h2><span>{{ filteredReports.length }} / {{ totalReports }}</span></div>
+      <div class="card-header"><h2>{{ 'report-configured-reports' | i18next }}</h2><span>{{ filteredReports.length | adminCount: 'report': totalReports }}</span></div>
       <div class="rb-admin-filter-bar">
         <div class="rb-admin-field rb-admin-field-grow"><label for="report-search">{{ 'named-query-search' | i18next }}</label>
           <input id="report-search" class="form-control" type="search" [placeholder]="'report-search-placeholder' | i18next" [(ngModel)]="searchText" (ngModelChange)="applyFilter()"></div>
@@ -28,7 +28,8 @@
             @for (source of sources; track source) { <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="sourceFilter === source" (click)="setSourceFilter(source)">{{ ('report-source-' + source) | i18next }}</button> }
           </div>
         </div>
-      </div>
+      <button *ngIf="searchText || sourceFilter !== 'all'" type="button" class="btn rb-admin-ghost" (click)="searchText = ''; setSourceFilter('all')">{{ 'admin-report-clear' | i18next }}</button>
+  </div>
       @if (filteredReports.length) { <div class="table-responsive"><table class="table table-hover">
         <thead><tr><th>{{ 'admin-report-column' | i18next }}</th><th>{{ 'report-col-source' | i18next }}</th>
           @if (hasNamedQueries) { <th>{{ 'report-field-named-query' | i18next }}</th> }
@@ -50,7 +51,7 @@
         </tbody>
       </table></div> }
       @if (filteredReports.length === 0) { <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ (searchText || sourceFilter !== 'all' ? 'admin-no-filter-results' : 'report-none-found') | i18next }}</h3>@if (searchText || sourceFilter !== 'all') { <button type="button" class="btn btn-outline-secondary" (click)="searchText = ''; setSourceFilter('all')">{{ 'admin-report-clear' | i18next }}</button> }</div> }
-      <div class="card-footer">{{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}</div>
+      <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: filteredReports.length ? 1 : 0, end: filteredReports.length, total: filteredReports.length } }}</div>
     </section>
     </div>
     @if (pendingDelete) {
@@ -144,7 +145,7 @@
                     </tbody>
                   </table>
                 </div>
-                <button class="btn btn-default btn-sm" type="button" (click)="addFilter()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-filter' | i18next }}</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" (click)="addFilter()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-filter' | i18next }}</button>
               </fieldset>
 
               <fieldset class="rb-admin-form-section">
@@ -178,7 +179,7 @@
                     </tbody>
                   </table>
                 </div>
-                <button class="btn btn-default btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-column' | i18next }}</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-column' | i18next }}</button>
               </fieldset>
 
               @if (selectedReport.filter.length > 0) {
@@ -211,8 +212,8 @@
               }
             </div>
             <div class="modal-footer">
-              <button class="btn btn-default" type="button" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button>
-              <button class="btn btn-default" type="button" [disabled]="isPreviewing" (click)="previewReport()"><i class="fa fa-eye" aria-hidden="true"></i> {{ 'report-preview' | i18next }}</button>
+              <button class="btn btn-outline-secondary" type="button" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button>
+              <button class="btn btn-outline-secondary" type="button" [disabled]="isPreviewing" (click)="previewReport()"><i class="fa fa-eye" aria-hidden="true"></i> {{ 'report-preview' | i18next }}</button>
               <button class="btn btn-primary" type="button" [disabled]="isSaving" (click)="saveReport()">{{ 'report-save' | i18next }}</button>
             </div>
           </div>

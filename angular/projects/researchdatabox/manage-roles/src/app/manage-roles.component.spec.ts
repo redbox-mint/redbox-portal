@@ -1,3 +1,4 @@
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
 import { APP_BASE_HREF } from '@angular/common'; 
@@ -59,7 +60,7 @@ describe('AppComponent', () => {
       declarations: [
         ManageRolesComponent
       ],
-      imports: [
+      imports: [AdminCountPipe,
         FormsModule,
         ModalModule.forRoot(),
         I18NextPipe
