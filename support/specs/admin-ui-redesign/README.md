@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/17-council-ux` (batch 9): soft system-message banners, guarded nested editors, predictable removal focus, named controls, translated category mappings, shared ellipsis pagination, and consistent cards, defaults and row actions.
+
 Delivered on `admin-deferred/17-council-ux` (batch 6): deliberate role assignment, dirty-editor discard confirmation, unique binding controls, tablet layout fixes, consistent technical values and action buttons, and navigation/translation accessibility polish.
 
 Delivered on `admin-deferred/17-council-ux` (batch 5b): consistent config switches and off states, accessible user validation and restore confirmation, accurate sidebar preview, shared accents and disabled states, and form/modal polish.
