@@ -31,7 +31,7 @@
   }
   <section class="card">
     <div class="card-header"><h2>{{ 'admin-deleted-title' | i18next }}</h2><span role="status" aria-live="polite">{{ deletedRecordsResult.total | adminCount: 'record' }}</span></div>
-    <form class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filter()" (ngSubmit)="filter()">
+    <form *ngIf="deletedRecordsResult.total > 0 || hasFilters" class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filter()" (ngSubmit)="filter()">
       <div class="rb-admin-field rb-admin-field-grow"><label for="title">{{ 'admin-deleted-title-filter' | i18next }}</label><input id="title" name="title" type="search" class="form-control" [placeholder]="'admin-deleted-any-title' | i18next" [(ngModel)]="filterParams.title"></div>
       <div class="rb-admin-field"><label for="recordType">{{ 'export-record-type' | i18next }}</label>
         <select id="recordType" name="recordType" class="form-select" [(ngModel)]="filterParams.recordType">

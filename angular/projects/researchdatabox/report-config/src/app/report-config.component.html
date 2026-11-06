@@ -38,7 +38,7 @@
         <tbody>
           @for (report of filteredReports; track report.name) {
             <tr><td><a [href]="openReport(report)"><b>{{ report.title }}</b></a><code class="rb-admin-sub">{{ report.name }}</code></td>
-              <td><span class="badge rb-admin-badge-primary">{{ report.reportSource }}</span> @if (report.readOnly) { <span class="rb-admin-sub">{{ 'report-state-readonly' | i18next }}</span> }</td>
+              <td><span class="badge rb-admin-badge-primary">{{ ('report-source-' + report.reportSource) | i18next }}</span> @if (report.readOnly) { <span class="rb-admin-sub">{{ 'report-state-readonly' | i18next }}</span> }</td>
               @if (hasNamedQueries) { <td><a [href]="brandingAndPortalUrl + '/admin/named-query'"><code>{{ report.databaseQuery?.queryName || '—' }}</code></a></td> }
               <td class="text-end">{{ report.filter.length }}</td><td class="text-end">{{ report.columns.length }}</td>
               <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">

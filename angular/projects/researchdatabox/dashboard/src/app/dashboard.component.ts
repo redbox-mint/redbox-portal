@@ -25,7 +25,7 @@ import {
   DashboardRuntimeSettings
 } from '@researchdatabox/portal-ng-common';
 import { handlebarsInstance } from '@researchdatabox/sails-ng-common';
-import { get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, has as _has } from 'lodash-es';
+import { escape as _escape, get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, has as _has } from 'lodash-es';
 
 /**
  * Settings and interaction state owned by one dashboard stage/step. Nothing in
@@ -50,7 +50,7 @@ export class DashboardComponent extends BaseComponent {
   adminParties = false;
   adminPartyImport = false;
   readonly partyLookupFilters: FilterField[] = [
-    { name: 'admin-parties-name-or-email', path: 'metadata.fullName,metadata.email' },
+    { name: 'admin-parties-all-fields', path: 'metadata.fullName,metadata.email' },
     { name: 'admin-parties-name', path: 'metadata.fullName' },
     { name: 'admin-parties-email', path: 'metadata.email' }
   ];
@@ -472,6 +472,10 @@ export class DashboardComponent extends BaseComponent {
       // Standard dashboard templates refer to mapped imports (dateCreated),
       // while their output column can be a nested path (metaMetadata.createdOn).
       const dateTemplate = columnConfig.template?.match(/^\{\{\s*formatDateLocale\s+(dateCreated|dateModified|dateDeleted)\s+["']DATETIME_\w+["']\s*\}\}$/);
+      if (this.adminParties && columnConfig.variable === 'metadata.fullName') {
+        record[columnConfig.variable] = _escape(String(imports.metadata?.fullName ?? ''));
+        continue;
+      }
       record[columnConfig.variable] = this.adminParties && dateTemplate
         ? this.adminDates.format(imports[dateTemplate[1]])
         : this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
@@ -748,14 +752,12 @@ export class DashboardComponent extends BaseComponent {
   }
 
   public getTextFilters(step: string): FilterField[] {
+    if (this.adminParties) return this.partyLookupFilters;
     const filterFields: FilterField[] = [];
     for (const queryFilter of this.getQueryFilters(step)) {
       if (queryFilter.filterType == 'text') {
         filterFields.push(...(queryFilter.filterFields ?? []));
       }
-    }
-    if (this.adminParties) {
-      return [...this.partyLookupFilters, ...filterFields.filter(field => !this.partyLookupFilters.some(item => item.path === field.path))];
     }
     return filterFields;
   }

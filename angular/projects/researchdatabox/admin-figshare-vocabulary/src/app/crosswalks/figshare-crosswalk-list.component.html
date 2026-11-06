@@ -1,6 +1,6 @@
 <div class="card">
   <div class="card-header"><h2>{{ 'figshare-vocab-tab-crosswalks' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ filteredItems.length | adminCount: 'crosswalk': total }}</span></div>
-  <div class="rb-admin-filter-bar">
+  <div *ngIf="total > 0 || search || statusFilter" class="rb-admin-filter-bar">
     <div class="rb-admin-field">
       <label class="form-label" for="figshare-crosswalk-status-filter">{{
         'figshare-vocab-status-filter-label' | i18next

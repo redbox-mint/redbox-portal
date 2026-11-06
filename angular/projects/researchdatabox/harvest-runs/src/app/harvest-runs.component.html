@@ -39,7 +39,7 @@
           <div class="alert alert-danger" role="alert">{{ listError }}</div>
         }
 
-        <form class="rb-admin-filter-bar harvest-runs-filters" rbAdminAutoFilter (rbAdminFilter)="applyFilters()" (ngSubmit)="applyFilters($event)">
+        <form *ngIf="listResponse.summary.numFound > 0 || hasFilters || dateFrom || dateTo" class="rb-admin-filter-bar harvest-runs-filters" rbAdminAutoFilter (rbAdminFilter)="applyFilters()" (ngSubmit)="applyFilters($event)">
           <div class="rb-admin-field">
             <label for="harvest-runs-status">{{ 'harvest-runs-filter-status' | i18next }}</label>
             <select id="harvest-runs-status" class="form-select" [(ngModel)]="filters.status" name="status">
@@ -143,7 +143,7 @@
     <!-- Run detail -->
     <div id="harvest-run-detail">
     @if (selectedRunId || loadingDetail || detailError) {
-      <section class="card hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
+      <section class="card rb-admin-card-secondary hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
         <div class="card-header">
           <h2>{{ 'harvest-runs-detail-summary' | i18next }}</h2>
           @if (selectedRun) {

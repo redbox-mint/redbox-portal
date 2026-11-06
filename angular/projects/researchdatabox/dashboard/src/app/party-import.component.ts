@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RedboxPortalCoreModule } from '@researchdatabox/portal-ng-common';
+import { AdminListFooterComponent, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { PartyImportApiService } from './party-import-api.service';
 
-@Component({ selector: 'party-csv-import', standalone: true, imports: [CommonModule, FormsModule, RedboxPortalCoreModule], templateUrl: './party-import.component.html' })
+@Component({ selector: 'party-csv-import', standalone: true, imports: [CommonModule, FormsModule, AdminListFooterComponent, I18NextPipe], templateUrl: './party-import.component.html' })
 export class PartyImportComponent {
   readonly fields = ['fullName', 'givenName', 'surname', 'email', 'orcid'];
   content = ''; filename = ''; headers: string[] = []; sample: string[][] = []; total = 0;
@@ -13,6 +13,8 @@ export class PartyImportComponent {
   constructor(private api: PartyImportApiService) {}
   get rows(): any[] { return (this.results?.rows ?? this.preview?.rows ?? []).slice(this.page * this.pageSize, (this.page + 1) * this.pageSize); }
   get rowCount(): number { return (this.results?.rows ?? this.preview?.rows ?? []).length; }
+  get pageEnd(): number { return Math.min((this.page + 1) * this.pageSize, this.rowCount); }
+  get pageCount(): number { return Math.ceil(this.rowCount / this.pageSize); }
   clearPreview() { this.preview = null; this.results = null; this.page = 0; }
   async chooseFile(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
