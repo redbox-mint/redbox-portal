@@ -34,7 +34,7 @@
         <th scope="col">{{ 'figshare-vocab-source-column-last-sync' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-schedule' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-source-column-status' | i18next }}</th>
-        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+        <th scope="col" class="rb-admin-actions-col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
       </tr>
     </thead>
     <tbody>
@@ -61,7 +61,7 @@
           <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-status-current' | i18next }}</span>
           }
         </td>
-        <td>
+        <td class="rb-admin-actions-col">
 <div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="editRequested.emit(source)">{{ 'figshare-vocab-action-edit' | i18next }}</button><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">{{ 'figshare-vocab-action-resync' | i18next }}</button>
         <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
           <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-clone' | i18next }}</button>

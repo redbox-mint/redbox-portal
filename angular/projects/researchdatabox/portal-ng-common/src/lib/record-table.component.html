@@ -26,7 +26,7 @@
                 }
               }
               @if (enableActions && showActions && showActions.length > 0) {
-                <th>{{'record-table-results-table-header-actions' | i18next}}</th>
+                <th [class.rb-admin-actions-col]="adminPresentation">{{'record-table-results-table-header-actions' | i18next}}</th>
               }
             </tr>
           </thead>
@@ -42,7 +42,7 @@
                   }
                 }
                 @if (enableActions && showActions && showActions.length > 0) {
-                  <td>
+                  <td [class.rb-admin-actions-col]="adminPresentation">
                     @if (actionTemplate) {
                       <ng-container [ngTemplateOutlet]="actionTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container>
                     } @else {

@@ -75,7 +75,7 @@
         <th scope="col">{{ 'figshare-vocab-column-local-term' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-column-target' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-column-status' | i18next }}</th>
-        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+        <th scope="col" class="rb-admin-actions-col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
       </tr>
     </thead>
     <tbody>
@@ -100,7 +100,7 @@
           <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-mapping-status-' + mapping.status | i18next }}</span>
           <span class="badge rb-admin-badge-primary ms-1">{{ 'figshare-vocab-match-' + mapping.matchType | i18next }}</span>
         </td>
-        <td>
+        <td class="rb-admin-actions-col">
           <div class="d-flex flex-wrap gap-1">
             <button type="button" class="btn btn-sm btn-outline-primary" [disabled]="saving" (click)="openAddTarget(mapping)">
               {{ 'figshare-vocab-add-target' | i18next }}

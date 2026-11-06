@@ -8,7 +8,7 @@
         <tr>
           <th>{{ 'named-query-sort-field' | i18next }}</th>
           <th class="nq-type-column">{{ 'named-query-sort-direction' | i18next }}</th>
-          <th class="nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          <th class="rb-admin-actions-col nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
         </tr>
       </thead>
       <tbody>
@@ -19,14 +19,14 @@
                    (ngModelChange)="onFieldChange(entry, $event)">
           </td>
           <td>
-            <select class="form-control form-control-sm"
+            <select class="form-select form-select-sm"
                     [ngModel]="entry.direction"
                     (ngModelChange)="onDirectionChange(entry, $event)">
               <option value="ASC">ASC</option>
               <option value="DESC">DESC</option>
             </select>
           </td>
-          <td class="text-center">
+          <td class="rb-admin-actions-col text-center">
             <button class="btn btn-sm btn-outline-danger" type="button"
                     (click)="removeEntry(entry)">
               {{ 'named-query-remove' | i18next }}
@@ -41,7 +41,7 @@
   <div class="d-flex flex-wrap nq-add-row mt-2">
     <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newField"
            [attr.placeholder]="'named-query-sort-field-placeholder' | i18next">
-    <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newDirection">
+    <select class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newDirection">
       <option value="ASC">ASC</option>
       <option value="DESC">DESC</option>
     </select>

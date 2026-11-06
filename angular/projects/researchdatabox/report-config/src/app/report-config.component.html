@@ -33,14 +33,14 @@
       @if (filteredReports.length) { <div class="table-responsive"><table class="table table-hover">
         <thead><tr><th>{{ 'admin-report-column' | i18next }}</th><th>{{ 'report-col-source' | i18next }}</th>
           @if (hasNamedQueries) { <th>{{ 'report-field-named-query' | i18next }}</th> }
-          <th class="text-end">{{ 'report-col-filters' | i18next }}</th><th class="text-end">{{ 'report-col-columns' | i18next }}</th><th class="text-end">{{ 'report-col-actions' | i18next }}</th></tr></thead>
+          <th class="text-end">{{ 'report-col-filters' | i18next }}</th><th class="text-end">{{ 'report-col-columns' | i18next }}</th><th class="rb-admin-actions-col text-end">{{ 'report-col-actions' | i18next }}</th></tr></thead>
         <tbody>
           @for (report of filteredReports; track report.name) {
             <tr><td><a [href]="openReport(report)"><b>{{ report.title }}</b></a><code class="rb-admin-sub">{{ report.name }}</code></td>
               <td><span class="badge rb-admin-badge-primary">{{ report.reportSource }}</span> @if (report.readOnly) { <span class="rb-admin-sub">{{ 'report-state-readonly' | i18next }}</span> }</td>
               @if (hasNamedQueries) { <td><a [href]="brandingAndPortalUrl + '/admin/named-query'"><code>{{ report.databaseQuery?.queryName || '—' }}</code></a></td> }
               <td class="text-end">{{ report.filter.length }}</td><td class="text-end">{{ report.columns.length }}</td>
-              <td><div class="rb-admin-row-actions">
+              <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
                 <a class="btn btn-sm btn-outline-secondary" [href]="openReport(report)">{{ 'admin-report-run' | i18next }}</a>
                 <button class="btn btn-sm rb-admin-ghost" type="button" [disabled]="report.readOnly || !report.canEdit" (click)="editReport(report)">{{ 'report-action-edit' | i18next }}</button>
                 <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: report.title }">⋯</summary>
@@ -86,14 +86,14 @@
                 </div>
                 <div class="rb-admin-field">
                   <label class="required" for="report-source">{{ 'report-field-source' | i18next }}</label>
-                  <select id="report-source" class="form-control" [(ngModel)]="selectedReport.reportSource" disabled>
+                  <select id="report-source" class="form-select" [(ngModel)]="selectedReport.reportSource" disabled>
                     <option value="database">{{ 'report-source-database' | i18next }}</option>
                     <option value="solr">{{ 'report-source-solr' | i18next }}</option>
                   </select>
                 </div>
                 <div class="rb-admin-field">
                   <label class="required" for="report-named-query">{{ 'report-field-named-query' | i18next }}</label>
-                  <select id="report-named-query" class="form-control" [(ngModel)]="selectedReport.databaseQuery!.queryName">
+                  <select id="report-named-query" class="form-select" [(ngModel)]="selectedReport.databaseQuery!.queryName">
                     <option value="">{{ 'report-named-query-placeholder' | i18next }}</option>
                     @for (query of namedQueries; track query.name) {
                       <option [value]="query.name">{{ query.name }}</option>
@@ -112,14 +112,14 @@
                         <th>{{ 'report-filter-parameter' | i18next }}</th>
                         <th>{{ 'report-filter-property' | i18next }}</th>
                         <th>{{ 'report-filter-label' | i18next }}</th>
-                        <th class="report-editor-actions-col">{{ 'report-col-actions' | i18next }}</th>
+                        <th class="rb-admin-actions-col report-editor-actions-col">{{ 'report-col-actions' | i18next }}</th>
                       </tr>
                     </thead>
                     <tbody>
                       @for (filter of selectedReport.filter; track trackByIndex($index)) {
                         <tr>
                           <td>
-                            <select class="form-control" [attr.aria-label]="'report-filter-type' | i18next" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
+                            <select class="form-select" [attr.aria-label]="'report-filter-type' | i18next" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
                               <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
                               <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
                             </select>
@@ -134,7 +134,7 @@
                             }
                           </td>
                           <td><input class="form-control" type="text" [attr.aria-label]="'report-filter-label' | i18next" [(ngModel)]="filter.message"></td>
-                          <td class="text-center">
+                          <td class="rb-admin-actions-col text-center">
                             <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeFilter($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
                           </td>
                         </tr>
@@ -158,7 +158,7 @@
                         <th>{{ 'report-column-property' | i18next }}</th>
                         <th>{{ 'report-column-display-template' | i18next }}</th>
                         <th>{{ 'report-column-export-template' | i18next }}</th>
-                        <th class="report-editor-actions-col">{{ 'report-col-actions' | i18next }}</th>
+                        <th class="rb-admin-actions-col report-editor-actions-col">{{ 'report-col-actions' | i18next }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -168,7 +168,7 @@
                           <td><input class="form-control" type="text" [attr.aria-label]="'report-column-property' | i18next" [(ngModel)]="column.property"></td>
                           <td><input class="form-control" type="text" [attr.aria-label]="'report-column-display-template' | i18next" [(ngModel)]="column.template"></td>
                           <td><input class="form-control" type="text" [attr.aria-label]="'report-column-export-template' | i18next" [(ngModel)]="column.exportTemplate"></td>
-                          <td class="text-center">
+                          <td class="rb-admin-actions-col text-center">
                             <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeColumn($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
                           </td>
                         </tr>

@@ -30,6 +30,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   --admin-success: var(--rb-success, #198754);
   --admin-warning: var(--rb-warning, #ffc107);
   --admin-radius: 6px;
+  --admin-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   &.admin-layout {
     display: grid;
@@ -165,6 +166,13 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-skip { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 10px 16px; background: var(--admin-bg); color: var(--admin-ink); border: 2px solid var(--admin-primary); border-radius: var(--admin-radius); transform: translateY(-200%); }
   .rb-admin-skip:focus { transform: translateY(0); }
   .rb-admin-save-content { padding-bottom: var(--admin-save-height); min-width: 0; }
+  .app-config-page .rb-admin-save-content { padding-bottom: 0; }
+  .form-select { font-size: 14px; }
+  .form-switch { display: flex; align-items: center; gap: 6px; padding-left: 0; }
+  .form-switch .form-check-input { float: none; flex-shrink: 0; margin: 0; }
+  .form-switch .form-check-label { margin: 0; }
+  .rb-admin-mono, .app-config-mono :is(input, textarea), .app-config-summary, .app-config-page .binding-source, .app-config-dictionary-entry > summary > .rb-admin-hint { font-family: var(--admin-mono); }
+  .rb-admin-code-wrap { white-space: normal; overflow-wrap: anywhere; }
   .rb-admin-save-content :is(a, input, select, textarea, button, [tabindex], .rb-admin-form-section) { scroll-margin-block: 16px calc(var(--admin-save-height) + 24px); }
   .rb-admin-save-bar { width: 100%; min-width: 0; }
   .rb-admin-save-bar .rb-admin-page-actions { flex-wrap: wrap; }
@@ -342,7 +350,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-json { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: var(--admin-surface); color: var(--admin-ink); font-size: 13px; }
     textarea.form-control { min-height: 120px; }
     @media (max-width: 1199px) { .app-config-with-preview { grid-template-columns: minmax(0, 1fr); } }
-    @media (max-width: 767px) {
+    @media (max-width: 991.98px) {
       .app-config-long, .app-config-providers formly-object-type { grid-template-columns: minmax(0, 1fr); }
       .rb-admin-section-rail { position: static; max-height: none; }
       .app-config-section-actions { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; }
@@ -386,6 +394,19 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-tile a:hover { background: var(--admin-surface); text-decoration: underline; }
 
   @media (max-width: 991.98px) {
+    .table .rb-admin-actions-col {
+      position: sticky; right: 0; z-index: 2; background: var(--admin-bg);
+      box-shadow: -5px 0 7px -5px color-mix(in srgb, var(--admin-ink) 35%, transparent);
+    }
+    .table th.rb-admin-actions-col { z-index: 3; }
+    .table .rb-admin-actions-col:has(.rb-admin-overflow[open]) { z-index: 4; }
+    .rb-admin-split, .people-role-layout { flex-direction: column; flex-wrap: nowrap; }
+    .rb-admin-split > * { width: 100%; max-width: none; flex: 0 1 auto; }
+    .rb-admin-section-rail, .people-role-rail {
+      position: static; display: flex; flex-wrap: wrap; gap: 4px; max-height: 180px; overflow-y: auto; padding: 8px;
+      a { border-left: 0; border-radius: var(--admin-radius); padding: 6px 10px; }
+      h2 { flex-basis: 100%; padding: 4px 10px; }
+    }
     // The portal header leaves little tablet viewport space; keep editor actions in flow.
     .rb-admin-save-bar { position: static; }
     &.admin-layout { grid-template-columns: minmax(0, 1fr); }
@@ -432,7 +453,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-navigation-position { flex: 0 0 18px; color: var(--admin-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
   .rb-navigation-summary { display: block; flex: 1; min-width: 0; }
   .rb-navigation-summary strong { display: block; font-size: 15px; line-height: 1.3; }
-  .rb-navigation-meta, .rb-navigation-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  .rb-navigation-meta, .rb-navigation-mono { font-family: var(--admin-mono); font-size: 12px; }
   .rb-navigation-meta { display: block; color: var(--admin-muted); margin-top: 3px; overflow-wrap: anywhere; }
   .rb-navigation-badges { display: flex; flex-wrap: wrap; gap: 4px; max-width: 135px; justify-content: flex-end; }
   .rb-navigation-badges .badge { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }

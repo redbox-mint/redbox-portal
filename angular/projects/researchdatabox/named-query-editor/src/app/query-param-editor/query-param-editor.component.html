@@ -27,19 +27,19 @@
       <div class="row g-2">
         <div class="form-group col-md-4">
           <label>{{ 'named-query-param-type' | i18next }}</label>
-          <select class="form-control form-control-sm" [(ngModel)]="newParam.type">
+          <select class="form-select form-select-sm" [(ngModel)]="newParam.type">
             <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div class="form-group col-md-4">
           <label>{{ 'named-query-param-query-type' | i18next }}</label>
-          <select class="form-control form-control-sm" [(ngModel)]="newParam.queryType">
+          <select class="form-select form-select-sm" [(ngModel)]="newParam.queryType">
             <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || '(none)' }}</option>
           </select>
         </div>
         <div class="form-group col-md-4" *ngIf="newParam.type === 'date'">
           <label>{{ 'named-query-param-format' | i18next }}</label>
-          <select class="form-control form-control-sm" [(ngModel)]="newParam.format">
+          <select class="form-select form-select-sm" [(ngModel)]="newParam.format">
             <option *ngFor="let f of dateFormatOptions" [value]="f">{{ f }}</option>
           </select>
         </div>
@@ -47,7 +47,7 @@
       <div class="row g-2">
         <div class="form-group" [ngClass]="newParam.whenUndefined === 'defaultValue' ? 'col-md-6' : 'col-12'">
           <label>{{ 'named-query-param-when-undefined' | i18next }}</label>
-          <select class="form-control form-control-sm" [(ngModel)]="newParam.whenUndefined">
+          <select class="form-select form-select-sm" [(ngModel)]="newParam.whenUndefined">
             <option *ngFor="let wu of whenUndefinedOptions" [value]="wu">{{ wu }}</option>
           </select>
         </div>
@@ -107,21 +107,21 @@
       <div class="row g-2">
         <div class="form-group col-md-4">
           <label>{{ 'named-query-param-type' | i18next }}</label>
-          <select class="form-control form-control-sm" [ngModel]="param.type"
+          <select class="form-select form-select-sm" [ngModel]="param.type"
                   (ngModelChange)="onFieldChange(param, 'type', $event)">
             <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
           </select>
         </div>
         <div class="form-group col-md-4">
           <label>{{ 'named-query-param-query-type' | i18next }}</label>
-          <select class="form-control form-control-sm" [ngModel]="param.queryType"
+          <select class="form-select form-select-sm" [ngModel]="param.queryType"
                   (ngModelChange)="onFieldChange(param, 'queryType', $event)">
             <option *ngFor="let qt of queryTypeOptions" [value]="qt">{{ qt || '(none)' }}</option>
           </select>
         </div>
         <div class="form-group col-md-4" *ngIf="param.type === 'date'">
           <label>{{ 'named-query-param-format' | i18next }}</label>
-          <select class="form-control form-control-sm" [ngModel]="param.format"
+          <select class="form-select form-select-sm" [ngModel]="param.format"
                   (ngModelChange)="onFieldChange(param, 'format', $event)">
             <option *ngFor="let f of dateFormatOptions" [value]="f">{{ f }}</option>
           </select>
@@ -130,7 +130,7 @@
       <div class="row g-2">
         <div class="form-group" [ngClass]="param.whenUndefined === 'defaultValue' ? 'col-md-6' : 'col-12'">
           <label>{{ 'named-query-param-when-undefined' | i18next }}</label>
-          <select class="form-control form-control-sm" [ngModel]="param.whenUndefined"
+          <select class="form-select form-select-sm" [ngModel]="param.whenUndefined"
                   (ngModelChange)="onFieldChange(param, 'whenUndefined', $event)">
             <option *ngFor="let wu of whenUndefinedOptions" [value]="wu">{{ wu }}</option>
           </select>
