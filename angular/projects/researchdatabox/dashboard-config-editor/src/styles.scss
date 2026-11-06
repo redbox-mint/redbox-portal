@@ -62,7 +62,7 @@
   .dc-add-search-btn { align-self: flex-start; }
   .dc-column-selected { background: var(--dc-accent-soft); }
   .dc-reorder { display: inline-flex; flex-direction: column; gap: 0; width: 32px; }
-  .dc-reorder .btn { width: 32px; min-height: 24px; padding: 0; font-size: 12px; border-radius: 0; &:first-child { border-radius: 4px 4px 0 0; } &:last-child { border-radius: 0 0 4px 4px; margin-top: -1px; } }
+  .dc-reorder .btn { width: 32px; min-height: 25px; padding: 0; font-size: 12px; border-radius: 0; &:first-child { border-radius: 4px 4px 0 0; } &:last-child { border-radius: 0 0 4px 4px; } }
   .dc-column-detail-wrap { margin: 16px 0 0; background: var(--admin-surface); }
   .dc-add-column .rb-admin-page-actions { margin-top: 12px; }
   .dc-state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); }
