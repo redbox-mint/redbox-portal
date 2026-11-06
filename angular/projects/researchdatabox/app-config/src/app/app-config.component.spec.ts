@@ -691,7 +691,7 @@ describe('AppConfigComponent', () => {
 
     const compiled = fixture.debugElement.nativeElement;
     expect(compiled.textContent).toContain('publicationYear');
-    expect(compiled.textContent).toContain('Field Key');
+    expect(compiled.textContent).toContain('admin-config-binding-field-key');
   });
 
   async function renderConfig(data: any, key = 'test') {
@@ -1278,6 +1278,18 @@ describe('AppConfigComponent', () => {
     await fixture.componentInstance.onSubmit(fixture.componentInstance.model);
     expect(save).not.toHaveBeenCalled();
     fixture.destroy();
+  });
+
+  it('reads config breadcrumb sections from the current sidebar heading', async () => {
+    const sidebar = document.createElement('aside');
+    sidebar.innerHTML = '<section><div class="rb-admin-sidebar-heading">Integrations</div><a class="rb-admin-sidebar-item" aria-current="page">DOI</a></section>';
+    document.body.append(sidebar);
+    try {
+      const fixture = await renderConfig({ schema: { type: 'object', properties: {} }, model: {} });
+      expect(fixture.componentInstance.sidebarSection).toBe('Integrations');
+      expect(fixture.nativeElement.querySelector('.rb-admin-crumbs').textContent).toContain('Integrations');
+      fixture.destroy();
+    } finally { sidebar.remove(); }
   });
 
   it('opens a leave warning for navigation and beforeunload only while dirty', async () => {

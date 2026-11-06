@@ -167,7 +167,7 @@ describe('ValueBindingEditorTypeComponent', () => {
 
       await component.ngOnInit();
 
-      expect(component.crosswalksLoadError).toContain('unavailable');
+      expect(component.crosswalksLoadError).toContain('admin-config-binding-crosswalks-unavailable');
     });
   });
 
@@ -395,7 +395,7 @@ describe('ValueBindingEditorTypeComponent', () => {
       const { component } = setup({ model: { ...crosswalkModel(), source: { kind: 'path', path: '' } } });
       await component.ngOnInit();
 
-      expect(component.crosswalkValidationMessage).toContain('source binding');
+      expect(component.crosswalkValidationMessage).toContain('admin-config-binding-source-required');
       expect(component.isConfigured).toBeFalse();
     });
 
@@ -405,17 +405,17 @@ describe('ValueBindingEditorTypeComponent', () => {
       });
       await component.ngOnInit();
 
-      expect(component.crosswalkValidationMessage).toBe('Select a source vocabulary.');
+      expect(component.crosswalkValidationMessage).toBe('admin-config-binding-vocabulary-required');
 
       component.updateField('sourceVocabularyId', 'vocab-1');
-      expect(component.crosswalkValidationMessage).toBe('Select an approved crosswalk.');
+      expect(component.crosswalkValidationMessage).toBe('admin-config-binding-crosswalk-required');
     });
 
     it('flags a crosswalk that is not available for the brand', async () => {
       const { component } = setup({ model: crosswalkModel(), crosswalks: [] });
       await component.ngOnInit();
 
-      expect(component.crosswalkValidationMessage).toContain('not available for this brand');
+      expect(component.crosswalkValidationMessage).toContain('admin-config-binding-crosswalk-unavailable');
     });
 
     it('flags a crosswalk with no approved revision', async () => {
@@ -425,7 +425,7 @@ describe('ValueBindingEditorTypeComponent', () => {
       });
       await component.ngOnInit();
 
-      expect(component.crosswalkValidationMessage).toContain('Approve a mapping revision');
+      expect(component.crosswalkValidationMessage).toContain('admin-config-binding-approval-required');
     });
 
     it('summarises a crosswalk as its inner source and output mode', async () => {
