@@ -854,6 +854,7 @@ describe('ManageUsersComponent', () => {
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
     app.editUser('admin'); fixture.detectChanges();
     await fixture.whenStable(); fixture.detectChanges();
+    expect(document.activeElement?.id).toBe('detailsform-name');
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
   });
 
