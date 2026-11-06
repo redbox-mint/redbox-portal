@@ -1,6 +1,7 @@
 // Font Awesome 6 via npm (@fortawesome/fontawesome-free)
 // Ensure webpack/SASS resolves ~ to node_modules.
 $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
+$fa-font-display: swap;
 @import "~@fortawesome/fontawesome-free/scss/fontawesome";
 @import "~@fortawesome/fontawesome-free/scss/solid";
 @import "~@fortawesome/fontawesome-free/scss/regular";
