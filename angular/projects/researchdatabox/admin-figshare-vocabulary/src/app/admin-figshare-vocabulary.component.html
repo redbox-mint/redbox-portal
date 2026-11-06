@@ -24,30 +24,30 @@
   }
 
   @if (view === 'sources' || view === 'crosswalks' || view === 'history') {
-  <ul class="nav nav-tabs mb-3" role="tablist">
+  <ul class="nav nav-tabs mb-3" role="tablist" rbAdminTabs [attr.aria-label]="'figshare-vocab-page-title' | i18next">
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="view === 'sources'" role="tab"
-        [attr.aria-selected]="view === 'sources'" (click)="showTab('sources')">
+        id="figshare-tab-sources" aria-controls="figshare-panel-sources" [attr.tabindex]="view === 'sources' ? 0 : -1" [attr.aria-selected]="view === 'sources'" (click)="showTab('sources')">
         {{ 'figshare-vocab-tab-sources' | i18next }} <span class="badge rb-admin-badge-primary">{{ sourceTotal }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="view === 'crosswalks'" role="tab"
-        [attr.aria-selected]="view === 'crosswalks'" (click)="showTab('crosswalks')">
+        id="figshare-tab-crosswalks" aria-controls="figshare-panel-crosswalks" [attr.tabindex]="view === 'crosswalks' ? 0 : -1" [attr.aria-selected]="view === 'crosswalks'" (click)="showTab('crosswalks')">
         {{ 'figshare-vocab-tab-crosswalks' | i18next }} <span class="badge rb-admin-badge-primary">{{ crosswalkTotal }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="view === 'history'" role="tab"
-        [attr.aria-selected]="view === 'history'" (click)="showTab('history')">
+        id="figshare-tab-history" aria-controls="figshare-panel-history" [attr.tabindex]="view === 'history' ? 0 : -1" [attr.aria-selected]="view === 'history'" (click)="showTab('history')">
         {{ 'figshare-vocab-tab-history' | i18next }} <span class="badge rb-admin-badge-primary">{{ syncRuns.length }}</span>
       </button>
     </li>
   </ul>
   }
 
-  @switch (view) {
-  @case ('sources') {
+  <section id="figshare-panel-sources" role="tabpanel" tabindex="0" aria-labelledby="figshare-tab-sources" [hidden]="view !== 'sources'">
+  @if (view === 'sources') {
   @if (editingSource) {
   <form (ngSubmit)="saveSource()" class="rb-admin-form-section" aria-labelledby="figshare-source-edit-title">
     <div class="rb-admin-form-section-header"><h2 id="figshare-source-edit-title">{{ 'figshare-vocab-edit-source' | i18next }}</h2></div>
@@ -85,7 +85,9 @@
     </ol></div>
   </section>
   }
-  @case ('crosswalks') {
+  </section>
+  <section id="figshare-panel-crosswalks" role="tabpanel" tabindex="0" aria-labelledby="figshare-tab-crosswalks" [hidden]="view !== 'crosswalks'">
+  @if (view === 'crosswalks') {
   <figshare-crosswalk-list
     [crosswalks]="crosswalks"
     [total]="crosswalkTotal"
@@ -97,7 +99,9 @@
     (addRequested)="startImport()"
   ></figshare-crosswalk-list>
   }
-  @case ('history') {
+  </section>
+  <section id="figshare-panel-history" role="tabpanel" tabindex="0" aria-labelledby="figshare-tab-history" [hidden]="view !== 'history'">
+  @if (view === 'history') {
   <div class="card">
     <div class="card-header"><h2>{{ 'figshare-vocab-tab-history' | i18next }}</h2><span>{{ filteredSyncRuns.length | adminCount: 'run': syncRuns.length }}</span></div>
     <div class="rb-admin-filter-bar">
@@ -119,6 +123,8 @@
     <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: filteredSyncRuns.length ? 1 : 0, end: filteredSyncRuns.length, total: filteredSyncRuns.length } }}</div>
   </div>
   }
+  </section>
+  @switch (view) {
   @case ('import') {
   <figshare-import-wizard
     [taxonomies]="taxonomies"
