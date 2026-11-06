@@ -168,14 +168,14 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   input:not([type="submit"]):not([type="button"]), select, textarea, .form-check-input { border-color: var(--admin-control-border); }
   .form-check-input:checked { border-color: var(--admin-control-border); }
   .rb-admin-save-content { padding-bottom: var(--admin-save-height); min-width: 0; }
-  :is(.app-config-page, dashboard-config-editor) .rb-admin-save-content { padding-bottom: 0; }
+  :is(.app-config-page, .branding-admin, dashboard-config-editor) .rb-admin-save-content { padding-bottom: 0; }
   .form-select, .app-config-mono :is(input, textarea) { font-size: 14px; }
   .form-switch { display: flex; align-items: center; gap: 6px; padding-left: 0; }
   .form-switch .form-check-input { float: none; flex-shrink: 0; margin: 0; }
   .form-switch .form-check-label { margin: 0; }
   .form-switch .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
   .app-config-settings-off { filter: grayscale(1); }
-  .app-config-settings-off :is(.rb-admin-form-section-body, .app-config-subsection, .form-control, .form-select) { background-color: var(--admin-surface); }
+  .app-config-settings-off :is(.rb-admin-form-section-body, .app-config-subsection) { background-color: var(--admin-surface); }
   .rb-admin-mono, .app-config-mono :is(input, textarea), .app-config-page .binding-source, .app-config-dictionary-entry > summary > .rb-admin-hint { font-family: var(--admin-mono); }
   .rb-admin-code-wrap { white-space: normal; overflow-wrap: anywhere; }
   .rb-admin-save-content :is(a, input, select, textarea, button, [tabindex], .rb-admin-form-section) { scroll-margin-block: 16px calc(var(--admin-save-height) + 24px); }
@@ -226,7 +226,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .card-footer > :is(nav, pagination) { margin: 0; }
   .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
   .page-link { min-width: 32px; padding: 5px 8px; text-align: center; color: var(--admin-ink); background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: 4px; font-size: 13px; }
-  .active > .page-link { background: var(--admin-heading); border-color: var(--admin-heading); color: var(--admin-bg); }
+  .active > .page-link { background: var(--admin-primary); border-color: var(--admin-primary); color: var(--admin-primary-text); }
 
   .rb-admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; margin-bottom: 20px; }
   .rb-admin-stat { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); padding: 14px 16px; background: var(--admin-bg); }
@@ -299,7 +299,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-save-state { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--admin-muted); font-weight: 600; }
   .rb-admin-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--admin-line); border-radius: 999px; font-size: 13px; background: var(--admin-bg); }
   .rb-admin-segmented { display: inline-flex; flex-wrap: wrap; gap: 0; }
-  .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-heading); color: var(--admin-bg); }
+  .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-primary); border-color: var(--admin-primary); color: var(--admin-primary-text); }
 
   // Generic app-config forms; navigation editors retain their own controls.
   .app-config-page {
@@ -367,6 +367,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
 
   .btn.rb-admin-ghost { color: var(--admin-ink); border: 1px solid transparent; background: transparent; &:hover { background: var(--admin-surface); } }
+  .btn:is(.btn-secondary, .btn-outline-secondary, .btn-outline-primary, .btn-outline-danger):is(:disabled, .disabled) { opacity: .45; cursor: not-allowed; &:disabled { pointer-events: auto; } }
   .rb-admin-row-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; white-space: nowrap; }
   .rb-admin-row-action, .rb-admin-overflow > summary { min-width: 28px; min-height: 28px; }
   .rb-admin-overflow {
@@ -552,3 +553,12 @@ html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-heig
 
 .rb-admin-skip { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 10px 16px; background: var(--rb-body-background-color, #fff); color: var(--rb-body-text-color, #333); border: 2px solid var(--rb-primary, #0d6efd); border-radius: 4px; clip-path: inset(50%); opacity: 0; pointer-events: none; }
 .rb-admin-skip:focus-visible { clip-path: none; opacity: 1; pointer-events: auto; }
+
+.rb-admin {
+  .nq-param-count { color: var(--admin-ink); }
+  .nq-not-used { color: var(--admin-muted) !important; }
+  .rb-navigation-preview-sidebar ul { padding-left: 0; }
+  .rb-navigation-preview-sidebar .rb-admin-sidebar-heading { display: block; width: 100%; border: 0; background: transparent; text-align: left; font-family: inherit; }
+  .rb-navigation-preview-sidebar .rb-admin-sidebar-item { width: 100%; padding: 7px 16px 7px 25px; color: var(--admin-ink); text-decoration: none; }
+  .rb-navigation-preview-sidebar .rb-navigation-preview-footer { margin: 0; padding: 0; border: 0; }
+}
