@@ -18,7 +18,7 @@
   </div>
   @if (vocabularies.length) {
   <div class="table-responsive"><table class="table table-hover" [attr.aria-label]="'admin-vocabulary-list-aria-label' | i18next">
-    <thead><tr><th scope="col">{{ 'admin-vocabulary-name' | i18next }}</th><th scope="col">{{ 'admin-vocabulary-structure' | i18next }}</th><th scope="col">{{ 'admin-vocabulary-source' | i18next }}</th><th scope="col">{{ 'admin-vocabulary-last-synced' | i18next }}</th><th scope="col" class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
+    <thead><tr><th scope="col">{{ 'admin-vocabulary-name' | i18next }}</th><th scope="col">{{ 'admin-vocabulary-structure' | i18next }}</th><th scope="col">{{ 'admin-vocabulary-source' | i18next }}</th><th scope="col">{{ 'admin-vocabulary-last-synced' | i18next }}</th><th scope="col" class="rb-admin-actions-col text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
     <tbody>
       @for (vocabulary of vocabularies; track vocabulary.id) {
       <tr [class.vocab-selected]="selectedId === vocabulary.id">
@@ -27,7 +27,7 @@
         <td><span class="badge" [ngClass]="vocabulary.source === 'rva' ? 'rb-admin-badge-info' : ''">{{ ('admin-vocabulary-source-' + vocabulary.source) | i18next }}</span>
           <span *ngIf="isReadOnly(vocabulary)" class="badge rb-admin-badge-primary">{{ 'admin-vocabulary-read-only' | i18next }}</span></td>
         <td>{{ vocabulary.source === 'rva' ? (vocabulary.lastSyncedAt ? adminDates.format(vocabulary.lastSyncedAt) : ('admin-vocabulary-never-synced' | i18next)) : '—' }}</td>
-        <td><div class="rb-admin-row-actions">
+        <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" (click)="vocabulary.source === 'rva' ? syncRequested.emit(vocabulary.id) : open(vocabulary.id)">{{ (vocabulary.source === 'rva' ? 'admin-vocabulary-sync-action' : isReadOnly(vocabulary) ? 'admin-vocabulary-view' : 'admin-vocabulary-edit') | i18next }}</button>
           <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false">
             <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>

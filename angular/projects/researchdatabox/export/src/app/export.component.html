@@ -147,7 +147,7 @@
                   <th scope="col">{{ 'export-requested' | i18next }}</th>
                   <th scope="col">{{ 'export-record-type' | i18next }}</th>
                   <th scope="col">{{ 'export-status' | i18next }}</th>
-                  <th scope="col" class="text-end">{{ 'export-actions' | i18next }}</th>
+                  <th scope="col" class="rb-admin-actions-col text-end">{{ 'export-actions' | i18next }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -198,7 +198,7 @@
                       }
                       </div>
                     </td>
-                    <td class="text-end">
+                    <td class="rb-admin-actions-col text-end">
                       <div class="rb-admin-row-actions">
                         @if (getDownloadUrl(job); as downloadUrl) {
                           <a class="btn btn-outline-secondary btn-sm" [href]="downloadUrl" [attr.download]="job.filename">

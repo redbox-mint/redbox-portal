@@ -34,7 +34,7 @@
         <th scope="col">{{ 'figshare-vocab-column-status' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-column-revisions' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-column-mappings' | i18next }}</th>
-        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+        <th scope="col" class="rb-admin-actions-col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
       </tr>
     </thead>
     <tbody>
@@ -61,7 +61,7 @@
           }}
         </td>
         <td>{{ crosswalk.approvedMappingCount }} / {{ crosswalk.workingMappingCount }}</td>
-        <td>
+        <td class="rb-admin-actions-col">
 <div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="editRequested.emit(crosswalk)">{{ 'figshare-vocab-action-manage' | i18next }}</button>
         <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div><button type="button" class="btn btn-sm btn-outline-danger" (click)="requestDelete(crosswalk); actions.open = false">{{ 'figshare-vocab-action-delete' | i18next }}</button></div></details></div>
         </td>

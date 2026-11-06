@@ -13,13 +13,13 @@
   </div>
   <div *ngIf="queries.length" class="table-responsive"><table class="table table-hover" [attr.aria-label]="'named-query-list-aria-label' | i18next">
     <thead><tr><th>{{ 'named-query-name' | i18next }}</th><th>{{ 'named-query-collection' | i18next }}</th>
-      <th class="text-end">{{ 'named-query-params' | i18next }}</th><th class="text-end">{{ 'named-query-mappings' | i18next }}</th><th class="text-end">{{ 'named-query-related-filters' | i18next }}</th><th>{{ 'named-query-used-by' | i18next }}</th><th class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+      <th class="text-end d-none d-lg-table-cell">{{ 'named-query-params' | i18next }}</th><th class="text-end d-none d-lg-table-cell">{{ 'named-query-mappings' | i18next }}</th><th class="text-end d-none d-lg-table-cell">{{ 'named-query-related-filters' | i18next }}</th><th>{{ 'named-query-used-by' | i18next }}</th><th class="rb-admin-actions-col text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th>
     </tr></thead>
     <tbody>
       <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name">
-        <td><a href="#" (click)="$event.preventDefault(); open(q.name)"><code>{{ q.name }}</code></a></td>
+        <td><a href="#" (click)="$event.preventDefault(); open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></a></td>
         <td><span class="badge rb-admin-badge-primary">{{ q.collectionName || '—' }}</span></td>
-        <td class="text-end">{{ paramCount(q) || '—' }}</td><td class="text-end">{{ mappingCount(q) || '—' }}</td><td class="text-end">{{ filterCount(q) || '—' }}</td>
+        <td class="text-end d-none d-lg-table-cell">{{ paramCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ mappingCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ filterCount(q) || '—' }}</td>
         <td class="small">
           <ul *ngIf="q.usedBy?.length; else notUsed" class="list-unstyled mb-0 nq-consumers">
             <li *ngFor="let consumer of q.usedBy; let i = index" [class.nq-extra-consumer]="i > 0"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
@@ -30,7 +30,7 @@
           </details>
           <ng-template #notUsed><span class="text-muted">{{ 'named-query-not-used' | i18next }}</span></ng-template>
         </td>
-        <td><div class="rb-admin-row-actions">
+        <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
           <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: q.name }">⋯</summary>
             <div><button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(q.name); actions.open = false">{{ 'named-query-delete' | i18next }}</button></div>

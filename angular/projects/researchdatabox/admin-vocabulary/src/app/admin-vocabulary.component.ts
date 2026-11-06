@@ -497,7 +497,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
 
   private rememberDeleteModalTrigger(): void {
     const activeElement = document.activeElement;
-    this.deleteModalTrigger = activeElement instanceof HTMLElement ? activeElement : null;
+    this.deleteModalTrigger = activeElement instanceof HTMLElement ? activeElement.closest('details')?.querySelector('summary') ?? activeElement : null;
   }
 
   private rememberImportModalTrigger(): void {

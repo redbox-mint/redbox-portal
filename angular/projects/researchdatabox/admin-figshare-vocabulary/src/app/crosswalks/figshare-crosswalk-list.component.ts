@@ -23,19 +23,27 @@ export class FigshareCrosswalkListComponent {
   @Output() editRequested = new EventEmitter<FigshareCrosswalkSummary>();
   @Output() deleteRequested = new EventEmitter<FigshareCrosswalkSummary>();
 
+  private deleteTrigger: HTMLElement | null = null;
+
   public pendingDelete: FigshareCrosswalkSummary | null = null;
 
   requestDelete(crosswalk: FigshareCrosswalkSummary): void {
+    const active = document.activeElement as HTMLElement;
+    this.deleteTrigger = active?.closest('details')?.querySelector('summary') ?? active;
     this.pendingDelete = crosswalk;
   }
 
   cancelDelete(): void {
     this.pendingDelete = null;
+    const trigger = this.deleteTrigger;
+    setTimeout(() => { if (trigger?.isConnected) trigger.focus(); }, 0);
   }
 
   confirmDelete(): void {
     const crosswalk = this.pendingDelete;
     this.pendingDelete = null;
+    const trigger = this.deleteTrigger;
+    setTimeout(() => { if (trigger?.isConnected) trigger.focus(); }, 0);
     if (crosswalk) {
       this.deleteRequested.emit(crosswalk);
     }

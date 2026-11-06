@@ -32,7 +32,7 @@
             <th>{{ 'named-query-mongo-path' | i18next }}</th>
             <th class="nq-type-column">{{ 'named-query-mongo-type' | i18next }}</th>
             <th>{{ 'named-query-mongo-value' | i18next }}</th>
-            <th class="nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+            <th class="rb-admin-actions-col nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
@@ -43,7 +43,7 @@
                      (ngModelChange)="onPathChange(entry, $event)">
             </td>
             <td>
-              <select class="form-control form-control-sm"
+              <select class="form-select form-select-sm"
                       [ngModel]="entry.type"
                       (ngModelChange)="onTypeChange(entry, $event)">
                 <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
@@ -60,7 +60,7 @@
                         (ngModelChange)="onValueChange(entry, $event)"
                         spellcheck="false"></textarea>
             </td>
-            <td class="text-center">
+            <td class="rb-admin-actions-col text-center">
               <button class="btn btn-sm btn-outline-danger" type="button"
                       (click)="removeEntry(entry)">
                 {{ 'named-query-remove' | i18next }}
@@ -75,7 +75,7 @@
     <div class="d-flex flex-wrap nq-add-row mt-2">
       <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newPath"
              [attr.placeholder]="'named-query-mongo-path-placeholder' | i18next">
-      <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newType">
+      <select class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newType">
         <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
       </select>
       <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newValue"

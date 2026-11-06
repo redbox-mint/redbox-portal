@@ -106,7 +106,7 @@
             <th>{{ 'admin-vocabulary-value' | i18next }}</th>
             <th>{{ 'admin-vocabulary-historical' | i18next }}</th>
             <th>{{ 'admin-vocabulary-parent' | i18next }}</th>
-            <th class="vocab-entry-actions">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+            <th class="rb-admin-actions-col vocab-entry-actions">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
@@ -143,7 +143,7 @@
                 @if (isParentEditorOpen(entry)) {
                   <div class="d-flex">
                     <select
-                      class="form-control form-control-sm me-2"
+                      class="form-select form-select-sm me-2"
                       [attr.aria-label]="'admin-vocabulary-parent' | i18next"
                       [ngModel]="entry.parent || ''"
                       (ngModelChange)="onParentChanged(entry, $event)"
@@ -178,7 +178,7 @@
                 />
               }
             </td>
-            <td>
+            <td class="rb-admin-actions-col">
               <button
                 class="btn btn-sm btn-outline-secondary me-1"
                 type="button"
