@@ -3,18 +3,18 @@
     <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-config-retry' | i18next }}</button>
   </div>
 }
-@if (isReady) {
+@if (isReady || earlyHeader) {
   <div class="app-config-page">
     <div [attr.inert]="showReset || showJson || pendingLeave ? '' : null">
-      <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
-        <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+      <nav class="rb-admin-crumbs" [attr.aria-label]="isReady ? ('admin-breadcrumb-label' | i18next) : earlyHeader?.breadcrumbLabel"><ol>
+        <li><a [href]="brandingAndPortalUrl + '/admin'">{{ isReady ? ('menu-admin' | i18next) : earlyHeader?.adminLabel }}</a></li>
         @if (navigationEditor || sidebarSection) { <li>{{ navigationEditor ? ('admin-nav-site' | i18next) : sidebarSection }}</li> }
         <li><span aria-current="page">{{ title }}</span></li>
       </ol></nav>
       <header class="rb-admin-page-header">
         <div><div class="rb-admin-title-line"><h1>{{ title }}</h1>
           @if (navigationEditor && !hasOverride) { <span class="badge">{{ 'admin-config-using-defaults' | i18next }}</span> }
-        </div><p>{{ descriptionKey | i18next }}</p></div>
+        </div><p>{{ isReady ? (descriptionKey | i18next) : earlyHeader?.description }}</p></div>
         @if (navigationEditor && hasOverride) {
           <div class="rb-admin-page-actions">
             @if (hasOverride) {
@@ -35,6 +35,7 @@
           </div>
         }
       </header>
+      @if (isReady) {
       @if (enabledField && loadedModel.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-feature-off-help' | i18next: { name: title } }}</div> }
       <div aria-live="polite" aria-atomic="true">
         @if (connectionTestedDirty && (connectionResult || connectionError)) {
@@ -137,6 +138,7 @@
         </form>
 
 
+      }
       }
     </div>
     @if (showReset) {

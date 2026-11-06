@@ -88,6 +88,24 @@ describe('HarvestRunsComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('keeps the translated header and a disabled refresh control while data is pending', () => {
+    component.earlyHeader = { title: 'Collectes', description: 'Description traduite', adminLabel: 'Administration', breadcrumbLabel: 'Fil', section: 'Données', refresh: 'Actualiser', adminUrl: '/default/rdmp/admin' };
+    (component as any).brandingAndPortalUrl = '/default/rdmp';
+    spyOn(component, 'ngOnInit').and.stub();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Collectes');
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header p').textContent).toBe('Description traduite');
+    const refresh = fixture.nativeElement.querySelector('.rb-admin-page-header button');
+    expect(refresh.disabled).toBeTrue();
+    refresh.click();
+    expect(apiService.listRuns).not.toHaveBeenCalled();
+    (component as any).isReady = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header button').disabled).toBeFalse();
+  });
+
   it('renders global statistics above the list, with failed alert styling and relative success time', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();

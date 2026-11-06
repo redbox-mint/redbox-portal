@@ -1,6 +1,17 @@
-<% let appName = 'harvest-runs'; %>
+<% let appName = 'harvest-runs';
+const earlyHeader = {
+  title: TranslationService.t('harvest-runs-heading'),
+  description: TranslationService.t('admin-harvest-description'),
+  adminLabel: TranslationService.t('menu-admin'),
+  breadcrumbLabel: TranslationService.t('admin-breadcrumb-label'),
+  section: TranslationService.t('admin-nav-records'),
+  refresh: TranslationService.t('export-refresh'),
+  adminUrl: BrandingService.getBrandAndPortalPath(req) + '/admin'
+};
+%>
 <%- include('layout/start.ejs') %>
-    <harvest-runs <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <harvest-runs data-admin-header="<%= JSON.stringify(earlyHeader) %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <%- include('layout/early-header.ejs', { header: earlyHeader }) %>
       <div class="col-xs-12">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </div>

@@ -1,7 +1,17 @@
-<% let appName = 'app-config'; %>
+<% let appName = 'app-config';
+const earlyHeader = configKey === 'authorizedDomainsEmails' ? {
+  title: TranslationService.t(formTitle),
+  description: TranslationService.t('admin-config-description-authorized-account-creation'),
+  adminLabel: TranslationService.t('menu-admin'),
+  breadcrumbLabel: TranslationService.t('admin-breadcrumb-label'),
+  section: ((typeof adminSidebar !== 'undefined' && adminSidebar.sections) || []).find(section => section.items.some(item => item.active))?.title || '',
+  adminUrl: BrandingService.getBrandAndPortalPath(req) + '/admin'
+} : null;
+%>
 
 <%- include('layout/start.ejs') %>
-    <app-config configKey="<%= configKey %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+    <app-config configKey="<%= configKey %>"<% if (earlyHeader) { %> data-admin-header="<%= JSON.stringify(earlyHeader) %>"<% } %> <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <% if (earlyHeader) { %><%- include('layout/early-header.ejs', { header: earlyHeader }) %><% } %>
       <div class="col-xs-12">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </div>
