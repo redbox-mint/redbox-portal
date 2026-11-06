@@ -225,7 +225,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       if (!this.isReady) {
         throw error;
       }
-      this.showLoadError(error, () => this.gotoPage(pageNum, params, sort));
+      if (!this.pendingCriteria) this.showLoadError(error, () => this.gotoPage(pageNum, params, sort));
     }
     const pending = this.pendingCriteria;
     this.pendingCriteria = undefined;
@@ -258,6 +258,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
           }
         }
       }
+      if (this.pendingCriteria) return this.deletedRecordsResult;
       this.selectedRecords.clear();
       this.deletedRecordsResult = result;
       this.currentPageNumber = this.deletedRecordsResult.pageNum;
