@@ -80,6 +80,36 @@ describe('DashboardConfigEditorComponent', () => {
     expect(component.targetLabel(workflow)).toBe('Concurrency checks · Draft');
   });
 
+  it('selects the first target by default while respecting an explicit target hash', async () => {
+    const first: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'first', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    const second = { ...first, key: 'second' };
+    component.targets = [first, second];
+    const select = spyOn(component, 'selectTarget').and.resolveTo();
+    window.history.replaceState(null, '', window.location.pathname);
+    await component.selectFromHash();
+    expect(select).toHaveBeenCalledWith(first);
+    window.history.replaceState(null, '', '#target=second');
+    await component.selectFromHash();
+    expect(select).toHaveBeenCalledWith(second);
+    select.calls.reset();
+    window.history.replaceState(null, '', '#target=missing');
+    await component.selectFromHash();
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it('focuses and scrolls to the selected editor on tablet screens', async () => {
+    const target: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    spyOn(window, 'matchMedia').and.returnValue({ matches: true } as MediaQueryList);
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    api.getSettings.and.resolveTo({ target: target.target, settings: settingsWithColumn('Title'), revision: 1, schemaVersion: 1, hidden: false });
+    await component.selectTarget(target);
+    fixture.detectChanges();
+    const heading = fixture.nativeElement.querySelector('.dc-target-card h2');
+    expect(heading.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(heading);
+    expect(scroll).toHaveBeenCalledWith({ block: 'start' });
+  });
+
   it('should create', () => {
     expect(component).toBeTruthy();
   });

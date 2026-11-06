@@ -50,7 +50,7 @@
         </section>
         <ng-container *ngIf="!loading && selected && draft">
           <div class="rb-admin-save-content"><section class="card dc-target-card">
-            <header class="card-header"><h2>{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
+            <header class="card-header"><h2 #editorHeading tabindex="-1">{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
             <div class="card-body">
               <p class="rb-admin-hint">{{ 'admin-dashboard-independent-help' | i18next }} <span *ngIf="selected.hidden">{{ 'admin-dashboard-hidden-help' | i18next }}</span></p>
               <div *ngFor="let finding of errors" class="alert alert-danger" role="alert"><strong>{{ finding.path || ('admin-dashboard-settings' | i18next) }}</strong>: {{ finding.message }}</div>
@@ -101,7 +101,7 @@
       <p class="dc-form-help">{{ 'admin-dashboard-copy-from-help' | i18next }}</p>
       <div class="dc-form-group">
         <label class="dc-form-label" for="dc-copy-from-source">{{ 'admin-dashboard-copy-from-label' | i18next }}</label>
-        <select id="dc-copy-from-source" class="form-control" [(ngModel)]="copyFrom.sourceKey" (ngModelChange)="resetCopyFromPreview()">
+        <select id="dc-copy-from-source" class="form-select" [(ngModel)]="copyFrom.sourceKey" (ngModelChange)="resetCopyFromPreview()">
           <option value="" disabled>{{ 'admin-dashboard-choose-dashboard' | i18next }}</option>
           <option *ngFor="let info of copySources" [value]="info.key">{{ targetLabel(info) }}</option>
         </select>

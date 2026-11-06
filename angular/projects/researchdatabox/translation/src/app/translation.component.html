@@ -28,7 +28,7 @@
   <section class="card" aria-labelledby="tx-languages-title">
     <div class="card-header"><h2 id="tx-languages-title">{{ 'admin-tx-languages' | i18next }}</h2><span>{{ languages().length | adminCount: 'language' }}</span></div>
     <div class="table-responsive"><table class="table table-hover tx-languages">
-      <thead><tr><th>{{ 'admin-tx-language' | i18next }}</th><th>{{ 'admin-tx-code' | i18next }}</th><th class="text-end">{{ 'admin-tx-translated' | i18next }}</th><th>{{ 'admin-tx-available' | i18next }}</th><th class="text-end"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th></tr></thead>
+      <thead><tr><th>{{ 'admin-tx-language' | i18next }}</th><th>{{ 'admin-tx-code' | i18next }}</th><th class="text-end">{{ 'admin-tx-translated' | i18next }}</th><th>{{ 'admin-tx-available' | i18next }}</th><th class="rb-admin-actions-col text-end"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th></tr></thead>
       <tbody><tr *ngFor="let lang of languages()">
         <td><strong>{{ lang.displayName }}</strong> <span *ngIf="lang.code === defaultLanguage" class="badge rb-admin-badge-primary">{{ 'admin-tx-default' | i18next }}</span></td>
         <td><code>{{ lang.code }}</code></td>
@@ -38,7 +38,7 @@
             [disabled]="savingLanguages()" (change)="toggleAvailableLanguage(lang.code, $any($event.target).checked)">
           <label class="form-check-label" [for]="'lang-' + lang.code"><span class="visually-hidden">{{ lang.displayName }}: </span>{{ (isLanguageAvailable(lang.code) ? 'admin-tx-on' : 'admin-tx-off') | i18next }}</label>
         </div></td>
-        <td class="text-end"><button type="button" class="btn btn-sm rb-admin-ghost" (click)="openDisplayNameModal(lang.code)" [attr.aria-label]="'admin-tx-rename-language' | i18next: { name: lang.displayName }">{{ 'admin-tx-rename' | i18next }}</button></td>
+        <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm rb-admin-ghost" (click)="openDisplayNameModal(lang.code)" [attr.aria-label]="'admin-tx-rename-language' | i18next: { name: lang.displayName }">{{ 'admin-tx-rename' | i18next }}</button></td>
       </tr></tbody>
     </table></div>
     <div *ngIf="!languages().length && !readWarnings().languages && !readPending().languages" class="rb-admin-empty"><h3>{{ 'admin-tx-no-languages' | i18next }}</h3><p>{{ 'admin-tx-add-hint' | i18next }}</p></div>
@@ -83,13 +83,13 @@
           <th scope="col" [attr.aria-sort]="sortBy === 'category' ? (sortAsc ? 'ascending' : 'descending') : null"><button type="button" class="tx-sort rb-admin-sort" (click)="setSort('category')">{{ 'admin-tx-category' | i18next }} <i class="fa" [ngClass]="sortBy !== 'category' ? 'fa-sort' : sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'" aria-hidden="true"></i></button></th>
           <th scope="col" [attr.aria-sort]="sortBy === 'key' ? (sortAsc ? 'ascending' : 'descending') : null"><button type="button" class="tx-sort rb-admin-sort" (click)="setSort('key')">{{ 'admin-tx-key' | i18next }} <i class="fa" [ngClass]="sortBy !== 'key' ? 'fa-sort' : sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'" aria-hidden="true"></i></button></th>
           <th scope="col" [attr.aria-sort]="sortBy === 'value' ? (sortAsc ? 'ascending' : 'descending') : null"><button type="button" class="tx-sort rb-admin-sort" (click)="setSort('value')">{{ 'admin-tx-value' | i18next }} <i class="fa" [ngClass]="sortBy !== 'value' ? 'fa-sort' : sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'" aria-hidden="true"></i></button></th>
-          <th class="text-end" scope="col"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th>
+          <th class="rb-admin-actions-col text-end" scope="col"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th>
         </tr></thead>
         <tbody><tr *ngFor="let e of pageEntries(); trackBy: trackByKey" [class.tx-row-missing]="e.provenance === 'missing'">
           <td><span class="tx-category">{{ e.category || ('admin-tx-uncategorized' | i18next) }}</span></td>
           <td><code [title]="e.key"><ng-container *ngFor="let segment of keySegments(e.key); let last = last"><ng-container *ngIf="!last">{{ segment }}<wbr></ng-container><span *ngIf="last" class="tx-key-tail">{{ segment }}&#8288;<button *ngIf="e.description" type="button" class="btn btn-sm rb-admin-ghost tx-key-help" [title]="e.description" [attr.aria-label]="e.description"><i class="fa fa-info-circle" aria-hidden="true"></i></button></span></ng-container></code></td>
           <td><span *ngIf="e.provenance === 'override'" class="badge rb-admin-badge-warning">{{ 'admin-tx-changed' | i18next }}</span><span *ngIf="e.contentFormat === 'html'" class="badge rb-admin-badge-info">HTML</span><div class="tx-cell-val" [title]="e.value">{{ e.value }}</div></td>
-          <td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEdit(e)" [attr.aria-label]="'admin-tx-edit-key' | i18next: { key: e.key }">{{ 'admin-tx-edit' | i18next }}</button>
+          <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEdit(e)" [attr.aria-label]="'admin-tx-edit-key' | i18next: { key: e.key }">{{ 'admin-tx-edit' | i18next }}</button>
             <details *ngIf="e.provenance === 'override' && e.hasDefault" class="rb-admin-overflow">
               <summary class="btn btn-sm btn-outline-secondary" [attr.aria-label]="'admin-tx-key-actions' | i18next: { key: e.key }">⋯</summary>
               <div><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="saving()" (click)="revertEntry(e)">{{ 'admin-tx-revert' | i18next }}</button></div>
@@ -140,7 +140,7 @@
         <p class="tx-modal-desc mb-3" *ngIf="editDescription">{{ editDescription }}</p>
 
         <div class="tx-editor-head">
-          <label class="form-label mb-0">{{ 'admin-tx-translation-value' | i18next }}</label>
+          <label id="tx-translation-value-label" class="form-label mb-0">{{ 'admin-tx-translation-value' | i18next }}</label>
           <div class="rb-admin-segmented" role="group" [attr.aria-label]="'admin-tx-editor-mode' | i18next">
             <button
               *ngIf="editContentFormat === 'plain'"
@@ -357,7 +357,7 @@
           <label for="tx-new-lang-source" class="form-label mb-1">{{ 'admin-tx-copy-from' | i18next }}</label>
           <select
             id="tx-new-lang-source"
-            class="form-control"
+            class="form-select"
             [(ngModel)]="sourceLanguage"
             [disabled]="creatingLanguage()"
           >
