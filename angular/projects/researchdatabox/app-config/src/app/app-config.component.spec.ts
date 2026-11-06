@@ -806,9 +806,41 @@ describe('AppConfigComponent', () => {
     expect(new Set(switches.map(input => input.getAttribute('aria-label'))).size).toBe(switches.length);
     const pageSwitch = fixture.nativeElement.querySelector('#config-enabled');
     expect(pageSwitch.getAttribute('aria-labelledby')).toBe('config-enabled-label');
-    expect(fixture.nativeElement.querySelector('#config-enabled-label').textContent).toContain('admin-config-integration-enabled');
+    expect(fixture.nativeElement.querySelector('#config-enabled-label').textContent).toContain('DOI publishing');
     expect(fixture.nativeElement.querySelector('.app-config-page-switch').textContent).toContain('admin-config-off');
     expect(component.sections[0].props!.label).toBe('admin-config-general');
+  });
+
+  it('shows one page off notice, keeps the preview separate and restores nested hints when enabled', async () => {
+    const fixture = await renderConfig({ title: 'System messages', schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' }, connection: { type: 'object', properties: { enabled: { type: 'boolean' } } }
+    } }, model: { enabled: false, connection: { enabled: false } } }, 'systemMessage');
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelectorAll('.alert-info').length).toBe(1);
+    expect(root.querySelector('.app-config-form-main.app-config-settings-off')).not.toBeNull();
+    expect(root.querySelector('.app-config-preview')?.closest('.app-config-settings-off')).toBeNull();
+    expect(root.querySelectorAll('.rb-admin-hint').length).toBeGreaterThan(0);
+    const noticeCount = () => Array.from(root.querySelectorAll('p, .alert')).filter(el => el.textContent?.trim() === 'admin-config-off-kept').length;
+    expect(noticeCount()).toBe(1);
+    fixture.componentInstance.setEnabled({ target: { checked: true } } as unknown as Event);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('.app-config-form-main.app-config-settings-off')).toBeNull();
+    expect(noticeCount()).toBe(1);
+  });
+
+  it('shows the off notice for notifications without a persisted enabled value', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { enabled: { type: 'boolean' }, recipients: { type: 'array', items: { type: 'string' } } } }, model: {} }, 'integrationNotification');
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header + .alert-info')?.textContent).toContain('admin-config-off-kept');
+    expect(fixture.componentInstance.model.enabled).toBeUndefined();
+  });
+
+  it('puts the account restriction switch in the page header', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { enabled: { type: 'boolean' } } }, model: { enabled: false } }, 'authorizedDomainsEmails');
+    const root: HTMLElement = fixture.nativeElement;
+    expect(root.querySelectorAll('#config-enabled').length).toBe(1);
+    expect(root.querySelector('.rb-admin-page-actions #config-enabled')).not.toBeNull();
+    expect(root.querySelector('#config-enabled-label')?.textContent).toContain('admin-config-restrict-new-accounts');
+    expect(root.querySelector('#config-restrict')).toBeNull();
   });
 
   it('names array-row switches with their current position instead of a wildcard', async () => {
