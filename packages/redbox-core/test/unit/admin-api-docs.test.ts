@@ -142,7 +142,7 @@ describe('admin API docs', function () {
         };
         vm.runInNewContext(source, {
             init: () => {}, document: { getElementById: () => mount },
-            window: { frameElement: frame, parent, location: parent.location, addEventListener: (event: string, callback: Function) => cleanup[event] = callback },
+            window: { frameElement: frame, parent, location: parent.location, addEventListener: (event: string, callback: Function) => cleanup[event] = callback, removeEventListener: (event: string) => delete cleanup[event] },
             ResizeObserver: class { constructor(callback: Function) { resize = callback; } observe() {} disconnect() { disconnected = true; } }
         });
         queued!();
@@ -160,10 +160,50 @@ describe('admin API docs', function () {
         referenceSections.push({ getAttribute: () => '/Users', getBoundingClientRect: () => ({ top: 1600 }) });
         resize!(); queued!();
         expect(parent.scrollTo.calledWith({ top: 2200, behavior: 'instant' })).to.equal(true);
+        referenceSections[0].getBoundingClientRect = () => ({ top: 1800 });
+        queued!();
+        expect(parent.scrollTo.lastCall.args[0].top).to.equal(2400);
+        // A later operation expansion keeps the heading anchored, until explicit user scroll.
+        referenceSections[0].getBoundingClientRect = () => ({ top: 2200 });
+        resize!(); queued!();
+        expect(parent.scrollTo.lastCall.args[0].top).to.equal(2800);
+        const calls = parent.scrollTo.callCount;
+        listeners.wheel({ type: 'wheel' });
+        referenceSections[0].getBoundingClientRect = () => ({ top: 2600 });
+        resize!(); queued!();
+        expect(parent.scrollTo.callCount).to.equal(calls);
         cleanup.pagehide();
         expect(mountEvents).to.deep.equal({});
         expect(disconnected).to.equal(true);
         expect(listeners).to.deep.equal({});
+    });
+
+    it('eagerly mounts Redoc section placeholders while retaining native observers elsewhere', function () {
+        const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js'), 'utf8')
+            .replace("import { init } from './redoc.standalone.js';", '');
+        const observe = sinon.spy();
+        const microtasks: Function[] = [];
+        const viewer: any = {
+            IntersectionObserver: class { observe(target: any) { observe(target); } },
+        };
+        const mount = { contains: (target: any) => target.inViewer, getAttribute: () => '/spec' };
+        vm.runInNewContext(source, {
+            init: () => {}, document: { getElementById: () => mount }, window: viewer,
+            queueMicrotask: (callback: Function) => microtasks.push(callback)
+        });
+        const callback = sinon.spy();
+        const observer = new viewer.IntersectionObserver(callback);
+        const section = { inViewer: true, isConnected: true, hasAttribute: () => true };
+        observer.observe(section);
+        expect(observe.called).to.equal(false);
+        microtasks.shift()!();
+        expect(callback.firstCall.args[0][0]).to.deep.equal({ target: section, isIntersecting: true });
+        const other = { inViewer: true, hasAttribute: () => false };
+        observer.observe(other);
+        expect(observe.calledOnceWithExactly(other)).to.equal(true);
+        const detached = { ...section, isConnected: false };
+        observer.observe(detached); microtasks.shift()!();
+        expect(callback.callCount).to.equal(1);
     });
 
     it('builds the local redoc bundle into the public output after asset cleaning', function () {

@@ -45,7 +45,11 @@
       #redoc span:has(> a[href="https://redocly.com/redoc/"]),
       #redoc a[href="https://redocly.com/redoc/"] { display: none; }
 
-      #redoc [data-section-id]:not([data-section-id="/"]) { padding-top: 20px; }
+      /* Keep eagerly mounted sections measurable even below the iframe viewport. */
+      #redoc .api-content > div { content-visibility: visible; contain-intrinsic-size: none; }
+      #redoc [data-section-id]:not([data-section-id="/"]) { padding-top: 20px; padding-bottom: 16px; }
+      /* The tag-level "+ Show" duplicates navigation and reserves a large empty row. */
+      #redoc [data-section-id]:has(h2) > button.button-variant-text { display: none; }
       #redoc [data-testid="middle-panel"]:has(h2) { padding-block: 0; margin-bottom: 0; }
       #redoc [data-testid="middle-panel"]:has(h2) > div { margin-bottom: 0; }
       #redoc [data-testid="right-panel"]:has(> [data-testid="items-navigation-list"]) { padding-top: 8px; }
@@ -58,7 +62,7 @@
 
       #redoc > div { min-height: 0; }
       #redoc .menu-content { height: var(--admin-api-viewport-height, 600px); }
-      @media (min-width: 768px) {
+      @media (min-width: 640px) {
         #redoc .menu-content { transform: translateY(var(--admin-api-sidebar-offset, 0px)); }
       }
       /* Redoc shares these semantic badge classes between its menu and operation lists.
