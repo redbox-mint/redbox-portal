@@ -102,7 +102,8 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   editReport(report: ReportConfigDto): void {
-    this.modalTrigger = document.activeElement as HTMLElement;
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
     this.errorMessage = '';
     this.previewResult = null;
     this.previewFilterValues = {};

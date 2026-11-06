@@ -155,7 +155,7 @@
         <div class="modal-header">
           <h2 class="modal-title h5" id="figshareApproveTitle">{{
             'figshare-vocab-confirm-approve-title' | i18next
-          }}</h2>
+          }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelApproval()"></button>
         </div>
         <div class="modal-body">
           <p class="mb-2">{{ 'figshare-vocab-confirm-approve-body' | i18next: { revision: crosswalk.workingRevision } }}</p>
