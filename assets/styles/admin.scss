@@ -300,6 +300,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   details.rb-admin-form-section:not([open]) > summary { border-bottom: 0; }
   summary.rb-admin-form-section-header { cursor: pointer; }
+  legend.rb-admin-form-section-header { border: 0; }
   .rb-admin-form-section-body { padding: 16px; background: var(--admin-bg); }
   .rb-admin-save-bar {
     // Stick only after reaching the actions, never pull them over unread form fields.
@@ -310,10 +311,11 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-save-state { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--admin-muted); font-weight: 600; }
   .rb-admin-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--admin-line); border-radius: 999px; font-size: 13px; background: var(--admin-bg); }
   .rb-admin-segmented { display: inline-flex; flex-wrap: wrap; gap: 0; }
-  .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-primary); border-color: var(--admin-primary); color: var(--admin-primary-text); }
+  .rb-admin-segmented .btn[aria-pressed='true'], .rb-admin-chip[aria-pressed='true'] { background: var(--admin-heading); border-color: var(--admin-heading); color: #fff; }
 
   // Generic app-config forms; navigation editors retain their own controls.
   .app-config-page {
+    .rb-admin-form-section > .rb-admin-form-section-body { border-radius: 0 0 calc(var(--admin-radius) - 1px) calc(var(--admin-radius) - 1px); }
     formly-field { display: block; min-width: 0; }
     .app-config-fields { min-width: 0; padding: 0; margin: 0; border: 0; }
     .app-config-layout { display: grid; gap: 20px; align-items: start; }
@@ -324,11 +326,10 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-address-tester { margin-top: 24px; }
     .app-config-wide-field { grid-column: 1 / -1; }
     .app-config-array-item > formly-field { min-width: 0; }
-    .app-config-subsection { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--admin-line); }
-    .app-config-subsection:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+    .app-config-subsection { margin: 20px 0 0; padding: 16px; border: 1px solid var(--admin-line); border-radius: var(--admin-radius); }
+    .app-config-subsection:first-child { margin-top: 0; }
     .app-config-subsection-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
     .app-config-subsection-header h3 { font-size: 15px; margin: 0; }
-    .app-config-subsection .app-config-subsection { padding-left: 0; padding-right: 0; }
     .app-config-section-title { min-width: 0; }
     .app-config-summary { overflow-wrap: anywhere; font-family: inherit; color: var(--admin-muted); }
     .app-config-summary-separator { margin-inline: .35em; }
@@ -495,7 +496,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-navigation-action-list .rb-navigation-remove { color: var(--admin-danger); border-top: 1px solid var(--admin-line); margin-top: 4px; }
   .rb-navigation-fieldset { border: 0; padding: 0; min-width: 0; margin: 0 0 20px; }
   .rb-navigation-fieldset:last-child { margin-bottom: 0; }
-  .rb-navigation-fieldset legend { float: none; width: auto; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .rb-navigation-fieldset legend { border: 0; padding: 0; float: none; width: auto; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
   .rb-navigation-checkboxes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
   .rb-navigation-roles, .rb-navigation-icon-options { display: flex; flex-wrap: wrap; gap: 6px; }
   .rb-navigation-icon-options { margin-top: 12px; }
@@ -507,8 +508,10 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-navigation-children { border-left: 2px solid var(--admin-line); margin-left: 12px; }
   .rb-navigation-empty { padding: 12px; margin: 0; }
   .rb-navigation-detail:focus { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
-  .rb-navigation-preview { position: sticky; top: 16px; }
-  .rb-navigation-preview h2 { margin-bottom: 12px; }
+  .rb-navigation-main { grid-column: 1; grid-row: 1; }
+  .rb-navigation-preview { grid-column: 2; grid-row: 1; position: sticky; top: 16px; min-width: 0; }
+  .rb-navigation-preview > summary { display: list-item; list-style: disclosure-closed inside; cursor: pointer; font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--admin-heading); }
+  .rb-navigation-preview[open] > summary { list-style-type: disclosure-open; }
   .rb-navigation-preview-nav { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; padding: 6px; border-radius: var(--admin-radius); background: var(--rb-main-menu-branding-background-color, var(--admin-heading)); }
   .rb-navigation-preview-nav button { font-family: var(--rb-main-menu-font-family, 'Roboto Condensed', sans-serif); font-weight: 700; font-size: 13px; text-transform: uppercase; padding: 8px; border: 0; background: transparent; color: var(--rb-main-menu-inactive-item-color, var(--admin-bg)); }
   .rb-navigation-preview-nav button:hover, .rb-navigation-preview-nav button[aria-pressed='true'] { background: var(--rb-main-menu-active-item-background-color, var(--admin-brand)); }
@@ -526,7 +529,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-navigation-preview-section-title { padding: 12px 0 4px; border: 0; background: transparent; color: var(--admin-brand); font: inherit; font-size: 13px; font-weight: 700; text-align: left; text-transform: uppercase; }
   .rb-navigation-preview-sidebar ul { list-style: none; margin: 0; padding: 0 0 0 12px; }
   .rb-navigation-preview-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--admin-line); display: flex; flex-direction: column; }
-  @media (max-width: 1199px) { .rb-navigation-split { grid-template-columns: minmax(0, 1fr); } .rb-navigation-preview { position: static; } }
+  @media (max-width: 1199px) { .rb-navigation-split { grid-template-columns: minmax(0, 1fr); } .rb-navigation-preview { position: static; grid-column: 1; grid-row: 1; } .rb-navigation-main { grid-row: 2; } }
   @media (max-width: 575px) { .rb-navigation-badges { max-width: 90px; } .rb-navigation-select { gap: 6px; padding-left: 10px; } }
 }
 

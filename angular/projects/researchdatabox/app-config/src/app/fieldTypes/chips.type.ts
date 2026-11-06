@@ -15,13 +15,15 @@ import { FieldArrayType } from '@ngx-formly/core';
             <button #removeButton type="button" [disabled]="props.disabled" [attr.aria-label]="'admin-config-remove-chip' | i18next: { value: child.formControl?.value }" (click)="remove(i)">×</button>
           </span>
         }
-        <input #entry type="text" [id]="id + '-add'" [disabled]="!!props.disabled" [attr.aria-describedby]="id + '-hint'" [placeholder]="'admin-config-chip-placeholder' | i18next" (keydown.enter)="commit($event, entry)" (keydown.comma)="commit($event, entry)" (blur)="commit($event, entry)">
+        <input #entry type="text" [id]="id + '-add'" [disabled]="!!props.disabled" [attr.aria-invalid]="showError || invalidChip || hasInvalidChildren" [attr.aria-describedby]="id + '-hint' + (showError || hasInvalidChildren ? ' ' + id + '-errors' : '')" [placeholder]="'admin-config-chip-placeholder' | i18next" (keydown.enter)="commit($event, entry)" (keydown.comma)="commit($event, entry)" (blur)="commit($event, entry)">
       </div>
       <p class="rb-admin-hint" [id]="id + '-hint'">{{ (invalidChip ? 'admin-config-chip-invalid' : 'admin-config-chip-hint') | i18next }}</p>
+      <div [id]="id + '-errors'">
       @if (showError) { <div class="invalid-feedback d-block"><formly-validation-message [field]="field"></formly-validation-message></div> }
       @for (child of field.fieldGroup; track child) {
         @if (child.formControl?.invalid) { <div class="text-danger"><formly-validation-message [field]="child"></formly-validation-message></div> }
       }
+      </div>
     </div>
   `
 })
@@ -44,6 +46,8 @@ export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDest
     });
   }
   ngOnDestroy(): void { this.changes?.unsubscribe(); }
+
+  get hasInvalidChildren(): boolean { return !!this.field.fieldGroup?.some(child => child.formControl?.invalid); }
 
   get invalidChip(): boolean { return !!this.formControl.errors?.['chip']; }
 

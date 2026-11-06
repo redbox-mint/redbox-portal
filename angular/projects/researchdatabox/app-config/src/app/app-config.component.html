@@ -23,7 +23,7 @@
         @if ((longForm || enabledField) && !empty) {
           <div class="rb-admin-page-actions">
             @if (enabledField) {
-              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" [attr.aria-label]="'admin-config-feature-status' | i18next: { name: title }" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ 'admin-config-status' | i18next }}</label><span aria-hidden="true">·</span><span class="rb-admin-hint" aria-hidden="true">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span></div>
+              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" [attr.aria-label]="'admin-config-feature-status' | i18next: { name: title }" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ 'admin-config-status' | i18next }}</label><span aria-hidden="true">·</span><span class="rb-admin-hint" aria-hidden="true">{{ (loadedModel.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span>@if (!!model.enabled !== !!loadedModel.enabled) { <span class="rb-admin-hint" role="status">{{ (model.enabled ? 'admin-config-turns-on-save' : 'admin-config-turns-off-save') | i18next }}</span> }</div>
             }
             @if (supportsConnectionTest) {
               <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
@@ -32,7 +32,7 @@
           </div>
         }
       </header>
-      @if (enabledField && model.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-feature-off-help' | i18next: { name: title } }}</div> }
+      @if (enabledField && loadedModel.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-feature-off-help' | i18next: { name: title } }}</div> }
       @if (supportsConnectionTest && dirty) {
         <p class="rb-admin-hint">{{ 'admin-config-connection-unsaved' | i18next }}</p>
       }
@@ -96,7 +96,7 @@
                       <div><h4 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h4><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
                       @if (model.dismissalDurationHours > 0) { <button type="button" class="btn-close" disabled [attr.aria-label]="'admin-config-dismiss-preview' | i18next"></button> }
                     </div>
-                    <p class="rb-admin-hint">{{ (model.enabled ? 'admin-config-banner-live' : 'admin-config-banner-off') | i18next }}</p>
+                    <p class="rb-admin-hint">{{ (loadedModel.enabled ? 'admin-config-banner-live' : 'admin-config-banner-off') | i18next }}</p>
                   </div>
                 </div>
               </aside>
