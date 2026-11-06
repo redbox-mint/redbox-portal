@@ -1026,6 +1026,57 @@ describe('AppConfigComponent', () => {
     } }, model: { enabled: true, connection: { baseUrl: 'https://saved.example', token: '__REDACTED__' }, mapping: { field: 'title' } }, secretFields: ['connection.token'] }, key);
   }
 
+  it('links visible field descriptions alongside validation errors and removes hidden descriptions', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      attempts: { type: 'integer', minimum: 1, description: 'How many attempts to make' }
+    } }, model: { attempts: 2 } });
+    const field = findFieldByKey(fixture.componentInstance.fields, 'attempts')!;
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('input[type="number"]');
+    const references = () => input.getAttribute('aria-describedby')!.split(/\s+/);
+    expect(references()).toEqual([field.id + '-formly-validation-error', field.id + '-description']);
+    expect(fixture.nativeElement.querySelector('[id="' + field.id + '-description"]').textContent).toContain('How many attempts');
+    field.formControl!.setValue(0); field.formControl!.markAsTouched(); fixture.detectChanges();
+    expect(references()).toEqual([field.id + '-formly-validation-error', field.id + '-description']);
+    expect(fixture.nativeElement.querySelector('[id="' + field.id + '-formly-validation-error"] [role="alert"]')).not.toBeNull();
+    field.props!.description = ''; fixture.detectChanges();
+    expect(references()).toEqual([field.id + '-formly-validation-error']);
+    expect(fixture.nativeElement.querySelector('[id="' + field.id + '-description"]')).toBeNull();
+    fixture.destroy();
+  });
+
+  it('keeps chip and secret hint references unique alongside described plain fields', async () => {
+    const fixture = await renderConfig({ secretFields: ['token'], schema: { type: 'object', properties: {
+      token: { type: 'string' }, values: { type: 'array', items: { type: 'string' } },
+      name: { type: 'string', description: 'A plain field description' }
+    } }, model: { token: '__REDACTED__', values: ['one'], name: 'Example' } });
+    for (const selector of ['app-config-secret input', 'app-config-chips input']) {
+      const input: HTMLInputElement = fixture.nativeElement.querySelector(selector);
+      const references = input.getAttribute('aria-describedby')!.split(/\s+/);
+      expect(references.length).toBe(1);
+      expect(fixture.nativeElement.querySelectorAll('[id="' + references[0] + '"]').length).toBe(1);
+    }
+    const ids = Array.from(fixture.nativeElement.querySelectorAll('[id]') as NodeListOf<HTMLElement>).map(element => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    fixture.destroy();
+  });
+
+  for (const key of ['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing']) {
+    for (const baseUrl of ['', 'https://saved.example']) {
+      it(`opens the ${key} Connection section on load only when its base URL guard requires it (${baseUrl || 'empty'})`, async () => {
+        const fixture = await renderConfig({ schema: { type: 'object', properties: {
+          general: { type: 'object', properties: { name: { type: 'string' } } },
+          connection: { type: 'object', properties: { baseUrl: { type: 'string' } } }
+        } }, model: { general: { name: 'Example' }, connection: { baseUrl } } }, key);
+        const connection = fixture.componentInstance.sections.find(section => section.fieldGroup?.some(field => field.key === 'connection'))!;
+        const details: HTMLDetailsElement = fixture.nativeElement.querySelector('#' + connection.props!['sectionId']);
+        expect(details.open).toBe(key === 'figsharePublishing' && !baseUrl);
+        expect(fixture.componentInstance.dirty).toBeFalse();
+        expect(appConfigService.lastSavedModel).toBeUndefined();
+        fixture.destroy();
+      });
+    }
+  }
+
   for (const key of ['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing']) {
     it(`tests the current ${key} form draft and displays the result and time without saving`, async () => {
       const fixture = await renderConnectionTester(key);
@@ -1069,12 +1120,15 @@ describe('AppConfigComponent', () => {
     expect(button.disabled).toBeTrue();
     const input = fixture.nativeElement.querySelector('[id="' + field.id + '"]');
     expect(input.parentElement.textContent).toContain('admin-config-connection-base-url-hint');
+    expect(input.getAttribute('aria-describedby').split(/\s+/)).toContain(field.id + '-connection-hint');
+    expect(fixture.nativeElement.querySelectorAll('[id="' + field.id + '-connection-hint"]').length).toBe(1);
     expect(fixture.nativeElement.querySelector('#connection-base-url-hint').textContent).toContain('admin-config-connection-base-url-hint');
     await fixture.componentInstance.testConnection();
     expect(appConfigService.testConnection).not.toHaveBeenCalled();
     field.formControl!.setValue('https://example.org');
     await fixture.whenStable(); fixture.detectChanges();
     expect(button.disabled).toBeFalse();
+    expect(input.getAttribute('aria-describedby').split(/\s+/)).not.toContain(field.id + '-connection-hint');
     expect(fixture.nativeElement.querySelector('#connection-base-url-hint')).toBeNull();
     fixture.destroy();
   });
