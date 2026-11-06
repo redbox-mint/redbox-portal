@@ -4,7 +4,8 @@ import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { Pipe, PipeTransform } from '@angular/core';
-import { A11yModule } from '@angular/cdk/a11y';
+import { By } from '@angular/platform-browser';
+import { CdkTrapFocus, A11yModule } from '@angular/cdk/a11y';
 import { NamedQueryEditorComponent } from './named-query-editor.component';
 import { NamedQueryApiService, NamedQueryDefinition } from './named-query-api.service';
 import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
@@ -782,9 +783,13 @@ describe('NamedQueryEditorComponent', () => {
     component.closeEditModal(); fixture.detectChanges(); await fixture.whenStable();
     expect(component.confirmDiscard).toBeTrue();
     const confirm = fixture.nativeElement.querySelector('rb-admin-discard-dialog');
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="namedQueryModalTitle"]')?.inert).toBeTrue();
     confirm.querySelector('[cdkFocusInitial]').click(); fixture.detectChanges();
     expect(component.isEditModalOpen).toBeTrue();
     expect(component.draft.collectionName).toBe('edited');
+    expect(traps[0].enabled).toBeTrue();
     component.closeEditModal(); component.closeEditModal(true);
     expect(component.isEditModalOpen).toBeFalse();
     expect(component.confirmDiscard).toBeFalse();
