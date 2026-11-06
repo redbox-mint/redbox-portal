@@ -267,3 +267,48 @@ describe('ConfigService page token bootstrap', () => {
     expect((await retry).csrfToken).toBe('fresh-session-token');
   });
 });
+
+
+describe('ConfigService page configuration bootstrap', () => {
+  let http: HttpTestingController;
+  let page: Document;
+  beforeEach(() => {
+    page = document.implementation.createHTMLDocument();
+    page.head.innerHTML = '<meta name="rb-csrf-token" content="page-token">';
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [ConfigService, { provide: APP_BASE_HREF, useValue: '/portal' }, { provide: DOCUMENT, useValue: page }]
+    });
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => http.verify());
+
+  function snapshot(content: string) {
+    const meta = page.createElement('meta');
+    meta.name = 'rb-client-config'; meta.content = content; page.head.appendChild(meta);
+  }
+
+  it('initializes without requests and bypasses both page snapshots on explicit refresh', async () => {
+    snapshot(JSON.stringify({ baseUrl: '', branding: 'custom', portal: 'records', app: { test: { title: '<quoted "value">' } } }));
+    const service = TestBed.inject(ConfigService);
+    http.expectNone(service.configUrl); http.expectNone(service.csrfTokenUrl);
+    const config = await service.waitForInit();
+    expect(config.branding).toBe('custom');
+    expect(config.app.test.title).toBe('<quoted "value">');
+    expect(config.csrfToken).toBe('page-token'); expect(config.rootContext).toBe('/portal');
+    const retry = service.refreshConfig();
+    http.expectOne(service.csrfTokenUrl).flush({ _csrf: 'fresh-token' });
+    http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'new', portal: 'records' });
+    expect((await retry).branding).toBe('new'); expect((await retry).csrfToken).toBe('fresh-token');
+  });
+
+  for (const content of ['{', 'null', '[]', '{}', '{"baseUrl":"","branding":"custom"}']) {
+    it(`falls back to the endpoint for an invalid snapshot: ${content}`, async () => {
+      snapshot(content);
+      const service = TestBed.inject(ConfigService);
+      http.expectNone(service.csrfTokenUrl);
+      http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+      expect((await service.waitForInit()).portal).toBe('rdmp');
+    });
+  }
+});

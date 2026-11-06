@@ -20,6 +20,9 @@
 
   <% /* Brand Typeface: preload Regular once for an active custom typeface, else the self-hosted default faces. */ %>
   <% const __modernAdmin = typeof body === 'string' && body.includes('id="rb-admin-main"'); %>
+  <% if (__modernAdmin && body.includes('/angular/')) { %>
+  <%- include('layout/client-config.ejs') %>
+  <% } %>
   <% var __brandTypefaceFont = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
   <% if (__brandTypefaceFont) { %>
   <link rel="preload" href="<%= __brandTypefaceFont.regularUrl %>" as="font" type="font/woff2" crossorigin>

@@ -91,6 +91,16 @@ export class ConfigService implements Service {
     const pageToken = usePageToken
       ? this.document.querySelector<HTMLMetaElement>('meta[name="rb-csrf-token"]')?.content
       : undefined;
+    // Legacy/hook layouts can omit this snapshot. Invalid snapshots also fall
+    // back to the public endpoint; explicit refreshes always bypass page data.
+    let pageConfig: any;
+    if (usePageToken) {
+      try {
+        const snapshot = this.document.querySelector<HTMLMetaElement>('meta[name="rb-client-config"]')?.content;
+        const parsed = snapshot ? JSON.parse(snapshot) : undefined;
+        if (this.isClientConfig(parsed)) pageConfig = parsed;
+      } catch { /* Fetch the endpoint if a hook supplied malformed page data. */ }
+    }
     const csrfResponse = typeof pageToken === 'string'
       ? of({ _csrf: pageToken })
       : this.http.get(this.csrfTokenUrl);
@@ -105,16 +115,13 @@ export class ConfigService implements Service {
           throw new Error('Invalid CSRF response. Sign in again and retry.');
         }
         this.csrfToken = token;
-        return this.http.get(this.configUrl);
+        return pageConfig ? of(pageConfig) : this.http.get(this.configUrl);
       }),
       map((config: any) => {
         // apiClientConfig.ejs supplies these URL components to HttpClientService,
         // translations and template loaders. An empty base URL is valid for
         // same-origin requests; branding and portal must name route segments.
-        if (!config || typeof config !== 'object' || Array.isArray(config)
-          || typeof config.baseUrl !== 'string'
-          || typeof config.branding !== 'string' || !config.branding.trim()
-          || typeof config.portal !== 'string' || !config.portal.trim()) {
+        if (!this.isClientConfig(config)) {
           throw new Error('Invalid configuration response. Sign in again and retry.');
         }
         return config;
@@ -133,6 +140,13 @@ export class ConfigService implements Service {
         this.initSubject.error(error);
       }
     });
+  }
+
+  private isClientConfig(config: any): boolean {
+    return !!config && typeof config === 'object' && !Array.isArray(config)
+      && typeof config.baseUrl === 'string'
+      && typeof config.branding === 'string' && !!config.branding.trim()
+      && typeof config.portal === 'string' && !!config.portal.trim();
   }
 
   public getInitSubject(): Subject<any> {
