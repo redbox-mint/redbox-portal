@@ -54,6 +54,8 @@ export class RecordTableComponent extends BaseComponent {
   @Input() columnConfig: RecordPropViewMetaDto[] = null as any;
   // the data source
   @Input() dataSource: RecordSource = null as any;
+  // Opt in only for tables whose columns are data, never configured HTML.
+  @Input() plainTextColumns = false;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
   // report name for template key construction (required for Handlebars templates)

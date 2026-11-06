@@ -271,7 +271,7 @@
                 }
               ],
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
