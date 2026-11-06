@@ -37,3 +37,5 @@ export * from './lib/record-audit/record-audit.module';
 export * from './lib/record-audit/record-audit.component';
 
 export * from './lib/admin-count.pipe';
+
+export * from './lib/admin-tabs.directive';

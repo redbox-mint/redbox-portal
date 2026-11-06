@@ -53,7 +53,7 @@
       {{ 'admin-branding-invalid-hex' | i18next }}
     </div>
     <div>
-      <ul class="nav nav-tabs branding-tabs" role="tablist" [attr.aria-label]="'admin-branding-sections' | i18next">
+      <ul class="nav nav-tabs branding-tabs" role="tablist" rbAdminTabs [attr.aria-label]="'admin-branding-sections' | i18next">
         <li class="nav-item" role="presentation" *ngFor="let tab of tabs">
           <button
             type="button"
@@ -62,7 +62,6 @@
             [class.active]="activeTab === tab"
             [attr.aria-selected]="activeTab === tab"
             [attr.tabindex]="activeTab === tab ? 0 : -1"
-            (keydown)="onTabKeydown($event, tab)"
             [attr.aria-controls]="'branding-' + tab"
             (click)="activeTab = tab"
           >
@@ -448,7 +447,7 @@
                 <th scope="col">{{ 'admin-branding-published-date' | i18next }}</th>
                 <th scope="col">{{ 'admin-branding-published-by' | i18next }}</th>
                 <th scope="col">{{ 'branding-typography-title' | i18next }}</th>
-                <th scope="col" class="text-end">{{ 'admin-branding-actions' | i18next }}</th>
+                <th scope="col" class="rb-admin-actions-col text-end">{{ 'admin-branding-actions' | i18next }}</th>
               </tr>
             </thead>
             <tbody>
@@ -462,7 +461,7 @@
                 <td>{{ version.dateCreated | adminDate }}</td>
                 <td>{{ version.actorDisplayName || version.actorId || '–' }}</td>
                 <td>{{ typefaceSummary(version.typeface) }}</td>
-                <td class="text-end">
+                <td class="rb-admin-actions-col text-end">
                   <div class="rb-admin-page-actions">
                     <button
                       type="button"
