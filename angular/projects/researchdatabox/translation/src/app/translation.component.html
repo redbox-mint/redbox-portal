@@ -64,7 +64,7 @@
       <div class="rb-admin-field rb-admin-field-grow"><label for="tx-search">{{ 'admin-tx-search' | i18next }}</label>
         <input id="tx-search" class="form-control" type="search" [placeholder]="'admin-tx-search-placeholder' | i18next" [(ngModel)]="filterText" (ngModelChange)="onFilterTextChange()" [disabled]="!selectedLang">
       </div>
-      <div class="rb-admin-field"><span id="tx-show-label">{{ 'admin-tx-show' | i18next }}</span>
+      <div class="rb-admin-field rb-admin-segmented-field"><span class="rb-admin-filter-label" id="tx-show-label">{{ 'admin-tx-show' | i18next }}</span>
         <div class="rb-admin-segmented" role="group" aria-labelledby="tx-show-label">
           <button type="button" class="btn btn-sm btn-outline-secondary" [attr.aria-pressed]="show === 'all'" (click)="setShow('all')">{{ 'admin-tx-all' | i18next }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" [attr.aria-pressed]="show === 'missing'" (click)="setShow('missing')">{{ 'admin-tx-missing' | i18next }}</button>
@@ -78,20 +78,18 @@
     <div *ngIf="readPending().entries" class="p-3" role="status">{{ 'admin-tx-loading' | i18next }}</div>
     <div *ngIf="selectedLang && viewEntries().length" class="table-responsive">
       <table class="table table-hover tx-data-table" [attr.aria-label]="'admin-tx-title' | i18next">
-        <colgroup><col class="tx-col-cat"><col class="tx-col-key"><col><col class="tx-col-act"></colgroup>
+        <colgroup><col class="tx-col-key"><col><col class="tx-col-act"></colgroup>
         <thead><tr>
-          <th scope="col" [attr.aria-sort]="sortBy === 'category' ? (sortAsc ? 'ascending' : 'descending') : null"><button type="button" class="tx-sort rb-admin-sort" (click)="setSort('category')">{{ 'admin-tx-category' | i18next }} <i class="fa" [ngClass]="sortBy !== 'category' ? 'fa-sort' : sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'" aria-hidden="true"></i></button></th>
           <th scope="col" [attr.aria-sort]="sortBy === 'key' ? (sortAsc ? 'ascending' : 'descending') : null"><button type="button" class="tx-sort rb-admin-sort" (click)="setSort('key')">{{ 'admin-tx-key' | i18next }} <i class="fa" [ngClass]="sortBy !== 'key' ? 'fa-sort' : sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'" aria-hidden="true"></i></button></th>
           <th scope="col" [attr.aria-sort]="sortBy === 'value' ? (sortAsc ? 'ascending' : 'descending') : null"><button type="button" class="tx-sort rb-admin-sort" (click)="setSort('value')">{{ 'admin-tx-value' | i18next }} <i class="fa" [ngClass]="sortBy !== 'value' ? 'fa-sort' : sortAsc ? 'fa-sort-asc' : 'fa-sort-desc'" aria-hidden="true"></i></button></th>
           <th class="rb-admin-actions-col text-end" scope="col"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th>
         </tr></thead>
         <tbody><tr *ngFor="let e of pageEntries(); trackBy: trackByKey" [class.tx-row-missing]="e.provenance === 'missing'">
-          <td><span class="tx-category">{{ e.category || ('admin-tx-uncategorized' | i18next) }}</span></td>
           <td><code [title]="e.key"><ng-container *ngFor="let segment of keySegments(e.key); let last = last"><ng-container *ngIf="!last">{{ segment }}<wbr></ng-container><span *ngIf="last" class="tx-key-tail">{{ segment }}&#8288;<button *ngIf="e.description" type="button" class="btn btn-sm rb-admin-ghost tx-key-help" [title]="e.description" [attr.aria-label]="e.description"><i class="fa fa-info-circle" aria-hidden="true"></i></button></span></ng-container></code></td>
           <td><span *ngIf="e.provenance === 'override'" class="badge rb-admin-badge-warning">{{ 'admin-tx-changed' | i18next }}</span><span *ngIf="e.contentFormat === 'html'" class="badge rb-admin-badge-info">HTML</span><div class="tx-cell-val" [title]="e.value">{{ e.value }}</div></td>
           <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEdit(e)" [attr.aria-label]="'admin-tx-edit-key' | i18next: { key: e.key }">{{ 'admin-tx-edit' | i18next }}</button>
             <details *ngIf="e.provenance === 'override' && e.hasDefault" class="rb-admin-overflow">
-              <summary class="btn btn-sm btn-outline-secondary" [attr.aria-label]="'admin-tx-key-actions' | i18next: { key: e.key }">⋯</summary>
+              <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-tx-key-actions' | i18next: { key: e.key }">⋯</summary>
               <div><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="saving()" (click)="revertEntry(e)">{{ 'admin-tx-revert' | i18next }}</button></div>
             </details>
           </td>
