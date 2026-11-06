@@ -137,6 +137,67 @@ describe('AppComponent (translation)', () => {
     return { fixture, comp };
   }
 
+  it('guards unsaved language availability and restores the saved choices on discard', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const saved = [...comp.availableLanguages()];
+    comp.toggleAvailableLanguage('fr', false); fixture.detectChanges();
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    comp.beforeUnload(unload); expect(unload.defaultPrevented).toBeTrue();
+    const anchor: HTMLAnchorElement = fixture.nativeElement.querySelector('.rb-admin-crumbs a');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor.dispatchEvent(click); fixture.detectChanges(); await fixture.whenStable();
+    expect(click.defaultPrevented).toBeTrue(); expect(comp.pendingLeave).toBe(anchor.href);
+    const stay = fixture.nativeElement.querySelector('rb-admin-discard-dialog .btn-outline-secondary');
+    stay.click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(comp.pendingLeave).toBe(''); expect(comp.availabilityDirty()).toBeTrue();
+    expect(comp.availableLanguages()).not.toContain('fr');
+    const discard = fixture.nativeElement.querySelector('.card-footer .btn-outline-secondary');
+    discard.click(); fixture.detectChanges(); await fixture.whenStable();
+    fixture.nativeElement.querySelector('rb-admin-discard-dialog .rb-admin-danger-confirm').click();
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(comp.availableLanguages()).toEqual(saved); expect(comp.availabilityDirty()).toBeFalse();
+    expect(translationService.updateBundleEnabledCalls).toEqual([]);
+    const cleanUnload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    comp.beforeUnload(cleanUnload); expect(cleanUnload.defaultPrevented).toBeFalse();
+  });
+
+  it('preserves the saved discard baseline when an availability retry fails', async () => {
+    const { comp } = create(); await comp.ngOnInit();
+    comp.toggleAvailableLanguage('fr', false);
+    spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
+    await comp.loadAvailableLanguagesFromBundles();
+    comp.discardAvailability();
+    expect(comp.availableLanguages()).toContain('fr');
+    expect(comp.availabilityDirty()).toBeFalse();
+  });
+
+  it('lets modified clicks and downloads bypass the availability navigation dialog', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.toggleAvailableLanguage('fr', false);
+    const anchor: HTMLAnchorElement = fixture.nativeElement.querySelector('.rb-admin-crumbs a');
+    const modified = new MouseEvent('click', { ctrlKey: true, cancelable: true });
+    Object.defineProperty(modified, 'target', { value: anchor }); comp.confirmNavigation(modified);
+    expect(modified.defaultPrevented).toBeFalse(); expect(comp.pendingLeave).toBe('');
+    anchor.setAttribute('download', '');
+    const download = new MouseEvent('click', { cancelable: true });
+    Object.defineProperty(download, 'target', { value: anchor }); comp.confirmNavigation(download);
+    expect(download.defaultPrevented).toBeFalse(); expect(comp.pendingLeave).toBe('');
+  });
+
+  it('discards to the successfully saved availability when the following refresh fails', async () => {
+    const { comp } = create(); await comp.ngOnInit();
+    comp.toggleAvailableLanguage('fr', false);
+    spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
+    await comp.saveLanguages();
+    expect(translationService.languages.find(language => language.code === 'fr')?.enabled).toBeFalse();
+    comp.toggleAvailableLanguage('fr', true);
+    comp.discardAvailability();
+    expect(comp.availableLanguages()).not.toContain('fr');
+    expect(comp.availabilityDirty()).toBeFalse();
+  });
+
   it('breaks keys at separators and shows descriptions on a second line', async () => {
     const { comp, fixture } = create();
     translationService.entriesMap['en:translation'] = [

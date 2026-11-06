@@ -117,7 +117,7 @@
                     </thead>
                     <tbody>
                       @for (filter of selectedReport.filter; track trackByIndex($index)) {
-                        <tr>
+                        <tr data-report-row="filter">
                           <td>
                             <select class="form-select" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-filter-type' | i18next), row: $index + 1 }" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
                               <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
@@ -145,7 +145,7 @@
                     </tbody>
                   </table>
                 </div>
-                <button class="btn btn-outline-secondary btn-sm" type="button" (click)="addFilter()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-filter' | i18next }}</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="report-add-filter" (click)="addFilter()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-filter' | i18next }}</button>
               </fieldset>
 
               <fieldset class="rb-admin-form-section">
@@ -163,7 +163,7 @@
                     </thead>
                     <tbody>
                       @for (column of selectedReport.columns; track trackByIndex($index)) {
-                        <tr>
+                        <tr data-report-row="column">
                           <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-label' | i18next), row: $index + 1 }" [(ngModel)]="column.label"></td>
                           <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-property' | i18next), row: $index + 1 }" [(ngModel)]="column.property"></td>
                           <td><input class="form-control" type="text" [attr.aria-label]="'admin-row-control' | i18next: { label: ('report-column-display-template' | i18next), row: $index + 1 }" [(ngModel)]="column.template"></td>
@@ -179,7 +179,7 @@
                     </tbody>
                   </table>
                 </div>
-                <button class="btn btn-outline-secondary btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-column' | i18next }}</button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="report-add-column" (click)="addColumn()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-column' | i18next }}</button>
               </fieldset>
 
               @if (selectedReport.filter.length > 0) {

@@ -3565,5 +3565,12 @@
   "admin-config-using-defaults": "Using defaults",
   "admin-row-control": "{{label}} — {{row}}",
   "admin-pagination": "Pagination",
-  "admin-pagination-page": "Page {{page}}"
+  "admin-pagination-page": "Page {{page}}",
+  "admin-config-turns-on-save": "Turns on when you save",
+  "admin-config-turns-off-save": "Turns off when you save",
+  "admin-dashboard-edit-column": "Edit {{name}} column",
+  "admin-roles-member-count_one": "{{count}} member, {{disabled}} disabled",
+  "admin-roles-member-count_other": "{{count}} members, {{disabled}} disabled",
+  "admin-vocabulary-empty-catalogue": "No vocabularies yet",
+  "admin-dashboard-edit": "Edit"
 }

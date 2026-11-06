@@ -834,7 +834,58 @@ describe('AppConfigComponent', () => {
     expect(component.sections[0].props!.label).toBe('admin-config-general');
   });
 
-  it('shows one page off notice, keeps the preview separate and restores nested hints when enabled', async () => {
+  it('keeps page status and the off banner tied to saved state while the switch edits a draft', async () => {
+    const fixture = await renderConfig({ title: 'System messages', schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' }, title: { type: 'string' }
+    } }, model: { enabled: false, title: 'Saved' } }, 'systemMessage');
+    const component = fixture.componentInstance;
+    const root: HTMLElement = fixture.nativeElement;
+    component.setEnabled({ target: { checked: true } } as unknown as Event);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('.app-config-page-switch')?.textContent).toContain('admin-config-off');
+    expect(root.querySelector('.app-config-page-switch [role="status"]')?.textContent).toContain('admin-config-turns-on-save');
+    expect(root.querySelector('.rb-admin-page-header + .alert-info')).not.toBeNull();
+    expect(root.querySelector('.app-config-preview .rb-admin-hint')?.textContent).toContain('admin-config-banner-off');
+    await component.onSubmit(component.model); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('.app-config-page-switch')?.textContent).toContain('admin-config-on');
+    expect(root.querySelector('.app-config-page-switch [role="status"]')).toBeNull();
+    expect(root.querySelector('.rb-admin-page-header + .alert-info')).toBeNull();
+    component.setEnabled({ target: { checked: false } } as unknown as Event);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(root.querySelector('.app-config-page-switch [role="status"]')?.textContent).toContain('admin-config-turns-off-save');
+    expect(root.querySelector('.rb-admin-page-header + .alert-info')).toBeNull();
+  });
+
+  it('moves section rail focus into the expanded section', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      connection: { type: 'object', properties: { url: { type: 'string' } } },
+      mapping: { type: 'object', properties: { name: { type: 'string' } } }
+    } }, model: { connection: { url: 'https://example.test' }, mapping: {} } }, 'doiPublishing');
+    const component = fixture.componentInstance;
+    component.activateSection(component.sections[1]); fixture.detectChanges();
+    const section = document.getElementById(component.sections[1].props!['sectionId']);
+    expect(section?.querySelector('summary, h2, h3')).toBe(document.activeElement);
+    expect((section as HTMLDetailsElement).open).toBeTrue();
+  });
+
+  it('associates JSON parse errors and invalid chips with their inputs', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      json: {}, values: { type: 'array', items: { type: 'integer' } }
+    } }, model: { json: { valid: true }, values: [1] } }, 'test');
+    const json = fixture.debugElement.query(By.directive(JsonTypeComponent));
+    expect(json).not.toBeNull();
+    json.componentInstance.update('{'); fixture.detectChanges();
+    const input = json.nativeElement.querySelector('textarea');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(input.getAttribute('aria-describedby'))?.textContent).toContain('admin-config-json-invalid');
+    const chips = fixture.debugElement.query(By.directive(ChipsTypeComponent));
+    const entry = chips.nativeElement.querySelector('input'); entry.value = 'not a number';
+    chips.componentInstance.commit(new Event('blur'), entry); fixture.detectChanges();
+    expect(entry.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(entry.getAttribute('aria-describedby'))?.textContent).toContain('admin-config-chip-invalid');
+  });
+
+  it('retains the saved off notice and restores nested hints when the draft is enabled', async () => {
     const fixture = await renderConfig({ title: 'System messages', schema: { type: 'object', properties: {
       enabled: { type: 'boolean' }, connection: { type: 'object', properties: { enabled: { type: 'boolean' } } }
     } }, model: { enabled: false, connection: { enabled: false } } }, 'systemMessage');
@@ -848,7 +899,7 @@ describe('AppConfigComponent', () => {
     fixture.componentInstance.setEnabled({ target: { checked: true } } as unknown as Event);
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('.app-config-form-main.app-config-settings-off')).toBeNull();
-    expect(noticeCount()).toBe(1);
+    expect(noticeCount()).toBe(2);
   });
 
   it('shows the off notice for notifications without a persisted enabled value', async () => {
