@@ -49,8 +49,8 @@
   .dc-column-edit { border: 0; background: transparent; color: var(--admin-ink); font: inherit; font-weight: 600; padding: 0; text-align: left; overflow-wrap: anywhere; min-width: 90px; }
   .dc-column-edit:hover { text-decoration: underline; color: var(--admin-primary); }
   .dc-column-selected { background: var(--dc-accent-soft); }
-  .dc-reorder { display: flex; flex-direction: column; gap: 3px; }
-  .dc-reorder .btn { padding: 1px 7px; font-size: 13px; }
+  .dc-reorder { display: flex; flex-direction: column; gap: 4px; }
+  .dc-reorder .btn { min-width: 24px; min-height: 24px; padding: 2px 7px; font-size: 13px; }
   .dc-column-detail-wrap { margin: 16px 0 0; background: var(--admin-surface); }
   .dc-add-column .rb-admin-page-actions { margin-top: 12px; }
   .dc-state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); }
@@ -104,7 +104,10 @@
 
   @media (max-width: 1150px) {
     .dc-layout { flex-wrap: wrap; }
-    .dc-nav-pane { position: static; flex: 1 1 100%; max-width: none; max-height: none; }
+    .rb-admin-section-rail.dc-nav-pane { display: block; position: static; flex: 1 1 100%; max-width: none; max-height: 360px; overflow-y: auto; }
+    .dc-nav-section { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dc-nav-section h2, .dc-nav-empty { grid-column: 1 / -1; }
+    .dc-nav-search { position: sticky; top: 0; background: var(--admin-bg); z-index: 1; }
     .dc-editor-pane { flex-basis: 100%; }
   }
   @media (max-width: 767px) {
@@ -508,3 +511,5 @@
         }
   }
 }
+
+.rb-admin .dc-target-card h2[tabindex='-1']:focus:not(:focus-visible) { outline: none; box-shadow: none; }

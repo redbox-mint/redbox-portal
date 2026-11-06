@@ -102,12 +102,25 @@ describe('DashboardConfigEditorComponent', () => {
     spyOn(window, 'matchMedia').and.returnValue({ matches: true } as MediaQueryList);
     const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
     api.getSettings.and.resolveTo({ target: target.target, settings: settingsWithColumn('Title'), revision: 1, schemaVersion: 1, hidden: false });
-    await component.selectTarget(target);
+    await component.selectTarget(target, false, true);
     fixture.detectChanges();
     const heading = fixture.nativeElement.querySelector('.dc-target-card h2');
     expect(heading.tabIndex).toBe(-1);
     expect(document.activeElement).toBe(heading);
     expect(scroll).toHaveBeenCalledWith({ block: 'start' });
+  });
+
+  it('preserves focus and scroll on initial tablet selection', async () => {
+    const target: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    spyOn(window, 'matchMedia').and.returnValue({ matches: true } as MediaQueryList);
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    api.getSettings.and.resolveTo({ target: target.target, settings: settingsWithColumn('Title'), revision: 1, schemaVersion: 1, hidden: false });
+    await component.selectTarget(target);
+    fixture.detectChanges();
+    const heading = fixture.nativeElement.querySelector('.dc-target-card h2');
+    expect(heading.tabIndex).toBe(-1);
+    expect(document.activeElement).not.toBe(heading);
+    expect(scroll).not.toHaveBeenCalled();
   });
 
   it('should create', () => {

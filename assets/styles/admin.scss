@@ -163,8 +163,6 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   input:not([type="submit"]):not([type="button"]), select, textarea, .form-check-input { border-color: var(--admin-control-border); }
   .form-check-input:checked { border-color: var(--admin-control-border); }
-  .rb-admin-skip { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 10px 16px; background: var(--admin-bg); color: var(--admin-ink); border: 2px solid var(--admin-primary); border-radius: var(--admin-radius); transform: translateY(-200%); }
-  .rb-admin-skip:focus { transform: translateY(0); }
   .rb-admin-save-content { padding-bottom: var(--admin-save-height); min-width: 0; }
   .app-config-page .rb-admin-save-content { padding-bottom: 0; }
   .form-select { font-size: 14px; }
@@ -540,3 +538,6 @@ html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-heig
     .nq-consumers a { display: inline-block; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
   }
 }
+
+.rb-admin-skip { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 10px 16px; background: var(--rb-body-background-color, #fff); color: var(--rb-body-text-color, #333); border: 2px solid var(--rb-primary, #0d6efd); border-radius: 4px; clip-path: inset(50%); opacity: 0; pointer-events: none; }
+.rb-admin-skip:focus-visible { clip-path: none; opacity: 1; pointer-events: auto; }

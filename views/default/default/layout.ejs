@@ -59,6 +59,9 @@
 </head>
 
 <body>
+  <% if (typeof body === 'string' && body.includes('id="rb-admin-main"')) { %>
+    <a class="rb-admin-skip" href="<%= req.originalUrl %>#rb-admin-main"><%= TranslationService.t('admin-skip-main') %></a>
+  <% } %>
   <!-- Branding-aware web analytics (noscript fallback) -->
   <%- include('analytics', { position: 'body' }) %>
   <div class="header-area">
