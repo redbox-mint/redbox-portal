@@ -157,14 +157,27 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     return info.target.kind === 'workflow' ? info.target.stage : info.target.step;
   }
 
+  targetId(info: DashboardTargetInfo): string {
+    return info.target.kind === 'workflow' ? info.target.recordType : info.target.view;
+  }
+
+  private humanizeTarget(value: string): string {
+    const words = value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').trim().toLowerCase();
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
   targetLabel(info: DashboardTargetInfo | null | undefined): string {
     if (!info) {
       return '';
     }
     const nameKey = `${info.ownerLabel}-name`;
     const name = this.translationService.t(nameKey);
-    const owner = info.target.kind === 'workflow' && name !== nameKey ? name : this.translationService.t(info.ownerLabel);
-    const step = this.translationService.t(info.stepLabel || this.stepName(info));
+    const ownerTranslation = this.translationService.t(info.ownerLabel);
+    const owner = info.target.kind === 'workflow' && name !== nameKey ? name
+      : ownerTranslation !== info.ownerLabel ? ownerTranslation : this.humanizeTarget(this.targetId(info));
+    const stepKey = info.stepLabel || this.stepName(info);
+    const translatedStep = this.translationService.t(stepKey);
+    const step = translatedStep !== stepKey ? translatedStep : this.humanizeTarget(this.stepName(info));
     return owner === step ? owner : `${owner} · ${step}`;
   }
 

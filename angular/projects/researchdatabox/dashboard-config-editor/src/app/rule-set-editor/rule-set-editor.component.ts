@@ -44,7 +44,7 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
               [index]="rIndex"
               (remove)="removeRule(rsIndex, rIndex)"
             ></rule-editor>
-            <button type="button" class="btn btn-default btn-sm dc-add-rule-btn" (click)="addRule(rsIndex)">
+            <button type="button" class="btn btn-outline-secondary btn-sm dc-add-rule-btn" (click)="addRule(rsIndex)">
               <i class="fa fa-plus"></i>
               Add Rule
             </button>
