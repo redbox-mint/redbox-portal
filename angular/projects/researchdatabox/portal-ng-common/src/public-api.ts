@@ -43,3 +43,5 @@ export * from './lib/admin-tabs.directive';
 export * from './lib/admin-auto-filter.directive';
 
 export * from './lib/admin-modal.directive';
+
+export * from './lib/admin-list-footer.component';

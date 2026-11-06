@@ -120,7 +120,7 @@
       <tbody>@for (run of filteredSyncRuns; track run.id) {<tr><td><span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-run-state-' + run.state | i18next }}</span></td><td>{{ scopeLabelKey(run.scope) | i18next }} · {{ run.taxonomyId }}</td><td>{{ run.requestedBy }}</td><td>{{ formatDate(run.appliedAt) || '—' }}</td></tr>}</tbody>
     </table></div>
     }
-    <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: filteredSyncRuns.length ? 1 : 0, end: filteredSyncRuns.length, total: filteredSyncRuns.length } }}</div>
+    <rb-admin-list-footer [total]="filteredSyncRuns.length" [end]="filteredSyncRuns.length"></rb-admin-list-footer>
   </div>
   }
   </section>

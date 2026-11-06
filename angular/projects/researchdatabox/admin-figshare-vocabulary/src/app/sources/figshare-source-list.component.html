@@ -79,5 +79,5 @@
     </tbody>
   </table></div>
   }
-  <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: filteredItems.length ? 1 : 0, end: filteredItems.length, total: filteredItems.length } }}</div>
+  <rb-admin-list-footer [total]="filteredItems.length" [end]="filteredItems.length"></rb-admin-list-footer>
 </div>
