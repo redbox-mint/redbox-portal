@@ -96,8 +96,6 @@
       }
     </style>
     <script src="<%= rootContext %>/default/default/js/admin-api-docs-init.js" type="text/javascript" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
-    <!-- Redoc 3 is an ES module; admin-api-docs-bootstrap.js imports init from it. -->
-    <script src="<%= rootContext %>/default/default/js/redoc.standalone.js" type="module" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
   </head>
   <body>
     <div id="redoc" data-openapi-url="<%= brandPortalPath %>/admin/api-docs/openapi.json">
@@ -105,6 +103,6 @@
         <img class="center-block" src="<%= rootContext %>/images/loading.svg" alt="<%= loadingText %>">
       </div>
     </div>
-    <script src="<%= rootContext %>/default/default/js/admin-api-docs-bootstrap.js" type="module" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-load.js" type="module" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
   </body>
 </html>
