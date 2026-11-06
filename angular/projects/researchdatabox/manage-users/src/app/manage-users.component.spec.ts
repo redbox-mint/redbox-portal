@@ -475,6 +475,32 @@ describe('ManageUsersComponent', () => {
     expect(app.newUserMsgType).toBe('primary');
   });
 
+  it('only describes user controls with error elements currently in the DOM', async () => {
+    const { fixture, app } = await createComponent();
+    function checkReferences() {
+      for (const input of Array.from(fixture.nativeElement.querySelectorAll('input[aria-describedby]')) as HTMLInputElement[]) {
+        for (const id of input.getAttribute('aria-describedby')!.split(/\s+/)) {
+          expect(fixture.nativeElement.querySelector('#' + id)).withContext(id).toBeTruthy();
+        }
+      }
+    }
+    app.newUser(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    app.submitted = false; app.newUserForm!.markAsUntouched(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#newform-username').getAttribute('aria-describedby')).toBeNull();
+    checkReferences();
+    app.newUserForm!.get('passwords.password')!.markAsTouched(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#newform-password').getAttribute('aria-describedby')).toBe('newform-password-error');
+    checkReferences();
+    app.newUserForm!.get('passwords.confirmPassword')!.markAsTouched(); fixture.detectChanges(); checkReferences();
+    app.hideNewUserModal(); fixture.detectChanges(); await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    app.submitted = false; app.updateUserForm!.markAsUntouched(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#detailsform-name').getAttribute('aria-describedby')).toBeNull();
+    checkReferences();
+    app.updateUserForm!.get('name')!.markAsTouched(); fixture.detectChanges(); checkReferences();
+    app.submitted = true; fixture.detectChanges(); checkReferences();
+  });
+
   it('links invalid fields to their errors and focuses the first invalid field in both user forms', async () => {
     const { fixture, app } = await createComponent();
     app.newUser(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();

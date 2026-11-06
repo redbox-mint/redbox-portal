@@ -47,3 +47,5 @@ export * from './lib/admin-modal.directive';
 export * from './lib/admin-list-footer.component';
 
 export * from './lib/admin-discard-dialog.component';
+
+export * from './lib/admin-overflow.directive';
