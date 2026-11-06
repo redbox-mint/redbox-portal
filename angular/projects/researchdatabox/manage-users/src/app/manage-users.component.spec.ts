@@ -1,4 +1,6 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
+import { AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
@@ -137,7 +139,7 @@ describe('ManageUsersComponent', () => {
       declarations: [
         ManageUsersComponent
       ],
-      imports: [AdminCountPipe,
+      imports: [AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
@@ -321,6 +323,8 @@ describe('ManageUsersComponent', () => {
     app.isAuditModalShown = true;
     app.isAuditLoading = true;
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-loading');
 
     app.isAuditLoading = false;
@@ -344,6 +348,8 @@ describe('ManageUsersComponent', () => {
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
     app.auditRecords = [auditRecords[0] as any];
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-raw-toggle');
@@ -402,6 +408,8 @@ describe('ManageUsersComponent', () => {
     } as any;
     app.setupForms(false);
     app.isDetailsModalShown = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     const textBeforeSubmit = fixture.nativeElement.textContent;
@@ -845,6 +853,7 @@ describe('ManageUsersComponent', () => {
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('06/11/2026');
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
     app.editUser('admin'); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
   });
 

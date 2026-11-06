@@ -390,7 +390,7 @@ describe('AppComponent (translation)', () => {
     await comp.ngOnInit();
     comp.openEdit(comp.entries()[0]);
     expect(comp.richTextEditor?.options.injectNonce).toBe('translation-test-nonce');
-    expect(comp.richTextEditor?.options.editorProps.attributes).toEqual({ role: 'textbox', 'aria-multiline': 'true', 'aria-labelledby': 'tx-translation-value-label' });
+    expect(comp.richTextEditor?.options.editorProps.attributes).toEqual({ cdkFocusInitial: '', role: 'textbox', 'aria-multiline': 'true', 'aria-labelledby': 'tx-translation-value-label' });
     comp.closeModal();
   });
 

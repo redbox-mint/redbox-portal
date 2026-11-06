@@ -126,7 +126,7 @@
   aria-labelledby="txEditModalTitle"
 >
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-    <div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-content rb-admin" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
         <h2 class="modal-title h4" id="txEditModalTitle">
           {{ 'admin-tx-edit-title' | i18next }} <span class="tx-modal-key ms-2">{{ editKey }}</span>
@@ -308,7 +308,7 @@
   aria-labelledby="txAddLangModalTitle"
 >
   <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-content rb-admin" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
         <h2 class="modal-title h4" id="txAddLangModalTitle">{{ 'admin-tx-add-title' | i18next }}</h2>
         <button
@@ -401,7 +401,7 @@
   aria-labelledby="txDisplayNameModalTitle"
 >
   <div class="modal-dialog modal-dialog-centered" role="document">
-    <div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-content rb-admin" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
         <h2 class="modal-title h4" id="txDisplayNameModalTitle">
           {{ 'admin-tx-rename-title' | i18next }} <span class="tx-modal-key ms-2">{{ displayNameLanguage }}</span>
@@ -470,7 +470,7 @@
 <div *ngIf="displayNameModalOpen()" class="modal-backdrop fade show" aria-hidden="true"></div>
 
 <div *ngIf="importModalOpen()" class="modal fade show d-block" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="tx-import-title" (keydown.escape)="closeImport()">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content rb-admin" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
     <div class="modal-header"><h2 class="modal-title h4" id="tx-import-title">{{ 'admin-tx-import-title' | i18next: { language: importLanguage } }}</h2>
       <button type="button" class="btn-close" [attr.aria-label]="'admin-tx-close' | i18next" [disabled]="importBusy()" (click)="closeImport()"></button>
     </div>
@@ -478,7 +478,7 @@
       <p class="rb-admin-hint">{{ 'admin-tx-import-help' | i18next }}</p>
       <div *ngIf="importError()" class="alert alert-danger" role="alert">{{ importError() | i18next }}</div>
       <label class="form-label" for="tx-import-file">{{ 'admin-tx-import-file' | i18next }}</label>
-      <input id="tx-import-file" class="form-control" type="file" accept=".json,application/json" [disabled]="importBusy()" (change)="readImportFile($event)">
+      <input cdkFocusInitial id="tx-import-file" class="form-control" type="file" accept=".json,application/json" [disabled]="importBusy()" (change)="readImportFile($event)">
       <div class="form-check mt-3"><input id="tx-import-unknown" class="form-check-input" type="checkbox" [(ngModel)]="keepUnknown" [disabled]="importBusy()" (ngModelChange)="invalidateImportPreview()">
         <label for="tx-import-unknown" class="form-check-label">{{ 'admin-tx-import-keep-unknown' | i18next }}</label>
       </div>

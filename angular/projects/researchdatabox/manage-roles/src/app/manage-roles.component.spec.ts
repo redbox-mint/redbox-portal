@@ -1,4 +1,6 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
+import { AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
 import { APP_BASE_HREF } from '@angular/common'; 
@@ -60,7 +62,7 @@ describe('AppComponent', () => {
       declarations: [
         ManageRolesComponent
       ],
-      imports: [AdminCountPipe,
+      imports: [AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ModalModule.forRoot(),
         I18NextPipe
@@ -230,6 +232,8 @@ describe('AppComponent', () => {
     app.users = [user];
     app.requestRemoval(user);
     expect(app.pendingRemoval).toBe(user);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('admin-roles-replace-confirm');
     const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [guest] });

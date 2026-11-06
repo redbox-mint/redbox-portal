@@ -37,7 +37,7 @@
     <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="props.disabled" [id]="id + '-add-entry'" (click)="startAdd()">+ {{ 'admin-config-dictionary-add' | i18next }}</button>
   }
   @if (pendingRemove) {
-    <div class="modal d-block" role="dialog" aria-modal="true" [attr.aria-labelledby]="id + '-remove-title'" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelRemove()">
+    <div class="modal d-block" role="dialog" aria-modal="true" [attr.aria-labelledby]="id + '-remove-title'" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelRemove()">
       <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h3 [id]="id + '-remove-title'">{{ 'admin-config-dictionary-remove-title' | i18next }}</h3><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelRemove()"></button></div>
         <div class="modal-body"><p>{{ 'admin-config-dictionary-remove-help' | i18next: { key: entryKey(pendingRemove) } }}</p></div>

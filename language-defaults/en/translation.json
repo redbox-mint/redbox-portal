@@ -3287,5 +3287,15 @@
   "admin-config-enum-valueExact": "Value exact",
   "admin-config-enum-warning": "Warning",
   "admin-config-enum-webhook": "Webhook",
-  "admin-config-enum-wrap": "Wrap"
+  "admin-config-enum-wrap": "Wrap",
+  "admin-navigation-icon-checklist": "Checklist",
+  "admin-navigation-icon-sitemap": "Site map",
+  "admin-navigation-icon-laptop": "Laptop",
+  "admin-navigation-icon-rocket": "Rocket",
+  "admin-navigation-icon-file": "File",
+  "admin-navigation-icon-folder": "Folder",
+  "admin-navigation-icon-users": "People",
+  "admin-navigation-icon-cog": "Settings",
+  "admin-navigation-icon-search": "Search",
+  "admin-navigation-icon-database": "Database"
 }

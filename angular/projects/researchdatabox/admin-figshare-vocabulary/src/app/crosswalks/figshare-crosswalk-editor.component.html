@@ -150,7 +150,7 @@
   @if (confirmingApproval) {
   <div class="modal fade show d-block" tabindex="-1" role="alertdialog" aria-modal="true"
     aria-labelledby="figshareApproveTitle" (keydown.escape)="cancelApproval()">
-    <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
           <h2 class="modal-title h5" id="figshareApproveTitle">{{

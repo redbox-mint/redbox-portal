@@ -8,6 +8,18 @@ export class NavigationFieldsComponent {
   @Input() prefix = 'navigation';
   @Output() fieldChange = new EventEmitter<{ field: string; value: any }>();
   roleDraft = '';
+  readonly presetIcons = [
+    { css: 'icon-checklist icon-3x', labelKey: 'admin-navigation-icon-checklist' },
+    { css: 'fa fa-sitemap fa-3x', labelKey: 'admin-navigation-icon-sitemap' },
+    { css: 'fa fa-laptop fa-3x', labelKey: 'admin-navigation-icon-laptop' },
+    { css: 'fa fa-rocket fa-3x', labelKey: 'admin-navigation-icon-rocket' },
+    { css: 'fa fa-file fa-3x', labelKey: 'admin-navigation-icon-file' },
+    { css: 'fa fa-folder fa-3x', labelKey: 'admin-navigation-icon-folder' },
+    { css: 'fa fa-users fa-3x', labelKey: 'admin-navigation-icon-users' },
+    { css: 'fa fa-cog fa-3x', labelKey: 'admin-navigation-icon-cog' },
+    { css: 'fa fa-search fa-3x', labelKey: 'admin-navigation-icon-search' },
+    { css: 'fa fa-database fa-3x', labelKey: 'admin-navigation-icon-database' },
+  ];
   get fields(): string[] {
     return this.kind === 'header' ? ['titleKey', 'iconClass'] : this.kind === 'panel' ? ['id', 'titleKey', 'iconClass', 'columnClass'] : this.kind === 'section' ? ['id', 'titleKey'] : ['id', 'labelKey', 'href'];
   }
