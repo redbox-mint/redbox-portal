@@ -14,15 +14,15 @@
   </header>
   <div *ngIf="readWarnings().languages" class="alert alert-warning" role="status" aria-live="polite">
     {{ readWarnings().languages }}
-    <button type="button" class="btn btn-outline-secondary" (click)="retryLanguages()" [disabled]="readPending().languages || readPending().bundles">Retry loading languages</button>
+    <button type="button" class="btn btn-outline-secondary" (click)="retryLanguages()" [disabled]="readPending().languages || readPending().bundles">{{ 'admin-tx-retry-languages' | i18next }}</button>
   </div>
   <div *ngIf="readWarnings().bundles" class="alert alert-warning" role="status" aria-live="polite">
     {{ readWarnings().bundles }}
-    <button type="button" class="btn btn-outline-secondary" (click)="loadAvailableLanguagesFromBundles()" [disabled]="readPending().bundles">Retry loading availability</button>
+    <button type="button" class="btn btn-outline-secondary" (click)="loadAvailableLanguagesFromBundles()" [disabled]="readPending().bundles">{{ 'admin-tx-retry-availability' | i18next }}</button>
   </div>
   <div *ngIf="readWarnings().entries" class="alert alert-warning" role="status" aria-live="polite">
     {{ readWarnings().entries }}
-    <button type="button" class="btn btn-outline-secondary" (click)="loadEntries()" [disabled]="readPending().entries">Retry loading entries</button>
+    <button type="button" class="btn btn-outline-secondary" (click)="loadEntries()" [disabled]="readPending().entries">{{ 'admin-tx-retry-entries' | i18next }}</button>
   </div>
 
   <section class="card" aria-labelledby="tx-languages-title">
@@ -88,9 +88,9 @@
           <td><code [title]="e.key"><ng-container *ngFor="let segment of keySegments(e.key); let last = last"><ng-container *ngIf="!last">{{ segment }}<wbr></ng-container><span *ngIf="last" class="tx-key-tail">{{ segment }}</span></ng-container></code><span *ngIf="e.description" class="rb-admin-sub">{{ e.description }}</span></td>
           <td><span *ngIf="e.provenance === 'override'" class="badge rb-admin-badge-warning">{{ 'admin-tx-changed' | i18next }}</span><span *ngIf="e.contentFormat === 'html'" class="badge rb-admin-badge-info">HTML</span><div class="tx-cell-val" [title]="e.value">{{ e.value }}</div></td>
           <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEdit(e)" [attr.aria-label]="'admin-tx-edit-key' | i18next: { key: e.key }">{{ 'admin-tx-edit' | i18next }}</button>
-            <details *ngIf="e.provenance === 'override' && e.hasDefault" class="rb-admin-overflow">
-              <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-tx-key-actions' | i18next: { key: e.key }">⋯</summary>
-              <div><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="saving()" (click)="revertEntry(e)">{{ 'admin-tx-revert' | i18next }}</button></div>
+            <details *ngIf="e.provenance === 'override' && e.hasDefault" class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false; actionTrigger.focus(); $event.stopPropagation()">
+              <summary #actionTrigger class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-tx-key-actions' | i18next: { key: e.key }">⋯</summary>
+              <div><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="saving()" (click)="actions.open = false; actionTrigger.focus(); revertEntry(e)">{{ 'admin-tx-revert' | i18next }}</button></div>
             </details>
           </td>
         </tr></tbody>
@@ -507,3 +507,5 @@
   </div></div>
 </div>
 <div *ngIf="importModalOpen()" class="modal-backdrop fade show"></div>
+
+@if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="confirmDiscard = false" (discard)="closeModal(true)" /> }

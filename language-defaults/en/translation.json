@@ -3423,5 +3423,12 @@
   "admin-dashboard-schema-unavailable": "The record schema is not available here ({{reason}}), so fields cannot be suggested or checked.",
   "admin-dashboard-remove": "Remove",
   "admin-dashboard-field-example": "e.g. metadata.title",
-  "admin-dashboard-template-example": "Handlebars template, e.g. {{example}}"
+  "admin-dashboard-template-example": "Handlebars template, e.g. {{example}}",
+  "admin-discard-title": "Discard unsaved changes?",
+  "admin-discard-description": "Your edits have not been saved. Discard them and close the editor?",
+  "admin-keep-editing": "Keep editing",
+  "admin-discard-changes": "Discard changes",
+  "admin-tx-retry-languages": "Retry loading languages",
+  "admin-tx-retry-availability": "Retry loading availability",
+  "admin-tx-retry-entries": "Retry loading entries"
 }

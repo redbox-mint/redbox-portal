@@ -24,6 +24,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   error = '';
 
   isEditModalOpen = false;
+  confirmDiscard = false;
+  private initialDraft = '';
+  editorInput = false;
+  get editDirty(): boolean { return this.isEditModalOpen && (this.editorInput || JSON.stringify(this.draft) !== this.initialDraft); }
   isDeleteModalOpen = false;
   pendingDeleteName: string | null = null;
 
@@ -130,6 +134,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.selectedQuery = null;
     this.isNew = true;
     this.draft = this.emptyDraft();
+    this.editorInput = false;
+    this.initialDraft = JSON.stringify(this.draft);
     this.isEditModalOpen = true;
   }
 
@@ -142,6 +148,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       this.selectedQuery = result;
       this.isNew = false;
       this.draft = this.cloneQuery(result);
+      this.editorInput = false;
+      this.initialDraft = JSON.stringify(this.draft);
       this.isEditModalOpen = true;
     } catch (err) {
       this.error = this.t('named-query-error-load-one', 'Failed to load named query: {{error}}', { error: this.asErrorMessage(err) });
@@ -149,8 +157,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     }
   }
 
-  closeEditModal(): void {
+  closeEditModal(discard = false): void {
     if (this.isSaving) return;
+    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
+    this.confirmDiscard = false;
     this.isEditModalOpen = false;
     this.restoreEditModalTrigger();
   }
@@ -186,7 +196,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       }
       await this.loadQueries();
       this.isSaving = false;
-      this.closeEditModal();
+      this.closeEditModal(true);
     } catch (err) {
       const key = this.isNew ? 'named-query-error-create' : 'named-query-error-update';
       const fallback = this.isNew ? 'Failed to create named query: {{error}}' : 'Failed to update named query: {{error}}';
@@ -224,7 +234,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       if (this.selectedQuery?.name === name) {
         this.selectedQuery = null;
         if (this.isEditModalOpen) {
-          this.closeEditModal();
+          this.closeEditModal(true);
         }
       }
       await this.loadQueries();

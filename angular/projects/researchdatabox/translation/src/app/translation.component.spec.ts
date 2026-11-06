@@ -20,7 +20,7 @@ class RichMockTranslationService {
   translationChanges$ = new Subject<void>();
   isInitializing() { return false; }
   t(key: string) {
-    return ({ 'admin-tx-plain-text': 'Plain text', 'admin-tx-rich-text': 'Rich text', 'admin-tx-html-source': 'HTML source' })[key] || key;
+    return ({ 'admin-tx-plain-text': 'Plain text', 'admin-tx-rich-text': 'Rich text', 'admin-tx-html-source': 'HTML source', 'admin-tx-retry-entries': 'Retry loading entries', 'admin-tx-retry-languages': 'Retry loading languages', 'admin-tx-retry-availability': 'Retry loading availability' })[key] || key;
   }
   languages = [
     { code: 'en', displayName: 'English', enabled: true },
@@ -506,6 +506,7 @@ describe('AppComponent (translation)', () => {
     comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
     const mockEditor = {
       getHTML: () => '<p>Hi</p>',
+      getText: () => 'Hi',
       destroy: jasmine.createSpy('destroy'),
       commands: { setContent: jasmine.createSpy('setContent') }
     } as any;
@@ -524,6 +525,7 @@ describe('AppComponent (translation)', () => {
     const { comp } = create();
     const mockEditor = {
       getHTML: () => '<p>Hello</p>',
+      getText: () => 'Hello',
       destroy: jasmine.createSpy('destroy'),
       commands: { setContent: jasmine.createSpy('setContent') }
     } as any;
@@ -838,4 +840,41 @@ describe('AppComponent (translation)', () => {
     const enCall = translationService.updateBundleEnabledCalls.find(c => c.code === 'en');
     expect(enCall?.enabled).toBeTrue();
   });
+  it('confirms changed translation dismissal and preserves plain, HTML and rich drafts', async () => {
+    const { comp } = create();
+    for (const format of ['plain', 'html'] as const) {
+      comp.openEdit({ key: 'test', value: format === 'plain' ? 'Original' : '<p>Original</p>', contentFormat: format });
+      comp.closeModal(); expect(comp.modalOpen()).toBeFalse();
+      comp.openEdit({ key: 'test', value: format === 'plain' ? 'Original' : '<p>Original</p>', contentFormat: format });
+      if (format === 'plain') comp.onPlainTextChange('Changed');
+      else comp.richTextEditor!.commands.setContent('<p>Changed</p>');
+      comp.closeModal();
+      expect(comp.confirmDiscard).toBeTrue(); expect(comp.modalOpen()).toBeTrue();
+      expect(comp.editValue).toContain('Changed');
+      comp.confirmDiscard = false;
+      expect(comp.editValue).toContain('Changed');
+      comp.closeModal(true); expect(comp.modalOpen()).toBeFalse();
+    }
+    comp.openEdit({ key: 'test', value: '<p>Original</p>', contentFormat: 'html' });
+    comp.setEditorMode('html'); comp.onHtmlSourceChange('<p>Source edit</p>'); comp.closeModal();
+    expect(comp.confirmDiscard).toBeTrue(); expect(comp.htmlSourceValue).toContain('Source edit');
+    comp.closeModal(true);
+  });
+  it('closes overflow actions on Escape with focus return and on activation', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.pageEntries.set([{ key: 'test', value: 'Override', provenance: 'override', hasDefault: true }]);
+    fixture.detectChanges();
+    const menu: HTMLDetailsElement = fixture.nativeElement.querySelector('details.rb-admin-overflow');
+    const trigger = menu.querySelector('summary')!;
+    menu.open = true;
+    menu.querySelector('button')!.focus();
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.open).toBeFalse(); expect(document.activeElement).toBe(trigger);
+    const revert = spyOn(comp, 'revertEntry').and.resolveTo();
+    menu.open = true; menu.querySelector('button')!.click();
+    expect(menu.open).toBeFalse(); expect(revert).toHaveBeenCalled();
+    fixture.destroy();
+  });
+
 });

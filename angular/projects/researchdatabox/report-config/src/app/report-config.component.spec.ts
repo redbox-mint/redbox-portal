@@ -1,4 +1,5 @@
-import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { Subject } from 'rxjs';
+import { AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -22,10 +23,10 @@ describe('ReportConfigComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ReportConfigComponent, MockI18NextPipe],
-      imports: [AdminModalDirective, AdminCountPipe, FormsModule, HttpClientTestingModule, A11yModule],
+      imports: [AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, FormsModule, HttpClientTestingModule, A11yModule],
       providers: [
         { provide: LoggerService, useValue: { error: () => undefined, warn: () => undefined } },
-        { provide: TranslationService, useValue: { t: (key: string) => key, isReady: true, init: () => Promise.resolve(), waitForInit: () => Promise.resolve() } },
+        { provide: TranslationService, useValue: { isInitializing: () => false, translationChanges$: new Subject<void>(), t: (key: string) => key, isReady: true, init: () => Promise.resolve(), waitForInit: () => Promise.resolve() } },
         {
           provide: ReportConfigService,
           useValue: {
@@ -214,4 +215,27 @@ describe('ReportConfigComponent', () => {
     expect(fixture.nativeElement.querySelector('thead')).toBeTruthy();
   });
 
+  it('closes pristine editors and confirms dirty dismissal without losing the draft', async () => {
+    fixture.detectChanges(); await component.waitForInit();
+    component.createReport(); component.cancelEdit();
+    expect(component.selectedReport).toBeNull();
+    component.editReport(component.reports[0]); fixture.detectChanges(); await fixture.whenStable();
+    component.selectedReport!.title = 'Unsaved title';
+    component.cancelEdit(); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.confirmDiscard).toBeTrue();
+    expect(component.selectedReport!.title).toBe('Unsaved title');
+    const confirm = fixture.nativeElement.querySelector('rb-admin-discard-dialog');
+    expect(document.activeElement).toBe(confirm.querySelector('[cdkFocusInitial]'));
+    confirm.querySelector('[cdkFocusInitial]').click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.confirmDiscard).toBeFalse();
+    expect(document.activeElement?.id).toBe('report-title');
+    expect(component.selectedReport!.title).toBe('Unsaved title');
+    component.cancelEdit(); fixture.detectChanges(); await fixture.whenStable();
+    fixture.nativeElement.querySelector('rb-admin-discard-dialog [role=alertdialog]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(component.confirmDiscard).toBeFalse();
+    expect(component.selectedReport!.title).toBe('Unsaved title');
+    component.cancelEdit(); component.cancelEdit(true);
+    expect(component.selectedReport).toBeNull();
+  });
 });
