@@ -29,6 +29,19 @@ describe('VocabListComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('offers creation for an empty catalogue and clearing filters for zero matches', () => {
+    component.catalogueTotal = 0; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h3').textContent).toContain('admin-vocabulary-empty-catalogue');
+    const create = spyOn(component.createRequested, 'emit');
+    fixture.nativeElement.querySelector('.rb-admin-empty button').click();
+    expect(create).toHaveBeenCalled();
+    component.catalogueTotal = 4; component.sourceFilter = 'rva'; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h3').textContent).toContain('admin-vocabulary-empty-filtered');
+    const changed = spyOn(component.queryChanged, 'emit');
+    fixture.nativeElement.querySelector('.rb-admin-empty button').click();
+    expect(changed).toHaveBeenCalledOnceWith({ searchTerm: '', sourceFilter: 'all', typeFilter: 'all' });
+  });
+
   it('clears all filters together and cancels a pending search update', () => {
     const changed = spyOn(component.queryChanged, 'emit');
     component.sourceFilter = 'rva';
