@@ -67,7 +67,7 @@
       @if (isTreePreviewVisible) {
         <div class="card card-body mt-2 tree-preview-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">{{ 'admin-vocabulary-hierarchy-preview' | i18next }}</h6>
+            <h4 class="h6 mb-0">{{ 'admin-vocabulary-hierarchy-preview' | i18next }}</h4>
             <button class="btn btn-sm btn-outline-secondary" type="button" (click)="refreshTreePreview()">
               {{ 'admin-vocabulary-refresh' | i18next }}
             </button>
@@ -90,7 +90,7 @@
   <section class="rb-admin-form-section"><div class="rb-admin-form-section-body">
 
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <h6 class="mb-0">{{ 'admin-vocabulary-entries' | i18next }}</h6>
+    <h3 class="h6 mb-0">{{ 'admin-vocabulary-entries' | i18next }}</h3>
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
       {{ 'admin-vocabulary-add-entry' | i18next }}
     </button>
@@ -99,7 +99,7 @@
   @if (hasEntries) {
     <div class="table-responsive">
       <table class="table table-hover mb-0">
-        <thead class="thead-light">
+        <thead class="table-light">
           <tr>
             <th class="vocab-entry-index">#</th>
             <th>{{ 'admin-vocabulary-label' | i18next }}</th>
@@ -143,7 +143,7 @@
                 @if (isParentEditorOpen(entry)) {
                   <div class="d-flex">
                     <select
-                      class="form-control form-control-sm mr-2"
+                      class="form-control form-control-sm me-2"
                       [attr.aria-label]="'admin-vocabulary-parent' | i18next"
                       [ngModel]="entry.parent || ''"
                       (ngModelChange)="onParentChanged(entry, $event)"
@@ -160,7 +160,7 @@
                 } @else {
                   <div class="d-flex">
                     <input
-                      class="form-control form-control-sm mr-2"
+                      class="form-control form-control-sm me-2"
                       [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)"
                       disabled
                     />
@@ -180,7 +180,7 @@
             </td>
             <td>
               <button
-                class="btn btn-sm btn-outline-secondary mr-1"
+                class="btn btn-sm btn-outline-secondary me-1"
                 type="button"
                 (click)="moveEntryUp(idx)"
                 [disabled]="idx === 0"
@@ -188,7 +188,7 @@
                 {{ 'admin-vocabulary-up' | i18next }}
               </button>
               <button
-                class="btn btn-sm btn-outline-secondary mr-1"
+                class="btn btn-sm btn-outline-secondary me-1"
                 type="button"
                 (click)="moveEntryDown(idx)"
                 [disabled]="idx === (draft.entries?.length || 1) - 1"
@@ -222,9 +222,9 @@
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <span class="modal-title h4-header" id="removeEntryModalTitle">{{
+          <h2 class="modal-title h4-header" id="removeEntryModalTitle">{{
             'admin-vocabulary-confirm-remove-entry-title' | i18next
-          }}</span>
+          }}</h2>
           <button
             type="button"
             class="btn-close"

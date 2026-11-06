@@ -80,6 +80,7 @@
         </label>
       </div>
     </div>
+  <button *ngIf="filters.q || filters.view !== 'proposals' || filters.changeClass || filters.unresolvedOnly || filters.historicalOnly" type="button" class="btn rb-admin-ghost" (click)="update({ q: '', view: 'proposals', changeClass: '', unresolvedOnly: false, historicalOnly: false })">{{ 'admin-report-clear' | i18next }}</button>
   </div>
 
   <div aria-live="polite" role="status" class="visually-hidden">
@@ -167,19 +168,13 @@
   </table></div>
   }
 
-  <nav class="d-flex justify-content-between align-items-center" [attr.aria-label]="'figshare-vocab-pagination' | i18next">
-    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoPrevious"
-      (click)="changePage(preview.page.offset - preview.page.limit)">
-      {{ 'figshare-vocab-previous' | i18next }}
-    </button>
-    <span class="small text-muted">
-      {{ 'figshare-vocab-page-range' | i18next: { from: preview.page.offset + 1, to: preview.page.offset + preview.page.records.length, total: preview.page.total } }}
-    </span>
-    <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!canGoNext"
-      (click)="changePage(preview.page.offset + preview.page.limit)">
-      {{ 'figshare-vocab-next' | i18next }}
-    </button>
-  </nav>
+  <div class="card-footer">
+    <span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: preview.page.total ? preview.page.offset + 1 : 0, end: preview.page.offset + preview.page.records.length, total: preview.page.total } }}</span>
+    <nav [attr.aria-label]="'figshare-vocab-pagination' | i18next"><ul class="pagination">
+      <li class="page-item" [class.disabled]="!canGoPrevious"><button type="button" class="page-link" [disabled]="!canGoPrevious" (click)="changePage(preview.page.offset - preview.page.limit)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button></li>
+      <li class="page-item" [class.disabled]="!canGoNext"><button type="button" class="page-link" [disabled]="!canGoNext" (click)="changePage(preview.page.offset + preview.page.limit)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></li>
+    </ul></nav>
+  </div>
 
   <div class="mt-3 d-flex flex-wrap gap-2">
     <button type="button" class="btn btn-outline-secondary" (click)="cancelled.emit()">
@@ -196,7 +191,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <span class="modal-title h5" id="figshareApplyTitle">{{ 'figshare-vocab-confirm-apply-title' | i18next }}</span>
+          <h2 class="modal-title h5" id="figshareApplyTitle">{{ 'figshare-vocab-confirm-apply-title' | i18next }}</h2>
         </div>
         <div class="modal-body">
           <p class="mb-0">{{ 'figshare-vocab-confirm-apply-body' | i18next: { approved: approvedCount } }}</p>

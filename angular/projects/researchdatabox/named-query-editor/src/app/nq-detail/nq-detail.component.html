@@ -12,7 +12,7 @@
               role="tab" [attr.aria-selected]="activeTab === 'mongo'"
               (click)="setTab('mongo')">
         {{ 'named-query-tab-mongo' | i18next }}
-        <span *ngIf="mongoKeyCount > 0" class="badge badge-secondary ml-1">{{ mongoKeyCount }}</span>
+        <span *ngIf="mongoKeyCount > 0" class="badge rb-admin-badge-info ms-1">{{ mongoKeyCount }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -20,7 +20,7 @@
               role="tab" [attr.aria-selected]="activeTab === 'params'"
               (click)="setTab('params')">
         {{ 'named-query-tab-params' | i18next }}
-        <span *ngIf="paramCount > 0" class="badge badge-secondary ml-1">{{ paramCount }}</span>
+        <span *ngIf="paramCount > 0" class="badge rb-admin-badge-info ms-1">{{ paramCount }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -28,7 +28,7 @@
               role="tab" [attr.aria-selected]="activeTab === 'mappings'"
               (click)="setTab('mappings')">
         {{ 'named-query-tab-mappings' | i18next }}
-        <span *ngIf="mappingCount > 0" class="badge badge-secondary ml-1">{{ mappingCount }}</span>
+        <span *ngIf="mappingCount > 0" class="badge rb-admin-badge-info ms-1">{{ mappingCount }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -36,7 +36,7 @@
               role="tab" [attr.aria-selected]="activeTab === 'sort'"
               (click)="setTab('sort')">
         {{ 'named-query-tab-sort-filters' | i18next }}
-        <span *ngIf="(sortCount + filterCount) > 0" class="badge badge-secondary ml-1">{{ sortCount + filterCount }}</span>
+        <span *ngIf="(sortCount + filterCount) > 0" class="badge rb-admin-badge-info ms-1">{{ sortCount + filterCount }}</span>
       </button>
     </li>
   </ul>

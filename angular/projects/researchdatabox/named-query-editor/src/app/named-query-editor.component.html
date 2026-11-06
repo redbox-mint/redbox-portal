@@ -6,7 +6,7 @@
     </ol></nav>
     <header class="rb-admin-page-header">
       <div><h1>{{ 'named-query-list-title' | i18next }}</h1><p>{{ 'admin-named-query-description' | i18next }}</p></div>
-      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newQuery()"><span aria-hidden="true">+</span> {{ 'named-query-create-button' | i18next }}</button></div>
+      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newQuery()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-named-query' | i18next }}</button></div>
     </header>
     <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
     <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
@@ -27,9 +27,9 @@
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
-        <span class="modal-title h4-header" id="deleteNamedQueryModalTitle">
+        <h2 class="modal-title h4-header" id="deleteNamedQueryModalTitle">
           {{ 'named-query-confirm-delete-title' | i18next }}
-        </span>
+        </h2>
         <button type="button" class="btn-close"
                 [attr.aria-label]="'named-query-close' | i18next"
                 (click)="cancelDelete()"></button>
@@ -72,9 +72,9 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
-        <span class="modal-title h4-header" id="namedQueryModalTitle">
+        <h2 class="modal-title h4-header" id="namedQueryModalTitle">
           {{ isNew ? ('named-query-create-title' | i18next) : ('named-query-edit-title' | i18next: { name: draft.name }) }}
-        </span>
+        </h2>
         <button type="button" class="btn-close"
                 [attr.aria-label]="'named-query-close' | i18next"
                 (click)="closeEditModal()"

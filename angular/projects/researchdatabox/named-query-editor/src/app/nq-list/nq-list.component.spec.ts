@@ -1,3 +1,5 @@
+import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +20,8 @@ describe('NqListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [NqListComponent, I18NextPipeStub],
-      imports: [FormsModule]
+      imports: [AdminCountPipe, FormsModule],
+      providers: [{ provide: TranslationService, useValue: { t: (key: string) => key } }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(NqListComponent);
