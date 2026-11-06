@@ -107,6 +107,12 @@ const HUMAN_LABELS: Record<string, string> = {
     .binding-card.configured { border-left-color: #198754; }
     .binding-card.has-default-only { border-left-color: #0d6efd; }
     .binding-header {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
       cursor: pointer;
       user-select: none;
       transition: background-color 0.15s;
@@ -114,8 +120,7 @@ const HUMAN_LABELS: Record<string, string> = {
     }
     .binding-header:hover { background-color: rgba(0,0,0,0.03); }
     .binding-source {
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 0.8rem;
+      font-size: inherit;
     }
     .binding-summary {
       max-width: 400px;
