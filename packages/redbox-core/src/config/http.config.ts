@@ -239,6 +239,9 @@ export function isImmutableAssetPath(reqPath: string): boolean {
     // JS/CSS bundle names in Angular browser output directories. This recognizes
     // a build naming convention; it does not verify a hash against file contents.
     const pathname = reqPath.split('?')[0];
+    // Only bundled default fonts carry the checked-in SHA-256 suffix. Uploaded
+    // brand typefaces and other stable font URLs keep the existing cache policy.
+    if (/^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?fonts\/google\/[a-z0-9-]+-[a-f0-9]{12}\.woff2$/.test(pathname)) return true;
     return /^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?angular\/[A-Za-z0-9_-]+\/browser\/(?:(?:main|polyfills|scripts|chunk)-[A-Z2-7]{8}\.js|styles-[A-Z2-7]{8}\.css)$/.test(pathname);
 }
 
