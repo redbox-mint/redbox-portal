@@ -25,7 +25,7 @@
     <button type="button" class="btn btn-outline-secondary" (click)="loadEntries()" [disabled]="readPending().entries">{{ 'admin-tx-retry-entries' | i18next }}</button>
   </div>
 
-  <section class="card" aria-labelledby="tx-languages-title">
+  <section class="card rb-admin-card-secondary" aria-labelledby="tx-languages-title">
     <div class="card-header"><h2 id="tx-languages-title">{{ 'admin-tx-languages' | i18next }}</h2><span>{{ languages().length | adminCount: 'language' }}</span></div>
     <div class="table-responsive"><table class="table table-hover tx-languages">
       <thead><tr><th>{{ 'admin-tx-language' | i18next }}</th><th>{{ 'admin-tx-code' | i18next }}</th><th class="text-end">{{ 'admin-tx-translated' | i18next }}</th><th>{{ 'admin-tx-available' | i18next }}</th><th class="rb-admin-actions-col text-end"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th></tr></thead>

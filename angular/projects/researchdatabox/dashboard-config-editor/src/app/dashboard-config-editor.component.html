@@ -50,7 +50,7 @@
           <i class="fa fa-columns" aria-hidden="true"></i><h2>{{ 'admin-dashboard-pick' | i18next }}</h2><p>{{ 'admin-dashboard-pick-help' | i18next }}</p>
         </section>
         <ng-container *ngIf="!loading && selected && draft">
-          <div class="rb-admin-save-content"><section class="card dc-target-card">
+          <div class="rb-admin-save-content"><section class="card rb-admin-card-secondary dc-target-card">
             <header class="card-header"><h2 #editorHeading tabindex="-1">{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
             <div class="card-body">
               <p class="rb-admin-hint">{{ 'admin-dashboard-independent-help' | i18next }} <span *ngIf="selected.hidden">{{ 'admin-dashboard-hidden-help' | i18next }}</span></p>
