@@ -13,7 +13,7 @@
   <header class="rb-admin-page-header">
     <div><h1>{{ report.title }}</h1><p>
       @if (!report.reportSource && !report.databaseQuery?.queryName) { {{ 'admin-report-description' | i18next }} }
-      @if (report.reportSource) { {{ 'admin-report-source-description' | i18next: { source: report.reportSource } }} }
+      @if (report.reportSource) { {{ 'admin-report-source-description' | i18next: { source: ('report-source-' + report.reportSource) | i18next } }} }
       @if (report.databaseQuery?.queryName) { · {{ 'report-field-named-query' | i18next }} <code>{{ report.databaseQuery?.queryName }}</code> }
     </p></div>
     <div class="rb-admin-page-actions"><a class="btn btn-primary" [class.disabled]="!!dateRangeError"

@@ -1,5 +1,5 @@
 :host { display: block; }
 .nq-selected { --bs-table-bg: var(--admin-brand-tint); }
 
-.nq-more-consumers > summary { color: var(--admin-primary); text-decoration: underline; cursor: pointer; border-radius: 4px; padding: 2px 4px; width: fit-content; }
+.nq-more-consumers > summary { color: var(--admin-primary); text-decoration: underline; cursor: pointer; border-radius: 4px; padding: 4px 6px; min-height: 24px; display: inline-flex; align-items: center; width: fit-content; }
 .nq-more-consumers > summary:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }

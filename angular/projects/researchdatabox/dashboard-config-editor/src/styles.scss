@@ -51,7 +51,7 @@
   .dc-column-toolbar p { margin: 0; flex: 1 1 200px; }
   .dc-columns-table { margin-bottom: 0; min-width: 500px; }
   .dc-columns-table td { vertical-align: middle; }
-  .dc-columns-table code { overflow-wrap: anywhere; display: block; min-width: 100px; max-width: 240px; color: var(--admin-muted); font-size: 12.5px; }
+  .dc-columns-table code { overflow-wrap: normal; word-break: normal; display: block; min-width: 220px; max-width: 280px; color: var(--admin-muted); font-size: 12.5px; }
   .dc-column-edit { border: 0; background: transparent; color: var(--admin-ink); font: inherit; font-weight: 600; padding: 4px 0; min-height: 32px; text-align: left; overflow-wrap: anywhere; min-width: 90px; }
   .dc-column-edit:hover { text-decoration: underline; color: var(--admin-primary); }
   .rb-admin-row-action { min-width: 32px; min-height: 32px; }
@@ -111,7 +111,7 @@
   .dc-field-options { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; z-index: 20; max-height: 240px; overflow: auto; background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); box-shadow: 0 6px 18px color-mix(in srgb, var(--admin-ink) 12%, transparent); }
   .dc-field-options button { display: block; width: 100%; padding: 8px 10px; border: 0; border-bottom: 1px solid var(--admin-soft-line); background: transparent; color: var(--admin-ink); text-align: left; font: inherit; }
   .dc-field-options button:hover, .dc-field-options [aria-selected='true'] { background: var(--dc-accent-soft); }
-  .dc-field-options code { display: block; overflow-wrap: anywhere; color: var(--admin-muted); font-size: 12px; }
+  .dc-field-options code { display: block; overflow-wrap: normal; word-break: normal; color: var(--admin-muted); font-size: 12px; }
   .dc-field-options p { padding: 10px; margin: 0; }
 
   @media (max-width: 1150px) {

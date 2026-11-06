@@ -308,9 +308,10 @@ describe('ReportComponent', () => {
     fixture.componentInstance.report.reportSource = 'database';
     fixture.componentInstance.report.databaseQuery = { queryName: 'listRDMPRecords' };
     translationService.translationMap['admin-report-source-description'] = 'Source: {{source}}';
+    translationService.translationMap['report-source-database'] = 'Database';
     fixture.detectChanges();
     const description = fixture.nativeElement.querySelector('.rb-admin-page-header p');
-    expect(description.textContent).toContain('Source: database');
+    expect(description.textContent).toContain('Source: Database');
     expect(description.querySelector('code').textContent).toBe('listRDMPRecords');
   });
 

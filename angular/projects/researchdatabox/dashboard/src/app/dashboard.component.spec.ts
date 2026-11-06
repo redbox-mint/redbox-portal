@@ -72,6 +72,17 @@ describe('DashboardComponent', () => {
     }
   }
 
+  it('renders the admin party name as escaped text with one explicit View destination', () => {
+    const component = create();
+    component.adminParties = true;
+    const rows = [{ title: 'Name', variable: 'metadata.fullName', template: '<a href="/record/view/r1">Name</a>' }];
+    const result = (component as any).renderRow('draft', rows, 'rowConfig', { metadata: { fullName: 'A <B>' } });
+    expect(result['metadata.fullName']).toBe('A &lt;B&gt;');
+    component.adminParties = false;
+    (component as any).renderRow('draft', rows, 'rowConfig', {});
+    expect(templates.compileAndRunTemplate).toHaveBeenCalled();
+  });
+
   it('formats standard admin date columns by their template input and preserves custom and non-admin templates', () => {
     const component = create();
     const rows = [
@@ -212,7 +223,7 @@ describe('DashboardComponent', () => {
       });
       await init(component);
       expect(component.getFilterFieldPath('draft')).toBe('metadata.fullName,metadata.email');
-      expect(component.getTextFilters('draft').map(field => field.path)).toContain('metadata.title');
+      expect(component.getTextFilters('draft').map(field => field.path)).toEqual(['metadata.fullName,metadata.email', 'metadata.fullName', 'metadata.email']);
       component.filterSearchString['draft'] = 'zoe';
       await component.filterChanged('draft');
       expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.fullName,metadata.email', 'zoe', 'any']);
