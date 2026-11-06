@@ -59,7 +59,8 @@ function resolveDateFormatArg(formatOrOptions?: string | Record<string, unknown>
  */
 let cachedMarkedParser: ((value: string) => string) | null | undefined;
 
-void import('marked')
+// Consumers that load helpers on demand can await parser readiness before rendering.
+export const handlebarsHelpersReady = import('marked')
   .then(markedModule => {
       const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
       if (typeof parseFn === 'function') {
