@@ -1,6 +1,6 @@
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { APP_BASE_HREF } from '@angular/common';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ConfigService, RecordService, getStubConfigService, getStubRecordService, LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService, HarvestRunDetail } from './harvest-run-api.service';
@@ -87,6 +87,25 @@ describe('HarvestRunsComponent', () => {
     fixture = TestBed.createComponent(HarvestRunsComponent);
     component = fixture.componentInstance;
   });
+
+  it('requests runs and statistics while record-type filter options are still loading', fakeAsync(() => {
+    let resolveTypes!: (types: Array<{ name: string }>) => void;
+    spyOn(TestBed.inject(RecordService), 'getAllTypes').and.returnValue(new Promise(resolve => { resolveTypes = resolve; }));
+    fixture.detectChanges();
+    flushMicrotasks();
+    expect(apiService.listRuns).toHaveBeenCalled();
+    expect(apiService.getStatistics).toHaveBeenCalled();
+    expect(component.isInitializing()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.harvest-runs-app')).toBeNull();
+
+    resolveTypes([{ name: 'rdmp' }]);
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(component.isInitializing()).toBeFalse();
+    expect(component.recordTypes).toEqual(['rdmp']);
+    expect(fixture.nativeElement.querySelector('.harvest-runs-app')).not.toBeNull();
+    fixture.destroy();
+  }));
 
   it('keeps the translated header and a disabled refresh control while data is pending', () => {
     component.earlyHeader = { title: 'Collectes', description: 'Description traduite', adminLabel: 'Administration', breadcrumbLabel: 'Fil', section: 'Données', refresh: 'Actualiser', adminUrl: '/default/rdmp/admin' };

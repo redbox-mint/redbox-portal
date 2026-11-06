@@ -101,8 +101,13 @@ export class HarvestRunsComponent extends BaseComponent {
     this.datePickerOpts = ConfigService._getAppConfigProperty(config, 'report', 'datePickerOpts', this.datePickerOpts);
     this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
     this.datePickerPlaceHolder = this.adminDates.placeholder;
-    this.recordTypes = (await this.recordService.getAllTypes()).map((type: { name: string }) => type.name);
-    await this.loadRuns(1);
+    // Filter options and the initial list are independent requests.
+    await Promise.all([
+      Promise.resolve(this.recordService.getAllTypes()).then(types => {
+        this.recordTypes = types.map((type: { name: string }) => type.name);
+      }),
+      this.loadRuns(1)
+    ]);
   }
 
   public get hasEventFilters(): boolean {
