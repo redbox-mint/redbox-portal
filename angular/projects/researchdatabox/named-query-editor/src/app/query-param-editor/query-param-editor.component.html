@@ -82,7 +82,7 @@
 
   <div *ngFor="let param of entries; trackBy: trackById" class="card mb-2 nq-inline-card">
     <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center nq-card-header-clickable">
-      <button type="button" class="btn rb-admin-disclosure text-start flex-grow-1" (click)="toggleExpand(param.key)" [attr.aria-expanded]="expandedParam === param.key" [attr.aria-controls]="idPrefix + '-panel-' + param.id">
+      <button type="button" class="btn rb-admin-disclosure nq-param-summary text-start flex-grow-1" (click)="toggleExpand(param.key)" [attr.aria-expanded]="expandedParam === param.key" [attr.aria-controls]="idPrefix + '-panel-' + param.id">
         <strong>{{ param.key }}</strong>
         <span class="text-muted nq-param-meta">
           <span>{{ param.type }}</span>
