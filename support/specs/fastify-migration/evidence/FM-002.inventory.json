@@ -350,7 +350,7 @@
     "packages/redbox-core/src/storage/TusStorageManagerDataStore.ts": "3d2aeb8a4ea2ba41967411eba3cf2cc466b1746cb9e56e946786e2501d7fabf6",
     "packages/redbox-core/src/storage/ownGridFSDownload.ts": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
     "packages/redbox-core/src/utilities/RedactionUtils.ts": "349d4d137a94b956689b3fd5229108051ecf12bc600acc2b9c317d9ee918cf6b",
-    "packages/redbox-core/src/utilities/RequestChronicle.ts": "5bd07ea31d3e01e18df9aa93d46deb958d2a7c71a3bb28470d4a0d1b150c9346",
+    "packages/redbox-core/src/utilities/RequestChronicle.ts": "c1775e2fa2dc473c441d34d35d9f07ece58d0202b4ea1e4db0d914147bd2e358",
     "packages/redbox-core/src/utilities/RequestChronicleContext.ts": "95008d0193d3f8fa3b545887109d75d20a28dbbc64a91dd25cb4434eec9b560e",
     "packages/redbox-core/src/utilities/RequestChronicleSettings.ts": "bc08828b84905adc2d2e4827007f5eba452ff6e2bfde302dc8805e3487820ad3",
     "packages/redbox-core/src/utilities/convertToType.ts": "84a986f50fe76a8658ec87caa76234f715c35cc18f94894244272b94f4f2d02b",

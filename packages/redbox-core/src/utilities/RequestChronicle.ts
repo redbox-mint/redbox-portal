@@ -576,7 +576,7 @@ export class RequestChronicleHelper {
    * Get the request chronicle helper for a request, without creating it.
    * Requests that did not pass through the HTTP middleware (e.g. socket and virtual requests) have no helper.
    */
-  public static existing(req: Request | undefined | null): RequestChronicleHelper | undefined {
+  public static existing(req: object | undefined | null): RequestChronicleHelper | undefined {
     try {
       const helper = (req as { options?: ChronicleRequestOptions } | undefined | null)?.options?.requestChronicleHelper;
       return helper?.[helperBrand] === true ? helper : undefined;

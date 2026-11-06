@@ -135,7 +135,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: real Mongo session lookup/write/failure/disconnect tests show no
     second pool, auto-index creation, borrowed-client close or untracked operation.
 
-- [ ] **FM-015 — Prove all authentication providers.**
+- [x] **FM-015 — Prove all authentication providers.**
   - Dependencies: FM-014.
   - Work: qualify native Passport or direct local/bearer/OIDC/AAF bindings; retain
     mapped profiles, linked/disabled users, fresh credentials, version checks,

@@ -12,7 +12,9 @@ import { referenceIndexes } from '../../src/persistence/reference/preflight';
 import { HttpIdentity } from '../../src/http/express/identity';
 
 let counter = 0;
-export async function mongoFixture() {
+export async function mongoFixture(
+  beforeInitialize?: (application: ApplicationRuntime, owner: PersistenceOwner) => void
+) {
   assert.equal(Reflect.get(globalThis, 'sails'), undefined, 'Run standalone without legacy setup');
   assert(process.env.HTTP_PILOT_TEST_MONGO_URL, 'HTTP_PILOT_TEST_MONGO_URL is required, never skipped');
   const base = new URL(process.env.HTTP_PILOT_TEST_MONGO_URL);
@@ -50,6 +52,7 @@ export async function mongoFixture() {
         .createIndex(index.keys, { name: index.name, unique: index.unique });
     await initializePersistence(owner);
     await ensureBrandingPersistenceIndexes(owner);
+    beforeInitialize?.(application, owner);
     await application.initialize();
     const branding = getBrandingRepository(owner);
     const identities = getIdentityRepositories(owner);
