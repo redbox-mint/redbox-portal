@@ -10,7 +10,7 @@
   titleKey: req.query.import === 'csv' ? 'admin-parties-import-title' : 'admin-nav-party', descriptionKey: 'admin-parties-description',
   actions: req.query.import === 'csv' ? [{ labelKey: 'admin-parties-back', href: BrandingService.getBrandAndPortalPath(req) + '/admin/parties' }] : [
     { labelKey: 'admin-parties-import-title', href: BrandingService.getBrandAndPortalPath(req) + '/admin/parties?import=csv' },
-    { labelKey: 'admin-parties-add', href: BrandingService.getBrandAndPortalPath(req) + '/record/party/edit?returnTo=parties', primary: true }
+    { labelKey: 'admin-parties-add', href: BrandingService.getBrandAndPortalPath(req) + '/record/party/edit?returnTo=parties', primary: true, icon: 'plus' }
   ]
 }) %>
 <dashboard recordType="party" packageType="party" dashboardType="standard" adminParties="true" adminPartyImport="<%= req.query.import === 'csv' %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>

@@ -98,6 +98,10 @@ export class HarvestRunsComponent extends BaseComponent {
     await this.loadRuns(1);
   }
 
+  public get hasEventFilters(): boolean {
+    return Object.values(this.eventFilters).some(Boolean) || Object.values(this.appliedEventFilters).some(Boolean);
+  }
+
   public get hasFilters(): boolean {
     return Object.values(this.filters).some(Boolean);
   }

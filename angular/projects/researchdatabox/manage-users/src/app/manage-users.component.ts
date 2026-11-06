@@ -706,6 +706,7 @@ export class ManageUsersComponent extends BaseComponent {
   async changeSignInFilter() { await this.onFilterChange(); }
 
   async resetFilter() {
+    this.showDisabledUsers = false;
     this.signInFilter = '';
     this.searchFilter.name = '';
     this.roleFilter = '';
