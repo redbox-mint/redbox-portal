@@ -20,8 +20,8 @@ import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } fro
       <summary class="rb-admin-form-section-header"><div><h3>{{ 'admin-dashboard-grouping' | i18next }}</h3><p>{{ 'admin-dashboard-grouping-summary' | i18next }}</p></div></summary>
       <div class="rb-admin-form-section-body">
         <dashboard-grouping-editor [targetKind]="targetKind" [recordTypes]="recordTypes" [fields]="catalogue?.fields || []" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-grouping-editor>
-        <h4 class="dc-subheading">{{ 'admin-dashboard-group-columns' | i18next }}</h4><column-editor [columns]="config.groupRowConfig || []" [catalogue]="catalogue" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
-        <h4 class="dc-subheading">{{ 'admin-dashboard-group-rules' | i18next }}</h4><rule-set-editor [ruleSets]="config.groupRowRulesConfig || []" (ruleSetsChange)="updateGroupRowRules($event)"></rule-set-editor>
+        <h4 class="dc-subheading">{{ 'admin-dashboard-group-columns' | i18next }}</h4><column-editor [detailHeadingLevel]="5" [columns]="config.groupRowConfig || []" [catalogue]="catalogue" (columnsChange)="updateGroupRowConfig($event)"></column-editor>
+        <h4 class="dc-subheading">{{ 'admin-dashboard-group-rules' | i18next }}</h4><rule-set-editor [headingLevel]="5" [ruleSets]="config.groupRowRulesConfig || []" (ruleSetsChange)="updateGroupRowRules($event)"></rule-set-editor>
       </div>
     </details>
   `,

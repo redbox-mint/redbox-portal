@@ -386,7 +386,7 @@ describe('DashboardConfigEditorComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.rb-admin-empty h3')?.textContent).toContain('admin-dashboard-pick');
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h2')?.textContent).toContain('admin-dashboard-pick');
     expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
   });
 
