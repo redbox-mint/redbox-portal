@@ -175,7 +175,7 @@ export class AppConfigComponent extends BaseComponent {
       if (Object.prototype.hasOwnProperty.call(originalProperties, field)) jsonObject.properties[field] = originalProperties[field];
     }
     this.title = this.translationService.t(result.title || jsonObject.title || this.configKey);
-    this.descriptionKey = this.navigationEditor ? 'admin-navigation-description' : result.descriptionKey || 'admin-config-description';
+    this.descriptionKey = this.navigationEditor ? 'admin-navigation-' + this.configKey + '-description' : result.descriptionKey || 'admin-config-description';
     this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
       ?.closest('section')?.querySelector('h2')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
@@ -227,6 +227,8 @@ export class AppConfigComponent extends BaseComponent {
       }
       if (field.key === 'enabled') {
         field.props['switch'] = true;
+        const context = parentPath.length ? configLabel(parentPath.join(' ')) : this.title;
+        field.props['switchLabel'] = this.translationService.t('admin-config-enable-setting', { setting: context });
         // Nested flags are rendered in their object's header.
         if (parentPath.length) field.props['headerEnabled'] = true;
       }
@@ -365,7 +367,7 @@ export class AppConfigComponent extends BaseComponent {
       if (group.fields.length === 1 && ['object', 'app-config-dictionary'].includes(String(group.fields[0].type))) group.fields[0].props = { ...group.fields[0].props, flat: true };
       const section: FormlyFieldConfig = {
         type: 'app-config-section', wrappers: [], fieldGroup: group.fields,
-        props: { label: group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
+        props: { label: group.label.trim().toLowerCase() === (this.title || '').trim().toLowerCase() ? this.translationService.t('admin-config-general') : group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
           summary: () => group.fields.some(hasEditableFields)
             ? sectionSummary(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off'))
             : this.translationService.t('admin-config-no-editable-settings'),
