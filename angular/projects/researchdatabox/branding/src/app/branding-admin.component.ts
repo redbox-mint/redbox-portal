@@ -3,7 +3,7 @@ import { Component, HostListener, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { AdminDatePipe, BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminTabsDirective, AdminDatePipe, BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import {
   BRANDING_TYPEFACE_SLOTS,
@@ -45,7 +45,7 @@ interface TypefaceSlotCard {
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe, AdminDatePipe],
+  imports: [AdminTabsDirective, CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe, AdminDatePipe],
   providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {
@@ -83,22 +83,6 @@ export class BrandingAdminComponent extends BaseComponent {
   colourGroups: ColourGroup[] = [];
 
   activeTab = 'colours';
-
-  onTabKeydown(event: KeyboardEvent, tab: string): void {
-    const index = this.tabs.indexOf(tab);
-    let next: number;
-    switch (event.key) {
-      case 'ArrowLeft': next = (index + this.tabs.length - 1) % this.tabs.length; break;
-      case 'ArrowRight': next = (index + 1) % this.tabs.length; break;
-      case 'Home': next = 0; break;
-      case 'End': next = this.tabs.length - 1; break;
-      default: return;
-    }
-    event.preventDefault();
-    this.activeTab = this.tabs[next];
-    const list = (event.currentTarget as HTMLElement).closest('[role="tablist"]');
-    (list?.querySelectorAll<HTMLElement>('[role="tab"]')[next])?.focus();
-  }
 
   selectedGroup = 1;
   pendingAction: 'publish' | 'reset' | null = null;

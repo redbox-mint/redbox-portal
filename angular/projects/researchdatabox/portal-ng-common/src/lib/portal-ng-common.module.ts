@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+import { AdminTabsDirective } from './admin-tabs.directive';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
@@ -62,6 +63,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     BrowserModule,
     HttpClientModule,
     FormsModule,
+    AdminTabsDirective,
     I18NextPipe,
     PlainTextLabelPipe,
     AdminDatePipe,
@@ -69,6 +71,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     PaginationModule.forRoot()
   ],
   exports: [
+    AdminTabsDirective,
     I18NextPipe,
     PlainTextLabelPipe,
     AdminDatePipe,

@@ -1,3 +1,4 @@
+import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform, NO_ERRORS_SCHEMA } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +19,7 @@ describe('NqDetailComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [NqDetailComponent, I18NextPipeStub],
-      imports: [FormsModule],
+      imports: [AdminTabsDirective, FormsModule],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
 
@@ -35,7 +36,24 @@ describe('NqDetailComponent', () => {
     } as NamedQueryDefinition;
   });
 
-  it('sets active tab', () => {
+  it('moves focus and selection with arrow keys, Home and End', () => {
+    fixture.detectChanges();
+    const tabs = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]')) as HTMLButtonElement[];
+    expect(tabs.map(tab => tab.tabIndex)).toEqual([0, -1, -1, -1, -1]);
+    tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('sort');
+    expect(document.activeElement).toBe(tabs[4]);
+    tabs[4].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('mongo');
+    const panel = fixture.nativeElement.querySelector('#' + tabs[1].getAttribute('aria-controls'));
+    expect(panel.hidden).toBeFalse();
+    expect(panel.getAttribute('aria-labelledby')).toBe(tabs[1].id);
+  });
+
+  it('sets active tab' , () => {
     expect(component.activeTab).toBe('basics');
     component.setTab('mongo');
     expect(component.activeTab).toBe('mongo');
