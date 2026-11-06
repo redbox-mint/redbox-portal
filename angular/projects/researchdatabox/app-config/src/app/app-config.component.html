@@ -14,14 +14,14 @@
       <header class="rb-admin-page-header">
         <div><h1>{{ title }}</h1><p>{{ descriptionKey | i18next }}</p></div>
         @if (navigationEditor) {
-          <div class="rb-admin-page-actions"><span [attr.title]="!hasOverride ? ('admin-config-reset-unavailable' | i18next) : null" [attr.tabindex]="!hasOverride ? 0 : null">
+          <div class="rb-admin-page-actions"><span [attr.tabindex]="!hasOverride ? -1 : null">
             <button type="button" class="btn btn-outline-secondary" [disabled]="!hasOverride || formSaving" (click)="openReset($event)">{{ 'admin-config-reset' | i18next }}</button>
-          </span></div>
+          </span>@if (!hasOverride) { <span class="rb-admin-hint">{{ 'admin-config-reset-defaults-hint' | i18next }}</span> }</div>
         }
         @if ((longForm || enabledField) && !empty) {
           <div class="rb-admin-page-actions">
             @if (enabledField) {
-              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" aria-labelledby="config-enabled-label" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ configKey === 'authorizedDomainsEmails' ? ('admin-config-restrict-new-accounts' | i18next) : title }}</label><span aria-hidden="true">·</span><span class="rb-admin-hint" aria-hidden="true">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span></div>
+              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" [attr.aria-label]="'admin-config-feature-status' | i18next: { name: title }" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ 'admin-config-status' | i18next }}</label><span aria-hidden="true">·</span><span class="rb-admin-hint" aria-hidden="true">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span></div>
             }
             @if (supportsConnectionTest) {
               <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
@@ -30,7 +30,7 @@
           </div>
         }
       </header>
-      @if (enabledField && model.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-off-kept' | i18next }}</div> }
+      @if (enabledField && model.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-feature-off-help' | i18next: { name: title } }}</div> }
       @if (supportsConnectionTest && dirty) {
         <p class="rb-admin-hint">{{ 'admin-config-connection-unsaved' | i18next }}</p>
       }
@@ -81,6 +81,7 @@
             }
             <div class="app-config-form-main" [class.app-config-settings-off]="enabledField && model.enabled !== true">
               <fieldset class="app-config-fields" [disabled]="formSaving">
+                @if (configKey === 'authorizedDomainsEmails') { <p class="rb-admin-hint">{{ 'admin-config-account-creation-matching' | i18next }}</p> }
                 <formly-form [form]="form" [fields]="fields" [model]="model" [options]="options" [class.app-config-providers]="configKey === 'authorizedDomainsEmails'"></formly-form>
               </fieldset>
             </div>
@@ -88,7 +89,6 @@
               <aside class="app-config-preview" [attr.aria-label]="'admin-config-live-preview' | i18next">
                 <h2>{{ 'admin-config-live-preview' | i18next }}</h2>
                 <div class="app-config-banner-preview">
-                  <div class="app-config-preview-brand"></div><div class="app-config-preview-nav"></div>
                   <div class="app-config-preview-body">
                     <div class="alert rb-system-message app-config-preview-message" [class.rb-system-message-info]="messageStyle === 'info'" [class.rb-system-message-warning]="messageStyle === 'warning'" [class.rb-system-message-critical]="messageStyle === 'critical'" [attr.role]="messageStyle === 'critical' ? 'alert' : 'status'" [class.alert-dismissible]="model.dismissalDurationHours > 0">
                       <div><h4 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h4><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
@@ -101,13 +101,12 @@
             }
           </div>
           @if (configKey === 'authorizedDomainsEmails') {
-            <p class="rb-admin-hint">{{ 'admin-config-account-creation-matching' | i18next }}</p>
             <section class="rb-admin-form-section app-config-address-tester" aria-labelledby="address-test-heading">
               <div class="rb-admin-form-section-header"><div><h3 id="address-test-heading">{{ 'admin-config-address-title' | i18next }}</h3><p id="address-test-help">{{ 'admin-config-address-summary' | i18next }}</p><span role="status" aria-live="polite" aria-atomic="true">@if (dirty) { <span class="badge rb-admin-badge-info">{{ 'admin-config-address-unsaved' | i18next }}</span> }</span></div></div>
               <div class="rb-admin-form-section-body">
                 <div class="rb-admin-filter-bar app-config-address-check" [attr.aria-busy]="addressChecking">
                   <div class="rb-admin-field rb-admin-field-grow"><label for="address-test-email">{{ 'admin-config-address-email' | i18next }}</label>
-                    <input id="address-test-email" type="email" class="form-control" maxlength="254" autocomplete="off" [formControl]="addressEmail" aria-describedby="address-test-help address-test-invalid" [attr.aria-invalid]="addressEmail.touched && addressEmail.invalid" (keydown.enter)="$event.preventDefault(); checkAddress()">
+                    <input id="address-test-email" [placeholder]="'admin-config-address-placeholder' | i18next" type="email" class="form-control" maxlength="254" autocomplete="off" [formControl]="addressEmail" aria-describedby="address-test-help address-test-invalid" [attr.aria-invalid]="addressEmail.touched && addressEmail.invalid" (keydown.enter)="$event.preventDefault(); checkAddress()">
                   </div>
                   <div class="rb-admin-field"><label for="address-test-provider">{{ 'admin-config-address-provider' | i18next }}</label><select id="address-test-provider" class="form-select" [formControl]="addressProvider">
                     <option value="aaf">{{ 'admin-config-aaf' | i18next }}</option><option value="oidc">{{ 'admin-config-oidc' | i18next }}</option>
