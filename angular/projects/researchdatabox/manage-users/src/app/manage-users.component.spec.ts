@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { A11yModule } from '@angular/cdk/a11y';
-import { AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { A11yModule, CdkTrapFocus } from '@angular/cdk/a11y';
+import { AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { By } from '@angular/platform-browser';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
@@ -139,7 +140,7 @@ describe('ManageUsersComponent', () => {
       declarations: [
         ManageUsersComponent
       ],
-      imports: [AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
+      imports: [AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
@@ -178,9 +179,11 @@ describe('ManageUsersComponent', () => {
     for (const fixture of fixtures) {
       await fixture.whenStable();
       const app = fixture.componentInstance;
-      app.hideDetailsModal();
+      app.confirmDiscard = null;
+      app.pendingUserAction = null;
+      app.hideDetailsModal(true);
       app.onDetailsModalHidden();
-      app.hideNewUserModal();
+      app.hideNewUserModal(true);
       app.onNewUserHidden();
       app.hideLinkModal();
       app.onLinkModalHidden();
@@ -516,7 +519,8 @@ describe('ManageUsersComponent', () => {
     expect(document.activeElement).toBe(password);
     expect(password.getAttribute('aria-invalid')).toBe('true');
     for (const id of password.getAttribute('aria-describedby')!.split(' ')) expect(fixture.nativeElement.querySelector('#' + id)).not.toBeNull();
-    app.hideNewUserModal(); fixture.detectChanges(); await fixture.whenStable();
+    const hidden = new Promise<void>(resolve => app.userNewModal!.onHidden.subscribe(() => resolve()));
+    app.hideNewUserModal(true); fixture.detectChanges(); await hidden; await fixture.whenStable();
     app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     app.updateUserForm!.get('name')!.setValue('');
     await app.updateUserSubmit({} as any, false); fixture.detectChanges();
@@ -856,6 +860,48 @@ describe('ManageUsersComponent', () => {
     await app.genKey(usersData[0].id);
     expect(app.currentUser?.token).toBe('generated-secret');
     expect(app.showToken).toBeTrue();
+  });
+
+  it('suspends the edit trap while confirming and closes only the confirmation on Escape', async () => {
+    const { fixture, app } = await createComponent();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable();
+    app.requestUserAction('disable', app.currentUser!); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const details = fixture.nativeElement.querySelector('[aria-labelledby="edit-user-title"]');
+    expect(details.inert).toBeTrue();
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    fixture.nativeElement.querySelector('[aria-labelledby="user-action-title"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(app.pendingUserAction).toBeNull();
+    expect(app.isDetailsModalShown).toBeTrue();
+    expect(details.inert).toBeFalse();
+    expect(traps[0].enabled).toBeTrue();
+  });
+
+  it('keeps dirty editor drafts until discard is explicit, including new users', async () => {
+    const { fixture, app } = await createComponent();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable();
+    app.updateUserForm!.get('name')!.setValue('Unsaved name');
+    app.hideDetailsModal(); fixture.detectChanges();
+    expect(app.confirmDiscard).toBe('details');
+    expect(app.isDetailsModalShown).toBeTrue();
+    app.keepEditing();
+    expect(app.updateUserForm!.get('name')!.value).toBe('Unsaved name');
+    app.hideDetailsModal();
+    const detailsHidden = new Promise<void>(resolve => app.userDetailsModal!.onHidden.subscribe(() => resolve()));
+    app.discardEditor(); await detailsHidden;
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(app.isDetailsModalShown).toBeFalse();
+    app.newUser(); fixture.detectChanges(); await fixture.whenStable();
+    app.newUserForm!.get('name')!.setValue('New unsaved name');
+    app.hideNewUserModal(); fixture.detectChanges();
+    expect(app.confirmDiscard).toBe('new');
+    app.keepEditing();
+    app.newUserForm!.get('name')!.setValue('');
+    expect(app.newDirty).toBeFalse();
+    const newHidden = new Promise<void>(resolve => app.userNewModal!.onHidden.subscribe(() => resolve()));
+    app.hideNewUserModal(); await newHidden; await fixture.whenStable();
+    expect(app.isNewUserModalShown).toBeFalse();
   });
 
   it('uses the brand and portal path for the Admin breadcrumb', async () => {

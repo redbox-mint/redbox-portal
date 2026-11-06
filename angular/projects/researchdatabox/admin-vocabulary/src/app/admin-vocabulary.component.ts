@@ -39,6 +39,13 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
   isSyncConfirmationOpen = false;
   isDeleteVocabularyModalOpen = false;
   isEditModalOpen = false;
+  confirmDiscard = false;
+  private initialDraft = '';
+  private draftSnapshot(): string {
+    return JSON.stringify({ ...this.draft, entries: this.draft.entries?.map(({ id, ...entry }) => ({ ...entry, historical: entry.historical === true })) });
+  }
+  get editDirty(): boolean { return !this.isSelectedReadOnly && this.draftSnapshot() !== this.initialDraft; }
+  discardEdit(): void { this.confirmDiscard = false; this.closeEditModal(true); }
   isImportModalOpen = false;
   pendingDeleteVocabularyId: string | null = null;
   pendingDeleteVocabularyName = '';
@@ -173,6 +180,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
       this.clearSyncStatus();
       this.isSyncInProgress = false;
       this.isSyncConfirmationOpen = false;
+      this.initialDraft = this.draftSnapshot();
       this.isEditModalOpen = true;
       this.isImportModalOpen = false;
     } catch (err) {
@@ -197,6 +205,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     this.clearSyncStatus();
     this.isSyncInProgress = false;
     this.isSyncConfirmationOpen = false;
+    this.initialDraft = this.draftSnapshot();
     this.isEditModalOpen = true;
     this.isImportModalOpen = false;
   }
@@ -212,7 +221,9 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
     this.isEditModalOpen = false;
   }
 
-  closeEditModal(): void {
+  closeEditModal(force = false): void {
+    if (this.confirmDiscard || (!force && this.isSyncInProgress)) return;
+    if (!force && this.editDirty) { this.confirmDiscard = true; return; }
     this.isEditModalOpen = false;
     this.restoreEditModalTrigger();
   }
@@ -268,7 +279,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
         this.message = this.t('admin-vocabulary-message-created', 'Vocabulary created');
       }
       await this.refresh();
-      this.closeEditModal();
+      this.closeEditModal(true);
     } catch (err) {
       this.error = this.t('admin-vocabulary-error-save-vocabulary', 'Failed to save vocabulary: {{error}}', { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
@@ -288,7 +299,7 @@ export class AdminVocabularyComponent extends BaseComponent implements OnDestroy
       if (this.selectedVocabulary?.id === id) {
         this.selectedVocabulary = null;
         this.selectedEntries = [];
-        this.closeEditModal();
+        this.closeEditModal(true);
       }
       if (this.listOffset > 0 && this.vocabularies.length <= 1) {
         this.listOffset = Math.max(0, this.listOffset - this.listLimit);

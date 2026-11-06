@@ -1,4 +1,4 @@
-import { AdminListFooterComponent, getStubTranslationService, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminListFooterComponent, getStubTranslationService, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { A11yModule, CdkTrapFocus } from '@angular/cdk/a11y';
@@ -34,7 +34,7 @@ describe('AdminVocabularyComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent, I18NextPipeStub],
-      imports: [AdminListFooterComponent, AdminCountPipe, FormsModule, A11yModule],
+      imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminListFooterComponent, AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: VocabularyApiService, useClass: VocabularyApiServiceStub },
@@ -61,6 +61,22 @@ describe('AdminVocabularyComponent', () => {
     expect(fixture.componentInstance.draft.name).toBe('Unsaved');
     expect(fixture.componentInstance.draft.entries!.length).toBe(1);
     expect(traps[0].enabled).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('guards vocabulary edits, preserves Keep editing, and discards only when confirmed', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit();
+    app.newVocabulary(); fixture.detectChanges();
+    expect(app.editDirty).toBeFalse();
+    app.draft.name = 'Keep this'; app.closeEditModal(); fixture.detectChanges();
+    expect(app.confirmDiscard).toBeTrue();
+    expect(app.isEditModalOpen).toBeTrue();
+    app.confirmDiscard = false;
+    expect(app.draft.name).toBe('Keep this');
+    app.closeEditModal(); app.discardEdit(); fixture.detectChanges();
+    expect(app.isEditModalOpen).toBeFalse();
     fixture.destroy();
   });
 
