@@ -25,7 +25,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as
 
 import { Service } from './service.interface';
 import { HttpClientService } from './httpClient.service';
-import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common";
+import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common/dist/src/translation-helpers";
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
