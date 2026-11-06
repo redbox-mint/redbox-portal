@@ -22,7 +22,7 @@
     <tbody>
       @for (vocabulary of vocabularies; track vocabulary.id) {
       <tr [class.vocab-selected]="selectedId === vocabulary.id">
-        <td><a href="#" (click)="$event.preventDefault(); open(vocabulary.id)"><strong [title]="vocabulary.name">{{ displayName(vocabulary) }}</strong></a><code class="d-block text-muted">{{ vocabulary.slug }}</code></td>
+        <td><button type="button" class="rb-admin-list-name" (click)="open(vocabulary.id)"><strong [title]="vocabulary.name">{{ displayName(vocabulary) }}</strong></button><code class="d-block text-muted">{{ vocabulary.slug }}</code></td>
         <td><span class="badge">{{ ('admin-vocabulary-type-' + vocabulary.type) | i18next }}</span></td>
         <td><span class="badge" [ngClass]="vocabulary.source === 'rva' ? 'rb-admin-badge-info' : ''">{{ ('admin-vocabulary-source-' + vocabulary.source) | i18next }}</span>
           <span *ngIf="isReadOnly(vocabulary)" class="badge rb-admin-badge-primary">{{ 'admin-vocabulary-read-only' | i18next }}</span></td>

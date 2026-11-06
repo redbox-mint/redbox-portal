@@ -28,6 +28,15 @@ describe('NqListComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('opens the editor with a native list-name button', () => {
+    component.queries = [{ name: 'q1', collectionName: 'record', resultObjectMapping: {}, mongoQuery: {}, queryParams: {} }];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-list-name').type).toBe('button');
+    const selected = spyOn(component.selected, 'emit');
+    fixture.nativeElement.querySelector('.rb-admin-list-name').click();
+    expect(selected).toHaveBeenCalledWith('q1');
+  });
+
   it('emits selected and deleted actions', () => {
     let selectedName = '';
     let deletedName = '';

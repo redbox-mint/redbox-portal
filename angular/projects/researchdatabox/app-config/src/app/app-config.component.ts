@@ -19,7 +19,7 @@
 
 import { configLabel, protectConfigLabelTerms } from './config-label';
 import { configSchemaToField } from './dictionary-schema';
-import { Component, ElementRef, HostListener, Inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, ViewChild } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms';
 
@@ -41,6 +41,12 @@ import { JSONSchema7 } from 'json-schema';
 })
 export class AppConfigComponent extends BaseComponent {
 
+  saveBar?: ElementRef<HTMLElement>;
+  @ViewChild('saveBar') set saveBarElement(bar: ElementRef<HTMLElement> | undefined) {
+    // Dynamic editors create their bar after the header's initial binding check.
+    queueMicrotask(() => { this.saveBar = bar; this.requestRender(); });
+  }
+
   invalidFields: FormlyFieldConfig[] = [];
 
   addressEmail = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email, Validators.maxLength(254)] });
@@ -61,6 +67,9 @@ export class AppConfigComponent extends BaseComponent {
   get supportsConnectionTest(): boolean {
     return ['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing'].includes(this.configKey);
   }
+  get connectionNeedsBaseUrl(): boolean {
+    return this.configKey === 'figsharePublishing' && !String(this.model.connection?.baseUrl || '').trim();
+  }
   get connectionResult(): IntegrationConnectionResult | undefined {
     return isEqual(this.connectionCheckedState, this.model) ? this.connectionCheckedResult : undefined;
   }
@@ -72,7 +81,7 @@ export class AppConfigComponent extends BaseComponent {
     return 'admin-config-connection-' + (status === 'ok' && this.connectionReachabilityOnly ? 'reachable' : status);
   }
   async testConnection(): Promise<void> {
-    if (!this.supportsConnectionTest || this.connectionChecking || this.formSaving) return;
+    if (!this.supportsConnectionTest || this.connectionNeedsBaseUrl || this.connectionChecking || this.formSaving) return;
     this.connectionChecking = true;
     this.connectionCheckedResult = undefined;
     this.connectionErrorKey = '';
@@ -150,11 +159,13 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   private retainedSecrets = new Map<string, string[]>();
+  private readonly dictionaryKeyDrafts = new Set<FormlyFieldConfig>();
   private readonly invalidJsonDrafts = new Set<FormlyFieldConfig>();
 
   private configureForm(result: ConfigForm): void {
     this.invalidFields = [];
     this.invalidJsonDrafts.clear();
+    this.dictionaryKeyDrafts.clear();
     this.hasOverride = result.hasOverride === true;
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
     // Translate presentation metadata only; property names and stored values stay intact.
@@ -190,7 +201,7 @@ export class AppConfigComponent extends BaseComponent {
       if (parent[key] === SECRET_MASK) this.retainedSecrets.set(JSON.stringify(path), path);
     });
     this.model = this.editableModel(result.model || {});
-    this.options.formState = { ...this.options.formState, invalidJsonDrafts: this.invalidJsonDrafts, pageIsOff: () => !!this.enabledField && this.model.enabled !== true };
+    this.options.formState = { ...this.options.formState, invalidJsonDrafts: this.invalidJsonDrafts, dictionaryKeyDrafts: this.dictionaryKeyDrafts, pageIsOff: () => !!this.enabledField && this.model.enabled !== true };
     const root = configSchemaToField(this.formlyJsonschema, jsonObject, ['oniPublishing', 'raidPublishing', 'integrationNotification'].includes(this.configKey));
     this.fields = [root];
     this.applyCheckboxType(this.fields);
@@ -448,7 +459,7 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
-  get dirty(): boolean { return this.trackingReady && (this.invalidJsonDrafts.size > 0 || !isEqual(this.model, this.loadedModel)); }
+  get dirty(): boolean { return this.trackingReady && (this.invalidJsonDrafts.size > 0 || this.dictionaryKeyDrafts.size > 0 || !isEqual(this.model, this.loadedModel)); }
   get enabledField(): FormlyFieldConfig | undefined {
     return this.fields[0]?.fieldGroup?.find(field => field.key === 'enabled');
   }
@@ -463,6 +474,7 @@ export class AppConfigComponent extends BaseComponent {
   discard(): void {
     const model = cloneDeep(this.loadedModel);
     this.invalidJsonDrafts.clear();
+    this.dictionaryKeyDrafts.clear();
     this.trackingReady = false;
     this.model = model;
     this.fields = [];

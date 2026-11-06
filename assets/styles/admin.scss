@@ -52,6 +52,10 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   h1, h2, h3, h4 { color: var(--admin-heading); }
   a { color: var(--rb-anchor-color, #337ab7); }
+  .rb-admin-list-name { border: 0; padding: 0; background: transparent; color: var(--rb-anchor-color, #337ab7); font: inherit; text-align: left; cursor: pointer; }
+  .rb-admin-list-name:hover { color: var(--rb-anchor-color-hover, #23527c); text-decoration: underline; }
+  .rb-admin-page-actions:has(> rb-admin-save-shortcut:only-child:empty) { display: none; }
+  .rb-admin-save-shortcut { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   a:hover { color: var(--rb-anchor-color-hover, #23527c); }
 
   .rb-admin-main { min-width: 0; padding: 24px 32px 48px; }
@@ -230,9 +234,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     }
   }
   .alert { padding: 12px 14px; border-radius: var(--admin-radius); font-size: 14px; }
-  .nav-tabs { border-bottom-color: var(--admin-line); margin-bottom: 20px; gap: 2px; }
-  .nav-tabs .nav-link { color: var(--admin-muted); border: 0; border-bottom: 3px solid var(--admin-bg); padding: 10px 14px; font-weight: 600; }
-  .nav-tabs .nav-link.active { background: var(--admin-bg); color: var(--admin-brand); border-bottom-color: var(--admin-brand); }
+  .nav-tabs { border-bottom: 1px solid var(--admin-line); margin-bottom: 20px; gap: 2px; }
+  .nav-tabs .nav-link { color: var(--admin-muted); border: 0; margin-bottom: 0; padding: 10px 14px; font-weight: 600; }
+  .nav-tabs .nav-link.active { background: var(--admin-bg); color: var(--admin-brand); box-shadow: inset 0 -3px var(--admin-brand); }
   pagination { display: block; }
   .card-footer > :is(nav, pagination) { margin: 0; }
   .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }

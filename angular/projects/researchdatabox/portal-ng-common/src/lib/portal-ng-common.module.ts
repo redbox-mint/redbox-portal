@@ -1,3 +1,4 @@
+import { AdminSaveShortcutComponent } from './admin-save-shortcut.component';
 import { AdminPagerComponent } from './admin-pager.component';
 import { AdminListFooterComponent } from './admin-list-footer.component';
 import { AdminDiscardDialogComponent } from './admin-discard-dialog.component';
@@ -67,6 +68,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     ReportService
   ],
   imports: [
+    AdminSaveShortcutComponent,
     AdminListFooterComponent,
     AdminPagerComponent,
     AdminModalDirective,
@@ -85,6 +87,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     PaginationModule.forRoot()
   ],
   exports: [
+    AdminSaveShortcutComponent,
     AdminListFooterComponent,
     AdminPagerComponent,
     AdminModalDirective,
