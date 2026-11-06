@@ -848,11 +848,14 @@ describe('AppConfigComponent', () => {
     expect(root.querySelector('.app-config-preview .rb-admin-hint')?.textContent).toContain('admin-config-banner-off');
     await component.onSubmit(component.model); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     expect(root.querySelector('.app-config-page-switch')?.textContent).toContain('admin-config-on');
-    expect(root.querySelector('.app-config-page-switch [role="status"]')).toBeNull();
+    const hint = root.querySelector('.app-config-page-switch [role="status"]');
+    expect(hint?.textContent.trim()).toBe('');
+    expect(hint?.getAttribute('aria-live')).toBe('polite');
     expect(root.querySelector('.rb-admin-page-header + .alert-info')).toBeNull();
     component.setEnabled({ target: { checked: false } } as unknown as Event);
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
-    expect(root.querySelector('.app-config-page-switch [role="status"]')?.textContent).toContain('admin-config-turns-off-save');
+    expect(root.querySelector('.app-config-page-switch [role="status"]')).toBe(hint);
+    expect(hint?.textContent).toContain('admin-config-turns-off-save');
     expect(root.querySelector('.rb-admin-page-header + .alert-info')).toBeNull();
   });
 
@@ -867,6 +870,35 @@ describe('AppConfigComponent', () => {
     expect(section?.querySelector('summary, h2, h3')).toBe(document.activeElement);
     expect((section as HTMLDetailsElement).open).toBeTrue();
   });
+
+  for (const configKey of ['oniPublishing', 'raidPublishing']) {
+    it(`${configKey}: tracks unparsed JSON, guards leaving, and restores it on discard`, async () => {
+      const fixture = await renderConfig({ schema: { type: 'object', properties: { json: {} } },
+        model: { json: { valid: true } } }, configKey);
+      const component = fixture.componentInstance;
+      const json = fixture.debugElement.query(By.directive(JsonTypeComponent)).componentInstance as JsonTypeComponent;
+      json.update('{'); fixture.detectChanges();
+      expect(component.model.json).toEqual({ valid: true });
+      expect(component.dirty).toBeTrue();
+      expect(fixture.nativeElement.querySelector('.rb-admin-save-state').textContent).toContain('admin-config-unsaved');
+      expect(fixture.nativeElement.querySelector('.rb-admin-save-bar .btn-outline-secondary').disabled).toBeFalse();
+      const event = new Event('beforeunload', { cancelable: true });
+      component.beforeUnload(event as BeforeUnloadEvent);
+      expect(event.defaultPrevented).toBeTrue();
+      const anchor = document.createElement('a'); anchor.href = '/admin';
+      const click = { target: anchor, button: 0, preventDefault: jasmine.createSpy() } as any;
+      component.confirmNavigation(click);
+      expect(click.preventDefault).toHaveBeenCalled();
+      component.cancelLeave();
+      json.update('{"valid":true}'); fixture.detectChanges();
+      expect(component.dirty).toBeFalse();
+      json.update('{'); fixture.detectChanges();
+      component.discard(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+      expect(component.dirty).toBeFalse(); expect(component.form.valid).toBeTrue();
+      expect(fixture.nativeElement.querySelector('textarea').value).toBe(JSON.stringify({ valid: true }, null, 2));
+      fixture.destroy();
+    });
+  }
 
   it('associates JSON parse errors and invalid chips with their inputs', async () => {
     const fixture = await renderConfig({ schema: { type: 'object', properties: {
