@@ -181,4 +181,16 @@ describe('UserService testing', () => {
     expect((await result).roles[0].name).toBe('Guest');
   });
 
+  it('requests bounded server pages with search, membership, sort and disabled filters', async () => {
+    const result = userService.getUserPage({ page: 2, pageSize: 25, query: 'Name', role: 'Researcher', includeDisabled: true, sort: 'name', order: 'desc' });
+    const req = httpTestingController.expectOne(request => request.url.endsWith('/admin/users/get'));
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('role')).toBe('Researcher');
+    expect(req.request.params.get('includeDisabled')).toBe('true');
+    expect(req.request.params.get('order')).toBe('desc');
+    const response = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: {} };
+    req.flush(response);
+    expect(await result).toEqual(response);
+  });
+
 });

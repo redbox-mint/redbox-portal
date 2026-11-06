@@ -86,6 +86,18 @@ export class ManageUsersComponent extends BaseComponent {
   signInFilter = '';
   signInMethods: string[] = [];
   usersLoading = false;
+  page = 1;
+  readonly pageSize = 25;
+  totalUsers = 0;
+  sort: 'name' | 'username' | 'email' | 'type' | 'lastLogin' = 'name';
+  order: 'asc' | 'desc' = 'asc';
+  get totalPages(): number { return Math.max(1, Math.ceil(this.totalUsers / this.pageSize)); }
+  get pageStart(): number { return this.filteredUsers.length ? (this.page - 1) * this.pageSize + 1 : 0; }
+  async changePage(page: number): Promise<void> {
+    if (this.usersLoading || page === this.page) return;
+    try { await this.refreshUsers(page); } catch { /* The list error is visible. */ }
+  }
+  sortUsers(): void { this.order = this.order === 'asc' ? 'desc' : 'asc'; void this.onFilterChange(); }
   private usersRequest = 0;
   pendingUserAction: { kind: 'disable' | 'revoke'; user: ManageUser } | null = null;
   actionPending = false;
@@ -294,36 +306,25 @@ export class ManageUsersComponent extends BaseComponent {
     return selectedRoles.length ? selectedRoles : null;
   }
 
-  async refreshUsers() {
+  async refreshUsers(page = this.page) {
     const request = ++this.usersRequest;
     this.usersLoading = true;
-    let users: ManageUser[];
     try {
-      users = await this.userService.getUsers({ includeDisabled: this.showDisabledUsers, ...(this.signInFilter ? { signIn: this.signInFilter } : {}) }) as unknown as ManageUser[];
+      const result = await this.userService.getUserPage({ page, pageSize: this.pageSize,
+        includeDisabled: this.showDisabledUsers, signIn: this.signInFilter,
+        query: this.searchFilter.name.trim(), role: this.roleFilter, sort: this.sort, order: this.order });
       if (request !== this.usersRequest) return;
+      this.page = result.summary.page;
+      this.totalUsers = result.summary.numFound;
+      this.allUsers = result.records as ManageUser[];
+      this.filteredUsers = this.allUsers;
+      this.filteredUsers.forEach(user => user.roleStr = user.roles.map(role => role.name).join(', '));
     } catch (error) {
-      if (request === this.usersRequest) {
-        this.allUsers = []; this.filteredUsers = [];
-        this.setUpdateMessage(this.translationService.t('admin-users-load-error'), 'danger');
-      }
+      if (request === this.usersRequest) this.setUpdateMessage(this.translationService.t('admin-users-load-error'), 'danger');
       throw error;
     } finally {
       if (request === this.usersRequest) this.usersLoading = false;
     }
-    this.allUsers = [];
-    for (const user of users) {
-      this.allUsers.push(user);
-    }
-    this.searchFilter.users = [];
-    this.filteredUsers = [];
-    _.forEach(users, (user) => {
-      this.searchFilter.users.push({ value: user.name, label: user.name, checked: false });
-      if (!_.includes(this.hiddenUsers, user.username)) {
-        this.filteredUsers.push(user);
-      }
-    });
-    _.map(this.filteredUsers, (user) => { user.roleStr = _.join(_.map(user.roles, 'name'), ', '); });
-    this.onFilterChange();
   }
 
   editUser(username: string) {
@@ -652,7 +653,7 @@ export class ManageUsersComponent extends BaseComponent {
 
   async toggleShowDisabled() {
     this.showDisabledUsers = !this.showDisabledUsers;
-    await this.refreshUsers();
+    await this.onFilterChange();
   }
 
   async disableUser(user: ManageUser) {
@@ -697,28 +698,18 @@ export class ManageUsersComponent extends BaseComponent {
     return user.effectiveLoginDisabled === true && user.loginDisabled !== true && !_.isEmpty(user.disabledByPrimaryUsername);
   }
 
-  onFilterChange() {
+  async onFilterChange() {
     this.searchFilter.prevName = this.searchFilter.name;
-    const query = this.searchFilter.name.trim().toLowerCase();
-    this.filteredUsers = this.allUsers.filter(user =>
-      !this.hiddenUsers.includes(user.username) &&
-      (!this.roleFilter || user.roles.some(role => role.name === this.roleFilter)) &&
-      (!query || [user.name, user.username, user.email].some(value => (value || '').toLowerCase().includes(query)))
-    );
+    try { await this.refreshUsers(1); } catch { /* refreshUsers presents the error. */ }
   }
 
-  async changeSignInFilter() {
-    try { await this.refreshUsers(); } catch { /* refreshUsers presents the error. */ }
-  }
+  async changeSignInFilter() { await this.onFilterChange(); }
 
   async resetFilter() {
-    const hadSignIn = !!this.signInFilter;
     this.signInFilter = '';
     this.searchFilter.name = '';
     this.roleFilter = '';
-    this.searchFilter.users.forEach(user => user.checked = user.value == null);
-    if (hadSignIn) await this.changeSignInFilter();
-    this.onFilterChange();
+    await this.onFilterChange();
   }
 
   isUpdateUserFormConfirmPasswordTouched() {

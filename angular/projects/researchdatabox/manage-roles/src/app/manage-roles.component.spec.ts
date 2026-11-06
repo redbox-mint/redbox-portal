@@ -136,10 +136,14 @@ describe('AppComponent', () => {
     const user = { ...app.users[0], id: 'candidate', username: 'candidate', email: 'candidate@example.test', roles: [researcher] };
     app.users.push(user);
     app.memberSearch = 'EXAMPLE.TEST';
+    app.candidates = [user];
+    const current = [app.users[0], user];
+    spyOn(userService, 'getUsers').and.callFake(() => Promise.resolve(current));
     app.selectedCandidateId = user.id;
     const save = spyOn(userService, 'updateUserRoles').and.resolveTo({ status: true, message: '' });
     await app.addMember();
     expect(save).toHaveBeenCalledWith('candidate', ['Researcher', 'Admin']);
+    app.roleCounts['Admin'].removableActive = 2;
     expect(app.members().length).toBe(2);
     app.requestRemoval(user);
     const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [researcher] });
@@ -170,6 +174,8 @@ describe('AppComponent', () => {
     const base = { ...app.users[0], roles: [], email: 'person@example.test' };
     app.users.push({ ...base, id: 'eligible' }, { ...base, id: 'disabled', effectiveLoginDisabled: true }, { ...base, id: 'alias', accountLinkState: 'linked-alias' });
     app.memberSearch = 'person@';
+    spyOn(userService, 'getUsers').and.resolveTo(app.users);
+    await app.searchMembers();
     expect(app.candidates.map(user => user.id)).toEqual(['eligible']);
     fixture.destroy();
   });
@@ -179,6 +185,7 @@ describe('AppComponent', () => {
     const user: typeof app.users[number] = { ...app.users[0], id: 'candidate', roles: [] };
     app.users.push(user);
     app.memberSearch = 'Local';
+    app.candidates = [user];
     app.selectedCandidateId = user.id;
     const save = spyOn(userService, 'updateUserRoles').and.rejectWith(new Error('Save failed'));
     await app.addMember();
@@ -244,6 +251,28 @@ describe('AppComponent', () => {
     await app.saveDescription();
     expect(app.descriptionDraft).toBe('Retry this'); expect(app.editingDescription).toBeTrue();
     expect(app.saveError).toBeTruthy(); expect(app.saving).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('pages members and rejects stale candidate searches after switching roles', async () => {
+    const { fixture, app } = await createComponent();
+    const result = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: { Researcher: { active: 130, disabled: 10, removableActive: 130 } } };
+    const read = spyOn(userService, 'getUserPage').and.resolveTo(result);
+    app.selectedRole = { id: 'r', name: 'Researcher' } as any;
+    await app.loadMembers(2);
+    expect(read).toHaveBeenCalledWith(jasmine.objectContaining({ page: 2, role: 'Researcher', includeDisabled: true }));
+    expect(app.totalPages).toBe(6);
+    expect(app.activeMemberCount()).toBe(130);
+    let resolve!: (value: any) => void;
+    read.and.returnValue(new Promise(done => resolve = done));
+    app.memberSearch = 'someone';
+    const pending = app.searchMembers();
+    const oldResolve = resolve;
+    read.and.resolveTo(result);
+    await app.selectRole({ id: 'g', name: 'Guest' } as any);
+    oldResolve({ ...result, records: [{ id: 'stale' }] });
+    await pending;
+    expect(app.candidates).toEqual([]);
     fixture.destroy();
   });
 

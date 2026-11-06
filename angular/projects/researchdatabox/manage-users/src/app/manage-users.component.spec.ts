@@ -296,7 +296,7 @@ describe('ManageUsersComponent', () => {
     app.allUsers = usersData as any;
     app.filteredUsers = usersData as any;
     app.searchFilter.name = 'Local Admin';
-    app.onFilterChange();
+    await app.onFilterChange();
     expect(app.filteredUsers.length).toBeGreaterThan(0);
     expect(app.filteredUsers[0].name).toBe('Local Admin');
   });
@@ -709,23 +709,24 @@ describe('ManageUsersComponent', () => {
       { value: 'Local Admin', label: 'Local Admin', checked: true }
     ];
 
-    app.resetFilter();
+    await app.resetFilter();
 
     expect(app.filteredUsers.length).toBe(usersData.length);
-    expect(app.searchFilter.users[0].checked).toBeTrue();
+    expect(app.searchFilter.name).toBe('');
+    expect(app.roleFilter).toBe('');
   });
   it('combines role and email filters and retains them after refreshing users', async () => {
     const app = createBareComponent();
     app.allUsers = usersData as any;
     app.roleFilter = 'Admin';
     app.searchFilter.name = 'alias@example.com';
-    app.onFilterChange();
+    await app.onFilterChange();
     expect(app.filteredUsers.length).toBe(0);
     app.roleFilter = '';
     await app.refreshUsers();
     expect(app.filteredUsers.map(user => user.username)).toEqual(['alias']);
     app.searchFilter.name = 'ADMIN';
-    app.onFilterChange();
+    await app.onFilterChange();
     expect(app.filteredUsers.map(user => user.username)).toEqual(['admin']);
   });
 
@@ -829,6 +830,24 @@ describe('ManageUsersComponent', () => {
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
     app.editUser('admin'); fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
+  });
+
+  it('uses server totals, filters and sort before paging, and discards older responses', async () => {
+    const { fixture, app } = await createComponent();
+    const result = { records: baseUsersData, summary: { numFound: 150, page: 2, start: 25 }, roleCounts: {} };
+    const read = spyOn(userService, 'getUserPage').and.resolveTo(result);
+    await app.changePage(2);
+    expect(app.totalPages).toBe(6); expect(app.pageStart).toBe(26);
+    app.roleFilter = 'Researcher'; app.searchFilter.name = 'test';
+    await app.onFilterChange();
+    expect(read).toHaveBeenCalledWith(jasmine.objectContaining({ page: 1, role: 'Researcher', query: 'test' }));
+    let resolve!: (value: any) => void;
+    read.and.returnValue(new Promise(done => resolve = done));
+    const pending = app.refreshUsers(1);
+    read.and.resolveTo({ ...result, summary: { numFound: 1, page: 1, start: 0 } });
+    await app.refreshUsers(1);
+    resolve(result); await pending;
+    expect(app.totalUsers).toBe(1);
   });
 
 });

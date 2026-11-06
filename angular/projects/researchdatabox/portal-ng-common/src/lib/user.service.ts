@@ -60,6 +60,17 @@ export interface Role {
   hasRole: boolean;
 }
 
+export interface AdminUserQuery {
+  page?: number; pageSize?: number; query?: string; role?: string; excludeRole?: string;
+  includeDisabled?: boolean; signIn?: string; candidates?: boolean;
+  sort?: 'name' | 'username' | 'email' | 'type' | 'lastLogin'; order?: 'asc' | 'desc';
+}
+export interface AdminUserPage {
+  records: User[];
+  summary: { numFound: number; page: number; start: number };
+  roleCounts: Record<string, { active: number; disabled: number; removableActive: number }>;
+}
+
 export interface UserLoginResult {
   id: string;
   message: string;
@@ -205,6 +216,16 @@ export class UserService extends HttpClientService {
     const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned User[]
+  }
+
+  public async getUserPage(options: AdminUserQuery = {}): Promise<AdminUserPage> {
+    const params: Record<string, string> = { page: '1', pageSize: '25' };
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== '') params[key] = String(value);
+    }
+    return firstValueFrom(this.http.get<AdminUserPage>(`${this.brandingAndPortalUrl}/admin/users/get`, {
+      responseType: 'json', observe: 'body', context: this.httpContext, params
+    }));
   }
 
   public async updateUserDetails(userid: any, details: any) {
