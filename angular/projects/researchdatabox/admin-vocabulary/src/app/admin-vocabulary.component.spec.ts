@@ -44,6 +44,52 @@ describe('AdminVocabularyComponent', () => {
     }).compileComponents();
   });
 
+  it('loads the page and all catalogue counts without waiting for another response', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    const pending: Array<(response: any) => void> = [];
+    const list = spyOn(TestBed.inject(VocabularyApiService), 'list').and.callFake(() =>
+      new Promise(resolve => pending.push(resolve)));
+    fixture.detectChanges();
+    flushMicrotasks();
+    expect(list.calls.allArgs()).toEqual([
+      [{ q: undefined, source: undefined, type: undefined, limit: 25, offset: 0 }],
+      [{ limit: 1, offset: 0 }],
+      [{ source: 'local', limit: 1, offset: 0 }],
+      [{ source: 'rva', limit: 1, offset: 0 }]
+    ]);
+    expect(component.isInitializing()).toBeTrue();
+    const vocabulary = { id: 'v1', name: 'One', type: 'flat', source: 'local' };
+    pending[0]({ data: [vocabulary], meta: { total: 12, limit: 25, offset: 0 } });
+    pending[3]({ data: [], meta: { total: 4 } });
+    pending[1]({ data: [], meta: { total: 12 } });
+    flushMicrotasks();
+    expect(component.isInitializing()).toBeTrue();
+    pending[2]({ data: [], meta: { total: 8 } });
+    flushMicrotasks();
+    expect(component.isInitializing()).toBeFalse();
+    expect(component.vocabularies).toEqual([vocabulary] as any);
+    expect(component.catalogueCounts).toEqual({ total: 12, local: 8, rva: 4 });
+    fixture.destroy();
+  }));
+
+  it('still loads the page and retains previous counts when a count request fails', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    const component = fixture.componentInstance;
+    component.catalogueCounts = { total: 12, local: 8, rva: 4 };
+    spyOn(TestBed.inject(LoggerService), 'error');
+    spyOn(TestBed.inject(VocabularyApiService), 'list').and.callFake(async query => {
+      if (query?.source === 'local') throw new Error('Count unavailable');
+      return { data: [], meta: { total: 0, limit: 25, offset: 0 } };
+    });
+    fixture.detectChanges();
+    await component.waitForInit();
+    expect(component.vocabularies).toEqual([]);
+    expect(component.error).toBe('');
+    expect(component.catalogueCounts).toEqual({ total: 12, local: 8, rva: 4 });
+    fixture.destroy();
+  });
+
   it('keeps vocabulary edits and resumes the editor trap after nested Escape', async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     fixture.detectChanges(); await fixture.componentInstance.waitForInit();
