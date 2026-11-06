@@ -1,4 +1,5 @@
-<div [attr.aria-hidden]="modalOpen() || languageModalOpen() || displayNameModalOpen() || importModalOpen() ? 'true' : null"
+<div *ngIf="!translationsReady()" class="p-3" aria-busy="true"><span class="spinner-border" aria-hidden="true"></span></div>
+<div *ngIf="translationsReady()" [attr.aria-hidden]="modalOpen() || languageModalOpen() || displayNameModalOpen() || importModalOpen() ? 'true' : null"
   [attr.inert]="modalOpen() || languageModalOpen() || displayNameModalOpen() || importModalOpen() ? '' : null">
   <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
     <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>

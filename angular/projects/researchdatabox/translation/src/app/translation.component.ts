@@ -48,6 +48,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   readWarnings = signal<Partial<Record<ReadKind, string>>>({});
   initializing = signal(true);
+  translationsReady = signal(false);
   readPending = signal<Partial<Record<ReadKind, boolean>>>({});
   private readRequests: Record<ReadKind, number> = { languages: 0, entries: 0, bundles: 0, displayName: 0 };
   private destroyed = false;
@@ -208,6 +209,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.brandingAndPortalUrl = `${config.baseUrl || ''}/${config.branding}/${config.portal}`;
       const fallback = config.i18NextOpts?.fallbackLng;
       this.defaultLanguage = (Array.isArray(fallback) ? fallback[0] : fallback) || 'en';
+      this.translationsReady.set(true);
       await this.loadLanguages();
       if (!this.readWarnings().languages) await this.loadAvailableLanguagesFromBundles();
     } catch (error) {
@@ -215,6 +217,8 @@ export class AppComponent implements OnInit, OnDestroy {
       if (!this.destroyed) this.readWarnings.update(state => ({ ...state,
         languages: 'Languages could not be loaded. The list may be incomplete; retry to load the current configuration.' }));
     } finally {
+      // Keep recovery controls available if bootstrap itself failed.
+      this.translationsReady.set(true);
       this.initializing.set(false);
     }
   }
