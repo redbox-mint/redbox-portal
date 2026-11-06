@@ -131,7 +131,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     text-transform: none;
     text-decoration: none;
     box-shadow: none;
-    &:disabled, &.disabled { opacity: .5; }
+    &:disabled, &.disabled { opacity: .5; cursor: not-allowed; }
+    &:disabled { pointer-events: auto; }
     &.btn-sm { padding: 5px 10px; font-size: 13px; }
   }
   .btn.btn-primary, button[type='submit'].btn, input[type='submit'].btn {
