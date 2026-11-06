@@ -100,17 +100,17 @@ describe('admin API docs', function () {
         expect(reference).to.include('<!doctype html>');
         expect(reference).to.include('contentSecurityPolicyNonce');
         expect(reference).to.include('/default/default/js/admin-api-docs-init.js');
-        expect(reference).to.include('/default/default/js/admin-api-docs-bootstrap.js');
+        expect(reference).to.include('/default/default/js/admin-api-docs-load.js');
         expect(reference).to.include('/admin/api-docs/openapi.json');
-        expect(reference).to.include('/default/default/js/redoc.standalone.js');
+        expect(reference).to.not.include('src="/default/default/js/redoc.standalone.js');
         expect(reference).to.not.include('cdn.redoc.ly');
     });
 
     it('loads the Redoc 3 ES module bundle through a module bootstrap', function () {
         const viewPath = path.resolve(__dirname, '../../../../views/default/default/admin/api-docs-reference.ejs');
         const view = fs.readFileSync(viewPath, 'utf8');
-        expect(view).to.match(/js\/redoc\.standalone\.js" type="module"/);
-        expect(view).to.match(/js\/admin-api-docs-bootstrap\.js" type="module"/);
+        expect(view).to.not.match(/js\/redoc\.standalone\.js" type="module"/);
+        expect(view).to.match(/js\/admin-api-docs-load\.js" type="module"/);
 
         const bootstrapPath = path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js');
         const bootstrap = fs.readFileSync(bootstrapPath, 'utf8');
@@ -219,32 +219,28 @@ describe('admin API docs', function () {
         expect(operations.map(operation => operation.parentElement.hidden)).to.deep.equal([false, true]);
     });
 
-    it('eagerly mounts Redoc section placeholders while retaining native observers elsewhere', function () {
+    it('loads the renderer after the shell has an opportunity to paint', function () {
+        const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-load.js'), 'utf8')
+            .replace("import('./admin-api-docs-bootstrap.js')", 'load()');
+        const frames: Function[] = [];
+        const load = sinon.spy();
+        vm.runInNewContext(source, { requestAnimationFrame: (callback: Function) => frames.push(callback), load });
+        expect(load.called).to.equal(false);
+        frames.shift()!();
+        expect(load.called).to.equal(false);
+        frames.shift()!();
+        expect(load.calledOnce).to.equal(true);
+    });
+
+    it('retains native section observation for the embedded reference', function () {
         const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js'), 'utf8')
             .replace("import { init } from './redoc.standalone.js';", '');
-        const observe = sinon.spy();
-        const microtasks: Function[] = [];
-        const viewer: any = {
-            IntersectionObserver: class { observe(target: any) { observe(target); } },
-        };
-        const mount = { contains: (target: any) => target.inViewer, getAttribute: () => '/spec' };
+        const NativeObserver = class { observe() {} };
+        const viewer = { IntersectionObserver: NativeObserver };
         vm.runInNewContext(source, {
-            init: () => {}, document: { getElementById: () => mount }, window: viewer,
-            queueMicrotask: (callback: Function) => microtasks.push(callback)
+            init: () => {}, document: { getElementById: () => ({ getAttribute: () => '/spec' }) }, window: viewer
         });
-        const callback = sinon.spy();
-        const observer = new viewer.IntersectionObserver(callback);
-        const section = { inViewer: true, isConnected: true, hasAttribute: () => true };
-        observer.observe(section);
-        expect(observe.called).to.equal(false);
-        microtasks.shift()!();
-        expect(callback.firstCall.args[0][0]).to.deep.equal({ target: section, isIntersecting: true });
-        const other = { inViewer: true, hasAttribute: () => false };
-        observer.observe(other);
-        expect(observe.calledOnceWithExactly(other)).to.equal(true);
-        const detached = { ...section, isConnected: false };
-        observer.observe(detached); microtasks.shift()!();
-        expect(callback.callCount).to.equal(1);
+        expect(viewer.IntersectionObserver).to.equal(NativeObserver);
     });
 
     it('builds the local redoc bundle into the public output after asset cleaning', function () {

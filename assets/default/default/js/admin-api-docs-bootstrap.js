@@ -4,28 +4,8 @@ import { init } from './redoc.standalone.js';
 
 var mount = document.getElementById('redoc');
 
-// Redoc 3.0.1 removed the v2 lazyRendering option. In this isolated viewer,
-// eagerly mount its section placeholders so outer-page offsets stay stable.
-// Other observers (menu selection, tooltips, etc.) retain native behaviour.
-if (mount && window.IntersectionObserver) {
-  const NativeObserver = window.IntersectionObserver;
-  window.IntersectionObserver = class extends NativeObserver {
-    constructor(callback, options) {
-      super(callback, options);
-      this.sectionCallback = callback;
-    }
-    observe(target) {
-      if (mount.contains(target) && target.hasAttribute('data-section-id')) {
-        queueMicrotask(() => {
-          if (target.isConnected) this.sectionCallback([{ target, isIntersecting: true }], this);
-        });
-      } else {
-        super.observe(target);
-      }
-    }
-  };
-}
-
+// Keep Redoc's native section observer: it accounts for the parent viewport
+// across the same-origin frame. Routing force-mounts the requested section.
 if (mount) {
   init(
     mount.getAttribute('data-openapi-url'),
