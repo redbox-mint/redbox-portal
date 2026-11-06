@@ -7,10 +7,22 @@ let expect: Chai.ExpectStatic;
 describe('Portal logo heading scope', () => {
   before(async () => { expect = (await import('chai')).expect; });
   const template = fs.readFileSync(path.resolve(__dirname, '../../../views/default/default/layout/logo.ejs'), 'utf8');
-  const render = (route: string, heading = '', adminParties = false, portalPath = '/default/rdmp') => ejs.render(template, {
+  const render = (route: string, heading = '', adminParties = false, portalPath = '/default/rdmp',
+    image: { logo?: object; logoName?: string } = {}) => ejs.render(template, {
     req: { path: portalPath + route }, adminParties,
-    BrandingService: { getBrandAndPortalPath: () => portalPath },
+    sails: { config: { static_assets: { logoName: image.logoName || 'logo.png' } } },
+    BrandingService: { getBrandAndPortalPath: () => portalPath,
+      getBrandNameFromReq: () => 'default', getBrand: () => ({ logo: image.logo }) },
     TranslationService: { t: (key: string) => key === 'logo-heading-text' ? heading : 'ReDBox Logo' }
+  });
+
+  it('reserves the default artwork ratio without imposing it on uploaded or replacement logos', () => {
+    expect(render('/admin')).to.contain('width="171" height="100"');
+    for (const image of [{ logo: { storageKey: 'uploaded.svg' } }, { logoName: 'institution.png' }]) {
+      const html = render('/admin', '', false, '/default/rdmp', image);
+      expect(html).to.contain('src="/default/rdmp/images/logo"');
+      expect(html).not.to.contain('width="171"');
+    }
   });
 
   it('leaves the single page H1 to admin content and legacy admin Parties', () => {
