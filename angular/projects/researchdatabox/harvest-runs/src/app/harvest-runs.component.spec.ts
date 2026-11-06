@@ -612,4 +612,14 @@ describe('HarvestRunsComponent', () => {
     expect(fixture.nativeElement.querySelector('.hr-table--runs')).toBeNull();
     expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeTruthy();
   });
+  it('hides all-zero statistics only when the runs list is also empty', async () => {
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    apiService.listRuns.and.resolveTo({ summary: { numFound: 0, page: 1, start: 0 }, records: [] });
+    fixture.autoDetectChanges(true); await component.waitForInit(); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.hr-global-stats')).toBeNull();
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 1, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await component.refreshRuns(); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.hr-global-stats')).not.toBeNull();
+  });
+
 });

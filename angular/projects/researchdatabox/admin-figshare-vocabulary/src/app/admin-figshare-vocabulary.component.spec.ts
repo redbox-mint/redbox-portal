@@ -245,4 +245,11 @@ describe('AdminFigshareVocabularyComponent', () => {
     expect(component.error).toBe('');
     expect(component.message).toContain('Editable clone created');
   });
+  it('hides empty all-zero statistics and retains them when any list has records', () => {
+    expect(component.showStatistics).toBeFalse();
+    component.sourceTotal = 1; expect(component.showStatistics).toBeTrue();
+    component.sourceTotal = 0; component.syncRuns = [{ id: 'run' }] as any;
+    expect(component.showStatistics).toBeTrue();
+  });
+
 });

@@ -128,6 +128,11 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     await Promise.all([this.loadSources(), this.loadCrosswalks(), this.loadSyncRuns()]);
   }
 
+  get showStatistics(): boolean {
+    return !!(this.totalSources || this.approvedCrosswalkCount || this.syncWarningCount ||
+      this.sources.length || this.crosswalks.length || this.syncRuns.length);
+  }
+
   get totalSources(): number {
     return this.sourceTotal;
   }
