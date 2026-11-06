@@ -1,12 +1,12 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-mappings-heading' | i18next }}</h6>
+    <h3 class="h6">{{ 'named-query-mappings-heading' | i18next }}</h3>
   </div>
   <p class="text-muted small mb-2">{{ 'named-query-mappings-help' | i18next }}</p>
 
   <div *ngIf="entries.length > 0" class="table-responsive">
     <table class="table table-sm table-bordered mb-0">
-      <thead class="thead-light">
+      <thead class="table-light">
         <tr>
           <th class="nq-mapping-column">{{ 'named-query-mapping-field' | i18next }}</th>
           <th>{{ 'named-query-mapping-template' | i18next }}</th>

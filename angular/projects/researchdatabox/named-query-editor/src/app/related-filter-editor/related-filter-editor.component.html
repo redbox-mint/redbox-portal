@@ -1,6 +1,6 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-related-filters-heading' | i18next }}</h6>
+    <h3 class="h6">{{ 'named-query-related-filters-heading' | i18next }}</h3>
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addFilter()">
       {{ 'named-query-related-filter-add' | i18next }}
     </button>
@@ -16,7 +16,7 @@
          (click)="toggleExpand(filter)">
       <div>
         <strong>{{ filter.collectionName || ('named-query-related-filter-unnamed' | i18next) }}</strong>
-        <span class="badge badge-light ml-2" *ngIf="filter.localField || filter.foreignField">
+        <span class="badge badge-light ms-2" *ngIf="filter.localField || filter.foreignField">
           {{ filter.localField || '—' }} → {{ filter.foreignField || '—' }}
         </span>
       </div>

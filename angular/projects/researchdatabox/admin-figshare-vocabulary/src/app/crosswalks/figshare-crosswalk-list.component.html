@@ -1,5 +1,5 @@
 <div class="card">
-  <div class="card-header"><h2>{{ 'figshare-vocab-tab-crosswalks' | i18next }}</h2><span>{{ total }}</span></div>
+  <div class="card-header"><h2>{{ 'figshare-vocab-tab-crosswalks' | i18next }}</h2><span>{{ filteredItems.length | adminCount: 'crosswalk': total }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field">
       <label class="form-label" for="figshare-crosswalk-status-filter">{{
@@ -18,12 +18,13 @@
       </select>
     </div>
     <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-crosswalks-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-crosswalks-search" type="search" class="form-control" [(ngModel)]="search" [placeholder]="'admin-filter-search-placeholder' | i18next" /></div>
+  <button *ngIf="search || statusFilter" type="button" class="btn rb-admin-ghost" (click)="search = ''; statusFilterChanged.emit('')">{{ 'admin-report-clear' | i18next }}</button>
   </div>
 
   @if (loading) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else if (filteredItems.length === 0) {
-  <div class="rb-admin-empty"><i class="fa fa-exchange fa-3x" aria-hidden="true"></i><h3>{{ (crosswalks.length ? 'figshare-vocab-no-matching-crosswalks' : 'figshare-vocab-no-crosswalks') | i18next }}</h3><p>{{ 'figshare-vocab-crosswalks-empty-help' | i18next }}</p><button type="button" class="btn btn-primary" (click)="addRequested.emit()"><span aria-hidden="true">+</span> {{ 'figshare-vocab-add-action' | i18next }}</button></div>
+  <div class="rb-admin-empty"><i class="fa fa-exchange fa-3x" aria-hidden="true"></i><h3>{{ (crosswalks.length ? 'figshare-vocab-no-matching-crosswalks' : 'figshare-vocab-no-crosswalks') | i18next }}</h3><p>{{ 'figshare-vocab-crosswalks-empty-help' | i18next }}</p><button type="button" class="btn btn-primary" (click)="addRequested.emit()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'figshare-vocab-add-action' | i18next }}</button></div>
   } @else {
   <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-crosswalk-table-caption' | i18next }}</caption>
@@ -69,6 +70,7 @@
     </tbody>
   </table></div>
   }
+  <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: filteredItems.length ? 1 : 0, end: filteredItems.length, total: filteredItems.length } }}</div>
 </div>
 
 @if (pendingDelete) {
@@ -77,9 +79,9 @@
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
-        <span class="modal-title h5" id="figshareCrosswalkDeleteTitle">{{
+        <h2 class="modal-title h5" id="figshareCrosswalkDeleteTitle">{{
           'figshare-vocab-confirm-delete-title' | i18next
-        }}</span>
+        }}</h2>
       </div>
       <div class="modal-body">
         <p class="mb-0">{{ 'figshare-vocab-confirm-delete-body' | i18next: { name: pendingDelete.name } }}</p>

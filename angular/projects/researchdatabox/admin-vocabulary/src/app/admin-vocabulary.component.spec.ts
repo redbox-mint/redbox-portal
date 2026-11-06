@@ -1,3 +1,4 @@
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
@@ -44,7 +45,7 @@ describe('AdminVocabularyComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent, I18NextPipeStub],
-      imports: [FormsModule],
+      imports: [AdminCountPipe, FormsModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: VocabularyApiService, useClass: VocabularyApiServiceStub },

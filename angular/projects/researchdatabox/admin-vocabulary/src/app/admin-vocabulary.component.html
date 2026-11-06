@@ -12,7 +12,7 @@
       <div><h1>{{ 'admin-vocabulary-list-title' | i18next }}</h1><p>{{ 'admin-vocabulary-page-description' | i18next }}</p></div>
       <div class="rb-admin-page-actions">
         <button class="btn btn-outline-secondary" type="button" (click)="showImport()">{{ 'admin-vocabulary-import-from-rva-button' | i18next }}</button>
-        <button class="btn btn-primary" type="button" (click)="newVocabulary()"><span aria-hidden="true">+</span> {{ 'admin-vocabulary-create-action' | i18next }}</button>
+        <button class="btn btn-primary" type="button" (click)="newVocabulary()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-vocabulary' | i18next }}</button>
       </div>
     </header>
     <div class="rb-admin-stats">
@@ -33,6 +33,7 @@
       [vocabularies]="vocabularies"
       [selectedId]="selectedVocabulary?.id || null"
       [totalCount]="totalVocabularyCount"
+      [catalogueTotal]="totalVocabularies"
       [pageSize]="listLimit"
       [offset]="listOffset"
       [query]="listQuery"
@@ -59,9 +60,9 @@
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <span class="modal-title h4-header" id="deleteVocabularyModalTitle">{{
+          <h2 class="modal-title h4-header" id="deleteVocabularyModalTitle">{{
             'admin-vocabulary-confirm-delete-title' | i18next
-          }}</span>
+          }}</h2>
           <button
             type="button"
             class="btn-close"
@@ -103,13 +104,13 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <span class="modal-title h4-header" id="vocabModalTitle">{{
+          <h2 class="modal-title h4-header" id="vocabModalTitle">{{
             isSelectedReadOnly
               ? ('admin-vocabulary-view-title' | i18next)
               : selectedVocabulary?.id
                 ? ('admin-vocabulary-edit-heading' | i18next)
                 : ('admin-vocabulary-create-heading' | i18next)
-          }}</span>
+          }}</h2>
           <button
             type="button"
             class="btn-close"
@@ -142,7 +143,7 @@
               <div class="d-flex flex-wrap justify-content-between align-items-center">
                 <span>{{ syncStatusMessage }}</span>
                 @if (isSyncConfirmationOpen) {
-                  <div class="btn-group ml-2 mt-2 mt-sm-0" role="group">
+                  <div class="btn-group ms-2 mt-2 mt-sm-0" role="group">
                     <button
                       type="button"
                       class="btn btn-secondary"
@@ -158,7 +159,7 @@
                       [disabled]="isSyncInProgress"
                     >
                       @if (isSyncInProgress) {
-                        <span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                       }
                       {{
                         isSyncInProgress
@@ -203,9 +204,9 @@
     <div class="modal-dialog modal-lg" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <span class="modal-title h4-header" id="importModalTitle">{{
+          <h2 class="modal-title h4-header" id="importModalTitle">{{
             'admin-vocabulary-import-from-rva-title' | i18next
-          }}</span>
+          }}</h2>
           <button
             type="button"
             class="btn-close"
