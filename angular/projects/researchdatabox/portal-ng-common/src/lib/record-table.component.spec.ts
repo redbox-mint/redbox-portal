@@ -1,3 +1,4 @@
+import { AdminPagerComponent } from './admin-pager.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NgModel, FormsModule } from '@angular/forms';
@@ -28,7 +29,7 @@ describe('RecordTableComponent', () => {
     renderTemplate = jasmine.createSpy('compileAndRunTemplate').and.returnValue('<strong>Rendered title</strong>');
     await TestBed.configureTestingModule({
       declarations: [RecordTableComponent, HeaderSortComponent],
-      imports: [FormsModule, PaginationModule.forRoot(), I18NextPipe],
+      imports: [AdminPagerComponent, FormsModule, PaginationModule.forRoot(), I18NextPipe],
       providers: [
         { provide: LoggerService, useValue: { error: jasmine.createSpy('error') } },
         { provide: UtilityService, useValue: {} },
@@ -82,7 +83,7 @@ describe('RecordTableComponent', () => {
     currentPage = { records: [{ title: 'Last' }], total: 21, pageNum: 3 };
     await render();
     expect(component.adminPageEnd).toBe(21);
-    expect(fixture.nativeElement.querySelector('.pagination-prev')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('rb-admin-pager .page-link').textContent.trim()).toBe('‹');
     expect(fixture.nativeElement.querySelector('.pagination-first')).toBeNull();
   });
 

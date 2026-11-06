@@ -65,7 +65,9 @@
     @if (currentPage.total > 0) {
       <div [class.card-footer]="adminPresentation" [class.row]="!adminPresentation">
         @if (adminPresentation) { <span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: (currentPage.pageNum - 1) * paginationItemsPerPage + 1, end: adminPageEnd, total: currentPage.total } }}</span> }
-        @if (!adminPresentation || currentPage.total > paginationItemsPerPage) {
+        @if (adminPresentation) {
+          <rb-admin-pager [page]="currentPage.pageNum" [totalPages]="adminTotalPages" [disabled]="paginationPending || paginationDisabled" (pageChange)="gotoPage($event)"></rb-admin-pager>
+        } @else {
         <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="adminPresentation || paginationDirectionLinks" [boundaryLinks]="!adminPresentation && paginationBoundaryLinks"
           [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [ngModel]="currentPage.pageNum"
         (ngModelChange)="gotoPage($event, pageModel)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>

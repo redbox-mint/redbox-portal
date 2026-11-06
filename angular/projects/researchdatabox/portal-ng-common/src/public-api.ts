@@ -49,3 +49,5 @@ export * from './lib/admin-list-footer.component';
 export * from './lib/admin-discard-dialog.component';
 
 export * from './lib/admin-overflow.directive';
+
+export * from './lib/admin-pager.component';

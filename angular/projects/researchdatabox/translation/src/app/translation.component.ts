@@ -1,4 +1,4 @@
-import { AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
@@ -35,7 +35,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
+  imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
   templateUrl: './translation.component.html',
   styleUrls: ['./translation.component.scss']
 })
@@ -103,10 +103,6 @@ export class AppComponent implements OnInit, OnDestroy {
   get totalPages(): number { return Math.max(1, Math.ceil(this.viewEntries().length / this.pageSize)); }
   get rangeStart(): number { return this.viewEntries().length ? (this.page - 1) * this.pageSize + 1 : 0; }
   get rangeEnd(): number { return Math.min(this.page * this.pageSize, this.viewEntries().length); }
-  get visiblePages(): number[] {
-    const start = Math.max(1, Math.min(this.page - 2, this.totalPages - 4));
-    return Array.from({ length: Math.min(5, this.totalPages) }, (_, index) => start + index);
-  }
 
   setPage(page: number) {
     this.page = Math.max(1, Math.min(page, this.totalPages));

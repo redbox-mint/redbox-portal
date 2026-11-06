@@ -30,7 +30,7 @@
         <td class="rb-admin-actions-col text-end"><div class="rb-admin-row-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" (click)="vocabulary.source === 'rva' ? syncRequested.emit(vocabulary.id) : open(vocabulary.id)">{{ (vocabulary.source === 'rva' ? 'admin-vocabulary-sync-action' : isReadOnly(vocabulary) ? 'admin-vocabulary-view' : 'admin-vocabulary-edit') | i18next }}</button>
           <details rbAdminOverflow class="rb-admin-overflow" #actions>
-            <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
+            <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: vocabulary.name }">⋯</summary><div>
               <button class="btn btn-sm btn-outline-secondary" type="button" (click)="open(vocabulary.id); actions.open = false">{{ (isReadOnly(vocabulary) ? 'admin-vocabulary-view' : 'admin-vocabulary-edit') | i18next }}</button>
               <button *ngIf="vocabulary.source === 'rva'" class="btn btn-sm btn-outline-secondary" type="button" (click)="syncRequested.emit(vocabulary.id); actions.open = false">{{ 'admin-vocabulary-sync-action' | i18next }}</button>
               <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="isReadOnly(vocabulary)" (click)="remove(vocabulary.id); actions.open = false">{{ 'admin-vocabulary-delete' | i18next }}</button>
@@ -45,10 +45,6 @@
   <div class="rb-admin-empty"><i class="fa fa-list fa-3x" aria-hidden="true"></i><h3>{{ 'admin-vocabulary-empty-filtered' | i18next }}</h3><p>{{ 'admin-vocabulary-empty-help' | i18next }}</p><button class="btn btn-primary" type="button" (click)="createRequested.emit()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-vocabulary' | i18next }}</button></div>
   }
   <rb-admin-list-footer [total]="totalCount" [start]="pageStartIndex" [end]="pageEndIndex" [pageCount]="totalPages">
-    <nav [attr.aria-label]="'admin-vocabulary-list-aria-label' | i18next"><ul class="pagination mb-0">
-      <li class="page-item" [class.disabled]="!canGoPrevious"><button type="button" class="page-link" [disabled]="!canGoPrevious" (click)="previousPage()">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button></li>
-      <li class="page-item active"><span class="page-link" aria-current="page">{{ currentPage }}</span></li>
-      <li class="page-item" [class.disabled]="!canGoNext"><button type="button" class="page-link" [disabled]="!canGoNext" (click)="nextPage()">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></li>
-    </ul></nav>
+    <rb-admin-pager [page]="currentPage" [totalPages]="totalPages" (pageChange)="pageChanged.emit(($event - 1) * pageSize)"></rb-admin-pager>
   </rb-admin-list-footer>
 </div>
