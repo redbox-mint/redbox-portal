@@ -38,8 +38,8 @@
   .dc-nav-item[aria-disabled='true'] { pointer-events: none; opacity: .6; }
   .dc-nav-empty { padding: 6px 14px; font-size: 13px; color: var(--admin-muted); }
   .dc-target-card { margin-bottom: 12px; }
-  .dc-target-card > .card-header { align-items: flex-start; }
-  .dc-target-card > .card-header h2 { font-size: 18px; margin: 0; }
+  .dc-target-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .dc-target-heading h2 { font-size: 18px; margin: 0; }
   .dc-location { font-size: 12.5px; overflow-wrap: anywhere; }
   fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
   .dc-display { margin-bottom: 0; }
@@ -128,7 +128,6 @@
   }
   @media (max-width: 767px) {
     .dc-form-grid, .dc-copy-to-grid { grid-template-columns: minmax(0, 1fr); }
-    .dc-target-card > .card-body { padding: 12px; }
     .dc-modal { top: 16px; max-height: calc(100dvh - 32px); }
     .dc-load-error { flex-wrap: wrap; }
   }

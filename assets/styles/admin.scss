@@ -55,12 +55,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-list-name { border: 0; padding: 0; background: transparent; color: var(--rb-anchor-color, #337ab7); font: inherit; text-align: left; cursor: pointer; }
   .rb-admin-list-name:hover { color: var(--rb-anchor-color-hover, #23527c); text-decoration: underline; }
   .rb-admin-list-name code { color: inherit; font-weight: 600; }
-  .app-config-connection-action { display: flex; flex-direction: column; gap: 4px; width: min-content; }
-  .app-config-connection-action .btn { white-space: nowrap; }
-  .app-config-connection-action .rb-admin-hint { margin: 0; }
   .rb-admin-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
   // Fixed positioning keeps the shortcut in reach without inserting a form/header row.
-  rb-admin-save-shortcut { position: fixed; bottom: 16px; right: max(32px, calc((100vw - 248px - 1180px) / 2)); z-index: 30; }
+  rb-admin-save-shortcut { position: fixed; bottom: 16px; right: max(44px, calc((100vw - 248px - 1180px) / 2 + 12px)); z-index: 30; }
   .rb-admin-main:has(rb-admin-save-shortcut) { padding-bottom: var(--admin-save-height); }
   .rb-admin-save-shortcut {
     display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 14px;
@@ -369,6 +366,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-chips > input { flex: 1 1 150px; width: 100%; min-width: 0; border: 0; outline: 0; padding: 3px; background: transparent; color: var(--admin-ink); font: inherit; font-size: 14px; }
     .rb-admin-chip { max-width: 100%; overflow-wrap: anywhere; }
     .rb-admin-chip button { padding: 0 3px; border: 0; background: transparent; color: var(--admin-muted); font-size: 18px; line-height: 1; }
+    .app-config-chips .rb-admin-chip button { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; flex-shrink: 0; }
+    .app-config-chips .rb-admin-chip button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; border-radius: 3px; }
     .app-config-invalid-chip { border-color: var(--admin-danger); }
     .app-config-empty-section { margin: 0; }
     .app-config-preview h2 { margin: 0 0 8px; font-size: 14px; }
@@ -467,7 +466,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .rb-admin-sidebar-home { grid-column: 1 / -1; }
     .rb-admin-sidebar-section { margin-top: 4px; }
     .rb-admin-main { padding: 24px 20px 40px; }
-    rb-admin-save-shortcut { right: 20px; }
+    rb-admin-save-shortcut { right: 32px; }
     .rb-admin-section-rail { position: static; max-width: none; }
   }
   @media (max-width: 575.98px) {

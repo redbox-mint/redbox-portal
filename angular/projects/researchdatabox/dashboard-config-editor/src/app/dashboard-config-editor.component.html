@@ -5,7 +5,6 @@
       <li>{{ 'admin-nav-site' | i18next }}</li>
       <li><span aria-current="page">{{ 'admin-nav-dashboard-config' | i18next }}</span></li>
     </ol></nav>
-    <rb-admin-save-shortcut [bar]="saveBar" [dirty]="isDirty" [disabled]="saving || (warnings.length > 0 && !allWarningsAcknowledged)" (save)="save()"></rb-admin-save-shortcut>
     <header class="rb-admin-page-header">
       <div><h1>{{ 'admin-nav-dashboard-config' | i18next }}</h1><p>{{ 'admin-dashboard-description' | i18next }}</p></div>
       <div class="rb-admin-page-actions">
@@ -51,9 +50,9 @@
           <i class="fa fa-columns" aria-hidden="true"></i><h2>{{ 'admin-dashboard-pick' | i18next }}</h2><p>{{ 'admin-dashboard-pick-help' | i18next }}</p>
         </section>
         <ng-container *ngIf="!loading && selected && draft">
-          <div class="rb-admin-save-content"><section class="card rb-admin-card-secondary dc-target-card">
-            <header class="card-header"><h2 #editorHeading tabindex="-1">{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
-            <div class="card-body">
+          <div class="rb-admin-save-content"><section class="dc-target-card">
+            <header class="dc-target-heading"><h2 #editorHeading tabindex="-1">{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
+            <div class="dc-target-body">
               <p class="rb-admin-hint">{{ 'admin-dashboard-independent-help' | i18next }} <span *ngIf="selected.hidden">{{ 'admin-dashboard-hidden-help' | i18next }}</span></p>
               <div *ngFor="let finding of errors" class="alert alert-danger" role="alert"><strong>{{ finding.path || ('admin-dashboard-settings' | i18next) }}</strong>: {{ finding.message }}</div>
               <label *ngFor="let finding of warnings" class="alert alert-warning dc-choice"><input type="checkbox" [checked]="acknowledgedWarnings.has(finding.id)" (change)="toggleWarning(finding, acknowledgedWarnings)" /><span><strong>{{ finding.path || ('admin-dashboard-settings' | i18next) }}</strong>: {{ finding.message }} <small>{{ 'admin-dashboard-acknowledge' | i18next }}</small></span></label>
@@ -77,6 +76,7 @@
             </div>
           </section>
           </div>
+          <rb-admin-save-shortcut [bar]="this.saveBar" [dirty]="isDirty" [disabled]="saving || (warnings.length > 0 && !allWarningsAcknowledged)" (save)="save()"></rb-admin-save-shortcut>
           <div class="rb-admin-save-bar" #saveBar>
             <span class="rb-admin-save-state" [class.dc-dirty]="isDirty" aria-live="polite"><span class="dc-state-dot" aria-hidden="true"></span>{{ (saving ? 'admin-config-saving' : isDirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
             <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="saving || !isDirty" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="button" class="btn btn-primary" [disabled]="saving || !isDirty || (warnings.length > 0 && !allWarningsAcknowledged)" (click)="save()">{{ 'admin-dashboard-save' | i18next }}</button></div>

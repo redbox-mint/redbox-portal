@@ -36,6 +36,28 @@ describe('AdminSaveShortcutComponent', () => {
     expect(observer.disconnect).toHaveBeenCalled();
   });
 
+  it('scrolls an obscured focused field above the pill, leaving clear fields in place', () => {
+    const fixture = TestBed.createComponent(AdminSaveShortcutComponent);
+    fixture.componentRef.setInput('dirty', true); fixture.detectChanges();
+    fixture.componentInstance.offscreen = true; fixture.detectChanges();
+    const input = document.createElement('input'); document.body.append(input); input.focus();
+    const pill = fixture.nativeElement.querySelector('.rb-admin-save-shortcut');
+    spyOn(pill, 'getBoundingClientRect').and.returnValue({ left: 700, right: 950, top: 700, bottom: 760 });
+    spyOn(input, 'getBoundingClientRect').and.returnValue({ left: 300, right: 900, top: 680, bottom: 730 } as DOMRect);
+    const scroll = spyOn(window, 'scrollBy');
+    fixture.componentInstance.keepFocusedFieldVisible();
+    expect(scroll.calls.mostRecent().args[0]).toEqual({ top: 42, behavior: 'instant' } as any);
+    scroll.calls.reset();
+    (input.getBoundingClientRect as jasmine.Spy).and.returnValue({ left: 300, right: 600, top: 680, bottom: 730 });
+    fixture.componentInstance.keepFocusedFieldVisible();
+    expect(scroll).not.toHaveBeenCalled();
+    input.remove();
+    spyOn(document.body, 'getBoundingClientRect').and.returnValue({ left: 0, right: 1200, top: 0, bottom: 3000 } as DOMRect);
+    fixture.componentInstance.keepFocusedFieldVisible();
+    expect(scroll).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
   it('reconnects when changing editor targets and hides when the bar is removed', () => {
     const fixture = TestBed.createComponent(AdminSaveShortcutComponent);
     const first = new ElementRef(document.createElement('div'));
