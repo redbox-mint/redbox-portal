@@ -1,5 +1,13 @@
 :host { display: block; min-width: 0; }
-.tx-languages { min-width: 520px; }
+// Keep the first language row's space while its request is pending. The strings
+// result region likewise keeps pagination from jumping through the viewport.
+.tx-languages-region { min-height: 89px; }
+.tx-entry-results { min-height: 16rem; }
+.tx-languages { min-width: 520px; table-layout: fixed; }
+.tx-languages th:first-child { width: 28%; }
+.tx-languages th:nth-child(2) { width: 10%; }
+.tx-languages th:nth-child(3) { width: 22%; }
+.tx-languages th:nth-child(4) { width: 27%; }
 .tx-languages .form-switch { margin: 0; }
 .tx-languages .badge { margin-left: 6px; }
 .tx-data-table { table-layout: fixed; min-width: 700px; }
