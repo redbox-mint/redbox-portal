@@ -10,7 +10,7 @@
       <button type="button" class="btn btn-primary" (click)="startImport()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'figshare-vocab-add-action' | i18next }}</button>
     </div>
   </header>
-  <div class="rb-admin-stats">
+  <div *ngIf="showStatistics" class="rb-admin-stats">
     <div class="rb-admin-stat"><b>{{ totalSources }}</b><span>{{ 'figshare-vocab-stat-sources' | i18next }}</span></div>
     <div class="rb-admin-stat"><b>{{ approvedCrosswalkCount }}</b><span>{{ 'figshare-vocab-stat-approved-crosswalks' | i18next }}</span></div>
     <div class="rb-admin-stat"><b>{{ syncWarningCount }}</b><span>{{ 'figshare-vocab-stat-sync-warnings' | i18next }}</span></div>

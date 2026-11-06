@@ -53,7 +53,7 @@
       </div>
     }
     @if (reportResult.total === 0 && initTracker.resultsReturned) {
-      <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'admin-report-empty' | i18next }}</h3><p>{{ 'admin-report-empty-help' | i18next }}</p><button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear-filters' | i18next }}</button></div>
+      <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'admin-report-empty' | i18next }}</h3><p>{{ 'admin-report-empty-help' | i18next }}</p><button *ngIf="hasFilters" class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear-filters' | i18next }}</button></div>
       <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: 0, end: 0, total: 0 } }}</div>
     } @else {
       <record-table [adminPresentation]="true" [enableSort]="true" [paginationDisabled]="loadPending || !initTracker.resultsReturned" [columnConfig]="tableHeaders" [dataSource]="this" [optTemplateData]="optTemplateData" [reportName]="reportName" [paginationItemsPerPage]="recordsPerPage" [paginationMaxSize]="paginationMaxSize"></record-table>

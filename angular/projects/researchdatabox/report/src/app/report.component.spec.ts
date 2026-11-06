@@ -650,4 +650,17 @@ describe('ReportComponent', () => {
       app.filterParams['dateObjectModifiedRange_fromDate'] = from;
     }
   });
+  it('shows empty-state Clear filters only while filters are active', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit(); fixture.detectChanges();
+    app.reportResult = { records: [], total: 0, pageNum: 1, recordsPerPage: 10 } as any;
+    app.initTracker.resultsReturned = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).toBeNull();
+    app.filterParams.title = 'Search'; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).not.toBeNull();
+    fixture.destroy();
+  });
+
 });
