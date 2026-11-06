@@ -415,6 +415,17 @@ describe('Branding public font delivery and layouts', function () {
     }
   });
 
+  it('omits the unused public Open Sans stylesheet from admin Parties', function () {
+    const ejs = require('ejs');
+    const template = fs.readFileSync(repoPath('views/default/rdmp/dashboard.ejs'), 'utf8').split('<% let appName=')[0];
+    const locals = {
+      req: {},
+      BrandingService: { hasActiveCustomTypeface: () => false, getBrandNameFromReq: () => 'default' },
+    };
+    expect(ejs.render(template, locals)).to.contain('fonts.googleapis.com');
+    expect(ejs.render(template, { ...locals, adminParties: true })).not.to.contain('fonts.googleapis.com');
+  });
+
   it('keeps hook CSS after the generated theme stylesheet', function () {
     const content = fs.readFileSync(repoPath('views/default/default/layout.ejs'), 'utf8');
     expect(content.indexOf('styles/theme.css')).to.be.lessThan(content.indexOf('head-extra'));
