@@ -134,9 +134,9 @@ export const USER_FILTER_PROPERTIES = [
               <input type="text" class="form-control" [(ngModel)]="field.name" (ngModelChange)="emitSearch()" placeholder="Label, e.g. Title" [attr.aria-label]="'Label for search field ' + (i + 1)" />
               <dashboard-field-picker [catalogue]="catalogue" filter="scalar" [(value)]="field.path" (valueChange)="onSearchPathChange(field)" placeholder="Record field, e.g. metadata.title" [ariaLabel]="'Record field for search field ' + (i + 1)"></dashboard-field-picker>
               <div class="dc-row-actions">
-                <button type="button" class="btn btn-default btn-xs" (click)="moveField(group, i, -1)" [disabled]="i === 0" aria-label="Move up"><i class="fa fa-arrow-up"></i></button>
-                <button type="button" class="btn btn-default btn-xs" (click)="moveField(group, i, 1)" [disabled]="last" aria-label="Move down"><i class="fa fa-arrow-down"></i></button>
-                <button type="button" class="btn btn-default btn-xs" (click)="removeField(group, i)" aria-label="Remove search field"><i class="fa fa-times"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-xs" (click)="moveField(group, i, -1)" [disabled]="i === 0" aria-label="Move up"><i class="fa fa-arrow-up"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-xs" (click)="moveField(group, i, 1)" [disabled]="last" aria-label="Move down"><i class="fa fa-arrow-down"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-xs" (click)="removeField(group, i)" aria-label="Remove search field"><i class="fa fa-times"></i></button>
               </div>
             </div>
             <button type="button" class="btn btn-link btn-xs dc-template-toggle" *ngIf="!field.showTemplate" (click)="field.showTemplate = true">Transform the typed text (advanced)</button>
@@ -147,7 +147,7 @@ export const USER_FILTER_PROPERTIES = [
             </div>
             <small class="dc-form-help-error" *ngIf="!field.name.trim() || !field.path.trim()">Give this field a label and a record field.</small>
           </div>
-          <button type="button" class="btn btn-default btn-sm" (click)="addField(group)"><i class="fa fa-plus"></i> Add search field</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="addField(group)"><i class="fa fa-plus"></i> Add search field</button>
         </div>
       </section>
 

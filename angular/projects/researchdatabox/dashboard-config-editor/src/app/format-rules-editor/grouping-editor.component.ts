@@ -74,14 +74,14 @@ const RECORD_TYPE_FIELD = 'metadata.metaMetadata.type';
               <small class="dc-form-help-error" *ngFor="let problem of levelProblems(level, i)">{{ problem }}</small>
             </div>
             <div class="dc-row-actions">
-              <button type="button" class="btn btn-default btn-xs" (click)="move(i, -1)" [disabled]="i === 0" aria-label="Move level up"><i class="fa fa-arrow-up"></i></button>
-              <button type="button" class="btn btn-default btn-xs" (click)="move(i, 1)" [disabled]="last" aria-label="Move level down"><i class="fa fa-arrow-down"></i></button>
-              <button type="button" class="btn btn-default btn-xs" (click)="remove(i)" aria-label="Remove level"><i class="fa fa-times"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-xs" (click)="move(i, -1)" [disabled]="i === 0" aria-label="Move level up"><i class="fa fa-arrow-up"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-xs" (click)="move(i, 1)" [disabled]="last" aria-label="Move level down"><i class="fa fa-arrow-down"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-xs" (click)="remove(i)" aria-label="Remove level"><i class="fa fa-times"></i></button>
             </div>
           </li>
         </ol>
         <div *ngIf="levels.length === 0" class="dc-empty-inline">No levels yet — records are not grouped until you add one.</div>
-        <button type="button" class="btn btn-default btn-sm" (click)="add()"><i class="fa fa-plus"></i> Add level</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="add()"><i class="fa fa-plus"></i> Add level</button>
       </section>
 
       <datalist id="dc-grouping-link-suggestions">
