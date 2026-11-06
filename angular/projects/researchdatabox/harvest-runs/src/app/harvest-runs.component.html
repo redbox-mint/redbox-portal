@@ -86,6 +86,7 @@
             <span>{{ 'harvest-runs-loading' | i18next }}</span>
           </div>
         } @else {
+          @if (listResponse.records.length) {
           <div class="table-responsive">
             <table class="table table-hover hr-table--runs">
               <thead>
@@ -102,13 +103,10 @@
               <tbody>
                 @for (run of listResponse.records; track run.id ?? run.sourceRunId) {
                   <tr [class.hr-selected]="selectedRunId === (run.id ?? '')"
-                      [attr.aria-selected]="selectedRunId === (run.id ?? '')"
-                      tabindex="0"
-                      (click)="selectRun(run.id ?? '')"
-                      (keydown.enter)="selectRun(run.id ?? '')">
+                      (click)="selectRun(run.id ?? '')">
                     <td class="text-nowrap">{{ formatDate(run.startedAt) || '—' }}</td>
                     <td>
-                      <div>{{ run.sourceName }}</div>
+                      <div><button type="button" class="btn btn-sm btn-outline-secondary" [attr.aria-label]="'admin-harvest-view-run' | i18next: { name: run.sourceName, id: run.sourceRunId }" [attr.aria-expanded]="selectedRunId === (run.id ?? '')" aria-controls="harvest-run-detail" (click)="$event.stopPropagation(); selectRun(run.id ?? '')">{{ run.sourceName }} <i class="fa fa-chevron-right" aria-hidden="true"></i></button></div>
                       <div class="hr-subtext" [title]="run.sourceRunId">{{ run.sourceRunId }}</div>
                     </td>
                     <td>{{ run.recordType + '-title' | i18next }}</td>
@@ -122,9 +120,11 @@
             </table>
           </div>
 
+          }
           @if (listResponse.records.length === 0 && !listError) {
             <div class="rb-admin-empty"><i class="fa fa-2x fa-arrows-rotate" aria-hidden="true"></i><h3>{{ (hasFilters ? 'harvest-runs-empty' : 'admin-harvest-empty') | i18next }}</h3>
-              <p>{{ 'admin-harvest-empty-help' | i18next }}</p><a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/api-docs'">{{ 'admin-harvest-api' | i18next }}</a></div>
+              @if (hasFilters) { <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button> } @else {
+              <p>{{ 'admin-harvest-empty-help' | i18next }}</p><a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/api-docs'">{{ 'admin-harvest-api' | i18next }}</a> }</div>
           }
           <div class="card-footer hr-pager" [hidden]="listResponse.summary.numFound === 0">
             <small class="text-muted">{{ getRangeLabel(listResponse, runPageSize) }}</small>
@@ -147,6 +147,7 @@
     </section>
 
     <!-- Run detail -->
+    <div id="harvest-run-detail">
     @if (selectedRunId || loadingDetail || detailError) {
       <section class="card hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
         <div class="card-header">
@@ -425,5 +426,6 @@
         </div>
       </section>
     }
+    </div>
   </div>
 }

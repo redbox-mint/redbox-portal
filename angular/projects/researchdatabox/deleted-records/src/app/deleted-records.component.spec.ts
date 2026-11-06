@@ -259,7 +259,7 @@ describe('DeletedRecordsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:1');
-    expect(header.getAttribute('aria-sort')).toBe('ascending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
     const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
       .find(link => link.textContent?.trim() === '2')!;
     pageTwo.click();
@@ -285,7 +285,7 @@ describe('DeletedRecordsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:1');
-    expect(header.getAttribute('aria-sort')).toBe('ascending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
     expect(fixture.nativeElement.textContent).toContain('Ascending');
     expect(component.currentPageNumber).toBe(1);
     (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
@@ -297,7 +297,7 @@ describe('DeletedRecordsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:-1');
-    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('descending');
     expect(fixture.nativeElement.textContent).toContain('Descending latest');
     expect(component.loadError).toBe('');
 
@@ -316,14 +316,14 @@ describe('DeletedRecordsComponent', () => {
     header.click();
     await settle();
     fixture.detectChanges();
-    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('descending');
     rejectConfig({ status: 403 });
     await settle();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(component.loadPending).toBeFalse();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:-1');
-    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('descending');
     expect(fixture.nativeElement.textContent).toContain('Descending latest');
     expect(component.loadError).toContain('Sign in again');
     http.expectNone(req => req.url.includes('listDeletedRecords'));
