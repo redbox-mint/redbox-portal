@@ -48,6 +48,26 @@ describe('ReportConfigComponent', () => {
     component = fixture.componentInstance;
   });
 
+  for (const kind of ['filter', 'column'] as const) {
+    it(`focuses the next ${kind}, then previous, then Add after row removal`, async () => {
+      fixture.detectChanges(); await component.waitForInit(); fixture.detectChanges();
+      component.editReport(component.reports[0]); fixture.detectChanges(); await fixture.whenStable();
+      const add = () => kind === 'filter' ? component.addFilter() : component.addColumn();
+      const remove = (index: number) => kind === 'filter' ? component.removeFilter(index) : component.removeColumn(index);
+      const controls = () => [...fixture.nativeElement.querySelectorAll(`[data-report-row="${kind}"]`)].map((row: any) => row.querySelector('input,select'));
+      add(); add(); fixture.detectChanges();
+      remove(1); fixture.detectChanges(); await fixture.whenStable();
+      await new Promise(resolve => setTimeout(resolve));
+      expect(document.activeElement).toBe(controls()[1]);
+      remove(1); fixture.detectChanges(); await fixture.whenStable();
+      await new Promise(resolve => setTimeout(resolve));
+      expect(document.activeElement).toBe(controls()[0]);
+      remove(0); fixture.detectChanges(); await fixture.whenStable();
+      await new Promise(resolve => setTimeout(resolve));
+      expect(document.activeElement?.id).toBe(`report-add-${kind}`);
+    });
+  }
+
   it('starts deletion on Cancel and restores the overflow trigger after closing', async () => {
     fixture.detectChanges();
     await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();

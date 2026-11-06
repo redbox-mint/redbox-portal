@@ -110,7 +110,7 @@ export class AppConfigComponent extends BaseComponent {
   private resetTrigger?: HTMLElement;
   pendingLeave = '';
   options: FormlyFormOptions = {};
-  private loadedModel: any = {};
+  loadedModel: any = {};
   private currentConfig?: ConfigForm;
   private secretFields: string[] = [];
   private trackingReady = false;
@@ -481,6 +481,11 @@ export class AppConfigComponent extends BaseComponent {
     const element = this.document.getElementById(this.activeSection);
     if (element instanceof HTMLDetailsElement) element.open = true;
     element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const heading = element?.querySelector<HTMLElement>('summary, h2, h3');
+    if (heading) {
+      if (heading.tagName !== 'SUMMARY') heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
   }
 
   @HostListener('window:scroll')

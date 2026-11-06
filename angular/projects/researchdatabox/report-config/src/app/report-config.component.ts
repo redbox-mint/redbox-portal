@@ -212,6 +212,7 @@ export class ReportConfigComponent extends BaseComponent {
 
   removeColumn(index: number): void {
     this.selectedReport?.columns.splice(index, 1);
+    this.focusAfterRemoval('column', index);
   }
 
   addFilter(): void {
@@ -220,6 +221,16 @@ export class ReportConfigComponent extends BaseComponent {
 
   removeFilter(index: number): void {
     this.selectedReport?.filter.splice(index, 1);
+    this.focusAfterRemoval('filter', index);
+  }
+
+  private focusAfterRemoval(kind: 'filter' | 'column', index: number): void {
+    setTimeout(() => {
+      const root: HTMLElement = this.elementRef.nativeElement;
+      const rows = root.querySelectorAll<HTMLElement>(`[data-report-row="${kind}"]`);
+      const row = rows[Math.min(index, rows.length - 1)];
+      (row?.querySelector<HTMLElement>('input, select, textarea, button') ?? root.querySelector<HTMLElement>(`#report-add-${kind}`))?.focus();
+    });
   }
 
   filterTypeChanged(filter: ReportConfigFilterDto): void {

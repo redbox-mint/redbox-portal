@@ -44,6 +44,7 @@
     <div *ngIf="!languages().length && !readWarnings().languages && !readPending().languages" class="rb-admin-empty"><h3>{{ 'admin-tx-no-languages' | i18next }}</h3><p>{{ 'admin-tx-add-hint' | i18next }}</p></div>
     <div class="card-footer" *ngIf="availabilityDirty() || savingLanguages() || saveLanguagesSuccess() || saveLanguagesError()">
       <span role="status">{{ (saveLanguagesError() ? 'admin-tx-settings-error' : saveLanguagesSuccess() ? 'admin-tx-settings-saved' : 'admin-tx-unsaved') | i18next }}</span>
+      <button class="btn btn-outline-secondary" type="button" (click)="confirmAvailabilityDiscard = true" [disabled]="savingLanguages() || !availabilityDirty()">{{ 'admin-discard-changes' | i18next }}</button>
       <button class="btn btn-primary" type="button" (click)="saveLanguages()" [disabled]="savingLanguages() || !availabilityDirty()">{{ (savingLanguages() ? 'admin-tx-saving' : 'admin-tx-save-changes') | i18next }}</button>
     </div>
   </section>
@@ -505,3 +506,5 @@
 <div *ngIf="importModalOpen()" class="modal-backdrop fade show"></div>
 
 @if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="confirmDiscard = false" (discard)="closeModal(true)" /> }
+
+@if (pendingLeave || confirmAvailabilityDiscard) { <rb-admin-discard-dialog (keepEditing)="pendingLeave = ''; confirmAvailabilityDiscard = false" (discard)="discardAvailability()" /> }

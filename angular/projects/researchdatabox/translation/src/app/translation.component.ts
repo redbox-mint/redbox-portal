@@ -1,5 +1,5 @@
 import { AdminPagerComponent, AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
-import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { Component, CSP_NONCE, inject, signal, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -84,6 +84,41 @@ export class AppComponent implements OnInit, OnDestroy {
   defaultLanguage = 'en';
   displayNameLanguage = '';
   availabilityDirty = signal(false);
+  private savedAvailableLanguages: string[] = [];
+  pendingLeave = '';
+  confirmAvailabilityDiscard = false;
+  private allowLeave = false;
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.availabilityDirty() && !this.allowLeave) { event.preventDefault(); event.returnValue = ''; }
+  }
+
+  @HostListener('document:click', ['$event'])
+  confirmNavigation(event: MouseEvent): void {
+    if (!this.availabilityDirty() || this.allowLeave || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+    event.preventDefault();
+    this.pendingLeave = anchor.href;
+  }
+
+  discardAvailability(): void {
+    if (this.savingLanguages()) return;
+    const destination = this.pendingLeave;
+    this.availableLanguages.set([...this.savedAvailableLanguages]);
+    this.editedAvailability.clear();
+    this.availabilityDirty.set(false);
+    this.saveLanguagesError.set(false);
+    this.confirmAvailabilityDiscard = false;
+    this.pendingLeave = '';
+    if (destination) {
+      this.allowLeave = true;
+      window.location.assign(destination);
+    } else {
+      this.onAvailableLanguagesChange();
+    }
+  }
 
   // Entries loaded from the webservice API (include metadata)
   entries = signal<TranslationEntry[]>([]);
@@ -216,6 +251,10 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
       return () => {
+        // A failed retry must not turn an unsaved switch choice into the discard baseline.
+        this.savedAvailableLanguages = codes.filter(code => failed.includes(code)
+          ? this.savedAvailableLanguages.includes(code) || !this.bundleContexts.has(JSON.stringify([namespace, code]))
+          : enabled.includes(code));
         this.availableLanguages.set(codes.filter(code => this.editedAvailability.has(code)
           ? this.availableLanguages().includes(code) : enabled.includes(code)));
         for (const code of codes) this.bundleContexts.add(JSON.stringify([namespace, code]));
@@ -721,6 +760,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
       await Promise.all(updatePromises);
 
+      this.savedAvailableLanguages = [...this.availableLanguages()];
       this.savingLanguages.set(false);
       this.saveLanguagesSuccess.set(true);
       this.editedAvailability.clear();
