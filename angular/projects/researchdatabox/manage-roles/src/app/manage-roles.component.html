@@ -67,17 +67,17 @@
 </div>
 }
 @if (pendingRemoval; as user) {
-  <div [config]="{backdrop: 'static', show: true, keyboard: !saving}" bsModal #removeMemberModal="bs-modal" (onHidden)="pendingRemoval = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="remove-member-title">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin">
+  <div [config]="{backdrop: 'static', show: true, keyboard: !saving}" [rbAdminModal]="removeMemberModal.isShown" bsModal #removeMemberModal="bs-modal" (onHidden)="pendingRemoval = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="remove-member-title">
+    <div class="modal-dialog modal-dialog-centered" *ngIf="removeMemberModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content rb-admin">
       <div class="modal-header"><h2 class="modal-title" id="remove-member-title">{{ 'admin-roles-remove-title' | i18next }}</h2><button type="button" class="btn-close" [disabled]="saving" [attr.aria-label]="'named-query-close' | i18next" (click)="removeMemberModal.hide()"></button></div>
       <div class="modal-body"><p>{{ (user.roles.length <= 1 ? 'admin-roles-replace-confirm' : 'admin-roles-remove-confirm') | i18next: { name: user.name || user.username, role: selectedRole?.name, defaultRole: defaultRole?.name } }}</p>@if (saveError) { <div class="alert alert-danger" role="alert">{{ saveError }}</div> }</div>
-      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="removeMemberModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="saving" (click)="removeMember()">{{ 'admin-roles-remove' | i18next }}</button></div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="saving" cdkFocusInitial (click)="removeMemberModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="saving" (click)="removeMember()">{{ 'admin-roles-remove' | i18next }}</button></div>
     </div></div>
   </div>
 }
 
 @if (blockedRemoval) {
-  <div [config]="{show: true}" bsModal #blockedModal="bs-modal" (onHidden)="blockedRemoval = ''" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="blocked-removal-title">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin"><div class="modal-header"><h2 id="blocked-removal-title" class="modal-title">{{ 'admin-roles-blocked-title' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="blockedModal.hide()"></button></div><div class="modal-body"><p>{{ blockedRemoval | i18next }}</p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" (click)="blockedModal.hide()">{{ 'admin-roles-close' | i18next }}</button></div></div></div>
+  <div [config]="{show: true}" [rbAdminModal]="blockedModal.isShown" bsModal #blockedModal="bs-modal" (onHidden)="blockedRemoval = ''" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="blocked-removal-title">
+    <div class="modal-dialog modal-dialog-centered" *ngIf="blockedModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content rb-admin"><div class="modal-header"><h2 id="blocked-removal-title" class="modal-title">{{ 'admin-roles-blocked-title' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="blockedModal.hide()"></button></div><div class="modal-body"><p>{{ blockedRemoval | i18next }}</p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" (click)="blockedModal.hide()">{{ 'admin-roles-close' | i18next }}</button></div></div></div>
   </div>
 }

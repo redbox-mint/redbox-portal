@@ -403,7 +403,10 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   
   getResolvedLabel(labelKey: string): string {
     if (!this.resolveTranslations || !labelKey) return labelKey;
-    return String(this.translationService.t(labelKey));
+    const translated = String(this.translationService.t(labelKey));
+    if (translated !== labelKey) return translated;
+    const label = labelKey.replace(/^(admin-nav-|menu-)/, '').replace(/[-_]+/g, ' ');
+    return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   getVisibleSections(): AdminSidebarSection[] {

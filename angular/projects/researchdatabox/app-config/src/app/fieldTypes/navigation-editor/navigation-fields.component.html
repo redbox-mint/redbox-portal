@@ -2,15 +2,15 @@
   <div class="rb-admin-form-grid">
     @for (field of fields; track field) {
       <div class="rb-admin-field"><label [for]="prefix + '-' + field">{{ ('admin-navigation-field-' + field) | i18next }}</label>
-        <input class="form-control rb-navigation-mono" type="text" [id]="prefix + '-' + field" [value]="item[field] || ''" (input)="change(field, $any($event.target).value)">
+        <input [attr.cdkFocusInitial]="prefix === 'navigation-child' && field === fields[0] ? '' : null" class="form-control rb-navigation-mono" type="text" [id]="prefix + '-' + field" [value]="item[field] || ''" (input)="change(field, $any($event.target).value)">
         @if (field === 'labelKey' || field === 'titleKey') { <span class="rb-admin-hint">{{ item[field] | i18next }}</span> }
       </div>
     }
   </div>
   @if (kind === 'panel') {
     <div class="rb-navigation-icon-options" role="group" [attr.aria-label]="'admin-navigation-field-iconClass' | i18next">
-      @for (icon of ['icon-checklist icon-3x', 'fa fa-sitemap fa-3x', 'fa fa-laptop fa-3x', 'fa fa-rocket fa-3x', 'fa fa-file fa-3x', 'fa fa-folder fa-3x', 'fa fa-users fa-3x', 'fa fa-cog fa-3x', 'fa fa-search fa-3x', 'fa fa-database fa-3x']; track icon) {
-        <button type="button" class="btn btn-outline-secondary btn-sm" [attr.aria-label]="icon" [attr.aria-pressed]="item.iconClass === icon" (click)="change('iconClass', icon)"><i [class]="icon.replace('3x', 'lg')" aria-hidden="true"></i></button>
+      @for (icon of presetIcons; track icon.css) {
+        <button type="button" class="btn btn-outline-secondary btn-sm" [attr.aria-label]="icon.labelKey | i18next" [title]="icon.labelKey | i18next" [attr.aria-pressed]="item.iconClass === icon.css" (click)="change('iconClass', icon.css)"><i [class]="icon.css.replace('3x', 'lg')" aria-hidden="true"></i></button>
       }
     </div>
   }

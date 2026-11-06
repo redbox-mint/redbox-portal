@@ -142,7 +142,7 @@
     @if (showReset) {
       <div class="modal-backdrop fade show"></div>
       <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="config-reset-title" aria-describedby="config-reset-help" [attr.aria-busy]="formSaving" (keydown.escape)="cancelReset()">
-        <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
           <div class="modal-header"><h2 id="config-reset-title" class="modal-title">{{ 'admin-config-reset-title' | i18next }}</h2><button class="btn-close" type="button" [disabled]="formSaving" [attr.aria-label]="'admin-config-close' | i18next" (click)="cancelReset()"></button></div>
           <div class="modal-body"><p id="config-reset-help">{{ 'admin-config-reset-help' | i18next: { name: ('admin-navigation-tab-' + configKey) | i18next } }}</p></div>
           <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial [disabled]="formSaving" (click)="cancelReset()">{{ 'admin-config-reset-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="formSaving" (click)="resetConfig()">{{ (formSaving ? 'admin-config-resetting' : 'admin-config-reset') | i18next }}</button></div>
@@ -152,7 +152,7 @@
     @if (showJson || pendingLeave) {
       <div class="modal-backdrop fade show"></div>
       <div class="modal d-block" [attr.role]="pendingLeave ? 'alertdialog' : 'dialog'" aria-modal="true" aria-labelledby="config-dialog-title" (keydown.escape)="showJson ? closeJson() : cancelLeave()">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" [class.modal-lg]="showJson" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" [class.modal-lg]="showJson" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
           <div class="modal-header"><h2 class="modal-title" id="config-dialog-title">{{ (showJson ? 'admin-config-view-json' : 'admin-config-leave-title') | i18next }}</h2><button class="btn-close" type="button" [attr.aria-label]="'admin-config-close' | i18next" (click)="showJson ? closeJson() : cancelLeave()"></button></div>
           <div class="modal-body">
             @if (showJson) { <p class="rb-admin-hint">{{ 'admin-config-json-help' | i18next }}</p><pre class="app-config-json" tabindex="0">{{ jsonModel }}</pre> }
