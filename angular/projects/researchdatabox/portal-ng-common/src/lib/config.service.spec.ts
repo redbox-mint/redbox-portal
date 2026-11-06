@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { from } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
-import { APP_BASE_HREF } from '@angular/common'; 
+import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ConfigService } from './config.service';
@@ -219,5 +219,51 @@ describe('ConfigService testing', () => {
   afterEach(() => {
     // After every test, assert that there are no more pending requests.
     httpTestingController.verify();
+  });
+});
+
+
+describe('ConfigService page token bootstrap', () => {
+  let http: HttpTestingController;
+  let page: Document;
+  beforeEach(() => {
+    page = document.implementation.createHTMLDocument();
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [ConfigService, { provide: APP_BASE_HREF, useValue: '/portal' }, { provide: DOCUMENT, useValue: page }]
+    });
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => http.verify());
+
+  for (const token of ['page-session-token', '']) {
+    it(`reuses the page token ${JSON.stringify(token)} once and refreshes from the session on retry`, async () => {
+      const meta = page.createElement('meta');
+      meta.name = 'rb-csrf-token'; meta.content = token; page.head.appendChild(meta);
+      const service = TestBed.inject(ConfigService);
+      const waiting = service.waitForInit();
+      http.expectNone(service.csrfTokenUrl);
+      http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'custom', portal: 'records' });
+      expect((await waiting).csrfToken).toBe(token);
+      expect((await waiting).rootContext).toBe('/portal');
+
+      const retry = service.refreshConfig();
+      http.expectOne(service.csrfTokenUrl).flush({ _csrf: 'new-session-token' });
+      http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'custom', portal: 'records' });
+      expect((await retry).csrfToken).toBe('new-session-token');
+    });
+  }
+
+  it('propagates a config failure after page-token bootstrap and fetches a fresh token for recovery', async () => {
+    page.head.innerHTML = '<meta name="rb-csrf-token" content="old-session-token">';
+    const service = TestBed.inject(ConfigService);
+    const waiting = expectAsync(service.waitForInit()).toBeRejected();
+    http.expectNone(service.csrfTokenUrl);
+    http.expectOne(service.configUrl).flush({}, { status: 403, statusText: 'Forbidden' });
+    await waiting;
+    const retry = service.refreshConfig();
+    http.expectOne(service.csrfTokenUrl).flush({ _csrf: 'fresh-session-token' });
+    http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    expect((await retry).csrfToken).toBe('fresh-session-token');
   });
 });
