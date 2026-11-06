@@ -15,7 +15,7 @@ import { FieldArrayType } from '@ngx-formly/core';
             <button #removeButton type="button" [disabled]="props.disabled" [attr.aria-label]="'admin-config-remove-chip' | i18next: { value: child.formControl?.value }" (click)="remove(i)">×</button>
           </span>
         }
-        <input #entry type="text" [id]="id + '-add'" [disabled]="!!props.disabled" [attr.aria-invalid]="showError || invalidChip || hasInvalidChildren" [attr.aria-describedby]="id + '-hint' + (showError || hasInvalidChildren ? ' ' + id + '-errors' : '')" [placeholder]="'admin-config-chip-placeholder' | i18next" (keydown.enter)="commit($event, entry)" (keydown.comma)="commit($event, entry)" (blur)="commit($event, entry)">
+        <input #entry type="text" [id]="id + '-add'" [disabled]="!!props.disabled" [attr.aria-invalid]="showError || invalidChip || hasInvalidChildren" [attr.aria-describedby]="id + '-hint' + (showError || hasInvalidChildren ? ' ' + id + '-errors' : '')" [placeholder]="'admin-config-chip-placeholder' | i18next" (input)="draftChanged(entry)" (keydown.enter)="commit($event, entry)" (keydown.comma)="commit($event, entry)" (blur)="commit($event, entry)">
       </div>
       <p class="rb-admin-hint" [id]="id + '-hint'">{{ (invalidChip ? 'admin-config-chip-invalid' : 'admin-config-chip-hint') | i18next }}</p>
       <div [id]="id + '-errors'">
@@ -42,10 +42,20 @@ export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDest
 
   ngOnInit(): void {
     this.changes = this.formControl.valueChanges.subscribe(() => {
-      if (this.entry) this.entry.nativeElement.value = '';
+      // Validation emits valueChanges too; retain rejected text until committed or discarded.
+      if (!this.options?.formState?.chipDrafts?.has(this.field) && this.entry) this.entry.nativeElement.value = '';
     });
   }
-  ngOnDestroy(): void { this.changes?.unsubscribe(); }
+  ngOnDestroy(): void {
+    this.changes?.unsubscribe();
+    this.options?.formState?.chipDrafts?.delete(this.field);
+  }
+
+  draftChanged(input: HTMLInputElement): void {
+    const drafts = this.options?.formState?.chipDrafts;
+    if (input.value) drafts?.add(this.field); else drafts?.delete(this.field);
+    if (!input.value.trim() && this.invalidChip) this.formControl.updateValueAndValidity();
+  }
 
   get hasInvalidChildren(): boolean { return !!this.field.fieldGroup?.some(child => child.formControl?.invalid); }
 
@@ -53,6 +63,7 @@ export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDest
 
   commit(event: Event, input: HTMLInputElement): void {
     if (event.type === 'keydown') event.preventDefault();
+    this.draftChanged(input);
     const text = input.value.trim();
     if (!text) {
       if (this.invalidChip) this.formControl.updateValueAndValidity();
@@ -63,6 +74,7 @@ export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDest
     const value = numeric ? Number(text) : normalize ? normalize(text) : text;
     if (normalize && this.model.some((rule: string) => normalize(rule) === value)) {
       input.value = '';
+      this.draftChanged(input);
       return;
     }
     if (numeric && !Number.isFinite(value)) {
@@ -75,5 +87,6 @@ export class ChipsTypeComponent extends FieldArrayType implements OnInit, OnDest
     this.model[this.model.length - 1] = value;
     this.formControl.at(this.formControl.length - 1).setValue(value);
     input.value = '';
+    this.draftChanged(input);
   }
 }

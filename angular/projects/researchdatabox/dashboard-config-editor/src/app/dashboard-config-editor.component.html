@@ -5,10 +5,10 @@
       <li>{{ 'admin-nav-site' | i18next }}</li>
       <li><span aria-current="page">{{ 'admin-nav-dashboard-config' | i18next }}</span></li>
     </ol></nav>
+    <rb-admin-save-shortcut [bar]="saveBar" [dirty]="isDirty" [disabled]="saving || (warnings.length > 0 && !allWarningsAcknowledged)" (save)="save()"></rb-admin-save-shortcut>
     <header class="rb-admin-page-header">
       <div><h1>{{ 'admin-nav-dashboard-config' | i18next }}</h1><p>{{ 'admin-dashboard-description' | i18next }}</p></div>
       <div class="rb-admin-page-actions">
-        <rb-admin-save-shortcut [bar]="saveBar" [dirty]="isDirty" [disabled]="saving || (warnings.length > 0 && !allWarningsAcknowledged)" (save)="save()"></rb-admin-save-shortcut>
         <button type="button" class="btn btn-outline-secondary" (click)="openCopyFrom()" [disabled]="!draft || loading || saving">{{ 'admin-dashboard-copy-settings' | i18next }}</button>
       </div>
     </header>

@@ -54,8 +54,19 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   a { color: var(--rb-anchor-color, #337ab7); }
   .rb-admin-list-name { border: 0; padding: 0; background: transparent; color: var(--rb-anchor-color, #337ab7); font: inherit; text-align: left; cursor: pointer; }
   .rb-admin-list-name:hover { color: var(--rb-anchor-color-hover, #23527c); text-decoration: underline; }
-  .rb-admin-page-actions:has(> rb-admin-save-shortcut:only-child:empty) { display: none; }
-  .rb-admin-save-shortcut { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .rb-admin-list-name code { color: inherit; font-weight: 600; }
+  .app-config-connection-action { display: flex; flex-direction: column; gap: 4px; width: min-content; }
+  .app-config-connection-action .btn { white-space: nowrap; }
+  .app-config-connection-action .rb-admin-hint { margin: 0; }
+  .rb-admin-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  // Fixed positioning keeps the shortcut in reach without inserting a form/header row.
+  rb-admin-save-shortcut { position: fixed; bottom: 16px; right: max(32px, calc((100vw - 248px - 1180px) / 2)); z-index: 30; }
+  .rb-admin-main:has(rb-admin-save-shortcut) { padding-bottom: var(--admin-save-height); }
+  .rb-admin-save-shortcut {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px; font-size: 14px;
+    border: 1px solid var(--admin-control-border); border-radius: 999px; background: var(--admin-bg);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--admin-ink) 16%, transparent);
+  }
   a:hover { color: var(--rb-anchor-color-hover, #23527c); }
 
   .rb-admin-main { min-width: 0; padding: 24px 32px 48px; }
@@ -456,6 +467,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .rb-admin-sidebar-home { grid-column: 1 / -1; }
     .rb-admin-sidebar-section { margin-top: 4px; }
     .rb-admin-main { padding: 24px 20px 40px; }
+    rb-admin-save-shortcut { right: 20px; }
     .rb-admin-section-rail { position: static; max-width: none; }
   }
   @media (max-width: 575.98px) {
