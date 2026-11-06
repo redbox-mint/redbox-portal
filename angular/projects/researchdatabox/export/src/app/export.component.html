@@ -14,7 +14,7 @@
 }
 @if (isReady) {
   <div class="export-app">
-  <div [attr.inert]="pendingDelete ? '' : null"><nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+  <div [attr.inert]="pendingDelete || pendingCancel ? '' : null"><nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
   <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
   <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'admin-export-title' | i18next }}</span></li>
 </ol></nav>
