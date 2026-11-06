@@ -9,17 +9,17 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
       <header class="dc-rule-set-editor-header">
         <div>
           <h4 *ngIf="headingLevel === 4" class="dc-rule-set-editor-title">
-            <i class="fa fa-filter"></i>
+            <i class="fa fa-filter" aria-hidden="true"></i>
             {{ 'admin-dashboard-rule-sets' | i18next }}
           </h4>
           <h5 *ngIf="headingLevel === 5" class="dc-rule-set-editor-title">
-            <i class="fa fa-filter"></i>
+            <i class="fa fa-filter" aria-hidden="true"></i>
             {{ 'admin-dashboard-rule-sets' | i18next }}
           </h5>
           <small class="dc-rule-set-editor-subtitle">{{ 'admin-dashboard-rule-sets-help' | i18next }}</small>
         </div>
         <button type="button" class="btn btn-primary btn-sm" (click)="addRuleSet()">
-          <i class="fa fa-plus"></i>
+          <i class="fa fa-plus" aria-hidden="true"></i>
           {{ 'admin-dashboard-add-rule-set' | i18next }}
         </button>
       </header>
@@ -36,7 +36,7 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
               <label class="form-check-label" [for]="id + '-apply-' + rsIndex">{{ 'admin-dashboard-apply-rule-set' | i18next }}</label>
             </div>
             <button type="button" class="btn btn-sm dc-btn-remove" (click)="removeRuleSet(rsIndex)">
-              <i class="fa fa-trash"></i>
+              <i class="fa fa-trash" aria-hidden="true"></i>
               {{ 'admin-dashboard-remove-rule-set' | i18next }}
             </button>
           </header>
@@ -50,7 +50,7 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
               (remove)="removeRule(rsIndex, rIndex)"
             ></rule-editor>
             <button type="button" class="btn btn-outline-secondary btn-sm dc-add-rule-btn" (click)="addRule(rsIndex)">
-              <i class="fa fa-plus"></i>
+              <i class="fa fa-plus" aria-hidden="true"></i>
               {{ 'admin-dashboard-add-rule' | i18next }}
             </button>
           </div>
@@ -59,7 +59,7 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
 
       <ng-template #emptyTpl>
         <div class="dc-rule-set-empty">
-          <i class="fa fa-filter"></i>
+          <i class="fa fa-filter" aria-hidden="true"></i>
           <p>{{ 'admin-dashboard-no-rule-sets' | i18next }}</p>
         </div>
       </ng-template>

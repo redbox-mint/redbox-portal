@@ -23,7 +23,7 @@ const RECORD_TYPE_FIELD = 'metadata.metaMetadata.type';
   template: `
     <div class="dc-guided-editor">
       <header class="dc-guided-header">
-        <h4><i class="fa fa-object-group"></i> {{ 'admin-dashboard-grouping-title' | i18next }}</h4>
+        <h4><i class="fa fa-object-group" aria-hidden="true"></i> {{ 'admin-dashboard-grouping-title' | i18next }}</h4>
         <p *ngIf="targetKind === 'view'">{{ 'admin-dashboard-grouping-view-help' | i18next }}</p>
         <p *ngIf="targetKind === 'workflow'" class="dc-form-help-warning">{{ 'admin-dashboard-grouping-workflow-help' | i18next }}</p>
       </header>
@@ -75,14 +75,14 @@ const RECORD_TYPE_FIELD = 'metadata.metaMetadata.type';
               <small class="dc-form-help-error" *ngFor="let problem of levelProblems(level, i)">{{ problem }}</small>
             </div>
             <div class="dc-row-actions">
-              <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="move(i, -1)" [disabled]="i === 0" [attr.aria-label]="'admin-dashboard-move-level-up' | i18next"><i class="fa fa-arrow-up"></i></button>
-              <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="move(i, 1)" [disabled]="last" [attr.aria-label]="'admin-dashboard-move-level-down' | i18next"><i class="fa fa-arrow-down"></i></button>
-              <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="remove(i)" [attr.aria-label]="'admin-dashboard-remove-level' | i18next"><i class="fa fa-times"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="move(i, -1)" [disabled]="i === 0" [attr.aria-label]="'admin-dashboard-move-level-up' | i18next"><i class="fa fa-arrow-up" aria-hidden="true"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="move(i, 1)" [disabled]="last" [attr.aria-label]="'admin-dashboard-move-level-down' | i18next"><i class="fa fa-arrow-down" aria-hidden="true"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="remove(i)" [attr.aria-label]="'admin-dashboard-remove-level' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
             </div>
           </li>
         </ol>
         <div *ngIf="levels.length === 0" class="dc-empty-inline">{{ 'admin-dashboard-no-group-levels' | i18next }}</div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="add()"><i class="fa fa-plus"></i> {{ 'admin-dashboard-add-level' | i18next }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="add()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-dashboard-add-level' | i18next }}</button>
       </section>
 
       <datalist [id]="id + '-links'">

@@ -72,7 +72,7 @@ describe('DashboardComponent', () => {
     }
   }
 
-  it('renders the admin party name as escaped text with one explicit View destination', () => {
+  it('escapes admin party names before the template links them to the record view', () => {
     const component = create();
     component.adminParties = true;
     const rows = [{ title: 'Name', variable: 'metadata.fullName', template: '<a href="/record/view/r1">Name</a>' }];
@@ -193,6 +193,14 @@ describe('DashboardComponent', () => {
       fixture.detectChanges();
       await fixture.componentInstance.waitForInit();
       expect(fixture.componentInstance.records.draft.items[0].adminRecordUrl).toBe('https://example.test/custom/portal/record/view/r1');
+      const component = fixture.componentInstance;
+      component.tableConfig['draft'] = [{ variable: 'metadata.fullName', title: 'Name', template: '' }];
+      component.records.draft.items[0]['metadata.fullName'] = 'Party name';
+      fixture.detectChanges();
+      const links = fixture.nativeElement.querySelector('tbody tr').querySelectorAll('a');
+      expect(links.length).toBe(2);
+      expect(links[0].textContent).toBe('Party name');
+      expect(links[0].getAttribute('href')).toBe(links[1].getAttribute('href'));
       fixture.destroy();
     });
 
