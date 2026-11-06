@@ -1,5 +1,5 @@
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Component, Inject } from '@angular/core';
+import { Component, HostListener, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -93,6 +93,14 @@ export class BrandingAdminComponent extends BaseComponent {
     return [...new Set([...Object.keys(saved), ...Object.keys(this.draftConfig)])].filter(
       key => saved[key] !== this.draftConfig[key]
     ).length;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.localChangeCount > 0) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
   }
 
   get draftChangeCount(): number {

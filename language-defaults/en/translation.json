@@ -1,4 +1,8 @@
 {
+  "admin-skip-main": "Skip to main content",
+  "admin-no-filter-results": "No results match your filters",
+  "admin-named-query-empty": "No named queries yet",
+  "admin-harvest-view-run": "View run {{id}} from {{name}}",
   "dashboard-rows-per-page": "{{count}} rows per page",
   "dashboard-heading": "My {{stage}} {{recordTypeName}}",
   "dashboard-heading-one-step": "My {{recordTypeName}}",

@@ -681,4 +681,23 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(fixture.nativeElement.querySelector('.branding-generate').disabled).toBeTrue();
     expect(fixture.nativeElement.querySelector('#primary-hex').getAttribute('aria-invalid')).toBe('true');
   });
+  it('warns on page unload only for unsaved local colour edits', async () => {
+    await initWith(adminState());
+    const clean = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(clean);
+    expect(clean.defaultPrevented).toBeFalse();
+    component.draftConfig['primary'] = '#123456';
+    const dirty = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(dirty);
+    expect(dirty.defaultPrevented).toBeTrue();
+    spyOn(serviceStub, 'saveColourDraft').and.callFake(async (variables: Record<string, string>) => {
+      const state = adminState();
+      state.draft.variables = variables;
+      return state;
+    });
+    await component.saveDraft();
+    const saved = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(saved);
+    expect(saved.defaultPrevented).toBeFalse();
+  });
 });

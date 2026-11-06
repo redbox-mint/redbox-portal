@@ -1,5 +1,6 @@
 <div class="branding-admin" *ngIf="initialized">
   <div [attr.inert]="pendingAction ? '' : null">
+    <div class="rb-admin-save-content">
     <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
       <ol>
         <li>
@@ -538,6 +539,7 @@
       </div>
     </div>
 
+    </div>
     <div class="rb-admin-save-bar">
       <span class="rb-admin-save-state" [class.branding-dirty]="localChangeCount > 0" aria-live="polite"
         ><i
@@ -558,7 +560,7 @@
       <div class="rb-admin-page-actions">
         <button
           type="button"
-          class="btn branding-reset"
+          class="btn btn-outline-danger"
           (click)="pendingAction = 'reset'"
           [disabled]="(!hasDraft && !localChangeCount) || isUnavailable('reset-draft')"
         >
