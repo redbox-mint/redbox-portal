@@ -102,6 +102,11 @@ export class HarvestRunsComponent extends BaseComponent {
     return Object.values(this.eventFilters).some(Boolean) || Object.values(this.appliedEventFilters).some(Boolean);
   }
 
+  get showStatistics(): boolean {
+    return this.loadingStatistics || this.loadingRuns || this.listResponse.records.length > 0 ||
+      !!(this.statistics && (this.statistics.runsLast7Days || this.statistics.runningNow || this.statistics.failedLast7Days || this.statistics.lastSuccessfulRun));
+  }
+
   public get hasFilters(): boolean {
     return Object.values(this.filters).some(Boolean);
   }

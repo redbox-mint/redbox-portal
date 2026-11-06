@@ -14,7 +14,7 @@
 </ol></nav>
 <header class="rb-admin-page-header"><div><h1>{{ 'harvest-runs-heading' | i18next }}</h1><p>{{ 'admin-harvest-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingRuns" (click)="refreshRuns()"><i class="fa fa-refresh" aria-hidden="true"></i> {{ 'export-refresh' | i18next }}</button></div></header>
     @if (statisticsError) { <div class="alert alert-danger" role="alert">{{ statisticsError }}</div> }
-    <div class="rb-admin-stats hr-global-stats" [attr.aria-busy]="loadingStatistics">
+    <div *ngIf="showStatistics" class="rb-admin-stats hr-global-stats" [attr.aria-busy]="loadingStatistics">
       <div class="rb-admin-stat"><b>{{ loadingStatistics ? '—' : (statistics?.runsLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-runs' | i18next }}</span></div>
       <div class="rb-admin-stat"><b>{{ loadingStatistics ? '—' : (statistics?.runningNow ?? '—') }}</b><span>{{ 'harvest-runs-stats-running' | i18next }}</span></div>
       <div class="rb-admin-stat" [class.hr-global-stat--danger]="!loadingStatistics && (statistics?.failedLast7Days ?? 0) > 0"><b>{{ loadingStatistics ? '—' : (statistics?.failedLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-failed' | i18next }}</span></div>
