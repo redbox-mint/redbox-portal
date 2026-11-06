@@ -10,7 +10,7 @@ if (mount) {
     {
       disableTelemetry: true,
       hideDownloadButtons: true,
-      scrollYOffset: 72
+      scrollYOffset: 0
     },
     mount
   );
