@@ -480,7 +480,7 @@ describe('AppConfigComponent', () => {
 
     expect(checkboxLabel).toBeTruthy();
     expect(checkbox).toBeTruthy();
-    expect(checkboxLabel.textContent).toContain('Enabled');
+    expect(checkboxLabel.textContent).toContain('admin-config-on');
   });
 
   it('falls back to the field key when a checkbox label is missing', async () => {
@@ -496,7 +496,7 @@ describe('AppConfigComponent', () => {
     const compiled = fixture.debugElement.nativeElement;
     const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
 
-    expect(checkboxLabel?.textContent).toContain('Enabled');
+    expect(checkboxLabel?.textContent).toContain('admin-config-on');
   });
 
   it('applies the checkbox type to boolean array items', async () => {
@@ -682,6 +682,31 @@ describe('AppConfigComponent', () => {
     fixture.detectChanges();
     return fixture;
   }
+
+  it('gives switches specific names and current state text, and retitles duplicate root sections', async () => {
+    translationService.translationMap['admin-config-enable-setting'] = 'Enable {{setting}}';
+    const fixture = await renderConfig({ title: 'DOI publishing', sections: [{ titleKey: 'DOI publishing', fields: ['connection'] }], schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' }, connection: { type: 'object', properties: { enabled: { type: 'boolean' }, throttling: { type: 'object', properties: { enabled: { type: 'boolean' } } } } }, mapping: { type: 'object', properties: { field: { type: 'string' } } }
+    } }, model: { enabled: false, connection: { enabled: true, throttling: { enabled: false } }, mapping: {} } }, 'doiPublishing');
+    const component = fixture.componentInstance;
+    const switches = Array.from(fixture.nativeElement.querySelectorAll('[role="switch"]')) as HTMLInputElement[];
+    expect(switches.length).toBeGreaterThan(1);
+    expect(new Set(switches.map(input => input.getAttribute('aria-label'))).size).toBe(switches.length);
+    expect(fixture.nativeElement.querySelector('label[for="' + switches[0].id + '"]').textContent).toContain('admin-config-off');
+    expect(component.sections[0].props!.label).toBe('admin-config-general');
+  });
+
+  it('names array-row switches with their current position instead of a wildcard', async () => {
+    translationService.translationMap['admin-config-enable-setting'] = 'Enable {{setting}}';
+    const fixture = await renderConfig({ title: 'DOI publishing', schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' }, profiles: { type: 'array', items: { type: 'object', properties: { enabled: { type: 'boolean' } } } },
+      connection: { type: 'object', properties: { url: { type: 'string' } } }
+    } }, model: { enabled: true, profiles: [{ enabled: true }, { enabled: false }], connection: {} } }, 'doiPublishing');
+    const names = Array.from(fixture.nativeElement.querySelectorAll('[role="switch"]') as NodeListOf<HTMLInputElement>).map((input: HTMLInputElement) => input.getAttribute('aria-label'));
+    expect(names).toContain('Enable Profiles 1');
+    expect(names).toContain('Enable Profiles 2');
+    expect(names.some(name => name?.includes('*'))).toBeFalse();
+  });
 
   async function renderConnectionTester(key = 'figsharePublishing') {
     return renderConfig({ schema: { type: 'object', properties: {

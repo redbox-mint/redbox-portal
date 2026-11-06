@@ -8,7 +8,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
     @if (props['collapsible']) {
       <details class="rb-admin-form-section" [id]="props['sectionId']" [open]="props['expanded']" (toggle)="toggle($event)">
         <summary class="rb-admin-form-section-header">
-          <div class="app-config-section-title"><h3>{{ props.label }}</h3>
+          <div class="app-config-section-title"><h2>{{ props.label }}</h2>
             @if (props['expanded'] && props.description) { <p>{{ props.description }}</p> }
             @if (!props['expanded']) { <p class="app-config-summary">{{ props['summary']() || ('admin-config-no-values' | i18next) }}</p> }
           </div>
@@ -21,7 +21,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
       </details>
     } @else {
       <section class="rb-admin-form-section" [id]="props['sectionId']">
-        <div class="rb-admin-form-section-header"><div><h3>{{ props.label }}</h3>
+        <div class="rb-admin-form-section-header"><div><h2>{{ props.label }}</h2>
           @if (props.description) { <p>{{ props.description }}</p> }
         </div>
           @if (enabledField; as enabled) { <formly-field [field]="enabled"></formly-field> }
