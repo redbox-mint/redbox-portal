@@ -175,6 +175,23 @@ describe('AppComponent (translation)', () => {
     expect(comp.show).toBe('all'); expect(comp.pageEntries().length).toBe(4);
   });
 
+  it('makes the portal background inert while the import dialog is open', async () => {
+    const background = document.createElement('button');
+    document.body.appendChild(background);
+    const { comp, fixture } = create();
+    try {
+      fixture.detectChanges(); await fixture.whenStable();
+      comp.openImport(); fixture.detectChanges(); await fixture.whenStable();
+      expect(background.inert).toBeTrue();
+      expect(document.activeElement?.id).toBe('tx-import-file');
+      comp.closeImport(); fixture.detectChanges(); await fixture.whenStable();
+      expect(background.inert).toBeFalse();
+    } finally {
+      fixture.destroy();
+      background.remove();
+    }
+  });
+
   it('previews a JSON file before applying and escapes the diff sample', async () => {
     const { comp, fixture } = create(); fixture.detectChanges(); await fixture.whenStable();
     const preview = spyOn(translationService, 'previewTranslationImport').and.callThrough();
