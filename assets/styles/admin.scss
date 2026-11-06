@@ -209,8 +209,10 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .nav-tabs { border-bottom-color: var(--admin-line); margin-bottom: 20px; gap: 2px; }
   .nav-tabs .nav-link { color: var(--admin-muted); border: 0; border-bottom: 3px solid var(--admin-bg); padding: 10px 14px; font-weight: 600; }
   .nav-tabs .nav-link.active { background: var(--admin-bg); color: var(--admin-brand); border-bottom-color: var(--admin-brand); }
-  .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 0; padding: 0; list-style: none; }
-  .page-link { color: var(--admin-ink); background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: 4px; font-size: 13px; }
+  pagination { display: block; }
+  .card-footer > :is(nav, pagination) { margin: 0; }
+  .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .page-link { min-width: 32px; padding: 5px 8px; text-align: center; color: var(--admin-ink); background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: 4px; font-size: 13px; }
   .active > .page-link { background: var(--admin-heading); border-color: var(--admin-heading); color: var(--admin-bg); }
 
   .rb-admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -299,7 +301,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-subsection { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--admin-line); }
     .app-config-subsection:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
     .app-config-subsection-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-    .app-config-subsection h4 { font-size: 15px; margin: 0; }
+    .app-config-subsection-header h3 { font-size: 15px; margin: 0; }
     .app-config-subsection .app-config-subsection { padding-left: 0; padding-right: 0; }
     .app-config-section-title { min-width: 0; }
     .app-config-summary { overflow-wrap: anywhere; }
@@ -501,3 +503,14 @@ body:has(.rb-admin.admin-layout) {
 }
 
 html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-height, 120px) + 24px); }
+
+.rb-admin {
+  .people-table .rb-admin-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28ch; }
+  .nq-more-consumers { display: none; }
+  @media (max-width: 991px) {
+    .people-table .rb-admin-email { max-width: 23ch; }
+    .nq-consumers .nq-extra-consumer { display: none; }
+    .nq-more-consumers { display: block; }
+    .nq-consumers a { display: inline-block; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+  }
+}

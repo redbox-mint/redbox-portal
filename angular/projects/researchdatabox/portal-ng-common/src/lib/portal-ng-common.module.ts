@@ -20,6 +20,7 @@ import { ReportService } from './report.service';
 import { HeaderSortComponent } from "./header-sort.component";
 import { I18NextPipe } from './i18next.pipe';
 import { PlainTextLabelPipe } from './plain-text-label.pipe';
+import { AdminCountPipe } from './admin-count.pipe';
 import { AdminDatePipe } from './admin-date.pipe';
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
@@ -64,12 +65,14 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     I18NextPipe,
     PlainTextLabelPipe,
     AdminDatePipe,
+    AdminCountPipe,
     PaginationModule.forRoot()
   ],
   exports: [
     I18NextPipe,
     PlainTextLabelPipe,
     AdminDatePipe,
+    AdminCountPipe,
     PaginationModule,
     RecordTableComponent,
     HeaderSortComponent,
