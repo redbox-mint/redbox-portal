@@ -46,6 +46,14 @@ describe('section summaries', () => {
     expect(sectionSummaryParts(fields, { enabled: false, url: 'https://example.test', name: 'Production', secret: 'hidden' }, booleans))
       .toEqual([{ label: 'Base URL', value: 'https://example.test', mono: true }, { label: 'Name', value: 'Production', mono: false }]);
   });
+  it('keeps full URL punctuation and formats URL and metadata paths as code', () => {
+    expect(sectionSummaryParts([field('id'), field('articleUrls', 'app-config-chips')], {
+      id: 'https://www.redboxresearchdata.com.au', articleUrls: ['metadata.figshare_article_location']
+    }, booleans)).toEqual([
+      { label: 'id', value: 'https://www.redboxresearchdata.com.au', mono: true },
+      { label: 'articleUrls', value: 'metadata.figshare_article_location', mono: true }
+    ]);
+  });
   it('deduplicates repeated binding settings across sibling objects without dropping distinct values', () => {
     const binding = (key: string) => ({ key, fieldGroup: [field('type', 'enum', { label: 'Binding type' })] });
     expect(sectionSummaryParts([binding('title'), binding('description'), binding('licence')],

@@ -22,7 +22,7 @@ class MockI18NextPipe implements PipeTransform {
 }
 import { TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF, CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { AppConfigComponent } from './app-config.component';
 import { UtilityService, LoggerService, UserService, TranslationService, ConfigService, AppConfigService } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService } from 'projects/researchdatabox/portal-ng-common/src/lib/helper.spec';
@@ -461,7 +461,7 @@ describe('AppConfigComponent', () => {
     
   });
 
-  it('renders boolean fields with the checkbox next to the label', async () => {
+  it('renders the master boolean in the page header pill', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
     const app = fixture.componentInstance;
 
@@ -475,7 +475,7 @@ describe('AppConfigComponent', () => {
     expect(enabledField?.wrappers).toEqual([]);
 
     const compiled = fixture.debugElement.nativeElement;
-    const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
+    const checkboxLabel = compiled.querySelector('.app-config-page-switch');
     const checkbox = checkboxLabel?.querySelector('input[type="checkbox"]');
 
     expect(checkboxLabel).toBeTruthy();
@@ -494,7 +494,7 @@ describe('AppConfigComponent', () => {
     fixture.detectChanges();
 
     const compiled = fixture.debugElement.nativeElement;
-    const checkboxLabel = compiled.querySelector('.app-config-checkbox-label');
+    const checkboxLabel = compiled.querySelector('.app-config-page-switch');
 
     expect(checkboxLabel?.textContent).toContain('admin-config-on');
   });
@@ -697,6 +697,39 @@ describe('AppConfigComponent', () => {
     expect(options.map(option => option.textContent?.trim())).toContain('Custom JSONata mapping');
     expect(fixture.componentInstance.model.provider).toBe('googleAnalytics');
     expect(fixture.nativeElement.querySelectorAll('.app-config-mono input').length).toBe(2);
+  });
+
+  it('keeps required validation for active settings and suspends it for disabled page and nested settings', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', required: ['title'], properties: {
+      enabled: { type: 'boolean' }, title: { type: 'string' },
+      settings: { type: 'object', required: ['url'], properties: { enabled: { type: 'boolean' }, url: { type: 'string' } } },
+      mapping: { type: 'object', properties: { field: { type: 'string' } } }
+    } }, model: { enabled: true, title: 'Saved', settings: { enabled: true, url: '' }, mapping: {} } }, 'doiPublishing');
+    const app = fixture.componentInstance;
+    expect(app.form.invalid).toBeTrue();
+    const settings = app.form.get('settings')!;
+    (settings.get('enabled')! as unknown as FormControl).setValue(false); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(settings.get('url')!.valid).toBeTrue();
+    (app.form.get('title')! as unknown as FormControl).setValue(''); fixture.detectChanges(); await fixture.whenStable();
+    expect(app.form.invalid).toBeTrue();
+    app.setEnabled({ target: { checked: false } } as any); fixture.detectChanges(); await fixture.whenStable();
+    expect(app.form.valid).toBeTrue();
+    await app.onSubmit(app.model); expect(appConfigService.lastSavedModel.enabled).toBeFalse();
+    app.setEnabled({ target: { checked: true } } as any); fixture.detectChanges(); await fixture.whenStable();
+    expect(app.form.get('title')!.invalid).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('places the address tester before the final save bar and announces unsaved state only in a badge', async () => {
+    const fixture = await renderAddressTester();
+    const tester = fixture.nativeElement.querySelector('.app-config-address-tester');
+    const save = fixture.nativeElement.querySelector('.rb-admin-save-bar');
+    expect(tester.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(tester.querySelector('.rb-admin-form-section-header p').hasAttribute('aria-live')).toBeFalse();
+    expect(tester.querySelector('.rb-admin-form-section-header .badge')).toBeNull();
+    fixture.componentInstance.model.domainsAaf.push('new.example'); fixture.detectChanges();
+    expect(tester.querySelector('.rb-admin-form-section-header [role="status"] .badge').textContent).toContain('admin-config-address-unsaved');
+    fixture.destroy();
   });
 
   it('renders summary labels normally, code values inline and no duplicate enabled state', async () => {

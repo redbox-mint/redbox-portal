@@ -15,7 +15,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
           @if (enabledField; as enabled) { <formly-field [field]="enabled"></formly-field> }
         </div>
         @if (props.description) { <p class="rb-admin-hint">{{ props.description }}</p> }
-        <div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div>
+        <div [class.app-config-settings-off]="enabledField?.formControl?.value === false">@if (enabledField?.formControl?.value === false) { <p class="rb-admin-hint">{{ 'admin-config-off-kept' | i18next }}</p> }<div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div></div>
       </section>
     }
     <ng-template #body>

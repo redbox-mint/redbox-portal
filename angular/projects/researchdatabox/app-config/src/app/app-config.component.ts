@@ -295,6 +295,11 @@ export class AppConfigComponent extends BaseComponent {
           return child;
         };
       }
+      const required = field.expressions?.['props.required'] ?? field.props.required;
+      if (required !== undefined && (typeof required === 'boolean' || typeof required === 'function')) {
+        field.expressions = { ...field.expressions, 'props.required': current =>
+          !this.settingIsOff(current) && (typeof required === 'function' ? required(current) : required) };
+      }
       if (field.fieldGroup) this.decorateFields(field.fieldGroup, path);
       if (typeof arrayFactory === 'function') {
         // Formly creates array item fields lazily, including items added after loading.
@@ -389,14 +394,16 @@ export class AppConfigComponent extends BaseComponent {
       return section;
     });
     this.activeSection = 'config-section-0';
-    if (enabled && !this.longForm && this.configKey !== 'authorizedDomainsEmails' && this.sections.length) {
-      this.sections[0].fieldGroup!.unshift(enabled);
-      if (this.configKey === 'systemMessage') {
-        enabled.props!.label = this.translationService.t('admin-config-show-banner');
-        this.sections[0].props!.description = this.translationService.t('admin-config-banner-help');
-      }
+    root.fieldGroup = [...(enabled ? [enabled] : []), ...this.sections, ...children.filter(field => field.hide)];
+  }
+
+  private settingIsOff(field: FormlyFieldConfig): boolean {
+    if (this.model.enabled === false) return true;
+    for (let parent = field.parent; parent; parent = parent.parent) {
+      const enabled = parent.fieldGroup?.find(child => child.key === 'enabled');
+      if (enabled?.formControl?.value === false) return true;
     }
-    root.fieldGroup = [...(enabled && (this.longForm || this.configKey === 'authorizedDomainsEmails') ? [enabled] : []), ...this.sections, ...children.filter(field => field.hide)];
+    return false;
   }
 
   private addressState() {
@@ -445,8 +452,9 @@ export class AppConfigComponent extends BaseComponent {
 
   setEnabled(event: Event): void {
     const value = (event.target as HTMLInputElement).checked;
-    this.enabledField?.formControl?.setValue(value);
     this.model.enabled = value;
+    this.enabledField?.formControl?.setValue(value);
+    this.options.checkExpressions?.(this.fields[0]);
   }
 
   discard(): void {
