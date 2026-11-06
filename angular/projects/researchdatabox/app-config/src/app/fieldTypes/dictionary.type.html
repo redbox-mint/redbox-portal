@@ -5,8 +5,9 @@
     <div class="rb-admin-empty"><p>{{ 'admin-config-dictionary-empty' | i18next }}</p></div>
   }
   @for (child of field.fieldGroup; track child; let i = $index) {
-    <details class="app-config-dictionary-entry" [open]="child.props?.['entryExpanded']" (toggle)="child.props!['entryExpanded'] = $any($event.target).open">
+    <details class="app-config-dictionary-entry" [open]="child.props?.['entryExpanded']" (toggle)="toggleEntry(child, $event)">
       <summary><strong class="rb-admin-mono">{{ entryKey(child) }}</strong><span class="rb-admin-hint rb-admin-mono">{{ summary(child) }}</span>@if (child.formControl?.invalid) { <span class="badge rb-admin-badge-warning">{{ 'admin-config-dictionary-check' | i18next }}</span> }<span class="app-config-dictionary-toggle">{{ (child.props?.['entryExpanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!child.props?.['entryExpanded']" [class.fa-angle-up]="child.props?.['entryExpanded']" aria-hidden="true"></i></span></summary>
+      @if (child.props?.['entryExpanded'] || child.props?.['entryRendered']) {
       <div class="app-config-dictionary-body">
         <div class="rb-admin-field">
           <label [for]="id + '-key-' + i">{{ 'admin-config-dictionary-key' | i18next }}</label>
@@ -22,6 +23,7 @@
         </div>
         <formly-field [field]="child"></formly-field>
       </div>
+      }
     </details>
   }
   @if (adding) {
