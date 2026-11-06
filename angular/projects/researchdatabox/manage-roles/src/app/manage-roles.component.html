@@ -80,3 +80,5 @@
     <div class="modal-dialog modal-dialog-centered" #blockedModalTrap="cdkTrapFocus" [cdkTrapFocus]="blockedModal.isShown" [cdkTrapFocusAutoCapture]="true"><div class="modal-content rb-admin"><div class="modal-header"><h2 id="blocked-removal-title" class="modal-title">{{ 'admin-roles-blocked-title' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="blockedModal.hide()"></button></div><div class="modal-body"><p>{{ blockedRemoval | i18next }}</p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" (click)="blockedModal.hide()">{{ 'admin-roles-close' | i18next }}</button></div></div></div>
   </div>
 }
+
+@if (pendingRole) { <rb-admin-discard-dialog (keepEditing)="pendingRole = null" (discard)="discardDescription()"></rb-admin-discard-dialog> }

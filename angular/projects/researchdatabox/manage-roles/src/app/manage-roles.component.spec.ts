@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
-import { AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
 import { APP_BASE_HREF } from '@angular/common'; 
@@ -62,7 +62,7 @@ describe('AppComponent', () => {
       declarations: [
         ManageRolesComponent
       ],
-      imports: [AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
+      imports: [AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ModalModule.forRoot(),
         I18NextPipe
@@ -91,6 +91,25 @@ describe('AppComponent', () => {
     
     TestBed.inject(UserService);
     await testModule.compileComponents();
+  });
+
+  it('switches unchanged descriptions and asks before discarding a dirty description', async () => {
+    const fixture = TestBed.createComponent(ManageRolesComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit();
+    const first = app.selectedRole!;
+    const second = { ...first, id: 'other', name: 'Other', description: 'Saved' };
+    app.startDescriptionEdit(); app.selectRole(second);
+    expect(app.selectedRole).toBe(second);
+    app.startDescriptionEdit(); app.descriptionDraft = 'Changed'; app.selectRole(first);
+    expect(app.selectedRole).toBe(second);
+    expect(app.pendingRole).toBe(first);
+    app.pendingRole = null;
+    expect(app.descriptionDraft).toBe('Changed');
+    app.selectRole(first); app.discardDescription();
+    expect(app.selectedRole).toBe(first);
+    expect(app.editingDescription).toBeFalse();
+    fixture.destroy();
   });
 
   it('shows an initial read error and recovers with retry', async () => {

@@ -101,6 +101,20 @@ export class ManageUsersComponent extends BaseComponent {
   sortUsers(): void { this.order = this.order === 'asc' ? 'desc' : 'asc'; void this.onFilterChange(); }
   private usersRequest = 0;
   pendingUserAction: { kind: 'disable' | 'revoke'; user: ManageUser } | null = null;
+  confirmDiscard: 'details' | 'new' | null = null;
+  private detailsSnapshot = '';
+  private newSnapshot = '';
+
+  get detailsDirty(): boolean { return !!this.updateUserForm && JSON.stringify(this.updateUserForm.getRawValue()) !== this.detailsSnapshot; }
+  get newDirty(): boolean { return !!this.newUserForm && JSON.stringify(this.newUserForm.getRawValue()) !== this.newSnapshot; }
+
+  keepEditing(): void { this.confirmDiscard = null; this.detailsDestination = null; }
+  discardEditor(): void {
+    const editor = this.confirmDiscard;
+    this.confirmDiscard = null;
+    if (editor === 'details') this.hideDetailsModal(true);
+    if (editor === 'new') this.hideNewUserModal(true);
+  }
   actionPending = false;
   actionError = '';
   keyPending = false;
@@ -245,6 +259,8 @@ export class ManageUsersComponent extends BaseComponent {
         roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
       });
 
+      this.newSnapshot = JSON.stringify(this.newUserForm.getRawValue());
+
       newRolesControlArray.valueChanges.subscribe((v) => {
         this.newUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
@@ -282,6 +298,8 @@ export class ManageUsersComponent extends BaseComponent {
         allRoles: updateRolesControlArray,
         roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
       });
+
+      this.detailsSnapshot = JSON.stringify(this.updateUserForm.getRawValue());
 
       updateRolesControlArray.valueChanges.subscribe((v) => {
         this.updateUserForm?.controls['roles'].setValue(this.mapRoles(v));
@@ -350,7 +368,9 @@ export class ManageUsersComponent extends BaseComponent {
     this.userDetailsModal?.show();
   }
 
-  hideDetailsModal(): void {
+  hideDetailsModal(force = false): void {
+    if (this.pendingUserAction || this.confirmDiscard) return;
+    if (!force && this.detailsDirty) { this.confirmDiscard = 'details'; return; }
     if (!_.isUndefined(this.userDetailsModal)) {
       this.userDetailsModal.hide();
     }
@@ -376,7 +396,9 @@ export class ManageUsersComponent extends BaseComponent {
 
   }
 
-  hideNewUserModal(): void {
+  hideNewUserModal(force = false): void {
+    if (this.confirmDiscard) return;
+    if (!force && this.newDirty) { this.confirmDiscard = 'new'; return; }
     if (!_.isUndefined(this.userNewModal)) {
       this.userNewModal.hide();
     }
@@ -486,7 +508,7 @@ export class ManageUsersComponent extends BaseComponent {
 
     const saveRes = await this.userService.updateUserDetails(user.userid, details) as unknown as SaveResponse;
     if (saveRes.status) {
-      this.hideDetailsModal();
+      this.hideDetailsModal(true);
       await this.refreshUsers();
       this.setUpdateMessage();
     } else {
@@ -511,7 +533,7 @@ export class ManageUsersComponent extends BaseComponent {
     this.setNewUserMessage(this.translationService.t('admin-users-saving'), 'info');
     const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
     if (saveRes.status) {
-      this.hideNewUserModal();
+      this.hideNewUserModal(true);
       await this.refreshUsers();
       this.setNewUserMessage();
     } else {
