@@ -217,13 +217,25 @@ describe('RecordTableComponent', () => {
     fixture.nativeElement.querySelector('.view-record').click();
     expect(source.recordTableAction).toHaveBeenCalledWith(jasmine.anything(), currentPage.records[0], 'view');
     const headers = fixture.nativeElement.querySelectorAll('header-sort button');
+    expect(headers[0].hasAttribute('aria-sort')).toBeFalse();
+    expect(headers[0].querySelector('.fa-sort')).toBeTruthy();
     headers[0].click();
     await settle();
-    expect(headers[0].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th').getAttribute('aria-sort')).toBe('ascending');
     headers[1].click();
     await settle();
-    expect(headers[0].getAttribute('aria-sort')).toBeNull();
-    expect(headers[1].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th').getAttribute('aria-sort')).toBeNull();
+    expect(headers[1].closest('th').getAttribute('aria-sort')).toBe('ascending');
     expect(source.headerSortChanged).toHaveBeenCalledWith(jasmine.objectContaining({ variable: 'tags', sort: 'asc' }), component.columnConfig[1]);
   });
+  it('omits empty admin tables while preserving ordinary portal table headers', async () => {
+    currentPage = { records: [], total: 0, pageNum: 1 };
+    component.adminPresentation = true;
+    await render();
+    expect(fixture.nativeElement.querySelector('thead')).toBeNull();
+    component.adminPresentation = false;
+    await settle();
+    expect(fixture.nativeElement.querySelector('thead')).toBeTruthy();
+  });
+
 });
