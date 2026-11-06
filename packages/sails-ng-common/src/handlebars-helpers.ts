@@ -462,7 +462,9 @@ export const handlebarsHelperDefinitions = {
    *    Then the operation duration, or operation unit, or handlebars options.
    */
   dateModify: function (...args: unknown[]): string {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
 
     const failResult = args.length > 0 && typeof args[0] === 'string' ? args[0] : '';
     try {
@@ -609,7 +611,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (and condition1 condition2)}}both true{{/if}}
    */
   and: function (...args: unknown[]): boolean {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     return args.every(Boolean);
   },
 
@@ -620,7 +624,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (or condition1 condition2)}}at least one true{{/if}}
    */
   or: function (...args: unknown[]): boolean {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     return args.some(Boolean);
   },
 
@@ -730,8 +736,8 @@ export const handlebarsHelperDefinitions = {
       return '';
     }
 
-    if (isHandlebarsOptionsArg(separator) || !separator) {
-      separator = ', ';
+    if (isHandlebarsOptionsArg(separator) || separator === null) {
+      separator = undefined;
     }
     return arr.join(separator);
   },
@@ -748,7 +754,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{join (pluck record.metadata.creators "email") ","}}
    */
   pluck: function (...args: unknown[]): unknown[] {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     if (args.length === 0 || !_isArray(args[0])) {
       return [];
     }
@@ -837,7 +845,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{concat prefix value suffix}}
    */
   concat: function (...args: unknown[]): string {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     return args.map(String).join('');
   },
 
@@ -923,7 +933,9 @@ export const handlebarsHelperDefinitions = {
    * @param args The values to get as an array.
    */
   asArray: function (...args: unknown[]): unknown[] {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     if (args.length === 0) {
       return [];
     }
@@ -947,7 +959,9 @@ export const handlebarsHelperDefinitions = {
    * @param args
    */
   flattenArray: function (...args: unknown[]): unknown[] {
-    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     if (args.length === 0) {
       return [];
     }
