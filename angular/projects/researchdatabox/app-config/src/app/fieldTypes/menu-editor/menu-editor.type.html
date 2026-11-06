@@ -7,7 +7,7 @@
 <button type="button" [attr.aria-pressed]="isExpanded(items.indexOf(item))" (click)="jumpTo(items.indexOf(item))">{{ getResolvedLabel(item.labelKey) }}@if (item.children?.length) { ▾ }</button>
 }
 @if (showSearch) { <span class="rb-navigation-preview-search"><i class="fa fa-search" aria-hidden="true"></i> {{ 'admin-navigation-search' | i18next }}</span> }
-</div><p class="rb-admin-hint mt-2">{{ 'admin-navigation-preview-help' | i18next }}</p><h3>{{ 'admin-navigation-menu-tree' | i18next }}</h3><ul class="rb-navigation-tree">
+</div><p class="rb-admin-hint mt-2">{{ 'admin-navigation-preview-help' | i18next }}</p><h2 class="rb-navigation-tree-title">{{ 'admin-navigation-menu-tree' | i18next }}</h2><ul class="rb-navigation-tree">
 @for (item of items; track $index; let i = $index) {
 <li><button type="button" (click)="jumpTo(i)">{{ getResolvedLabel(item.labelKey) }}</button>@if (item.children?.length) { <ul>@for (child of item.children; track $index; let ci = $index) { <li><button type="button" (click)="selectParent(i); openChildEditor(i, ci)">{{ getResolvedLabel(child.labelKey) }}</button></li> }</ul> }</li>
 }

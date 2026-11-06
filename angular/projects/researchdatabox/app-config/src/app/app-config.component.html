@@ -96,7 +96,7 @@
                 <div class="app-config-banner-preview">
                   <div class="app-config-preview-body">
                     <div class="alert rb-system-message app-config-preview-message" [class.rb-system-message-info]="messageStyle === 'info'" [class.rb-system-message-warning]="messageStyle === 'warning'" [class.rb-system-message-critical]="messageStyle === 'critical'" [attr.role]="messageStyle === 'critical' ? 'alert' : 'status'" [class.alert-dismissible]="model.dismissalDurationHours > 0">
-                      <div><h4 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h4><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
+                      <div><h3 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h3><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
                       @if (model.dismissalDurationHours > 0) { <button type="button" class="btn-close" disabled [attr.aria-label]="'admin-config-dismiss-preview' | i18next"></button> }
                     </div>
                     <p class="rb-admin-hint">{{ (loadedModel.enabled ? 'admin-config-banner-live' : 'admin-config-banner-off') | i18next }}</p>
