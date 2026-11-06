@@ -1,14 +1,14 @@
 @if (isReady && dataSource) {
   @if (dataSource.getCurrentPage(); as currentPage) {
     <div [class.table-responsive]="adminPresentation" [class.row]="!adminPresentation">
-      @if (columnConfig) {
+      @if (columnConfig && (!adminPresentation || currentPage.records.length)) {
         <table class="table" [class.table-hover]="adminPresentation">
           <thead>
             <tr>
               @if (selectionHeaderTemplate) { <th><ng-container [ngTemplateOutlet]="selectionHeaderTemplate"></ng-container></th> }
               @for (col of columnConfig; track col) {
                 @if (!col.hide) {
-                  <th>
+                  <th scope="col" [attr.aria-sort]="enableSort && col.sortable !== false ? columnSort(col.property) : null">
                     @if (enableSort && col.sortable !== false) {
                       <header-sort
                         [title]="col.label | i18next"

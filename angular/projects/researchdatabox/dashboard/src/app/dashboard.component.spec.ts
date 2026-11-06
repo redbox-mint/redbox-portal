@@ -438,4 +438,19 @@ describe('DashboardComponent', () => {
     expect(component.workflowSteps).toEqual([]);
     expect(recordService.getRecords).not.toHaveBeenCalled();
   });
+  it('shows only the active column direction when multiple initial directions are configured', () => {
+    const component = create();
+    const rows = [{ variable: 'title' }, { variable: 'email' }];
+    component.tableConfig['draft'] = rows as any;
+    component.sortMap['draft'] = {
+      title: { sort: 'desc' }, email: { sort: 'asc', defaultSort: true }
+    };
+    const step = { name: 'draft', config: { workflow: { stage: 'draft' } } };
+    expect(component.getSortStateFromSortMap(component.sortMap, step, rows[0])).toBe('');
+    expect(component.sortAria(step, rows[0])).toBeNull();
+    expect(component.getSortStateFromSortMap(component.sortMap, step, rows[1])).toBe('asc');
+    expect(component.sortAria(step, rows[1])).toBe('ascending');
+    expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('email:1');
+  });
+
 });

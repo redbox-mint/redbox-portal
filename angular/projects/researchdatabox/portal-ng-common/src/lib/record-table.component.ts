@@ -178,6 +178,11 @@ export class RecordTableComponent extends BaseComponent {
     }
   }
 
+  columnSort(property: string): string | null {
+    const sort = this.headerSortItems?.find(item => item.variable === property)?.sort;
+    return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null;
+  }
+
   async headerSortChanged(event: any, data: any) {
     // Reset the sort order for all headers, except the header that was clicked.
     this.headerSortItems?.forEach(item => {
