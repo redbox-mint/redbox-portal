@@ -7,7 +7,7 @@
     <div><h1>{{ 'figshare-vocab-page-title' | i18next }}</h1><p>{{ 'figshare-vocab-page-description' | i18next }}</p></div>
     <div class="rb-admin-page-actions">
       <a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/appconfig/edit/figsharePublishing'">{{ 'figshare-vocab-publishing-settings' | i18next }}</a>
-      <button type="button" class="btn btn-primary" (click)="startImport()"><span aria-hidden="true">+</span> {{ 'figshare-vocab-add-action' | i18next }}</button>
+      <button type="button" class="btn btn-primary" (click)="startImport()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'figshare-vocab-add-action' | i18next }}</button>
     </div>
   </header>
   <div class="rb-admin-stats">
@@ -99,11 +99,12 @@
   }
   @case ('history') {
   <div class="card">
-    <div class="card-header"><h2>{{ 'figshare-vocab-tab-history' | i18next }}</h2></div>
+    <div class="card-header"><h2>{{ 'figshare-vocab-tab-history' | i18next }}</h2><span>{{ filteredSyncRuns.length | adminCount: 'run': syncRuns.length }}</span></div>
     <div class="rb-admin-filter-bar">
       <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-history-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-history-search" type="search" class="form-control" [(ngModel)]="historySearch" [placeholder]="'admin-filter-search-placeholder' | i18next" /></div>
       <div class="rb-admin-field"><label for="figshare-history-source">{{ 'figshare-vocab-source-column-source' | i18next }}</label><select id="figshare-history-source" class="form-select" [ngModel]="historySourceId" (ngModelChange)="filterHistorySource($event)"><option value="">{{ 'figshare-vocab-all-sources' | i18next }}</option>@for (source of sources; track source.id) {<option [value]="source.id">{{ source.displayName }}</option>}</select></div>
-    </div>
+    <button *ngIf="historySearch || historySourceId" type="button" class="btn rb-admin-ghost" (click)="historySearch = ''; filterHistorySource('')">{{ 'admin-report-clear' | i18next }}</button>
+  </div>
     @if (historyLoading) {
     <div class="card-body" role="status">{{ 'figshare-vocab-loading' | i18next }}</div>
     } @else if (filteredSyncRuns.length === 0) {
@@ -115,6 +116,7 @@
       <tbody>@for (run of filteredSyncRuns; track run.id) {<tr><td><span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-run-state-' + run.state | i18next }}</span></td><td>{{ scopeLabelKey(run.scope) | i18next }} · {{ run.taxonomyId }}</td><td>{{ run.requestedBy }}</td><td>{{ formatDate(run.appliedAt) || '—' }}</td></tr>}</tbody>
     </table></div>
     }
+    <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: filteredSyncRuns.length ? 1 : 0, end: filteredSyncRuns.length, total: filteredSyncRuns.length } }}</div>
   </div>
   }
   @case ('import') {

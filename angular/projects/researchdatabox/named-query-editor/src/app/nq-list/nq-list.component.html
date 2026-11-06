@@ -1,5 +1,5 @@
 <section class="card">
-  <div class="card-header"><h2>{{ 'named-query-list-title' | i18next }}</h2><span>{{ 'admin-named-query-meta' | i18next: { count: total, collections: collections.length } }}</span></div>
+  <div class="card-header"><h2>{{ 'named-query-list-title' | i18next }}</h2><span>{{ queries.length | adminCount: 'query': total }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field rb-admin-field-grow"><label for="named-query-search">{{ 'named-query-search' | i18next }}</label>
       <input id="named-query-search" class="form-control" type="search" [placeholder]="'named-query-search-placeholder' | i18next" [ngModel]="searchTerm" (ngModelChange)="onSearchTermChanged($event)"></div>
@@ -9,6 +9,7 @@
         <button *ngFor="let collection of collections" class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="query.collection === collection" (click)="setCollection(collection)">{{ collection }}</button>
       </div>
     </div>
+  <button *ngIf="searchTerm || query.collection" type="button" class="btn rb-admin-ghost" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button>
   </div>
   <div *ngIf="queries.length" class="table-responsive"><table class="table table-hover" [attr.aria-label]="'named-query-list-aria-label' | i18next">
     <thead><tr><th>{{ 'named-query-name' | i18next }}</th><th>{{ 'named-query-collection' | i18next }}</th>
@@ -20,9 +21,13 @@
         <td><span class="badge rb-admin-badge-primary">{{ q.collectionName || '—' }}</span></td>
         <td class="text-end">{{ paramCount(q) || '—' }}</td><td class="text-end">{{ mappingCount(q) || '—' }}</td><td class="text-end">{{ filterCount(q) || '—' }}</td>
         <td class="small">
-          <ul *ngIf="q.usedBy?.length; else notUsed" class="list-unstyled mb-0">
-            <li *ngFor="let consumer of q.usedBy"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
+          <ul *ngIf="q.usedBy?.length; else notUsed" class="list-unstyled mb-0 nq-consumers">
+            <li *ngFor="let consumer of q.usedBy; let i = index" [class.nq-extra-consumer]="i > 0"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
           </ul>
+          <details *ngIf="(q.usedBy?.length || 0) > 1" class="nq-more-consumers">
+            <summary>{{ 'admin-named-query-more-consumers' | i18next: { count: (q.usedBy?.length || 0) - 1 } }}</summary>
+            <ul class="list-unstyled mb-0"><li *ngFor="let consumer of q.usedBy?.slice(1)"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li></ul>
+          </details>
           <ng-template #notUsed><span class="text-muted">{{ 'named-query-not-used' | i18next }}</span></ng-template>
         </td>
         <td><div class="rb-admin-row-actions">
@@ -35,5 +40,5 @@
     </tbody>
   </table></div>
   <div *ngIf="queries.length === 0" class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ (query.searchTerm || query.collection ? 'admin-no-filter-results' : 'admin-named-query-empty') | i18next }}</h3><button *ngIf="query.searchTerm || query.collection" type="button" class="btn btn-outline-secondary" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
-  <div class="card-footer">{{ 'admin-named-query-showing' | i18next: { count: queries.length, total: total } }}</div>
+  <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: queries.length ? 1 : 0, end: queries.length, total: queries.length } }}</div>
 </section>

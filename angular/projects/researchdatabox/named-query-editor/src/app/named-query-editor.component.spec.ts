@@ -1,3 +1,4 @@
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
@@ -35,8 +36,9 @@ class NamedQueryApiServiceStub {
 
 class TranslationServiceStub {
   async waitForInit(): Promise<this> { return this; }
-  t(value: string, defaultValue?: string, options?: Record<string, unknown>): string {
-    const template = defaultValue || value;
+  t(value: string, defaultValue?: string | Record<string, unknown>, options?: Record<string, unknown>): string {
+    const template = typeof defaultValue === 'string' ? defaultValue : value;
+    options = typeof defaultValue === 'object' ? defaultValue : options;
     if (!options) {
       return template;
     }
@@ -60,7 +62,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub
       ],
-      imports: [FormsModule, A11yModule],
+      imports: [AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },

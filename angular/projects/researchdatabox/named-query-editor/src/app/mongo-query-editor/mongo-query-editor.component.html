@@ -1,6 +1,6 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-mongo-heading' | i18next }}</h6>
+    <h3 class="h6">{{ 'named-query-mongo-heading' | i18next }}</h3>
     <div class="form-check">
       <input id="mongo-query-raw-json" type="checkbox" class="form-check-input"
              [checked]="useRawJson" (change)="toggleRawJson()" />
@@ -27,7 +27,7 @@
   <ng-container *ngIf="!useRawJson">
     <div *ngIf="entries.length > 0" class="table-responsive">
       <table class="table table-sm table-bordered mb-0">
-        <thead class="thead-light">
+        <thead class="table-light">
           <tr>
             <th>{{ 'named-query-mongo-path' | i18next }}</th>
             <th class="nq-type-column">{{ 'named-query-mongo-type' | i18next }}</th>

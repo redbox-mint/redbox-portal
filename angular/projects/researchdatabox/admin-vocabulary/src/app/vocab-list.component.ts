@@ -21,6 +21,7 @@ export class VocabListComponent implements OnChanges, OnDestroy {
   @Input() vocabularies: VocabularySummary[] = [];
   @Input() selectedId: string | null = null;
   @Input() totalCount = 0;
+  @Input() catalogueTotal?: number;
   @Input() pageSize = 25;
   @Input() offset = 0;
   @Input() query: VocabularyListQueryState = {
@@ -123,6 +124,14 @@ export class VocabListComponent implements OnChanges, OnDestroy {
       this.searchDebounceTimer = null;
       this.emitQueryChanged();
     }, 250);
+  }
+
+  clearFilters(): void {
+    if (this.searchDebounceTimer) { clearTimeout(this.searchDebounceTimer); this.searchDebounceTimer = null; }
+    this.searchTerm = '';
+    this.sourceFilter = 'all';
+    this.typeFilter = 'all';
+    this.emitQueryChanged();
   }
 
   previousPage(): void {

@@ -1,3 +1,5 @@
+import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
@@ -18,12 +20,21 @@ describe('VocabListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [VocabListComponent, I18NextPipeStub],
-      imports: [FormsModule],
-      providers: [{ provide: AdminDateService, useValue: { format: (value: string) => 'formatted:' + value } }]
+      imports: [AdminCountPipe, FormsModule],
+      providers: [{ provide: TranslationService, useValue: { t: (key: string) => key } }, { provide: AdminDateService, useValue: { format: (value: string) => 'formatted:' + value } }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VocabListComponent);
     component = fixture.componentInstance;
+  });
+
+  it('clears all filters together and cancels a pending search update', () => {
+    const changed = spyOn(component.queryChanged, 'emit');
+    component.sourceFilter = 'rva';
+    component.typeFilter = 'tree';
+    component.onSearchTermChanged('pending');
+    component.clearFilters();
+    expect(changed).toHaveBeenCalledOnceWith({ searchTerm: '', sourceFilter: 'all', typeFilter: 'all' });
   });
 
   it('shows last successful RVA sync, Never when unsynced and a dash for local lists', () => {
