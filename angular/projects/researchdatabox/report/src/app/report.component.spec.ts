@@ -115,7 +115,7 @@ describe('ReportComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       fixture.detectChanges();
-      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '2')!;
       pageTwo.click();
       fixture.detectChanges();
@@ -201,9 +201,9 @@ describe('ReportComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === String(page))!;
-    const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+    const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager button[aria-current="page"]')?.textContent.trim();
     let reject!: (reason: unknown) => void;
     const read = spyOn(reportService, 'getReportResult').and.returnValue(new Promise((_resolve, rejectRequest) => { reject = rejectRequest; }));
     expect(activePage()).toBe('1');
