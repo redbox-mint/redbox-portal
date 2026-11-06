@@ -138,7 +138,13 @@ describe('AppComponent (translation)', () => {
   }
 
   it('keeps empty states hidden until initial reads settle and reserves the export action', async () => {
+    let releaseLanguages!: (languages: any[]) => void;
+    spyOn(translationService, 'listLanguages').and.returnValue(new Promise(resolve => releaseLanguages = resolve));
     const { fixture, comp } = create();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('h1')).toBeNull();
+    await new Promise(resolve => setTimeout(resolve, 0));
     fixture.detectChanges();
     expect(comp.initializing()).toBeTrue();
     expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
@@ -146,6 +152,7 @@ describe('AppComponent (translation)', () => {
     expect(exportLink).not.toBeNull();
     expect(exportLink.getAttribute('href')).toBeNull();
     expect(exportLink.getAttribute('aria-disabled')).toBe('true');
+    releaseLanguages(translationService.languages);
     await fixture.whenStable();
     fixture.detectChanges();
     expect(comp.initializing()).toBeFalse();
@@ -190,7 +197,7 @@ describe('AppComponent (translation)', () => {
 
   it('lets modified clicks and downloads bypass the availability navigation dialog', async () => {
     const { comp, fixture } = create();
-    fixture.detectChanges(); await fixture.whenStable();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
     comp.toggleAvailableLanguage('fr', false);
     const anchor: HTMLAnchorElement = fixture.nativeElement.querySelector('.rb-admin-crumbs a');
     const modified = new MouseEvent('click', { ctrlKey: true, cancelable: true });
