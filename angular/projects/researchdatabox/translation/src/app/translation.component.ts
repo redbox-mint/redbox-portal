@@ -1,3 +1,4 @@
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
@@ -34,7 +35,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
+  imports: [AdminCountPipe, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
   templateUrl: './translation.component.html',
   styleUrls: ['./translation.component.scss']
 })
@@ -113,6 +114,10 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onPageSizeChange() { this.setPage(1); }
+  keySegments(key: string): string[] {
+    return key.split(/(?<=[.-])/);
+  }
+
   trackByKey(_index: number, entry: TranslationEntry): string { return entry.key; }
 
   // Modal state for editing entries
