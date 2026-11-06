@@ -48,7 +48,7 @@
     <div
       [config]="{ backdrop: 'static', show: true }"
       (onHidden)="onLinkModalHidden()"
-      bsModal
+      [rbAdminModal]="userLinkModal.isShown" bsModal
       #userLinkModal="bs-modal"
       class="modal fade"
       tabindex="-1"
@@ -56,7 +56,7 @@
       aria-modal="true"
       aria-labelledby="userlinkform"
     >
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" *ngIf="userLinkModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
         <div class="modal-content rb-admin">
           <div class="modal-header">
             <h2 class="modal-title h4" id="userlinkform">
@@ -100,7 +100,7 @@
 
             <h3 class="h5">{{ 'manage-users-link-search-title' | i18next }}</h3>
             <div class="input-group">
-              <input
+              <input cdkFocusInitial
                 type="text"
                 [(ngModel)]="linkSearchQuery"
                 class="form-control"
@@ -196,7 +196,7 @@
     <div
       [config]="{ backdrop: 'static', show: true }"
       (onHidden)="onAuditModalHidden()"
-      bsModal
+      [rbAdminModal]="userAuditModal.isShown" bsModal
       #userAuditModal="bs-modal"
       class="modal fade"
       tabindex="-1"
@@ -204,7 +204,7 @@
       aria-modal="true"
       aria-labelledby="userauditform"
     >
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" *ngIf="userAuditModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
         <div class="modal-content rb-admin">
           <div class="modal-header">
             <h2 class="modal-title h4" id="userauditform">
@@ -286,7 +286,7 @@
       <div
         [config]="{ backdrop: 'static', show: true }"
         (onHidden)="onDetailsModalHidden()"
-        bsModal
+        [rbAdminModal]="userDetailsModal.isShown" bsModal
         #userDetailsModal="bs-modal"
         class="modal fade"
         tabindex="-1"
@@ -294,7 +294,7 @@
       aria-modal="true"
         aria-labelledby="edit-user-title"
       >
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" *ngIf="userDetailsModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
           <div class="modal-content rb-admin">
             <div class="modal-header">
               <h2 class="modal-title h4" id="edit-user-title">
@@ -340,7 +340,7 @@
                       <label class="form-label" for="detailsform-name">{{ 'manage-users-name' | i18next }}</label>
                       @if (currentUser.type == 'local') {
                         <div class="people-form-control">
-                          <input type="text" id="detailsform-name" formControlName="name" class="form-control" />
+                          <input cdkFocusInitial type="text" id="detailsform-name" formControlName="name" class="form-control" />
                           @if (updateUserForm.controls['name'].touched || submitted) {
                             <div class="form-text error text-danger">
                               @if (updateUserForm.controls['name'].hasError('required')) {
@@ -529,7 +529,7 @@
     <div
       [config]="{ show: true }"
       (onHidden)="onNewUserHidden()"
-      bsModal
+      [rbAdminModal]="userNewModal.isShown" bsModal
       #userNewModal="bs-modal"
       class="modal fade"
       tabindex="-1"
@@ -538,7 +538,7 @@
       [attr.aria-hidden]="!isNewUserModalShown"
       aria-labelledby="newuserform"
     >
-      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" *ngIf="userNewModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
         <div class="modal-content rb-admin">
           <div class="modal-header">
             <h2 class="modal-title h4" id="newuserform">
@@ -562,7 +562,7 @@
                   <div class="people-form-group">
                     <label class="form-label" for="newform-username">{{ 'manage-users-username' | i18next }}</label>
                     <div class="people-form-control">
-                      <input
+                      <input cdkFocusInitial
                         type="text"
                         id="newform-username" formControlName="username"
                         class="form-control"
@@ -716,11 +716,11 @@
 }
 
 @if (pendingUserAction; as action) {
-  <div [config]="{backdrop: 'static', show: true, keyboard: !actionPending}" bsModal #userActionModal="bs-modal" (onHidden)="pendingUserAction = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-action-title">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin">
+  <div [config]="{backdrop: 'static', show: true, keyboard: !actionPending}" [rbAdminModal]="userActionModal.isShown" bsModal #userActionModal="bs-modal" (onHidden)="pendingUserAction = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-action-title">
+    <div class="modal-dialog modal-dialog-centered" *ngIf="userActionModal.isShown" cdkTrapFocus [cdkTrapFocusAutoCapture]="true"><div class="modal-content rb-admin">
       <div class="modal-header"><h2 class="modal-title" id="user-action-title">{{ (action.kind === 'disable' ? 'admin-users-disable-title' : 'admin-users-revoke-title') | i18next }}</h2><button type="button" class="btn-close" [disabled]="actionPending" [attr.aria-label]="'named-query-close' | i18next" (click)="userActionModal.hide()"></button></div>
       <div class="modal-body"><p>{{ (action.kind === 'disable' ? 'admin-users-disable-confirm' : 'admin-users-revoke-confirm') | i18next: { name: action.user.name || action.user.username } }}</p>@if (actionError) { <div class="alert alert-danger" role="alert">{{ actionError }}</div> }</div>
-      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="actionPending" (click)="userActionModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="actionPending" (click)="confirmUserAction()">{{ (action.kind === 'disable' ? 'manage-users-disable-action' : 'manage-users-api-revoke') | i18next }}</button></div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="actionPending" cdkFocusInitial (click)="userActionModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="actionPending" (click)="confirmUserAction()">{{ (action.kind === 'disable' ? 'manage-users-disable-action' : 'manage-users-api-revoke') | i18next }}</button></div>
     </div></div>
   </div>
 }

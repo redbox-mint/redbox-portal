@@ -137,4 +137,17 @@ describe('Navigation row and detail controls', () => {
     fixture.componentInstance.item.id = 'child';
     expect(fixture.componentInstance.valid).toBeTrue();
   });
+  it('gives preset icons translated label keys instead of CSS class names', () => {
+    const fixture = TestBed.createComponent(NavigationFieldsComponent);
+    fixture.componentInstance.kind = 'panel';
+    fixture.detectChanges();
+    const buttons = fixture.nativeElement.querySelectorAll('.rb-navigation-icon-options button') as NodeListOf<HTMLButtonElement>;
+    expect(buttons.length).toBe(10);
+    for (const button of Array.from(buttons)) {
+      expect(button.getAttribute('aria-label')).toMatch(/^admin-navigation-icon-/);
+      expect(button.title).toBe(button.getAttribute('aria-label')!);
+      expect(button.getAttribute('aria-label')).not.toContain('fa ');
+    }
+  });
+
 });

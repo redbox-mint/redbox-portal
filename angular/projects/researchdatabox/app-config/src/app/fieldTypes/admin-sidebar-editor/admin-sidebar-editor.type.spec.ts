@@ -39,7 +39,8 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.getResolvedLabel('menu-rolemgmt')).toBe('Role management');
     expect(component.getResolvedLabel('menu-create-rdmp')).toBe('Create a new RDMP');
     expect(component.getResolvedLabel('Untranslated literal')).toBe('Untranslated literal');
-    expect(component.getResolvedLabel('missing-key')).toBe('missing-key');
+    expect(component.getResolvedLabel('missing-key')).toBe('Missing key');
+    expect(component.getResolvedLabel('admin-nav-API-docs')).toBe('API docs');
     expect(component.getResolvedLabel('')).toBe('');
 
     component.resolveTranslations = false;

@@ -1,3 +1,5 @@
+import { AdminModalDirective } from './admin-modal.directive';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
 import { AdminAutoFilterDirective } from './admin-auto-filter.directive';
 import { AdminTabsDirective } from './admin-tabs.directive';
@@ -61,6 +63,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     ReportService
   ],
   imports: [
+    AdminModalDirective,
+    A11yModule,
     BrowserModule,
     HttpClientModule,
     FormsModule,
@@ -73,6 +77,8 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     PaginationModule.forRoot()
   ],
   exports: [
+    AdminModalDirective,
+    A11yModule,
     AdminTabsDirective,
     AdminAutoFilterDirective,
     I18NextPipe,
