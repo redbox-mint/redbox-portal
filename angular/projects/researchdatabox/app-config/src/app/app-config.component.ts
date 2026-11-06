@@ -41,6 +41,8 @@ import { JSONSchema7 } from 'json-schema';
 })
 export class AppConfigComponent extends BaseComponent {
 
+  invalidFields: FormlyFieldConfig[] = [];
+
   addressEmail = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email, Validators.maxLength(254)] });
   addressProvider = new FormControl<'aaf' | 'oidc'>('aaf', { nonNullable: true });
   addressChecking = false;
@@ -150,6 +152,7 @@ export class AppConfigComponent extends BaseComponent {
   private retainedSecrets = new Map<string, string[]>();
 
   private configureForm(result: ConfigForm): void {
+    this.invalidFields = [];
     this.hasOverride = result.hasOverride === true;
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
     // Translate presentation metadata only; property names and stored values stay intact.
@@ -222,6 +225,15 @@ export class AppConfigComponent extends BaseComponent {
         field.props['normalizeChip'] = (value: string) => domain ? value.trim().toLowerCase().replace(/\.$/, '') : value.trim().toLowerCase();
       }
       if (!field.props.label && field.key != null) field.props.label = configLabel(String(field.key));
+      if (Array.isArray(field.props.options)) {
+        field.props.options = field.props.options.map(option => {
+          // Explicit schema titles have already been translated; retain their wording.
+          if (typeof option.value !== 'string' || option.label !== option.value) return option;
+          const key = 'admin-config-enum-' + option.value;
+          const label = this.translationService.t(key);
+          return { ...option, label: label === key ? configLabel(String(option.label)) : label };
+        });
+      }
       if (this.configKey === 'systemMessage' && field.key === 'style') {
         field.props.options = ['info', 'warning', 'critical'].map(value => ({ value, label: this.translationService.t('admin-config-message-style-' + value) }));
       }
@@ -581,15 +593,65 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
+  invalidFieldId(field: FormlyFieldConfig): string {
+    return field.id + (field.type === 'app-config-chips' ? '-add' : field.type === 'app-config-dictionary' ? '-dictionary' : '');
+  }
+
+  invalidFieldLabel(field: FormlyFieldConfig): string {
+    const labels: string[] = [];
+    let current: FormlyFieldConfig | undefined = field;
+    while (current?.parent) {
+      if (current.props?.label) labels.unshift(String(current.props.label));
+      current = current.parent;
+    }
+    return labels.join(' / ') || String(field.key || this.title);
+  }
+
+  focusInvalidField(field: FormlyFieldConfig): void {
+    let parent: FormlyFieldConfig | undefined = field;
+    while (parent) {
+      if (parent.props) {
+        if (parent.props['collapsible']) parent.props['expanded'] = true;
+        parent.props['entryExpanded'] = true;
+      }
+      parent = parent.parent;
+    }
+    this.options.detectChanges?.(this.fields[0]);
+    this.requestRender();
+    setTimeout(() => {
+      const element = this.document.getElementById(this.invalidFieldId(field));
+      const control = element?.matches('input, select, textarea, button') ? element :
+        element?.querySelector<HTMLElement>('.is-invalid, input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)');
+      // Also reveal native details ancestors before focusing a nested control.
+      for (let ancestor = control?.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+      }
+      // Native toggle events and Formly validation may replace the input. Resolve it
+      // again after they render, then move focus to the current control.
+      requestAnimationFrame(() => {
+        const current = this.document.getElementById(control?.id || '');
+        current?.scrollIntoView({ block: 'center' });
+        current?.focus();
+      });
+    }, 0);
+  }
+
   async onSubmit(model: any): Promise<void> {
     if (this.formSaving || !this.dirty) return;
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      const invalid = this.sections.find(section => section.fieldGroup?.some(field => !field.hide && field.formControl?.invalid));
-      if (invalid) this.activateSection(invalid);
+      const collect = (fields: FormlyFieldConfig[]): FormlyFieldConfig[] => fields.flatMap(field => {
+        if (field.hide || !field.formControl?.invalid) return [];
+        const children = field.type === 'app-config-chips' ? [] : collect(field.fieldGroup || []);
+        const ownError = field.formControl.errors && (field.key != null || field.type === 'app-config-dictionary');
+        return [...(ownError ? [field] : []), ...children];
+      });
+      this.invalidFields = collect(this.fields);
       this.options.showError = field => !!field.formControl?.invalid;
+      if (this.invalidFields.length) this.focusInvalidField(this.invalidFields[0]);
       return;
     }
+    this.invalidFields = [];
     this.formSaving = true;
     this.formSaveUnsuccessful = this.formSaveSuccessful = false;
     const payload = cloneDeep(model);

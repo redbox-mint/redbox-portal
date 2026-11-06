@@ -13,7 +13,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
             @if (!props['expanded']) { <p class="app-config-summary">{{ props['summary']() || ('admin-config-no-values' | i18next) }}</p> }
           </div>
           <span class="app-config-section-actions">
-            @if (enabledField; as enabled) { <span (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()"><formly-field [field]="enabled"></formly-field></span> }
+            @if (enabledField; as enabled) { <span (click)="$event.stopPropagation()" (keydown)="switchKeydown($event)"><formly-field [field]="enabled"></formly-field></span> }
             <span class="app-config-expand">{{ (props['expanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!props['expanded']" [class.fa-angle-up]="props['expanded']" aria-hidden="true"></i></span>
           </span>
         </summary>
@@ -41,6 +41,10 @@ export class SectionTypeComponent extends FieldType {
     const children = this.field.fieldGroup || [];
     return children.find(child => child.props?.['pageEnabled']) ||
       (children.length === 1 ? children[0].fieldGroup?.find(child => child.props?.['headerEnabled']) : undefined);
+  }
+
+  switchKeydown(event: KeyboardEvent): void {
+    if ([' ', 'Enter'].includes(event.key)) event.stopPropagation();
   }
 
   toggle(event: Event): void {

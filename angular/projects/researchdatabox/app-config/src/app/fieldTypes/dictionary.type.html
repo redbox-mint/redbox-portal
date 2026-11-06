@@ -1,4 +1,4 @@
-<div class="app-config-dictionary">
+<div class="app-config-dictionary" [id]="id + '-dictionary'">
   @if (props.label && !props['flat']) { <h4>{{ props.label }}</h4> }
   @if (props.description) { <p class="rb-admin-hint">{{ props.description }}</p> }
   @if (!field.fieldGroup?.length) {

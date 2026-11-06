@@ -61,6 +61,14 @@
         @if (formSaveSuccessful) { <div class="alert alert-success" role="status">{{ 'admin-config-save-success' | i18next }}</div> }
         @if (formSaveUnsuccessful) { <div class="alert alert-danger" role="alert">{{ 'admin-config-save-error' | i18next }}</div> }
         <form [formGroup]="form" (ngSubmit)="onSubmit(model)">
+          @if (invalidFields.length) {
+            <div class="alert alert-danger" role="alert" aria-labelledby="config-errors-title">
+              <h2 id="config-errors-title">{{ 'admin-config-validation-summary' | i18next }}</h2>
+              <ul>@for (field of invalidFields; track field) {
+                <li><a [href]="'#' + invalidFieldId(field)" (click)="$event.preventDefault(); focusInvalidField(field)">{{ invalidFieldLabel(field) }}</a></li>
+              }</ul>
+            </div>
+          }
           <div class="rb-admin-save-content">
           @if (configKey === 'authorizedDomainsEmails') {
             <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h3>{{ 'admin-config-restrict' | i18next }}</h3><p>{{ 'admin-config-restrict-help' | i18next }}</p></div>
