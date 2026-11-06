@@ -178,6 +178,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .app-config-settings-off { filter: grayscale(1); }
   .app-config-settings-off :is(.rb-admin-form-section-body, .app-config-subsection) { background-color: var(--admin-surface); }
   .rb-admin-mono, .app-config-mono :is(input, textarea), .app-config-page .binding-source, .app-config-dictionary-entry > summary > .rb-admin-hint { font-family: var(--admin-mono); }
+  .rb-admin-discard-backdrop { z-index: 1060; }
+  .rb-admin-discard-modal { z-index: 1070; }
   .rb-admin-code-wrap { white-space: normal; overflow-wrap: anywhere; }
   .rb-admin-save-content :is(a, input, select, textarea, button, [tabindex], .rb-admin-form-section) { scroll-margin-block: 16px calc(var(--admin-save-height) + 24px); }
   .rb-admin-save-bar { width: 100%; min-width: 0; }

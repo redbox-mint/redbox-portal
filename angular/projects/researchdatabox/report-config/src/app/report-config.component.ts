@@ -28,6 +28,9 @@ export class ReportConfigComponent extends BaseComponent {
   isPreviewing = false;
   isAdmin = false;
   isNewReport = false;
+  confirmDiscard = false;
+  private initialDraft = '';
+  get editDirty(): boolean { return !!this.selectedReport && JSON.stringify(this.selectedReport) !== this.initialDraft; }
 
   get totalReports(): number {
     return this.reports.length;
@@ -101,6 +104,7 @@ export class ReportConfigComponent extends BaseComponent {
     this.previewFilterValues = {};
     this.selectedReport = this.newReport();
     this.isNewReport = true;
+    this.initialDraft = JSON.stringify(this.selectedReport);
   }
 
   editReport(report: ReportConfigDto): void {
@@ -112,10 +116,13 @@ export class ReportConfigComponent extends BaseComponent {
     this.previewFilterValues = {};
     this.selectedReport = JSON.parse(JSON.stringify(report)) as ReportConfigDto;
     this.isNewReport = false;
+    this.initialDraft = JSON.stringify(this.selectedReport);
   }
 
-  cancelEdit(): void {
+  cancelEdit(discard = false): void {
     if (this.isSaving) return;
+    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
+    this.confirmDiscard = false;
     this.selectedReport = null;
     this.previewResult = null;
     this.previewFilterValues = {};
@@ -140,7 +147,7 @@ export class ReportConfigComponent extends BaseComponent {
       await this.loadReports();
       if (this.selectedReport === report) {
         this.isSaving = false;
-        this.cancelEdit();
+        this.cancelEdit(true);
       }
     } catch (error: unknown) {
       if (this.selectedReport === report) this.errorMessage = this.getErrorMessage(error);

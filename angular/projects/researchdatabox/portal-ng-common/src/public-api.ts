@@ -45,3 +45,5 @@ export * from './lib/admin-auto-filter.directive';
 export * from './lib/admin-modal.directive';
 
 export * from './lib/admin-list-footer.component';
+
+export * from './lib/admin-discard-dialog.component';
