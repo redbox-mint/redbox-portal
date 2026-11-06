@@ -46,21 +46,36 @@ function route(
     },
   });
 }
+// Pagination is opt-in: legacy consumers continue to receive an array.
+export const adminUserListQuery = z.object({
+  includeDisabled: z.enum(['true', 'false']).optional(),
+  signIn: z.string().max(80).optional(),
+  page: z.coerce.number().int().min(1).max(1000000).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  query: z.string().trim().max(200).optional(),
+  role: z.string().max(128).optional(),
+  excludeRole: z.string().max(128).optional(),
+  candidates: z.enum(['true', 'false']).optional(),
+  sort: z.enum(['name', 'username', 'email', 'type', 'lastLogin']).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
+});
+const adminUser = z.object({ id: z.string(), lastLogin: z.union([z.string(), z.null()]).optional(), type: z.string() }).passthrough();
+const userPage = z.object({
+  records: z.array(adminUser),
+  summary: z.object({ numFound: z.number(), page: z.number(), start: z.number() }),
+  roleCounts: z.record(z.string(), z.object({ active: z.number(), disabled: z.number(), removableActive: z.number() })),
+});
 export const adminUsersApiRoutes = [
   route(
     'get',
     'users/get',
     'getUsers',
     {
-      query: z.object({ includeDisabled: z.enum(['true', 'false']).optional(), signIn: z.string().max(80).optional() }),
+      query: adminUserListQuery,
     },
-    z.array(
-      z
-        .object({ id: z.string(), lastLogin: z.union([z.string(), z.null()]).optional(), type: z.string() })
-        .passthrough()
-    ),
+    z.union([z.array(adminUser), userPage]),
     'List brand users for administration',
-    'signIn filters stored user.type in the database and must be enabled in the brand auth.active configuration. Empty means all methods. lastLogin is absent/empty for users who have never signed in; no backfill.'
+    'signIn filters stored user.type in the database and must be enabled in the brand auth.active configuration. Empty means all methods. lastLogin is absent/empty for users who have never signed in; no backfill. Optional page or pageSize returns records, summary (numFound/page/start) and brand roleCounts. Defaults: 25 rows, name ascending, id tie-break. query searches name/username/email literally, role includes members, excludeRole excludes members, candidates excludes disabled/linked aliases. Filters and sorting run before slicing on the server. Counts describe the filtered results; roleCounts describe all visible brand members including disabled. Without pagination the response remains an array.'
   ),
   route(
     'get',

@@ -10,14 +10,14 @@
   <nav class="rb-admin-section-rail people-role-rail" [attr.aria-label]="'admin-nav-roles' | i18next">
     <h2>{{ 'admin-roles-brand' | i18next }}</h2>
     @for (role of roles; track role.id) {
-      <a [href]="'#role-' + role.id" (click)="$event.preventDefault(); selectRole(role)" [attr.aria-current]="selectedRole?.id === role.id ? 'true' : null" [attr.aria-disabled]="saving"><span>{{ role.name }}</span><span class="badge">{{ members(role).length }}</span></a>
+      <a [href]="'#role-' + role.id" (click)="$event.preventDefault(); selectRole(role)" [attr.aria-current]="selectedRole?.id === role.id ? 'true' : null" [attr.aria-disabled]="saving"><span>{{ role.name }}</span><span class="badge">{{ (roleCounts[role.name]?.active || 0) + (roleCounts[role.name]?.disabled || 0) }}</span></a>
     }
     @if (defaultRole; as default) { <p class="rb-admin-hint people-default-note">{{ 'admin-roles-default-note' | i18next: { role: default.name } }}</p> }
   </nav>
   <div class="rb-admin-split-main">
     @if (selectedRole; as role) {
-    <section class="card" [id]="'role-' + role.id">
-      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><span>{{ 'admin-roles-member-count' | i18next: { count: members().length } }}</span></div>
+    <section class="card" [attr.aria-busy]="loadingMembers" [id]="'role-' + role.id">
+      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><span>{{ 'admin-roles-member-count' | i18next: { count: totalMembers } }}</span></div>
       <div class="people-role-description">
         @if (editingDescription) {
           <label for="role-description">{{ 'admin-roles-description-label' | i18next }}</label>
@@ -34,18 +34,21 @@
         <button type="button" class="btn btn-primary" [disabled]="!selectedCandidateId || saving" (click)="addMember()">{{ 'admin-roles-add' | i18next }}</button>
       </div>
       @if (memberSearch.trim()) {
-        <div class="people-member-results" id="role-member-results">
+        <div class="people-member-results" id="role-member-results" [attr.aria-busy]="candidatesLoading">
+          @if (candidatesLoading) { <p role="status">{{ 'manage-users-link-searching' | i18next }}</p> }
           <fieldset [disabled]="saving"><legend class="visually-hidden">{{ 'admin-roles-select-member' | i18next }}</legend>
           @for (user of candidates; track user.id) {
             <label class="people-member-result" [class.people-member-selected]="selectedCandidateId === user.id"><input type="radio" name="new-role-member" [value]="user.id" [(ngModel)]="selectedCandidateId"><span><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span></span></label>
-          } @empty { <p class="rb-admin-hint" role="status">{{ 'admin-roles-no-candidates' | i18next }}</p> }
+          } @empty { @if (!candidatesLoading) { <p class="rb-admin-hint" role="status">{{ 'admin-roles-no-candidates' | i18next }}</p> } }
           </fieldset>
+          <nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: candidatePage, totalPages: candidatePages }"><button type="button" class="btn btn-outline-secondary" [disabled]="saving || candidatesLoading || candidatePage <= 1" (click)="searchMembers(candidatePage - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ candidatePage }} / {{ candidatePages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="saving || candidatesLoading || candidatePage >= candidatePages" (click)="searchMembers(candidatePage + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav>
         </div>
       }
-      @if (saveError && !pendingRemoval) { <div class="alert alert-danger" role="alert">{{ saveError }}</div> }
+      @if (saveError && !pendingRemoval) { <div class="alert alert-danger" role="alert">{{ saveError }} <button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers" (click)="loadMembers(page)">{{ 'admin-retry' | i18next }}</button></div> }
+      <div class="rb-admin-filter-bar"><div class="rb-admin-field rb-admin-field-grow"><label for="role-members-filter">{{ 'admin-users-search' | i18next }}</label><input id="role-members-filter" class="form-control" type="search" [(ngModel)]="memberFilter" (ngModelChange)="loadMembers(1)"></div></div>
       @if (members().length) {
         <div class="table-responsive"><table class="table table-hover">
-          <thead><tr><th>{{ 'admin-roles-member' | i18next }}</th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'admin-roles-other-roles' | i18next }}</th><th class="text-end">{{ 'manage-users-action' | i18next }}</th></tr></thead>
+          <thead><tr><th [attr.aria-sort]="memberOrder === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortMembers()">{{ 'admin-roles-member' | i18next }} {{ memberOrder === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'admin-roles-other-roles' | i18next }}</th><th class="text-end">{{ 'manage-users-action' | i18next }}</th></tr></thead>
           <tbody>@for (user of members(); track user.id) {
             <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span>@if (user.effectiveLoginDisabled) { <span class="badge rb-admin-badge-danger">{{ 'manage-users-account-status-disabled' | i18next }}</span> }</td>
               <td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
@@ -55,6 +58,7 @@
           }</tbody>
         </table></div>
       } @else { <div class="rb-admin-empty"><i class="fa fa-users fa-2x" aria-hidden="true"></i><h3>{{ 'admin-roles-empty' | i18next }}</h3><p>{{ 'admin-roles-empty-help' | i18next }}</p></div> }
+      <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStart, end: pageStart ? pageStart + users.length - 1 : 0, total: totalMembers } }}</span><nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: page, totalPages: totalPages }"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers || saving || page <= 1" (click)="loadMembers(page - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ page }} / {{ totalPages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers || saving || page >= totalPages" (click)="loadMembers(page + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav></div>
       <div class="card-footer"><span>{{ (role.name === 'Admin' ? 'admin-roles-admin-protection' : 'admin-roles-members-hint') | i18next }}</span></div>
     </section>
     } @else { <div class="rb-admin-empty"><h3>{{ 'admin-roles-no-roles' | i18next }}</h3></div> }

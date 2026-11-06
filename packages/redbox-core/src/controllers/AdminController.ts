@@ -1,3 +1,4 @@
+import { adminUserListQuery } from '../api-routes/groups/admin-users';
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel } from '../model';
 import { firstValueFrom } from 'rxjs';
@@ -77,7 +78,10 @@ export namespace Controllers {
       const brand = BrandingService.getBrand(req.session.branding as string);
       const brandId = _.get(brand, 'id') || brand || req.session.branding;
       try {
-        const signIn = req.query?.signIn;
+        const parsed = adminUserListQuery.safeParse(req.query ?? {});
+        if (!parsed.success) return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid user list query' }], headers: this.getNoCacheHeaders() });
+        const options = parsed.data;
+        const signIn = options.signIn;
         if (signIn !== undefined && (typeof signIn !== 'string' || (signIn && !RolesService.getSignInMethods(brand).includes(signIn)))) {
           return this.sendResp(req, res, { status: 400, displayErrors: [{ detail: 'Invalid sign-in method' }], headers: this.getNoCacheHeaders() });
         }
@@ -97,8 +101,8 @@ export namespace Controllers {
         const includeDisabled = req.query?.includeDisabled === 'true';
         const responseUsers: globalThis.Record<string, unknown>[] = [];
         _.map(enrichedUsers, (user: globalThis.Record<string, unknown>) => {
-          if (_.isEmpty(_.find(sails.config.auth.hiddenUsers, (hideUser: string) => { return hideUser == user.name }))) {
-            if (!includeDisabled && user.effectiveLoginDisabled === true) {
+          if (!sails.config.auth.hiddenUsers.some((hidden: string) => hidden === user.name || hidden === user.username)) {
+            if (options.page === undefined && options.pageSize === undefined && !includeDisabled && user.effectiveLoginDisabled === true) {
               return;
             }
             user.accountLinkState = user.accountLinkState || 'active';
@@ -112,6 +116,36 @@ export namespace Controllers {
             responseUsers.push(user);
           }
         });
+        if (options.page !== undefined || options.pageSize !== undefined) {
+          const roleCounts: globalThis.Record<string, { active: number; disabled: number; removableActive: number }> = Object.create(null);
+          for (const user of responseUsers) {
+            for (const role of user.roles as Array<{ name: string }>) {
+              const counts = roleCounts[role.name] ||= { active: 0, disabled: 0, removableActive: 0 };
+              if (user.effectiveLoginDisabled) ++counts.disabled;
+              else {
+                ++counts.active;
+                if (user.accountLinkState !== 'linked-alias') ++counts.removableActive;
+              }
+            }
+          }
+          const query = (options.query || '').toLowerCase();
+          const hasRole = (user: globalThis.Record<string, unknown>, name: string) => (user.roles as Array<{ name: string }>).some(role => role.name === name);
+          const filtered = responseUsers.filter(user =>
+            (includeDisabled || !user.effectiveLoginDisabled) &&
+            (!options.role || hasRole(user, options.role)) &&
+            (!options.excludeRole || !hasRole(user, options.excludeRole)) &&
+            (options.candidates !== 'true' || (!user.effectiveLoginDisabled && user.accountLinkState !== 'linked-alias')) &&
+            (!query || [user.name, user.username, user.email].some(value => String(value || '').toLowerCase().includes(query)))
+          );
+          const field = options.sort || 'name';
+          const direction = options.order === 'desc' ? -1 : 1;
+          const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+          filtered.sort((a, b) => direction * (collator.compare(String(a[field] || ''), String(b[field] || '')) || String(a.id).localeCompare(String(b.id))));
+          const pageSize = options.pageSize || 25;
+          const page = Math.min(options.page || 1, Math.max(1, Math.ceil(filtered.length / pageSize)));
+          const start = (page - 1) * pageSize;
+          return this.sendResp(req, res, { data: { records: filtered.slice(start, start + pageSize), summary: { numFound: filtered.length, page, start }, roleCounts }, headers: this.getNoCacheHeaders() });
+        }
         this.sendResp(req, res, { data: responseUsers, headers: this.getNoCacheHeaders() });
       } catch (error) {
         sails.log.error('Failed to load users');

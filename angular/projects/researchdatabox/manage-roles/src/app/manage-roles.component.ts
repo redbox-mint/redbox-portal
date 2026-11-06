@@ -16,6 +16,43 @@ export class ManageRolesComponent extends BaseComponent {
   selectedCandidateId = '';
   pendingRemoval: User | null = null;
   saving = false;
+  loadingMembers = false;
+  page = 1;
+  readonly pageSize = 25;
+  totalMembers = 0;
+  memberFilter = '';
+  memberOrder: 'asc' | 'desc' = 'asc';
+  roleCounts: Record<string, { active: number; disabled: number; removableActive: number }> = {};
+  candidates: User[] = [];
+  candidatesLoading = false;
+  candidatePage = 1;
+  candidateTotal = 0;
+  get candidatePages(): number { return Math.max(1, Math.ceil(this.candidateTotal / this.pageSize)); }
+  private memberRequest = 0;
+  private candidateRequest = 0;
+  get totalPages(): number { return Math.max(1, Math.ceil(this.totalMembers / this.pageSize)); }
+  get pageStart(): number { return this.users.length ? (this.page - 1) * this.pageSize + 1 : 0; }
+
+  async loadMembers(page = 1): Promise<void> {
+    if (!this.selectedRole) return;
+    const request = ++this.memberRequest;
+    this.loadingMembers = true;
+    this.saveError = '';
+    try {
+      const result = await this.userService.getUserPage({ page, pageSize: this.pageSize, role: this.selectedRole.name,
+        includeDisabled: true, query: this.memberFilter.trim(), sort: 'name', order: this.memberOrder });
+      if (request !== this.memberRequest) return;
+      this.users = result.records;
+      this.totalMembers = result.summary.numFound;
+      this.page = result.summary.page;
+      this.roleCounts = result.roleCounts;
+    } catch {
+      if (request === this.memberRequest) this.saveError = this.translationService.t('admin-users-load-error');
+    } finally { if (request === this.memberRequest) this.loadingMembers = false; }
+  }
+
+  sortMembers(): void { this.memberOrder = this.memberOrder === 'asc' ? 'desc' : 'asc'; void this.loadMembers(1); }
+
   editingDescription = false;
   descriptionDraft = '';
   blockedRemoval = '';
@@ -54,45 +91,55 @@ export class ManageRolesComponent extends BaseComponent {
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.userService.brandingAndPortalUrl;
     this.roles = await this.userService.getBrandRoles() as unknown as Role[];
-    // The user endpoint includes populated roles and account/provider information.
-    // Include disabled accounts so membership counts reflect all assigned members.
-    this.users = await this.userService.getUsers({ includeDisabled: true }) as unknown as User[];
     this.selectedRole = this.roles.find(role => role.id === this.selectedRole?.id) || this.roles.find(role => role.name === 'Admin') || this.roles[0] || null;
+    await this.loadMembers();
+    if (this.saveError) throw new Error(this.saveError);
   }
 
-  members(role: Role | null = this.selectedRole): User[] {
-    return role ? this.users.filter(user => user.roles.some(item => item.name === role.name)) : [];
-  }
+  activeMemberCount(role: Role | null = this.selectedRole): number { return this.roleCounts[role?.name || '']?.active || 0; }
+  disabledMemberCount(role: Role | null = this.selectedRole): number { return this.roleCounts[role?.name || '']?.disabled || 0; }
+  members(): User[] { return this.users; }
 
-  selectRole(role: Role) {
+  async selectRole(role: Role) {
     if (this.saving || this.pendingRemoval || this.editingDescription) return;
     this.selectedRole = role;
-    this.memberSearch = '';
+    this.memberSearch = this.memberFilter = '';
+    this.candidates = [];
+    ++this.candidateRequest;
+    this.candidatesLoading = false;
     this.selectedCandidateId = '';
-    this.saveError = '';
+    this.users = [];
+    await this.loadMembers();
   }
 
   otherRoles(user: User): Role[] {
     return user.roles.filter(role => role.name !== this.selectedRole?.name);
   }
 
-  get candidates(): User[] {
-    const query = this.memberSearch.trim().toLowerCase();
-    if (!query || !this.selectedRole) return [];
-    return this.users.filter(user =>
-      user.accountLinkState !== 'linked-alias' && !user.effectiveLoginDisabled &&
-      !user.roles.some(role => role.name === this.selectedRole!.name) &&
-      [user.name, user.email, user.username].some(value => (value || '').toLowerCase().includes(query))
-    );
-  }
-
-  searchMembers() {
+  async searchMembers(page = 1) {
     this.selectedCandidateId = '';
+    const request = ++this.candidateRequest;
+    const query = this.memberSearch.trim();
+    this.candidates = [];
+    this.candidateTotal = 0;
+    this.candidatesLoading = !!query;
+    if (!query || !this.selectedRole) return;
+    try {
+      const result = await this.userService.getUserPage({ page, pageSize: this.pageSize, query,
+        excludeRole: this.selectedRole.name, candidates: true });
+      if (request === this.candidateRequest) {
+        this.candidates = result.records;
+        this.candidatePage = result.summary.page;
+        this.candidateTotal = result.summary.numFound;
+      }
+    } catch {
+      if (request === this.candidateRequest) this.saveError = this.translationService.t('admin-users-load-error');
+    } finally { if (request === this.candidateRequest) this.candidatesLoading = false; }
   }
 
   removeBlockedReason(user: User): string {
     if (user.accountLinkState === 'linked-alias') return 'admin-roles-linked-member';
-    if (this.selectedRole?.name === 'Admin' && (this.members().length <= 1 || (!user.effectiveLoginDisabled && this.members().filter(member => !member.effectiveLoginDisabled && member.accountLinkState !== 'linked-alias').length <= 1))) return 'admin-roles-last-admin';
+    if (this.selectedRole?.name === 'Admin' && (!user.effectiveLoginDisabled && (this.roleCounts['Admin']?.removableActive || 0) <= 1)) return 'admin-roles-last-admin';
     if (user.roles.length <= 1 && (!this.defaultRole || this.selectedRole?.id === this.defaultRole.id)) return 'admin-roles-default-blocked';
     return '';
   }
@@ -119,6 +166,7 @@ export class ManageRolesComponent extends BaseComponent {
       if (!result.status) throw new Error('Membership update failed');
       this.pendingRemoval.roles = result.roles;
       this.removeMemberModal?.hide();
+      await this.loadMembers(this.page);
     } catch { this.saveError = this.translationService.t('admin-roles-save-error'); }
     finally { this.saving = false; }
   }
@@ -135,6 +183,8 @@ export class ManageRolesComponent extends BaseComponent {
       user.roles = roles;
       this.memberSearch = '';
       this.selectedCandidateId = '';
+      this.candidates = [];
+      await this.loadMembers(this.page);
       return true;
     } catch (error) {
       this.loggerService.error('Failed to update role membership', error);

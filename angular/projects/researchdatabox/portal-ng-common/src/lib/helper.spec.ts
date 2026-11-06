@@ -158,8 +158,27 @@ export function getStubUserService(username: string = '', password: string = '',
     }, removeRoleMember() { return Promise.resolve({ status: true, roles: [] });
     }, getBrandRoles() {
       return rolesData;
-    }, getUsers() {
+    }, getUsers(_options?: any) {
       return userData;
+    }, async getUserPage(options: any = {}) {
+      const rows = await this.getUsers({ includeDisabled: !!options.includeDisabled, ...(options.signIn ? { signIn: options.signIn } : {}) });
+      const roleCounts: any = {};
+      for (const user of rows) for (const role of user.roles || []) {
+        const count = roleCounts[role.name] ||= { active: 0, disabled: 0, removableActive: 0 };
+        if (user.effectiveLoginDisabled) ++count.disabled;
+        else { ++count.active; if (user.accountLinkState !== 'linked-alias') ++count.removableActive; }
+      }
+      const filtered = rows.filter((user: any) =>
+        (options.includeDisabled || !user.effectiveLoginDisabled) &&
+        (!options.role || user.roles.some((role: any) => role.name === options.role)) &&
+        (!options.excludeRole || !user.roles.some((role: any) => role.name === options.excludeRole)) &&
+        (!options.candidates || (!user.effectiveLoginDisabled && user.accountLinkState !== 'linked-alias')) &&
+        (!options.query || [user.name, user.username, user.email].some(value => (value || '').toLowerCase().includes(options.query.toLowerCase())))
+      );
+      const pageSize = options.pageSize || 25;
+      const page = Math.min(options.page || 1, Math.max(1, Math.ceil(filtered.length / pageSize)));
+      const start = (page - 1) * pageSize;
+      return { records: filtered.slice(start, start + pageSize), summary: { page, start, numFound: filtered.length }, roleCounts };
     }, updateUserDetails() {
       return { status: 'OK' };
     }, addLocalUser() {
