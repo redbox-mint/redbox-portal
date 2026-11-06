@@ -31,7 +31,7 @@ let nextPickerId = 0;
       autocomplete="off"
     /><button class="btn btn-outline-secondary" type="button" [attr.aria-label]="'admin-dashboard-browse-fields' | i18next" [attr.aria-expanded]="open" (mousedown)="$event.preventDefault()" (click)="open = !open; browseAll = true">…</button></div>
     <div *ngIf="open" class="dc-field-options" [id]="listId" role="listbox" [attr.aria-label]="'admin-dashboard-record-field' | i18next">
-      <button type="button" role="option" *ngFor="let field of visibleSuggestions; let i = index" [id]="listId + '-' + i" [attr.aria-selected]="i === activeIndex" (mousedown)="$event.preventDefault()" (click)="choose(field.path)"><span>{{ field.label }}</span><code>{{ field.path }}</code></button>
+      <button type="button" role="option" *ngFor="let field of visibleSuggestions; let i = index" [id]="listId + '-' + i" [attr.aria-selected]="i === activeIndex" (mousedown)="$event.preventDefault()" (click)="choose(field.path)"><span>{{ field.label }}</span><code [title]="field.path">@for (part of field.path.split('.'); track $index) {@if ($index) {.<wbr>}{{part}}}</code></button>
       <p *ngIf="!visibleSuggestions.length" class="rb-admin-hint">{{ 'admin-dashboard-no-fields' | i18next }}</p>
     </div>
     <small class="dc-field-hint" [id]="hintId" *ngIf="unknown">

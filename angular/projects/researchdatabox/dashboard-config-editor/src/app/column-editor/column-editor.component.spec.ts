@@ -71,6 +71,18 @@ describe('Dashboard column interaction accessibility', () => {
     }).compileComponents();
   });
 
+  it('preserves complete field names and titles while allowing breaks only between path segments', () => {
+    const fixture = TestBed.createComponent(ColumnEditorComponent);
+    const path = 'metadata.contributor_ci.text_full_name';
+    fixture.componentInstance.columns = [{ title: 'Name', variable: path, template: '' }];
+    fixture.detectChanges();
+    const code: HTMLElement = fixture.nativeElement.querySelector('.dc-columns-table code');
+    expect(code.textContent).toBe(path);
+    expect(code.title).toBe(path);
+    expect(Array.from(code.querySelectorAll('wbr')).every(node => node.previousSibling?.textContent?.endsWith('.'))).toBeTrue();
+    fixture.destroy();
+  });
+
   it('reveals the controlled detail region and moves focus to its heading', () => {
     const fixture = TestBed.createComponent(ColumnEditorComponent);
     fixture.componentInstance.columns = [{ title: 'Title', variable: 'metadata.title', template: '' }];

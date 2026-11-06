@@ -6,7 +6,7 @@
     <div class="rb-admin-field rb-admin-segmented-field"><label id="nq-collection-label">{{ 'named-query-collection' | i18next }}</label>
       <div class="rb-admin-segmented" role="group" aria-labelledby="nq-collection-label">
         <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="!query.collection" (click)="setCollection('')">{{ 'report-source-all' | i18next }}</button>
-        <button *ngFor="let collection of collections" class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="query.collection === collection" (click)="setCollection(collection)">{{ collection }}</button>
+        <button *ngFor="let collection of collections" class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="query.collection === collection" (click)="setCollection(collection)">{{ (collection === 'record' || collection === 'user' ? 'admin-query-collection-' + collection : collection) | i18next }}</button>
       </div>
     </div>
   <button *ngIf="searchTerm || query.collection" type="button" class="btn rb-admin-ghost" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button>
@@ -18,7 +18,7 @@
     <tbody>
       <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name">
         <td><a href="#" (click)="$event.preventDefault(); open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></a></td>
-        <td><span class="badge rb-admin-badge-primary">{{ q.collectionName || '—' }}</span></td>
+        <td><span class="badge rb-admin-badge-primary">{{ (q.collectionName === 'record' || q.collectionName === 'user' ? 'admin-query-collection-' + q.collectionName : q.collectionName || '—') | i18next }}</span></td>
         <td class="text-end d-none d-lg-table-cell nq-param-count">{{ paramCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ mappingCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ filterCount(q) || '—' }}</td>
         <td class="small">
           <ul *ngIf="q.usedBy?.length; else notUsed" class="list-unstyled mb-0 nq-consumers">

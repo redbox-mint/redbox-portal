@@ -101,6 +101,16 @@ describe('HarvestRunsComponent', () => {
     expect(stats.nextElementSibling.classList.contains('card')).toBeTrue();
   });
 
+  it('hides filters for an empty list and retains them for a filtered empty result', async () => {
+    apiService.listRuns.and.resolveTo({ summary: { numFound: 0, page: 1, start: 0 }, records: [] });
+    fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.harvest-runs-filters')).toBeNull();
+    component.filters.status = 'failed';
+    await component.applyFilters(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.harvest-runs-filters')).not.toBeNull();
+  });
+
   it('refreshes global statistics without filters on Refresh, Apply and Clear', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();

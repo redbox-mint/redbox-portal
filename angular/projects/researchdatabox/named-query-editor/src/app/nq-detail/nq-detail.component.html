@@ -58,7 +58,7 @@
           <label for="nq-collection">{{ 'named-query-collection' | i18next }}</label>
           <select id="nq-collection" class="form-select" [(ngModel)]="draft.collectionName">
             <option value="" disabled>{{ 'named-query-collection-select' | i18next }}</option>
-            <option *ngFor="let collection of collectionOptions" [value]="collection">{{ collection }}</option>
+            <option *ngFor="let collection of collectionOptions" [value]="collection">{{ (collection === 'record' || collection === 'user' ? 'admin-query-collection-' + collection : collection) | i18next }}</option>
           </select>
         </div>
       </div>

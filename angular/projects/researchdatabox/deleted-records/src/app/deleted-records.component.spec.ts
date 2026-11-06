@@ -112,6 +112,19 @@ describe('DeletedRecordsComponent', () => {
     await testModule.compileComponents();
   });
 
+  it('hides filters when empty and retains them for a filtered empty result', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.deletedRecordsResult = { ...component.deletedRecordsResult, records: [], total: 0 };
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('form.rb-admin-filter-bar')).toBeNull();
+    component.filterParams.title = 'no match';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('form.rb-admin-filter-bar')).not.toBeNull();
+    fixture.destroy();
+  });
+
   it('selects only the current page, confirms the count, reports partial failures and clears selection after refresh', async () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const component = fixture.componentInstance;
