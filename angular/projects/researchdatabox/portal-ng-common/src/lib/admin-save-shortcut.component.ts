@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, NgZone, OnChanges, OnDestroy, Output } from '@angular/core';
 import { I18NextPipe } from './i18next.pipe';
 
 /** Keep the existing save action within reach before a long editor's save bar enters view. */
@@ -21,10 +21,31 @@ export class AdminSaveShortcutComponent implements OnChanges, OnDestroy {
   offscreen = false;
   private observer?: IntersectionObserver;
   private observed?: HTMLElement;
+  private focusFrame = 0;
 
-  constructor(private zone: NgZone) {}
+  constructor(private zone: NgZone, private host: ElementRef<HTMLElement>) {}
+
+  @HostListener('document:input')
+  scheduleFocusCheck(): void {
+    cancelAnimationFrame(this.focusFrame);
+    this.focusFrame = requestAnimationFrame(() => this.keepFocusedFieldVisible());
+  }
+
+  @HostListener('document:focusin')
+  keepFocusedFieldVisible(): void {
+    const focused = document.activeElement;
+    const shortcut = this.host.nativeElement.firstElementChild;
+    if (!(focused instanceof HTMLElement) || !focused.matches('input, select, textarea, [contenteditable="true"]') ||
+      !shortcut || this.host.nativeElement.contains(focused)) return;
+    const field = focused.getBoundingClientRect();
+    const pill = shortcut.getBoundingClientRect();
+    if (field.left < pill.right && field.right > pill.left && field.bottom > pill.top - 12 && field.top < pill.bottom) {
+      window.scrollBy({ top: field.bottom - pill.top + 12, behavior: 'instant' });
+    }
+  }
 
   ngOnChanges(): void {
+    this.scheduleFocusCheck();
     const element = this.bar?.nativeElement;
     if (element === this.observed) return;
     this.observer?.disconnect();
@@ -39,5 +60,5 @@ export class AdminSaveShortcutComponent implements OnChanges, OnDestroy {
     this.observer.observe(element);
   }
 
-  ngOnDestroy(): void { this.observer?.disconnect(); }
+  ngOnDestroy(): void { this.observer?.disconnect(); cancelAnimationFrame(this.focusFrame); }
 }

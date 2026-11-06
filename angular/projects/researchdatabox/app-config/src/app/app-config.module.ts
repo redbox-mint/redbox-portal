@@ -1,3 +1,4 @@
+import { FormlyFieldWrapperComponent } from '@researchdatabox/portal-ng-common';
 import { DictionaryTypeComponent } from './fieldTypes/dictionary.type';
 import { JsonTypeComponent } from './fieldTypes/json.type';
 import { NavigationRowComponent } from './fieldTypes/navigation-editor/navigation-row.component';
@@ -57,7 +58,8 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
       { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
     ],
   }),
-    FormlyBootstrapModule
+    FormlyBootstrapModule,
+    FormlyModule.forChild({ wrappers: [{ name: 'form-field', component: FormlyFieldWrapperComponent }] })
   ],
   providers: [
     FigshareCrosswalkApiService,

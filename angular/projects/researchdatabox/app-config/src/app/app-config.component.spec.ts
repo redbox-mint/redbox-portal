@@ -1,3 +1,4 @@
+import { FormlyFieldWrapperComponent } from '@researchdatabox/portal-ng-common';
 import { AdminSaveShortcutComponent } from '@researchdatabox/portal-ng-common';
 import { OniPublishing, ONI_PUBLISHING_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/OniPublishing';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/RaidPublishing';
@@ -118,7 +119,8 @@ describe('AppConfigComponent', () => {
             { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
           ],
         }),
-        FormlyBootstrapModule
+        FormlyBootstrapModule,
+        FormlyModule.forChild({ wrappers: [{ name: 'form-field', component: FormlyFieldWrapperComponent }] })
       ],
       providers: [
         {
@@ -998,6 +1000,24 @@ describe('AppConfigComponent', () => {
     expect(names.some(name => name?.includes('*'))).toBeFalse();
   });
 
+  it('retains Formly error description targets through valid, invalid and corrected values', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      maxAttempts: { type: 'integer', minimum: 1 }
+    } }, model: { maxAttempts: 2 } }, 'figsharePublishing');
+    const field = findFieldByKey(fixture.componentInstance.fields, 'maxAttempts')!;
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    const target = () => fixture.nativeElement.querySelector('[id="' + input.getAttribute('aria-describedby') + '"]');
+    expect(target()).not.toBeNull();
+    expect(target().textContent.trim()).toBe('');
+    field.formControl!.setValue(0); field.formControl!.markAsTouched(); fixture.detectChanges();
+    expect(target().querySelector('[role="alert"]')).not.toBeNull();
+    field.formControl!.setValue(3); fixture.detectChanges();
+    expect(target()).not.toBeNull();
+    expect(target().textContent.trim()).toBe('');
+    expect(fixture.nativeElement.querySelector('rb-admin-save-shortcut').nextElementSibling.classList).toContain('rb-admin-save-bar');
+    fixture.destroy();
+  });
+
   async function renderConnectionTester(key = 'figsharePublishing') {
     return renderConfig({ schema: { type: 'object', properties: {
       enabled: { type: 'boolean' },
@@ -1014,17 +1034,19 @@ describe('AppConfigComponent', () => {
       expect(button.type).toBe('button');
       component.model.connection.baseUrl = 'http://draft.example';
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('admin-config-connection-unsaved');
+      expect(fixture.nativeElement.textContent).not.toContain('admin-config-connection-unsaved');
       button.click();
       await fixture.whenStable(); fixture.detectChanges();
       expect(appConfigService.testConnection).toHaveBeenCalledWith(key, jasmine.objectContaining({ connection: { baseUrl: 'http://draft.example', token: '' } }));
       expect(component.connectionResult?.ok).toBeTrue();
+      expect(fixture.nativeElement.querySelector('[aria-live="polite"] .rb-admin-hint').textContent).toContain('admin-config-connection-unsaved');
       expect(component.connectionTestedAt).toEqual(jasmine.any(Date));
       expect(fixture.nativeElement.querySelector('.app-config-connection-result').classList).toContain('alert-success');
       expect(fixture.nativeElement.textContent).toContain('admin-config-connection-draft');
       expect(appConfigService.lastSavedModel).toBeUndefined();
       component.model.connection.baseUrl = 'http://new-draft.example'; fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.app-config-connection-result')).toBeNull();
+      expect(fixture.nativeElement.textContent).not.toContain('admin-config-connection-unsaved');
       fixture.destroy();
     });
   }
@@ -1040,13 +1062,18 @@ describe('AppConfigComponent', () => {
   }
   it('requires a Figshare base URL before testing and explains the disabled action', async () => {
     const fixture = await renderConnectionTester();
-    fixture.componentInstance.model.connection.baseUrl = '  '; fixture.detectChanges();
+    const field = findFieldByKey(fixture.componentInstance.fields, 'baseUrl')!;
+    field.formControl!.setValue('  ');
+    await fixture.whenStable(); fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('#test-connection');
     expect(button.disabled).toBeTrue();
+    const input = fixture.nativeElement.querySelector('[id="' + field.id + '"]');
+    expect(input.parentElement.textContent).toContain('admin-config-connection-base-url-hint');
     expect(fixture.nativeElement.querySelector('#connection-base-url-hint').textContent).toContain('admin-config-connection-base-url-hint');
     await fixture.componentInstance.testConnection();
     expect(appConfigService.testConnection).not.toHaveBeenCalled();
-    fixture.componentInstance.model.connection.baseUrl = 'https://example.org'; fixture.detectChanges();
+    field.formControl!.setValue('https://example.org');
+    await fixture.whenStable(); fixture.detectChanges();
     expect(button.disabled).toBeFalse();
     expect(fixture.nativeElement.querySelector('#connection-base-url-hint')).toBeNull();
     fixture.destroy();
