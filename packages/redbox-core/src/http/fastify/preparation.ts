@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 import type {
   FastifyInstance,
+  FastifyServerOptions,
   FastifyReply,
   FastifyRequest,
   FastifyContentTypeParser,
@@ -9,6 +10,15 @@ import type {
   RouteShorthandOptions,
 } from 'fastify';
 import type { HookLookup } from 'fastify/types/hooks';
+import cookiePlugin, { type FastifyCookieOptions } from '@fastify/cookie';
+import sessionPlugin from '@fastify/session';
+import {
+  NativeMongoSessionStore,
+  nativeSessionSend,
+  nativeSessionRequest,
+  sessionPeerTrust,
+  type NativeSessionOptions,
+} from './session';
 import { requestHooks, requestOwnership } from './requestOwnership';
 import { registerPortalRouterView } from './router';
 
@@ -42,6 +52,8 @@ export interface FastifyPreparation {
   readonly initialConfig: Readonly<FastifyInstance['initialConfig']>;
   readonly supportedMethods: readonly string[];
   register(plugin: CorePlugin, options?: { prefix?: string }): FastifyPreparation;
+  register(plugin: typeof cookiePlugin, options?: FastifyCookieOptions): FastifyPreparation;
+  register(plugin: typeof sessionPlugin, options: NativeSessionOptions): FastifyPreparation;
   addHook<K extends OwnedHook>(name: K, hook: BoundHook<HookLookup<K>>): FastifyPreparation;
   route(
     options: Omit<
@@ -95,8 +107,10 @@ function keys(value: object, allowed: ReadonlySet<string>, surface: string) {
  * fluent return, plugin argument, hook receiver or request.server escape. */
 export function sealPreparation(
   app: FastifyInstance,
-  ownership: ReturnType<typeof requestOwnership>
+  ownership: ReturnType<typeof requestOwnership>,
+  trustProxy?: FastifyServerOptions['trustProxy']
 ): FastifyPreparation {
+  const trust = sessionPeerTrust(trustProxy);
   const views = new WeakMap<object, FastifyPreparation>();
   const receiver = (value: unknown) => (value && typeof value === 'object' ? (views.get(value) ?? value) : value);
   ownership.bindPreparation(receiver);
@@ -136,12 +150,76 @@ export function sealPreparation(
         ...instance.initialConfig,
         routerOptions: Object.freeze({ ...instance.initialConfig.routerOptions }),
       }),
-      register(plugin: CorePlugin, options = {}) {
+      register(plugin: CorePlugin | typeof cookiePlugin | typeof sessionPlugin, options: Record<string, unknown> = {}) {
         if (typeof plugin !== 'function') denied('register(non-function)');
         if (!options || typeof options !== 'object') denied('register options');
-        keys(options, new Set(['prefix']), 'register options');
+        const native = plugin === cookiePlugin || plugin === sessionPlugin;
+        keys(
+          options,
+          new Set(
+            plugin === cookiePlugin
+              ? ['secret', 'parseOptions', 'hook', 'algorithm']
+              : plugin === sessionPlugin
+                ? [
+                    'secret',
+                    'cookieName',
+                    'cookiePrefix',
+                    'cookie',
+                    'store',
+                    'saveUninitialized',
+                    'rolling',
+                    'resave',
+                    'proxy',
+                  ]
+                : ['prefix']
+          ),
+          'register options'
+        );
+        if (plugin === sessionPlugin && !(options.store instanceof NativeMongoSessionStore)) denied('session store');
         const wrapped = new Proxy(plugin, {
           apply(fn, _this, args) {
+            if (native) {
+              const child = args[0] as FastifyInstance;
+              // Exact pinned framework plugins only. Decoration is synchronous;
+              // request hooks use the same leases/contexts as application hooks,
+              // with an identified native handoff for Fastify's private Symbols.
+              // No generic decorate capability or raw instance leaves this adapter.
+              const qualified = Object.freeze(
+                Object.assign(Object.create(null), {
+                  parseCookie: (...values: Parameters<FastifyInstance['parseCookie']>) => child.parseCookie(...values),
+                  decorate: child.decorate.bind(child),
+                  decorateRequest: child.decorateRequest.bind(child),
+                  decorateReply: child.decorateReply.bind(child),
+                  // Qualified native factory only: invalid empty credentials take
+                  // the pinned synchronous construction branch, with no store I/O.
+                  // Its caller is an owned Session regenerate operation; the raw
+                  // decorator never reaches application preparation/request views.
+                  decryptSession: (
+                    id: string,
+                    request: FastifyRequest,
+                    cookie: NonNullable<NativeSessionOptions['cookie']>,
+                    done: (error?: Error) => void
+                  ) => child.decryptSession(id, request, cookie, done),
+                  addHook(name: string, hook: unknown) {
+                    if (!['onRequest', 'onSend', 'preParsing', 'preValidation', 'preHandler'].includes(name))
+                      denied(`native addHook(${name})`);
+                    const owned =
+                      plugin === sessionPlugin && name === 'onSend'
+                        ? nativeSessionSend(options as unknown as NativeSessionOptions, trust)
+                        : plugin === sessionPlugin && name === 'onRequest'
+                          ? nativeSessionRequest(
+                              options as unknown as NativeSessionOptions,
+                              hook as never,
+                              trust,
+                              (request, cookie, done) => qualified.decryptSession('', request, cookie, done)
+                            )
+                          : hook;
+                    child.addHook(name as RequestHook, ownership.nativeHook(name, owned) as never);
+                  },
+                })
+              );
+              return Reflect.apply(fn, qualified, [qualified, args[1], args[2]]);
+            }
             const child = view(args[0]);
             return Reflect.apply(fn, child, [child, args[1], args[2]]);
           },

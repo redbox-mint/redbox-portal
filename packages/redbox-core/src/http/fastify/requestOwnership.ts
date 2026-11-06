@@ -71,6 +71,7 @@ export function requestOwnership(owner: PersistenceOwner) {
   }
   const methodsFor = {
     request: 'getValidationFunction compileValidationSchema validateInput getDecorator setDecorator',
+    session: 'save reload regenerate destroy touch resetMaxAge options get set isModified isSaved isPersisted',
     reply:
       'code status send header headers getHeader getHeaders removeHeader hasHeader redirect writeEarlyHints hijack ' +
       'callNotFound type serializer serialize getSerializationFunction compileSerializationSchema serializeInput then trailer hasTrailer removeTrailer getDecorator',
@@ -83,6 +84,14 @@ export function requestOwnership(owner: PersistenceOwner) {
     const cached = publicObjects.get(target);
     if (cached) return cached as T;
     const methods = new Map<PropertyKey, Callable>();
+    const methodNames = methodsFor[kind].split(' ');
+    // Accessors may return a method before its named property is ever read.
+    // Re-enter the same view path so every handle retains that method's adapter.
+    const methodView = (value: unknown) => {
+      if (typeof value !== 'function') return undefined;
+      const name = methodNames.find(name => Reflect.get(target, name, target) === value);
+      return name === undefined ? undefined : read(name);
+    };
     const denied = (key: PropertyKey): never => {
       throw new TypeError(`Fastify cannot replace/use ${kind}.${String(key)}; use owned hooks/module drains.`);
     };
@@ -103,10 +112,14 @@ export function requestOwnership(owner: PersistenceOwner) {
       }
       const value = Reflect.get(target, key, target);
       if (key === 'routeOptions') return metadata(value);
+      if (kind === 'request' && key === 'session' && value && typeof value === 'object')
+        return publicView(value, 'session');
       if (value && key === 'log') return publicView(value, 'log');
       if (value && key === 'signal') return publicView(value, 'signal');
       if (typeof value !== 'function') return publicValue(value);
-      if (!methodsFor[kind].split(' ').includes(key)) {
+      if (!methodNames.includes(key)) {
+        const method = methodView(value);
+        if (method) return method;
         if (['request', 'reply'].includes(kind) && Object.hasOwn(target, key)) return value;
         denied(key);
       }
@@ -121,13 +134,17 @@ export function requestOwnership(owner: PersistenceOwner) {
           if (key === 'setDecorator' && protectedKey(args[0])) denied(key);
           if (key === 'serializer') args[0] = handler(args[0], -1);
           if (key === 'trailer') args[1] = wrap(args[1], 0, true);
+          // Native Session methods may finish through a callback whose returned
+          // work is independent of the store callback and transport completion.
+          if (kind === 'session' && ['save', 'reload', 'regenerate', 'destroy'].includes(key))
+            args = args.map(value => (typeof value === 'function' ? wrap(value, -1) : value));
           const result = Reflect.apply(fn, target, args);
           if (key === 'getDecorator')
-            return typeof result === 'function' || ['routeOptions', 'log', 'signal'].includes(args[0])
+            return typeof result === 'function' || ['routeOptions', 'log', 'signal', 'session'].includes(args[0])
               ? read(args[0])
               : publicValue(result);
           if (typeof result === 'function')
-            return key.includes('Serialization') ? handler(result, -1) : wrap(result, -1);
+            return methodView(result) ?? (key.includes('Serialization') ? handler(result, -1) : wrap(result, -1));
           if (key === 'validateInput' && result?.then) trackHttpRequestWork(target, result);
           if (['serialize', 'serializeInput'].includes(key)) sendPayload(result);
           return kind === 'log' ? metadata(result) : publicValue(result);
@@ -148,7 +165,10 @@ export function requestOwnership(owner: PersistenceOwner) {
       getPrototypeOf: () => null,
       setPrototypeOf: () => denied('__proto__'),
       defineProperty: (_object, key) => denied(key),
-      deleteProperty: () => denied('property deletion'),
+      deleteProperty: (_object, key) => {
+        if (kind === 'session' && !protectedKey(key)) return Reflect.deleteProperty(target, key);
+        return denied('property deletion');
+      },
       preventExtensions: () => false,
     });
     publicObjects.set(target, view);
@@ -157,7 +177,14 @@ export function requestOwnership(owner: PersistenceOwner) {
     return view;
   }
   let preparation: (instance: unknown) => unknown;
-  function wrap<T>(fn: T, requestIndex = 0, callback = false, shortCircuit = false, outgoing = false): T {
+  function wrap<T>(
+    fn: T,
+    requestIndex = 0,
+    callback = false,
+    shortCircuit = false,
+    outgoing = false,
+    native = false
+  ): T {
     if (typeof fn !== 'function' || wrapped.has(fn as Callable)) return fn;
     const proxy = new Proxy(fn as Callable, {
       apply(target, receiver, args) {
@@ -226,7 +253,13 @@ export function requestOwnership(owner: PersistenceOwner) {
                 }
               }
               try {
-                const result = Reflect.apply(target, publicValue(receiver), args.map(publicValue));
+                // Only pinned, qualified framework plugins receive native objects.
+                // Application hooks always receive capability views.
+                const result = Reflect.apply(
+                  target,
+                  native ? receiver : publicValue(receiver),
+                  native ? args : args.map(publicValue)
+                );
                 // Returned promises settle both callback leases and request work.
                 if (release && result && typeof result.then === 'function')
                   void Promise.resolve(result).then(release, release);
@@ -316,6 +349,15 @@ export function requestOwnership(owner: PersistenceOwner) {
     wrap,
     handler,
     hook,
+    nativeHook: (name: string, fn: unknown) =>
+      wrap(
+        fn,
+        0,
+        true,
+        !['onResponse', 'onError', 'onTimeout', 'onRequestAbort'].includes(name),
+        name === 'onSend',
+        true
+      ),
     hooks,
     preserve: (value: object) => publicObjects.set(value, value),
     bindPreparation: (view: typeof preparation) => {

@@ -121,7 +121,7 @@ export class FastifyHost {
     });
     const ownership = requestOwnership(this.owner);
     const captureRequest = ownership.capture;
-    this.preparation = sealPreparation(this.fastify, ownership);
+    this.preparation = sealPreparation(this.fastify, ownership, options.trustProxy);
   }
 
   /** Initialize, prepare all plugins and bind one listener with admission still closed. */

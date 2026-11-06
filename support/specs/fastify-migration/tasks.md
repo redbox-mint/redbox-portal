@@ -127,7 +127,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P2 — Security, extensions and risky pilot
 
-- [ ] **FM-014 — Implement native session/store boundary.**
+- [x] **FM-014 — Implement native session/store boundary.**
   - Dependencies: G1.
   - Work: bind native cookies/sessions to application-owned Mongo; retain explicit
     index/TTL maintenance, cookie/proxy behavior and save/touch/destroy ownership.
