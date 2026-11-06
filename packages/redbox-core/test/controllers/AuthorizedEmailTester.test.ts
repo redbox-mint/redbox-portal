@@ -39,16 +39,20 @@ describe('Authorized email admin tester', () => {
     controller.testAuthorizedEmail({ body, params: { branding }, session: { branding: 'other' } } as any, response);
     return response.json.firstCall?.args[0];
   }
-  it('explains case-insensitive matching and unchanged policies in the UI help', () => {
+  it('explains account-creation matching in the UI and preserves the detailed tester help', () => {
     const translations = JSON.parse(readFileSync(resolvePath(__dirname, '../../../../language-defaults/en/translation.json'), 'utf8'));
     const template = readFileSync(resolvePath(__dirname, '../../../../angular/projects/researchdatabox/app-config/src/app/app-config.component.html'), 'utf8');
-    expect(template).to.include("'admin-config-address-matching-help' | i18next");
-    const help = translations['admin-config-address-matching-help'];
-    expect(help).to.include('Matching ignores letter case');
-    expect(help).to.include('when creating AAF and OIDC accounts');
-    expect(help).to.include('Domains match exactly, without subdomains');
-    expect(help).to.include('Empty lists for a provider allow everyone');
-    expect(help).not.to.include('case-sensitive');
+    expect(template).to.include("'admin-config-account-creation-matching' | i18next");
+    const help = translations['admin-config-account-creation-matching'];
+    expect(help).to.include('A new account');
+    expect(help).to.include('email domain OR full email address');
+    expect(help).to.include('identity provider');
+    const testerHelp = translations['admin-config-address-matching-help'];
+    expect(testerHelp).to.include('Matching ignores letter case');
+    expect(testerHelp).to.include('when creating AAF and OIDC accounts');
+    expect(testerHelp).to.include('Domains match exactly, without subdomains');
+    expect(testerHelp).to.include('Empty lists for a provider allow everyone');
+    expect(testerHelp).not.to.include('case-sensitive');
   });
   it('registers an Admin-only, CSRF-protected POST with the auth and validation policies', () => {
     const config: any = buildCoreApiRouteConfig();
