@@ -239,7 +239,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     }
   }
 
-  async selectTarget(info: DashboardTargetInfo, force = false): Promise<void> {
+  async selectTarget(info: DashboardTargetInfo, force = false, userInitiated = false): Promise<void> {
     if (this.saving && !force) return;
     if (!force && (this.isSelected(info) || !this.confirmDiscard('open another dashboard'))) {
       if (this.selected) window.history.replaceState(null, '', this.targetHash(this.selected));
@@ -248,7 +248,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     this.closeDialogs();
     this.selected = info;
     window.history.replaceState(null, '', this.targetHash(info));
-    this.focusEditor = window.matchMedia('(max-width: 991.98px)').matches;
+    this.focusEditor = userInitiated && window.matchMedia('(max-width: 991.98px)').matches;
     await this.loadSelected();
   }
 
