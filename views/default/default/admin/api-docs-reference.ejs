@@ -13,8 +13,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= headingText %></title>
     <link rel="stylesheet" href="<%= brandPortalPath %>/styles/theme.css">
-    <link href="https://fonts.googleapis.com/css?family=Titillium+Web:400,600,700&amp;display=swap" rel="stylesheet">
+    <% const defaultTypeface = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
+    <% if (defaultTypeface) { %>
+    <link rel="preload" href="<%= defaultTypeface.regularUrl %>" as="font" type="font/woff2" crossorigin>
+    <% } else { %><%- include('../layout/default-fonts.ejs', { fontPath: brandPortalPath + '/fonts/google' }) %><% } %>
+    <% if (!defaultTypeface) { %>
+    <link rel="preload" href="<%= brandPortalPath %>/fonts/google/titillium-web-600-latin-de7b46000b9b.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<%= brandPortalPath %>/fonts/google/titillium-web-700-latin-902aff22a868.woff2" as="font" type="font/woff2" crossorigin>
+    <% } %>
     <link rel="preload" href="<%= brandPortalPath %>/admin/api-docs/openapi.json" as="fetch" crossorigin="anonymous">
+    <link rel="stylesheet" href="<%= brandPortalPath %>/styles/default-fonts.css">
     <style nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>">
       html { overflow-y: hidden; }
       html,

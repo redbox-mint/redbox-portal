@@ -18,22 +18,13 @@
     <%=typeof title == 'undefined' ? TranslationService.t('default-title') : title%>
   </title>
 
-  <% /* Brand Typeface: preload Regular once for an active custom typeface, else current Google fonts. */ %>
+  <% /* Brand Typeface: preload Regular once for an active custom typeface, else the self-hosted default faces. */ %>
   <% const __modernAdmin = typeof body === 'string' && body.includes('id="rb-admin-main"'); %>
   <% var __brandTypefaceFont = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
   <% if (__brandTypefaceFont) { %>
   <link rel="preload" href="<%= __brandTypefaceFont.regularUrl %>" as="font" type="font/woff2" crossorigin>
   <% } else { %>
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <% if (__modernAdmin) { %>
-  <link href="https://fonts.googleapis.com/css?family=Titillium+Web:400,600,700%7CRoboto+Condensed:400,700%7CRaleway:100,400&amp;display=swap" rel="stylesheet">
-  <% } else { %>
-  <link href='https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap' rel='stylesheet' type='text/css'>
-  <link href='https://fonts.googleapis.com/css?family=Raleway:400,100&display=swap' rel='stylesheet' type='text/css'>
-  <% } %>
+  <%- include('layout/default-fonts.ejs') %>
   <% } %>
 
 
