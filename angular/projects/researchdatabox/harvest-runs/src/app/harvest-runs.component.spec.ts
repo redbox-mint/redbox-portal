@@ -88,6 +88,24 @@ describe('HarvestRunsComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('loads only summaries initially and exposes long error details after selection', async () => {
+    detail.events[0].outcome = 'failed';
+    detail.events[0].status = false;
+    detail.events[0].message = 'Failure '.repeat(40) + '\nsecond line';
+    fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable();
+    expect(apiService.getRun).not.toHaveBeenCalled();
+    expect(apiService.listRunEvents).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.hr-detail')).toBeNull();
+    await component.selectRun('run-1'); await fixture.whenStable(); fixture.detectChanges();
+    expect(apiService.getRun).toHaveBeenCalledTimes(1);
+    const disclosure = fixture.nativeElement.querySelector('.hr-message details');
+    expect(disclosure.open).toBeFalse();
+    expect(disclosure.textContent).toContain('second line');
+    expect(component.getEventPreview(detail.events[0]).length).toBeLessThanOrEqual(161);
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.hr-detail h2'));
+  });
+
   it('requests runs and statistics while record-type filter options are still loading', fakeAsync(() => {
     let resolveTypes!: (types: Array<{ name: string }>) => void;
     spyOn(TestBed.inject(RecordService), 'getAllTypes').and.returnValue(new Promise(resolve => { resolveTypes = resolve; }));
@@ -220,10 +238,11 @@ describe('HarvestRunsComponent', () => {
     expect(apiService.listRuns.calls.mostRecent().args[0]!.dateFrom).toBe('');
   });
 
-  it('loads runs and the initial selected run detail on init', async () => {
+  it('loads runs initially and loads details when selected', async () => {
     fixture.autoDetectChanges(true);
 
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
 
     expect(apiService.listRuns).toHaveBeenCalledTimes(1);
@@ -336,6 +355,7 @@ describe('HarvestRunsComponent', () => {
   it('does not refetch page 2 when the loading state recreates pagination', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
 
     let resolveEvents!: (value: Awaited<ReturnType<HarvestRunApiService['listRunEvents']>>) => void;
@@ -357,6 +377,7 @@ describe('HarvestRunsComponent', () => {
   it('ignores earlier event results when a new filter is applied during loading', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     let finishOlder: (response: any) => void = () => {};
     apiService.listRunEvents.and.returnValues(new Promise(resolve => finishOlder = resolve), Promise.resolve({ summary: { numFound: 0, page: 1, start: 0 }, records: [] }));
     component.eventFilters.harvestId = 'older';
@@ -372,6 +393,7 @@ describe('HarvestRunsComponent', () => {
   it('filters failed events by exact harvest ID through the form', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     const outcome: HTMLSelectElement = fixture.nativeElement.querySelector('#harvest-events-outcome');
     outcome.value = 'failed';
@@ -443,6 +465,7 @@ describe('HarvestRunsComponent', () => {
     detail.chunksTotal = 1332;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     let resolveChunks!: (value: Awaited<ReturnType<HarvestRunApiService['listRunChunks']>>) => void;
     apiService.listRunChunks.and.returnValue(new Promise(resolve => { resolveChunks = resolve; }));
@@ -524,6 +547,7 @@ describe('HarvestRunsComponent', () => {
     detail.chunks[0].chunkIndex = 0;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     const el: HTMLElement = fixture.nativeElement;
     const chunks = el.querySelector('details.hr-chunks') as HTMLDetailsElement;
@@ -558,6 +582,7 @@ describe('HarvestRunsComponent', () => {
     detail.eventsTotal = 0;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     expect(fixture.nativeElement.textContent).toContain('Some detailed history has expired.');
     expect(component.getSummaryCounts()[0].value).toBe(2);
@@ -583,6 +608,7 @@ describe('HarvestRunsComponent', () => {
   it('returns to the first event page when retention removes the requested page, keeping filters', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     await component.viewChunkRecords(detail.chunks[0], true);
     apiService.listRunEvents.calls.reset();
@@ -616,6 +642,7 @@ describe('HarvestRunsComponent', () => {
   it('keeps navigation if a nonzero total accompanies an empty first page without retrying forever', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     apiService.listRunEvents.and.resolveTo({ summary: { numFound: 21, page: 1, start: 0 }, records: [] });
     await component.onEventPageChanged({ page: 2, itemsPerPage: 20 });
