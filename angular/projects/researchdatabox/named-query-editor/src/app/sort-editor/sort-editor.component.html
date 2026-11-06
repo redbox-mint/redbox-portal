@@ -1,6 +1,6 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-sort-heading' | i18next }}</h6>
+    <h3 class="h6">{{ 'named-query-sort-heading' | i18next }}</h3>
   </div>
   <div *ngIf="entries.length > 0" class="table-responsive">
     <table class="table table-sm table-bordered mb-0">
@@ -14,12 +14,14 @@
       <tbody>
         <tr *ngFor="let entry of entries; trackBy: trackById">
           <td>
-            <input type="text" class="form-control form-control-sm"
+            <label class="visually-hidden" [for]="idPrefix + '-field-' + entry.id">{{ 'named-query-sort-field' | i18next }}</label>
+            <input [id]="idPrefix + '-field-' + entry.id" type="text" class="form-control form-control-sm"
                    [ngModel]="entry.field"
                    (ngModelChange)="onFieldChange(entry, $event)">
           </td>
           <td>
-            <select class="form-select form-select-sm"
+            <label class="visually-hidden" [for]="idPrefix + '-direction-' + entry.id">{{ 'named-query-sort-direction' | i18next }}</label>
+            <select [id]="idPrefix + '-direction-' + entry.id" class="form-select form-select-sm"
                     [ngModel]="entry.direction"
                     (ngModelChange)="onDirectionChange(entry, $event)">
               <option value="ASC">ASC</option>
@@ -39,9 +41,11 @@
   <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-sort-empty' | i18next }}</p>
 
   <div class="d-flex flex-wrap nq-add-row mt-2">
-    <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newField"
+    <label class="visually-hidden" [for]="idPrefix + '-new-field'">{{ 'named-query-sort-field' | i18next }}</label>
+    <input [id]="idPrefix + '-new-field'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newField"
            [attr.placeholder]="'named-query-sort-field-placeholder' | i18next">
-    <select class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newDirection">
+    <label class="visually-hidden" [for]="idPrefix + '-new-direction'">{{ 'named-query-sort-direction' | i18next }}</label>
+    <select [id]="idPrefix + '-new-direction'" class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newDirection">
       <option value="ASC">ASC</option>
       <option value="DESC">DESC</option>
     </select>
