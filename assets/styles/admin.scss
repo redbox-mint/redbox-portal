@@ -158,7 +158,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     &:hover { background: color-mix(in srgb, var(--admin-danger) 8%, var(--admin-bg)); }
   }
   // Explicit opt-in only for a destructive action inside a confirmation dialog.
-  .btn.rb-admin-danger-confirm:where(.modal *, dialog *, [role='dialog'] *) {
+  .btn.rb-admin-danger-confirm:where(.modal *, dialog *, [role='dialog'] *, [role='alertdialog'] *) {
     color: var(--rb-danger-text-color, #fff); background: var(--admin-danger); border-color: var(--admin-danger);
   }
   .form-control, .form-select {
@@ -173,6 +173,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .form-switch { display: flex; align-items: center; gap: 6px; padding-left: 0; }
   .form-switch .form-check-input { float: none; flex-shrink: 0; margin: 0; }
   .form-switch .form-check-label { margin: 0; }
+  .form-switch .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
+  .app-config-settings-off { filter: grayscale(1); }
+  .app-config-settings-off :is(.rb-admin-form-section-body, .app-config-subsection, .form-control, .form-select) { background-color: var(--admin-surface); }
   .rb-admin-mono, .app-config-mono :is(input, textarea), .app-config-page .binding-source, .app-config-dictionary-entry > summary > .rb-admin-hint { font-family: var(--admin-mono); }
   .rb-admin-code-wrap { white-space: normal; overflow-wrap: anywhere; }
   .rb-admin-save-content :is(a, input, select, textarea, button, [tabindex], .rb-admin-form-section) { scroll-margin-block: 16px calc(var(--admin-save-height) + 24px); }
@@ -317,6 +320,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-subsection .app-config-subsection { padding-left: 0; padding-right: 0; }
     .app-config-section-title { min-width: 0; }
     .app-config-summary { overflow-wrap: anywhere; font-family: inherit; color: var(--admin-muted); }
+    .app-config-summary-separator { margin-inline: .35em; }
     .app-config-summary code { font-family: var(--admin-mono); font-size: inherit; color: inherit; }
     .app-config-section-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
     .app-config-expand { font-size: 12.5px; color: var(--admin-muted); white-space: nowrap; }
@@ -364,6 +368,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
 
   .btn.rb-admin-ghost { color: var(--admin-ink); border: 1px solid transparent; background: transparent; &:hover { background: var(--admin-surface); } }
   .rb-admin-row-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; white-space: nowrap; }
+  .rb-admin-row-action, .rb-admin-overflow > summary { min-width: 28px; min-height: 28px; }
   .rb-admin-overflow {
     position: relative; display: inline-block;
     summary { list-style: none; &::-webkit-details-marker { display: none; } }

@@ -21,7 +21,7 @@
       @for (value of ['all', 'in', 'out']; track value) { <button type="button" class="btn btn-outline-secondary btn-sm" [attr.aria-pressed]="audienceValue === value" (click)="audience(value)">{{ ('admin-navigation-audience-' + value) | i18next }}</button> }
     </div>
     <div class="rb-admin-field"><label>{{ 'admin-navigation-roles' | i18next }}</label><div class="rb-navigation-roles" role="group" [attr.aria-label]="'admin-navigation-roles' | i18next">
-      @for (role of roles; track role) { <button type="button" class="rb-admin-chip" [attr.aria-pressed]="item.requiredRoles?.includes(role) || false" (click)="toggleRole(role)">{{ role }}</button> }
+      @for (role of roles; track role) { <button type="button" class="rb-admin-chip" [attr.aria-pressed]="item.requiredRoles?.includes(role) || false" (click)="toggleRole(role)">@if (item.requiredRoles?.includes(role)) { <i class="fa fa-check" aria-hidden="true"></i> }{{ role }}</button> }
     </div><p class="rb-admin-hint">{{ 'admin-navigation-roles-help' | i18next }}</p>
       <div class="rb-navigation-role-entry"><input class="form-control" [id]="prefix + '-role'" [attr.aria-label]="'admin-navigation-custom-role' | i18next" [placeholder]="'admin-navigation-custom-role' | i18next" [value]="roleDraft" (input)="roleDraft = $any($event.target).value" (keydown.enter)="$event.preventDefault(); addRole()"><button type="button" class="btn btn-outline-secondary btn-sm" (click)="addRole()" [disabled]="!roleDraft.trim()">{{ 'admin-navigation-add-role' | i18next }}</button></div>
     </div>

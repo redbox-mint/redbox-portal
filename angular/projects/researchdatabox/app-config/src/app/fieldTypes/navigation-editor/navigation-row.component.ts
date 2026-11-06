@@ -19,7 +19,7 @@ export class NavigationRowComponent {
   confirming = false;
   constructor(private element: ElementRef<HTMLElement>) {}
   get visibility(): string {
-    if (this.byItem) return 'admin-navigation-by-item';
+    if (this.byItem) return 'admin-navigation-visibility-per-link';
     return this.item.hideWhenAuth ? 'admin-navigation-signed-out' : this.item.requiresAuth !== false ? 'admin-navigation-signed-in' : 'admin-navigation-everyone';
   }
   run(action: string): void {
