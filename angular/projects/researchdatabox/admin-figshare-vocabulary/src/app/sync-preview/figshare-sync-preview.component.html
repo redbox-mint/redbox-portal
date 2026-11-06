@@ -6,25 +6,25 @@
   @if (!preview) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else {
-  <div class="d-flex flex-wrap gap-2 mb-3">
-    <div class="figshare-stat">
-      <span class="figshare-stat__value">{{ preview.summary.added }}</span>
+  <div class="rb-admin-stats">
+    <div class="rb-admin-stat">
+      <b>{{ preview.summary.added }}</b>
       <span class="d-block small">{{ 'figshare-vocab-change-added' | i18next }}</span>
     </div>
-    <div class="figshare-stat">
-      <span class="figshare-stat__value">{{ preview.summary.changed }}</span>
+    <div class="rb-admin-stat">
+      <b>{{ preview.summary.changed }}</b>
       <span class="d-block small">{{ 'figshare-vocab-change-changed' | i18next }}</span>
     </div>
-    <div class="figshare-stat">
-      <span class="figshare-stat__value">{{ preview.summary.removed }}</span>
+    <div class="rb-admin-stat">
+      <b>{{ preview.summary.removed }}</b>
       <span class="d-block small">{{ 'figshare-vocab-change-removed' | i18next }}</span>
     </div>
-    <div class="figshare-stat">
-      <span class="figshare-stat__value">{{ preview.summary.reappeared }}</span>
+    <div class="rb-admin-stat">
+      <b>{{ preview.summary.reappeared }}</b>
       <span class="d-block small">{{ 'figshare-vocab-change-reappeared' | i18next }}</span>
     </div>
-    <div class="figshare-stat">
-      <span class="figshare-stat__value">{{ preview.summary.unchanged }}</span>
+    <div class="rb-admin-stat">
+      <b>{{ preview.summary.unchanged }}</b>
       <span class="d-block small">{{ 'figshare-vocab-change-unchanged' | i18next }}</span>
     </div>
   </div>
@@ -42,7 +42,7 @@
         (change)="update({ q: $any($event.target).value })"
       [placeholder]="'admin-filter-search-placeholder' | i18next" />
     </div>
-    <div class="col-md-3">
+    <div class="rb-admin-field">
       <label class="form-label" for="figshare-preview-view">{{ 'figshare-vocab-view' | i18next }}</label>
       <select
         id="figshare-preview-view"
@@ -54,7 +54,7 @@
         <option value="diff">{{ 'figshare-vocab-view-diff' | i18next }}</option>
       </select>
     </div>
-    <div class="col-md-5">
+    <div class="rb-admin-field">
       <div class="form-check form-check-inline">
         <input
           class="form-check-input"

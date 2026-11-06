@@ -29,3 +29,5 @@
 .ex-range-sep { margin: 0 4px; }
 .ex-alert { margin: 12px; }
 @media (max-width: 575px) { .ex-range { grid-template-columns: 1fr; } }
+
+:host .ex-form { max-width: 680px; }

@@ -74,7 +74,7 @@
           }
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="cancelDeleteVocabulary()" cdkFocusInitial>
+          <button type="button" class="btn btn-outline-secondary" (click)="cancelDeleteVocabulary()" cdkFocusInitial>
             {{ 'admin-vocabulary-cancel' | i18next }}
           </button>
           <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDeleteVocabulary()">
@@ -140,7 +140,7 @@
                   <div class="btn-group ms-2 mt-2 mt-sm-0" role="group">
                     <button
                       type="button"
-                      class="btn btn-secondary"
+                      class="btn btn-outline-secondary"
                       (click)="cancelSyncConfirmation()"
                       [disabled]="isSyncInProgress"
                     >
@@ -166,19 +166,19 @@
               </div>
             </div>
           }
-          @if (!isSelectedReadOnly) {
-            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave || isSyncInProgress">
-              {{ 'admin-vocabulary-save' | i18next }}
-            </button>
-          }
           @if (draft.source === 'rva' && !isSyncConfirmationOpen) {
             <button type="button" class="btn btn-outline-secondary" (click)="syncSelected()" [disabled]="!canSyncSelected">
               {{ 'admin-vocabulary-sync-rva' | i18next }}
             </button>
           }
-          <button type="button" class="btn btn-secondary" (click)="closeEditModal()" [disabled]="isSyncInProgress">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeEditModal()" [disabled]="isSyncInProgress">
             {{ 'admin-vocabulary-cancel' | i18next }}
           </button>
+          @if (!isSelectedReadOnly) {
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave || isSyncInProgress">
+              {{ 'admin-vocabulary-save' | i18next }}
+            </button>
+          }
         </div>
       </div>
     </div>
@@ -227,7 +227,7 @@
           }
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeImportModal()" [disabled]="isImportInProgress">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeImportModal()" [disabled]="isImportInProgress">
             {{ 'admin-vocabulary-cancel' | i18next }}
           </button>
           <button

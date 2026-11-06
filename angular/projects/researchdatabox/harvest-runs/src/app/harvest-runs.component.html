@@ -20,7 +20,7 @@
       <div class="rb-admin-stat" [class.hr-global-stat--danger]="!loadingStatistics && (statistics?.failedLast7Days ?? 0) > 0"><b>{{ loadingStatistics ? '—' : (statistics?.failedLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-failed' | i18next }}</span></div>
       <div class="rb-admin-stat hr-global-stat--success">
         @if (!loadingStatistics && statistics?.lastSuccessfulRun; as last) {
-          <b><time [attr.datetime]="last.completedAt" [attr.title]="formatDate(last.completedAt)">{{ getLastSuccessRelativeTime() }}</time></b>
+          <b class="hr-global-stat__date"><time [attr.datetime]="last.completedAt" [attr.title]="formatDate(last.completedAt)">{{ getLastSuccessRelativeTime() }}</time></b>
           <span>{{ 'harvest-runs-stats-last-success' | i18next }}</span>
           <small class="hr-global-stat__source">{{ last.sourceName }}</small>
         } @else {

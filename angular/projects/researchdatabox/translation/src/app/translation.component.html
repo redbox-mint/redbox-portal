@@ -286,7 +286,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn rb-admin-ghost" (click)="closeModal()" [disabled]="saving()">{{ 'admin-tx-cancel' | i18next }}</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="closeModal()" [disabled]="saving()">{{ 'admin-tx-cancel' | i18next }}</button>
         <button type="button" class="btn btn-primary" (click)="saveEdit()" [disabled]="saving()">
           <span *ngIf="saving()" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           {{ (saving() ? 'admin-tx-saving' : 'admin-tx-save-translation') | i18next }}
@@ -367,7 +367,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn rb-admin-ghost" (click)="closeLanguageModal()" [disabled]="creatingLanguage()">
+        <button type="button" class="btn btn-outline-secondary" (click)="closeLanguageModal()" [disabled]="creatingLanguage()">
           {{ 'admin-tx-cancel' | i18next }}
         </button>
         <button
@@ -443,7 +443,7 @@
       <div class="modal-footer">
         <button
           type="button"
-          class="btn rb-admin-ghost"
+          class="btn btn-outline-secondary"
           (click)="closeDisplayNameModal()"
           [disabled]="updatingDisplayName()"
         >
