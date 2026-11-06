@@ -29,7 +29,8 @@ import {
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
-import {normaliseVisual} from "./config/names/naming-helpers";
+import { normaliseVisual } from './config/names/naming-helpers';
+import { guessType } from './config/helpers';
 
 function isHandlebarsOptionsArg(value: unknown): boolean {
   return (
@@ -61,9 +62,9 @@ let cachedMarkedParser: ((value: string) => string) | null | undefined;
 
 void import('marked')
   .then(markedModule => {
-      const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
-      if (typeof parseFn === 'function') {
-        cachedMarkedParser = (value: string): string => {
+    const parseFn = markedModule?.marked?.parse ?? markedModule?.parse;
+    if (typeof parseFn === 'function') {
+      cachedMarkedParser = (value: string): string => {
         const result = parseFn(value);
         return typeof result === 'string' ? result : value;
       };
@@ -258,6 +259,46 @@ function buildAttachmentDownloadUrl(attachment: unknown, oid: unknown, branding:
   return `/${[prefix, path].filter(Boolean).join('/')}`;
 }
 
+function contributorDisplayName(
+  value: unknown,
+  fullOrOptions?: string | string[] | Record<string, unknown>,
+  honorificOrOptions?: string | string[] | Record<string, unknown>,
+  givenOrOptions?: string | string[] | Record<string, unknown>,
+  familyOrOptions?: string | string[] | Record<string, unknown>
+) {
+  if (!_isPlainObject(value)) {
+    return '';
+  }
+  const pathOptions = function (provided: unknown, defaultValue: string[]) {
+    return Array.isArray(provided) ? provided : typeof provided === 'string' ? [provided] : defaultValue;
+  };
+  const getPath = function (value: unknown, paths: string[]) {
+    for (const path of paths) {
+      const raw = _get(value, path);
+      const guessedType = guessType(raw);
+      if (['array', 'object', 'function'].includes(guessedType)) {
+        // Skip properties that are likely to show an unfriendly string representation.
+        continue;
+      }
+      const result = String(raw ?? '').trim();
+      if (result) {
+        return result;
+      }
+    }
+    return '';
+  };
+
+  const fullPath = pathOptions(fullOrOptions, ['full_name_honorific', 'text_full_name', 'full_name', 'fullName']);
+  const honorificPath = pathOptions(honorificOrOptions, ['honorific']);
+  const givenPath = pathOptions(givenOrOptions, ['given_name', 'givenName']);
+  const familyPath = pathOptions(familyOrOptions, ['family_name', 'familyName']);
+
+  return (
+    getPath(value, fullPath) ||
+    [getPath(value, honorificPath), getPath(value, givenPath), getPath(value, familyPath)].join(' ').trim()
+  );
+}
+
 /**
  * Shared Handlebars helper definitions for use in both server and client contexts.
  * These helpers provide CSP-safe alternatives to lodash template expressions.
@@ -295,6 +336,37 @@ const dateLocalePresetMap: Record<string, Intl.DateTimeFormatOptions> = {
   DATETIME_HUGE_WITH_SECONDS: DateTime.DATETIME_HUGE_WITH_SECONDS,
 };
 
+export const dateModifyOperations = ['startOf', 'endOf', 'plus'] as const;
+export const dateModifyShiftUnits = [
+  'year',
+  'quarter',
+  'month',
+  'week',
+  'day',
+  'hour',
+  'minute',
+  'second',
+  'millisecond',
+] as const;
+export const dateModifyPlusUnits = [
+  'years',
+  'quarters',
+  'months',
+  'weeks',
+  'days',
+  'hours',
+  'minutes',
+  'seconds',
+  'milliseconds',
+] as const;
+export type DateModifyOperations = (typeof dateModifyOperations)[number];
+export type DateModifyShiftUnits = (typeof dateModifyShiftUnits)[number];
+export type DateModifyPlusUnits = (typeof dateModifyPlusUnits)[number];
+
+function isIn<T>(values: readonly T[], x: any): x is T {
+  return values.includes(x);
+}
+
 /**
  * Helper function definitions that can be registered with Handlebars.
  * Each function is a pure, deterministic helper that does not execute arbitrary code.
@@ -314,7 +386,7 @@ export const handlebarsHelperDefinitions = {
     formatOrOptions?: string | Record<string, unknown>,
     zoneOrOptions?: string | Record<string, unknown>
   ): string {
-    if (!dateValue) {
+    if (!dateValue || isHandlebarsOptionsArg(dateValue)) {
       return '';
     }
     try {
@@ -343,7 +415,7 @@ export const handlebarsHelperDefinitions = {
     presetNameOrOptions?: string | Record<string, unknown>,
     localeOrOptions?: string | Record<string, unknown>
   ): string {
-    if (!dateValue) {
+    if (!dateValue || isHandlebarsOptionsArg(dateValue)) {
       return '';
     }
     try {
@@ -375,7 +447,78 @@ export const handlebarsHelperDefinitions = {
    * @example {{parseDateString dateString}}
    */
   parseDateString: function (dateString: string): string {
+    if (isHandlebarsOptionsArg(dateString)) {
+      return '';
+    }
     return dateString || '';
+  },
+
+  /**
+   * Modify a date by adding the provided time units, or setting to the start or end of the given time unit.
+   * Returns the date value unchanged or empty string if the call was not valid.
+   * @param args The date value to modify.
+   *    Then the 'plus' operation duration, or the operation name, or the handlebars options.
+   *    Then the operation duration, or operation unit, or handlebars options.
+   */
+  dateModify: function (...args: unknown[]): string {
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
+
+    const failResult = args.length > 0 && typeof args[0] === 'string' ? args[0] : '';
+    try {
+      const dt =
+        args.length > 0 && typeof args[0] === 'string'
+          ? DateTime.fromISO(args[0])
+          : args[0] instanceof Date
+            ? DateTime.fromJSDate(args[0])
+            : DateTime.invalid('no date value provided');
+
+      if (!dt.isValid) {
+        return String(failResult);
+      }
+
+      const secondParamIsOperation =
+        args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1]);
+      const operation =
+        args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1]) ? args[1] : 'plus';
+
+      switch (operation) {
+        case 'plus':
+          const durationItems = secondParamIsOperation ? args.slice(2) : args.slice(1);
+          const opts = Object.fromEntries(
+            durationItems
+              .map((val, index, arr) => {
+                if (index % 2 !== 0) {
+                  return null;
+                }
+                const key = typeof val === 'string' && isIn(dateModifyPlusUnits, val) ? val : null;
+                if (!key) {
+                  return null;
+                }
+                return [key, arr[index + 1]];
+              })
+              .filter(i => i !== null)
+          );
+          return Object.keys(opts).length > 0 ? dt.plus(opts).toISO() : failResult;
+
+        case 'startOf':
+          if (args.length >= 3 && isIn(dateModifyShiftUnits, args[2])) {
+            return dt.startOf(args[2]).toISO();
+          }
+          return failResult;
+        case 'endOf':
+          if (args.length >= 3 && isIn(dateModifyShiftUnits, args[2])) {
+            return dt.endOf(args[2]).toISO();
+          }
+          return failResult;
+        default:
+          const _: never = operation;
+          return failResult;
+      }
+    } catch {
+      return failResult;
+    }
   },
 
   /**
@@ -385,6 +528,12 @@ export const handlebarsHelperDefinitions = {
    * @example {{get this "metadata.contributor_ci.text_full_name"}}
    */
   get: function (obj: unknown, path: string, defaultValue?: unknown): unknown {
+    if (isHandlebarsOptionsArg(obj) || isHandlebarsOptionsArg(path)) {
+      return '';
+    }
+    if (isHandlebarsOptionsArg(defaultValue)) {
+      defaultValue = null;
+    }
     return _get(obj, path, defaultValue ?? '');
   },
 
@@ -394,6 +543,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isEmpty value)}}empty{{/if}}
    */
   isEmpty: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return true;
+    }
     return _isEmpty(value);
   },
 
@@ -403,6 +555,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isUndefined value)}}undefined{{/if}}
    */
   isUndefined: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return true;
+    }
     return _isUndefined(value);
   },
 
@@ -412,6 +567,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isNull value)}}null{{/if}}
    */
   isNull: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return _isNull(value);
   },
 
@@ -421,6 +579,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isDefined value)}}defined{{/if}}
    */
   isDefined: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return !_isUndefined(value) && !_isNull(value);
   },
 
@@ -430,6 +591,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isArray value)}}is array{{/if}}
    */
   isArray: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return _isArray(value);
   },
 
@@ -439,6 +603,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isObject value)}}is object{{/if}}
    */
   isObject: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return _isPlainObject(value);
   },
 
@@ -448,6 +615,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (eq status "active")}}active{{/if}}
    */
   eq: function (a: unknown, b: unknown): boolean {
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
     return a === b;
   },
 
@@ -457,6 +627,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (ne status "inactive")}}not inactive{{/if}}
    */
   ne: function (a: unknown, b: unknown): boolean {
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return true;
+    }
     return a !== b;
   },
 
@@ -467,9 +640,10 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (and condition1 condition2)}}both true{{/if}}
    */
   and: function (...args: unknown[]): boolean {
-    // Remove the Handlebars options hash (last argument)
-    args.pop();
-    return args.every(Boolean);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
+    return args.length > 0 && args.every(Boolean);
   },
 
   /**
@@ -479,9 +653,10 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (or condition1 condition2)}}at least one true{{/if}}
    */
   or: function (...args: unknown[]): boolean {
-    // Remove the Handlebars options hash (last argument)
-    args.pop();
-    return args.some(Boolean);
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
+    return args.length > 0 && args.some(Boolean);
   },
 
   /**
@@ -490,69 +665,121 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (not condition)}}condition is false{{/if}}
    */
   not: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return true;
+    }
     return !value;
   },
 
   /**
    * Greater than comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (gt count 0)}}has items{{/if}}
    */
   gt: function (a: unknown, b: unknown): boolean {
-    return Number(a) > Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum > bNum;
   },
 
   /**
    * Greater than or equal comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (gte count 1)}}at least one{{/if}}
    */
   gte: function (a: unknown, b: unknown): boolean {
-    return Number(a) >= Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum >= bNum;
   },
 
   /**
    * Less than comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (lt count 10)}}less than ten{{/if}}
    */
   lt: function (a: unknown, b: unknown): boolean {
-    return Number(a) < Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum < bNum;
   },
 
   /**
    * Less than or equal comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (lte count 10)}}ten or less{{/if}}
    */
   lte: function (a: unknown, b: unknown): boolean {
-    return Number(a) <= Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum <= bNum;
   },
 
   /**
    * Trim leading/trailing whitespace from a string value.
+   * Returns input value converted to a string for non-string input.
    *
    * @example {{trim title}}
    */
   trim: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return String(value ?? '').trim();
   },
 
   /**
+   * Trim leading and trailing whitespace from each string item in an array.
+   * @example {{trimArray ['  value ', 0]}} -> ['value', 0]
+   * @example {{trimArray {aProp: ['value']}}} -> {aProp: ['value']}
+   * @param value
+   */
+  trimArray: function (value: unknown): string[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      return [];
+    }
+    return Array.isArray(value) ? value.map(item => (typeof item === 'string' ? item.trim() : item)) : value;
+  },
+
+  /**
    * Convert a value to lowercase text.
+   * Returns input value converted to a string for non-string input.
    *
    * @example {{toLower value}}
    */
   toLower: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return String(value ?? '').toLowerCase();
   },
 
   /**
    * Convert a value to uppercase text.
+   * Returns input value converted to a string for non-string input.
    *
    * @example {{toUpper value}}
    */
   toUpper: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return String(value ?? '').toUpperCase();
   },
 
@@ -563,6 +790,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{t "label.title"}}
    */
   t: function (this: { translationService?: { t: (key: string) => string } }, key: string): string {
+    if (isHandlebarsOptionsArg(key)) {
+      return '';
+    }
     const translationService = this?.translationService;
     if (translationService && typeof translationService.t === 'function') {
       return translationService.t(key);
@@ -579,22 +809,42 @@ export const handlebarsHelperDefinitions = {
     if (!_isArray(arr)) {
       return '';
     }
-    return arr.join(separator ?? ', ');
+
+    if (isHandlebarsOptionsArg(separator) || separator === null) {
+      separator = undefined;
+    }
+    return arr.join(separator);
   },
 
   /**
-   * Extract a property from each item in an array using dot notation.
+   * Extract one or more properties from each item in an array using dot notation.
    * Replaces lodash usage like: _.map(creators, c => c.email).
    * Returns an empty array for non-array input. Combine with {{join}} to
    * build a delimited string, e.g. {{join (pluck creators "email") ","}}.
    *
+   * For one property, returns an array of the property values.
+   * For more than one property, returns an array of arrays containing the specified property values in the same order.
+   *
    * @example {{join (pluck record.metadata.creators "email") ","}}
    */
-  pluck: function (arr: unknown, path: string): unknown[] {
-    if (!_isArray(arr)) {
+  pluck: function (...args: unknown[]): unknown[] {
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
+    if (args.length === 0 || !_isArray(args[0])) {
       return [];
     }
-    return arr.map((item) => _get(item, path, ''));
+    const arr = args[0];
+
+    if (args.length === 1) {
+      return [];
+    }
+    const paths = args.slice(1).map(String);
+
+    if (paths.length === 1) {
+      return arr.map(item => _get(item, paths[0], ''));
+    }
+    return arr.map(item => paths.map(path => _get(item, path, '')));
   },
 
   /**
@@ -603,9 +853,17 @@ export const handlebarsHelperDefinitions = {
    * @example {{substring notation 0 6}}
    */
   substring: function (value: unknown, start: number, end?: number): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     const text = String(value ?? '');
+
+    if (isHandlebarsOptionsArg(start)) {
+      return text;
+    }
     const from = Number(start);
-    const to = end === undefined || end === null ? undefined : Number(end);
+
+    const to = end === undefined || end === null || isHandlebarsOptionsArg(start) ? undefined : Number(end);
     // Use slice semantics so negative offsets work (e.g. -1 for last char, -6 for trailing code).
     // String.prototype.substring() clamps negatives to 0 and cannot express this.
     return text.slice(Number.isNaN(from) ? 0 : from, Number.isNaN(to as number) ? undefined : to);
@@ -618,9 +876,16 @@ export const handlebarsHelperDefinitions = {
    * @example {{split notation "/" -1}}
    */
   split: function (value: unknown, separator: string, index?: number): unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     const text = String(value ?? '');
+
+    if (isHandlebarsOptionsArg(separator)) {
+      return text;
+    }
     const parts = text.split(String(separator ?? ''));
-    if (index === undefined || index === null) {
+    if (index === undefined || index === null || isHandlebarsOptionsArg(index)) {
       return parts;
     }
     const parsedIndex = Number(index);
@@ -641,6 +906,10 @@ export const handlebarsHelperDefinitions = {
    * @example {{urlEncode oid}}
    */
   urlEncode: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
+
     const rawText = String(value ?? '');
     if (!rawText) {
       return '';
@@ -658,7 +927,7 @@ export const handlebarsHelperDefinitions = {
 
     return text
       .split('/')
-      .map((segment) => encodeURIComponent(segment))
+      .map(segment => encodeURIComponent(segment))
       .join('/');
   },
 
@@ -669,8 +938,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{concat prefix value suffix}}
    */
   concat: function (...args: unknown[]): string {
-    // Remove the Handlebars options hash (last argument)
-    args.pop();
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
     return args.map(String).join('');
   },
 
@@ -680,6 +950,12 @@ export const handlebarsHelperDefinitions = {
    * @example {{default title "Untitled"}}
    */
   default: function (value: unknown, defaultValue: unknown): unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
+    if (isHandlebarsOptionsArg(defaultValue)) {
+      defaultValue = '';
+    }
     return value || defaultValue;
   },
 
@@ -691,6 +967,10 @@ export const handlebarsHelperDefinitions = {
    * @example {{{markdownToHtml content outputFormat}}}
    */
   markdownToHtml: function (value: unknown, outputFormat?: string): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
+
     const input = String(value ?? '');
     if (!input) {
       return '';
@@ -710,6 +990,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{{plaintextToHtml content}}}
    */
   plaintextToHtml: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return escapeHtmlText(value).replace(/\r\n|\r|\n/g, '<br>');
   },
 
@@ -719,6 +1002,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{json data}}
    */
   json: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     try {
       return JSON.stringify(value);
     } catch {
@@ -732,6 +1018,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{{renderMetadataValue metadata.someField}}}
    */
   renderMetadataValue: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return renderMetadataValue(value);
   },
 
@@ -740,13 +1029,172 @@ export const handlebarsHelperDefinitions = {
    *
    * @example {{attachmentDownloadUrl this oid branding portal}}
    */
-  attachmentDownloadUrl: function (
-    attachment: unknown,
-    oid: unknown,
-    branding: unknown,
-    portal: unknown
-  ): string {
+  attachmentDownloadUrl: function (attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
+    if (isHandlebarsOptionsArg(attachment)) {
+      return '';
+    }
+    oid = isHandlebarsOptionsArg(oid) ? '' : oid;
+    branding = isHandlebarsOptionsArg(branding) ? '' : branding;
+    portal = isHandlebarsOptionsArg(portal) ? '' : portal;
     return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
+  },
+
+  /**
+   * Convert a value with an unknown type to an array.
+   * With one value, ensures it is an array.
+   * With more than one value, returns all values in an array.
+   * Does not flatten nested arrays.
+   *
+   * @example {{asArray ['value']}} -> ['value]
+   * @example {{asArray 'value'}} -> ['value']
+   * @example {{asArray {aProp: 'value'} null 0 ['value']}} -> [{aProp: 'value'}, null, 0, ['value']]
+   * @param args The values to get as an array.
+   */
+  asArray: function (...args: unknown[]): unknown[] {
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
+    if (args.length === 0) {
+      return [];
+    }
+    if (args.length === 1) {
+      return Array.isArray(args[0]) ? args[0] : [args[0]];
+    }
+
+    return args;
+  },
+
+  /**
+   * Convert a value with an unknown type to an array.
+   * With one value, ensures it is an array.
+   * With more than one value, returns all values in an array.
+   * Flattens nested arrays to depth 1. Use multiple times to flatten deeply nested arrays.
+   *
+   * @example {{flattenArray ['value']}} -> ['value]
+   * @example {{flattenArray 'value'}} -> ['value']
+   * @example {{flattenArray {aProp: 'value'} null 0 ['value']}} -> [{aProp: 'value'}, null, 0, 'value']
+   * @example {{flattenArray {aProp: 'value'} null 0 [['value']]}} -> [{aProp: 'value'}, null, 0, ['value']]
+   * @example {{flattenArray [{aProp: 'value'} null 0 ['value']]}} -> [{aProp: 'value'}, null, 0, 'value']
+   * @param args
+   */
+  flattenArray: function (...args: unknown[]): unknown[] {
+    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
+      args.pop();
+    }
+    if (args.length === 0) {
+      return [];
+    }
+    if (args.length === 1 && Array.isArray(args[0])) {
+      return args[0].flat(1);
+    }
+    return args.flat(1);
+  },
+
+  /**
+   * Remove undefined, null, and empty trimmed strings from an array.
+   * When provided a non-array value, returns it unchanged.
+   *
+   * @example {{filterArray ['one', '  ', undefined, null, {}]}} -> ['one', {}]
+   * @example {{filterArray undefined}} -> undefined
+   * @param value The array to filter.
+   */
+  filterArray: function (value: unknown): unknown[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
+    return Array.isArray(value)
+      ? value.filter(item => {
+          if (typeof item == 'string' && !item.trim()) {
+            return false;
+          }
+          return !(item === undefined || item === null);
+        })
+      : value;
+  },
+
+  /**
+   * Build a display name from a contributor object.
+   * Returns empty string if the value is not a plain object.
+   * The provided path options will be checked in order, and the first that has a truthy value will be used.
+   * @example {{displayName {text_full_name: 'My Name'} }} -> 'My Name'
+   * @example {{displayName {given_name: 'given', family_name: 'family'} }} -> 'given family'
+   * @param value Contributor object.
+   * @param fullOrOptions Paths to use as full name.
+   * @param honorificOrOptions Paths to use as honorific.
+   * @param givenOrOptions Paths to use as given name.
+   * @param familyOrOptions Paths to use as family name.
+   */
+  displayName: function (
+    value: unknown,
+    fullOrOptions?: string[],
+    honorificOrOptions?: string[],
+    givenOrOptions?: string[],
+    familyOrOptions?: string[]
+  ): string {
+    if (isHandlebarsOptionsArg(value)) {
+      value = {};
+    }
+    return contributorDisplayName(value, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions);
+  },
+
+  /**
+   * Build a display name from a contributor object for each item in an array.
+   * Returns empty string if the value is not a plain object.
+   * The provided path options will be checked in order, and the first that has a truthy value will be used.
+   * @example {{displayNameArray [{text_full_name: 'My Name'}] }} -> ['My Name']
+   * @example {{displayNameArray [{given_name: 'given', family_name: 'family'}] }} -> ['given family']
+   * @param value Array of contributor objects.
+   * @param fullOrOptions Paths to use as full name.
+   * @param honorificOrOptions Paths to use as honorific.
+   * @param givenOrOptions Paths to use as given name.
+   * @param familyOrOptions Paths to use as family name.
+   */
+  displayNameArray: function (
+    value: unknown,
+    fullOrOptions?: string[],
+    honorificOrOptions?: string[],
+    givenOrOptions?: string[],
+    familyOrOptions?: string[]
+  ): string[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
+    return Array.isArray(value)
+      ? value.map(item =>
+          contributorDisplayName(item, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions)
+        )
+      : value;
+  },
+
+  /**
+   * Create a new array with items case-insensitive sorted order.
+   * A non-array argument is returned without changes.
+   * @example {{sort ['value2', 'value1']}} -> ['value1', 'value2']
+   * @example {{sort {text_full_name: 'My Name'} }} -> {text_full_name: 'My Name'}
+   * @param value
+   */
+  sort: function (value: unknown): any[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
+    return Array.isArray(value)
+      ? value.toSorted((a, b) => String(a).localeCompare(String(b), undefined, { ignorePunctuation: true }))
+      : value;
+  },
+
+  /**
+   * Remove duplicate strings from an array.
+   * Non-string duplicate entries are kept.
+   * A non-array is returned without changes.
+   * @param value
+   */
+  unique: function (value: unknown): string[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
+    return Array.isArray(value)
+      ? value.filter((item, index, arr) => (typeof item === 'string' ? arr.indexOf(item) === index : true))
+      : value;
   },
 };
 
@@ -755,7 +1203,7 @@ export const handlebarsHelperDefinitions = {
  * and ensure they happen exactly once.
  */
 class HandlebarsRegisterHelper {
-  static #isSetupDone:boolean = false;
+  static #isSetupDone: boolean = false;
   constructor() {
     if (HandlebarsRegisterHelper.#isSetupDone) {
       return;
