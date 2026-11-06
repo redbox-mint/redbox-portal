@@ -329,7 +329,7 @@ describe('AppConfigComponent', () => {
       expect(component.model.label).toBe('default');
       expect(component.dirty).toBeFalse();
       expect(button.disabled).toBeTrue();
-      expect(button.parentElement?.title).toBe('admin-config-reset-unavailable');
+      expect(fixture.nativeElement.querySelector('.rb-admin-page-header .rb-admin-hint')?.textContent).toContain('admin-config-reset-defaults-hint');
       expect(fixture.nativeElement.textContent).toContain('admin-config-reset-success');
       expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeFalsy();
       fixture.destroy();
@@ -828,8 +828,8 @@ describe('AppConfigComponent', () => {
     expect(switches.length).toBeGreaterThan(1);
     expect(new Set(switches.map(input => input.getAttribute('aria-label'))).size).toBe(switches.length);
     const pageSwitch = fixture.nativeElement.querySelector('#config-enabled');
-    expect(pageSwitch.getAttribute('aria-labelledby')).toBe('config-enabled-label');
-    expect(fixture.nativeElement.querySelector('#config-enabled-label').textContent).toContain('DOI publishing');
+    expect(pageSwitch.getAttribute('aria-label')).toBe('admin-config-feature-status');
+    expect(fixture.nativeElement.querySelector('#config-enabled-label').textContent).toContain('admin-config-status');
     expect(fixture.nativeElement.querySelector('.app-config-page-switch').textContent).toContain('admin-config-off');
     expect(component.sections[0].props!.label).toBe('admin-config-general');
   });
@@ -843,7 +843,7 @@ describe('AppConfigComponent', () => {
     expect(root.querySelector('.app-config-form-main.app-config-settings-off')).not.toBeNull();
     expect(root.querySelector('.app-config-preview')?.closest('.app-config-settings-off')).toBeNull();
     expect(root.querySelectorAll('.rb-admin-hint').length).toBeGreaterThan(0);
-    const noticeCount = () => Array.from(root.querySelectorAll('p, .alert')).filter(el => el.textContent?.trim() === 'admin-config-off-kept').length;
+    const noticeCount = () => Array.from(root.querySelectorAll('p, .alert')).filter(el => el.textContent?.trim() === 'admin-config-feature-off-help').length;
     expect(noticeCount()).toBe(1);
     fixture.componentInstance.setEnabled({ target: { checked: true } } as unknown as Event);
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
@@ -853,7 +853,7 @@ describe('AppConfigComponent', () => {
 
   it('shows the off notice for notifications without a persisted enabled value', async () => {
     const fixture = await renderConfig({ schema: { type: 'object', properties: { enabled: { type: 'boolean' }, recipients: { type: 'array', items: { type: 'string' } } } }, model: {} }, 'integrationNotification');
-    expect(fixture.nativeElement.querySelector('.rb-admin-page-header + .alert-info')?.textContent).toContain('admin-config-off-kept');
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header + .alert-info')?.textContent).toContain('admin-config-feature-off-help');
     expect(fixture.componentInstance.model.enabled).toBeUndefined();
   });
 
@@ -862,7 +862,7 @@ describe('AppConfigComponent', () => {
     const root: HTMLElement = fixture.nativeElement;
     expect(root.querySelectorAll('#config-enabled').length).toBe(1);
     expect(root.querySelector('.rb-admin-page-actions #config-enabled')).not.toBeNull();
-    expect(root.querySelector('#config-enabled-label')?.textContent).toContain('admin-config-restrict-new-accounts');
+    expect(root.querySelector('#config-enabled-label')?.textContent).toContain('admin-config-status');
     expect(root.querySelector('#config-restrict')).toBeNull();
   });
 
@@ -979,7 +979,7 @@ describe('AppConfigComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('admin-config-restrict-new-accounts-help');
     const matchingHint = Array.from(fixture.nativeElement.querySelectorAll('.rb-admin-hint')).find((el: any) => el.textContent.includes('admin-config-account-creation-matching')) as HTMLElement;
     expect(matchingHint.closest('.alert')).toBeNull();
-    expect(fixture.nativeElement.querySelector('formly-form').compareDocumentPosition(matchingHint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('formly-form').compareDocumentPosition(matchingHint) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(appConfigService.lastSavedModel).toBeUndefined();
     fixture.destroy();
   });
