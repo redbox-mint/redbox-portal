@@ -13,6 +13,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= headingText %></title>
     <link rel="stylesheet" href="<%= brandPortalPath %>/styles/theme.css">
+    <link href="https://fonts.googleapis.com/css?family=Titillium+Web:400,600,700&amp;display=swap" rel="stylesheet">
     <style nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>">
       html,
       body {
@@ -24,6 +25,21 @@
         color: var(--rb-body-text-color, #333);
         font-family: var(--rb-brand-font-family, "Titillium Web", sans-serif);
       }
+
+      /* Redoc 3's documented design tokens; keep the embedded reference in the admin type scale. */
+      :root:root {
+        --font-family-base: var(--rb-brand-font-family, "Titillium Web", sans-serif);
+        --font-size-base: 14px;
+        --h1-font-size: 24px;
+        --h2-font-size: 20px;
+        --h3-font-size: 18px;
+        --h4-font-size: 16px;
+        --heading-text-color: var(--rb-main-content-heading-text-branding-color, #1b1b1b);
+      }
+
+      /* Redoc's standalone controls have no public hide option in v3. */
+      #redoc [data-testid="color-mode-switcher"],
+      #redoc [data-section-id="/"] { display: none; }
 
       #redoc {
         width: 100%;
