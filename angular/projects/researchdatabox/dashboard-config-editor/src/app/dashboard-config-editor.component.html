@@ -47,7 +47,7 @@
       <div class="rb-admin-split-main dc-editor-pane" [attr.aria-busy]="loading || targetsLoading">
         <div *ngIf="loading || targetsLoading || loadPending" class="rb-admin-empty rb-admin-form-section" role="status"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i><p>{{ 'admin-dashboard-loading' | i18next }}</p></div>
         <section *ngIf="!loading && !targetsLoading && !loadPending && !loadError && !selected && !targetsError" class="rb-admin-empty rb-admin-form-section">
-          <i class="fa fa-columns" aria-hidden="true"></i><h3>{{ 'admin-dashboard-pick' | i18next }}</h3><p>{{ 'admin-dashboard-pick-help' | i18next }}</p>
+          <i class="fa fa-columns" aria-hidden="true"></i><h2>{{ 'admin-dashboard-pick' | i18next }}</h2><p>{{ 'admin-dashboard-pick-help' | i18next }}</p>
         </section>
         <ng-container *ngIf="!loading && selected && draft">
           <div class="rb-admin-save-content"><section class="card dc-target-card">
@@ -167,9 +167,9 @@
       </div>
       <div *ngIf="copyTo.error" class="alert alert-danger">{{ copyTo.error }}</div>
       <ng-container *ngIf="copyTo.preview as preview">
-        <h5 class="dc-preview-title">{{ 'admin-dashboard-preview' | i18next }}</h5>
+        <h3 class="dc-preview-title">{{ 'admin-dashboard-preview' | i18next }}</h3>
         <div *ngFor="let change of preview.changes" class="dc-destination-preview">
-          <h6>{{ change.label }} <span class="dc-badge dc-badge-hidden" *ngIf="change.hidden">{{ 'admin-dashboard-hidden' | i18next }}</span></h6>
+          <h4>{{ change.label }} <span class="dc-badge dc-badge-hidden" *ngIf="change.hidden">{{ 'admin-dashboard-hidden' | i18next }}</span></h4>
           <ng-container *ngTemplateOutlet="changesTable; context: { $implicit: change.groups }"></ng-container>
         </div>
         <div *ngFor="let finding of preview.errors" class="alert alert-danger dc-finding" role="alert">
