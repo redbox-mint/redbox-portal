@@ -94,9 +94,10 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="vocabModalTitle"
-    (keydown.escape)="!$event.defaultPrevented && !vocabDetail.isRemoveEntryModalOpen && !isSyncInProgress && closeEditModal()"
+    [attr.inert]="confirmDiscard ? '' : null"
+    (keydown.escape)="!$event.defaultPrevented && !confirmDiscard && !vocabDetail.isRemoveEntryModalOpen && !isSyncInProgress && closeEditModal()"
   >
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal [cdkTrapFocus]="!vocabDetail.isRemoveEntryModalOpen" cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal [cdkTrapFocus]="!confirmDiscard && !vocabDetail.isRemoveEntryModalOpen" cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
           <h2 class="modal-title h4-header" id="vocabModalTitle" tabindex="-1" [attr.cdkFocusInitial]="isSelectedReadOnly ? '' : null">{{
@@ -244,3 +245,5 @@
   </div>
   <div class="modal-backdrop fade show" aria-hidden="true"></div>
 }
+
+@if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="confirmDiscard = false" (discard)="discardEdit()"></rb-admin-discard-dialog> }

@@ -284,17 +284,18 @@
   @if (currentUser; as currentUser) {
     @if (updateUserForm; as updateUserForm) {
       <div
-        [config]="{ backdrop: 'static', show: true }"
+        [config]="{ backdrop: 'static', show: true, keyboard: false }"
         (onHidden)="onDetailsModalHidden()"
         [rbAdminModal]="userDetailsModal.isShown" (onShown)="userDetailsModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal
         #userDetailsModal="bs-modal"
         class="modal fade"
+        [attr.inert]="pendingUserAction || confirmDiscard ? '' : null" (keydown.escape)="$event.stopPropagation(); hideDetailsModal()"
         tabindex="-1"
         role="dialog"
       aria-modal="true"
         aria-labelledby="edit-user-title"
       >
-    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userDetailsModalTrap="cdkTrapFocus" [cdkTrapFocus]="userDetailsModal.isShown" [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userDetailsModalTrap="cdkTrapFocus" [cdkTrapFocus]="userDetailsModal.isShown && !pendingUserAction && !confirmDiscard" [cdkTrapFocusAutoCapture]="true">
           <div class="modal-content rb-admin">
             <div class="modal-header">
               <h2 class="modal-title h4" id="edit-user-title">
@@ -429,7 +430,7 @@
                       </div>
                     }
                     <div class="people-form-group">
-                      <label class="form-label">{{ 'manage-users-api' | i18next }}</label>
+                      <span class="form-label">{{ 'manage-users-api' | i18next }}</span>
                       @if (currentUser.accountLinkState === 'linked-alias') {
                         <div class="people-form-value">
                           <em>{{ 'manage-users-api-linked-notice' | i18next }}</em>
@@ -469,11 +470,11 @@
                       <div [formArrayName]="'allRoles'" class="people-roles-grid">
                         @for (role of getUpdateUserFormControls(); track role; let i = $index) {
                           <div [formGroup]="role" class="form-check">
-                            <label class="form-check-label" attr.for="role_{{ role.controls['key'].value }}">
+                            <label class="form-check-label" attr.for="detailsform-role_{{ role.controls['key'].value }}">
                               <input
                                 type="checkbox"
                                 formControlName="checked" [attr.aria-describedby]="!updateUserForm.controls['roles'].valid && submitted ? 'detailsform-roles-error' : null" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'roles')"
-                                id="role_{{ role.controls['key'].value }}"
+                                id="detailsform-role_{{ role.controls['key'].value }}"
                                 class="form-check-input"
                               />
 
@@ -527,18 +528,19 @@
 @if (isNewUserModalShown) {
   @if (newUserForm; as newUserForm) {
     <div
-      [config]="{ show: true }"
+      [config]="{ backdrop: 'static', show: true, keyboard: false }"
       (onHidden)="onNewUserHidden()"
       [rbAdminModal]="userNewModal.isShown" (onShown)="userNewModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal
       #userNewModal="bs-modal"
       class="modal fade"
+      [attr.inert]="confirmDiscard ? '' : null" (keydown.escape)="$event.stopPropagation(); hideNewUserModal()"
       tabindex="-1"
       role="dialog"
       aria-modal="true"
       [attr.aria-hidden]="!isNewUserModalShown"
       aria-labelledby="newuserform"
     >
-    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userNewModalTrap="cdkTrapFocus" [cdkTrapFocus]="userNewModal.isShown" [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userNewModalTrap="cdkTrapFocus" [cdkTrapFocus]="userNewModal.isShown && !confirmDiscard" [cdkTrapFocusAutoCapture]="true">
         <div class="modal-content rb-admin">
           <div class="modal-header">
             <h2 class="modal-title h4" id="newuserform">
@@ -678,11 +680,11 @@
                   <div [formArrayName]="'allRoles'" class="people-roles-grid">
                     @for (role of getNewUserFormControls(); track role; let i = $index) {
                       <div [formGroup]="role" class="form-check">
-                        <label class="form-check-label" attr.for="role_{{ role.controls['key'].value }}">
+                        <label class="form-check-label" attr.for="newform-role_{{ role.controls['key'].value }}">
                           <input
                             type="checkbox"
                             formControlName="checked" [attr.aria-describedby]="!newUserForm.controls['roles'].valid && submitted ? 'newform-roles-error' : null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'roles')"
-                            id="role_{{ role.controls['key'].value }}"
+                            id="newform-role_{{ role.controls['key'].value }}"
                             class="form-check-input"
                           />
 
@@ -716,7 +718,7 @@
 }
 
 @if (pendingUserAction; as action) {
-  <div [config]="{backdrop: 'static', show: true, keyboard: !actionPending}" [rbAdminModal]="userActionModal.isShown" (onShown)="userActionModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal #userActionModal="bs-modal" (onHidden)="pendingUserAction = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-action-title">
+  <div [config]="{backdrop: 'static', show: true, keyboard: false}" [rbAdminModal]="userActionModal.isShown" (onShown)="userActionModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal #userActionModal="bs-modal" (onHidden)="pendingUserAction = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-action-title" (keydown.escape)="$event.stopPropagation(); !actionPending && userActionModal.hide()">
     <div class="modal-dialog modal-dialog-centered" #userActionModalTrap="cdkTrapFocus" [cdkTrapFocus]="userActionModal.isShown" [cdkTrapFocusAutoCapture]="true"><div class="modal-content rb-admin">
       <div class="modal-header"><h2 class="modal-title" id="user-action-title">{{ (action.kind === 'disable' ? 'admin-users-disable-title' : 'admin-users-revoke-title') | i18next }}</h2><button type="button" class="btn-close" [disabled]="actionPending" [attr.aria-label]="'named-query-close' | i18next" (click)="userActionModal.hide()"></button></div>
       <div class="modal-body"><p>{{ (action.kind === 'disable' ? 'admin-users-disable-confirm' : 'admin-users-revoke-confirm') | i18next: { name: action.user.name || action.user.username } }}</p>@if (actionError) { <div class="alert alert-danger" role="alert">{{ actionError }}</div> }</div>
@@ -724,3 +726,5 @@
     </div></div>
   </div>
 }
+
+@if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="keepEditing()" (discard)="discardEditor()"></rb-admin-discard-dialog> }
