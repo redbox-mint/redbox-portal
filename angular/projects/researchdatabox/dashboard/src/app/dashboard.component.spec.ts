@@ -488,6 +488,21 @@ describe('DashboardComponent', () => {
     expect(component.workflowSteps).toEqual([]);
     expect(recordService.getRecords).not.toHaveBeenCalled();
   });
+  it('starts admin Parties on Party Name ascending and preserves other dashboards defaults', () => {
+    const component = create();
+    component.tableConfig['draft'] = [
+      { variable: 'metadata.fullName', initialSort: 'desc' },
+      { variable: 'metaMetadata.createdOn', initialSort: 'desc', defaultSort: true }
+    ] as any;
+    const step = { name: 'draft', config: { workflow: { stage: 'draft' } } };
+    component.adminParties = true;
+    (component as any).initSortMap(step);
+    expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('metadata.fullName:1');
+    component.adminParties = false;
+    (component as any).initSortMap(step);
+    expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('metaMetadata.createdOn:-1');
+  });
+
   it('shows only the active column direction when multiple initial directions are configured', () => {
     const component = create();
     const rows = [{ variable: 'title' }, { variable: 'email' }];

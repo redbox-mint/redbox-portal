@@ -17,7 +17,7 @@
     </tr></thead>
     <tbody>
       <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name">
-        <td><a href="#" (click)="$event.preventDefault(); open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></a></td>
+        <td><button type="button" class="rb-admin-list-name" (click)="open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></button></td>
         <td><span class="badge rb-admin-badge-primary">{{ (q.collectionName === 'record' || q.collectionName === 'user' ? 'admin-query-collection-' + q.collectionName : q.collectionName || '—') | i18next }}</span></td>
         <td class="text-end d-none d-lg-table-cell nq-param-count">{{ paramCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ mappingCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ filterCount(q) || '—' }}</td>
         <td class="small">

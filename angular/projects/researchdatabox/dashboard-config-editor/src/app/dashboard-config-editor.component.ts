@@ -27,6 +27,11 @@ function emptySelection(): SelectionState {
   standalone: false
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
+  saveBar?: ElementRef<HTMLElement>;
+  @ViewChild('saveBar') set saveBarElement(bar: ElementRef<HTMLElement> | undefined) {
+    // Dynamic editors create their bar after the header's initial binding check.
+    queueMicrotask(() => { this.saveBar = bar; this.requestRender(); });
+  }
   readonly copyGroups = COPY_GROUPS;
   private focusEditor = false;
   @ViewChild('editorHeading') set editorHeading(heading: ElementRef<HTMLElement> | undefined) {

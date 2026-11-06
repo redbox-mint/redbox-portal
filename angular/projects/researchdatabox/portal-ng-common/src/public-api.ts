@@ -51,3 +51,5 @@ export * from './lib/admin-discard-dialog.component';
 export * from './lib/admin-overflow.directive';
 
 export * from './lib/admin-pager.component';
+
+export * from './lib/admin-save-shortcut.component';

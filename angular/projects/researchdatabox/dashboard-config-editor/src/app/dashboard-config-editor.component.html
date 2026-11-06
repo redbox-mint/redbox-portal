@@ -8,6 +8,7 @@
     <header class="rb-admin-page-header">
       <div><h1>{{ 'admin-nav-dashboard-config' | i18next }}</h1><p>{{ 'admin-dashboard-description' | i18next }}</p></div>
       <div class="rb-admin-page-actions">
+        <rb-admin-save-shortcut [bar]="saveBar" [dirty]="isDirty" [disabled]="saving || (warnings.length > 0 && !allWarningsAcknowledged)" (save)="save()"></rb-admin-save-shortcut>
         <button type="button" class="btn btn-outline-secondary" (click)="openCopyFrom()" [disabled]="!draft || loading || saving">{{ 'admin-dashboard-copy-settings' | i18next }}</button>
       </div>
     </header>
@@ -76,7 +77,7 @@
             </div>
           </section>
           </div>
-          <div class="rb-admin-save-bar">
+          <div class="rb-admin-save-bar" #saveBar>
             <span class="rb-admin-save-state" [class.dc-dirty]="isDirty" aria-live="polite"><span class="dc-state-dot" aria-hidden="true"></span>{{ (saving ? 'admin-config-saving' : isDirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
             <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="saving || !isDirty" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="button" class="btn btn-primary" [disabled]="saving || !isDirty || (warnings.length > 0 && !allWarningsAcknowledged)" (click)="save()">{{ 'admin-dashboard-save' | i18next }}</button></div>
           </div>
