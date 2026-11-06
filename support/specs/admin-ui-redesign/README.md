@@ -12,6 +12,8 @@ HTML/CSS reference markup in a design-canvas format: read the markup and `mocks/
 
 ## Status
 
+Delivered on `admin-deferred/17-council-ux` (batch 5b): consistent config switches and off states, accessible user validation and restore confirmation, accurate sidebar preview, shared accents and disabled states, and form/modal polish.
+
 Delivered on `admin-deferred/16-polish`: colour-reset card footer, readable page-size controls, untracked named-query caller note, protected config-label acronyms, safe dictionary value summaries and corrected default RDMP modified-date mapping.
 
 Delivered on `admin-deferred/15-auth-domain-case`: intentional case-insensitive authorized domain/email matching, canonical save rules and chip input, with AAF/OIDC and tester parity.

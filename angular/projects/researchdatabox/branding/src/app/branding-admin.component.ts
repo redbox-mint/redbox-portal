@@ -852,6 +852,12 @@ export class BrandingAdminComponent extends BaseComponent {
     this.pendingRestoreId = versionId;
   }
 
+  async confirmVersionRestore(): Promise<void> {
+    const version = this.versions.find(entry => entry.id === this.pendingRestoreId);
+    this.cancelRestore();
+    if (version) await this.restoreVersion(version);
+  }
+
   cancelRestore() {
     this.pendingRestoreId = null;
   }

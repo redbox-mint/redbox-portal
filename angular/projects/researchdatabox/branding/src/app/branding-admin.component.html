@@ -1,5 +1,5 @@
 <div class="branding-admin" *ngIf="initialized">
-  <div [attr.inert]="pendingAction ? '' : null">
+  <div [attr.inert]="pendingAction || pendingRestoreId ? '' : null">
     <div class="rb-admin-save-content">
     <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
       <ol>
@@ -477,25 +477,9 @@
                       class="btn btn-sm btn-outline-danger"
                       (click)="confirmRestore(version.id)"
                       [disabled]="isUnavailable('restore-' + version.id)"
-                      *ngIf="pendingRestoreId !== version.id"
                     >
                       {{ 'branding-history-restore' | i18next }}
                     </button>
-                  </div>
-                  <div class="alert alert-warning mt-2" *ngIf="pendingRestoreId === version.id">
-                    <p>{{ 'branding-restore-confirm' | i18next }}</p>
-                    <div class="rb-admin-page-actions">
-                      <button type="button" class="btn btn-outline-secondary" (click)="cancelRestore()">
-                        {{ 'branding-restore-confirm-no' | i18next }}</button
-                      ><button
-                        type="button"
-                        class="btn btn-outline-danger"
-                        (click)="restoreVersion(version)"
-                        [disabled]="isUnavailable('restore-' + version.id)"
-                      >
-                        {{ 'branding-restore-confirm-yes' | i18next }}
-                      </button>
-                    </div>
                   </div>
                 </td>
               </tr>
@@ -509,13 +493,13 @@
       <div class="col-12 px-0">
         <div class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-eye me-2"></i>
+            <h2 class="card-title h5 mb-0">
+              <i class="fa fa-eye me-2"></i>
               {{ 'branding-preview-title' | i18next }}
               <span class="badge rb-admin-badge-info ms-2" *ngIf="previewKind === 'version'">{{
                 'branding-preview-version' | i18next
               }}</span>
-            </h5>
+            </h2>
           </div>
           <div class="rb-admin-form-section-body">
             <div class="mb-3">
@@ -579,6 +563,16 @@
       </div>
     </div>
   </div>
+  <ng-container *ngIf="pendingRestoreId">
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="branding-restore-title" aria-describedby="branding-restore-help" (keydown.escape)="cancelRestore()">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-header"><h2 id="branding-restore-title" class="modal-title">{{ 'branding-history-restore' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'admin-config-close' | i18next" (click)="cancelRestore()"></button></div>
+        <div class="modal-body"><p id="branding-restore-help">{{ 'branding-restore-confirm' | i18next }}</p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelRestore()">{{ 'branding-restore-confirm-no' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" (click)="confirmVersionRestore()">{{ 'branding-restore-confirm-yes' | i18next }}</button></div>
+      </div></div>
+    </div>
+  </ng-container>
   <ng-container *ngIf="pendingAction">
     <div class="modal-backdrop fade show"></div>
     <div

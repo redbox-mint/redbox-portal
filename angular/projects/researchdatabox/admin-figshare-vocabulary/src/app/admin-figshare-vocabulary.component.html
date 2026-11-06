@@ -126,6 +126,7 @@
   </section>
   @switch (view) {
   @case ('import') {
+  <h2 #subviewHeading tabindex="-1">{{ 'figshare-vocab-add-action' | i18next }}</h2>
   <figshare-import-wizard
     [taxonomies]="taxonomies"
     [localVocabularies]="localVocabularies"
@@ -138,6 +139,7 @@
   ></figshare-import-wizard>
   }
   @case ('preview') {
+  <h2 #subviewHeading tabindex="-1">{{ 'figshare-vocab-preview-title' | i18next }}</h2>
   <figshare-sync-preview
     [preview]="preview"
     [loading]="previewLoading"
@@ -152,6 +154,7 @@
   ></figshare-sync-preview>
   }
   @case ('crosswalk-editor') {
+  <h2 #subviewHeading tabindex="-1">{{ 'figshare-vocab-tab-crosswalks' | i18next }}</h2>
   <figshare-crosswalk-editor
     [crosswalk]="activeCrosswalk"
     [mappings]="mappings"
