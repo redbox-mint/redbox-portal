@@ -11,6 +11,7 @@ if (mount) {
     mount.getAttribute('data-openapi-url'),
     {
       disableTelemetry: true,
+      fetchSpec: true,
       hideDownloadButtons: true,
       scrollYOffset: 0
     },

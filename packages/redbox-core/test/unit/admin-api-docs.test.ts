@@ -251,6 +251,38 @@ describe('admin API docs', function () {
         expect(viewer.IntersectionObserver).to.equal(NativeObserver);
     });
 
+    for (const references of [false, true]) {
+        it(`uses the JSON fast path only without references (references: ${references})`, async function () {
+            const spec = { openapi: '3.0.3', info: { title: 'Fixture', version: '1' },
+                paths: references ? { '/test': { $ref: './hook.json' } } : {} };
+            const render = sinon.spy();
+            const fetch = sinon.stub().resolves({ ok: true, json: async () => spec });
+            const modules: Record<string, any> = {
+                react: { createElement: (type: any, props: any, ...children: any[]) => ({ type, props, children }) },
+                'react-dom/client': { createRoot: () => ({ render }) },
+                mobx: { configure() {} }, 'react-router': { HashRouter: 'router' },
+                redoc: { RedocStandalone: 'reference' }, 'redoc/package.json': { version: '3.0.1' }
+            };
+            const context: any = { require: (name: string) => modules[name], exports: {},
+                document: { querySelector: () => null }, window: {}, fetch, setTimeout, clearTimeout };
+            const source = fs.readFileSync(path.resolve(__dirname, '../../browser/redoc-standalone.js'), 'utf8');
+            vm.runInNewContext(source, context);
+            context.exports.init('/spec.json', { fetchSpec: true, disableTelemetry: true }, { attributes: [] });
+            await new Promise(resolve => setImmediate(resolve));
+            expect(fetch.calledOnceWith('/spec.json')).to.equal(true);
+            const props = render.firstCall.args[0].children[0].props;
+            expect(props.options.fetchSpec).to.equal(undefined);
+            if (references) {
+                expect(props.specUrl).to.equal('/spec.json');
+                expect(props.options.skipBundle).to.equal(undefined);
+            } else {
+                expect(props.spec).to.equal(spec);
+                expect(props.specUrl).to.equal(undefined);
+                expect(props.options.skipBundle).to.equal(true);
+            }
+        });
+    }
+
     it('builds the local redoc bundle into the public output after asset cleaning', function () {
         const assets = webpack.config.find(config => config.name === 'portal-assets');
         const docs = webpack.config.find(config => config.name === 'api-docs');
