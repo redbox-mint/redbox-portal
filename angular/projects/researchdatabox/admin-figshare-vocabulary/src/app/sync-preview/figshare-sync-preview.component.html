@@ -191,7 +191,7 @@
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
-          <h2 class="modal-title h5" id="figshareApplyTitle">{{ 'figshare-vocab-confirm-apply-title' | i18next }}</h2>
+          <h2 class="modal-title h5" id="figshareApplyTitle">{{ 'figshare-vocab-confirm-apply-title' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelApply()"></button>
         </div>
         <div class="modal-body">
           <p class="mb-0">{{ 'figshare-vocab-confirm-apply-body' | i18next: { approved: approvedCount } }}</p>

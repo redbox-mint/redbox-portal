@@ -42,9 +42,8 @@
               <td class="text-end">{{ report.filter.length }}</td><td class="text-end">{{ report.columns.length }}</td>
               <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
                 <a class="btn btn-sm btn-outline-secondary" [href]="openReport(report)">{{ 'admin-report-run' | i18next }}</a>
-                <button class="btn btn-sm rb-admin-ghost" type="button" [disabled]="report.readOnly || !report.canEdit" (click)="editReport(report)">{{ 'report-action-edit' | i18next }}</button>
                 <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: report.title }">⋯</summary>
-                  <div><button class="btn btn-sm btn-outline-danger" type="button" [disabled]="report.readOnly || !report.canDelete" (click)="requestDelete(report); actions.open = false">{{ 'report-action-delete' | i18next }}</button></div>
+                  <div><button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="report.readOnly || !report.canEdit" (click)="editReport(report); actions.open = false">{{ 'report-action-edit' | i18next }}</button><button class="btn btn-sm btn-outline-danger" type="button" [disabled]="report.readOnly || !report.canDelete" (click)="requestDelete(report); actions.open = false">{{ 'report-action-delete' | i18next }}</button></div>
                 </details>
               </div></td></tr>
           }
@@ -70,8 +69,8 @@
         <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
           <div class="modal-content">
             <div class="modal-header">
-              <button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelEdit()"></button>
               <h2 class="modal-title" id="report-editor-title">{{ (!isNewReport ? 'report-edit-title' : 'report-create-title') | i18next }}</h2>
+              <button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelEdit()"></button>
             </div>
             <div class="modal-body">
               @if (errorMessage) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }

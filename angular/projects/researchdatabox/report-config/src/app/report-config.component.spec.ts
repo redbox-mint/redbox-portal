@@ -52,7 +52,7 @@ describe('ReportConfigComponent', () => {
     const menu: HTMLDetailsElement = fixture.nativeElement.querySelector('details.rb-admin-overflow');
     const trigger = menu.querySelector('summary')!;
     menu.open = true;
-    const remove = menu.querySelector('button')!;
+    const remove = menu.querySelector<HTMLButtonElement>('.btn-outline-danger')!;
     remove.focus(); remove.click(); fixture.detectChanges(); await fixture.whenStable();
     const cancel: HTMLButtonElement = fixture.nativeElement.querySelector('.modal-footer [cdkFocusInitial]');
     expect(document.activeElement).toBe(cancel);

@@ -129,6 +129,7 @@ export class ManageRolesComponent extends BaseComponent {
         excludeRole: this.selectedRole.name, candidates: true });
       if (request === this.candidateRequest) {
         this.candidates = result.records;
+        this.selectedCandidateId = this.candidates[0]?.id || '';
         this.candidatePage = result.summary.page;
         this.candidateTotal = result.summary.numFound;
       }

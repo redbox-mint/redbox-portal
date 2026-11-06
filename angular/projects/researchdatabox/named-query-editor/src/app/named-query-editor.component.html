@@ -85,11 +85,11 @@
         <nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
-          {{ 'named-query-save' | i18next }}
-        </button>
         <button type="button" class="btn btn-secondary" (click)="closeEditModal()">
           {{ 'named-query-cancel' | i18next }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
+          {{ 'named-query-save' | i18next }}
         </button>
       </div>
     </div>
