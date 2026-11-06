@@ -683,6 +683,68 @@ describe('AppConfigComponent', () => {
     return fixture;
   }
 
+  it('translates enum labels without changing their values and marks URI and ID controls', async () => {
+    translationService.translationMap['admin-config-enum-googleAnalytics'] = 'Google Analytics';
+    translationService.translationMap['admin-config-enum-googleTagManager'] = 'Google Tag Manager';
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      provider: { type: 'string', enum: ['googleAnalytics', 'googleTagManager'] },
+      engine: { type: 'string', oneOf: [{ const: 'jsonata', title: 'Custom JSONata mapping' }, { const: 'path', title: 'Read record field' }] },
+      endpoint: { type: 'string', format: 'uri' }, clientId: { type: 'string' }, title: { type: 'string' }
+    } }, model: { provider: 'googleAnalytics', endpoint: 'https://orcid.org/', clientId: 'abc', title: 'Title' } }, 'webAnalytics');
+    const options = Array.from(fixture.nativeElement.querySelectorAll('select option')) as HTMLOptionElement[];
+    expect(options.map(option => option.textContent?.trim())).toContain('Google Analytics');
+    expect(options.map(option => option.textContent?.trim())).toContain('Google Tag Manager');
+    expect(options.map(option => option.textContent?.trim())).toContain('Custom JSONata mapping');
+    expect(fixture.componentInstance.model.provider).toBe('googleAnalytics');
+    expect(fixture.nativeElement.querySelectorAll('.app-config-mono input').length).toBe(2);
+  });
+
+  it('expands invalid dictionary ancestors, announces all invalid fields, focuses and follows summary links', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      connection: { type: 'object', properties: { host: { type: 'string' } } },
+      sites: { type: 'object', additionalProperties: { type: 'object', required: ['label'], properties: {
+        label: { type: 'string', minLength: 1 }, count: { type: 'integer', minimum: 1 }
+      } } }
+    } }, model: { connection: { host: 'example' }, sites: { 'a.b[0]': { label: '', count: 0 } } } }, 'oniPublishing');
+    const app = fixture.componentInstance;
+    app.model.changed = true;
+    expect(app.form.invalid).toBeTrue();
+    const waitForFocus = (id: () => string) => new Promise<void>(resolve => {
+      const listener = (event: FocusEvent) => {
+        if ((event.target as HTMLElement).id !== id()) return;
+        fixture.nativeElement.removeEventListener('focusin', listener);
+        resolve();
+      };
+      fixture.nativeElement.addEventListener('focusin', listener);
+    });
+    const firstFocused = waitForFocus(() => app.invalidFieldId(app.invalidFields[0]));
+    await app.onSubmit(app.model); fixture.detectChanges(); await fixture.whenStable();
+    await firstFocused;
+    expect(app.invalidFields.length).toBe(2);
+    expect(fixture.nativeElement.querySelector('[role="alert"] #config-errors-title')).toBeTruthy();
+    expect(fixture.nativeElement.querySelectorAll('details[open]').length).toBeGreaterThanOrEqual(2);
+    expect(document.activeElement?.id).toBe(app.invalidFieldId(app.invalidFields[0]));
+    const links = fixture.nativeElement.querySelectorAll('[aria-labelledby="config-errors-title"] a');
+    const secondFocused = waitForFocus(() => app.invalidFieldId(app.invalidFields[1]));
+    links[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    await secondFocused;
+    expect(document.activeElement?.id).toBe(app.invalidFieldId(app.invalidFields[1]));
+    expect(appConfigService.lastSavedModel).toBeUndefined();
+  });
+
+  it('lets navigation keys bubble from section switches and hides boolean required markers', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', required: ['enabled'], properties: {
+      enabled: { type: 'boolean' }, connection: { type: 'object', required: ['enabled'], properties: { enabled: { type: 'boolean' } } },
+      mapping: { type: 'object', properties: { field: { type: 'string' } } }
+    } }, model: { enabled: false, connection: { enabled: false }, mapping: {} } }, 'doiPublishing');
+    expect(fixture.nativeElement.querySelector('.app-config-checkbox-required')).toBeNull();
+    const input = fixture.nativeElement.querySelector('summary [role="switch"]');
+    const bubbled: string[] = [];
+    fixture.nativeElement.addEventListener('keydown', (event: KeyboardEvent) => bubbled.push(event.key));
+    for (const key of ['Tab', 'Escape', ' ', 'Enter']) input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    expect(bubbled).toEqual(['Tab', 'Escape']);
+  });
+
   it('gives switches specific names and current state text, and retitles duplicate root sections', async () => {
     translationService.translationMap['admin-config-enable-setting'] = 'Enable {{setting}}';
     const fixture = await renderConfig({ title: 'DOI publishing', sections: [{ titleKey: 'DOI publishing', fields: ['connection'] }], schema: { type: 'object', properties: {

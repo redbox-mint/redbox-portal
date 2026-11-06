@@ -13,7 +13,7 @@ import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
           [formControl]="formControl"
           [formlyAttributes]="field">
         <span>{{ props['switch'] ? ((formControl.value ? 'admin-config-on' : 'admin-config-off') | i18next) : (props.label || field.key) }}</span>
-        @if (props.required) {
+        @if (props.required && !props['switch']) {
           <span class="app-config-checkbox-required">*</span>
         }
       </label>
