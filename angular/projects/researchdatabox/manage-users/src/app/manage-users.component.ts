@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
 import { Component, Inject, ViewChild, inject } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
@@ -449,10 +450,31 @@ export class ManageUsersComponent extends BaseComponent {
     }
   }
 
+  private readonly document = inject(DOCUMENT);
+
+  fieldInvalid(form: FormGroup, path: string): boolean {
+    const control = form.get(path);
+    const shown = this.submitted || control?.touched;
+    if (!shown) return false;
+    if (path === 'passwords.password') return !!(control?.invalid || form.get('passwords')?.hasError('passwordStrength'));
+    if (path === 'passwords.confirmPassword') return !!(control?.invalid || form.get('passwords')?.hasError('mismatched') || form.get('passwords')?.hasError('passwordStrength'));
+    return !!control?.invalid;
+  }
+
+  private focusInvalidUserField(form: FormGroup | null, formId: string): void {
+    if (!form) return;
+    form.markAllAsTouched();
+    const fields = ['username', 'name', 'email', 'passwords.password', 'passwords.confirmPassword', 'roles'];
+    const path = fields.find(field => this.fieldInvalid(form, field));
+    const selector = path === 'roles' ? '[formControlName="checked"]' : `[formControlName="${path?.split('.').pop()}"]`;
+    this.document.querySelector<HTMLElement>(`#${formId} ${selector}`)?.focus();
+  }
+
   async updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid) {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
+      this.focusInvalidUserField(this.updateUserForm, 'detailsform');
       return;
     }
     const details: UserDetailsPayload =
@@ -476,6 +498,7 @@ export class ManageUsersComponent extends BaseComponent {
     this.submitted = true;
     if (!isValid) {
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
+      this.focusInvalidUserField(this.newUserForm, 'newform');
       return;
     }
     const details: UserDetailsPayload =

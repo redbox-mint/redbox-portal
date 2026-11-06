@@ -475,6 +475,31 @@ describe('ManageUsersComponent', () => {
     expect(app.newUserMsgType).toBe('primary');
   });
 
+  it('links invalid fields to their errors and focuses the first invalid field in both user forms', async () => {
+    const { fixture, app } = await createComponent();
+    app.newUser(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    await app.newUserSubmit({} as any, false);
+    fixture.detectChanges();
+    const username: HTMLInputElement = fixture.nativeElement.querySelector('#newform-username');
+    expect(document.activeElement).toBe(username);
+    expect(username.getAttribute('aria-invalid')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#' + username.getAttribute('aria-describedby'))?.textContent).toContain('manage-users-validation-username');
+    app.newUserForm!.patchValue({ username: 'new-user', name: 'Name', passwords: { password: 'short', confirmPassword: 'different' } });
+    await app.newUserSubmit({} as any, false); fixture.detectChanges();
+    const password: HTMLInputElement = fixture.nativeElement.querySelector('#newform-password');
+    expect(document.activeElement).toBe(password);
+    expect(password.getAttribute('aria-invalid')).toBe('true');
+    for (const id of password.getAttribute('aria-describedby')!.split(' ')) expect(fixture.nativeElement.querySelector('#' + id)).not.toBeNull();
+    app.hideNewUserModal(); fixture.detectChanges(); await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    app.updateUserForm!.get('name')!.setValue('');
+    await app.updateUserSubmit({} as any, false); fixture.detectChanges();
+    const name: HTMLInputElement = fixture.nativeElement.querySelector('#detailsform-name');
+    expect(document.activeElement).toBe(name);
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#detailsform-name-error')?.textContent).toContain('manage-users-validation-name');
+  });
+
   it('should handle invalid user submit', async () => {
     const app = createBareComponent();
     spyOn(app, 'setUpdateMessage');

@@ -340,9 +340,9 @@
                       <label class="form-label" for="detailsform-name">{{ 'manage-users-name' | i18next }}</label>
                       @if (currentUser.type == 'local') {
                         <div class="people-form-control">
-                          <input cdkFocusInitial type="text" id="detailsform-name" formControlName="name" class="form-control" />
+                          <input cdkFocusInitial type="text" id="detailsform-name" formControlName="name" aria-describedby="detailsform-name-error" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'name')" class="form-control" />
                           @if (updateUserForm.controls['name'].touched || submitted) {
-                            <div class="form-text error text-danger">
+                            <div id="detailsform-name-error" class="form-text error text-danger">
                               @if (updateUserForm.controls['name'].hasError('required')) {
                                 <div>{{ 'manage-users-validation-name' | i18next }}</div>
                               }
@@ -358,9 +358,9 @@
                       <label class="form-label" for="detailsform-email">{{ 'manage-users-email' | i18next }}</label>
                       @if (currentUser.type == 'local') {
                         <div class="people-form-control">
-                          <input type="email" id="detailsform-email" formControlName="email" class="form-control" />
+                          <input type="email" id="detailsform-email" formControlName="email" aria-describedby="detailsform-email-error" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'email')" class="form-control" />
                           @if (updateUserForm.controls['email'].touched || submitted) {
-                            <div class="form-text error text-danger">
+                            <div id="detailsform-email-error" class="form-text error text-danger">
                               @if (updateUserForm.controls['email'].hasError('invalidEmail')) {
                                 <div>{{ 'manage-users-validation-email' | i18next }}</div>
                               }
@@ -391,7 +391,7 @@
                         <div class="people-form-control" formGroupName="passwords">
                           <input
                             type="password"
-                            id="detailsform-password" formControlName="password"
+                            id="detailsform-password" formControlName="password" aria-describedby="detailsform-confirmPassword-error" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'passwords.password')"
                             class="form-control"
                             placeholder="{{ 'manage-users-update-password' | i18next }}"
                           />
@@ -407,13 +407,13 @@
                         <div class="people-form-control" formGroupName="passwords">
                           <input
                             type="password"
-                            id="detailsform-confirmPassword" formControlName="confirmPassword"
+                            id="detailsform-confirmPassword" formControlName="confirmPassword" aria-describedby="detailsform-confirmPassword-error" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'passwords.confirmPassword')"
                             class="form-control"
                             placeholder="{{ 'manage-users-confirm-password' | i18next }}"
                           />
                         </div>
                         @if (isUpdateUserFormConfirmPasswordTouched() || submitted) {
-                          <div class="form-text error text-danger">
+                          <div id="detailsform-confirmPassword-error" class="form-text error text-danger">
                             @if (updateUserForm.controls['passwords'].hasError('mismatched')) {
                               <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
                             }
@@ -472,7 +472,7 @@
                             <label class="form-check-label" attr.for="role_{{ role.controls['key'].value }}">
                               <input
                                 type="checkbox"
-                                formControlName="checked"
+                                formControlName="checked" aria-describedby="detailsform-roles-error" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'roles')"
                                 id="role_{{ role.controls['key'].value }}"
                                 class="form-check-input"
                               />
@@ -483,7 +483,7 @@
                         }
                       </div>
                       @if (!updateUserForm.controls['roles'].valid && submitted) {
-                        <div class="form-text error text-danger mt-2">
+                        <div id="detailsform-roles-error" class="form-text error text-danger mt-2">
                           <div>{{ 'manage-users-validation-role' | i18next }}</div>
                         </div>
                       }
@@ -564,13 +564,13 @@
                     <div class="people-form-control">
                       <input cdkFocusInitial
                         type="text"
-                        id="newform-username" formControlName="username"
+                        id="newform-username" formControlName="username" aria-describedby="newform-username-error" [attr.aria-invalid]="fieldInvalid(newUserForm, 'username')"
                         class="form-control"
                         placeholder="{{ 'manage-users-username' | i18next }}"
                         [attr.aria-label]="'manage-users-username' | i18next"
                       />
                       @if (newUserForm.controls['username'].touched || submitted) {
-                        <div class="form-text error text-danger">
+                        <div id="newform-username-error" class="form-text error text-danger">
                           @if (newUserForm.controls['username'].hasError('required')) {
                             <div>{{ 'manage-users-validation-username' | i18next }}</div>
                           }
@@ -583,13 +583,13 @@
                     <div class="people-form-control">
                       <input
                         type="text"
-                        id="newform-name" formControlName="name"
+                        id="newform-name" formControlName="name" aria-describedby="newform-name-error" [attr.aria-invalid]="fieldInvalid(newUserForm, 'name')"
                         class="form-control"
                         placeholder="{{ 'manage-users-name' | i18next }}"
                         [attr.aria-label]="'manage-users-name' | i18next"
                       />
                       @if (newUserForm.controls['name'].touched || submitted) {
-                        <div class="form-text error text-danger">
+                        <div id="newform-name-error" class="form-text error text-danger">
                           @if (newUserForm.controls['name'].hasError('required')) {
                             <div>{{ 'manage-users-validation-name' | i18next }}</div>
                           }
@@ -602,13 +602,13 @@
                     <div class="people-form-control">
                       <input
                         type="email"
-                        id="newform-email" formControlName="email"
+                        id="newform-email" formControlName="email" aria-describedby="newform-email-error" [attr.aria-invalid]="fieldInvalid(newUserForm, 'email')"
                         class="form-control"
                         placeholder="{{ 'manage-users-email' | i18next }}"
                         [attr.aria-label]="'manage-users-email' | i18next"
                       />
                       @if (newUserForm.controls['email'].touched || submitted) {
-                        <div class="form-text error text-danger">
+                        <div id="newform-email-error" class="form-text error text-danger">
                           @if (newUserForm.controls['email'].hasError('invalidEmail')) {
                             <div>{{ 'manage-users-validation-email' | i18next }}</div>
                           }
@@ -628,14 +628,14 @@
                     <div class="people-form-control" formGroupName="passwords">
                       <input
                         type="password"
-                        id="newform-password" formControlName="password"
+                        id="newform-password" formControlName="password" aria-describedby="newform-confirmPassword-error newform-password-error" [attr.aria-invalid]="fieldInvalid(newUserForm, 'passwords.password')"
                         class="form-control"
                         placeholder="{{ 'manage-users-password' | i18next }}"
                         [attr.aria-label]="'manage-users-password' | i18next"
                       />
                     </div>
                     @if (getNewUserPasswordFormControls()['password'].touched || submitted) {
-                      <div class="form-text error text-danger">
+                      <div id="newform-password-error" class="form-text error text-danger">
                         @if (getNewUserPasswordFormControls()['password'].hasError('required')) {
                           <div>{{ 'manage-users-validation-password' | i18next }}</div>
                         }
@@ -647,14 +647,14 @@
                     <div class="people-form-control" formGroupName="passwords">
                       <input
                         type="password"
-                        id="newform-confirmPassword" formControlName="confirmPassword"
+                        id="newform-confirmPassword" formControlName="confirmPassword" aria-describedby="newform-confirmPassword-error" [attr.aria-invalid]="fieldInvalid(newUserForm, 'passwords.confirmPassword')"
                         class="form-control"
                         placeholder="{{ 'manage-users-confirm-password' | i18next }}"
                         [attr.aria-label]="'manage-users-confirm-password' | i18next"
                       />
                     </div>
                     @if (getNewUserPasswordFormControls()['confirmPassword'].touched || submitted) {
-                      <div class="form-text error text-danger">
+                      <div id="newform-confirmPassword-error" class="form-text error text-danger">
                         @if (newUserForm.controls['passwords'].hasError('mismatched')) {
                           <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
                         }
@@ -681,7 +681,7 @@
                         <label class="form-check-label" attr.for="role_{{ role.controls['key'].value }}">
                           <input
                             type="checkbox"
-                            formControlName="checked"
+                            formControlName="checked" aria-describedby="newform-roles-error" [attr.aria-invalid]="fieldInvalid(newUserForm, 'roles')"
                             id="role_{{ role.controls['key'].value }}"
                             class="form-check-input"
                           />
@@ -692,7 +692,7 @@
                     }
                   </div>
                   @if (!newUserForm.controls['roles'].valid && submitted) {
-                    <div class="form-text error text-danger mt-2">
+                    <div id="newform-roles-error" class="form-text error text-danger mt-2">
                       <div>{{ 'manage-users-validation-role' | i18next }}</div>
                     </div>
                   }
