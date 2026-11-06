@@ -15,11 +15,6 @@
         <button class="btn btn-primary" type="button" (click)="newVocabulary()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-vocabulary' | i18next }}</button>
       </div>
     </header>
-    <div class="rb-admin-stats">
-      <div class="rb-admin-stat"><b>{{ totalVocabularies }}</b><span>{{ 'admin-vocabulary-list-title' | i18next }}</span></div>
-      <div class="rb-admin-stat"><b>{{ localVocabularies }}</b><span>{{ 'admin-vocabulary-source-local' | i18next }}</span></div>
-      <div class="rb-admin-stat"><b>{{ rvaVocabularies }}</b><span>{{ 'admin-vocabulary-from-rva' | i18next }}</span></div>
-    </div>
 
     @if (message) {
       <div class="alert alert-success" role="status">{{ message }}</div>

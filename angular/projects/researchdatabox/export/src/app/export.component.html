@@ -234,7 +234,7 @@
   @if (pendingCancel) {
     <div class="modal-backdrop fade show"></div>
     <div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="export-cancel-title" aria-describedby="export-cancel-description" (keydown.escape)="dismissCancel()">
-      <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
         <div class="modal-header"><h2 id="export-cancel-title" class="modal-title">{{ 'export-cancel-confirm' | i18next }}</h2><button type="button" class="btn-close" [disabled]="mutationPending" [attr.aria-label]="'named-query-close' | i18next" (click)="dismissCancel()"></button></div>
         <div class="modal-body"><p id="export-cancel-description">{{ 'export-cancel-description' | i18next }}</p>
           @if (cancelErrorKey) { <div class="alert alert-danger" role="alert">{{ cancelErrorKey | i18next }}</div> }
@@ -246,7 +246,7 @@
   @if (pendingDelete) {
     <div class="modal-backdrop fade show"></div>
     <div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="export-delete-title" aria-describedby="export-delete-description" (keydown.escape)="cancelDelete()">
-      <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
         <div class="modal-header"><h2 id="export-delete-title" class="modal-title">{{ 'admin-export-delete-title' | i18next }}</h2><button type="button" class="btn-close" [disabled]="mutationPending" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelDelete()"></button></div>
         <div class="modal-body"><p id="export-delete-description">{{ 'admin-export-delete-confirm' | i18next: { name: pendingDelete.filename || pendingDelete.recordType } }}</p>
           @if (deleteErrorKey) { <div class="alert alert-danger" role="alert">{{ deleteErrorKey | i18next }}</div> }

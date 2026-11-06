@@ -85,7 +85,7 @@
           <th class="rb-admin-actions-col text-end" scope="col"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th>
         </tr></thead>
         <tbody><tr *ngFor="let e of pageEntries(); trackBy: trackByKey" [class.tx-row-missing]="e.provenance === 'missing'">
-          <td><code [title]="e.key"><ng-container *ngFor="let segment of keySegments(e.key); let last = last"><ng-container *ngIf="!last">{{ segment }}<wbr></ng-container><span *ngIf="last" class="tx-key-tail">{{ segment }}&#8288;<button *ngIf="e.description" type="button" class="btn btn-sm rb-admin-ghost tx-key-help" [title]="e.description" [attr.aria-label]="e.description"><i class="fa fa-info-circle" aria-hidden="true"></i></button></span></ng-container></code></td>
+          <td><code [title]="e.key"><ng-container *ngFor="let segment of keySegments(e.key); let last = last"><ng-container *ngIf="!last">{{ segment }}<wbr></ng-container><span *ngIf="last" class="tx-key-tail">{{ segment }}</span></ng-container></code><span *ngIf="e.description" class="rb-admin-sub">{{ e.description }}</span></td>
           <td><span *ngIf="e.provenance === 'override'" class="badge rb-admin-badge-warning">{{ 'admin-tx-changed' | i18next }}</span><span *ngIf="e.contentFormat === 'html'" class="badge rb-admin-badge-info">HTML</span><div class="tx-cell-val" [title]="e.value">{{ e.value }}</div></td>
           <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEdit(e)" [attr.aria-label]="'admin-tx-edit-key' | i18next: { key: e.key }">{{ 'admin-tx-edit' | i18next }}</button>
             <details *ngIf="e.provenance === 'override' && e.hasDefault" class="rb-admin-overflow">

@@ -17,7 +17,7 @@
   <div class="rb-admin-split-main">
     @if (selectedRole; as role) {
     <section class="card" [attr.aria-busy]="loadingMembers" [id]="'role-' + role.id">
-      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><div class="rb-admin-page-actions"><span>{{ totalMembers | adminCount: 'member' }}</span><button type="button" class="btn btn-sm people-role-edit" (click)="startDescriptionEdit()" [disabled]="saving || editingDescription"><i class="fa fa-pencil" aria-hidden="true"></i> {{ 'admin-roles-edit-description' | i18next }}</button></div></div></div>
+      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><div class="rb-admin-page-actions"><span role="status" aria-live="polite" aria-atomic="true">{{ totalMembers | adminCount: 'member' }}</span><button type="button" class="btn btn-sm people-role-edit" (click)="startDescriptionEdit()" [disabled]="saving || editingDescription"><i class="fa fa-pencil" aria-hidden="true"></i> {{ 'admin-roles-edit-description' | i18next }}</button></div></div></div>
       <div class="card-body people-role-description">
         @if (editingDescription) {
           <label for="role-description">{{ 'admin-roles-description-label' | i18next }}</label>
