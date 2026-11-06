@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 const skipper = require('skipper');
+const compression = require('compression');
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
 import type { CustomConfig } from './custom.config';
@@ -68,6 +69,10 @@ export interface HttpMiddlewareConfig {
 export interface HttpConfig {
     /** Root context path for the application */
     rootContext: string;
+
+    /** Off in production: nginx is expected to compress. On in development (including docker).
+     * Set true when deploying without a compressing proxy; Sails config/env overrides apply. */
+    compression: { enabled: boolean };
 
     /** Middleware configuration */
     middleware: HttpMiddlewareConfig;
@@ -458,10 +463,31 @@ function decodeStaticPathPart(value: string): string | null {
     }
 }
 
+// The package also honors no-transform, existing Content-Encoding, MIME type,
+// response size and Accept-Encoding. Keep latency-sensitive streams and file
+// downloads untouched; stream producers can opt out with X-Accel-Buffering: no.
+const compressResponse: RequestHandler = compression({
+    filter: (req: Request, res: Response) => {
+        if (req.headers.range || res.statusCode === 206 ||
+            /^text\/event-stream\b/i.test(String(res.getHeader('Content-Type') || '')) ||
+            /\battachment\b/i.test(String(res.getHeader('Content-Disposition') || '')) ||
+            res.getHeader('X-Accel-Buffering') === 'no') {
+            return false;
+        }
+        return compression.filter(req, res);
+    },
+});
+
 export const http: HttpConfig = {
     rootContext: '',
+    compression: { enabled: process.env.NODE_ENV !== 'production' },
 
     middleware: {
+        compress: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            // app.js uses rc, which leaves nested environment values as strings.
+            if (String(sails.config.http.compression?.enabled) !== 'true') return next();
+            return compressResponse(req, res, next);
+        },
         // Lazy load redboxSession to support async shim generation
         redboxSession: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
@@ -738,6 +764,7 @@ export const http: HttpConfig = {
 
         order: [
             'requestChronicle',
+            'compress',
             'cacheControl',
             'redirectNoCacheHeaders',
             'cookieParser',
