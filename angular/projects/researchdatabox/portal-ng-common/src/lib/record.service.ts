@@ -43,29 +43,35 @@ import {
   isNumber as _isNumber,
 } from 'lodash-es';
 import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
+// Use the packaged modules directly: the CommonJS root eagerly loads the
+// server template/compiler stack even when an admin app only needs contracts.
 import {
   emptyRecordSaveCompletion,
+  isRecordSaveComplete,
+  isRecordSaveOutcome,
+  isRecordSaveProblemKind,
+  isRecordSaveRequestId,
+  type RecordSaveLifecyclePhase,
+  type RecordSaveIssue,
+  type RecordSaveProblem,
+  type RecordSaveResult,
+  sanitizeRecordSaveIssue,
+} from '@researchdatabox/sails-ng-common/dist/src/record-save.model';
+import {
   isRecordConcurrencyProblemCode,
   isRecordConcurrencyResolution,
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
-  isRecordSaveComplete,
-  isRecordSaveOutcome,
-  isRecordSaveProblemKind,
-  isRecordSaveRequestId,
   recordEntityTagRevision,
-  RecordAttachment,
-  RecordConcurrentModificationConfig,
-  RecordConcurrencyMetadata,
-  RecordConcurrencyResolution,
-  RecordSaveLifecyclePhase,
-  RecordSaveIssue,
-  RecordSaveProblem,
-  RecordSaveResult,
+  type RecordConcurrentModificationConfig,
+  type RecordConcurrencyMetadata,
+  type RecordConcurrencyResolution,
   sanitizeRecordConcurrencyMetadata,
-  sanitizeRecordSaveIssue,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/dist/src/record-concurrency.model';
+import {
+  type RecordAttachment,
+} from '@researchdatabox/sails-ng-common/dist/src/config/component/pdf-list.outline';
 
 /** Per-request options for a record save. */
 interface SaveRequestOptions {
