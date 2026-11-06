@@ -656,6 +656,29 @@ describe('AppConfigComponent', () => {
     fixture.destroy();
   });
 
+  it('keeps control ids, labels and native disclosures unique across binding profiles', async () => {
+    const binding = { type: 'object', widget: { formlyConfig: { type: 'value-binding-editor' } } };
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      profileA: { type: 'object', properties: { title: binding } },
+      profileB: { type: 'object', properties: { title: binding } }
+    } }, model: { profileA: { title: { kind: 'path', path: 'metadata.a' } }, profileB: { title: { kind: 'path', path: 'metadata.b' } } } });
+    const headers: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button.binding-header'));
+    expect(headers.length).toBe(2);
+    headers.forEach(header => { expect(header.getAttribute('aria-expanded')).toBe('false'); header.click(); });
+    fixture.detectChanges();
+    const ids = Array.from(fixture.nativeElement.querySelectorAll('formly-value-binding-editor-type [id]')).map((control: any) => control.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    headers.forEach(header => {
+      expect(header.getAttribute('aria-expanded')).toBe('true');
+      expect(fixture.nativeElement.querySelector('[id="' + header.getAttribute('aria-controls') + '"]').hidden).toBeFalse();
+    });
+    fixture.nativeElement.querySelectorAll('formly-value-binding-editor-type label[for]').forEach((label: HTMLLabelElement) => {
+      expect(label.control).not.toBeNull();
+      expect(label.control!.closest('formly-value-binding-editor-type')).toBe(label.closest('formly-value-binding-editor-type'));
+    });
+    fixture.destroy();
+  });
+
   it('shows the DOI field key on binding editors', async () => {
     const fixture = TestBed.createComponent(AppConfigComponent);
     const app = fixture.componentInstance;
@@ -696,7 +719,7 @@ describe('AppConfigComponent', () => {
     expect(options.map(option => option.textContent?.trim())).toContain('Google Tag Manager');
     expect(options.map(option => option.textContent?.trim())).toContain('Custom JSONata mapping');
     expect(fixture.componentInstance.model.provider).toBe('googleAnalytics');
-    expect(fixture.nativeElement.querySelectorAll('.app-config-mono input').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.rb-admin-mono input').length).toBe(2);
   });
 
   it('keeps required validation for active settings and suspends it for disabled page and nested settings', async () => {
@@ -952,7 +975,11 @@ describe('AppConfigComponent', () => {
     expect(fixture.componentInstance.model.emailsAaf).toEqual(['j.smith@uni.edu.au']);
     expect(fixture.nativeElement.textContent).toContain('research.org');
     expect(fixture.nativeElement.textContent).not.toContain('Research.ORG');
-    expect(fixture.nativeElement.textContent).toContain('admin-config-address-matching-help');
+    expect(fixture.nativeElement.querySelector('#address-test-help').textContent).toContain('admin-config-address-summary');
+    expect(fixture.nativeElement.textContent).not.toContain('admin-config-restrict-new-accounts-help');
+    const matchingHint = Array.from(fixture.nativeElement.querySelectorAll('.rb-admin-hint')).find((el: any) => el.textContent.includes('admin-config-account-creation-matching')) as HTMLElement;
+    expect(matchingHint.closest('.alert')).toBeNull();
+    expect(fixture.nativeElement.querySelector('formly-form').compareDocumentPosition(matchingHint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(appConfigService.lastSavedModel).toBeUndefined();
     fixture.destroy();
   });

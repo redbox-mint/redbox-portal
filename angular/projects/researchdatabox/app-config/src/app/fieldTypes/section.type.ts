@@ -13,7 +13,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
             @if (!props['expanded']) {
               <p class="app-config-summary">
                 @for (part of props['summaryParts'](); track $index) {
-                  @if ($index) { <span class="app-config-summary-separator">·</span> }<span>{{ part.label }}: </span>@if (part.mono) { <code>{{ part.value }}</code> } @else { <span>{{ part.value }}</span> }
+                  @if ($index) { <span class="app-config-summary-separator">·</span> }<span>{{ part.label }}: </span>@if (part.mono) { <code class="rb-admin-mono">{{ part.value }}</code> } @else { <span>{{ part.value }}</span> }
                 } @empty { {{ props['summary']() || ('admin-config-no-values' | i18next) }} }
               </p>
             }

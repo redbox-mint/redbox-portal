@@ -61,8 +61,8 @@
   .dc-column-detail-title:focus:not(:focus-visible) { outline: none; box-shadow: none; }
   .dc-add-search-btn { align-self: flex-start; }
   .dc-column-selected { background: var(--dc-accent-soft); }
-  .dc-reorder { display: flex; flex-direction: column; gap: 4px; }
-  .dc-reorder .btn { min-width: 32px; min-height: 32px; padding: 2px 7px; font-size: 13px; }
+  .dc-reorder { display: inline-flex; flex-direction: column; gap: 0; width: 32px; }
+  .dc-reorder .btn { width: 32px; min-height: 24px; padding: 0; font-size: 12px; border-radius: 0; &:first-child { border-radius: 4px 4px 0 0; } &:last-child { border-radius: 0 0 4px 4px; margin-top: -1px; } }
   .dc-column-detail-wrap { margin: 16px 0 0; background: var(--admin-surface); }
   .dc-add-column .rb-admin-page-actions { margin-top: 12px; }
   .dc-state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); }
@@ -121,6 +121,10 @@
     .dc-nav-section h2, .dc-nav-empty { grid-column: 1 / -1; }
     .dc-nav-search { position: sticky; top: 0; background: var(--admin-bg); z-index: 1; }
     .dc-editor-pane { flex-basis: 100%; }
+  }
+  @media (max-width: 991.98px) {
+    .rb-admin-section-rail.dc-nav-pane { max-height: none; overflow-y: visible; }
+    .dc-nav-search { position: static; }
   }
   @media (max-width: 767px) {
     .dc-form-grid, .dc-copy-to-grid { grid-template-columns: minmax(0, 1fr); }

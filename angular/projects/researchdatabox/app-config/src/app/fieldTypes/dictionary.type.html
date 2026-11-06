@@ -6,12 +6,12 @@
   }
   @for (child of field.fieldGroup; track child; let i = $index) {
     <details class="app-config-dictionary-entry" [open]="child.props?.['entryExpanded']" (toggle)="child.props!['entryExpanded'] = $any($event.target).open">
-      <summary><strong>{{ entryKey(child) }}</strong><span class="rb-admin-hint">{{ summary(child) }}</span>@if (child.formControl?.invalid) { <span class="badge rb-admin-badge-warning">{{ 'admin-config-dictionary-check' | i18next }}</span> }<span class="app-config-dictionary-toggle">{{ (child.props?.['entryExpanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!child.props?.['entryExpanded']" [class.fa-angle-up]="child.props?.['entryExpanded']" aria-hidden="true"></i></span></summary>
+      <summary><strong class="rb-admin-mono">{{ entryKey(child) }}</strong><span class="rb-admin-hint rb-admin-mono">{{ summary(child) }}</span>@if (child.formControl?.invalid) { <span class="badge rb-admin-badge-warning">{{ 'admin-config-dictionary-check' | i18next }}</span> }<span class="app-config-dictionary-toggle">{{ (child.props?.['entryExpanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!child.props?.['entryExpanded']" [class.fa-angle-up]="child.props?.['entryExpanded']" aria-hidden="true"></i></span></summary>
       <div class="app-config-dictionary-body">
         <div class="rb-admin-field">
           <label [for]="id + '-key-' + i">{{ 'admin-config-dictionary-key' | i18next }}</label>
           <div class="d-flex gap-2">
-            <input class="form-control" [id]="id + '-key-' + i" [value]="child.props?.['keyDraft'] ?? entryKey(child)" [disabled]="props.disabled || fixed(entryKey(child))"
+            <input class="form-control rb-admin-mono" [id]="id + '-key-' + i" [value]="child.props?.['keyDraft'] ?? entryKey(child)" [disabled]="props.disabled || fixed(entryKey(child))"
               [class.is-invalid]="child.props?.['keyDraft'] !== undefined && error(child.props!['keyDraft'], entryKey(child))"
               [attr.aria-describedby]="id + '-error-' + i" (change)="rename(child, $any($event.target).value)" (input)="child.props!['keyDraft'] = $any($event.target).value; draftChanged()">
             <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="props.disabled" (click)="startAdd(child)">{{ 'admin-config-dictionary-duplicate' | i18next }}</button>
@@ -26,7 +26,7 @@
   @if (adding) {
     <div class="app-config-dictionary-add">
       <label [for]="id + '-new-key'">{{ 'admin-config-dictionary-new-key' | i18next }}</label>
-      <input class="form-control" [id]="id + '-new-key'" [value]="newKey" (input)="newKey = $any($event.target).value; draftChanged()" (keydown.enter)="$event.preventDefault(); add()" [class.is-invalid]="!!error(newKey)" [attr.aria-describedby]="id + '-new-error'">
+      <input class="form-control rb-admin-mono" [id]="id + '-new-key'" [value]="newKey" (input)="newKey = $any($event.target).value; draftChanged()" (keydown.enter)="$event.preventDefault(); add()" [class.is-invalid]="!!error(newKey)" [attr.aria-describedby]="id + '-new-error'">
       @if (error(newKey); as message) { <p class="invalid-feedback d-block" role="alert" [id]="id + '-new-error'">{{ message | i18next }} @if (message === 'admin-config-dictionary-key-pattern') { <code>{{ patternHint }}</code> }</p> }
       <div class="d-flex gap-2 mt-2">
         <button type="button" class="btn btn-sm btn-primary" [disabled]="!!error(newKey)" (click)="add()">{{ 'admin-config-dictionary-add' | i18next }}</button>

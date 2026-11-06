@@ -41,7 +41,7 @@ describe('dictionary row summaries', () => {
 describe('section summaries', () => {
   it('separates labels and values, uses schema mono metadata, and omits header flags', () => {
     const fields = [field('enabled', 'app-config-checkbox', { headerEnabled: true }),
-      { ...field('url', 'string', { label: 'Base URL' }), className: 'app-config-mono' },
+      { ...field('url', 'string', { label: 'Base URL' }), className: 'rb-admin-mono' },
       field('name', 'string', { label: 'Name' }), field('secret', 'app-config-secret')];
     expect(sectionSummaryParts(fields, { enabled: false, url: 'https://example.test', name: 'Production', secret: 'hidden' }, booleans))
       .toEqual([{ label: 'Base URL', value: 'https://example.test', mono: true }, { label: 'Name', value: 'Production', mono: false }]);
