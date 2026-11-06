@@ -1,4 +1,5 @@
 import { AdminListFooterComponent } from './admin-list-footer.component';
+import { AdminDiscardDialogComponent } from './admin-discard-dialog.component';
 import { AdminModalDirective } from './admin-modal.directive';
 import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
@@ -66,6 +67,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   imports: [
     AdminListFooterComponent,
     AdminModalDirective,
+    AdminDiscardDialogComponent,
     A11yModule,
     BrowserModule,
     HttpClientModule,
@@ -81,6 +83,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   exports: [
     AdminListFooterComponent,
     AdminModalDirective,
+    AdminDiscardDialogComponent,
     A11yModule,
     AdminTabsDirective,
     AdminAutoFilterDirective,

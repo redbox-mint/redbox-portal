@@ -123,16 +123,19 @@ describe('AppComponent', () => {
     return { fixture, app: fixture.componentInstance };
   }
 
-  it('selects the first candidate as the search changes and clears it for no match', async () => {
+  it('requires deliberate candidate selection and clears it whenever search changes', async () => {
     const { fixture, app } = await createComponent();
     app.selectedRole = { id: 'r', name: 'Researcher' } as any;
     app.users[0].id = 'admin';
-    spyOn(userService, 'getUsers').and.resolveTo(app.users);
     app.memberSearch = 'Local';
-    await app.searchMembers();
-    expect(app.selectedCandidateId).toBe('admin');
+    app.searchMembers();
+    expect(app.selectedCandidateId).toBe('');
+    app.selectedCandidateId = 'admin';
+    app.memberSearch = 'Local Admin';
+    app.searchMembers();
+    expect(app.selectedCandidateId).toBe('');
     app.memberSearch = 'missing';
-    await app.searchMembers();
+    app.searchMembers();
     expect(app.selectedCandidateId).toBe('');
     fixture.destroy();
   });
@@ -287,7 +290,21 @@ describe('AppComponent', () => {
     expect(fixture.nativeElement.querySelector('[id="role-blocked-' + app.users[0].id + '"]')).toBeNull();
     fixture.destroy();
   });
-
+  it('does not assign a role when Enter is pressed in search, even with a selected candidate', async () => {
+    const { fixture, app } = await createComponent();
+    app.selectedRole = { id: 'r', name: 'Researcher' } as any;
+    app.users[0].id = 'admin'; app.memberSearch = 'Local';
+    spyOn(userService, 'getUsers').and.resolveTo(app.users);
+    await app.searchMembers(); app.selectedCandidateId = 'admin';
+    fixture.detectChanges();
+    const save = spyOn(userService, 'updateUserRoles').and.resolveTo({ status: true });
+    const input = fixture.nativeElement.querySelector('#role-member-search');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    expect(save).not.toHaveBeenCalled();
+    await app.addMember();
+    expect(save).toHaveBeenCalled();
+    fixture.destroy();
+  });
   it('pages members and rejects stale candidate searches after switching roles', async () => {
     const { fixture, app } = await createComponent();
     const result = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: { Researcher: { active: 130, disabled: 10, removableActive: 130 } } };

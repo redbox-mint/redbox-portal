@@ -1,4 +1,4 @@
-import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
@@ -35,7 +35,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AdminCountPipe, AdminModalDirective, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
+  imports: [AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
   templateUrl: './translation.component.html',
   styleUrls: ['./translation.component.scss']
 })
@@ -124,6 +124,12 @@ export class AppComponent implements OnInit, OnDestroy {
   modalOpen = signal(false);
   editKey = '';
   editValue = '';
+  confirmDiscard = false;
+  private initialDraft = '';
+  get editDirty(): boolean {
+    this.syncValueFromCurrentEditor();
+    return JSON.stringify([this.editValue, this.editContentFormat]) !== this.initialDraft;
+  }
   editDescription: string | undefined;
   richTextEditor: Editor | null = null;
   editorMode: TranslationEditorMode = 'rich';
@@ -446,6 +452,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.plainTextValue = value;
     this.editorMode = this.editContentFormat === 'html' ? 'rich' : 'text';
     this.richTextEditor = this.createRichTextEditor(this.editContentFormat === 'html' ? value : this.escapeHtml(value));
+    this.syncValueFromCurrentEditor();
+    this.initialDraft = JSON.stringify([this.editValue, this.editContentFormat]);
     this.modalOpen.set(true);
   }
 
@@ -535,8 +543,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  closeModal() {
+  closeModal(discard = false) {
     if (this.saving()) return;
+    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
+    this.confirmDiscard = false;
     this.modalOpen.set(false);
     this.destroyRichTextEditor();
     this.editorMode = 'rich';

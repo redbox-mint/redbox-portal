@@ -1,4 +1,5 @@
-import { AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { Subject } from 'rxjs';
+import { AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
@@ -35,6 +36,8 @@ class NamedQueryApiServiceStub {
 }
 
 class TranslationServiceStub {
+  translationChanges$ = new Subject<void>();
+  isInitializing() { return false; }
   async waitForInit(): Promise<this> { return this; }
   t(value: string, defaultValue?: string | Record<string, unknown>, options?: Record<string, unknown>): string {
     const template = typeof defaultValue === 'string' ? defaultValue : value;
@@ -62,7 +65,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub
       ],
-      imports: [AdminModalDirective, AdminCountPipe, FormsModule, A11yModule],
+      imports: [AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },
@@ -488,7 +491,7 @@ describe('NamedQueryEditorComponent', () => {
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.isEditModalOpen = true;
+    component.newQuery();
     component.closeEditModal();
     expect(component.isEditModalOpen).toBeFalse();
   });
@@ -769,4 +772,30 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.error).toContain('Save rejected');
   });
 
+  it('requires confirmation to dismiss a dirty editor and retains edits when keeping it open', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await component.waitForInit();
+    component.newQuery(); component.closeEditModal();
+    expect(component.isEditModalOpen).toBeFalse();
+    await component.openQuery('test'); component.draft.collectionName = 'edited';
+    component.closeEditModal(); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.confirmDiscard).toBeTrue();
+    const confirm = fixture.nativeElement.querySelector('rb-admin-discard-dialog');
+    confirm.querySelector('[cdkFocusInitial]').click(); fixture.detectChanges();
+    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.draft.collectionName).toBe('edited');
+    component.closeEditModal(); component.closeEditModal(true);
+    expect(component.isEditModalOpen).toBeFalse();
+    expect(component.confirmDiscard).toBeFalse();
+    fixture.destroy();
+  });
+  it('also protects unparsed JSON input in a new query', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    component.newQuery(); component.editorInput = true; component.closeEditModal();
+    expect(component.confirmDiscard).toBeTrue();
+    expect(component.isEditModalOpen).toBeTrue();
+    fixture.destroy();
+  });
 });

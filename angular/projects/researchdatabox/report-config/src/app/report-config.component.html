@@ -224,3 +224,5 @@
     }
   </div>
 }
+
+@if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="confirmDiscard = false" (discard)="cancelEdit(true)" /> }
