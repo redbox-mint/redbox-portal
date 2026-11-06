@@ -1,4 +1,11 @@
 @if (loadError) { <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button></div> }
+@if (isReady || earlyHeader) {
+<nav class="rb-admin-crumbs" [attr.aria-label]="isReady ? ('admin-breadcrumb-label' | i18next) : earlyHeader?.breadcrumbLabel"><ol>
+  <li><a [href]="brandingAndPortalUrl + '/admin'">{{ isReady ? ('menu-admin' | i18next) : earlyHeader?.adminLabel }}</a></li>
+  <li>{{ isReady ? ('admin-nav-records' | i18next) : earlyHeader?.section }}</li><li><span aria-current="page">{{ isReady ? ('harvest-runs-heading' | i18next) : earlyHeader?.title }}</span></li>
+</ol></nav>
+<header class="rb-admin-page-header"><div><h1>{{ isReady ? ('harvest-runs-heading' | i18next) : earlyHeader?.title }}</h1><p>{{ isReady ? ('admin-harvest-description' | i18next) : earlyHeader?.description }}</p></div><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="!isReady || loadingRuns" (click)="refreshRuns()"><i class="fa fa-refresh" aria-hidden="true"></i> {{ isReady ? ('export-refresh' | i18next) : earlyHeader?.refresh }}</button></div></header>
+}
 @if (!isReady && !loadError) {
   <div class="hr-loading hr-loading--page" role="status">
     <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
@@ -8,11 +15,6 @@
 @if (isReady) {
   <div class="harvest-runs-app">
 
-<nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
-  <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
-  <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'harvest-runs-heading' | i18next }}</span></li>
-</ol></nav>
-<header class="rb-admin-page-header"><div><h1>{{ 'harvest-runs-heading' | i18next }}</h1><p>{{ 'admin-harvest-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingRuns" (click)="refreshRuns()"><i class="fa fa-refresh" aria-hidden="true"></i> {{ 'export-refresh' | i18next }}</button></div></header>
     @if (statisticsError) { <div class="alert alert-danger" role="alert">{{ statisticsError }}</div> }
     <div *ngIf="showStatistics" class="rb-admin-stats hr-global-stats" [attr.aria-busy]="loadingStatistics">
       <div class="rb-admin-stat"><b>{{ loadingStatistics ? '—' : (statistics?.runsLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-runs' | i18next }}</span></div>

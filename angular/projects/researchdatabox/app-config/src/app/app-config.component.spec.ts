@@ -153,6 +153,26 @@ describe('AppConfigComponent', () => {
     TestBed.inject(UtilityService);
 
   });
+  it('keeps one translated server header while dependencies are pending, then renders the editor', async () => {
+    const fixture = TestBed.createComponent(AppConfigComponent);
+    const component = fixture.componentInstance;
+    component.earlyHeader = { title: 'Domaine autorisé', description: 'Description traduite', adminLabel: 'Administration', breadcrumbLabel: 'Fil', section: 'Comptes', adminUrl: '/default/rdmp/admin' };
+    component.title = component.earlyHeader.title;
+    component.sidebarSection = component.earlyHeader.section;
+    (component as any).brandingAndPortalUrl = '/default/rdmp';
+    spyOn(component, 'ngOnInit').and.stub();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header p').textContent).toBe('Description traduite');
+    expect(fixture.nativeElement.querySelector('.rb-admin-crumbs').getAttribute('aria-label')).toBe('Fil');
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
+    (component as any).isReady = true;
+    component.empty = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    fixture.destroy();
+  });
+
   for (const [key, schema, model] of [
     ['oniPublishing', ONI_PUBLISHING_SCHEMA, new OniPublishing()],
     ['raidPublishing', RAID_PUBLISHING_SCHEMA, { ...new RaidPublishing(), types: { title: { Primary: { id: 'primary', schemaUri: 'https://example.test/' } } }, mapping: { dmp: { title: { dest: 'title[0].text', engine: 'jsonata', expression: 'record.metadata.title' } } } }],

@@ -28,6 +28,7 @@ type StatusOption = {
   standalone: false
 })
 export class HarvestRunsComponent extends BaseComponent {
+  earlyHeader?: { title: string; description: string; adminLabel: string; breadcrumbLabel: string; section: string; refresh: string; adminUrl: string };
   readonly adminDates = inject(AdminDateService);
   recordTypes: string[] = [];
   dateFrom: Date | string | null = null;
@@ -78,6 +79,7 @@ export class HarvestRunsComponent extends BaseComponent {
   private loadedEventPage = 1;
 
   constructor(
+    @Inject(ElementRef) elementRef: ElementRef,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(RecordService) private recordService: RecordService,
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -85,6 +87,11 @@ export class HarvestRunsComponent extends BaseComponent {
     @Inject(HarvestRunApiService) private harvestRunApiService: HarvestRunApiService
   ) {
     super();
+    const earlyHeader = elementRef.nativeElement.getAttribute('data-admin-header');
+    if (earlyHeader) {
+      this.earlyHeader = JSON.parse(earlyHeader);
+      this.brandingAndPortalUrl = this.earlyHeader!.adminUrl.replace(/\/admin$/, '');
+    }
     this.initDependencies = [this.translationService, this.harvestRunApiService, this.recordService];
   }
 

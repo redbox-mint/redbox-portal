@@ -104,6 +104,7 @@ export class AppConfigComponent extends BaseComponent {
   window: any;
   form = new FormGroup({});
   model: any = {};
+  earlyHeader?: { title: string; description: string; adminLabel: string; breadcrumbLabel: string; section: string; adminUrl: string };
   title = '';
   descriptionKey = 'admin-config-description';
   sidebarSection = '';
@@ -149,6 +150,13 @@ export class AppConfigComponent extends BaseComponent {
     this.window = this.document.defaultView;
     // set this component's dependencies
     this.configKey = elementRef.nativeElement.getAttribute('configKey');
+    const earlyHeader = elementRef.nativeElement.getAttribute('data-admin-header');
+    if (earlyHeader) {
+      this.earlyHeader = JSON.parse(earlyHeader);
+      this.title = this.earlyHeader!.title;
+      this.sidebarSection = this.earlyHeader!.section;
+      this.brandingAndPortalUrl = this.earlyHeader!.adminUrl.replace(/\/admin$/, '');
+    }
     this.initDependencies = [translationService, appConfigService];
   }
 
