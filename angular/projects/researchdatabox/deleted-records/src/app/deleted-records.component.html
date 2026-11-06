@@ -97,7 +97,7 @@
             <button type="button" class="btn-close" [disabled]="actionPending" [attr.aria-label]="'named-query-close' | i18next" (click)="hideDestroyRecordModal()"></button>
           </div>
           <div class="modal-body" id="deleted-records-confirm-modal-description">
-            @if (bulkDestroy) { {{ 'admin-deleted-bulk-confirm' | i18next: { count: selectedRecords.size } }} } @else { {{ 'admin-deleted-confirm-message' | i18next }} }
+            @if (bulkDestroy) { {{ 'admin-deleted-bulk-confirm' | i18next: { count: selectedRecords.size } }} } @else { <p>{{ 'admin-deleted-confirm-target' | i18next: { title: currentDestroyRecordModalTitle } }}</p><code class="rb-admin-code-wrap">{{ currentDestroyRecordModalOid }}</code><p class="mt-3">{{ 'admin-deleted-confirm-message' | i18next }}</p> }
           </div>
           @if (actionMessage) {
             <div class="alert alert-warning action-feedback" role="alert">

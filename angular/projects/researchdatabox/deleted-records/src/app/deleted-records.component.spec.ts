@@ -635,7 +635,13 @@ describe('DeletedRecordsComponent', () => {
     };
 
     // trigger destroy
-    await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4}, 'destroy');
+    translationService.translationMap['admin-deleted-confirm-target'] = 'Permanently delete “{{title}}”?';
+    await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4, title: 'Target <record>'}, 'destroy');
+    fixture.detectChanges();
+    const confirmation = fixture.nativeElement.querySelector('#deleted-records-confirm-modal-description');
+    expect(confirmation.textContent).toContain('Permanently delete “Target <record>”?');
+    expect(confirmation.textContent).toContain('rdmp-record-1');
+    expect(confirmation.querySelector('record')).toBeNull();
     expect(app.isDestroyRecordModalShown).toEqual(true);
     expect(app.currentDestroyRecordModalOid).toEqual('rdmp-record-1');
 
