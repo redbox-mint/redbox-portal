@@ -62,6 +62,54 @@ describe('AdminFigshareVocabularyComponent', () => {
     expect(component.editingSource).toBeNull(); expect(component.sourceSaving).toBeFalse();
   });
 
+  it('protects source edits on replacement, Cancel, tabs and links, and allows explicit discard', async () => {
+    const first = { id: 's1', displayName: 'First', scope: 'public', archived: false } as any;
+    const second = { ...first, id: 's2', displayName: 'Second' };
+    component.editSource(first);
+    expect(component.sourceDirty).toBeFalse();
+    component.sourceDraft.displayName = 'Draft';
+    component.editSource(second);
+    expect(component.editingSource).toBe(first);
+    expect(component.pendingSourceAction).toBeDefined();
+    component.pendingSourceAction = undefined; // Keep editing.
+    component.cancelSource();
+    expect(component.sourceDraft.displayName).toBe('Draft');
+    component.discardSourceChanges();
+    expect(component.editingSource).toBeNull(); expect(component.sourceDirty).toBeFalse();
+    component.editSource(first); component.sourceDraft.syncSchedule = 'weekly';
+    await component.startImport();
+    expect(component.view).toBe('sources'); expect(api.listLocalVocabularies).not.toHaveBeenCalled();
+    component.pendingSourceAction = undefined;
+    api.listSyncRuns.and.resolveTo({ records: [], total: 0 });
+    await component.showTab('history');
+    expect(component.view).toBe('sources');
+    component.discardSourceChanges();
+    expect(component.view).toBe('history'); expect(component.sourceDirty).toBeFalse();
+    component.editSource(first); component.sourceDraft.archived = true;
+    const event = new Event('beforeunload', { cancelable: true });
+    component.beforeUnload(event as BeforeUnloadEvent); expect(event.defaultPrevented).toBeTrue();
+    const anchor = document.createElement('a'); anchor.href = '/admin';
+    const click = { target: anchor, button: 0, preventDefault: jasmine.createSpy() } as any;
+    component.confirmNavigation(click); expect(click.preventDefault).toHaveBeenCalled();
+    expect(component.pendingSourceAction).toBeDefined();
+    component.pendingSourceAction = undefined;
+    component.editSource(second); component.discardSourceChanges();
+    expect(component.editingSource).toBe(second); expect(component.sourceDirty).toBeFalse();
+    component.sourceDraft.displayName = 'Changed'; component.sourceDraft.displayName = 'Second';
+    expect(component.sourceDirty).toBeFalse();
+  });
+
+  it('keeps a failed source save dirty and prevents replacing a draft during save', async () => {
+    const source = { id: 's1', displayName: 'First', scope: 'public', archived: false } as any;
+    component.editSource(source); component.sourceDraft.displayName = 'Draft';
+    api.updateSource.and.rejectWith({ status: 409 });
+    await component.saveSource();
+    expect(component.sourceDirty).toBeTrue(); expect(component.sourceEditError).not.toBe('');
+    component.sourceSaving = true; component.editSource({ ...source, id: 's2' });
+    component.cancelSource();
+    expect(component.editingSource).toBe(source); expect(component.pendingSourceAction).toBeUndefined();
+  });
+
   it('summarises sources, approved crosswalks, and historical warnings', () => {
     component.sourceTotal = 3;
     component.sources = [

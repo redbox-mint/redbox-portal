@@ -150,9 +150,11 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   private retainedSecrets = new Map<string, string[]>();
+  private readonly invalidJsonDrafts = new Set<FormlyFieldConfig>();
 
   private configureForm(result: ConfigForm): void {
     this.invalidFields = [];
+    this.invalidJsonDrafts.clear();
     this.hasOverride = result.hasOverride === true;
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
     // Translate presentation metadata only; property names and stored values stay intact.
@@ -188,7 +190,7 @@ export class AppConfigComponent extends BaseComponent {
       if (parent[key] === SECRET_MASK) this.retainedSecrets.set(JSON.stringify(path), path);
     });
     this.model = this.editableModel(result.model || {});
-    this.options.formState = { ...this.options.formState, pageIsOff: () => !!this.enabledField && this.model.enabled !== true };
+    this.options.formState = { ...this.options.formState, invalidJsonDrafts: this.invalidJsonDrafts, pageIsOff: () => !!this.enabledField && this.model.enabled !== true };
     const root = configSchemaToField(this.formlyJsonschema, jsonObject, ['oniPublishing', 'raidPublishing', 'integrationNotification'].includes(this.configKey));
     this.fields = [root];
     this.applyCheckboxType(this.fields);
@@ -446,7 +448,7 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
-  get dirty(): boolean { return this.trackingReady && !isEqual(this.model, this.loadedModel); }
+  get dirty(): boolean { return this.trackingReady && (this.invalidJsonDrafts.size > 0 || !isEqual(this.model, this.loadedModel)); }
   get enabledField(): FormlyFieldConfig | undefined {
     return this.fields[0]?.fieldGroup?.find(field => field.key === 'enabled');
   }
@@ -460,6 +462,7 @@ export class AppConfigComponent extends BaseComponent {
 
   discard(): void {
     const model = cloneDeep(this.loadedModel);
+    this.invalidJsonDrafts.clear();
     this.trackingReady = false;
     this.model = model;
     this.fields = [];
