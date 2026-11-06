@@ -160,6 +160,21 @@ describe('AppComponent', () => {
     fixture.destroy();
   });
 
+  it('references member results only while the search results exist', async () => {
+    const { fixture, app } = await createComponent();
+    fixture.detectChanges();
+    const search = fixture.nativeElement.querySelector('#role-member-search') as HTMLInputElement;
+    expect(search.hasAttribute('aria-controls')).toBeFalse();
+    for (const query of ['Local', '   ', 'no matching member', '']) {
+      app.memberSearch = query;
+      app.searchMembers();
+      fixture.detectChanges();
+      const results = fixture.nativeElement.querySelector('#role-member-results');
+      expect(search.getAttribute('aria-controls')).toBe(results ? results.id : null);
+    }
+    fixture.destroy();
+  });
+
   it('omits the zero-disabled clause in the header and accessible badge text', async () => {
     const translator = createInstance();
     await translator.init({ lng: 'en', resources: { en: { translation: {

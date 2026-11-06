@@ -399,7 +399,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-banner-preview { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); overflow: hidden; }
     .app-config-preview-body { padding: 16px; }
     .app-config-preview-message { display: block; overflow-wrap: anywhere; }
-    .app-config-preview-message h4 { font-size: 16px; margin-bottom: 6px; }
+    .app-config-preview-message h3 { font-size: 16px; margin-bottom: 6px; }
     .app-config-preview-message .btn-close { position: absolute; right: 12px; top: 12px; }
     .app-config-state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); }
     .app-config-dirty { color: color-mix(in srgb, var(--admin-warning) 25%, var(--admin-ink)); }
@@ -509,6 +509,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-navigation-main .rb-admin-form-section { margin-bottom: 20px; }
   .rb-navigation-editor h2, .rb-navigation-preview h2 { font-size: 17px; margin: 0; }
   .rb-navigation-editor h3 { font-size: 15px; margin: 0; }
+  .rb-navigation-editor h2.rb-navigation-tree-title { font-size: 15px; }
   .rb-navigation-list { overflow: visible; }
   .rb-navigation-list .rb-admin-form-section-header { flex-wrap: wrap; }
   .rb-navigation-reorder-hint { margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--admin-line); }
