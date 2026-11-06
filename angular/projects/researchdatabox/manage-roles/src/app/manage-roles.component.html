@@ -17,8 +17,8 @@
   <div class="rb-admin-split-main">
     @if (selectedRole; as role) {
     <section class="card" [attr.aria-busy]="loadingMembers" [id]="'role-' + role.id">
-      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><span>{{ totalMembers | adminCount: 'member' }}</span></div>
-      <div class="people-role-description">
+      <div class="card-header people-role-header"><div class="people-role-heading"><h2>{{ role.name }} @if (role.isDefault) { <span class="badge rb-admin-badge-info">{{ 'admin-roles-default-badge' | i18next }}</span> }</h2><div class="rb-admin-page-actions"><span>{{ totalMembers | adminCount: 'member' }}</span><button type="button" class="btn btn-sm people-role-edit" (click)="startDescriptionEdit()" [disabled]="saving || editingDescription"><i class="fa fa-pencil" aria-hidden="true"></i> {{ 'admin-roles-edit-description' | i18next }}</button></div></div></div>
+      <div class="card-body people-role-description">
         @if (editingDescription) {
           <label for="role-description">{{ 'admin-roles-description-label' | i18next }}</label>
           <textarea id="role-description" class="form-control" maxlength="500" rows="3" [(ngModel)]="descriptionDraft" [disabled]="saving" aria-describedby="role-description-limit"></textarea>
@@ -26,12 +26,11 @@
           <div class="rb-admin-page-actions"><button type="button" class="btn btn-primary" (click)="saveDescription()" [disabled]="saving">{{ 'manage-users-save' | i18next }}</button><button type="button" class="btn btn-outline-secondary" (click)="editingDescription = false; saveError = ''" [disabled]="saving">{{ 'manage-users-cancel' | i18next }}</button></div>
         } @else {
           <p>{{ role.description || (role.descriptionKey ? (role.descriptionKey | i18next) : ('admin-roles-no-description' | i18next)) }}</p>
-          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="startDescriptionEdit()" [disabled]="saving">{{ 'admin-roles-edit-description' | i18next }}</button>
         }
-      </div></div>
+      </div>
       <div class="rb-admin-filter-bar">
-        <div class="rb-admin-field rb-admin-field-grow"><label for="role-member-search">{{ 'admin-roles-add-member' | i18next }}</label><input id="role-member-search" type="search" class="form-control" [(ngModel)]="memberSearch" (ngModelChange)="searchMembers()" (keydown.enter)="$event.preventDefault(); addMember()" [disabled]="saving" [placeholder]="'admin-users-search-placeholder' | i18next" aria-controls="role-member-results"></div>
-        <button type="button" class="btn btn-primary" [disabled]="!selectedCandidateId || saving" (click)="addMember()">{{ 'admin-roles-add' | i18next }}</button>
+        <div class="rb-admin-field rb-admin-field-grow"><label for="role-member-search">{{ 'admin-roles-add-member' | i18next }}</label><input id="role-member-search" type="search" class="form-control" [(ngModel)]="memberSearch" (ngModelChange)="searchMembers()" (keydown.enter)="$event.preventDefault(); addMember()" [disabled]="saving" [placeholder]="'admin-roles-member-placeholder' | i18next" aria-controls="role-member-results"></div>
+        <button type="button" class="btn btn-primary" [disabled]="!selectedCandidateId || saving" (click)="addMember()">{{ 'admin-roles-add-selected' | i18next }}</button>
       <button *ngIf="memberSearch" type="button" class="btn rb-admin-ghost" (click)="memberSearch = ''; selectedCandidateId = ''; searchMembers()">{{ 'admin-report-clear' | i18next }}</button>
   </div>
       @if (memberSearch.trim()) {

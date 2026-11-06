@@ -4,6 +4,7 @@
 
 :host .people-role-header { display: block; }
 :host .people-role-heading { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-:host .people-role-description { margin-top: .75rem; }
+:host .people-role-edit { color: inherit; border: 1px solid currentColor; background: transparent; }
+:host .people-role-edit:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
 :host .people-role-description p { margin-bottom: .5rem; }
 :host .people-role-description .rb-admin-hint { color: inherit; }
