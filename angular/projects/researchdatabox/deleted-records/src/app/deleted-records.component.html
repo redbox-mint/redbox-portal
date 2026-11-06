@@ -55,7 +55,7 @@
       </div>
     }
   <!-- Result details -->
-  <record-table [selectionHeaderTemplate]="selectPage" [selectionTemplate]="selectRow" [cellTemplates]="{ recordType: typeCell, deletedBy: actorCell }" [adminPresentation]="true" [actionTemplate]="rowActions" [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
+  <record-table [plainTextColumns]="true" [selectionHeaderTemplate]="selectPage" [selectionTemplate]="selectRow" [cellTemplates]="{ recordType: typeCell, deletedBy: actorCell }" [adminPresentation]="true" [actionTemplate]="rowActions" [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
     [columnConfig]="tableHeaders"
     [dataSource]="this"
     [optTemplateData]="optTemplateData"

@@ -54,6 +54,14 @@ describe('RecordTableComponent', () => {
     component.columnConfig = [{ property: 'title', label: 'Title' }] as RecordPropViewMetaDto[];
   });
 
+  it('renders opted-in data columns as literal text while retaining configured HTML templates', async () => {
+    (currentPage.records[0] as any).title = '<img src=x onerror=alert(1)>Hello';
+    component.plainTextColumns = true;
+    await render();
+    expect(fixture.nativeElement.querySelector('tbody td').textContent).toBe((currentPage.records[0] as any).title);
+    expect(fixture.nativeElement.querySelector('tbody img')).toBeNull();
+  });
+
   afterEach(() => fixture.destroy());
 
   async function render() {
