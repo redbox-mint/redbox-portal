@@ -476,7 +476,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     }
     // The portal header leaves little tablet viewport space; keep editor actions in flow.
     .rb-admin-save-bar { position: static; }
-    &.admin-layout { grid-template-columns: minmax(0, 1fr); }
+    // Do not distribute the shell's min-height between the collapsed navigation
+    // and an empty Angular host: that moves main when the app renders.
+    &.admin-layout { grid-template-columns: minmax(0, 1fr); align-content: start; }
     .rb-admin-sidebar { padding: 0; border-right: 0; border-bottom: 1px solid var(--admin-line); }
     .rb-admin-sidebar-toggle {
       display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px;
