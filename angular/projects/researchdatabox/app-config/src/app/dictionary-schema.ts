@@ -7,8 +7,8 @@ export function configSchemaToField(converter: FormlyJsonschema, schema: JSONSch
   return converter.toFieldConfig(schema, {
     map: (field, node) => {
       if (preserve) delete field.defaultValue;
-      if (node.format === 'uri' || node.format === 'uri-reference' || /(?:Urls?|URIs?|Paths?|Ids?|Fields?|Filename)$/i.test(String(field.key)) || /^(url|uri|path|id)$/i.test(String(field.key))) {
-        field.className = [field.className, 'app-config-mono'].filter(Boolean).join(' ');
+      if (node.format === 'uri' || node.format === 'uri-reference' || /(?:Urls?|URIs?|Paths?|Ids?|Keys?|Fields?(?:Name)?|Filename)$/i.test(String(field.key)) || /^(url|uri|path|id)$/i.test(String(field.key))) {
+        field.className = [field.className, 'rb-admin-mono'].filter(Boolean).join(' ');
       }
       // JSON Schema property names are literal; Formly string keys otherwise parse dots/brackets as paths.
       if (typeof field.key === 'string' && /[.\[\]]/.test(field.key)) field.key = [field.key];
