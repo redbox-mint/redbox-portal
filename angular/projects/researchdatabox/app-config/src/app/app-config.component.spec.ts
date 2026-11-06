@@ -821,25 +821,19 @@ describe('AppConfigComponent', () => {
     const app = fixture.componentInstance;
     app.model.changed = true;
     expect(app.form.invalid).toBeTrue();
-    const waitForFocus = (id: () => string) => new Promise<void>(resolve => {
-      const listener = (event: FocusEvent) => {
-        if ((event.target as HTMLElement).id !== id()) return;
-        fixture.nativeElement.removeEventListener('focusin', listener);
-        resolve();
-      };
-      fixture.nativeElement.addEventListener('focusin', listener);
-    });
-    const firstFocused = waitForFocus(() => app.invalidFieldId(app.invalidFields[0]));
+    // Focus is intentionally deferred to the next paint after Formly/native
+    // details toggles settle. Await that paint instead of an unbounded event
+    // promise (focus can already be on the target without another focusin).
+    const nextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     await app.onSubmit(app.model); fixture.detectChanges(); await fixture.whenStable();
-    await firstFocused;
+    await nextPaint();
     expect(app.invalidFields.length).toBe(2);
     expect(fixture.nativeElement.querySelector('[role="alert"] #config-errors-title')).toBeTruthy();
     expect(fixture.nativeElement.querySelectorAll('details[open]').length).toBeGreaterThanOrEqual(2);
     expect(document.activeElement?.id).toBe(app.invalidFieldId(app.invalidFields[0]));
     const links = fixture.nativeElement.querySelectorAll('[aria-labelledby="config-errors-title"] a');
-    const secondFocused = waitForFocus(() => app.invalidFieldId(app.invalidFields[1]));
     links[1].click(); fixture.detectChanges(); await fixture.whenStable();
-    await secondFocused;
+    await nextPaint();
     expect(document.activeElement?.id).toBe(app.invalidFieldId(app.invalidFields[1]));
     expect(appConfigService.lastSavedModel).toBeUndefined();
   });
