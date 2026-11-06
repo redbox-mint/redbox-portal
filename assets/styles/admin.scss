@@ -178,7 +178,6 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .form-switch .form-check-label { margin: 0; }
   .form-switch .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
   .app-config-settings-off { filter: grayscale(1); }
-  .app-config-settings-off :is(.rb-admin-form-section-body, .app-config-subsection) { background-color: var(--admin-surface); }
   .rb-admin-mono:not(:has(input, textarea)), .rb-admin-mono :is(input, textarea), code { font-family: var(--admin-mono); font-size: var(--admin-mono-size); }
   .rb-admin-discard-backdrop { z-index: 1060; }
   .rb-admin-discard-modal { z-index: 1070; }
@@ -301,7 +300,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   details.rb-admin-form-section:not([open]) > summary { border-bottom: 0; }
   summary.rb-admin-form-section-header { cursor: pointer; }
-  .rb-admin-form-section-body { padding: 16px; }
+  .rb-admin-form-section-body { padding: 16px; background: var(--admin-bg); }
   .rb-admin-save-bar {
     // Stick only after reaching the actions, never pull them over unread form fields.
     position: sticky; top: 16px; z-index: 10; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
@@ -379,7 +378,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .btn.rb-admin-ghost { color: var(--admin-ink); border: 1px solid transparent; background: transparent; &:hover { background: var(--admin-surface); } }
   .btn:is(.btn-secondary, .btn-outline-secondary, .btn-outline-primary, .btn-outline-danger):is(:disabled, .disabled) { opacity: .45; cursor: not-allowed; &:disabled { pointer-events: auto; } }
   .rb-admin-row-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; white-space: nowrap; }
-  .rb-admin-row-action, .rb-admin-overflow > summary { min-width: 28px; min-height: 28px; }
+  .rb-admin-row-action, .rb-admin-row-actions > .btn, .rb-admin-overflow > summary { min-width: 32px; min-height: 32px; }
+  .rb-admin-overflow > summary.btn { color: var(--admin-ink); background: var(--admin-bg); border: 1px solid var(--admin-control-border); }
+  .rb-admin-overflow > summary.btn:hover { background: var(--admin-surface); }
   .rb-admin-overflow {
     position: relative; display: inline-block;
     summary { list-style: none; &::-webkit-details-marker { display: none; } }
@@ -557,7 +558,10 @@ html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-heig
   .nq-more-consumers { display: none; }
   @media (max-width: 991px) {
     .nq-consumers .nq-extra-consumer { display: none; }
+    .rb-admin-filter-bar > .rb-admin-field-grow { flex-basis: 180px; min-width: 140px; }
     .nq-more-consumers { display: block; }
+    .nq-more-consumers > summary { min-height: 24px; padding: 4px 6px; }
+    .nq-consumers, .nq-more-consumers, .nq-not-used { font-size: 13px; }
     .nq-consumers a { display: inline-block; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
   }
 }
@@ -573,3 +577,7 @@ html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-heig
   .rb-navigation-preview-sidebar .rb-admin-sidebar-item { width: 100%; padding: 7px 16px 7px 25px; color: var(--admin-ink); text-decoration: none; }
   .rb-navigation-preview-sidebar .rb-navigation-preview-footer { margin: 0; padding: 0; border: 0; }
 }
+
+.rb-admin .rb-figshare-vocabulary:has(figshare-source-list .rb-admin-empty, figshare-crosswalk-list .rb-admin-empty) .figshare-add-source { display: none; }
+
+.rb-admin .dc-columns-table td:nth-child(4) { white-space: nowrap; }
