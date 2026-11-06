@@ -20,7 +20,7 @@
         margin: 0;
         padding: 0;
         width: 100%;
-        min-height: 100%;
+        min-height: 0;
         background: var(--rb-body-background-color, #fff);
         color: var(--rb-body-text-color, #333);
         font-family: var(--rb-brand-font-family, "Titillium Web", sans-serif);
@@ -42,6 +42,7 @@
       #redoc [data-section-id="/"],
       #redoc div:has(> div > [data-testid="middle-panel"] > [data-section-id="/"]),
       #redoc [data-component-name="Sidebar/SidebarActions"],
+      #redoc span:has(> a[href="https://redocly.com/redoc/"]),
       #redoc a[href="https://redocly.com/redoc/"] { display: none; }
 
       #redoc [data-section-id]:not([data-section-id="/"]) { padding-top: 20px; }
@@ -52,14 +53,31 @@
 
       #redoc {
         width: 100%;
-        min-height: 100vh;
+        min-height: 600px;
       }
+
+      #redoc > div { min-height: 0; }
+      #redoc .menu-content { height: var(--admin-api-viewport-height, 600px); }
+      @media (min-width: 768px) {
+        #redoc .menu-content { transform: translateY(var(--admin-api-sidebar-offset, 0px)); }
+      }
+      /* Redoc shares these semantic badge classes between its menu and operation lists.
+         Darken the brand semantic colours against the body surface for small labels. */
+      #redoc :is(.tag-get, .tag-post, .tag-put, .tag-patch, .tag-delete, .tag-head, .tag-options, .tag-trace, .tag-connect) { background: var(--rb-body-background-color, #fff); }
+      #redoc .tag-get { color: color-mix(in srgb, var(--rb-success, #198754) 65%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-post { color: color-mix(in srgb, var(--rb-primary, #0d6efd) 70%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-put { color: color-mix(in srgb, var(--rb-warning, #ffc107) 20%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-patch { color: color-mix(in srgb, var(--rb-primary, #0d6efd) 50%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-delete { color: color-mix(in srgb, var(--rb-danger, #dc3545) 70%, var(--rb-body-text-color, #333)); }
+      #redoc :is(.tag-head, .tag-options, .tag-trace, .tag-connect) { color: var(--rb-body-text-color, #333); }
+      #redoc [data-testid="show-more-operations"] { color: var(--rb-anchor-color, #337ab7); font-size: 14px; }
+      #redoc [data-testid="show-more-operations"]:hover { color: var(--rb-anchor-color-hover, #23527c); text-decoration: underline; }
 
       .admin-api-docs-loading {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 100vh;
+        min-height: 600px;
       }
     </style>
     <script src="<%= rootContext %>/default/default/js/admin-api-docs-init.js" type="text/javascript" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
