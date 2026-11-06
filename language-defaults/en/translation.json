@@ -3304,5 +3304,7 @@
   "admin-navigation-icon-users": "People",
   "admin-navigation-icon-cog": "Settings",
   "admin-navigation-icon-search": "Search",
-  "admin-navigation-icon-database": "Database"
+  "admin-navigation-icon-database": "Database",
+  "admin-config-loading": "Loading…",
+  "admin-deleting": "Deleting…"
 }

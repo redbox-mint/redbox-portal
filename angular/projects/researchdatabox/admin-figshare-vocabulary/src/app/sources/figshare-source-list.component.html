@@ -1,5 +1,5 @@
 <div class="card">
-  <div class="card-header"><h2>{{ 'figshare-vocab-tab-sources' | i18next }}</h2><span>{{ filteredItems.length | adminCount: 'source': total }}</span></div>
+  <div class="card-header"><h2>{{ 'figshare-vocab-tab-sources' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ filteredItems.length | adminCount: 'source': total }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field">
       <label class="form-label" for="figshare-source-scope-filter">{{
