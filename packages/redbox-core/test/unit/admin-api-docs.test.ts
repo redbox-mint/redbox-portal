@@ -127,7 +127,7 @@ describe('admin API docs', function () {
         let contentHeight = 4200;
         const mountEvents: Record<string, Function> = {};
         const referenceSections: any[] = [];
-        const mount = { addEventListener: (event: string, callback: Function) => mountEvents[event] = callback, removeEventListener: (event: string) => delete mountEvents[event], querySelectorAll: () => referenceSections, getBoundingClientRect: () => ({ height: contentHeight }), getAttribute: () => '/spec', style: { setProperty: (name: string, value: string) => properties[name] = value } };
+        const mount = { addEventListener: (event: string, callback: Function) => mountEvents[event] = callback, removeEventListener: (event: string) => delete mountEvents[event], toggleAttribute: () => {}, querySelectorAll: (selector: string) => selector === '[data-section-id]' ? referenceSections : [], getBoundingClientRect: () => ({ height: contentHeight }), getAttribute: () => '/spec', style: { setProperty: (name: string, value: string) => properties[name] = value } };
         const frame = { style: { height: '' }, getBoundingClientRect: () => ({ top: -1200 }) };
         const listeners: Record<string, Function> = {};
         const cleanup: Record<string, Function> = {};
@@ -143,6 +143,7 @@ describe('admin API docs', function () {
         vm.runInNewContext(source, {
             init: () => {}, document: { getElementById: () => mount },
             window: { frameElement: frame, parent, location: parent.location, addEventListener: (event: string, callback: Function) => cleanup[event] = callback, removeEventListener: (event: string) => delete cleanup[event] },
+            MutationObserver: class { observe() {} disconnect() {} },
             ResizeObserver: class { constructor(callback: Function) { resize = callback; } observe() {} disconnect() { disconnected = true; } }
         });
         queued!();
@@ -154,7 +155,7 @@ describe('admin API docs', function () {
         expect(properties['--admin-api-sidebar-offset']).to.equal('900px');
         parent.innerHeight = 768; listeners.resize(); queued!();
         expect(properties['--admin-api-viewport-height']).to.equal('768px');
-        mountEvents.click({ target: { closest: () => ({ getAttribute: () => '#/users' }) }, button: 0 });
+        mountEvents.click({ target: { closest: () => ({ getAttribute: () => '#/users', closest: () => null }) }, button: 0 });
         queued!();
         expect(parent.scrollTo.called).to.equal(false);
         referenceSections.push({ getAttribute: () => '/Users', getBoundingClientRect: () => ({ top: 1600 }) });
@@ -176,6 +177,46 @@ describe('admin API docs', function () {
         expect(mountEvents).to.deep.equal({});
         expect(disconnected).to.equal(true);
         expect(listeners).to.deep.equal({});
+    });
+
+    it('keeps the clicked sidebar tag selected until scrolling and collapses other operation panels', function () {
+        const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-bootstrap.js'), 'utf8')
+            .replace("import { init } from './redoc.standalone.js';", '');
+        const events: Record<string, Function> = {};
+        const listeners: Record<string, Function> = {};
+        let queued: Function;
+        const links = ['records', 'export'].map(tag => ({
+            getAttribute: () => '#/' + tag, closest: () => ({}),
+            toggleAttribute: sinon.spy(), setAttribute: sinon.spy(), removeAttribute: sinon.spy(),
+            parentElement: { classList: { contains: () => true, toggle: sinon.spy() } }
+        }));
+        const operations = ['records', 'export'].map(tag => ({
+            getAttribute: () => '/' + tag + '/paths/operation/get', parentElement: { hidden: false }
+        }));
+        const mount = {
+            getAttribute: () => '/spec', toggleAttribute: sinon.spy(), style: { setProperty() {} },
+            getBoundingClientRect: () => ({ height: 1200 }),
+            addEventListener: (event: string, callback: Function) => events[event] = callback,
+            querySelectorAll: (selector: string) => selector.startsWith('.menu-content') ? links : selector.startsWith('.api-content') ? operations : []
+        };
+        const parent = { location: { origin: 'http://portal' }, innerHeight: 800,
+            requestAnimationFrame: (callback: Function) => { queued = callback; return 1; },
+            addEventListener: (event: string, callback: Function) => listeners[event] = callback };
+        vm.runInNewContext(source, {
+            init() {}, document: { getElementById: () => mount },
+            window: { frameElement: { style: {}, getBoundingClientRect: () => ({ top: 0 }) }, parent, location: parent.location, addEventListener() {} },
+            ResizeObserver: class { observe() {} }, MutationObserver: class { observe() {} }
+        });
+        events.click({ target: { closest: () => links[1] }, button: 0 }); queued!();
+        expect(operations.map(operation => operation.parentElement.hidden)).to.deep.equal([true, false]);
+        expect(links[1].setAttribute.calledWith('aria-current', 'location')).to.equal(true);
+        expect(links[0].parentElement.classList.toggle.calledWith('admin-api-collapsed', true)).to.equal(true);
+        listeners.pointerdown({ type: 'pointerdown' }); queued!();
+        expect(mount.toggleAttribute.lastCall.args).to.deep.equal(['data-admin-tag-navigation', true]);
+        listeners.scroll(); queued!();
+        expect(mount.toggleAttribute.lastCall.args).to.deep.equal(['data-admin-tag-navigation', false]);
+        events.click({ target: { closest: () => links[0] }, button: 0 }); queued!();
+        expect(operations.map(operation => operation.parentElement.hidden)).to.deep.equal([false, true]);
     });
 
     it('eagerly mounts Redoc section placeholders while retaining native observers elsewhere', function () {
