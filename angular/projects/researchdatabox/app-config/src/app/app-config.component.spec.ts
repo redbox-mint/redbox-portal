@@ -22,7 +22,7 @@ import { ChipsTypeComponent } from './fieldTypes/chips.type';
 class MockI18NextPipe implements PipeTransform {
   transform(value: string, options?: any): string { return value; }
 }
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { APP_BASE_HREF, CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { AppConfigComponent } from './app-config.component';
@@ -267,7 +267,7 @@ describe('AppConfigComponent', () => {
     const app = fixture.componentInstance;
     const editor = fixture.debugElement.query(By.directive(DictionaryTypeComponent)).componentInstance as DictionaryTypeComponent;
     const child = editor.field.fieldGroup![0];
-    child.props!['entryExpanded'] = true; fixture.detectChanges();
+    await expandAllSections(fixture);
     const input = fixture.nativeElement.querySelector('input[id*="-key-0"]') as HTMLInputElement;
     input.value = 'public'; input.dispatchEvent(new Event('input')); fixture.detectChanges();
     expect(app.dirty).toBeTrue();
@@ -304,6 +304,7 @@ describe('AppConfigComponent', () => {
     const fixture = TestBed.createComponent(AppConfigComponent), component = fixture.componentInstance;
     component.configKey = 'oniPublishing'; fixture.autoDetectChanges(true);
     await component.waitForInit(); await fixture.whenStable();
+    await expandAllSections(fixture);
     const editor = fixture.debugElement.queryAll(By.directive(DictionaryTypeComponent)).map(node => node.componentInstance as DictionaryTypeComponent).find(editor => editor.field.key === 'sites')!;
     editor.rename(editor.field.fieldGroup![0], 'renamed');
     editor.startAdd(editor.field.fieldGroup![0]); editor.newKey = 'copy'; editor.add();
@@ -721,6 +722,7 @@ describe('AppConfigComponent', () => {
       profileA: { type: 'object', properties: { title: binding } },
       profileB: { type: 'object', properties: { title: binding } }
     } }, model: { profileA: { title: { kind: 'path', path: 'metadata.a' } }, profileB: { title: { kind: 'path', path: 'metadata.b' } } } });
+    await expandAllSections(fixture);
     const headers: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('button.binding-header'));
     expect(headers.length).toBe(2);
     headers.forEach(header => { expect(header.getAttribute('aria-expanded')).toBe('false'); header.click(); });
@@ -748,9 +750,50 @@ describe('AppConfigComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    await expandAllSections(fixture);
     const compiled = fixture.debugElement.nativeElement;
     expect(compiled.textContent).toContain('publicationYear');
     expect(compiled.textContent).toContain('admin-config-binding-field-key');
+  });
+
+  async function expandAllSections(fixture: ComponentFixture<AppConfigComponent>) {
+    for (let depth = 0; depth < 8; depth++) {
+      const closed = fixture.nativeElement.querySelectorAll('details:not([open])');
+      if (!closed.length) break;
+      closed.forEach((details: HTMLDetailsElement) => {
+        details.open = true;
+        details.dispatchEvent(new Event('toggle'));
+      });
+      fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    }
+  }
+
+  it('defers closed sections and dictionary editors, preserves validation and retains visited drafts', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      connection: { type: 'object', properties: { host: { type: 'string' } } },
+      sites: { type: 'object', additionalProperties: { type: 'object', required: ['label'], properties: { label: { type: 'string', minLength: 1 } } } }
+    } }, model: { connection: { host: 'example' }, sites: { staging: { label: '' } } } }, 'oniPublishing');
+    const app = fixture.componentInstance;
+    const sites = findFieldByKey(app.fields, 'sites')!;
+    expect(app.form.invalid).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.app-config-dictionary')).toBeNull();
+    app.activateSection(app.sections.find(section => section.fieldGroup?.includes(sites))!);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.app-config-dictionary')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.app-config-dictionary-body')).toBeNull();
+    await expandAllSections(fixture);
+    const keyInput = fixture.nativeElement.querySelector('input[id*="-key-0"]') as HTMLInputElement;
+    keyInput.value = 'draft'; keyInput.dispatchEvent(new Event('input')); fixture.detectChanges();
+    const row = keyInput.closest('details')!;
+    row.open = false; row.dispatchEvent(new Event('toggle')); fixture.detectChanges();
+    expect(app.dirty).toBeTrue();
+    row.open = true; row.dispatchEvent(new Event('toggle')); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('input[id*="-key-0"]')).toBe(keyInput);
+    expect(keyInput.value).toBe('draft');
+    app.discard(); await fixture.whenStable(); fixture.detectChanges();
+    expect(app.dirty).toBeFalse();
+    expect(app.model.sites.staging.label).toBe('');
+    fixture.destroy();
   });
 
   async function renderConfig(data: any, key = 'test') {
@@ -841,6 +884,7 @@ describe('AppConfigComponent', () => {
     const app = fixture.componentInstance;
     app.model.changed = true;
     expect(app.form.invalid).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.app-config-dictionary-body')).toBeNull();
     // Focus is intentionally deferred to the next paint after Formly/native
     // details toggles settle. Await that paint instead of an unbounded event
     // promise (focus can already be on the target without another focusin).

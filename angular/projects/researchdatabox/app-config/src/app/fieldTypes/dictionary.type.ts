@@ -29,6 +29,12 @@ export class DictionaryTypeComponent extends FieldType implements OnInit, OnDest
 
   ngOnDestroy(): void { this.options?.formState?.dictionaryKeyDrafts?.delete(this.field); }
 
+  toggleEntry(child: FormlyFieldConfig, event: Event): void {
+    child.props!['entryExpanded'] = (event.target as HTMLDetailsElement).open;
+    // Keep visited editors alive so drafts and control state survive collapsing.
+    if (child.props!['entryExpanded']) child.props!['entryRendered'] = true;
+  }
+
   entryKey(child: FormlyFieldConfig): string { return String(Array.isArray(child.key) ? child.key[0] : child.key); }
   fixed(key: string): boolean { return Object.prototype.hasOwnProperty.call(this.props['dictionarySchema'].properties || {}, key); }
   error(key: string, original?: string): string {

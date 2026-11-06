@@ -23,7 +23,9 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
             <span class="app-config-expand">{{ (props['expanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!props['expanded']" [class.fa-angle-up]="props['expanded']" aria-hidden="true"></i></span>
           </span>
         </summary>
+        @if (props['expanded'] || bodyRendered) {
         <div class="rb-admin-form-section-body" [class.app-config-settings-off]="enabledField?.formControl?.value === false">@if (enabledField?.formControl?.value === false && !options.formState?.pageIsOff?.()) { <p class="rb-admin-hint">{{ 'admin-config-feature-off-help' | i18next: { name: props.label || field.key } }}</p> }<ng-container *ngTemplateOutlet="body"></ng-container></div>
+        }
       </details>
     } @else {
       <section class="rb-admin-form-section" [id]="props['sectionId']">
@@ -43,6 +45,8 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
   `
 })
 export class SectionTypeComponent extends FieldType {
+  bodyRendered = false;
+
   get enabledField(): FormlyFieldConfig | undefined {
     const children = this.field.fieldGroup || [];
     return children.find(child => child.props?.['pageEnabled']) ||
@@ -55,6 +59,9 @@ export class SectionTypeComponent extends FieldType {
 
   toggle(event: Event): void {
     this.props['expanded'] = (event.target as HTMLDetailsElement).open;
-    if (this.props['expanded']) this.props['activate']?.();
+    if (this.props['expanded']) {
+      this.bodyRendered = true;
+      this.props['activate']?.();
+    }
   }
 }
