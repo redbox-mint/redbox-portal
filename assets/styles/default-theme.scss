@@ -572,6 +572,8 @@ tree-internal > ul.rootless > li > tree-internal > ul {
 }
 
 .btn.btn-primary.btn-search-bar {
+    // White text needs 4.5:1. Keep the portal blue's hue and theme override.
+    background-color: var(--rb-search-button-background-color, color-mix(in srgb, var(--rb-submit-button-background-color, #428bca) 88.4%, black));
     padding-top: 6px;
     padding-bottom: 5px;
 }
