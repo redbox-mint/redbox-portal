@@ -40,6 +40,16 @@ describe('AdminFigshareVocabularyComponent', () => {
     );
   });
 
+  it('focuses the subview heading when Angular creates it and tolerates its removal', () => {
+    const heading = document.createElement('h2');
+    heading.tabIndex = -1;
+    document.body.append(heading);
+    component.subviewHeading = { nativeElement: heading };
+    expect(document.activeElement).toBe(heading);
+    component.subviewHeading = undefined;
+    heading.remove();
+  });
+
   it('edits a detached draft and submits revision-checked metadata and schedule', async () => {
     const source: any = { id: 's1', displayName: 'Old', scope: 'public', archived: false, settingsRevision: 3, syncSchedule: 'manual' };
     component.editSource(source);

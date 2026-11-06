@@ -1,5 +1,5 @@
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
-import { Component, Inject, inject } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild, inject } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkMapping,
@@ -28,6 +28,9 @@ const MAPPING_PAGE_SIZE = 50;
 export class AdminFigshareVocabularyComponent extends BaseComponent {
   readonly adminDates = inject(AdminDateService);
   public view: FigshareView = 'sources';
+  @ViewChild('subviewHeading') set subviewHeading(heading: ElementRef<HTMLElement> | undefined) {
+    heading?.nativeElement.focus();
+  }
   public message = '';
   public error = '';
 

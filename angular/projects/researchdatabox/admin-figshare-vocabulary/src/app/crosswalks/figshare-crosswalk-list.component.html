@@ -87,7 +87,7 @@
         <p class="mb-0">{{ 'figshare-vocab-confirm-delete-body' | i18next: { name: pendingDelete.name } }}</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="cancelDelete()" cdkFocusInitial>
+        <button type="button" class="btn btn-outline-secondary" (click)="cancelDelete()" cdkFocusInitial>
           {{ 'figshare-vocab-cancel' | i18next }}
         </button>
         <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDelete()">

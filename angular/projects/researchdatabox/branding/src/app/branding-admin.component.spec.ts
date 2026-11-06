@@ -584,7 +584,10 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.pendingRestoreId).toBe('h1');
     await settled();
     expect(fixture.nativeElement.textContent).toContain('branding-restore-confirm');
-    await component.restoreVersion({ ...version, id: 'h1', version: 1 });
+    const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="alertdialog"]');
+    expect(dialog.querySelector('.rb-admin-danger-confirm')).not.toBeNull();
+    expect(dialog.closest('td')).toBeNull();
+    await component.confirmVersionRestore();
     expect(component.pendingRestoreId).toBeNull();
   });
 

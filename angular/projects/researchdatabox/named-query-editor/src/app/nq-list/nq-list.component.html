@@ -19,7 +19,7 @@
       <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name">
         <td><a href="#" (click)="$event.preventDefault(); open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></a></td>
         <td><span class="badge rb-admin-badge-primary">{{ q.collectionName || '—' }}</span></td>
-        <td class="text-end d-none d-lg-table-cell">{{ paramCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ mappingCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ filterCount(q) || '—' }}</td>
+        <td class="text-end d-none d-lg-table-cell nq-param-count">{{ paramCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ mappingCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ filterCount(q) || '—' }}</td>
         <td class="small">
           <ul *ngIf="q.usedBy?.length; else notUsed" class="list-unstyled mb-0 nq-consumers">
             <li *ngFor="let consumer of q.usedBy; let i = index" [class.nq-extra-consumer]="i > 0"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
@@ -28,7 +28,7 @@
             <summary>{{ 'admin-named-query-more-consumers' | i18next: { count: (q.usedBy?.length || 0) - 1 } }}</summary>
             <ul class="list-unstyled mb-0"><li *ngFor="let consumer of q.usedBy?.slice(1)"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li></ul>
           </details>
-          <ng-template #notUsed><span class="text-muted">{{ 'named-query-not-used' | i18next }}</span></ng-template>
+          <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
         </td>
         <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
