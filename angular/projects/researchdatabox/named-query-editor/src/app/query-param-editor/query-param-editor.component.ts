@@ -15,12 +15,15 @@ interface ParamEntry extends NamedQueryParam {
   key: string;
 }
 
+let nextEditorId = 0;
+
 @Component({
   selector: 'query-param-editor',
   templateUrl: './query-param-editor.component.html',
   standalone: false
 })
 export class QueryParamEditorComponent implements OnChanges {
+  readonly idPrefix = 'query-param-editor-' + nextEditorId++;
   @Input() queryParams: Record<string, NamedQueryParam> = {};
   @Output() queryParamsChange = new EventEmitter<Record<string, NamedQueryParam>>();
 

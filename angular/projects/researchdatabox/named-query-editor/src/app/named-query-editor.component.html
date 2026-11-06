@@ -24,7 +24,7 @@
      aria-labelledby="deleteNamedQueryModalTitle"
      aria-describedby="deleteNamedQueryModalDescription"
      (keydown.escape)="cancelDelete()">
-  <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+  <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
         <h2 class="modal-title h4-header" id="deleteNamedQueryModalTitle">
@@ -69,7 +69,7 @@
      aria-modal="true"
      aria-labelledby="namedQueryModalTitle"
      (keydown.escape)="closeEditModal()">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
         <h2 class="modal-title h4-header" id="namedQueryModalTitle">
@@ -78,14 +78,15 @@
         <button type="button" class="btn-close"
                 [attr.aria-label]="'named-query-close' | i18next"
                 (click)="closeEditModal()"
-                cdkFocusInitial></button>
+                [disabled]="isSaving"></button>
       </div>
       <div class="modal-body">
         <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-        <nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
+        <fieldset [disabled]="isSaving" [attr.aria-busy]="isSaving"><nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail></fieldset>
+        <p role="status" aria-live="polite" class="mb-0"><ng-container *ngIf="isSaving"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> {{ 'admin-config-saving' | i18next }}</ng-container></p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeEditModal()">
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving" (click)="closeEditModal()">
           {{ 'named-query-cancel' | i18next }}
         </button>
         <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
