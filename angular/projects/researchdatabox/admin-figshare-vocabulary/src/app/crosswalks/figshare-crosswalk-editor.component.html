@@ -119,13 +119,12 @@
     </tbody>
   </table></div>
 
-  <div class="card-footer">
-    <span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: total ? search.offset + 1 : 0, end: search.offset + mappings.length, total: total } }}</span>
+  <rb-admin-list-footer [total]="total" [start]="search.offset + 1" [end]="search.offset + mappings.length" [pageCount]="total / pageSize">
     <nav [attr.aria-label]="'figshare-vocab-pagination' | i18next"><ul class="pagination">
       <li class="page-item" [class.disabled]="!canGoPrevious"><button type="button" class="page-link" [disabled]="!canGoPrevious" (click)="changePage(search.offset - pageSize)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button></li>
       <li class="page-item" [class.disabled]="!canGoNext"><button type="button" class="page-link" [disabled]="!canGoNext" (click)="changePage(search.offset + pageSize)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></li>
     </ul></nav>
-  </div>
+  </rb-admin-list-footer>
   }
 
   <div class="rb-admin-save-bar">

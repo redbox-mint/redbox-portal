@@ -1,3 +1,4 @@
+import { AdminListFooterComponent } from './admin-list-footer.component';
 import { AdminModalDirective } from './admin-modal.directive';
 import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
@@ -63,6 +64,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     ReportService
   ],
   imports: [
+    AdminListFooterComponent,
     AdminModalDirective,
     A11yModule,
     BrowserModule,
@@ -77,6 +79,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     PaginationModule.forRoot()
   ],
   exports: [
+    AdminListFooterComponent,
     AdminModalDirective,
     A11yModule,
     AdminTabsDirective,

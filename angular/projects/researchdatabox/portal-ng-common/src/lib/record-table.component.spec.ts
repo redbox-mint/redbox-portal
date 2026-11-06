@@ -86,6 +86,17 @@ describe('RecordTableComponent', () => {
     expect(fixture.nativeElement.querySelector('.pagination-first')).toBeNull();
   });
 
+  it('keeps counts without a pager for one admin page and hides an empty footer', async () => {
+    component.adminPresentation = true;
+    currentPage = { records: [{ title: 'Only row' }], total: 1, pageNum: 1 };
+    await render();
+    expect(fixture.nativeElement.querySelector('.card-footer')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('pagination')).toBeNull();
+    currentPage = { records: [], total: 0, pageNum: 1 };
+    await settle();
+    expect(fixture.nativeElement.querySelector('.card-footer')).toBeNull();
+  });
+
   it('formats the named-query modified-date envelope using the shared admin locale', async () => {
     const timestamp = '2026-11-05T23:06:12.085Z';
     const format = spyOn(TestBed.inject(AdminDateService), 'format').and.returnValue('06/11/2026 09:36');
