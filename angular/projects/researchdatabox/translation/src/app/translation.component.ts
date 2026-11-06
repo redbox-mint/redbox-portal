@@ -1,4 +1,4 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
@@ -35,7 +35,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [AdminCountPipe, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
+  imports: [AdminCountPipe, AdminModalDirective, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
   templateUrl: './translation.component.html',
   styleUrls: ['./translation.component.scss']
 })
