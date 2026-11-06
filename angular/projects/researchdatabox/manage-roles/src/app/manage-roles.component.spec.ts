@@ -1,3 +1,4 @@
+import { createInstance } from 'i18next';
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
@@ -156,6 +157,28 @@ describe('AppComponent', () => {
     app.memberSearch = 'missing';
     app.searchMembers();
     expect(app.selectedCandidateId).toBe('');
+    fixture.destroy();
+  });
+
+  it('omits the zero-disabled clause in the header and accessible badge text', async () => {
+    const translator = createInstance();
+    await translator.init({ lng: 'en', resources: { en: { translation: {
+      'admin-roles-member-count_active_one': '{{count}} member',
+      'admin-roles-member-count_active_other': '{{count}} members',
+      'admin-roles-member-count_disabled_one': '{{count}} member, {{disabled}} disabled',
+      'admin-roles-member-count_disabled_other': '{{count}} members, {{disabled}} disabled'
+    } } } });
+    const original = translationService.t.bind(translationService);
+    spyOn(translationService, 't').and.callFake((key: string, options: any) =>
+      key === 'admin-roles-member-count' ? translator.t(key, options) : original(key, options));
+    const { fixture, app } = await createComponent();
+    const badge = fixture.nativeElement.querySelector('.people-role-rail .badge');
+    expect(badge.title).toBe('1 member');
+    expect(badge.querySelector('.visually-hidden').textContent).toBe('1 member');
+    expect(fixture.nativeElement.querySelector('.people-role-heading [role="status"]').textContent).toBe('1 member');
+    app.users.push({ ...app.users[0], id: 'disabled', effectiveLoginDisabled: true });
+    app.roleCounts['Admin'].disabled = 1;
+    fixture.detectChanges(); expect(badge.title).toBe('1 member, 1 disabled');
     fixture.destroy();
   });
 

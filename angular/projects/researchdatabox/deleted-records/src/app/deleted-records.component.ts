@@ -185,6 +185,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
 
   // destroy record confirm modal
   currentDestroyRecordModalOid: string | undefined;
+  currentDestroyRecordModalTitle = '';
   currentDestroyRecordModalRevision: number | undefined;
   isDestroyRecordModalShown: boolean = false;
   private modalTrigger: HTMLElement | null = null;
@@ -330,6 +331,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
       await this.mutateDeletedRecord('restore', data.oid, data.revision);
     } else if (actionName === 'destroy') {
       this.currentDestroyRecordModalOid = data.oid;
+      this.currentDestroyRecordModalTitle = data.title;
       this.currentDestroyRecordModalRevision = data.revision;
       this.showDestroyRecordModal();
     } else {
@@ -353,6 +355,7 @@ export class DeletedRecordsComponent extends BaseComponent implements RecordSour
   private closeDestroyRecordModal(): void {
     this.bulkDestroy = false;
     this.currentDestroyRecordModalOid = undefined;
+    this.currentDestroyRecordModalTitle = '';
     this.currentDestroyRecordModalRevision = undefined;
     this.isDestroyRecordModalShown = false;
     const trigger = this.modalTrigger;
