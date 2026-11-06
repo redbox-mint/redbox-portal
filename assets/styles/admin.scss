@@ -557,7 +557,7 @@ body:has(.rb-admin.admin-layout) {
 html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-height, 120px) + 24px); }
 
 .rb-admin {
-  .people-table .rb-admin-email { white-space: normal; overflow-wrap: anywhere; }
+  .people-table .rb-admin-email { white-space: normal; overflow-wrap: break-word; word-break: normal; min-width: 18ch; }
   .nq-more-consumers { display: none; }
   @media (max-width: 991px) {
     .nq-consumers .nq-extra-consumer { display: none; }

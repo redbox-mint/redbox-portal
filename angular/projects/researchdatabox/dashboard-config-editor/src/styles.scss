@@ -49,11 +49,11 @@
   .dc-subheading { font-size: 16px; margin: 20px 0 12px; padding-top: 16px; border-top: 1px solid var(--admin-line); }
   .dc-column-toolbar { display: flex; gap: 12px; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   .dc-column-toolbar p { margin: 0; flex: 1 1 200px; }
-  .dc-columns-table { margin-bottom: 0; min-width: 500px; }
+  .dc-columns-table { margin-bottom: 0; min-width: 0; width: 100%; }
   .dc-columns-table td { vertical-align: middle; }
-  .dc-columns-table code { overflow-wrap: normal; word-break: normal; display: block; min-width: 220px; max-width: 280px; color: var(--admin-muted); font-size: 12.5px; }
-  .dc-column-edit { border: 0; background: transparent; color: var(--admin-primary); text-decoration: underline; font: inherit; font-weight: 600; padding: 4px 0; min-height: 32px; text-align: left; overflow-wrap: anywhere; min-width: 90px; }
-  .dc-column-edit:hover { text-decoration: underline; color: var(--admin-primary); }
+  .dc-columns-table code { overflow-wrap: anywhere; word-break: normal; white-space: normal; display: block; max-width: 280px; color: var(--admin-muted); font-size: 12.5px; }
+  .dc-column-edit { border: 0; background: transparent; color: var(--rb-anchor-color, var(--admin-primary)); text-decoration: none; font: inherit; font-weight: 700; padding: 4px 0; min-height: 32px; text-align: left; overflow-wrap: anywhere; min-width: 90px; }
+  .dc-column-edit:hover { text-decoration: underline; color: var(--rb-anchor-color, var(--admin-primary)); }
   .rb-admin-row-action { min-width: 32px; min-height: 32px; }
   .rb-admin-row-action:disabled { opacity: 1; color: var(--admin-muted); background: var(--admin-surface); border-color: var(--admin-control-border); cursor: default; }
   .dc-column-detail-title { scroll-margin-top: 16px; }
