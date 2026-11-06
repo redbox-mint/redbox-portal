@@ -21,6 +21,7 @@ import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './adm
   standalone: false
 })
 export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 
   /** Currently expanded section indices */
   expandedSections: Set<number> = new Set([0]);

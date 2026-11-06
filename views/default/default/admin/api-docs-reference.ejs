@@ -39,7 +39,16 @@
 
       /* Redoc's standalone controls have no public hide option in v3. */
       #redoc [data-testid="color-mode-switcher"],
-      #redoc [data-section-id="/"] { display: none; }
+      #redoc [data-section-id="/"],
+      #redoc div:has(> div > [data-testid="middle-panel"] > [data-section-id="/"]),
+      #redoc [data-component-name="Sidebar/SidebarActions"],
+      #redoc a[href="https://redocly.com/redoc/"] { display: none; }
+
+      #redoc [data-section-id]:not([data-section-id="/"]) { padding-top: 20px; }
+      #redoc [data-testid="middle-panel"]:has(h2) { padding-block: 0; margin-bottom: 0; }
+      #redoc [data-testid="middle-panel"]:has(h2) > div { margin-bottom: 0; }
+      #redoc [data-testid="right-panel"]:has(> [data-testid="items-navigation-list"]) { padding-top: 8px; }
+      #redoc [data-testid="items-navigation-list"] > :first-child { margin-top: 0; }
 
       #redoc {
         width: 100%;
