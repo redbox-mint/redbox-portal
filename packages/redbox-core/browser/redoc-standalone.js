@@ -55,7 +55,7 @@ function elementOptions(element) {
 }
 
 function resolveArgs(specOrUrl, options, element) {
-  const { router, basePath, ...settings } = { ...options, ...elementOptions(element) };
+  const { router, basePath, fetchSpec, ...settings } = { ...options, ...elementOptions(element) };
   const isUrl = typeof specOrUrl === 'string' && !specOrUrl.includes('\n') &&
     /^[^\s]+$/.test(specOrUrl.trim()) && !/^[[{]/.test(specOrUrl.trim());
   return {
@@ -86,10 +86,36 @@ function init(specOrUrl, options = {}, element = document.querySelector('redoc')
   const { router, props } = resolveArgs(specOrUrl, options, element);
   if (!roots.has(element)) roots.set(element, createRoot(element));
   const root = roots.get(element);
-  root.render(wrapInRouter(React.createElement(RedocStandalone, {
-    ...props,
+  const render = settings => root.render(wrapInRouter(React.createElement(RedocStandalone, {
+    ...settings,
     onLoaded: callback,
   }), router));
+  if (options.fetchSpec && props.specUrl) {
+    // Our endpoint already emits a JSON document. Redoc's URL loader parses
+    // JSON through its YAML resolver and bundles even reference-free documents.
+    // Keep the standard resolver for hook documents containing references.
+    const request = {};
+    hydrationRequests.set(element, request);
+    fetch(props.specUrl).then(response => {
+      if (!response.ok) throw new Error(`API description request failed: ${response.status}`);
+      return response.json();
+    }).then(spec => {
+      if (hydrationRequests.get(element) !== request) return;
+      hydrationRequests.delete(element);
+      const hasReferences = value => value && typeof value === 'object' &&
+        (typeof value.$ref === 'string' || Object.values(value).some(hasReferences));
+      render(hasReferences(spec) ? props : {
+        ...props, spec, specUrl: undefined, options: { ...props.options, skipBundle: true },
+      });
+    }).catch(() => {
+      if (hydrationRequests.get(element) !== request) return;
+      hydrationRequests.delete(element);
+      // Let the renderer show its normal load/parse error, including hook formats.
+      render(props);
+    });
+  } else {
+    render(props);
+  }
   return root;
 }
 

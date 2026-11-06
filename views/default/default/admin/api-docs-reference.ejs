@@ -14,7 +14,9 @@
     <title><%= headingText %></title>
     <link rel="stylesheet" href="<%= brandPortalPath %>/styles/theme.css">
     <link href="https://fonts.googleapis.com/css?family=Titillium+Web:400,600,700&amp;display=swap" rel="stylesheet">
+    <link rel="preload" href="<%= brandPortalPath %>/admin/api-docs/openapi.json" as="fetch" crossorigin="anonymous">
     <style nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>">
+      html { overflow-y: hidden; }
       html,
       body {
         margin: 0;
