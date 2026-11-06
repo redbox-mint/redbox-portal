@@ -84,7 +84,7 @@
     </div>
   </div>
   <ng-template #targetLink let-info>
-    <a [href]="targetHash(info)" (click)="$event.preventDefault(); selectTarget(info)" [attr.aria-current]="isSelected(info) ? 'true' : null" [attr.aria-disabled]="saving" class="dc-nav-item">
+    <a [href]="targetHash(info)" (click)="$event.preventDefault(); selectTarget(info, false, true)" [attr.aria-current]="isSelected(info) ? 'true' : null" [attr.aria-disabled]="saving" class="dc-nav-item">
       <span>{{ targetLabel(info) }}<code class="dc-target-id">{{ targetId(info) }}</code><small *ngIf="info.hidden">{{ 'admin-dashboard-hidden' | i18next }}</small></span>
       <span *ngIf="(isSelected(info) && draft ? draft.tableConfig.rowConfig.length : columnCounts.get(info.key)) != null" class="badge rb-admin-badge-info">{{ 'admin-dashboard-column-count' | i18next: { count: isSelected(info) && draft ? draft.tableConfig.rowConfig.length : columnCounts.get(info.key) } }}</span>
     </a>
