@@ -10,7 +10,7 @@
     <div class="rb-admin-page-actions">
       <a class="btn btn-outline-secondary" *ngIf="selectedLang" [href]="exportUrl" download>{{ 'admin-tx-export' | i18next }}</a>
       <button type="button" class="btn btn-outline-secondary" [disabled]="!selectedLang" (click)="openImport()">{{ 'admin-tx-import' | i18next }}</button>
-      <button type="button" class="btn btn-primary" (click)="openLanguageModal()">{{ 'admin-tx-add' | i18next }}</button></div>
+      <button type="button" class="btn btn-primary" (click)="openLanguageModal()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-language' | i18next }}</button></div>
   </header>
   <div *ngIf="readWarnings().languages" class="alert alert-warning" role="status" aria-live="polite">
     {{ readWarnings().languages }}
@@ -26,7 +26,7 @@
   </div>
 
   <section class="card" aria-labelledby="tx-languages-title">
-    <div class="card-header"><h2 id="tx-languages-title">{{ 'admin-tx-languages' | i18next }}</h2><span>{{ 'admin-tx-available-count' | i18next: { count: availableLanguages().length } }}</span></div>
+    <div class="card-header"><h2 id="tx-languages-title">{{ 'admin-tx-languages' | i18next }}</h2><span>{{ languages().length | adminCount: 'language' }}</span></div>
     <div class="table-responsive"><table class="table table-hover tx-languages">
       <thead><tr><th>{{ 'admin-tx-language' | i18next }}</th><th>{{ 'admin-tx-code' | i18next }}</th><th class="text-end">{{ 'admin-tx-translated' | i18next }}</th><th>{{ 'admin-tx-available' | i18next }}</th><th class="text-end"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th></tr></thead>
       <tbody><tr *ngFor="let lang of languages()">
@@ -48,7 +48,7 @@
     </div>
   </section>
   <section class="card" aria-labelledby="tx-strings-title">
-    <div class="card-header"><h2 id="tx-strings-title">{{ 'admin-tx-strings' | i18next }}</h2><span>{{ 'admin-tx-keys-count' | i18next: { count: entries().length } }}</span></div>
+    <div class="card-header"><h2 id="tx-strings-title">{{ 'admin-tx-strings' | i18next }}</h2><span>{{ viewEntries().length | adminCount: 'key': entries().length }}</span></div>
     <div class="rb-admin-filter-bar">
       <div class="rb-admin-field"><label for="tx-lang-select">{{ 'admin-tx-editing-language' | i18next }}</label>
         <select id="tx-lang-select" class="form-select" [(ngModel)]="selectedLang" (change)="onLangChange()">
@@ -71,7 +71,8 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" [attr.aria-pressed]="show === 'override'" (click)="setShow('override')">{{ 'admin-tx-changed' | i18next }}</button>
         </div>
       </div>
-    </div>
+    <button *ngIf="filterText || selectedCategory || show !== 'all'" type="button" class="btn rb-admin-ghost" (click)="clearAllFilters()">{{ 'admin-report-clear' | i18next }}</button>
+  </div>
     <div *ngIf="saveError() && !modalOpen()" class="alert alert-danger m-3" role="alert">{{ 'admin-tx-save-error' | i18next }}</div>
     <div *ngIf="saveSuccess()" class="alert alert-success m-3" role="status">{{ 'admin-tx-saved' | i18next }}</div>
     <div *ngIf="readPending().entries" class="p-3" role="status">{{ 'admin-tx-loading' | i18next }}</div>
@@ -85,8 +86,8 @@
           <th class="text-end" scope="col"><span class="visually-hidden">{{ 'admin-tx-actions' | i18next }}</span></th>
         </tr></thead>
         <tbody><tr *ngFor="let e of pageEntries(); trackBy: trackByKey" [class.tx-row-missing]="e.provenance === 'missing'">
-          <td><span class="badge rb-admin-badge-primary">{{ e.category || ('admin-tx-uncategorized' | i18next) }}</span></td>
-          <td><code [title]="e.key">{{ e.key }}</code><button *ngIf="e.description" type="button" class="btn btn-sm rb-admin-ghost tx-key-help" [title]="e.description" [attr.aria-label]="e.description"><i class="fa fa-info-circle" aria-hidden="true"></i></button></td>
+          <td><span class="tx-category">{{ e.category || ('admin-tx-uncategorized' | i18next) }}</span></td>
+          <td><code [title]="e.key"><ng-container *ngFor="let segment of keySegments(e.key); let last = last"><ng-container *ngIf="!last">{{ segment }}<wbr></ng-container><span *ngIf="last" class="tx-key-tail">{{ segment }}&#8288;<button *ngIf="e.description" type="button" class="btn btn-sm rb-admin-ghost tx-key-help" [title]="e.description" [attr.aria-label]="e.description"><i class="fa fa-info-circle" aria-hidden="true"></i></button></span></ng-container></code></td>
           <td><span *ngIf="e.provenance === 'override'" class="badge rb-admin-badge-warning">{{ 'admin-tx-changed' | i18next }}</span><span *ngIf="e.contentFormat === 'html'" class="badge rb-admin-badge-info">HTML</span><div class="tx-cell-val" [title]="e.value">{{ e.value }}</div></td>
           <td class="text-end"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEdit(e)" [attr.aria-label]="'admin-tx-edit-key' | i18next: { key: e.key }">{{ 'admin-tx-edit' | i18next }}</button>
             <details *ngIf="e.provenance === 'override' && e.hasDefault" class="rb-admin-overflow">
@@ -129,9 +130,9 @@
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
-        <span class="modal-title h4" id="txEditModalTitle">
-          {{ 'admin-tx-edit-title' | i18next }} <span class="tx-modal-key ml-2">{{ editKey }}</span>
-        </span>
+        <h2 class="modal-title h4" id="txEditModalTitle">
+          {{ 'admin-tx-edit-title' | i18next }} <span class="tx-modal-key ms-2">{{ editKey }}</span>
+        </h2>
         <button type="button" class="btn-close" [attr.aria-label]="'admin-tx-close' | i18next" (click)="closeModal()"></button>
       </div>
       <div class="modal-body">
@@ -289,7 +290,7 @@
       <div class="modal-footer">
         <button type="button" class="btn rb-admin-ghost" (click)="closeModal()" [disabled]="saving()">{{ 'admin-tx-cancel' | i18next }}</button>
         <button type="button" class="btn btn-primary" (click)="saveEdit()" [disabled]="saving()">
-          <span *ngIf="saving()" class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+          <span *ngIf="saving()" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           {{ (saving() ? 'admin-tx-saving' : 'admin-tx-save-translation') | i18next }}
         </button>
       </div>
@@ -311,7 +312,7 @@
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
-        <span class="modal-title h4" id="txAddLangModalTitle">{{ 'admin-tx-add-title' | i18next }}</span>
+        <h2 class="modal-title h4" id="txAddLangModalTitle">{{ 'admin-tx-add-title' | i18next }}</h2>
         <button
           type="button"
           class="btn-close"
@@ -322,10 +323,10 @@
       </div>
       <div class="modal-body">
         <div *ngIf="languageCreateSuccess()" class="alert alert-success" role="status">
-          <i class="fa fa-check-circle mr-1" aria-hidden="true"></i>{{ 'admin-tx-language-created' | i18next }}
+          <i class="fa fa-check-circle me-1" aria-hidden="true"></i>{{ 'admin-tx-language-created' | i18next }}
         </div>
         <div *ngIf="languageCreateError()" class="alert alert-danger" role="alert">
-          <i class="fa fa-exclamation-triangle mr-1" aria-hidden="true"></i>{{ 'admin-tx-create-error' | i18next }}
+          <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"></i>{{ 'admin-tx-create-error' | i18next }}
         </div>
 
         <div class="form-group">
@@ -379,7 +380,7 @@
         >
           <span
             *ngIf="creatingLanguage()"
-            class="spinner-border spinner-border-sm mr-2"
+            class="spinner-border spinner-border-sm me-2"
             role="status"
             aria-hidden="true"
           ></span>
@@ -404,9 +405,9 @@
   <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content rb-admin" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
-        <span class="modal-title h4" id="txDisplayNameModalTitle">
-          {{ 'admin-tx-rename-title' | i18next }} <span class="tx-modal-key ml-2">{{ displayNameLanguage }}</span>
-        </span>
+        <h2 class="modal-title h4" id="txDisplayNameModalTitle">
+          {{ 'admin-tx-rename-title' | i18next }} <span class="tx-modal-key ms-2">{{ displayNameLanguage }}</span>
+        </h2>
         <button
           type="button"
           class="btn-close"
@@ -421,10 +422,10 @@
           <button type="button" class="btn btn-outline-secondary" (click)="loadCurrentDisplayName()" [disabled]="readPending().displayName">{{ 'admin-tx-retry-name' | i18next }}</button>
         </div>
         <div *ngIf="displayNameUpdateSuccess()" class="alert alert-success" role="status">
-          <i class="fa fa-check-circle mr-1" aria-hidden="true"></i>{{ 'admin-tx-name-updated' | i18next }}
+          <i class="fa fa-check-circle me-1" aria-hidden="true"></i>{{ 'admin-tx-name-updated' | i18next }}
         </div>
         <div *ngIf="displayNameUpdateError()" class="alert alert-danger" role="alert">
-          <i class="fa fa-exclamation-triangle mr-1" aria-hidden="true"></i>{{ 'admin-tx-name-error' | i18next }}
+          <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"></i>{{ 'admin-tx-name-error' | i18next }}
         </div>
 
         <div class="form-group mb-0">
@@ -458,7 +459,7 @@
         >
           <span
             *ngIf="updatingDisplayName()"
-            class="spinner-border spinner-border-sm mr-2"
+            class="spinner-border spinner-border-sm me-2"
             role="status"
             aria-hidden="true"
           ></span>

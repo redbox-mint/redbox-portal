@@ -135,6 +135,20 @@ describe('AppComponent (translation)', () => {
     return { fixture, comp };
   }
 
+  it('breaks keys at separators and keeps help with the final segment', async () => {
+    const { comp, fixture } = create();
+    translationService.entriesMap['en:translation'] = [
+      { key: 'admin.report-long.title', value: 'Title', description: 'Help for title', category: 'admin' }
+    ];
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(comp.keySegments('admin.report-long.title')).toEqual(['admin.', 'report-', 'long.', 'title']);
+    const code = fixture.nativeElement.querySelector('.tx-data-table code');
+    expect(code.querySelectorAll('wbr').length).toBe(3);
+    expect(code.querySelector('.tx-key-tail').textContent.replace('\u2060', '').trim()).toBe('title');
+    expect(code.querySelector('.tx-key-tail .tx-key-help')).toBeTruthy();
+    expect(code.textContent.replace('\u2060', '').trim()).toBe('admin.report-long.title');
+  });
+
   it('filters Missing and Changed with badges, counts and a revert menu', async () => {
     const { comp, fixture } = create();
     translationService.entriesMap['en:translation'] = [
