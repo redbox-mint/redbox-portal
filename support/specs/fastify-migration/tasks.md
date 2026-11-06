@@ -117,7 +117,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     cleanup retry and idempotent success. Irrecoverable transport-close errors
     remain visible rather than being silently ignored.
 
-- [ ] **FM-013 — Close G1 with a minimal controller.**
+- [x] **FM-013 — Close G1 with a minimal controller.**
   - Dependencies: FM-010–FM-012.
   - Work: exercise a declared controller action on the new internal composition,
     port relevant host/lifetime assertions and record actual selected Fastify
