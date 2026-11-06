@@ -39,7 +39,7 @@
   @if (pendingRemove) {
     <div class="modal d-block" role="dialog" aria-modal="true" [attr.aria-labelledby]="id + '-remove-title'" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelRemove()">
       <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h3 [id]="id + '-remove-title'">{{ 'admin-config-dictionary-remove-title' | i18next }}</h3></div>
+        <div class="modal-header"><h3 [id]="id + '-remove-title'">{{ 'admin-config-dictionary-remove-title' | i18next }}</h3><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelRemove()"></button></div>
         <div class="modal-body"><p>{{ 'admin-config-dictionary-remove-help' | i18next: { key: entryKey(pendingRemove) } }}</p></div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelRemove()">{{ 'admin-config-cancel' | i18next }}</button>

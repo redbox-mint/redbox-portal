@@ -6,7 +6,7 @@
       <div class="modal-header">
         <h2 class="modal-title h5" id="figshareMappingPickerTitle">{{
           (localTerm ? 'figshare-vocab-add-target-title' : 'figshare-vocab-add-mapping-title') | i18next
-        }}</h2>
+        }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelled.emit()"></button>
       </div>
       <div class="modal-body">
         @if (localErrorMessage) {

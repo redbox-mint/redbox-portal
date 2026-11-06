@@ -121,6 +121,20 @@ describe('AppComponent', () => {
     return { fixture, app: fixture.componentInstance };
   }
 
+  it('selects the first candidate as the search changes and clears it for no match', async () => {
+    const { fixture, app } = await createComponent();
+    app.selectedRole = { id: 'r', name: 'Researcher' } as any;
+    app.users[0].id = 'admin';
+    spyOn(userService, 'getUsers').and.resolveTo(app.users);
+    app.memberSearch = 'Local';
+    await app.searchMembers();
+    expect(app.selectedCandidateId).toBe('admin');
+    app.memberSearch = 'missing';
+    await app.searchMembers();
+    expect(app.selectedCandidateId).toBe('');
+    fixture.destroy();
+  });
+
   it('loads members including admin from the user endpoint and displays counts', async () => {
     const read = spyOn(userService, 'getUsers').and.resolveTo(usersData);
     const { fixture, app } = await createComponent();
@@ -255,7 +269,7 @@ describe('AppComponent', () => {
     fixture.destroy();
   });
 
-  it('disables last-admin removal and describes the reason beside the button', async () => {
+  it('disables last-admin removal and links to the single footer explanation', async () => {
     const { fixture, app } = await createComponent();
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('tbody button.btn-outline-danger');
@@ -263,7 +277,9 @@ describe('AppComponent', () => {
     expect(button.disabled).toBeTrue();
     const reason = fixture.nativeElement.querySelector('[id="' + button.getAttribute('aria-describedby') + '"]');
     expect(reason.textContent.trim()).toBeTruthy();
-    expect(button.title).toBe(reason.textContent.trim());
+    expect(reason.closest('.card-footer')).not.toBeNull();
+    expect(button.getAttribute('aria-describedby')).toBe('role-admin-protection');
+    expect(fixture.nativeElement.querySelector('[id="role-blocked-' + app.users[0].id + '"]')).toBeNull();
     fixture.destroy();
   });
 

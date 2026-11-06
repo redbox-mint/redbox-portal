@@ -30,7 +30,7 @@
         }
       </div></div>
       <div class="rb-admin-filter-bar">
-        <div class="rb-admin-field rb-admin-field-grow"><label for="role-member-search">{{ 'admin-roles-add-member' | i18next }}</label><input id="role-member-search" type="search" class="form-control" [(ngModel)]="memberSearch" (ngModelChange)="searchMembers()" [disabled]="saving" [placeholder]="'admin-users-search-placeholder' | i18next" aria-controls="role-member-results"></div>
+        <div class="rb-admin-field rb-admin-field-grow"><label for="role-member-search">{{ 'admin-roles-add-member' | i18next }}</label><input id="role-member-search" type="search" class="form-control" [(ngModel)]="memberSearch" (ngModelChange)="searchMembers()" (keydown.enter)="$event.preventDefault(); addMember()" [disabled]="saving" [placeholder]="'admin-users-search-placeholder' | i18next" aria-controls="role-member-results"></div>
         <button type="button" class="btn btn-primary" [disabled]="!selectedCandidateId || saving" (click)="addMember()">{{ 'admin-roles-add' | i18next }}</button>
       <button *ngIf="memberSearch" type="button" class="btn rb-admin-ghost" (click)="memberSearch = ''; selectedCandidateId = ''; searchMembers()">{{ 'admin-report-clear' | i18next }}</button>
   </div>
@@ -54,13 +54,13 @@
             <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub">{{ user.email || user.username }}</span>@if (user.effectiveLoginDisabled) { <span class="badge rb-admin-badge-danger">{{ 'manage-users-account-status-disabled' | i18next }}</span> }</td>
               <td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
               <td><div class="people-badges">@for (other of otherRoles(user); track other.id) { <span class="badge" [class.rb-admin-badge-primary]="other.name === 'Admin'">{{ other.name }}</span> }</div></td>
-              <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving || !!removeBlockedReason(user)" [attr.aria-describedby]="removeBlockedReason(user) ? 'role-blocked-' + user.id : null" [title]="removeBlockedReason(user) ? (removeBlockedReason(user) | i18next) : ''" (click)="requestRemoval(user)">{{ 'admin-roles-remove' | i18next }}</button>@if (removeBlockedReason(user); as reason) { <span class="rb-admin-sub" [id]="'role-blocked-' + user.id">{{ reason | i18next }}</span> }</td>
+              <td class="rb-admin-actions-col text-end"><button type="button" class="btn btn-sm btn-outline-danger" [disabled]="saving || !!removeBlockedReason(user)" [attr.aria-describedby]="removeBlockedReason(user) === 'admin-roles-last-admin' ? 'role-admin-protection' : removeBlockedReason(user) ? 'role-blocked-' + user.id : null" [title]="removeBlockedReason(user) ? (removeBlockedReason(user) | i18next) : ''" (click)="requestRemoval(user)">{{ 'admin-roles-remove' | i18next }}</button>@if (removeBlockedReason(user); as reason) { @if (reason !== 'admin-roles-last-admin') { <span class="rb-admin-sub" [id]="'role-blocked-' + user.id">{{ reason | i18next }}</span> } }</td>
             </tr>
           }</tbody>
         </table></div>
       } @else { <div class="rb-admin-empty"><i class="fa fa-users fa-2x" aria-hidden="true"></i><h3>{{ 'admin-roles-empty' | i18next }}</h3><p>{{ 'admin-roles-empty-help' | i18next }}</p></div> }
       <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStart, end: pageStart ? pageStart + users.length - 1 : 0, total: totalMembers } }}</span><nav [attr.aria-label]="'admin-vocabulary-pagination-page' | i18next: { page: page, totalPages: totalPages }"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers || saving || page <= 1" (click)="loadMembers(page - 1)">{{ 'admin-vocabulary-pagination-previous' | i18next }}</button><span>{{ page }} / {{ totalPages }}</span><button type="button" class="btn btn-outline-secondary" [disabled]="loadingMembers || saving || page >= totalPages" (click)="loadMembers(page + 1)">{{ 'admin-vocabulary-pagination-next' | i18next }}</button></nav></div>
-      <div class="card-footer"><span>{{ (role.name === 'Admin' ? 'admin-roles-admin-protection' : 'admin-roles-members-hint') | i18next }}</span></div>
+      <div class="card-footer"><span id="role-admin-protection">{{ (role.name === 'Admin' ? 'admin-roles-admin-protection' : 'admin-roles-members-hint') | i18next }}</span></div>
     </section>
     } @else { <div class="rb-admin-empty"><h3>{{ 'admin-roles-no-roles' | i18next }}</h3></div> }
   </div>
@@ -69,7 +69,7 @@
 @if (pendingRemoval; as user) {
   <div [config]="{backdrop: 'static', show: true, keyboard: !saving}" bsModal #removeMemberModal="bs-modal" (onHidden)="pendingRemoval = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="remove-member-title">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin">
-      <div class="modal-header"><h2 class="modal-title" id="remove-member-title">{{ 'admin-roles-remove-title' | i18next }}</h2></div>
+      <div class="modal-header"><h2 class="modal-title" id="remove-member-title">{{ 'admin-roles-remove-title' | i18next }}</h2><button type="button" class="btn-close" [disabled]="saving" [attr.aria-label]="'named-query-close' | i18next" (click)="removeMemberModal.hide()"></button></div>
       <div class="modal-body"><p>{{ (user.roles.length <= 1 ? 'admin-roles-replace-confirm' : 'admin-roles-remove-confirm') | i18next: { name: user.name || user.username, role: selectedRole?.name, defaultRole: defaultRole?.name } }}</p>@if (saveError) { <div class="alert alert-danger" role="alert">{{ saveError }}</div> }</div>
       <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="removeMemberModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="saving" (click)="removeMember()">{{ 'admin-roles-remove' | i18next }}</button></div>
     </div></div>
@@ -78,6 +78,6 @@
 
 @if (blockedRemoval) {
   <div [config]="{show: true}" bsModal #blockedModal="bs-modal" (onHidden)="blockedRemoval = ''" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="blocked-removal-title">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin"><div class="modal-header"><h2 id="blocked-removal-title" class="modal-title">{{ 'admin-roles-blocked-title' | i18next }}</h2></div><div class="modal-body"><p>{{ blockedRemoval | i18next }}</p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" (click)="blockedModal.hide()">{{ 'admin-roles-close' | i18next }}</button></div></div></div>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content rb-admin"><div class="modal-header"><h2 id="blocked-removal-title" class="modal-title">{{ 'admin-roles-blocked-title' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="blockedModal.hide()"></button></div><div class="modal-body"><p>{{ blockedRemoval | i18next }}</p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" (click)="blockedModal.hide()">{{ 'admin-roles-close' | i18next }}</button></div></div></div>
   </div>
 }
