@@ -1,5 +1,5 @@
 <div class="card">
-  <div class="card-header"><h2>{{ 'admin-vocabulary-list-title' | i18next }}</h2><span>{{ totalCount | adminCount: 'vocabulary': catalogueTotal }}</span></div>
+  <div class="card-header"><h2>{{ 'admin-vocabulary-list-title' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ totalCount | adminCount: 'vocabulary': catalogueTotal }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field rb-admin-field-grow"><label for="vocab-search">{{ 'admin-vocabulary-search' | i18next }}</label>
       <input id="vocab-search" class="form-control" type="search" [attr.placeholder]="'admin-vocabulary-name-slug-placeholder' | i18next" [ngModel]="searchTerm" (ngModelChange)="onSearchTermChanged($event)" />

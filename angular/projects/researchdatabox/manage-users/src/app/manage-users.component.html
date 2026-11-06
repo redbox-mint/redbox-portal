@@ -8,7 +8,7 @@
 <header class="rb-admin-page-header"><div><h1>{{ 'admin-nav-users' | i18next }}</h1><p>{{ 'admin-users-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newUser()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'manage-users-add-local' | i18next }}</button></div></header>
 @if (updateDetailsMsg && !isDetailsModalShown) { <div class="alert alert-{{ updateDetailsMsgType }}" role="status">{{ updateDetailsMsg }}</div> }
 <section class="card" [attr.aria-busy]="usersLoading">
-  <div class="card-header"><h2>{{ 'admin-nav-users' | i18next }}</h2><span>{{ totalUsers | adminCount: 'user' }}</span></div>
+  <div class="card-header"><h2>{{ 'admin-nav-users' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ totalUsers | adminCount: 'user' }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field rb-admin-field-grow"><label for="manage-users-search">{{ 'admin-users-search' | i18next }}</label><input id="manage-users-search" type="search" class="form-control" [(ngModel)]="searchFilter.name" (ngModelChange)="onFilterChange()" [placeholder]="'admin-users-search-placeholder' | i18next"></div>
     <div class="rb-admin-field"><label for="manage-users-role">{{ 'manage-users-role' | i18next }}</label><select id="manage-users-role" class="form-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilterChange()"><option value="">{{ 'admin-users-any-role' | i18next }}</option>@for (role of allRoles; track role.id) { <option [value]="role.name">{{ role.name }}</option> }</select></div>

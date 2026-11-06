@@ -103,7 +103,7 @@
   <section id="figshare-panel-history" role="tabpanel" tabindex="0" aria-labelledby="figshare-tab-history" [hidden]="view !== 'history'">
   @if (view === 'history') {
   <div class="card">
-    <div class="card-header"><h2>{{ 'figshare-vocab-tab-history' | i18next }}</h2><span>{{ filteredSyncRuns.length | adminCount: 'run': syncRuns.length }}</span></div>
+    <div class="card-header"><h2>{{ 'figshare-vocab-tab-history' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ filteredSyncRuns.length | adminCount: 'run': syncRuns.length }}</span></div>
     <div class="rb-admin-filter-bar">
       <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-history-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-history-search" type="search" class="form-control" [(ngModel)]="historySearch" [placeholder]="'admin-filter-search-placeholder' | i18next" /></div>
       <div class="rb-admin-field"><label for="figshare-history-source">{{ 'figshare-vocab-source-column-source' | i18next }}</label><select id="figshare-history-source" class="form-select" [ngModel]="historySourceId" (ngModelChange)="filterHistorySource($event)"><option value="">{{ 'figshare-vocab-all-sources' | i18next }}</option>@for (source of sources; track source.id) {<option [value]="source.id">{{ source.displayName }}</option>}</select></div>

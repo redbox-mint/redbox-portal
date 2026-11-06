@@ -1,4 +1,4 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { Directive, Input, Pipe, PipeTransform } from '@angular/core';
@@ -58,7 +58,7 @@ describe('ExportComponent', () => {
       ? `${baseUrl}/export/jobs/${encodeURIComponent(item.id)}/download` : null);
     await TestBed.configureTestingModule({
       declarations: [ExportComponent, MockTranslationPipe, MockDatepickerDirective],
-      imports: [AdminCountPipe, CommonModule, FormsModule, A11yModule, AdminDatePipe],
+      imports: [AdminModalDirective, AdminCountPipe, CommonModule, FormsModule, A11yModule, AdminDatePipe],
       providers: [
         { provide: ConfigService, useValue: configService },
         { provide: RecordService, useValue: records },

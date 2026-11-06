@@ -1,3 +1,9 @@
+@if (!isReady && !loadError) { <p role="status">{{ 'admin-config-loading' | i18next }}</p> }
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">{{ loadError }}
+    <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-config-retry' | i18next }}</button>
+  </div>
+}
 @if (isReady) {
   <div class="report-config-app">
     <div [attr.inert]="selectedReport || pendingDelete ? '' : null">
@@ -13,13 +19,8 @@
       </div>
     </header>
     @if (errorMessage && !selectedReport && !pendingDelete) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }
-    <div class="rb-admin-stats">
-      <div class="rb-admin-stat"><b>{{ totalReports }}</b><span>{{ 'report-stat-total' | i18next }}</span></div>
-      <div class="rb-admin-stat"><b>{{ databaseReports }}</b><span>{{ 'report-source-database' | i18next }}</span></div>
-      <div class="rb-admin-stat"><b>{{ solrReports }}</b><span>{{ 'report-source-solr' | i18next }}</span></div>
-    </div>
     <section class="card">
-      <div class="card-header"><h2>{{ 'report-configured-reports' | i18next }}</h2><span>{{ filteredReports.length | adminCount: 'report': totalReports }}</span></div>
+      <div class="card-header"><h2>{{ 'report-configured-reports' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ filteredReports.length | adminCount: 'report': totalReports }}</span></div>
       <div class="rb-admin-filter-bar">
         <div class="rb-admin-field rb-admin-field-grow"><label for="report-search">{{ 'named-query-search' | i18next }}</label>
           <input id="report-search" class="form-control" type="search" [placeholder]="'report-search-placeholder' | i18next" [(ngModel)]="searchText" (ngModelChange)="applyFilter()"></div>
@@ -55,33 +56,33 @@
     </div>
     @if (pendingDelete) {
       <div class="modal-backdrop fade show"></div>
-      <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="report-delete-title" aria-describedby="report-delete-description" (keydown.escape)="cancelDelete()">
-        <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
-          <div class="modal-header"><h2 class="modal-title" id="report-delete-title">{{ 'admin-report-delete-title' | i18next }}</h2><button class="btn-close" type="button" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelDelete()"></button></div>
+      <div [attr.aria-busy]="isDeleting" class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="report-delete-title" aria-describedby="report-delete-description" (keydown.escape)="cancelDelete()">
+        <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+          <div class="modal-header"><h2 class="modal-title" id="report-delete-title">{{ 'admin-report-delete-title' | i18next }}</h2><button class="btn-close" type="button" [attr.aria-label]="'named-query-close' | i18next" [disabled]="isDeleting" (click)="cancelDelete()"></button></div>
           <div class="modal-body"><p id="report-delete-description">{{ 'admin-report-delete-confirm' | i18next: { name: pendingDelete.title } }}</p>@if (errorMessage) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }</div>
-          <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial (click)="cancelDelete()">{{ 'report-cancel' | i18next }}</button><button class="btn rb-admin-danger-confirm" type="button" (click)="deleteReport(pendingDelete)">{{ 'report-action-delete' | i18next }}</button></div>
+          <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial [disabled]="isDeleting" (click)="cancelDelete()">{{ 'report-cancel' | i18next }}</button><button class="btn rb-admin-danger-confirm" type="button" [disabled]="isDeleting" (click)="deleteReport(pendingDelete)">{{ (isDeleting ? 'admin-deleting' : 'report-action-delete') | i18next }}</button></div>
         </div></div>
       </div>
     }
     @if (selectedReport) {
       <div class="modal-backdrop fade show"></div>
-      <div class="modal report-config-modal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="report-editor-title" (keydown.escape)="cancelEdit()">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+      <div [attr.aria-busy]="isSaving" class="modal report-config-modal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="report-editor-title" (keydown.escape)="cancelEdit()">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
           <div class="modal-content">
             <div class="modal-header">
               <h2 class="modal-title" id="report-editor-title">{{ (!isNewReport ? 'report-edit-title' : 'report-create-title') | i18next }}</h2>
-              <button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelEdit()"></button>
+              <button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" [disabled]="isSaving" (click)="cancelEdit()"></button>
             </div>
             <div class="modal-body">
               @if (errorMessage) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }
-              <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h3>{{ 'admin-report-details' | i18next }}</h3></div><div class="rb-admin-form-section-body rb-admin-form-grid">
+              <fieldset class="border-0 p-0 m-0 w-100" [disabled]="isSaving"><section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h3>{{ 'admin-report-details' | i18next }}</h3></div><div class="rb-admin-form-section-body rb-admin-form-grid">
                 <div class="rb-admin-field">
                   <label class="required" for="report-name">{{ 'report-field-key' | i18next }}</label>
-                  <input id="report-name" class="form-control" type="text" [(ngModel)]="selectedReport.name" [disabled]="isExistingReport()">
+                  <input [attr.cdkFocusInitial]="isNewReport ? '' : null" id="report-name" class="form-control" type="text" [(ngModel)]="selectedReport.name" [disabled]="isExistingReport()">
                 </div>
                 <div class="rb-admin-field">
                   <label class="required" for="report-title">{{ 'report-field-title' | i18next }}</label>
-                  <input id="report-title" class="form-control" type="text" [(ngModel)]="selectedReport.title">
+                  <input [attr.cdkFocusInitial]="!isNewReport ? '' : null" id="report-title" class="form-control" type="text" [(ngModel)]="selectedReport.title">
                 </div>
                 <div class="rb-admin-field">
                   <label class="required" for="report-source">{{ 'report-field-source' | i18next }}</label>
@@ -209,10 +210,12 @@
               @if (previewResult) {
                 <div class="alert alert-info">{{ 'report-preview-result' | i18next: { total: previewResult.total } }}</div>
               }
+              </fieldset>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-outline-secondary" type="button" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button>
-              <button class="btn btn-outline-secondary" type="button" [disabled]="isPreviewing" (click)="previewReport()"><i class="fa fa-eye" aria-hidden="true"></i> {{ 'report-preview' | i18next }}</button>
+              <span role="status" aria-live="polite">@if (isSaving) { {{ 'admin-config-saving' | i18next }} }</span>
+              <button class="btn btn-outline-secondary" type="button" [disabled]="isSaving" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button>
+              <button class="btn btn-outline-secondary" type="button" [disabled]="isPreviewing || isSaving" (click)="previewReport()"><i class="fa fa-eye" aria-hidden="true"></i> {{ 'report-preview' | i18next }}</button>
               <button class="btn btn-primary" type="button" [disabled]="isSaving" (click)="saveReport()">{{ 'report-save' | i18next }}</button>
             </div>
           </div>

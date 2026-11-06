@@ -1,4 +1,4 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -22,7 +22,7 @@ describe('ReportConfigComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ReportConfigComponent, MockI18NextPipe],
-      imports: [AdminCountPipe, FormsModule, HttpClientTestingModule, A11yModule],
+      imports: [AdminModalDirective, AdminCountPipe, FormsModule, HttpClientTestingModule, A11yModule],
       providers: [
         { provide: LoggerService, useValue: { error: () => undefined, warn: () => undefined } },
         { provide: TranslationService, useValue: { t: (key: string) => key, isReady: true, init: () => Promise.resolve(), waitForInit: () => Promise.resolve() } },
@@ -31,8 +31,8 @@ describe('ReportConfigComponent', () => {
           useValue: {
             waitForInit: () => Promise.resolve(),
             list: () => Promise.resolve([
-              { name: 'db', title: 'Database', reportSource: 'database', readOnly: false, columns: [{ label: 'A', property: 'a' }], filter: [{ type: 'text', paramName: 'p', property: 'a', message: '' }], canEdit: true, canDelete: true, canPreview: true },
-              { name: 'db2', title: 'Database 2', reportSource: 'database', readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true },
+              { name: 'db', title: 'Database', reportSource: 'database', databaseQuery: { queryName: 'listRDMPRecords' }, readOnly: false, columns: [{ label: 'A', property: 'a' }], filter: [{ type: 'text', paramName: 'p', property: 'a', message: '' }], canEdit: true, canDelete: true, canPreview: true },
+              { name: 'db2', title: 'Database 2', reportSource: 'database', databaseQuery: { queryName: 'listRDMPRecords' }, readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true },
               { name: 'solr', title: 'Solr', reportSource: 'solr', readOnly: true, columns: [], filter: [], canEdit: false, canDelete: false, canPreview: false }
             ]),
             listNamedQueries: () => Promise.resolve([{ name: 'listRDMPRecords' }]),
@@ -59,6 +59,76 @@ describe('ReportConfigComponent', () => {
     cancel.click(); fixture.detectChanges(); await fixture.whenStable();
     expect(document.activeElement).toBe(trigger);
     expect(menu.open).toBeFalse();
+  });
+
+  it('focuses the first editable field and isolates page chrome for create and edit', async () => {
+    fixture.detectChanges(); await component.waitForInit(); fixture.detectChanges();
+    const chrome = document.createElement('button'); document.body.append(chrome);
+    try {
+      component.createReport(); fixture.detectChanges(); await fixture.whenStable();
+      expect(document.activeElement?.id).toBe('report-name');
+      expect(chrome.inert).toBeTrue();
+      component.cancelEdit(); fixture.detectChanges(); await fixture.whenStable();
+      expect(chrome.inert).toBeFalse();
+      component.editReport(component.reports[0]); fixture.detectChanges(); await fixture.whenStable();
+      expect(document.activeElement?.id).toBe('report-title');
+    } finally { fixture.destroy(); chrome.remove(); }
+  });
+
+  it('shows initialization failure with a retry control instead of an empty page', async () => {
+    spyOn(TestBed.inject(ReportConfigService), 'list').and.rejectWith(new Error('offline'));
+    fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Unable to load data');
+    expect(fixture.nativeElement.querySelector('[role="alert"] button').textContent).toContain('admin-config-retry');
+  });
+
+  it('locks saving fields and dismissal, rejects duplicate saves and preserves a replacement editor', async () => {
+    fixture.detectChanges(); await component.waitForInit(); fixture.detectChanges();
+    const service = TestBed.inject(ReportConfigService);
+    let finish!: () => void;
+    const create = jasmine.createSpy().and.returnValue(new Promise<void>(resolve => finish = resolve));
+    (service as any).create = create;
+    component.createReport(); fixture.detectChanges(); await fixture.whenStable();
+    const saving = component.saveReport(); fixture.detectChanges();
+    const original = component.selectedReport;
+    component.cancelEdit(); component.createReport();
+    expect(component.selectedReport).toBe(original);
+    expect(fixture.nativeElement.querySelector('#report-title').matches(':disabled')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.report-config-modal .btn-close').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.modal-footer [role="status"]').textContent).toContain('admin-config-saving');
+    await component.saveReport(); expect(create).toHaveBeenCalledTimes(1);
+    const replacement = { ...original!, name: 'replacement' };
+    component.selectedReport = replacement;
+    finish(); await saving;
+    expect(component.selectedReport).toBe(replacement);
+    expect(component.isSaving).toBeFalse();
+  });
+
+  it('keeps a failed delete open, blocks dismissal and duplicate requests, then permits retry', async () => {
+    await component.loadReports();
+    const report = component.reports[0]; component.requestDelete(report);
+    let fail!: (error: Error) => void;
+    const remove = jasmine.createSpy().and.returnValue(new Promise<void>((resolve, reject) => fail = reject));
+    (TestBed.inject(ReportConfigService) as any).delete = remove;
+    const deleting = component.deleteReport(report);
+    component.cancelDelete(); await component.deleteReport(report);
+    expect(component.pendingDelete).toBe(report); expect(remove).toHaveBeenCalledTimes(1);
+    fail(new Error('offline')); await deleting;
+    expect(component.pendingDelete).toBe(report); expect(component.isDeleting).toBeFalse();
+    expect(component.errorMessage).toBe('offline');
+    remove.and.resolveTo({}); await component.deleteReport(report);
+    expect(component.pendingDelete).toBeNull();
+  });
+
+  it('keeps the count announcement mounted at zero and focus in the search field', async () => {
+    fixture.detectChanges(); await component.waitForInit(); fixture.detectChanges();
+    const live = fixture.nativeElement.querySelector('.card-header [role="status"]');
+    const input = fixture.nativeElement.querySelector('#report-search'); input.focus();
+    input.value = 'unmatched'; input.dispatchEvent(new Event('input')); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.filteredReports.length).toBe(0);
+    expect(fixture.nativeElement.querySelector('.card-header [role="status"]')).toBe(live);
+    expect(live.getAttribute('aria-live')).toBe('polite'); expect(document.activeElement).toBe(input);
   });
 
   it('filters reports by source and marks Solr reports read only', async () => {
@@ -119,7 +189,7 @@ describe('ReportConfigComponent', () => {
   });
 
   it('passes filter values when previewing a report', async () => {
-    const report = { name: 'db', title: 'Database', reportSource: 'database', readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true } as any;
+    const report = { name: 'db', title: 'Database', reportSource: 'database', databaseQuery: { queryName: 'listRDMPRecords' }, readOnly: false, columns: [], filter: [], canEdit: true, canDelete: true, canPreview: true } as any;
     const service = TestBed.inject(ReportConfigService);
     spyOn(service, 'preview').and.resolveTo({ total: 0 } as any);
     component.selectedReport = report;

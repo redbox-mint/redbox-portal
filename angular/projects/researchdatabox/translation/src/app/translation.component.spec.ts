@@ -135,7 +135,7 @@ describe('AppComponent (translation)', () => {
     return { fixture, comp };
   }
 
-  it('breaks keys at separators and keeps help with the final segment', async () => {
+  it('breaks keys at separators and shows descriptions on a second line', async () => {
     const { comp, fixture } = create();
     translationService.entriesMap['en:translation'] = [
       { key: 'admin.report-long.title', value: 'Title', description: 'Help for title', category: 'admin' }
@@ -145,7 +145,8 @@ describe('AppComponent (translation)', () => {
     const code = fixture.nativeElement.querySelector('.tx-data-table code');
     expect(code.querySelectorAll('wbr').length).toBe(3);
     expect(code.querySelector('.tx-key-tail').textContent.replace('\u2060', '').trim()).toBe('title');
-    expect(code.querySelector('.tx-key-tail .tx-key-help')).toBeTruthy();
+    expect(code.querySelector('button')).toBeNull();
+    expect(code.parentElement.querySelector('.rb-admin-sub').textContent).toBe('Help for title');
     expect(code.textContent.replace('\u2060', '').trim()).toBe('admin.report-long.title');
   });
 

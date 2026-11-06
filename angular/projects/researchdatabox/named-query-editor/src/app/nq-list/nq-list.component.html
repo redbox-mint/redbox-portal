@@ -1,5 +1,5 @@
 <section class="card">
-  <div class="card-header"><h2>{{ 'named-query-list-title' | i18next }}</h2><span>{{ queries.length | adminCount: 'query': total }}</span></div>
+  <div class="card-header"><h2>{{ 'named-query-list-title' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ queries.length | adminCount: 'query': total }}</span></div>
   <div class="rb-admin-filter-bar">
     <div class="rb-admin-field rb-admin-field-grow"><label for="named-query-search">{{ 'named-query-search' | i18next }}</label>
       <input id="named-query-search" class="form-control" type="search" [placeholder]="'named-query-search-placeholder' | i18next" [ngModel]="searchTerm" (ngModelChange)="onSearchTermChanged($event)"></div>
