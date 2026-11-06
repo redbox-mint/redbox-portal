@@ -660,9 +660,17 @@ export class DashboardComponent extends BaseComponent {
     }
   }
 
+  sortAria(workflowStep: any, rowConfig: any): string | null {
+    const sort = this.getSortStateFromSortMap(this.sortMap, workflowStep, rowConfig);
+    return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null;
+  }
+
   public getSortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
-    const sortMapAtStep = sortMap[this.getStepKey(workflowStep)];
-    return _has(sortMapAtStep, rowConfig.variable) ? sortMapAtStep[rowConfig.variable].sort : 'desc';
+    const step = this.getStepKey(workflowStep);
+    const sortMapAtStep = sortMap[step];
+    // Several columns can configure initialSort; only the requested sort is active.
+    const activeField = this.getActiveSortFieldFromSortMap(sortMapAtStep, step, true);
+    return activeField === rowConfig.variable ? sortMapAtStep[activeField].sort : '';
   }
 
   public getSecondarySortStateFromSortMap(sortMap: any, workflowStep: any, rowConfig: any) {
