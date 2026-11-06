@@ -219,6 +219,14 @@ describe('admin API docs', function () {
         expect(operations.map(operation => operation.parentElement.hidden)).to.deep.equal([false, true]);
     });
 
+    it('uses CSSOM style insertion with the response nonce', function () {
+        const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-init.js'), 'utf8');
+        const viewer: any = {};
+        vm.runInNewContext(source, { window: viewer, document: { currentScript: { nonce: 'response-nonce' } } });
+        expect(viewer.SC_DISABLE_SPEEDY).to.equal(false);
+        expect(viewer.__redboxApiDocsNonce).to.equal('response-nonce');
+    });
+
     it('loads the renderer after the shell has an opportunity to paint', function () {
         const source = fs.readFileSync(path.resolve(__dirname, '../../../../assets/default/default/js/admin-api-docs-load.js'), 'utf8')
             .replace("import('./admin-api-docs-bootstrap.js')", 'load()');
