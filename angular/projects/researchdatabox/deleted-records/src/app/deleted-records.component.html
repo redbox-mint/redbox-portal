@@ -76,7 +76,7 @@
   <ng-template #rowActions let-record>
     <div class="rb-admin-row-actions">
       <button class="btn btn-sm btn-outline-secondary restore-record" type="button" (click)="recordTableAction($event, record, 'restore')">{{ 'action-restore' | i18next }}</button>
-      <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: record.title }">⋯</summary>
+      <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: record.title }">⋯</summary>
         <div><button class="btn btn-sm btn-outline-danger destroy-record" type="button" (click)="recordTableAction($event, record, 'destroy'); actions.open = false">{{ 'admin-deleted-permanent' | i18next }}</button></div>
       </details>
     </div>

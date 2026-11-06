@@ -32,7 +32,7 @@
         </td>
         <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
           <button class="btn btn-sm btn-outline-secondary" type="button" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
-          <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: q.name }">⋯</summary>
+          <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: q.name }">⋯</summary>
             <div><button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(q.name); actions.open = false">{{ 'named-query-delete' | i18next }}</button></div>
           </details>
         </div></td>

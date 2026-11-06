@@ -214,7 +214,7 @@
                           <button class="btn btn-sm rb-admin-ghost" type="button" [disabled]="mutationPending" (click)="requestCancel(job)">{{ 'export-cancel' | i18next }}</button>
                         }
                         @if (canDelete(job)) {
-                          <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false">
+                          <details rbAdminOverflow class="rb-admin-overflow" #actions>
                             <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: job.filename || job.recordType }">⋯</summary>
                             <div><button class="btn btn-sm btn-outline-danger" type="button" [disabled]="mutationPending" (click)="requestDelete(job); actions.open = false">{{ 'export-delete' | i18next }}</button></div>
                           </details>
