@@ -7,6 +7,8 @@ import { DashboardComponent } from './dashboard.component';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import {
+  AdminAutoFilterDirective,
+  AdminCountPipe,
   ConfigService,
   DashboardSettings,
   HandlebarsTemplateService,
@@ -106,7 +108,7 @@ describe('DashboardComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [DashboardComponent, SortComponent],
-      imports: [PartyImportComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
+      imports: [AdminAutoFilterDirective, AdminCountPipe, PartyImportComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
@@ -169,6 +171,35 @@ describe('DashboardComponent', () => {
       expect(pages[0].querySelectorAll('.pagination-page').length).toBe(3);
       expect(pages[1].querySelectorAll('.pagination-page').length).toBe(6);
       fixture.destroy();
+    });
+
+    it('uses the active portal base for party View links after component initialization', async () => {
+      recordService.brandingAndPortalUrl = 'https://example.test/custom/portal';
+      (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy().and.resolveTo({});
+      const fixture = TestBed.createComponent(DashboardComponent);
+      fixture.componentInstance.adminParties = true;
+      fixture.componentInstance.recordType = 'rdmp';
+      fixture.detectChanges();
+      await fixture.componentInstance.waitForInit();
+      expect(fixture.componentInstance.records.draft.items[0].adminRecordUrl).toBe('https://example.test/custom/portal/record/view/r1');
+      fixture.destroy();
+    });
+
+    it('retains the latest party results when an older search finishes last and supplies record links', async () => {
+      const component = create();
+      component.adminParties = true;
+      (component as any).brandingAndPortalUrl = '/default/rdmp';
+      await init(component);
+      let older: (result: any) => void = () => {};
+      recordService.getRecords.and.returnValues(new Promise(resolve => older = resolve), Promise.resolve({ ...records, items: [{ ...records.items[0], oid: 'new/id' }] }));
+      component.filterSearchString.draft = 'older';
+      const first = component.filterChanged('draft');
+      component.filterSearchString.draft = 'newer';
+      await component.filterChanged('draft');
+      expect(component.records.draft.items[0].adminRecordUrl).toBe('/default/rdmp/record/view/new%2Fid');
+      older(records);
+      await first;
+      expect(component.records.draft.items[0].adminRecordUrl).toContain('new%2Fid');
     });
 
     it('submits admin party name and email searches through the existing record query', async () => {

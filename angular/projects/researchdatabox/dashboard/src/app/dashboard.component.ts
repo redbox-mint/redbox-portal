@@ -131,6 +131,7 @@ export class DashboardComponent extends BaseComponent {
     if (this.adminPartyImport) return;
     if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
       this.config = this.recordService.getConfig();
+      this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
       this.baseUrl = _get(this.config, 'baseUrl');
       this.rootContext = this.configService.rootContext;
       this.branding = _get(this.config, 'branding');
@@ -348,7 +349,10 @@ export class DashboardComponent extends BaseComponent {
     return this.stepState[stepKey]?.settings.rowsPerPage ?? 10;
   }
 
+  private stepRequestIds: Record<string, number> = {};
+
   public async initStep(stepName: string, stepKey: string, recordType: string, packageType: string, startIndex: number) {
+    const requestId = this.stepRequestIds[stepKey] = (this.stepRequestIds[stepKey] || 0) + 1;
     const { filterFields, filterString, filterMode } = this.getActiveFilter(stepKey);
     const sortByString = this.getSortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
     const secondarySortString = this.getSecondarySortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
@@ -380,7 +384,7 @@ export class DashboardComponent extends BaseComponent {
       planTable = this.evaluatePlanTableColumns(stepKey, stagedRecords, recordType);
     }
 
-    this.records[stepKey] = planTable;
+    if (!this.adminParties || requestId === this.stepRequestIds[stepKey]) this.records[stepKey] = planTable;
   }
 
   private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any, rowsPerPage: number) {
@@ -509,7 +513,9 @@ export class DashboardComponent extends BaseComponent {
       }
     } else {
       for (const stagedRecord of _get(stagedOrGroupedRecords, 'items') ?? []) {
-        recordRows.push(this.renderRow(stepKey, stepRowConfig, 'rowConfig', this.buildRowImports(stepKey, recordType, stagedRecord)));
+        const row = this.renderRow(stepKey, stepRowConfig, 'rowConfig', this.buildRowImports(stepKey, recordType, stagedRecord));
+        if (this.adminParties && stagedRecord.oid) row.adminRecordUrl = `${this.brandingAndPortalUrl}/record/view/${encodeURIComponent(stagedRecord.oid)}`;
+        recordRows.push(row);
       }
     }
 
@@ -818,12 +824,18 @@ export class DashboardComponent extends BaseComponent {
       return;
     }
     this.submittedSearch[step] = this.getFilterSearchString(step);
+    if (this.adminParties) this.loadError = '';
     this.isSearching[step] = 'searching';
     this.isFilterSearchDisplayed[step] = 'filterDisplayed';
+    const pending = this.reloadStep(step, 1);
+    const requestId = this.stepRequestIds[step];
     try {
-      await this.reloadStep(step, 1);
+      await pending;
+    } catch (error) {
+      if (!this.adminParties) throw error;
+      if (requestId === this.stepRequestIds[step]) this.showLoadError(error, () => this.filterChanged(step));
     } finally {
-      this.isSearching[step] = '';
+      if (!this.adminParties || requestId === this.stepRequestIds[step]) this.isSearching[step] = '';
     }
   }
 
@@ -832,15 +844,21 @@ export class DashboardComponent extends BaseComponent {
       return;
     }
     this.setFilterField(step, this.getFirstTextFilter(step), e);
+    if (this.adminParties) this.loadError = '';
     this.isSearching[step] = 'searching';
     this.filterSearchString[step] = '';
     // v5.0.1 reset submitted an empty search that replaced filterBy. Keep the
     // same list after migration, including on later page and sort changes.
     this.submittedSearch[step] = '';
+    const pending = this.reloadStep(step, 1);
+    const requestId = this.stepRequestIds[step];
     try {
-      await this.reloadStep(step, 1);
+      await pending;
+    } catch (error) {
+      if (!this.adminParties) throw error;
+      if (requestId === this.stepRequestIds[step]) this.showLoadError(error, () => this.filterChanged(step));
     } finally {
-      this.isSearching[step] = '';
+      if (!this.adminParties || requestId === this.stepRequestIds[step]) this.isSearching[step] = '';
     }
   }
 

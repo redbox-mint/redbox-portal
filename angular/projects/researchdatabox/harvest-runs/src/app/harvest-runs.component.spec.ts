@@ -307,6 +307,21 @@ describe('HarvestRunsComponent', () => {
     expect(apiService.listRunEvents).toHaveBeenCalledOnceWith('run-1', { outcome: '', harvestId: '', page: 2, pageSize: 20 });
   });
 
+  it('ignores earlier event results when a new filter is applied during loading', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    let finishOlder: (response: any) => void = () => {};
+    apiService.listRunEvents.and.returnValues(new Promise(resolve => finishOlder = resolve), Promise.resolve({ summary: { numFound: 0, page: 1, start: 0 }, records: [] }));
+    component.eventFilters.harvestId = 'older';
+    const older = component.applyEventFilters();
+    component.eventFilters.harvestId = 'newer';
+    await component.applyEventFilters();
+    finishOlder({ summary: { numFound: 1, page: 1, start: 0 }, records: [{ harvestId: 'older' }] });
+    await older;
+    expect(component.eventResponse.records).toEqual([]);
+    expect(component.loadingEvents).toBeFalse();
+  });
+
   it('filters failed events by exact harvest ID through the form', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();

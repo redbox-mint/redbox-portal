@@ -1,0 +1,54 @@
+import { Directive, EventEmitter, HostListener, OnDestroy, Output } from '@angular/core';
+
+/** Shared live filters: debounce text, apply other controls and Enter immediately. */
+@Directive({ selector: 'form[rbAdminAutoFilter]', standalone: true })
+export class AdminAutoFilterDirective implements OnDestroy {
+  @Output() rbAdminFilter = new EventEmitter<void>();
+  private timer?: ReturnType<typeof setTimeout>;
+
+  @HostListener('input', ['$event.target'])
+  onInput(target: HTMLInputElement): void {
+    if (this.isText(target)) {
+      this.cancel();
+      this.timer = setTimeout(() => this.apply(), 400);
+    }
+  }
+
+  @HostListener('change', ['$event.target'])
+  onChange(target: HTMLInputElement): void {
+    // Datepickers emit ngModelChange, including calendar selections, in the template.
+    if (!this.isText(target) && !target.hasAttribute('bsDatepicker')) this.apply();
+  }
+
+  @HostListener('keydown.enter', ['$event'])
+  onEnter(event: KeyboardEvent): void {
+    const target = event.target as HTMLInputElement;
+    if (target.tagName !== 'INPUT' || event.isComposing) return;
+    event.preventDefault();
+    this.apply();
+  }
+
+  @HostListener('submit')
+  @HostListener('reset')
+  cancel(): void {
+    clearTimeout(this.timer);
+    this.timer = undefined;
+  }
+
+  @HostListener('click', ['$event.target'])
+  onClick(target: HTMLElement): void {
+    if (target.closest('button')) this.cancel();
+  }
+
+  private isText(target: HTMLInputElement): boolean {
+    return target.tagName === 'INPUT' && ['text', 'search', 'email'].includes(target.type)
+      && !target.hasAttribute('bsDatepicker');
+  }
+
+  private apply(): void {
+    this.cancel();
+    this.rbAdminFilter.emit();
+  }
+
+  ngOnDestroy(): void { this.cancel(); }
+}
