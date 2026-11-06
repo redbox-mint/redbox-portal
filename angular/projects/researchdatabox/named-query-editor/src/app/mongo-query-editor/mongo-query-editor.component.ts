@@ -7,12 +7,15 @@ interface QueryEntry {
   value: string;
 }
 
+let nextEditorId = 0;
+
 @Component({
   selector: 'mongo-query-editor',
   templateUrl: './mongo-query-editor.component.html',
   standalone: false
 })
 export class MongoQueryEditorComponent implements OnChanges {
+  readonly idPrefix = 'mongo-query-editor-' + nextEditorId++;
   @Input() mongoQuery: Record<string, unknown> = {};
   @Output() mongoQueryChange = new EventEmitter<Record<string, unknown>>();
 
