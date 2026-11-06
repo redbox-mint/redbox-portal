@@ -15,6 +15,8 @@ export class SortEditorComponent implements OnChanges {
   @Input() sort: Array<Record<string, 'ASC' | 'DESC'>> | undefined = [];
   @Output() sortChange = new EventEmitter<Array<Record<string, 'ASC' | 'DESC'>> | undefined>();
 
+  private static nextId = 0;
+  readonly idPrefix = `nq-sort-${SortEditorComponent.nextId++}`;
   newField = '';
   newDirection: 'ASC' | 'DESC' = 'ASC';
 

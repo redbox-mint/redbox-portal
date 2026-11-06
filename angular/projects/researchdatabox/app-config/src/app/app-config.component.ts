@@ -180,7 +180,7 @@ export class AppConfigComponent extends BaseComponent {
     this.title = this.translationService.t(result.title || jsonObject.title || this.configKey);
     this.descriptionKey = this.navigationEditor ? 'admin-navigation-' + this.configKey + '-description' : this.configKey === 'authorizedDomainsEmails' ? 'admin-config-description-authorized-account-creation' : result.descriptionKey || 'admin-config-description';
     this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
-      ?.closest('section')?.querySelector('h2')?.textContent || '';
+      ?.closest('section')?.querySelector('.rb-admin-sidebar-heading')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
     this.secretFields = result.secretFields || [];
     this.retainedSecrets.clear();
