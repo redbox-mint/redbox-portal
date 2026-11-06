@@ -43,10 +43,6 @@ function isHandlebarsOptionsArg(value: unknown): boolean {
   );
 }
 
-function isNotHandlebarsOptionsArg(value: unknown): boolean {
-  return !isHandlebarsOptionsArg(value);
-}
-
 // TODO: this is because the DateInputComponent needs Luxon style formatters. We have a moment shim on the server side but not on the client.
 function resolveDateFormatArg(formatOrOptions?: string | Record<string, unknown>): string | undefined {
   if (typeof formatOrOptions === 'string') {
@@ -390,7 +386,7 @@ export const handlebarsHelperDefinitions = {
     formatOrOptions?: string | Record<string, unknown>,
     zoneOrOptions?: string | Record<string, unknown>
   ): string {
-    if (!dateValue) {
+    if (!dateValue || isHandlebarsOptionsArg(dateValue)) {
       return '';
     }
     try {
@@ -419,7 +415,7 @@ export const handlebarsHelperDefinitions = {
     presetNameOrOptions?: string | Record<string, unknown>,
     localeOrOptions?: string | Record<string, unknown>
   ): string {
-    if (!dateValue) {
+    if (!dateValue || isHandlebarsOptionsArg(dateValue)) {
       return '';
     }
     try {
@@ -451,6 +447,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{parseDateString dateString}}
    */
   parseDateString: function (dateString: string): string {
+    if (isHandlebarsOptionsArg(dateString)) {
+      return '';
+    }
     return dateString || '';
   },
 
@@ -529,6 +528,12 @@ export const handlebarsHelperDefinitions = {
    * @example {{get this "metadata.contributor_ci.text_full_name"}}
    */
   get: function (obj: unknown, path: string, defaultValue?: unknown): unknown {
+    if (isHandlebarsOptionsArg(obj) || isHandlebarsOptionsArg(path)) {
+      return '';
+    }
+    if (isHandlebarsOptionsArg(defaultValue)) {
+      defaultValue = null;
+    }
     return _get(obj, path, defaultValue ?? '');
   },
 
@@ -538,6 +543,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isEmpty value)}}empty{{/if}}
    */
   isEmpty: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return true;
+    }
     return _isEmpty(value);
   },
 
@@ -547,6 +555,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isUndefined value)}}undefined{{/if}}
    */
   isUndefined: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return true;
+    }
     return _isUndefined(value);
   },
 
@@ -556,6 +567,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isNull value)}}null{{/if}}
    */
   isNull: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return _isNull(value);
   },
 
@@ -565,6 +579,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isDefined value)}}defined{{/if}}
    */
   isDefined: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return !_isUndefined(value) && !_isNull(value);
   },
 
@@ -574,6 +591,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isArray value)}}is array{{/if}}
    */
   isArray: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return _isArray(value);
   },
 
@@ -583,6 +603,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isObject value)}}is object{{/if}}
    */
   isObject: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return false;
+    }
     return _isPlainObject(value);
   },
 
@@ -592,6 +615,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (eq status "active")}}active{{/if}}
    */
   eq: function (a: unknown, b: unknown): boolean {
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
     return a === b;
   },
 
@@ -601,6 +627,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (ne status "inactive")}}not inactive{{/if}}
    */
   ne: function (a: unknown, b: unknown): boolean {
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return true;
+    }
     return a !== b;
   },
 
@@ -614,7 +643,7 @@ export const handlebarsHelperDefinitions = {
     if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
       args.pop();
     }
-    return args.every(Boolean);
+    return args.length > 0 && args.every(Boolean);
   },
 
   /**
@@ -627,7 +656,7 @@ export const handlebarsHelperDefinitions = {
     if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
       args.pop();
     }
-    return args.some(Boolean);
+    return args.length > 0 && args.some(Boolean);
   },
 
   /**
@@ -636,51 +665,82 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (not condition)}}condition is false{{/if}}
    */
   not: function (value: unknown): boolean {
+    if (isHandlebarsOptionsArg(value)) {
+      return true;
+    }
     return !value;
   },
 
   /**
    * Greater than comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (gt count 0)}}has items{{/if}}
    */
   gt: function (a: unknown, b: unknown): boolean {
-    return Number(a) > Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum > bNum;
   },
 
   /**
    * Greater than or equal comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (gte count 1)}}at least one{{/if}}
    */
   gte: function (a: unknown, b: unknown): boolean {
-    return Number(a) >= Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum >= bNum;
   },
 
   /**
    * Less than comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (lt count 10)}}less than ten{{/if}}
    */
   lt: function (a: unknown, b: unknown): boolean {
-    return Number(a) < Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum < bNum;
   },
 
   /**
    * Less than or equal comparison.
+   * Returns false if the comparison cannot be performed.
    *
    * @example {{#if (lte count 10)}}ten or less{{/if}}
    */
   lte: function (a: unknown, b: unknown): boolean {
-    return Number(a) <= Number(b);
+    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+      return false;
+    }
+    const aNum = Number(a);
+    const bNum = Number(b);
+    return !Number.isNaN(aNum) && !Number.isNaN(bNum) && aNum <= bNum;
   },
 
   /**
    * Trim leading/trailing whitespace from a string value.
+   * Returns input value converted to a string for non-string input.
    *
    * @example {{trim title}}
    */
   trim: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return String(value ?? '').trim();
   },
 
@@ -691,24 +751,35 @@ export const handlebarsHelperDefinitions = {
    * @param value
    */
   trimArray: function (value: unknown): string[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      return [];
+    }
     return Array.isArray(value) ? value.map(item => (typeof item === 'string' ? item.trim() : item)) : value;
   },
 
   /**
    * Convert a value to lowercase text.
+   * Returns input value converted to a string for non-string input.
    *
    * @example {{toLower value}}
    */
   toLower: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return String(value ?? '').toLowerCase();
   },
 
   /**
    * Convert a value to uppercase text.
+   * Returns input value converted to a string for non-string input.
    *
    * @example {{toUpper value}}
    */
   toUpper: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return String(value ?? '').toUpperCase();
   },
 
@@ -719,6 +790,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{t "label.title"}}
    */
   t: function (this: { translationService?: { t: (key: string) => string } }, key: string): string {
+    if (isHandlebarsOptionsArg(key)) {
+      return '';
+    }
     const translationService = this?.translationService;
     if (translationService && typeof translationService.t === 'function') {
       return translationService.t(key);
@@ -779,9 +853,17 @@ export const handlebarsHelperDefinitions = {
    * @example {{substring notation 0 6}}
    */
   substring: function (value: unknown, start: number, end?: number): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     const text = String(value ?? '');
+
+    if (isHandlebarsOptionsArg(start)) {
+      return text;
+    }
     const from = Number(start);
-    const to = end === undefined || end === null ? undefined : Number(end);
+
+    const to = end === undefined || end === null || isHandlebarsOptionsArg(start) ? undefined : Number(end);
     // Use slice semantics so negative offsets work (e.g. -1 for last char, -6 for trailing code).
     // String.prototype.substring() clamps negatives to 0 and cannot express this.
     return text.slice(Number.isNaN(from) ? 0 : from, Number.isNaN(to as number) ? undefined : to);
@@ -794,9 +876,16 @@ export const handlebarsHelperDefinitions = {
    * @example {{split notation "/" -1}}
    */
   split: function (value: unknown, separator: string, index?: number): unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     const text = String(value ?? '');
+
+    if (isHandlebarsOptionsArg(separator)) {
+      return text;
+    }
     const parts = text.split(String(separator ?? ''));
-    if (index === undefined || index === null) {
+    if (index === undefined || index === null || isHandlebarsOptionsArg(index)) {
       return parts;
     }
     const parsedIndex = Number(index);
@@ -817,6 +906,10 @@ export const handlebarsHelperDefinitions = {
    * @example {{urlEncode oid}}
    */
   urlEncode: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
+
     const rawText = String(value ?? '');
     if (!rawText) {
       return '';
@@ -857,6 +950,12 @@ export const handlebarsHelperDefinitions = {
    * @example {{default title "Untitled"}}
    */
   default: function (value: unknown, defaultValue: unknown): unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
+    if (isHandlebarsOptionsArg(defaultValue)) {
+      defaultValue = '';
+    }
     return value || defaultValue;
   },
 
@@ -868,6 +967,10 @@ export const handlebarsHelperDefinitions = {
    * @example {{{markdownToHtml content outputFormat}}}
    */
   markdownToHtml: function (value: unknown, outputFormat?: string): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
+
     const input = String(value ?? '');
     if (!input) {
       return '';
@@ -887,6 +990,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{{plaintextToHtml content}}}
    */
   plaintextToHtml: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return escapeHtmlText(value).replace(/\r\n|\r|\n/g, '<br>');
   },
 
@@ -896,6 +1002,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{json data}}
    */
   json: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     try {
       return JSON.stringify(value);
     } catch {
@@ -909,6 +1018,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{{renderMetadataValue metadata.someField}}}
    */
   renderMetadataValue: function (value: unknown): string {
+    if (isHandlebarsOptionsArg(value)) {
+      return '';
+    }
     return renderMetadataValue(value);
   },
 
@@ -918,6 +1030,12 @@ export const handlebarsHelperDefinitions = {
    * @example {{attachmentDownloadUrl this oid branding portal}}
    */
   attachmentDownloadUrl: function (attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
+    if (isHandlebarsOptionsArg(attachment)) {
+      return '';
+    }
+    oid = isHandlebarsOptionsArg(oid) ? '' : oid;
+    branding = isHandlebarsOptionsArg(branding) ? '' : branding;
+    portal = isHandlebarsOptionsArg(portal) ? '' : portal;
     return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
   },
 
@@ -956,6 +1074,7 @@ export const handlebarsHelperDefinitions = {
    * @example {{flattenArray 'value'}} -> ['value']
    * @example {{flattenArray {aProp: 'value'} null 0 ['value']}} -> [{aProp: 'value'}, null, 0, 'value']
    * @example {{flattenArray {aProp: 'value'} null 0 [['value']]}} -> [{aProp: 'value'}, null, 0, ['value']]
+   * @example {{flattenArray [{aProp: 'value'} null 0 ['value']]}} -> [{aProp: 'value'}, null, 0, 'value']
    * @param args
    */
   flattenArray: function (...args: unknown[]): unknown[] {
@@ -965,8 +1084,8 @@ export const handlebarsHelperDefinitions = {
     if (args.length === 0) {
       return [];
     }
-    if (args.length === 1) {
-      return Array.isArray(args[0]) ? args[0] : [args[0]];
+    if (args.length === 1 && Array.isArray(args[0])) {
+      return args[0].flat(1);
     }
     return args.flat(1);
   },
@@ -980,6 +1099,9 @@ export const handlebarsHelperDefinitions = {
    * @param value The array to filter.
    */
   filterArray: function (value: unknown): unknown[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
     return Array.isArray(value)
       ? value.filter(item => {
           if (typeof item == 'string' && !item.trim()) {
@@ -1009,6 +1131,9 @@ export const handlebarsHelperDefinitions = {
     givenOrOptions?: string[],
     familyOrOptions?: string[]
   ): string {
+    if (isHandlebarsOptionsArg(value)) {
+      value = {};
+    }
     return contributorDisplayName(value, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions);
   },
 
@@ -1031,6 +1156,9 @@ export const handlebarsHelperDefinitions = {
     givenOrOptions?: string[],
     familyOrOptions?: string[]
   ): string[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
     return Array.isArray(value)
       ? value.map(item =>
           contributorDisplayName(item, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions)
@@ -1046,6 +1174,9 @@ export const handlebarsHelperDefinitions = {
    * @param value
    */
   sort: function (value: unknown): any[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
     return Array.isArray(value)
       ? value.toSorted((a, b) => String(a).localeCompare(String(b), undefined, { ignorePunctuation: true }))
       : value;
@@ -1058,6 +1189,9 @@ export const handlebarsHelperDefinitions = {
    * @param value
    */
   unique: function (value: unknown): string[] | unknown {
+    if (isHandlebarsOptionsArg(value)) {
+      value = [];
+    }
     return Array.isArray(value)
       ? value.filter((item, index, arr) => (typeof item === 'string' ? arr.indexOf(item) === index : true))
       : value;

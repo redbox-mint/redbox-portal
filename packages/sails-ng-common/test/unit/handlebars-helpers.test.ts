@@ -20,49 +20,48 @@ describe('Shared Handlebars Helpers', async function () {
   describe('formatDate', function () {
     it('should format ISO date with default format', function () {
       // Use a UTC timestamp to avoid timezone issues
-      const result = handlebarsHelperDefinitions.formatDate('2023-05-18T01:30:00.000Z');
+      const result = handlebarsCompile('{{formatDate data}}')({ data: '2023-05-18T01:30:00.000Z' });
       // Just verify it returns a formatted date string (not empty or original)
       expect(result).to.match(/\d{2}\/\d{2}\/\d{4}/);
     });
 
     it('should format ISO date with custom format', function () {
-      const result = handlebarsHelperDefinitions.formatDate('2023-05-18T00:00:00.000Z', 'yyyy-MM-dd');
+      const result = handlebarsCompile("{{formatDate data 'yyyy-MM-dd'}}")({ data: '2023-05-18T00:00:00.000Z' });
       // Just verify it returns a formatted date string with our format
       expect(result).to.match(/\d{4}-\d{2}-\d{2}/);
     });
 
     it('should format ISO date with Moment-style custom format', function () {
-      const result = handlebarsHelperDefinitions.formatDate('2023-05-18T00:00:00.000Z', 'DD/MM/YYYY');
+      const result = handlebarsCompile("{{formatDate data 'DD/MM/YYYY'}}")({ data: '2023-05-18T00:00:00.000Z' });
       expect(result).to.equal('18/05/2023');
     });
 
     it('should preserve Moment-style time tokens that Luxon already supports', function () {
-      const result = handlebarsHelperDefinitions.formatDate('2023-05-18T01:02:03.000Z', 'YYYY-MM-DD HH:mm:ss');
+      const result = handlebarsCompile("{{formatDate data 'YYYY-MM-DD HH:mm:ss'}}")({
+        data: '2023-05-18T01:02:03.000Z',
+      });
       expect(result).to.match(/^2023-05-18 \d{2}:\d{2}:03$/);
     });
 
     it('should format Date instances with custom format', function () {
-      const result = handlebarsHelperDefinitions.formatDate(new Date('2023-05-18T00:00:00.000Z'), 'yyyy-MM-dd');
+      const result = handlebarsCompile("{{formatDate data 'yyyy-MM-dd'}}")({
+        data: new Date('2023-05-18T00:00:00.000Z'),
+      });
       expect(result).to.equal('2023-05-18');
     });
 
     it('should ignore the Handlebars options argument when no explicit format is provided', function () {
-      const result = handlebarsHelperDefinitions.formatDate('2023-05-18T01:30:00.000Z', {
-        hash: {},
-        data: {},
-        fn: () => '',
-        inverse: () => '',
-      } as unknown as string);
+      const result = handlebarsCompile('{{formatDate data}}')({ data: '2023-05-18T01:30:00.000Z' });
       expect(result).to.match(/\d{2}\/\d{2}\/\d{4}/);
     });
 
     it('should return empty string for empty input', function () {
-      const result = handlebarsHelperDefinitions.formatDate('');
+      const result = handlebarsCompile('{{formatDate data}}')({ data: '' });
       expect(result).to.equal('');
     });
 
     it('should return original string for invalid date', function () {
-      const result = handlebarsHelperDefinitions.formatDate('not-a-date');
+      const result = handlebarsCompile('{{formatDate data}}')({ data: 'not-a-date' });
       expect(result).to.equal('not-a-date');
     });
 
@@ -148,42 +147,35 @@ describe('Shared Handlebars Helpers', async function () {
   describe('get', function () {
     it('should get nested property', function () {
       const obj = { metadata: { contributor: { name: 'John' } } };
-      const result = handlebarsHelperDefinitions.get(obj, 'metadata.contributor.name');
+      const result = handlebarsCompile("{{get obj 'metadata.contributor.name'}}")({ obj });
       expect(result).to.equal('John');
     });
 
     it('should return default value for missing property', function () {
       const obj = { metadata: {} };
-      const result = handlebarsHelperDefinitions.get(obj, 'metadata.contributor.name', 'Unknown');
+      const result = handlebarsCompile("{{get obj 'metadata.contributor.name' 'Unknown'}}")({ obj });
       expect(result).to.equal('Unknown');
     });
 
     it('should return empty string by default for missing property', function () {
       const obj = { metadata: {} };
-      const result = handlebarsHelperDefinitions.get(obj, 'metadata.contributor.name');
+      const result = handlebarsCompile("{{get obj 'metadata.contributor.name'}}")({ obj });
       expect(result).to.equal('');
     });
   });
 
   describe('formatDateLocale', function () {
     it('should format Date instances with locale presets', function () {
-      const result = handlebarsHelperDefinitions.formatDateLocale(
-        new Date('2023-05-18T01:30:00.000Z'),
-        'DATE_SHORT',
-        'en'
-      );
+      const result = handlebarsCompile("{{formatDateLocale data 'DATE_SHORT' 'en'}}")({
+        data: new Date('2023-05-18T01:30:00.000Z'),
+      });
       expect(result).to.be.a('string');
       expect(result).to.not.equal('');
       expect(result).to.not.equal('Invalid Date');
     });
 
     it('should ignore the Handlebars options argument when preset and locale are omitted', function () {
-      const result = handlebarsHelperDefinitions.formatDateLocale(new Date('2023-05-18T01:30:00.000Z'), {
-        hash: {},
-        data: {},
-        fn: () => '',
-        inverse: () => '',
-      } as unknown as string);
+      const result = handlebarsCompile('{{formatDateLocale data}}')({ data: new Date('2023-05-18T01:30:00.000Z') });
       expect(result).to.be.a('string');
       expect(result).to.not.equal('');
       expect(result).to.not.equal('Invalid Date');
@@ -192,7 +184,7 @@ describe('Shared Handlebars Helpers', async function () {
 
   describe('parseDateString', function () {
     it('should return a string', function () {
-      expect(handlebarsHelperDefinitions.parseDateString(undefined as any)).to.equal('');
+      expect(handlebarsCompile('{{parseDateString data}}')({ data: undefined })).to.equal('');
     });
   });
 
@@ -620,23 +612,23 @@ describe('Shared Handlebars Helpers', async function () {
 
   describe('comparison helpers', function () {
     it('gt should return true if first > second', function () {
-      expect(handlebarsHelperDefinitions.gt(5, 3)).to.be.true;
-      expect(handlebarsHelperDefinitions.gt(3, 5)).to.be.false;
+      expect(handlebarsCompile('{{gt 5 3}}')({})).to.equal('true');
+      expect(handlebarsCompile('{{gt 3 5}}')({})).to.equal('false');
     });
 
     it('gte should return true if first >= second', function () {
-      expect(handlebarsHelperDefinitions.gte(5, 5)).to.be.true;
-      expect(handlebarsHelperDefinitions.gte(3, 5)).to.be.false;
+      expect(handlebarsCompile('{{gte 5 5}}')({})).to.equal('true');
+      expect(handlebarsCompile('{{gte 3 5}}')({})).to.equal('false');
     });
 
     it('lt should return true if first < second', function () {
-      expect(handlebarsHelperDefinitions.lt(3, 5)).to.be.true;
-      expect(handlebarsHelperDefinitions.lt(5, 3)).to.be.false;
+      expect(handlebarsCompile('{{lt 3 5}}')({})).to.equal('true');
+      expect(handlebarsCompile('{{lt 5 3}}')({})).to.equal('false');
     });
 
     it('lte should return true if first <= second', function () {
-      expect(handlebarsHelperDefinitions.lte(5, 5)).to.be.true;
-      expect(handlebarsHelperDefinitions.lte(6, 5)).to.be.false;
+      expect(handlebarsCompile('{{lte 5 5}}')({})).to.equal('true');
+      expect(handlebarsCompile('{{lte 6 5}}')({})).to.equal('false');
     });
   });
 
@@ -714,37 +706,70 @@ describe('Shared Handlebars Helpers', async function () {
         '&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;'
       );
     });
+    Object.keys(handlebarsHelperDefinitions).forEach(helperName => {
+      it(`should render ${helperName} as expected with no arguments`, function () {
+        let expected: any = '';
+        switch (helperName) {
+          case 'isEmpty':
+          case 'isUndefined':
+          case 'ne':
+          case 'not':
+            expected = 'true';
+            break;
+          case 'isNull':
+          case 'isDefined':
+          case 'isArray':
+          case 'isObject':
+          case 'eq':
+          case 'and':
+          case 'or':
+          case 'gt':
+          case 'gte':
+          case 'lt':
+          case 'lte':
+            expected = 'false';
+            break;
+        }
+        expect(handlebarsCompile(`{{${helperName}}}`)({})).to.equal(expected);
+      });
+    });
   });
 
   describe('asArray', async function () {
     it('convert values to array', function () {
-      const input = ['value', '', 0];
-      expect(handlebarsHelperDefinitions.asArray(input)).to.deep.equal(input);
-      expect(handlebarsHelperDefinitions.asArray('value')).to.deep.equal(['value']);
-      expect(handlebarsHelperDefinitions.asArray({ aProp: 'value' })).to.deep.equal([{ aProp: 'value' }]);
-      expect(handlebarsCompile('{{asArray input}}')({ input })).to.deep.equal('value,,0');
+      expect(handlebarsCompile('{{json (asArray data)}}')({ data: ['value', '', 0] })).to.deep.equal(
+        '[&quot;value&quot;,&quot;&quot;,0]'
+      );
+      expect(handlebarsCompile('{{json (asArray data)}}')({ data: 'value' })).to.deep.equal('[&quot;value&quot;]');
+      expect(handlebarsCompile('{{json (asArray data)}}')({ data: { aProp: 'value' } })).to.deep.equal(
+        '[{&quot;aProp&quot;:&quot;value&quot;}]'
+      );
     });
   });
 
   describe('flattenArray', async function () {
-    it('convert values to array', function () {
-      expect(handlebarsHelperDefinitions.flattenArray(['value'])).to.deep.equal(['value']);
-      expect(handlebarsHelperDefinitions.flattenArray('value')).to.deep.equal(['value']);
-      expect(handlebarsHelperDefinitions.flattenArray(...[{ aProp: 'value' }, null, 0, ['value']])).to.deep.equal([
-        { aProp: 'value' },
-        null,
-        0,
-        'value',
-      ]);
-      expect(handlebarsHelperDefinitions.flattenArray(...[{ aProp: 'value' }, null, 0, [['value']]])).to.deep.equal([
-        { aProp: 'value' },
-        null,
-        0,
-        ['value'],
-      ]);
+    it('convert values to flattened array', function () {
+      expect(handlebarsCompile('{{json (flattenArray data)}}')({ data: ['value'] })).to.equal('[&quot;value&quot;]');
+      expect(handlebarsCompile('{{json (flattenArray data)}}')({ data: 'value' })).to.equal('[&quot;value&quot;]');
       expect(
-        handlebarsCompile('{{asArray input}}')({ input: [{ aProp: 'value' }, null, 0, [['value']]] })
-      ).to.deep.equal('[object Object],,0,value');
+        handlebarsCompile('{{json (flattenArray data1 data2 data3 data4)}}')({
+          data1: { aProp: 'value' },
+          data2: null,
+          data3: 30,
+          data4: ['value'],
+        })
+      ).to.equal('[{&quot;aProp&quot;:&quot;value&quot;},null,30,&quot;value&quot;]');
+      expect(
+        handlebarsCompile('{{json (flattenArray data1 data2 data3 data4)}}')({
+          data1: { aProp: 'value' },
+          data2: null,
+          data3: 0,
+          data4: [['value']],
+        })
+      ).to.equal('[{&quot;aProp&quot;:&quot;value&quot;},null,0,[&quot;value&quot;]]');
+      expect(
+        handlebarsCompile('{{json (flattenArray data)}}')({ data: [{ aProp: 'value' }, null, 0, ['value']] })
+      ).to.equal('[{&quot;aProp&quot;:&quot;value&quot;},null,0,&quot;value&quot;]');
     });
   });
 
