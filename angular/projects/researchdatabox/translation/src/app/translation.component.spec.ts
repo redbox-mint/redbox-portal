@@ -137,6 +137,22 @@ describe('AppComponent (translation)', () => {
     return { fixture, comp };
   }
 
+  it('keeps empty states hidden until initial reads settle and reserves the export action', async () => {
+    const { fixture, comp } = create();
+    fixture.detectChanges();
+    expect(comp.initializing()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
+    const exportLink = fixture.nativeElement.querySelector('a[download]');
+    expect(exportLink).not.toBeNull();
+    expect(exportLink.getAttribute('href')).toBeNull();
+    expect(exportLink.getAttribute('aria-disabled')).toBe('true');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(comp.initializing()).toBeFalse();
+    expect(exportLink.getAttribute('href')).toContain('/export');
+    expect(exportLink.getAttribute('aria-disabled')).toBeNull();
+  });
+
   it('guards unsaved language availability and restores the saved choices on discard', async () => {
     const { comp, fixture } = create();
     fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
