@@ -52,15 +52,17 @@
     <div class="alert alert-warning" *ngIf="invalidColours" role="alert">
       {{ 'admin-branding-invalid-hex' | i18next }}
     </div>
-    <nav [attr.aria-label]="'admin-branding-sections' | i18next">
-      <ul class="nav nav-tabs branding-tabs">
-        <li class="nav-item" *ngFor="let tab of tabs">
+    <div>
+      <ul class="nav nav-tabs branding-tabs" role="tablist" [attr.aria-label]="'admin-branding-sections' | i18next">
+        <li class="nav-item" role="presentation" *ngFor="let tab of tabs">
           <button
             type="button"
-            class="nav-link"
+            class="nav-link" role="tab"
             [id]="'branding-tab-' + tab"
             [class.active]="activeTab === tab"
-            [attr.aria-current]="activeTab === tab ? 'page' : null"
+            [attr.aria-selected]="activeTab === tab"
+            [attr.tabindex]="activeTab === tab ? 0 : -1"
+            (keydown)="onTabKeydown($event, tab)"
             [attr.aria-controls]="'branding-' + tab"
             (click)="activeTab = tab"
           >
@@ -69,8 +71,8 @@
           </button>
         </li>
       </ul>
-    </nav>
-    <div id="branding-colours" [hidden]="activeTab !== 'colours'" aria-labelledby="branding-tab-colours">
+    </div>
+    <div id="branding-colours" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'colours'" aria-labelledby="branding-tab-colours">
       <div class="rb-admin-split branding-colour-layout">
         <nav class="rb-admin-section-rail" [attr.aria-label]="'admin-branding-colour-groups' | i18next">
           <a
@@ -85,7 +87,7 @@
           <section class="rb-admin-form-section" [id]="'branding-group-' + selectedGroup">
             <div class="rb-admin-form-section-header">
               <div>
-                <h3>{{ group.name }}</h3>
+                <h2 class="h3">{{ group.name }}</h2>
                 <p [innerHTML]="group.help"></p>
               </div>
             </div>
@@ -249,12 +251,12 @@
         </aside>
       </div>
     </div>
-    <section id="branding-assets" [hidden]="activeTab !== 'assets'" aria-labelledby="branding-tab-assets">
+    <section id="branding-assets" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'assets'" aria-labelledby="branding-tab-assets">
       <div class="alert alert-info" role="status">{{ 'admin-branding-assets-draft' | i18next }}</div>
       <div class="rb-admin-form-grid">
         <section class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
-            <h3>{{ 'admin-branding-logo' | i18next }}</h3>
+            <h2 class="h3">{{ 'admin-branding-logo' | i18next }}</h2>
             <span class="badge rb-admin-badge-info">{{ 'branding-optional' | i18next }}</span>
           </div>
           <div class="rb-admin-form-section-body">
@@ -277,7 +279,7 @@
         </section>
         <section class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
-            <h3>{{ 'admin-branding-favicon' | i18next }}</h3>
+            <h2 class="h3">{{ 'admin-branding-favicon' | i18next }}</h2>
             <span class="badge rb-admin-badge-info">{{ 'branding-optional' | i18next }}</span>
           </div>
           <div class="rb-admin-form-section-body">
@@ -300,11 +302,11 @@
         </section>
       </div>
     </section>
-    <section id="branding-typography" [hidden]="activeTab !== 'typography'" aria-labelledby="branding-tab-typography">
+    <section id="branding-typography" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'typography'" aria-labelledby="branding-tab-typography">
       <section class="rb-admin-form-section">
         <div class="rb-admin-form-section-header">
           <div>
-            <h3>{{ 'branding-typography-title' | i18next }}</h3>
+            <h2 class="h3">{{ 'branding-typography-title' | i18next }}</h2>
             <p>{{ 'branding-typography-help' | i18next }}</p>
           </div>
         </div>
@@ -328,7 +330,7 @@
             <div class="branding-face" *ngFor="let card of typefaceSlots">
               <div class="rb-admin-form-section h-100" [attr.aria-label]="card.label | i18next">
                 <div class="rb-admin-form-section-body">
-                  <h6 class="card-title">
+                  <h3 class="card-title h6">
                     {{ card.label | i18next }}
                     <span class="badge rb-admin-badge-warning ms-1" *ngIf="card.required">{{
                       'branding-required' | i18next
@@ -336,7 +338,7 @@
                     <span class="badge rb-admin-badge-info ms-1" *ngIf="!card.required">{{
                       'branding-optional' | i18next
                     }}</span>
-                  </h6>
+                  </h3>
                   <p class="card-text small text-muted">{{ card.hint | i18next }}</p>
                   <ng-container *ngIf="faceFor(card.slot) as face; else emptySlot">
                     <dl class="small mb-2">
@@ -428,7 +430,7 @@
         </div>
       </section>
     </section>
-    <section id="branding-history" [hidden]="activeTab !== 'history'" aria-labelledby="branding-tab-history">
+    <section id="branding-history" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'history'" aria-labelledby="branding-tab-history">
       <div class="card">
         <div class="card-header">
           <h2>{{ 'admin-branding-tab-history' | i18next }}</h2>
