@@ -403,7 +403,7 @@ export class AppConfigComponent extends BaseComponent {
       if (group.fields.length === 1 && ['object', 'app-config-dictionary'].includes(String(group.fields[0].type))) group.fields[0].props = { ...group.fields[0].props, flat: true };
       const section: FormlyFieldConfig = {
         type: 'app-config-section', wrappers: [], fieldGroup: group.fields,
-        props: { label: group.label.trim().toLowerCase() === (this.title || '').trim().toLowerCase() ? this.translationService.t('admin-config-general') : group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
+        props: { label: group.label.trim().toLowerCase() === (this.title || '').trim().toLowerCase() ? this.translationService.t('admin-config-general') : group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0 || (this.connectionNeedsBaseUrl && group.fields.some(field => field.key === 'connection')),
           summaryParts: () => sectionSummaryParts(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off')),
           summary: () => group.fields.some(hasEditableFields)
             ? sectionSummary(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off'))
