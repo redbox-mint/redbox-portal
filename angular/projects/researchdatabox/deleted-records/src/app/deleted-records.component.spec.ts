@@ -190,15 +190,13 @@ describe('DeletedRecordsComponent', () => {
       fixture.detectChanges();
       const page = http.expectOne(req => req.url.includes('listDeleted'));
       const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
-      const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
       for (const title of ['discarded', 'latest']) {
         input.value = title;
-        input.dispatchEvent(new Event('input'));
-        submit.click();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
       }
-      // Editing without submitting must not alter the queued or retry criteria.
-      input.value = 'unsubmitted';
-      input.dispatchEvent(new Event('input'));
+      // A later edit must not alter the captured criteria of an in-flight query.
+      component.filterParams.title = 'unsubmitted';
       http.expectNone(req => req.url.includes('listDeleted'));
       if (paginationFails) {
         page.flush('failed', { status: 500, statusText: 'Server Error' });
@@ -215,7 +213,7 @@ describe('DeletedRecordsComponent', () => {
       await settle();
       await fixture.whenStable();
       fixture.detectChanges();
-      expect(component.deletedRecordsResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.deletedRecordsResult.pageNum).toBe(1);
       expect(component.loadError).toContain('Unable to load');
       (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
       await settle();
@@ -270,7 +268,7 @@ describe('DeletedRecordsComponent', () => {
     const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
     input.value = 'latest';
     input.dispatchEvent(new Event('input'));
-    (fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).click();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     header.click(); // latest criteria: latest filter, descending sort
     http.expectNone(req => req.url.includes('listDeletedRecords'));
     page.flush('failed', { status: 500, statusText: 'Server Error' });

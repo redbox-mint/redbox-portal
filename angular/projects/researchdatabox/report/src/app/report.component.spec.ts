@@ -121,15 +121,13 @@ describe('ReportComponent', () => {
       fixture.detectChanges();
       const page = http.expectOne(req => req.url.includes('getReportResults'));
       const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
-      const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
       for (const title of ['discarded', 'latest']) {
         input.value = title;
-        input.dispatchEvent(new Event('input'));
-        submit.click();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
       }
-      // Editing without submitting must not alter the queued or retry criteria.
-      input.value = 'unsubmitted';
-      input.dispatchEvent(new Event('input'));
+      // A later edit must not alter the captured criteria of an in-flight query.
+      component.filterParams.title = 'unsubmitted';
       http.expectNone(req => req.url.includes('getReportResults'));
       if (paginationFails) {
         page.flush('failed', { status: 500, statusText: 'Server Error' });
@@ -146,7 +144,7 @@ describe('ReportComponent', () => {
       await settle();
       await fixture.whenStable();
       fixture.detectChanges();
-      expect(component.reportResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.reportResult.pageNum).toBe(1);
       expect(component.loadError).toContain('Unable to load');
       (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
       await settle();

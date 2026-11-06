@@ -25,23 +25,23 @@
       <span role="status">@if (!initTracker.resultsReturned) { {{ 'report-retrieving-results' | i18next }} } @else { {{ reportResult.total | adminCount: 'record' }} }</span>
     </div>
     @if (report.filter.length) {
-      <form class="rb-admin-filter-bar" (ngSubmit)="filter()">
-        @for (filter of report.filter; track filter.paramName) {
-          @if (filter.type === 'text') {
-            <div class="rb-admin-field rb-admin-field-grow"><label [attr.for]="filter.paramName">{{ filterLabel(filter) }}</label>
-              <input [id]="filter.paramName" [name]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[filter.paramName]" [placeholder]="(filter.message === 'Filter by title' ? 'admin-report-title-placeholder' : 'admin-filter-search-placeholder') | i18next"></div>
+      <form class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filter()" (ngSubmit)="filter()">
+        @for (criterion of report.filter; track criterion.paramName) {
+          @if (criterion.type === 'text') {
+            <div class="rb-admin-field rb-admin-field-grow"><label [attr.for]="criterion.paramName">{{ filterLabel(criterion) }}</label>
+              <input [id]="criterion.paramName" [name]="criterion.paramName" type="text" class="form-control" [(ngModel)]="filterParams[criterion.paramName]" [placeholder]="(criterion.message === 'Filter by title' ? 'admin-report-title-placeholder' : 'admin-filter-search-placeholder') | i18next"></div>
           }
-          @if (filter.type === 'date-range') {
+          @if (criterion.type === 'date-range') {
             @for (bound of ['fromDate', 'toDate']; track bound) {
-              <div class="rb-admin-field"><label [attr.for]="filter.paramName + '_' + bound">{{ filterLabel(filter, bound) }}</label>
-                <input type="text" class="form-control" [id]="filter.paramName + '_' + bound" [name]="filter.paramName + '_' + bound"
+              <div class="rb-admin-field"><label [attr.for]="criterion.paramName + '_' + bound">{{ filterLabel(criterion, bound) }}</label>
+                <input type="text" class="form-control" [id]="criterion.paramName + '_' + bound" [name]="criterion.paramName + '_' + bound"
                   [attr.aria-invalid]="dateRangeError ? 'true' : null" [attr.aria-describedby]="dateRangeError ? 'report-date-range-error' : null"
-                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="filterParams[filter.paramName + '_' + bound]" bsDatepicker>
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="filterParams[criterion.paramName + '_' + bound]" (ngModelChange)="filter()" bsDatepicker>
               </div>
             }
           }
         }
-        <div class="rb-admin-page-actions"><button class="btn btn-primary" type="submit" [disabled]="!!dateRangeError || loadPending"><i class="fa fa-filter" aria-hidden="true"></i> {{ 'admin-apply-filters' | i18next }}</button><button *ngIf="hasFilters" class="btn rb-admin-ghost" type="button" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
+        <div class="rb-admin-page-actions"><button *ngIf="hasFilters" class="btn rb-admin-ghost" type="button" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
         @if (dateRangeError; as error) { <div class="alert alert-danger report-filter-error" role="alert" id="report-date-range-error">{{ error }}</div> }
       </form>
     }

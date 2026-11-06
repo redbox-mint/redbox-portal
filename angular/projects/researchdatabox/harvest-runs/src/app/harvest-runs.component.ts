@@ -233,7 +233,7 @@ export class HarvestRunsComponent extends BaseComponent {
 
   public async applyEventFilters(event?: Event): Promise<void> {
     event?.preventDefault();
-    if (!this.selectedRun || this.loadingEvents) {
+    if (!this.selectedRun) {
       return;
     }
     const filters = { outcome: this.eventFilters.outcome, harvestId: this.eventFilters.harvestId.trim() };

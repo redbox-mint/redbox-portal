@@ -1,4 +1,5 @@
 import { NgModule } from '@angular/core';
+import { AdminAutoFilterDirective } from './admin-auto-filter.directive';
 import { AdminTabsDirective } from './admin-tabs.directive';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
@@ -64,6 +65,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     HttpClientModule,
     FormsModule,
     AdminTabsDirective,
+    AdminAutoFilterDirective,
     I18NextPipe,
     PlainTextLabelPipe,
     AdminDatePipe,
@@ -72,6 +74,7 @@ export function trimLastSlashFromUrl(baseUrl: string) {
   ],
   exports: [
     AdminTabsDirective,
+    AdminAutoFilterDirective,
     I18NextPipe,
     PlainTextLabelPipe,
     AdminDatePipe,
