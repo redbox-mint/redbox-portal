@@ -235,6 +235,9 @@ export class AppConfigComponent extends BaseComponent {
     for (const field of fields) {
       const path = field.key == null ? parentPath : [...parentPath, String(field.key)];
       field.props = { ...field.props };
+      if (this.configKey === 'figsharePublishing' && path.join('.') === 'connection.baseUrl') {
+        field.props['connectionNeedsBaseUrl'] = () => this.connectionNeedsBaseUrl;
+      }
       if (this.configKey === 'authorizedDomainsEmails' && ['domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc'].includes(String(field.key))) {
         const domain = String(field.key).startsWith('domains');
         field.props.label = this.translationService.t(domain ? 'admin-config-allowed-domains' : 'admin-config-allowed-emails');

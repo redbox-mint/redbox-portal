@@ -360,6 +360,7 @@ describe('DashboardConfigEditorComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     const select: HTMLSelectElement = fixture.nativeElement.querySelector('#dc-rows-per-page');
+    expect(fixture.nativeElement.querySelector('rb-admin-save-shortcut').nextElementSibling.classList).toContain('rb-admin-save-bar');
     expect(select.options[select.selectedIndex].textContent).toBe('10');
     expect(component.isDirty).toBeFalse();
     expect(Object.hasOwn(component.draft!, 'rowsPerPage')).toBeFalse();
