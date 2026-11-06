@@ -1,3 +1,4 @@
+import { getStubTranslationService, AdminListFooterComponent } from '@researchdatabox/portal-ng-common';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
@@ -20,8 +21,8 @@ describe('VocabListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [VocabListComponent, I18NextPipeStub],
-      imports: [AdminCountPipe, FormsModule],
-      providers: [{ provide: TranslationService, useValue: { t: (key: string) => key } }, { provide: AdminDateService, useValue: { format: (value: string) => 'formatted:' + value } }]
+      imports: [AdminListFooterComponent, AdminCountPipe, FormsModule],
+      providers: [{ provide: TranslationService, useValue: getStubTranslationService() }, { provide: AdminDateService, useValue: { format: (value: string) => 'formatted:' + value } }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VocabListComponent);

@@ -1,4 +1,4 @@
-import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { AdminListFooterComponent, getStubTranslationService, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
@@ -28,28 +28,15 @@ class VocabularyApiServiceStub {
   async sync(_id: string) { return { created: 0, updated: 0, skipped: 0, lastSyncedAt: new Date().toISOString() }; }
 }
 
-class TranslationServiceStub {
-  async waitForInit(): Promise<this> { return this; }
-  t(value: string, defaultValue?: string, options?: Record<string, unknown>): string {
-    const template = defaultValue || value;
-    if (!options) {
-      return template;
-    }
-    return Object.entries(options).reduce((result, [key, optionValue]) => {
-      return result.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), String(optionValue));
-    }, template);
-  }
-}
-
 describe('AdminVocabularyComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent, I18NextPipeStub],
-      imports: [AdminCountPipe, FormsModule],
+      imports: [AdminListFooterComponent, AdminCountPipe, FormsModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: VocabularyApiService, useClass: VocabularyApiServiceStub },
-        { provide: TranslationService, useClass: TranslationServiceStub },
+        { provide: TranslationService, useValue: getStubTranslationService() },
         LoggerService
       ]
     }).compileComponents();
