@@ -50,6 +50,13 @@ describe('Navigation config preservation', () => {
       Object.defineProperty(component, 'formControl', { value: control });
       return component;
     }
+    it(`${config.collection}: starts preview closed below 1200px and open on desktop`, () => {
+      const media = spyOn(window, 'matchMedia').and.returnValue({ matches: false } as MediaQueryList);
+      expect(setup().previewInitiallyOpen).toBeFalse();
+      expect(media).toHaveBeenCalledWith('(min-width: 1200px)');
+      media.and.returnValue({ matches: true } as MediaQueryList);
+      expect(setup().previewInitiallyOpen).toBeTrue();
+    });
     it(`${config.collection}: reordering follows the selected item and preserves every property`, () => {
       const component = setup();
       const original = JSON.parse(JSON.stringify(component[config.collection]));
