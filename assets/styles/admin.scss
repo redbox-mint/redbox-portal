@@ -247,7 +247,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   }
   .rb-admin-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 0 1 180px; }
   .rb-admin-field-grow { flex: 1 1 240px; }
-  .rb-admin-field label { font-size: 12.5px; font-weight: 700; }
+  .rb-admin-field label, .rb-admin-field .rb-admin-filter-label { font-size: 12.5px; font-weight: 700; }
   .rb-admin-empty { text-align: center; padding: 40px 24px; color: var(--admin-muted); }
   .rb-admin-empty h3 { font-size: 17px; margin: 10px 0 4px; }
   .rb-admin-empty p { margin: 0 auto 14px; max-width: 440px; }
@@ -381,6 +381,11 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-form-section-body label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
   .rb-admin-form-section-body .form-check label { display: inline-flex; align-items: center; gap: 8px; }
   .rb-admin-segmented-field { flex-basis: auto; }
+  .rb-admin-segmented { display: flex; flex-wrap: wrap; }
+  .card-header .btn-outline-secondary {
+    color: var(--admin-panel-text); border-color: transparent; background: transparent;
+    &:hover, &:focus-visible { background: color-mix(in srgb, var(--admin-panel-text) 15%, transparent); border-color: var(--admin-panel-text); }
+  }
   .rb-admin-segmented .btn { border-radius: 0; & + .btn { margin-left: -1px; } &:first-child { border-radius: var(--admin-radius) 0 0 var(--admin-radius); } &:last-child { border-radius: 0 var(--admin-radius) var(--admin-radius) 0; } }
 
   .rb-admin-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; }

@@ -19,7 +19,7 @@
       </div>
       <div class="rb-admin-page-actions">
         <span class="badge" [class.rb-admin-badge-warning]="hasDraft" [class.rb-admin-badge-success]="!hasDraft">{{
-          (hasDraft ? 'admin-branding-draft-count' : 'admin-branding-published') | i18next: { count: draftChangeCount }
+          (hasDraft ? 'admin-branding-unpublished-count' : 'admin-branding-published') | i18next: { count: draftChangeCount }
         }}</span>
         <button
           type="button"
@@ -34,6 +34,7 @@
         <button
           type="button"
           class="btn btn-primary branding-publish"
+          aria-describedby="branding-publish-help"
           (click)="pendingAction = 'publish'"
           [disabled]="!state || isUnavailable('publish') || customIncomplete || invalidColours"
         >
@@ -41,6 +42,7 @@
         </button>
       </div>
     </header>
+    <p class="rb-admin-hint" id="branding-publish-help">{{ 'admin-branding-draft-publish-help' | i18next }}</p>
     <div class="alert alert-success" *ngIf="message" role="status">{{ message }}</div>
     <div class="alert alert-danger" *ngIf="error" role="alert">{{ error }}</div>
     <div class="alert alert-warning" *ngIf="conflict" role="alert">
