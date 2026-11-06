@@ -37,7 +37,7 @@ export const USER_FILTER_PROPERTIES = [
     <div class="dc-guided-editor">
       <section class="dc-guided-section">
         <header class="dc-guided-header">
-          <h5><i class="fa fa-filter"></i> Which records are listed</h5>
+          <h5><i class="fa fa-filter" aria-hidden="true"></i> Which records are listed</h5>
           <p>Applies whenever nobody is searching. People only ever see records they have permission to view.</p>
         </header>
         <div class="dc-choice-cards" role="radiogroup" aria-label="Which records are listed">
@@ -82,14 +82,14 @@ export const USER_FILTER_PROPERTIES = [
           </div>
         </div>
         <p class="dc-guided-summary" *ngIf="filterKind !== 'none'" [class.dc-guided-incomplete]="!filterComplete">
-          <i class="fa" [class.fa-check-circle]="filterComplete" [class.fa-exclamation-circle]="!filterComplete"></i>
+          <i class="fa" aria-hidden="true" [class.fa-check-circle]="filterComplete" [class.fa-exclamation-circle]="!filterComplete"></i>
           {{ filterSummary }}
         </p>
       </section>
 
       <section class="dc-guided-section">
         <header class="dc-guided-header">
-          <h5><i class="fa fa-sort-amount-desc"></i> Default order</h5>
+          <h5><i class="fa fa-sort-amount-desc" aria-hidden="true"></i> Default order</h5>
           <p>
             <ng-container *ngIf="columnSort">{{ 'admin-dashboard-column-sort-help' | i18next: { column: columnSort } }}</ng-container>
             <ng-container *ngIf="!columnSort">No column declares an initial sort, so this order is used.</ng-container>
@@ -117,7 +117,7 @@ export const USER_FILTER_PROPERTIES = [
 
       <section class="dc-guided-section">
         <header class="dc-guided-header">
-          <h5><i class="fa fa-search"></i> Search fields</h5>
+          <h5><i class="fa fa-search" aria-hidden="true"></i> Search fields</h5>
           <p *ngIf="targetKind === 'workflow'">Fields people can choose in the "Filter by" menu above the table. With none, the search box searches record titles. Turn the search box on or off under Display.</p>
           <p *ngIf="targetKind === 'view'" class="dc-form-help-warning">Custom views do not show a search box, so these fields have no effect here.</p>
         </header>
@@ -126,7 +126,7 @@ export const USER_FILTER_PROPERTIES = [
           <div class="dc-search-group-title">
             <span>Used on the <strong>{{ group.key }}</strong> dashboard</span>
             <span class="dc-badge dc-badge-dirty" *ngIf="!group.expected" title="This dashboard page does not use these fields">not used here</span>
-            <button type="button" class="btn btn-link btn-sm" *ngIf="!group.expected" (click)="removeGroup(group)"><i class="fa fa-trash"></i> Remove</button>
+            <button type="button" class="btn btn-link btn-sm" *ngIf="!group.expected" (click)="removeGroup(group)"><i class="fa fa-trash" aria-hidden="true"></i> {{ 'admin-navigation-remove' | i18next }}</button>
           </div>
           <div *ngIf="group.fields.length === 0" class="dc-empty-inline">No search fields — searches record titles.</div>
           <div class="dc-search-field" *ngFor="let field of group.fields; let i = index; let last = last">
@@ -134,9 +134,9 @@ export const USER_FILTER_PROPERTIES = [
               <input type="text" class="form-control" [(ngModel)]="field.name" (ngModelChange)="emitSearch()" placeholder="Label, e.g. Title" [attr.aria-label]="'Label for search field ' + (i + 1)" />
               <dashboard-field-picker [catalogue]="catalogue" filter="scalar" [(value)]="field.path" (valueChange)="onSearchPathChange(field)" placeholder="Record field, e.g. metadata.title" [ariaLabel]="'Record field for search field ' + (i + 1)"></dashboard-field-picker>
               <div class="dc-row-actions">
-                <button type="button" class="btn btn-outline-secondary btn-xs" (click)="moveField(group, i, -1)" [disabled]="i === 0" aria-label="Move up"><i class="fa fa-arrow-up"></i></button>
-                <button type="button" class="btn btn-outline-secondary btn-xs" (click)="moveField(group, i, 1)" [disabled]="last" aria-label="Move down"><i class="fa fa-arrow-down"></i></button>
-                <button type="button" class="btn btn-outline-secondary btn-xs" (click)="removeField(group, i)" aria-label="Remove search field"><i class="fa fa-times"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="moveField(group, i, -1)" [disabled]="i === 0" [attr.aria-label]="'admin-dashboard-move-search-up' | i18next"><i class="fa fa-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="moveField(group, i, 1)" [disabled]="last" [attr.aria-label]="'admin-dashboard-move-search-down' | i18next"><i class="fa fa-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rb-admin-row-action" (click)="removeField(group, i)" [attr.aria-label]="'admin-dashboard-remove-search-field' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
               </div>
             </div>
             <button type="button" class="btn btn-link btn-xs dc-template-toggle" *ngIf="!field.showTemplate" (click)="field.showTemplate = true">Transform the typed text (advanced)</button>
@@ -147,7 +147,7 @@ export const USER_FILTER_PROPERTIES = [
             </div>
             <small class="dc-form-help-error" *ngIf="!field.name.trim() || !field.path.trim()">Give this field a label and a record field.</small>
           </div>
-          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="addField(group)"><i class="fa fa-plus"></i> Add search field</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="addField(group)"><i class="fa fa-plus" aria-hidden="true"></i> Add search field</button>
         </div>
       </section>
 

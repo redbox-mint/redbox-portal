@@ -1,3 +1,4 @@
+import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { NO_ERRORS_SCHEMA, Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -52,7 +53,7 @@ describe('DashboardConfigEditorComponent', () => {
     api.getFields.and.resolveTo({ status: 'complete', recordType: 'rdmp', fields: [], openPrefixes: [] });
     await TestBed.configureTestingModule({
       declarations: [DashboardConfigEditorComponent, MockI18NextPipe],
-      imports: [FormsModule, A11yModule],
+      imports: [AdminModalDirective, FormsModule, A11yModule],
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         { provide: DashboardConfigApiService, useValue: api },

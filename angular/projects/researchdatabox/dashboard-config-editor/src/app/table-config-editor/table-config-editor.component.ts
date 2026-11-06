@@ -5,7 +5,7 @@ import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } fro
   selector: 'table-config-editor',
   template: `
     <section class="rb-admin-form-section">
-      <header class="rb-admin-form-section-header"><h3>{{ 'admin-dashboard-columns' | i18next }}</h3><span class="badge rb-admin-badge-info">{{ config.rowConfig?.length || 0 }}</span></header>
+      <header class="rb-admin-form-section-header"><h3>{{ 'admin-dashboard-columns' | i18next }} <span class="badge rb-admin-badge-info">{{ config.rowConfig?.length || 0 }}</span></h3></header>
       <div class="rb-admin-form-section-body"><column-editor [columns]="config.rowConfig || []" [catalogue]="catalogue" (columnsChange)="updateRowConfig($event)"></column-editor></div>
     </section>
     <details class="rb-admin-form-section">
@@ -13,7 +13,7 @@ import { DashboardFieldCatalogue, DashboardRowConfig, DashboardTableConfig } fro
       <div class="rb-admin-form-section-body"><dashboard-filters-editor [targetKind]="targetKind" [queryFilterKeys]="queryFilterKeys" [columns]="config.rowConfig || []" [catalogue]="catalogue" [formatRules]="config.formatRules || {}" (formatRulesChange)="updateFormatRules($event)"></dashboard-filters-editor></div>
     </details>
     <details class="rb-admin-form-section">
-      <summary class="rb-admin-form-section-header"><div><h3>{{ 'admin-dashboard-row-actions' | i18next }}</h3><p>{{ 'admin-dashboard-row-actions-summary' | i18next }}</p></div><span class="badge rb-admin-badge-info">{{ config.rowRulesConfig?.length || 0 }}</span></summary>
+      <summary class="rb-admin-form-section-header"><div><h3>{{ 'admin-dashboard-row-actions' | i18next }} <span class="badge rb-admin-badge-info">{{ config.rowRulesConfig?.length || 0 }}</span></h3><p>{{ 'admin-dashboard-row-actions-summary' | i18next }}</p></div></summary>
       <div class="rb-admin-form-section-body"><rule-set-editor [ruleSets]="config.rowRulesConfig || []" (ruleSetsChange)="updateRowRules($event)"></rule-set-editor></div>
     </details>
     <details class="rb-admin-form-section">

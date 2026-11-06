@@ -37,6 +37,7 @@
           <ng-container *ngFor="let info of workflowTargets; trackBy: trackTarget"><ng-container *ngTemplateOutlet="targetLink; context: { $implicit: info }"></ng-container></ng-container>
           <p class="dc-nav-empty" *ngIf="!workflowTargets.length && !targetsLoading">{{ 'admin-dashboard-no-workflows' | i18next }}</p>
         </section>
+        <p class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ 'admin-filter-results' | i18next: { count: workflowTargets.length + viewTargets.length } }}</p>
         <section class="dc-nav-section">
           <h2>{{ 'admin-dashboard-views' | i18next }}</h2>
           <ng-container *ngFor="let info of viewTargets; trackBy: trackTarget"><ng-container *ngTemplateOutlet="targetLink; context: { $implicit: info }"></ng-container></ng-container>
@@ -91,7 +92,7 @@
   </ng-template>
   <!-- Copy from: load saved settings into the draft -->
   <div class="dc-modal-backdrop" *ngIf="copyFrom.open || copyTo.open || pendingLeave"></div>
-  <div class="dc-modal" *ngIf="copyFrom.open && selected && !copyConfirmation" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closeDialogs()" role="dialog" aria-modal="true" aria-labelledby="dc-copy-from-title">
+  <div class="dc-modal" *ngIf="copyFrom.open && selected && !copyConfirmation" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closeDialogs()" role="dialog" aria-modal="true" aria-labelledby="dc-copy-from-title">
     <header class="dc-modal-header">
       <h2 id="dc-copy-from-title">{{ 'admin-dashboard-copy-into' | i18next: { target: targetLabel(selected) } }}</h2>
       <button type="button" class="btn-close" [attr.aria-label]="'admin-config-close' | i18next" (click)="closeDialogs()"></button>
@@ -133,7 +134,7 @@
 
   <!-- Copy to: bulk copy the saved settings -->
 
-  <div class="dc-modal dc-modal-wide" *ngIf="copyTo.open && selected && !copyConfirmation" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closeDialogs()" role="dialog" aria-modal="true" aria-labelledby="dc-copy-to-title">
+  <div class="dc-modal dc-modal-wide" *ngIf="copyTo.open && selected && !copyConfirmation" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closeDialogs()" role="dialog" aria-modal="true" aria-labelledby="dc-copy-to-title">
     <header class="dc-modal-header">
       <h2 id="dc-copy-to-title">{{ 'admin-dashboard-copy-saved-from' | i18next: { target: targetLabel(selected) } }}</h2>
       <button type="button" class="btn-close" [disabled]="copyTo.loading" [attr.aria-label]="'admin-config-close' | i18next" (click)="closeDialogs()"></button>
@@ -145,6 +146,7 @@
         <div>
           <label class="dc-form-label" for="dc-copy-to-filter">{{ 'admin-dashboard-copy-destinations' | i18next: { count: copyTo.destinations.size } }}</label>
           <input [disabled]="copyTo.loading" id="dc-copy-to-filter" type="text" class="form-control" [placeholder]="'admin-dashboard-filter' | i18next" [(ngModel)]="copyTo.filter" />
+          <p class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">{{ 'admin-filter-results' | i18next: { count: copyDestinations.length } }}</p>
           <ul class="dc-destination-list">
             <li *ngFor="let info of copyDestinations">
               <label class="dc-choice">
@@ -210,14 +212,14 @@
     </table></div>
   </ng-template>
 
-  <div *ngIf="copyConfirmation" class="dc-modal" role="alertdialog" aria-modal="true" aria-labelledby="dc-copy-confirm-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="copyConfirmation = null">
+  <div *ngIf="copyConfirmation" class="dc-modal" role="alertdialog" aria-modal="true" aria-labelledby="dc-copy-confirm-title" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="copyConfirmation = null">
     <header class="dc-modal-header"><h2 id="dc-copy-confirm-title">{{ 'admin-dashboard-confirm-copy' | i18next }}</h2></header>
     <div class="dc-modal-body"><p>{{ (copyConfirmation === 'from' ? 'admin-dashboard-confirm-copy-draft' : 'admin-dashboard-confirm-copy-saved') | i18next }}</p></div>
     <footer class="dc-modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="copyConfirmation = null">{{ 'admin-dashboard-back-preview' | i18next }}</button><button type="button" class="btn btn-primary" (click)="confirmCopy()">{{ 'admin-dashboard-confirm-copy' | i18next }}</button></footer>
   </div>
-  <div *ngIf="pendingLeave" class="dc-modal" role="alertdialog" aria-modal="true" aria-labelledby="dc-leave-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelLeave()">
+  <div *ngIf="pendingLeave" class="dc-modal" role="alertdialog" aria-modal="true" aria-labelledby="dc-leave-title" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelLeave()">
     <header class="dc-modal-header"><h2 id="dc-leave-title">{{ 'admin-config-leave-title' | i18next }}</h2></header>
     <div class="dc-modal-body"><p>{{ 'admin-config-leave-help' | i18next }}</p></div>
-    <footer class="dc-modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelLeave()">{{ 'admin-config-stay' | i18next }}</button><button type="button" class="btn btn-outline-danger" (click)="leavePage()">{{ 'admin-config-leave' | i18next }}</button></footer>
+    <footer class="dc-modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelLeave()">{{ 'admin-config-stay' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" (click)="leavePage()">{{ 'admin-config-leave' | i18next }}</button></footer>
   </div>
 </div>

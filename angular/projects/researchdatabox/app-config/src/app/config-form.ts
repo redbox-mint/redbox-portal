@@ -48,7 +48,8 @@ export function sectionSummaryParts(fields: FormlyFieldConfig[], model: any, boo
   const add = (field: FormlyFieldConfig, value: string, label = String(field.props?.label || field.key)): void => {
     // Independent value-binding objects often repeat the same "Binding type: path".
     if (!values.some(part => part.label === label && part.value === value)) {
-      const mono = /(?:^|\s)app-config-mono(?:\s|$)/.test(field.className || '');
+      const mono = /(?:^|\s)app-config-mono(?:\s|$)/.test(field.className || '') ||
+        /^[a-z][a-z\d+.-]*:\/\//i.test(value) || /^(?:metadata|metaMetadata)\./.test(value);
       values.push({ label, value, mono });
     }
   };

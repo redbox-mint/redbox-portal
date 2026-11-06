@@ -3306,5 +3306,13 @@
   "admin-navigation-icon-search": "Search",
   "admin-navigation-icon-database": "Database",
   "admin-config-loading": "Loading…",
-  "admin-deleting": "Deleting…"
+  "admin-deleting": "Deleting…",
+  "admin-config-feature-enabled": "{{feature}} enabled",
+  "admin-config-off-kept": "Off — settings are kept",
+  "admin-dashboard-move-search-up": "Move search field up",
+  "admin-dashboard-move-search-down": "Move search field down",
+  "admin-dashboard-remove-search-field": "Remove search field",
+  "admin-filter-results_one": "{{count}} result",
+  "admin-filter-results_other": "{{count}} results",
+  "admin-navigation-visibility-per-link": "Visibility per link"
 }

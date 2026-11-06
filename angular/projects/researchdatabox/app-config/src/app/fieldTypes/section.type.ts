@@ -13,7 +13,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
             @if (!props['expanded']) {
               <p class="app-config-summary">
                 @for (part of props['summaryParts'](); track $index) {
-                  @if ($index) { <span> · </span> }<span>{{ part.label }}: </span>@if (part.mono) { <code>{{ part.value }}</code> } @else { <span>{{ part.value }}</span> }
+                  @if ($index) { <span class="app-config-summary-separator">·</span> }<span>{{ part.label }}: </span>@if (part.mono) { <code>{{ part.value }}</code> } @else { <span>{{ part.value }}</span> }
                 } @empty { {{ props['summary']() || ('admin-config-no-values' | i18next) }} }
               </p>
             }
@@ -23,7 +23,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
             <span class="app-config-expand">{{ (props['expanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!props['expanded']" [class.fa-angle-up]="props['expanded']" aria-hidden="true"></i></span>
           </span>
         </summary>
-        <div class="rb-admin-form-section-body"><ng-container *ngTemplateOutlet="body"></ng-container></div>
+        <div class="rb-admin-form-section-body" [class.app-config-settings-off]="enabledField?.formControl?.value === false">@if (enabledField?.formControl?.value === false) { <p class="rb-admin-hint">{{ 'admin-config-off-kept' | i18next }}</p> }<ng-container *ngTemplateOutlet="body"></ng-container></div>
       </details>
     } @else {
       <section class="rb-admin-form-section" [id]="props['sectionId']">
@@ -32,7 +32,7 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
         </div>
           @if (enabledField; as enabled) { <formly-field [field]="enabled"></formly-field> }
         </div>
-        <div class="rb-admin-form-section-body"><ng-container *ngTemplateOutlet="body"></ng-container></div>
+        <div class="rb-admin-form-section-body" [class.app-config-settings-off]="enabledField?.formControl?.value === false">@if (enabledField?.formControl?.value === false) { <p class="rb-admin-hint">{{ 'admin-config-off-kept' | i18next }}</p> }<ng-container *ngTemplateOutlet="body"></ng-container></div>
       </section>
     }
     <ng-template #body>

@@ -50,7 +50,7 @@
   .dc-column-edit:hover { text-decoration: underline; color: var(--admin-primary); }
   .dc-column-selected { background: var(--dc-accent-soft); }
   .dc-reorder { display: flex; flex-direction: column; gap: 4px; }
-  .dc-reorder .btn { min-width: 24px; min-height: 24px; padding: 2px 7px; font-size: 13px; }
+  .dc-reorder .btn { min-width: 28px; min-height: 28px; padding: 2px 7px; font-size: 13px; }
   .dc-column-detail-wrap { margin: 16px 0 0; background: var(--admin-surface); }
   .dc-add-column .rb-admin-page-actions { margin-top: 12px; }
   .dc-state-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--admin-success); }
