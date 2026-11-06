@@ -1429,10 +1429,33 @@ describe('AppConfigComponent', () => {
     input.value = 'not a number'; input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
     expect(fixture.componentInstance.model.statuses).toEqual([408]);
     expect(fixture.componentInstance.form.invalid).toBeTrue();
+    expect(input.value).toBe('not a number');
+    expect(fixture.componentInstance.dirty).toBeTrue();
+    const leave = new Event('beforeunload', { cancelable: true });
+    fixture.componentInstance.beforeUnload(leave as BeforeUnloadEvent);
+    expect(leave.defaultPrevented).toBeTrue();
     fixture.componentInstance.discard(); fixture.detectChanges();
     await fixture.whenStable(); fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.app-config-chips.is-invalid')).toBeNull();
     expect(fixture.nativeElement.querySelector('app-config-chips input').value).toBe('');
+    expect(fixture.componentInstance.dirty).toBeFalse();
+    fixture.destroy();
+  });
+
+  it('tracks chip text before commit and clears the draft when erased or committed', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: { statuses: { type: 'array', items: { type: 'integer' } } } }, model: { statuses: [408] } });
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('app-config-chips input');
+    input.value = 'oops'; input.dispatchEvent(new Event('input')); fixture.detectChanges();
+    expect(fixture.componentInstance.dirty).toBeTrue();
+    input.value = ''; input.dispatchEvent(new Event('input')); fixture.detectChanges();
+    expect(fixture.componentInstance.dirty).toBeFalse();
+    input.value = '429'; input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); fixture.detectChanges();
+    expect(fixture.componentInstance.model.statuses).toEqual([408, 429]);
+    // Undo the committed chip: there must be no leftover local draft.
+    fixture.debugElement.query(By.directive(ChipsTypeComponent)).componentInstance.remove(1);
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(fixture.componentInstance.dirty).toBeFalse();
     fixture.destroy();
   });
 
