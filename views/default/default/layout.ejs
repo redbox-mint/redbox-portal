@@ -3,6 +3,9 @@
 <html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>">
 
 <head>
+<% if (typeof _csrf === 'string') { %>
+  <meta name="rb-csrf-token" content="<%= _csrf %>">
+<% } %>
   <base href="<%= BrandingService.getRootContext() ? BrandingService.getRootContext() : '/'  %>">
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">

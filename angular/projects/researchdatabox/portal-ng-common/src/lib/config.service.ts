@@ -19,10 +19,10 @@
 
 import { Injectable, Inject} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Subject, ReplaySubject, firstValueFrom } from 'rxjs';
+import { Subject, ReplaySubject, firstValueFrom, of } from 'rxjs';
 import { mergeMap, map } from 'rxjs/operators';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
-import { APP_BASE_HREF } from '@angular/common';
+import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { Service } from './service.interface';
 /**
  * Loads Global client-side configuration.
@@ -41,7 +41,7 @@ export class ConfigService implements Service {
   public configUrl: string = '';
   public csrfTokenUrl: string = '';
 
-  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string) {
+  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string, @Inject(DOCUMENT) private document: Document) {
     this.initSubject = new ReplaySubject(1);
     if (_isEmpty(this.rootContext)) {
       this.rootContext = ""
@@ -49,7 +49,7 @@ export class ConfigService implements Service {
     this.configUrl = `${this.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`;
     this.csrfTokenUrl = `${this.rootContext}/csrfToken`;
     // start the async init of this service
-    this.initConfig();
+    this.initConfig(true);
   }
 
   /**
@@ -76,7 +76,7 @@ export class ConfigService implements Service {
     return firstValueFrom(this.getInitSubject());
   }
 
-  initConfig(): void {
+  initConfig(usePageToken = false): void {
     if (this.loading) {
       return;
     }
@@ -85,7 +85,16 @@ export class ConfigService implements Service {
     this.initSubject = new ReplaySubject(1);
     this.config = undefined;
     this.loading = true;
-    this.http.get(this.csrfTokenUrl)
+    // The initial HTML and Angular bootstrap share a session. Reuse Sails'
+    // escaped, page-scoped token without a second round trip. Explicit retries
+    // must fetch the current session token instead of reusing this snapshot.
+    const pageToken = usePageToken
+      ? this.document.querySelector<HTMLMetaElement>('meta[name="rb-csrf-token"]')?.content
+      : undefined;
+    const csrfResponse = typeof pageToken === 'string'
+      ? of({ _csrf: pageToken })
+      : this.http.get(this.csrfTokenUrl);
+    csrfResponse
     .pipe(
       mergeMap((csrfRes:any) => {
         const token = _get(csrfRes, '_csrf');
