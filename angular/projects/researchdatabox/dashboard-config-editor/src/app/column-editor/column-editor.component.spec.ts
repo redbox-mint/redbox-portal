@@ -83,6 +83,20 @@ describe('Dashboard column interaction accessibility', () => {
     fixture.destroy();
   });
 
+  it('offers a visible named Edit action before Delete', () => {
+    const fixture = TestBed.createComponent(ColumnEditorComponent);
+    fixture.componentInstance.columns = [{ title: 'Title', variable: 'metadata.title', template: '' }];
+    fixture.detectChanges();
+    const actions = fixture.nativeElement.querySelector('.rb-admin-row-actions');
+    const edit = actions.querySelector('button');
+    expect(edit.textContent).toContain('admin-dashboard-edit');
+    expect(edit.getAttribute('aria-label')).toBe('admin-dashboard-edit-column');
+    expect(edit.nextElementSibling.classList.contains('btn-outline-danger')).toBeTrue();
+    edit.click(); fixture.detectChanges();
+    expect(fixture.componentInstance.selectedColumn).toBe(fixture.componentInstance.columns[0]);
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('h4[tabindex="-1"]'));
+  });
+
   it('reveals the controlled detail region and moves focus to its heading', () => {
     const fixture = TestBed.createComponent(ColumnEditorComponent);
     fixture.componentInstance.columns = [{ title: 'Title', variable: 'metadata.title', template: '' }];

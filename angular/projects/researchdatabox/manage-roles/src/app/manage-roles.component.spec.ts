@@ -159,6 +159,21 @@ describe('AppComponent', () => {
     fixture.destroy();
   });
 
+  it('counts active members separately while retaining disabled users in the member list', async () => {
+    translationService.translationMap['admin-roles-member-count'] = '{{count}} member, {{disabled}} disabled';
+    const { fixture, app } = await createComponent();
+    app.users.push({ ...app.users[0], id: 'disabled', username: 'disabled', effectiveLoginDisabled: true });
+    fixture.detectChanges();
+    app.roleCounts['Admin'].disabled = 1; fixture.detectChanges();
+    expect(app.activeMemberCount()).toBe(1); expect(app.disabledMemberCount()).toBe(1);
+    expect(app.members().length).toBe(2);
+    const badge = fixture.nativeElement.querySelector('.people-role-rail .badge');
+    expect(badge.querySelector('[aria-hidden="true"]').textContent).toBe('1');
+    expect(badge.title).toBe('1 member, 1 disabled');
+    expect(fixture.nativeElement.querySelector('.people-role-heading [role="status"]').textContent).toContain('1 member, 1 disabled');
+    fixture.destroy();
+  });
+
   it('loads members including admin from the user endpoint and displays counts', async () => {
     const read = spyOn(userService, 'getUsers').and.resolveTo(usersData);
     const { fixture, app } = await createComponent();

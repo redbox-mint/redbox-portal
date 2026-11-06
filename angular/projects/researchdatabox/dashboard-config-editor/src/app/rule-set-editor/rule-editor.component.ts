@@ -11,12 +11,12 @@ import { DashboardRowRule } from '../dashboard-config-api.service';
           <h5 *ngIf="headingLevel === 5" class="dc-rule-name">{{ rule.name || ('admin-dashboard-untitled-rule' | i18next) }}</h5>
           <h6 *ngIf="headingLevel === 6" class="dc-rule-name">{{ rule.name || ('admin-dashboard-untitled-rule' | i18next) }}</h6>
           <span class="dc-rule-action" [class.dc-rule-action-show]="rule.action === 'show'" [class.dc-rule-action-hide]="rule.action === 'hide'">
-            <i class="fa" [class.fa-eye]="rule.action === 'show'" [class.fa-eye-slash]="rule.action === 'hide'"></i>
+            <i class="fa" [class.fa-eye]="rule.action === 'show'" [class.fa-eye-slash]="rule.action === 'hide'" aria-hidden="true"></i>
             {{ (rule.action === 'show' ? 'admin-dashboard-rule-show' : 'admin-dashboard-rule-hide') | i18next }}
           </span>
         </div>
         <button type="button" class="btn btn-sm dc-btn-remove" (click)="remove.emit()">
-          <i class="fa fa-trash"></i>
+          <i class="fa fa-trash" aria-hidden="true"></i>
           {{ 'admin-dashboard-remove-rule' | i18next }}
         </button>
       </header>

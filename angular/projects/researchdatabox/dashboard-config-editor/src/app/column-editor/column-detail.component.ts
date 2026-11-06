@@ -6,11 +6,11 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
   template: `
     <div class="dc-column-detail" *ngIf="column">
       <h4 *ngIf="headingLevel === 4" #heading tabindex="-1" class="dc-column-detail-title">
-        <i class="fa fa-pencil"></i>
+        <i class="fa fa-pencil" aria-hidden="true"></i>
         {{ 'admin-dashboard-column-edit' | i18next: { name: ((column.title || 'admin-dashboard-untitled') | i18next) } }}
       </h4>
       <h5 *ngIf="headingLevel === 5" #heading tabindex="-1" class="dc-column-detail-title">
-        <i class="fa fa-pencil"></i>
+        <i class="fa fa-pencil" aria-hidden="true"></i>
         {{ 'admin-dashboard-column-edit' | i18next: { name: ((column.title || 'admin-dashboard-untitled') | i18next) } }}
       </h5>
       <div class="dc-column-detail-grid">
