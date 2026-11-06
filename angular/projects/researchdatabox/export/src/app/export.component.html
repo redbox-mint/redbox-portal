@@ -18,7 +18,7 @@
   <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
   <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'admin-export-title' | i18next }}</span></li>
 </ol></nav>
-<header class="rb-admin-page-header"><div><h1>{{ 'admin-export-title' | i18next }}</h1><p>{{ 'admin-export-description' | i18next }}</p></div></header><div class="rb-admin-split ex-layout">
+<header class="rb-admin-page-header"><div><h1>{{ 'admin-export-title' | i18next }}</h1><p>{{ 'admin-export-description' | i18next }}</p></div></header><div class="ex-layout">
 
     <!-- Request form -->
     <section class="card ex-panel" aria-labelledby="export-form-title">
@@ -141,14 +141,12 @@
         }
         @if (jobs.length) {
           <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover ex-jobs">
               <thead>
                 <tr>
                   <th scope="col">{{ 'export-requested' | i18next }}</th>
                   <th scope="col">{{ 'export-record-type' | i18next }}</th>
-                  <th scope="col">{{ 'admin-export-range' | i18next }}</th>
                   <th scope="col">{{ 'export-status' | i18next }}</th>
-                  <th scope="col">{{ 'admin-export-expires' | i18next }}</th>
                   <th scope="col" class="text-end">{{ 'export-actions' | i18next }}</th>
                 </tr>
               </thead>
@@ -167,8 +165,7 @@
                           }
                         </div>
                       }
-                    </td>
-                    <td>
+                      <div class="rb-admin-sub ex-date-range">
                       @if (job.modifiedAfter && job.modifiedBefore) {
                         <span class="text-nowrap">{{ job.modifiedAfter | adminDate:true }}</span>
                         <span class="ex-range-sep" aria-hidden="true">–</span>
@@ -181,6 +178,7 @@
                       } @else {
                         <span class="text-muted">{{ 'admin-export-all-dates' | i18next }}</span>
                       }
+                      </div>
                     </td>
                     <td aria-live="polite" aria-atomic="true">
                       <span [class]="getStatusBadgeClass(status)">
@@ -192,13 +190,13 @@
                       @if (status === 'failed') {
                         <div class="ex-error-text">{{ job.errorMessage || ('export-failed-hint' | i18next) }}</div>
                       }
-                    </td>
-                    <td class="text-nowrap">
+                      <div class="rb-admin-sub">
                       @if (job.expiresAt && (status === 'ready' || status === 'expired')) {
-                        {{ job.expiresAt | adminDate }}
+                        {{ 'admin-export-expires' | i18next }}: {{ job.expiresAt | adminDate }}
                       } @else {
                         <span class="text-muted">—</span>
                       }
+                      </div>
                     </td>
                     <td class="text-end">
                       <div class="rb-admin-row-actions">
