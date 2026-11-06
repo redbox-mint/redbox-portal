@@ -1,4 +1,4 @@
-import { Component, HostListener, Inject, OnDestroy } from '@angular/core';
+import { Component, HostListener, Inject, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   DashboardConfigApiError,
@@ -28,6 +28,14 @@ function emptySelection(): SelectionState {
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
   readonly copyGroups = COPY_GROUPS;
+  private focusEditor = false;
+  @ViewChild('editorHeading') set editorHeading(heading: ElementRef<HTMLElement> | undefined) {
+    if (heading && this.focusEditor) {
+      this.focusEditor = false;
+      heading.nativeElement.scrollIntoView({ block: 'start' });
+      heading.nativeElement.focus({ preventScroll: true });
+    }
+  }
 
   targets: DashboardTargetInfo[] = [];
   recordTypes: string[] = [];
@@ -136,7 +144,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   @HostListener('window:hashchange')
   async selectFromHash(): Promise<void> {
     const key = new URLSearchParams(window.location.hash.slice(1)).get('target');
-    const target = this.targets.find((info) => info.key === key);
+    const target = key ? this.targets.find((info) => info.key === key) : this.targets[0];
     if (target) await this.selectTarget(target);
   }
 
@@ -240,6 +248,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     this.closeDialogs();
     this.selected = info;
     window.history.replaceState(null, '', this.targetHash(info));
+    this.focusEditor = window.matchMedia('(max-width: 991.98px)').matches;
     await this.loadSelected();
   }
 

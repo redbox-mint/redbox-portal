@@ -767,6 +767,7 @@ export class AppComponent implements OnInit, OnDestroy {
         extensions: this.buildRichTextExtensions(),
         content: content || '',
         editable: true,
+        editorProps: { attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-labelledby': 'tx-translation-value-label' } },
         injectNonce: this.cspNonce || undefined,
         onUpdate: ({ editor }) => this.onRichTextUpdateFromEditor(editor),
       });
