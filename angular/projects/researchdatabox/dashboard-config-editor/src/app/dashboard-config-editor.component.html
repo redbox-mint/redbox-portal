@@ -1,4 +1,7 @@
-<div class="dashboard-config-editor">
+<div *ngIf="!layoutReady && !selected && !loadError" class="rb-admin-empty" role="status">
+  <i class="fa fa-spinner fa-spin" aria-hidden="true"></i><p>{{ loadingLabel }}</p>
+</div>
+<div *ngIf="layoutReady || selected || loadError" class="dashboard-config-editor">
   <div [attr.inert]="copyFrom.open || copyTo.open || pendingLeave ? '' : null">
     <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
       <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
