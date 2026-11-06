@@ -29,6 +29,15 @@ describe('VocabListComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('opens the editor with a native list-name button', () => {
+    component.vocabularies = [{ id: 'v1', name: 'Name', slug: 'name', type: 'flat', source: 'local' }];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-list-name').type).toBe('button');
+    const selected = spyOn(component.selected, 'emit');
+    fixture.nativeElement.querySelector('.rb-admin-list-name').click();
+    expect(selected).toHaveBeenCalledWith('v1');
+  });
+
   it('offers creation for an empty catalogue and clearing filters for zero matches', () => {
     component.catalogueTotal = 0; fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-admin-empty h3').textContent).toContain('admin-vocabulary-empty-catalogue');

@@ -608,6 +608,10 @@ export class DashboardComponent extends BaseComponent {
         };
       }
     }
+    if (this.adminParties) {
+      const name = stepRowConfig.find(column => column.variable === 'metadata.fullName');
+      if (name) this.sortMap[stepKey] = { [name.variable]: { sort: 'asc', secondarySort: '', defaultSort: true } };
+    }
     this.enableSort = !this.isViewPage;
   }
 

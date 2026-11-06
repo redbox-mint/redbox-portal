@@ -26,11 +26,13 @@
               <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" [attr.aria-label]="'admin-config-feature-status' | i18next: { name: title }" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ 'admin-config-status' | i18next }}</label><span aria-hidden="true">·</span><span class="rb-admin-hint" aria-hidden="true">{{ (loadedModel.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span><span class="rb-admin-hint" role="status" aria-live="polite">@if (!!model.enabled !== !!loadedModel.enabled) { {{ (model.enabled ? 'admin-config-turns-on-save' : 'admin-config-turns-off-save') | i18next }} }</span></div>
             }
             @if (supportsConnectionTest) {
-              <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
+              <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving || connectionNeedsBaseUrl" [attr.aria-describedby]="connectionNeedsBaseUrl ? 'connection-base-url-hint' : null" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
             }
+            @if (connectionNeedsBaseUrl) { <span class="rb-admin-hint" id="connection-base-url-hint">{{ 'admin-config-connection-base-url-hint' | i18next }}</span> }
             @if (longForm) { <button type="button" class="btn btn-outline-secondary" (click)="openJson()"><i class="fa fa-code" aria-hidden="true"></i> {{ 'admin-config-view-json' | i18next }}</button> }
           </div>
         }
+        <div class="rb-admin-page-actions"><rb-admin-save-shortcut [bar]="saveBar" [dirty]="dirty" [disabled]="formSaving" (save)="onSubmit(model)"></rb-admin-save-shortcut></div>
       </header>
       @if (enabledField && loadedModel.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-feature-off-help' | i18next: { name: title } }}</div> }
       @if (supportsConnectionTest && dirty) {
@@ -126,7 +128,7 @@
             </section>
           }
           </div>
-          <div class="rb-admin-save-bar">
+          <div class="rb-admin-save-bar" #saveBar>
             <span class="rb-admin-save-state" [class.app-config-dirty]="dirty" aria-live="polite"><span class="app-config-state-dot" aria-hidden="true"></span>{{ (formSaving ? 'admin-config-saving' : dirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
             <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="!dirty || formSaving" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="submit" class="btn btn-primary" [disabled]="!dirty || formSaving">{{ 'admin-config-save' | i18next }}</button></div>
           </div>

@@ -13,7 +13,8 @@
           <div class="d-flex gap-2">
             <input class="form-control rb-admin-mono" [id]="id + '-key-' + i" [value]="child.props?.['keyDraft'] ?? entryKey(child)" [disabled]="props.disabled || fixed(entryKey(child))"
               [class.is-invalid]="child.props?.['keyDraft'] !== undefined && error(child.props!['keyDraft'], entryKey(child))"
-              [attr.aria-describedby]="id + '-error-' + i" (change)="rename(child, $any($event.target).value)" (input)="child.props!['keyDraft'] = $any($event.target).value; draftChanged()">
+              [attr.aria-invalid]="child.props?.['keyDraft'] !== undefined && !!error(child.props!['keyDraft'], entryKey(child))"
+              [attr.aria-describedby]="child.props?.['keyDraft'] !== undefined && error(child.props!['keyDraft'], entryKey(child)) ? id + '-error-' + i : null" (change)="rename(child, $any($event.target).value)" (input)="child.props!['keyDraft'] = $any($event.target).value; draftChanged()">
             <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="props.disabled" (click)="startAdd(child)">{{ 'admin-config-dictionary-duplicate' | i18next }}</button>
             <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="props.disabled || fixed(entryKey(child))" (click)="requestRemove(child, $event)">{{ 'admin-config-dictionary-remove' | i18next }}</button>
           </div>
@@ -26,7 +27,7 @@
   @if (adding) {
     <div class="app-config-dictionary-add">
       <label [for]="id + '-new-key'">{{ 'admin-config-dictionary-new-key' | i18next }}</label>
-      <input class="form-control rb-admin-mono" [id]="id + '-new-key'" [value]="newKey" (input)="newKey = $any($event.target).value; draftChanged()" (keydown.enter)="$event.preventDefault(); add()" [class.is-invalid]="!!error(newKey)" [attr.aria-describedby]="id + '-new-error'">
+      <input class="form-control rb-admin-mono" [id]="id + '-new-key'" [value]="newKey" (input)="newKey = $any($event.target).value; draftChanged()" (keydown.enter)="$event.preventDefault(); add()" [class.is-invalid]="!!error(newKey)" [attr.aria-invalid]="!!error(newKey)" [attr.aria-describedby]="error(newKey) ? id + '-new-error' : null">
       @if (error(newKey); as message) { <p class="invalid-feedback d-block" role="alert" [id]="id + '-new-error'">{{ message | i18next }} @if (message === 'admin-config-dictionary-key-pattern') { <code>{{ patternHint }}</code> }</p> }
       <div class="d-flex gap-2 mt-2">
         <button type="button" class="btn btn-sm btn-primary" [disabled]="!!error(newKey)" (click)="add()">{{ 'admin-config-dictionary-add' | i18next }}</button>

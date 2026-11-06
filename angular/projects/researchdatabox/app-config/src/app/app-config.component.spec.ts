@@ -1,3 +1,4 @@
+import { AdminSaveShortcutComponent } from '@researchdatabox/portal-ng-common';
 import { OniPublishing, ONI_PUBLISHING_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/OniPublishing';
 import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/RaidPublishing';
 import { INTEGRATION_NOTIFICATION_SCHEMA } from '../../../../../../packages/redbox-core/src/configmodels/IntegrationNotificationConfig';
@@ -96,7 +97,7 @@ describe('AppConfigComponent', () => {
         ValueBindingEditorTypeComponent,
         FigshareCategoryMappingEditorTypeComponent
       ],
-      imports: [
+      imports: [AdminSaveShortcutComponent,
         ReactiveFormsModule, A11yModule,
         CommonModule,
         FormlyModule.forRoot({
@@ -234,6 +235,42 @@ describe('AppConfigComponent', () => {
     expect(editor.error('__proto__')).toBe('admin-config-dictionary-key-unsafe');
     await app.onSubmit(app.model);
     expect(appConfigService.lastSavedModel.sites['renamed.key[1]'].extra).toEqual(original['old.key[0]'].extra);
+    fixture.destroy();
+  });
+
+  it('tracks duplicate and uncommitted dictionary keys, guards leaving and clears drafts on discard', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      sites: { type: 'object', additionalProperties: { type: 'object', properties: { label: { type: 'string' } } } }
+    } }, model: { sites: { staging: { label: 'Stage' }, public: { label: 'Public' } } } }, 'oniPublishing');
+    const app = fixture.componentInstance;
+    const editor = fixture.debugElement.query(By.directive(DictionaryTypeComponent)).componentInstance as DictionaryTypeComponent;
+    const child = editor.field.fieldGroup![0];
+    child.props!['entryExpanded'] = true; fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('input[id*="-key-0"]') as HTMLInputElement;
+    input.value = 'public'; input.dispatchEvent(new Event('input')); fixture.detectChanges();
+    expect(app.dirty).toBeTrue();
+    expect(app.form.invalid).toBeTrue();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(input.getAttribute('aria-describedby')!)?.textContent).toContain('admin-config-dictionary-key-duplicate');
+    expect(fixture.nativeElement.querySelector('.rb-admin-save-bar .btn-outline-secondary').disabled).toBeFalse();
+    const leave = new Event('beforeunload', { cancelable: true });
+    app.beforeUnload(leave as BeforeUnloadEvent);
+    expect(leave.defaultPrevented).toBeTrue();
+    input.value = 'staging'; input.dispatchEvent(new Event('input')); fixture.detectChanges();
+    expect(app.dirty).toBeFalse();
+    editor.startAdd(); editor.newKey = 'public'; editor.draftChanged(); fixture.detectChanges();
+    expect(app.dirty).toBeTrue();
+    expect(fixture.nativeElement.querySelector('input[id$="-new-key"]').getAttribute('aria-invalid')).toBe('true');
+    editor.newKey = 'preview'; editor.draftChanged();
+    await app.onSubmit(app.model);
+    expect(appConfigService.lastSavedModel).toBeUndefined();
+    expect(app.dirty).toBeTrue();
+    editor.cancelAdd(); fixture.detectChanges(); expect(app.dirty).toBeFalse();
+    editor.rename(child, 'public'); fixture.detectChanges();
+    app.discard(); await fixture.whenStable(); fixture.detectChanges();
+    expect(app.dirty).toBeFalse();
+    expect(app.model.sites.staging.label).toBe('Stage');
+    expect(fixture.nativeElement.querySelector('[aria-invalid="true"]')).toBeNull();
     fixture.destroy();
   });
 
@@ -1001,6 +1038,20 @@ describe('AppConfigComponent', () => {
       fixture.destroy();
     });
   }
+  it('requires a Figshare base URL before testing and explains the disabled action', async () => {
+    const fixture = await renderConnectionTester();
+    fixture.componentInstance.model.connection.baseUrl = '  '; fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('#test-connection');
+    expect(button.disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('#connection-base-url-hint').textContent).toContain('admin-config-connection-base-url-hint');
+    await fixture.componentInstance.testConnection();
+    expect(appConfigService.testConnection).not.toHaveBeenCalled();
+    fixture.componentInstance.model.connection.baseUrl = 'https://example.org'; fixture.detectChanges();
+    expect(button.disabled).toBeFalse();
+    expect(fixture.nativeElement.querySelector('#connection-base-url-hint')).toBeNull();
+    fixture.destroy();
+  });
+
   it('disables the connection button during requests and prevents duplicate calls', async () => {
     const fixture = await renderConnectionTester();
     let resolve: (value: any) => void;

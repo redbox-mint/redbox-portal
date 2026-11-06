@@ -3088,6 +3088,7 @@
   "admin-tx-import-apply-error": "The import could not finish. Preview again to check current values before retrying.",
   "admin-tx-import-retry": "Some keys failed. Successful changes remain saved. Preview again to check current values and retry the failed keys.",
   "admin-tx-import-key-failed": "Entry or bundle write failed; preview again before retrying.",
+  "admin-config-connection-base-url-hint": "Add a base URL to test",
   "admin-config-test-connection": "Test connection",
   "admin-config-connection-testing": "Testing…",
   "admin-config-connection-unsaved": "Testing your unsaved changes. This test does not save the configuration.",
