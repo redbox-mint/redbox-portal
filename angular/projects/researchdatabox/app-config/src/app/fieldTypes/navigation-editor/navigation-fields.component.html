@@ -27,7 +27,7 @@
     </div>
     <div class="rb-admin-field mt-3"><label [for]="prefix + '-featureFlag'">{{ 'admin-navigation-field-featureFlag' | i18next }}</label><input class="form-control rb-navigation-mono" [id]="prefix + '-featureFlag'" [value]="item.featureFlag || ''" (input)="change('featureFlag', $any($event.target).value || undefined)"></div>
     <div class="rb-navigation-checkboxes">
-      @for (flag of (kind === 'section' ? ['defaultExpanded'] : ['external', 'visibleWhenTranslationExists']); track flag) {
+      @for (flag of (kind === 'section' ? [] : ['external', 'visibleWhenTranslationExists']); track flag) {
         <div class="form-check"><input type="checkbox" class="form-check-input" [id]="prefix + '-' + flag" [checked]="item[flag]" (change)="change(flag, $any($event.target).checked)"><label class="form-check-label" [for]="prefix + '-' + flag">{{ ('admin-navigation-field-' + flag) | i18next }}</label></div>
       }
     </div>

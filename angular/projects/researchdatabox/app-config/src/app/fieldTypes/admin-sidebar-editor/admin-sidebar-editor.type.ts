@@ -412,13 +412,13 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   getVisibleSections(): AdminSidebarSection[] {
     // Filter sections based on visibility criteria for preview
     return this.sections.filter(section => 
-      section.requiresAuth !== false && !section.hideWhenAuth
+      !section.hideWhenAuth
     );
   }
 
   getVisibleItems(section: AdminSidebarSection): AdminSidebarItem[] {
     return (section.items || []).filter(item =>
-      item.requiresAuth !== false && !item.hideWhenAuth
+      !item.hideWhenAuth
     );
   }
 

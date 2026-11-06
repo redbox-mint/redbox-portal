@@ -293,6 +293,16 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.footerLinks[1].id).toBe('f2');
   });
 
+  it('preserves inactive header and expansion values when a sidebar section is edited', () => {
+    const header = { titleKey: 'stored-title', iconClass: 'fa fa-star' };
+    const { component } = setup({ header, sections: [{ id: 'section', titleKey: 'Before', defaultExpanded: false, requiresAuth: false, items: [{ labelKey: 'Link', href: '/admin', requiresAuth: false }] }] });
+    component.updateSectionField(0, 'titleKey', 'After');
+    expect(component.header).toEqual(header);
+    expect(component.sections[0].defaultExpanded).toBeFalse();
+    expect(component.getVisibleSections().length).toBe(1);
+    expect(component.getVisibleItems(component.sections[0]).length).toBe(1);
+  });
+
   it('filters visible sections/items and resolves labels', () => {
     const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },

@@ -188,6 +188,7 @@ export class AppConfigComponent extends BaseComponent {
       if (parent[key] === SECRET_MASK) this.retainedSecrets.set(JSON.stringify(path), path);
     });
     this.model = this.editableModel(result.model || {});
+    this.options.formState = { ...this.options.formState, pageIsOff: () => !!this.enabledField && this.model.enabled !== true };
     const root = configSchemaToField(this.formlyJsonschema, jsonObject, ['oniPublishing', 'raidPublishing', 'integrationNotification'].includes(this.configKey));
     this.fields = [root];
     this.applyCheckboxType(this.fields);
