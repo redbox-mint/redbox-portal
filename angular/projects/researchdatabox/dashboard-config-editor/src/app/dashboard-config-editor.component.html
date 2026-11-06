@@ -49,7 +49,7 @@
           <i class="fa fa-columns" aria-hidden="true"></i><h3>{{ 'admin-dashboard-pick' | i18next }}</h3><p>{{ 'admin-dashboard-pick-help' | i18next }}</p>
         </section>
         <ng-container *ngIf="!loading && selected && draft">
-          <section class="card dc-target-card">
+          <div class="rb-admin-save-content"><section class="card dc-target-card">
             <header class="card-header"><h2>{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
             <div class="card-body">
               <p class="rb-admin-hint">{{ 'admin-dashboard-independent-help' | i18next }} <span *ngIf="selected.hidden">{{ 'admin-dashboard-hidden-help' | i18next }}</span></p>
@@ -74,6 +74,7 @@
               </fieldset>
             </div>
           </section>
+          </div>
           <div class="rb-admin-save-bar">
             <span class="rb-admin-save-state" [class.dc-dirty]="isDirty" aria-live="polite"><span class="dc-state-dot" aria-hidden="true"></span>{{ (saving ? 'admin-config-saving' : isDirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
             <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="saving || !isDirty" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="button" class="btn btn-primary" [disabled]="saving || !isDirty || (warnings.length > 0 && !allWarningsAcknowledged)" (click)="save()">{{ 'admin-dashboard-save' | i18next }}</button></div>

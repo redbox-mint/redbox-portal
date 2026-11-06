@@ -16,6 +16,9 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   --admin-ink: var(--rb-body-text-color, #333);
   --admin-heading: var(--rb-main-content-heading-text-branding-color, #1b1b1b);
   --admin-muted: color-mix(in srgb, var(--admin-ink) 78%, var(--admin-bg));
+  // Control outlines are 3.47:1 against white; dividers retain --admin-line.
+  --admin-control-border: #858a93;
+  --admin-save-height: 88px;
   --admin-line: var(--rb-panel-branding-border-color, #ddd);
   --admin-soft-line: color-mix(in srgb, var(--admin-line) 55%, var(--admin-bg));
   --admin-surface: color-mix(in srgb, var(--admin-ink) 4%, var(--admin-bg));
@@ -154,9 +157,17 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     color: var(--rb-danger-text-color, #fff); background: var(--admin-danger); border-color: var(--admin-danger);
   }
   .form-control, .form-select {
-    color: var(--admin-ink); background-color: var(--admin-bg); border-color: var(--admin-line); border-radius: var(--admin-radius);
+    color: var(--admin-ink); background-color: var(--admin-bg); border-color: var(--admin-control-border); border-radius: var(--admin-radius);
     &:focus { border-color: var(--admin-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--admin-primary) 20%, var(--admin-bg)); }
   }
+  input:not([type="submit"]):not([type="button"]), select, textarea, .form-check-input { border-color: var(--admin-control-border); }
+  .form-check-input:checked { border-color: var(--admin-control-border); }
+  .rb-admin-skip { position: fixed; top: 8px; left: 8px; z-index: 1100; padding: 10px 16px; background: var(--admin-bg); color: var(--admin-ink); border: 2px solid var(--admin-primary); border-radius: var(--admin-radius); transform: translateY(-200%); }
+  .rb-admin-skip:focus { transform: translateY(0); }
+  .rb-admin-save-content { padding-bottom: var(--admin-save-height); min-width: 0; }
+  .rb-admin-save-content :is(a, input, select, textarea, button, [tabindex], .rb-admin-form-section) { scroll-margin-block: 16px calc(var(--admin-save-height) + 24px); }
+  .rb-admin-save-bar { width: 100%; min-width: 0; }
+  .rb-admin-save-bar .rb-admin-page-actions { flex-wrap: wrap; }
   .card { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-bg); margin-bottom: 20px; min-width: 0; }
   .card-header {
     display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
@@ -263,7 +274,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   summary.rb-admin-form-section-header { cursor: pointer; }
   .rb-admin-form-section-body { padding: 16px; }
   .rb-admin-save-bar {
-    position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
+    // Stick only after reaching the actions, never pull them over unread form fields.
+    position: sticky; top: 16px; z-index: 10; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center;
     padding: 12px 16px; background: var(--admin-bg); border: 1px solid var(--admin-line); border-radius: var(--admin-radius); margin-top: 8px;
     box-shadow: 0 -4px 14px color-mix(in srgb, var(--admin-ink) 6%, transparent);
   }
@@ -281,6 +293,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     .app-config-with-preview { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
     .rb-admin-section-rail { width: 100%; max-height: calc(100vh - 32px); overflow-y: auto; }
     .app-config-form-main { min-width: 0; }
+    .app-config-address-tester { margin-top: 24px; }
     .app-config-wide-field { grid-column: 1 / -1; }
     .app-config-array-item > formly-field { min-width: 0; }
     .app-config-subsection { margin: 20px 0 0; padding: 16px 0 0; border-top: 1px solid var(--admin-line); }
@@ -371,6 +384,8 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-tile a:hover { background: var(--admin-surface); text-decoration: underline; }
 
   @media (max-width: 991.98px) {
+    // The portal header leaves little tablet viewport space; keep editor actions in flow.
+    .rb-admin-save-bar { position: static; }
     &.admin-layout { grid-template-columns: minmax(0, 1fr); }
     .rb-admin-sidebar { padding: 0; border-right: 0; border-bottom: 1px solid var(--admin-line); }
     .rb-admin-sidebar-toggle {
@@ -484,3 +499,5 @@ body:has(.rb-admin.admin-layout) {
   .rb-vocabulary-detail table { min-width: 800px; }
   .rb-vocabulary-detail .rb-admin-form-section-header h3 { margin: 0; font-size: 16px; }
 }
+
+html:has(.rb-admin-save-bar) { scroll-padding-bottom: calc(var(--admin-save-height, 120px) + 24px); }
