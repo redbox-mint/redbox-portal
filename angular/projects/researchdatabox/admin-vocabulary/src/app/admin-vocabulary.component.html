@@ -94,9 +94,9 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="vocabModalTitle"
-    (keydown.escape)="!isSyncInProgress && closeEditModal()"
+    (keydown.escape)="!$event.defaultPrevented && !vocabDetail.isRemoveEntryModalOpen && !isSyncInProgress && closeEditModal()"
   >
-    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal [cdkTrapFocus]="!vocabDetail.isRemoveEntryModalOpen" cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
         <div class="modal-header">
           <h2 class="modal-title h4-header" id="vocabModalTitle" tabindex="-1" [attr.cdkFocusInitial]="isSelectedReadOnly ? '' : null">{{
@@ -119,7 +119,7 @@
             <div class="alert alert-info" role="status">{{ 'admin-vocabulary-read-only-notice' | i18next }}</div>
           }
           <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-          <vocab-detail [readOnly]="isSelectedReadOnly" [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
+          <vocab-detail #vocabDetail [readOnly]="isSelectedReadOnly" [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
         </div>
         <div class="modal-footer">
           @if (syncStatusMessage) {

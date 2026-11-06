@@ -3,7 +3,8 @@ import { AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { A11yModule } from '@angular/cdk/a11y';
+import { By } from '@angular/platform-browser';
+import { CdkTrapFocus, A11yModule } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ReportConfigComponent } from './report-config.component';
@@ -225,10 +226,14 @@ describe('ReportConfigComponent', () => {
     expect(component.confirmDiscard).toBeTrue();
     expect(component.selectedReport!.title).toBe('Unsaved title');
     const confirm = fixture.nativeElement.querySelector('rb-admin-discard-dialog');
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="report-editor-title"]')?.inert).toBeTrue();
     expect(document.activeElement).toBe(confirm.querySelector('[cdkFocusInitial]'));
     confirm.querySelector('[cdkFocusInitial]').click(); fixture.detectChanges(); await fixture.whenStable();
     expect(component.confirmDiscard).toBeFalse();
     expect(document.activeElement?.id).toBe('report-title');
+    expect(traps[0].enabled).toBeTrue();
     expect(component.selectedReport!.title).toBe('Unsaved title');
     component.cancelEdit(); fixture.detectChanges(); await fixture.whenStable();
     fixture.nativeElement.querySelector('rb-admin-discard-dialog [role=alertdialog]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

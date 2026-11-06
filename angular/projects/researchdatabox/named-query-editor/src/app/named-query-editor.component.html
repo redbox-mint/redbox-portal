@@ -68,8 +68,8 @@
      role="dialog"
      aria-modal="true"
      aria-labelledby="namedQueryModalTitle"
-     (keydown.escape)="closeEditModal()">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
+     [attr.inert]="confirmDiscard ? '' : null" (keydown.escape)="!confirmDiscard && closeEditModal()">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal [cdkTrapFocus]="!confirmDiscard" cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
         <h2 class="modal-title h4-header" id="namedQueryModalTitle">

@@ -1,8 +1,10 @@
+import { By } from '@angular/platform-browser';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './translation.component';
 import { FormBuilder } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
-import { CSP_NONCE, signal } from '@angular/core';
+import { CSP_NONCE, DebugElement, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 // Portal common services / stubs
 import {
@@ -860,6 +862,26 @@ describe('AppComponent (translation)', () => {
     expect(comp.confirmDiscard).toBeTrue(); expect(comp.htmlSourceValue).toContain('Source edit');
     comp.closeModal(true);
   });
+  it('suspends the translation editor trap until a nested discard is dismissed', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.openEdit({ key: 'test', value: 'Original', contentFormat: 'plain' });
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.onPlainTextChange('Changed'); comp.closeModal();
+    fixture.detectChanges(); await fixture.whenStable();
+    const traps: CdkTrapFocus[] = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map((el: DebugElement) => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    expect(traps[0].enabled).toBeFalse();
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="txEditModalTitle"]').inert).toBeTrue();
+    fixture.nativeElement.querySelector('rb-admin-discard-dialog [role=alertdialog]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(comp.confirmDiscard).toBeFalse();
+    expect(comp.modalOpen()).toBeTrue();
+    expect(comp.editValue).toBe('Changed');
+    expect(traps[0].enabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="txEditModalTitle"]').inert).toBeFalse();
+  });
+
   it('closes overflow actions on Escape with focus return and on activation', async () => {
     const { comp, fixture } = create();
     fixture.detectChanges(); await fixture.whenStable();

@@ -1,5 +1,7 @@
 import { AdminListFooterComponent, getStubTranslationService, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { A11yModule, CdkTrapFocus } from '@angular/cdk/a11y';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { Pipe, PipeTransform } from '@angular/core';
@@ -32,7 +34,7 @@ describe('AdminVocabularyComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [AdminVocabularyComponent, VocabListComponent, VocabDetailComponent, RvaImportComponent, I18NextPipeStub],
-      imports: [AdminListFooterComponent, AdminCountPipe, FormsModule],
+      imports: [AdminListFooterComponent, AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: VocabularyApiService, useClass: VocabularyApiServiceStub },
@@ -42,7 +44,27 @@ describe('AdminVocabularyComponent', () => {
     }).compileComponents();
   });
 
-  it('creates and initializes', async () => {
+  it('keeps vocabulary edits and resumes the editor trap after nested Escape', async () => {
+    const fixture = TestBed.createComponent(AdminVocabularyComponent);
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit();
+    fixture.componentInstance.isEditModalOpen = true;
+    fixture.componentInstance.draft = { name: 'Unsaved', type: 'flat', source: 'local', entries: [{ label: 'Keep me', value: 'keep' }] };
+    fixture.detectChanges(); await fixture.whenStable();
+    const detail = fixture.debugElement.query(By.directive(VocabDetailComponent)).componentInstance as VocabDetailComponent;
+    detail.requestRemoveEntry(0); fixture.detectChanges(); await fixture.whenStable();
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps[0].enabled).toBeFalse();
+    fixture.nativeElement.querySelector('.entry-remove-modal').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(fixture.componentInstance.isEditModalOpen).toBeTrue();
+    expect(detail.isRemoveEntryModalOpen).toBeFalse();
+    expect(fixture.componentInstance.draft.name).toBe('Unsaved');
+    expect(fixture.componentInstance.draft.entries!.length).toBe(1);
+    expect(traps[0].enabled).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('creates and initializes' , async () => {
     const fixture = TestBed.createComponent(AdminVocabularyComponent);
     const component = fixture.componentInstance;
     fixture.autoDetectChanges();
