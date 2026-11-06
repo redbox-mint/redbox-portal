@@ -726,6 +726,28 @@ describe('Shared Handlebars Helpers', async function () {
     });
   });
 
+  describe('flattenArray', async function () {
+    it('convert values to array', function () {
+      expect(handlebarsHelperDefinitions.flattenArray(['value'])).to.deep.equal(['value']);
+      expect(handlebarsHelperDefinitions.flattenArray('value')).to.deep.equal(['value']);
+      expect(handlebarsHelperDefinitions.flattenArray(...[{ aProp: 'value' }, null, 0, ['value']])).to.deep.equal([
+        { aProp: 'value' },
+        null,
+        0,
+        'value',
+      ]);
+      expect(handlebarsHelperDefinitions.flattenArray(...[{ aProp: 'value' }, null, 0, [['value']]])).to.deep.equal([
+        { aProp: 'value' },
+        null,
+        0,
+        ['value'],
+      ]);
+      expect(
+        handlebarsCompile('{{asArray input}}')({ input: [{ aProp: 'value' }, null, 0, [['value']]] })
+      ).to.deep.equal('[object Object],,0,value');
+    });
+  });
+
   describe('filterArray', async function () {
     it('should filter undefined, null, empty string', function () {
       const date = new Date();
@@ -790,6 +812,23 @@ describe('Shared Handlebars Helpers', async function () {
     });
   });
 
+  describe('unique', function () {
+    it('should remove duplicate strings', function () {
+      const input = ['one', 'one', 'two', 'three', 'four', 'two', 0];
+      const expected = ['one', 'two', 'three', 'four', 0];
+      expect(handlebarsHelperDefinitions.unique(input)).to.deep.equal(expected);
+    });
+    it('should return non-array', function () {
+      const input = { text_full_name: 'My Name' };
+      expect(handlebarsHelperDefinitions.unique(input)).to.deep.equal(input);
+    });
+    it('should keep duplicate non-string entries', function () {
+      const input = [{ text_full_name: 'My Name' }, 'one', 'one', null, undefined, 2, []];
+      const expected = [{ text_full_name: 'My Name' }, 'one', null, undefined, 2, []];
+      expect(handlebarsHelperDefinitions.unique(input)).to.deep.equal(expected);
+    });
+  });
+
   describe('render example record', function () {
     it('should render record', function () {
       const record = {
@@ -818,7 +857,11 @@ describe('Shared Handlebars Helpers', async function () {
               latitude: [45.70015],
               longitude: [-62.2653],
             },
-            'name2',
+            {
+              basic_name: 'name2',
+              latitude: 46,
+              longitude: -60,
+            },
           ],
           scu_ownership_decision_authority: 'manager',
           'dc:accessRights': 'office-research-decide',
@@ -868,6 +911,11 @@ describe('Shared Handlebars Helpers', async function () {
               email: 'external-example@redboxresearchdata.com.au',
               orcid: '00external-example-orcid00',
             },
+            {
+              text_full_name: 'The External Example',
+              email: 'external-example@redboxresearchdata.com.au',
+              orcid: '00external-example-orcid00',
+            },
           ],
           contributors_data_manager: [
             {
@@ -881,9 +929,19 @@ describe('Shared Handlebars Helpers', async function () {
           ],
           'foaf:fundedBy_foaf:Agent': [
             {
+              'provider-id': 'ABC456',
+              'provider-name': 'The Organisation 1',
+            },
+            {
               'provider-id': 'FPRx6542',
               'provider-name': 'Australian Research Council',
               primary: 'Yes',
+            },
+            {
+              'provider-name': 'ZZZZ',
+            },
+            {
+              'provider-id': 'org-id-123',
             },
           ],
           'dc:subject_anzsrc:for': [
@@ -901,18 +959,26 @@ describe('Shared Handlebars Helpers', async function () {
         <li>authorName: {{displayName (get record 'metadata.contributor_author')}}</li>
         <li>ciName: {{displayName (get record 'metadata.contributor_ci')}}</li>
         <li>managerNames: {{join (sort (displayNameArray (asArray (get record 'metadata.contributors_data_manager')))) ', '}}</li>
-        <li>collaboratorNames: joined(collaboratorNames),</li>
+        <li>collaboratorNames: {{join (sort (unique (displayNameArray (flattenArray
+        (get record 'metadata.contributors_supervisor')
+        (get record 'metadata.contributors')
+        (get record 'metadata.contributors_external')
+        (get record 'metadata.contributors_data_manager')
+        )))) '; '}}</li>
         <li>workspaceIds: {{join (sort (filterArray (trimArray (pluck (asArray (get record 'metadata.workspaces')) 'id')))) ', '}}</li>
         <li>projectStart: {{formatDate (get record "metadata['dc:coverage_vivo:DateTimeInterval_vivo:start']") "dd/MM/yyyy hh:mm a" "Australia/Sydney"}}</li>
         <li>lastSaveDate: {{formatDateLocale (get record "lastSaveDate") "DATE_SHORT" "UTC"}}</li>
         <li>reviewDate: {{formatDate (dateModify (get record 'lastSaveDate') 'days' 14)}}</li>
         <li>scu_entered_retention_end_date: {{formatDate (get record "metadata.scu_entered_retention_end_date") "dd/MM/yyyy" "Australia/Sydney"}}</li>
         <li>retentionReasons: {{join (sort (filterArray (trimArray (asArray (get record 'metadata.["redbox:retentionPeriod_dc:date_skos:note"]'))))) ', '}}</li>
-        <li>countries: countryNames(metadata['dc:coverage_dc:identifier']),</li>
-        <li>geolocations: countryNames(metadata['dc:coverage_dc:identifier']),</li>
+        <li>countries: {{join (sort (pluck (flattenArray (get record "metadata['dc:coverage_dc:identifier']")) 'basic_name')) ', '}}</li>
+        <li>geolocations: {{join (sort (flattenArray (pluck (flattenArray (get record 'metadata.geolocations')) 'basic_name'))) ', '}}</li>
         <li>additionalIrmaIds: {{join (sort (filterArray (trimArray (pluck (asArray (get record 'metadata.additional-irma-ids')) 'display_title')))) ', '}}</li>
         <li>researchFields: {{join (sort (filterArray (trimArray (pluck (asArray (get record "metadata['dc:subject_anzsrc:for']" '(blank)')) 'name')))) ', '}}</li>
-        <li>funders: joined(array(metadata['foaf:fundedBy_foaf:Agent']).filter(item => item['provider-name'] && item['provider-id']).map(item => {item['provider-name']} ({item['provider-id']}))),</li>
+        <li>funders: {{#each (sort (pluck (get record "metadata['foaf:fundedBy_foaf:Agent']") 'provider-name' 'provider-id'))~}}
+        {{#if this.[0]}}{{this.[0]}}{{/if}}{{#if (and this.[0] this.[1])}} {{/if}}{{#if this.[1]}}({{this.[1]}}){{/if}}{{#if (not @last)}}, {{/if}}
+        {{~/each~}}
+        </li>
         <li>viewSupervisorNames: {{join (sort (filterArray (trimArray (asArray (get record 'metadata.view_only_contributors_supervisor' '(blank)') )))) ', '}}</li>
         <li>dataSize: {{default (t (get record 'metadata.data_size')) '(blank)'}}</li>
 </ul>`;
@@ -920,7 +986,7 @@ describe('Shared Handlebars Helpers', async function () {
         <li>authorName: The Author Example</li>
         <li>ciName: The CI Example</li>
         <li>managerNames: The Data Manager Example1, The Data Manager Example2</li>
-        <li>collaboratorNames: The Supervisor Example, The Contributor Example, The External Example, The Data Manager Example2</li>
+        <li>collaboratorNames: The Contributor Example; The Data Manager Example1; The Data Manager Example2; The External Example; The Supervisor Example</li>
         <li>workspaceIds: workspace-id1, workspace-id2</li>
         <li>projectStart: 05/09/2024 10:34 PM</li>
         <li>lastSaveDate: 4/1/2025</li>
@@ -931,7 +997,7 @@ describe('Shared Handlebars Helpers', async function () {
         <li>geolocations: Lismore, name2</li>
         <li>additionalIrmaIds: HEC: 123x4 Human addtional irma id 1</li>
         <li>researchFields: 370304 - Organic geochemistry</li>
-        <li>funders: Australian Research Council (FPRx6542)</li>
+        <li>funders: Australian Research Council (FPRx6542), (org-id-123), The Organisation 1 (ABC456), ZZZZ</li>
         <li>viewSupervisorNames: (blank)</li>
         <li>dataSize: Up to 5GB</li>
 </ul>`;

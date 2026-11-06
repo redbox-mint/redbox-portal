@@ -729,7 +729,11 @@ export const handlebarsHelperDefinitions = {
     if (!_isArray(arr)) {
       return '';
     }
-    return arr.join(separator ?? ', ');
+
+    if (isHandlebarsOptionsArg(separator) || !separator) {
+      separator = ', ';
+    }
+    return arr.join(separator);
   },
 
   /**
@@ -910,12 +914,13 @@ export const handlebarsHelperDefinitions = {
   /**
    * Convert a value with an unknown type to an array.
    * With one value, ensures it is an array.
-   * With more than one value, returns all values in an array. Does not flatten nested arrays..
+   * With more than one value, returns all values in an array.
+   * Does not flatten nested arrays.
    *
    * @example {{asArray ['value']}} -> ['value]
    * @example {{asArray 'value'}} -> ['value']
-   * @example {{asArray {aProp: 'value'}, null, 0, ['value']}} -> [{aProp: 'value'}, null, 0, ['value']]
-   * @param value The value to get as an array.
+   * @example {{asArray {aProp: 'value'} null 0 ['value']}} -> [{aProp: 'value'}, null, 0, ['value']]
+   * @param args The values to get as an array.
    */
   asArray: function (...args: unknown[]): unknown[] {
     args = args.filter(isNotHandlebarsOptionsArg);
@@ -927,6 +932,29 @@ export const handlebarsHelperDefinitions = {
     }
 
     return args;
+  },
+
+  /**
+   * Convert a value with an unknown type to an array.
+   * With one value, ensures it is an array.
+   * With more than one value, returns all values in an array.
+   * Flattens nested arrays to depth 1. Use multiple times to flatten deeply nested arrays.
+   *
+   * @example {{flattenArray ['value']}} -> ['value]
+   * @example {{flattenArray 'value'}} -> ['value']
+   * @example {{flattenArray {aProp: 'value'} null 0 ['value']}} -> [{aProp: 'value'}, null, 0, 'value']
+   * @example {{flattenArray {aProp: 'value'} null 0 [['value']]}} -> [{aProp: 'value'}, null, 0, ['value']]
+   * @param args
+   */
+  flattenArray: function (...args: unknown[]): unknown[] {
+    args = args.filter(isNotHandlebarsOptionsArg);
+    if (args.length === 0) {
+      return [];
+    }
+    if (args.length === 1) {
+      return Array.isArray(args[0]) ? args[0] : [args[0]];
+    }
+    return args.flat(1);
   },
 
   /**
@@ -1006,6 +1034,18 @@ export const handlebarsHelperDefinitions = {
   sort: function (value: unknown): any[] | unknown {
     return Array.isArray(value)
       ? value.toSorted((a, b) => String(a).localeCompare(String(b), undefined, { ignorePunctuation: true }))
+      : value;
+  },
+
+  /**
+   * Remove duplicate strings from an array.
+   * Non-string duplicate entries are kept.
+   * A non-array is returned without changes.
+   * @param value
+   */
+  unique: function (value: unknown): string[] | unknown {
+    return Array.isArray(value)
+      ? value.filter((item, index, arr) => (typeof item === 'string' ? arr.indexOf(item) === index : true))
       : value;
   },
 };
