@@ -4,6 +4,28 @@ import { init } from './redoc.standalone.js';
 
 var mount = document.getElementById('redoc');
 
+// Redoc 3.0.1 removed the v2 lazyRendering option. In this isolated viewer,
+// eagerly mount its section placeholders so outer-page offsets stay stable.
+// Other observers (menu selection, tooltips, etc.) retain native behaviour.
+if (mount && window.IntersectionObserver) {
+  const NativeObserver = window.IntersectionObserver;
+  window.IntersectionObserver = class extends NativeObserver {
+    constructor(callback, options) {
+      super(callback, options);
+      this.sectionCallback = callback;
+    }
+    observe(target) {
+      if (mount.contains(target) && target.hasAttribute('data-section-id')) {
+        queueMicrotask(() => {
+          if (target.isConnected) this.sectionCallback([{ target, isIntersecting: true }], this);
+        });
+      } else {
+        super.observe(target);
+      }
+    }
+  };
+}
+
 if (mount) {
   init(
     mount.getAttribute('data-openapi-url'),
@@ -23,6 +45,7 @@ if (mount && window.frameElement && window.parent.location.origin === window.loc
   const parentWindow = window.parent;
   let pending = 0;
   let pendingSection = '';
+  let navigationFrames = 0;
   function updateFrame() {
     pending = 0;
     const viewportHeight = parentWindow.innerHeight;
@@ -36,8 +59,11 @@ if (mount && window.frameElement && window.parent.location.origin === window.loc
     if (pendingSection) {
       const section = Array.from(mount.querySelectorAll('[data-section-id]')).find(element => element.getAttribute('data-section-id').toLowerCase() === pendingSection.toLowerCase());
       if (section) {
-        pendingSection = '';
-        parentWindow.scrollTo({ top: parentWindow.scrollY + frame.getBoundingClientRect().top + section.getBoundingClientRect().top, behavior: 'instant' });
+        const top = parentWindow.scrollY + frame.getBoundingClientRect().top + section.getBoundingClientRect().top;
+        // Routing can expand a tag's operations after its heading first mounts.
+        // Retain the anchor through those resizes until the user takes over scrolling.
+        parentWindow.scrollTo({ top, behavior: 'instant' });
+        if (navigationFrames-- > 0) scheduleUpdate();
       }
     }
   }
@@ -47,10 +73,19 @@ if (mount && window.frameElement && window.parent.location.origin === window.loc
   function followReferenceLink(event) {
     const href = event.target.closest('a')?.getAttribute('href');
     if (!href?.startsWith('#/') || event.button > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    // Operations render lazily. Retry through the content ResizeObserver until
-    // Redoc has mounted its target, then scroll across the iframe boundary.
+    // Follow Redoc routing after React has updated, across the iframe boundary.
     pendingSection = href.slice(1);
+    navigationFrames = 4;
     scheduleUpdate();
+  }
+  function cancelNavigation(event) {
+    if (event.type === 'keydown' && !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) return;
+    pendingSection = '';
+  }
+  const navigationEvents = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+  for (const event of navigationEvents) {
+    parentWindow.addEventListener(event, cancelNavigation, { passive: true });
+    window.addEventListener(event, cancelNavigation, { passive: true });
   }
   mount.addEventListener('click', followReferenceLink, true);
   const observer = new ResizeObserver(scheduleUpdate);
@@ -59,6 +94,10 @@ if (mount && window.frameElement && window.parent.location.origin === window.loc
   parentWindow.addEventListener('resize', scheduleUpdate);
   window.addEventListener('pagehide', () => {
     observer.disconnect();
+    for (const event of navigationEvents) {
+      parentWindow.removeEventListener(event, cancelNavigation);
+      window.removeEventListener(event, cancelNavigation);
+    }
     mount.removeEventListener('click', followReferenceLink, true);
     parentWindow.cancelAnimationFrame(pending);
     parentWindow.removeEventListener('scroll', scheduleUpdate);
