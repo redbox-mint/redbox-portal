@@ -18,13 +18,13 @@
   </div>
   @if (filteredUsers.length) {
   <div class="table-responsive people-table"><table class="table table-hover">
-    <thead><tr><th [attr.aria-sort]="order === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortUsers()">{{ 'admin-users-user' | i18next }} {{ order === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'manage-users-role' | i18next }}</th><th>{{ 'manage-users-account-status' | i18next }}</th><th class="text-nowrap">{{ 'admin-users-api-key' | i18next }}</th><th class="text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
+    <thead><tr><th [attr.aria-sort]="order === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortUsers()">{{ 'admin-users-user' | i18next }} {{ order === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'manage-users-role' | i18next }}</th><th>{{ 'manage-users-account-status' | i18next }}</th><th class="text-nowrap">{{ 'admin-users-api-key' | i18next }}</th><th class="rb-admin-actions-col text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
     <tbody>@for (user of filteredUsers; track user.id) {
       <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub rb-admin-email" [title]="user.email || user.username">{{ user.email || user.username }}</span><span class="rb-admin-sub">{{ 'admin-users-last-login' | i18next }}: {{ user.lastLogin ? (user.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</span></td><td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
         <td><div class="people-badges">@for (role of user.roles; track role.id) { <span class="badge" [class.rb-admin-badge-primary]="role.name === 'Admin'">{{ role.name }}</span> }</div></td>
         <td><span class="badge" [class.rb-admin-badge-danger]="isEffectivelyDisabled(user)" [class.rb-admin-badge-info]="isLinkedAlias(user)" [class.rb-admin-badge-success]="!isEffectivelyDisabled(user) && !isLinkedAlias(user)">{{ getAccountStatusBadge(user) }}</span>@if (getAccountStatusContext(user); as context) { <span class="rb-admin-sub">{{ context }}</span> }</td>
         <td><span class="rb-admin-hint">{{ (user.token ? 'admin-users-key-issued' : 'admin-users-key-none') | i18next }}</span></td>
-        <td><div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="editUser(user.username)">{{ 'manage-users-edit-link' | i18next }}</button>
+        <td class="rb-admin-actions-col"><div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="editUser(user.username)">{{ 'manage-users-edit-link' | i18next }}</button>
           <details class="rb-admin-overflow people-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: user.name || user.username }">⋯</summary><div>
             @if (canManageLinks(user)) { <button type="button" class="btn btn-sm rb-admin-ghost" (click)="manageLinks(user.username); actions.open = false">{{ 'manage-users-link-manage' | i18next }}</button> }
             <button type="button" class="btn btn-sm rb-admin-ghost" (click)="viewAudit(user); actions.open = false">{{ 'manage-users-audit-action' | i18next }}</button>
@@ -124,7 +124,7 @@
                       <th>{{ 'manage-users-name' | i18next }}</th>
                       <th>{{ 'manage-users-email' | i18next }}</th>
                       <th>{{ 'manage-users-account-status' | i18next }}</th>
-                      <th>{{ 'record-table-results-table-header-actions' | i18next }}</th>
+                      <th class="rb-admin-actions-col">{{ 'record-table-results-table-header-actions' | i18next }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -150,7 +150,7 @@
                             }
                           </div>
                         </td>
-                        <td>
+                        <td class="rb-admin-actions-col">
                           <button type="button" class="btn btn-outline-secondary btn-sm" (click)="selectLinkCandidate(candidate)">
                             {{ 'manage-users-link-select' | i18next }}
                           </button>

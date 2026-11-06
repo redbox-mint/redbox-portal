@@ -10,7 +10,7 @@
         <tr>
           <th class="nq-mapping-column">{{ 'named-query-mapping-field' | i18next }}</th>
           <th>{{ 'named-query-mapping-template' | i18next }}</th>
-          <th class="nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          <th class="rb-admin-actions-col nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
         </tr>
       </thead>
       <tbody>
@@ -26,7 +26,7 @@
                    (ngModelChange)="onValueChange(entry, $event)"
                    spellcheck="false">
           </td>
-          <td class="text-center">
+          <td class="rb-admin-actions-col text-center">
             <button class="btn btn-sm btn-outline-danger" type="button"
                     (click)="removeEntry(entry)">
               {{ 'named-query-remove' | i18next }}

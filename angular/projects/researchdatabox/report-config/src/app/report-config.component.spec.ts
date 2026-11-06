@@ -46,6 +46,21 @@ describe('ReportConfigComponent', () => {
     component = fixture.componentInstance;
   });
 
+  it('starts deletion on Cancel and restores the overflow trigger after closing', async () => {
+    fixture.detectChanges();
+    await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
+    const menu: HTMLDetailsElement = fixture.nativeElement.querySelector('details.rb-admin-overflow');
+    const trigger = menu.querySelector('summary')!;
+    menu.open = true;
+    const remove = menu.querySelector('button')!;
+    remove.focus(); remove.click(); fixture.detectChanges(); await fixture.whenStable();
+    const cancel: HTMLButtonElement = fixture.nativeElement.querySelector('.modal-footer [cdkFocusInitial]');
+    expect(document.activeElement).toBe(cancel);
+    cancel.click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(document.activeElement).toBe(trigger);
+    expect(menu.open).toBeFalse();
+  });
+
   it('filters reports by source and marks Solr reports read only', async () => {
     await component.loadReports();
     component.searchText = 'solr';
