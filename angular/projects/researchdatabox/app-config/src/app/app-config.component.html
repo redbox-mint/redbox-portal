@@ -21,7 +21,7 @@
         @if (longForm && !empty) {
           <div class="rb-admin-page-actions">
             @if (enabledField) {
-              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" [attr.aria-label]="enabledField?.props?.['switchLabel']" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" for="config-enabled">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</label></div>
+              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" aria-labelledby="config-enabled-label" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ 'admin-config-integration-enabled' | i18next }}</label><span class="rb-admin-hint" aria-hidden="true">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span></div>
             }
             @if (supportsConnectionTest) {
               <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
@@ -71,10 +71,10 @@
           }
           <div class="rb-admin-save-content">
           @if (configKey === 'authorizedDomainsEmails') {
-            <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h3>{{ 'admin-config-restrict' | i18next }}</h3><p>{{ 'admin-config-restrict-help' | i18next }}</p></div>
-              <div class="form-check form-switch"><input id="config-restrict" class="form-check-input" role="switch" [attr.aria-label]="'admin-config-restrict' | i18next" type="checkbox" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" for="config-restrict">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</label></div>
+            <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h3>{{ 'admin-config-restrict-new-accounts' | i18next }}</h3><p>{{ 'admin-config-restrict-new-accounts-help' | i18next }}</p></div>
+              <div class="form-check form-switch"><input id="config-restrict" class="form-check-input" role="switch" [attr.aria-label]="'admin-config-restrict-new-accounts' | i18next" type="checkbox" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" for="config-restrict">{{ (model.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</label></div>
             </div></section>
-            <div class="alert alert-info">{{ 'admin-config-domain-matching' | i18next }}</div>
+            <div class="alert alert-info">{{ 'admin-config-account-creation-matching' | i18next }}</div>
           }
           <div class="app-config-layout" [class.app-config-long]="longForm" [class.app-config-with-preview]="configKey === 'systemMessage'">
             @if (longForm) {
@@ -113,10 +113,9 @@
         </form>
           @if (configKey === 'authorizedDomainsEmails') {
             <section class="rb-admin-form-section app-config-address-tester" aria-labelledby="address-test-heading">
-              <div class="rb-admin-form-section-header"><div><h3 id="address-test-heading">{{ 'admin-config-address-title' | i18next }}</h3><p>{{ 'admin-config-address-help' | i18next }}</p></div></div>
+              <div class="rb-admin-form-section-header"><div><h3 id="address-test-heading">{{ 'admin-config-address-title' | i18next }}</h3><p aria-live="polite">{{ 'admin-config-address-help' | i18next }} {{ (dirty ? 'admin-config-address-unsaved' : 'admin-config-address-current') | i18next }}</p></div></div>
               <div class="rb-admin-form-section-body">
                 <p class="rb-admin-hint" id="address-test-help">{{ 'admin-config-address-matching-help' | i18next }}</p>
-                <p class="rb-admin-hint" aria-live="polite">{{ (dirty ? 'admin-config-address-unsaved' : 'admin-config-address-current') | i18next }}</p>
                 <div class="rb-admin-filter-bar app-config-address-check" [attr.aria-busy]="addressChecking">
                   <div class="rb-admin-field rb-admin-field-grow"><label for="address-test-email">{{ 'admin-config-address-email' | i18next }}</label>
                     <input id="address-test-email" type="email" class="form-control" maxlength="254" autocomplete="off" [formControl]="addressEmail" aria-describedby="address-test-help address-test-invalid" [attr.aria-invalid]="addressEmail.touched && addressEmail.invalid" (keydown.enter)="$event.preventDefault(); checkAddress()">
@@ -124,7 +123,7 @@
                   <div class="rb-admin-field"><label for="address-test-provider">{{ 'admin-config-address-provider' | i18next }}</label><select id="address-test-provider" class="form-select" [formControl]="addressProvider">
                     <option value="aaf">{{ 'admin-config-aaf' | i18next }}</option><option value="oidc">{{ 'admin-config-oidc' | i18next }}</option>
                   </select></div>
-                  <button type="button" class="btn btn-outline-secondary" [disabled]="addressChecking || addressEmail.invalid" (click)="checkAddress()">{{ (addressChecking ? 'admin-config-address-checking' : 'admin-config-address-check') | i18next }}</button>
+                  <button type="button" class="btn btn-outline-primary" [disabled]="addressChecking || addressEmail.invalid" (click)="checkAddress()">{{ (addressChecking ? 'admin-config-address-checking' : 'admin-config-address-check') | i18next }}</button>
                 </div>
                 <div id="address-test-invalid" class="rb-admin-hint" [hidden]="!addressEmail.touched || !addressEmail.invalid">{{ 'admin-config-address-invalid' | i18next }}</div>
                 <div role="status" aria-live="polite" aria-atomic="true">

@@ -10,7 +10,13 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
         <summary class="rb-admin-form-section-header">
           <div class="app-config-section-title"><h2>{{ props.label }}</h2>
             @if (props['expanded'] && props.description) { <p>{{ props.description }}</p> }
-            @if (!props['expanded']) { <p class="app-config-summary">{{ props['summary']() || ('admin-config-no-values' | i18next) }}</p> }
+            @if (!props['expanded']) {
+              <p class="app-config-summary">
+                @for (part of props['summaryParts'](); track $index) {
+                  @if ($index) { <span> · </span> }<span>{{ part.label }}: </span>@if (part.mono) { <code>{{ part.value }}</code> } @else { <span>{{ part.value }}</span> }
+                } @empty { {{ props['summary']() || ('admin-config-no-values' | i18next) }} }
+              </p>
+            }
           </div>
           <span class="app-config-section-actions">
             @if (enabledField; as enabled) { <span (click)="$event.stopPropagation()" (keydown)="switchKeydown($event)"><formly-field [field]="enabled"></formly-field></span> }

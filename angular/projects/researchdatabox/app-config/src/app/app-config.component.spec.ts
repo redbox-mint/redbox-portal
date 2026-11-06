@@ -699,6 +699,23 @@ describe('AppConfigComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('.app-config-mono input').length).toBe(2);
   });
 
+  it('renders summary labels normally, code values inline and no duplicate enabled state', async () => {
+    const fixture = await renderConfig({ schema: { type: 'object', properties: {
+      enabled: { type: 'boolean' }, settings: { type: 'object', properties: {
+        enabled: { type: 'boolean' }, baseUrl: { type: 'string', format: 'uri' }, name: { type: 'string' }
+      } }, mapping: { type: 'object', properties: { field: { type: 'string' } } }
+    } }, model: { enabled: true, settings: { enabled: false, baseUrl: 'https://example.test', name: 'Production' } } }, 'doiPublishing');
+    fixture.componentInstance.sections[0].props!['expanded'] = false;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const summary = fixture.nativeElement.querySelector('.app-config-summary');
+    expect(summary.querySelector('code').textContent).toBe('https://example.test');
+    expect(summary.textContent).toContain('Production');
+    expect(summary.textContent).not.toContain('Enabled:');
+    fixture.destroy();
+  });
+
   it('expands invalid dictionary ancestors, announces all invalid fields, focuses and follows summary links', async () => {
     const fixture = await renderConfig({ schema: { type: 'object', properties: {
       connection: { type: 'object', properties: { host: { type: 'string' } } },
@@ -754,7 +771,10 @@ describe('AppConfigComponent', () => {
     const switches = Array.from(fixture.nativeElement.querySelectorAll('[role="switch"]')) as HTMLInputElement[];
     expect(switches.length).toBeGreaterThan(1);
     expect(new Set(switches.map(input => input.getAttribute('aria-label'))).size).toBe(switches.length);
-    expect(fixture.nativeElement.querySelector('label[for="' + switches[0].id + '"]').textContent).toContain('admin-config-off');
+    const pageSwitch = fixture.nativeElement.querySelector('#config-enabled');
+    expect(pageSwitch.getAttribute('aria-labelledby')).toBe('config-enabled-label');
+    expect(fixture.nativeElement.querySelector('#config-enabled-label').textContent).toContain('admin-config-integration-enabled');
+    expect(fixture.nativeElement.querySelector('.app-config-page-switch').textContent).toContain('admin-config-off');
     expect(component.sections[0].props!.label).toBe('admin-config-general');
   });
 

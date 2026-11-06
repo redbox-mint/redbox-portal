@@ -25,7 +25,7 @@ import { FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms'
 
 import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService, AuthorizedEmailTestResult, IntegrationConnectionResult } from '@researchdatabox/portal-ng-common';
 import { cloneDeep, isEqual } from 'lodash-es';
-import { ConfigForm, ConfigSection, SECRET_MASK, SECRET_RETAIN_PREFIX, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
+import { ConfigForm, ConfigSection, SECRET_MASK, SECRET_RETAIN_PREFIX, hasEditableFields, sectionSummary, sectionSummaryParts, visitSecrets } from './config-form';
 import { FormlyFormOptions } from '@ngx-formly/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
@@ -178,7 +178,7 @@ export class AppConfigComponent extends BaseComponent {
       if (Object.prototype.hasOwnProperty.call(originalProperties, field)) jsonObject.properties[field] = originalProperties[field];
     }
     this.title = this.translationService.t(result.title || jsonObject.title || this.configKey);
-    this.descriptionKey = this.navigationEditor ? 'admin-navigation-' + this.configKey + '-description' : result.descriptionKey || 'admin-config-description';
+    this.descriptionKey = this.navigationEditor ? 'admin-navigation-' + this.configKey + '-description' : this.configKey === 'authorizedDomainsEmails' ? 'admin-config-description-authorized-account-creation' : result.descriptionKey || 'admin-config-description';
     this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
       ?.closest('section')?.querySelector('h2')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
@@ -380,6 +380,7 @@ export class AppConfigComponent extends BaseComponent {
       const section: FormlyFieldConfig = {
         type: 'app-config-section', wrappers: [], fieldGroup: group.fields,
         props: { label: group.label.trim().toLowerCase() === (this.title || '').trim().toLowerCase() ? this.translationService.t('admin-config-general') : group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
+          summaryParts: () => sectionSummaryParts(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off')),
           summary: () => group.fields.some(hasEditableFields)
             ? sectionSummary(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off'))
             : this.translationService.t('admin-config-no-editable-settings'),
