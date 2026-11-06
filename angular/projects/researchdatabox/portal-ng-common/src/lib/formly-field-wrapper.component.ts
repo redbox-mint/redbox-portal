@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, inject, Renderer2 } from '@angular/core';
 import { FieldWrapper, FormlyModule } from '@ngx-formly/core';
 import { I18NextPipe } from './i18next.pipe';
 
@@ -24,11 +24,29 @@ import { I18NextPipe } from './i18next.pipe';
       <div [id]="id + '-formly-validation-error'" class="invalid-feedback" [style.display]="showError ? 'block' : 'none'">
         @if (showError) { <formly-validation-message [field]="field" role="alert"></formly-validation-message> }
       </div>
-      @if (props.description) { <small class="form-text text-muted">{{ props.description }}</small> }
+      @if (props.description) { <small [id]="id + '-description'" class="form-text text-muted">{{ props.description }}</small> }
       @if (props['connectionNeedsBaseUrl']?.()) {
-        <p class="rb-admin-hint">{{ 'admin-config-connection-base-url-hint' | i18next }}</p>
+        <p [id]="id + '-connection-hint'" class="rb-admin-hint">{{ 'admin-config-connection-base-url-hint' | i18next }}</p>
       }
     </div>
   `
 })
-export class FormlyFieldWrapperComponent extends FieldWrapper {}
+export class FormlyFieldWrapperComponent extends FieldWrapper implements AfterViewChecked {
+  private readonly element: ElementRef<HTMLElement> = inject(ElementRef);
+  private readonly renderer = inject(Renderer2);
+
+  ngAfterViewChecked(): void {
+    // Bootstrap types bind their own error reference. Extend it after rendering,
+    // retaining any type-specific hints and removing only this wrapper's hidden help.
+    const descriptionId = this.id + '-description';
+    const connectionHintId = this.id + '-connection-hint';
+    for (const input of Array.from(this.element.nativeElement.querySelectorAll('input, select, textarea'))) {
+      const current = input.getAttribute('aria-describedby') || '';
+      const ids = current.split(/\s+/).filter(id => id && id !== descriptionId && id !== connectionHintId);
+      if (this.props.description) ids.push(descriptionId);
+      if (this.props['connectionNeedsBaseUrl']?.()) ids.push(connectionHintId);
+      const describedBy = [...new Set(ids)].join(' ');
+      if (describedBy !== current) this.renderer.setAttribute(input, 'aria-describedby', describedBy);
+    }
+  }
+}
