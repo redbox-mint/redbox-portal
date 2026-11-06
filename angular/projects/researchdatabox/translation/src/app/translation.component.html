@@ -122,11 +122,11 @@
   tabindex="-1"
   role="dialog"
   aria-modal="true"
-  (keydown.escape)="closeModal()"
+  [attr.inert]="confirmDiscard ? '' : null" (keydown.escape)="!confirmDiscard && closeModal()"
   aria-labelledby="txEditModalTitle"
 >
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-    <div class="modal-content rb-admin" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+    <div class="modal-content rb-admin" rbAdminModal [cdkTrapFocus]="!confirmDiscard" [cdkTrapFocusAutoCapture]="true">
       <div class="modal-header">
         <h2 class="modal-title h4" id="txEditModalTitle">
           {{ 'admin-tx-edit-title' | i18next }} <span class="tx-modal-key ms-2">{{ editKey }}</span>

@@ -161,6 +161,7 @@
                   <div class="d-flex">
                     <input
                       class="form-control form-control-sm me-2"
+                      [attr.aria-label]="'admin-vocabulary-parent' | i18next"
                       [value]="parentDisplayValue(entry) || ('admin-vocabulary-parent-root' | i18next)"
                       disabled
                     />
@@ -172,7 +173,8 @@
               } @else {
                 <input
                   class="form-control form-control-sm"
-                  [value]="parentDisplayValue(entry)"
+                  [attr.aria-label]="'admin-vocabulary-parent' | i18next"
+                      [value]="parentDisplayValue(entry)"
                   disabled
                   [attr.placeholder]="'admin-vocabulary-parent-na-flat' | i18next"
                 />
@@ -217,7 +219,7 @@
     aria-modal="true"
     aria-labelledby="removeEntryModalTitle"
     aria-describedby="removeEntryModalDescription"
-    (keydown.escape)="cancelRemoveEntry()"
+    (keydown.escape)="$event.preventDefault(); $event.stopPropagation(); cancelRemoveEntry()"
   >
     <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
       <div class="modal-content rb-admin">
