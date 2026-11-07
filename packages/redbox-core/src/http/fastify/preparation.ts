@@ -21,6 +21,7 @@ import {
 } from './session';
 import { requestHooks, requestOwnership } from './requestOwnership';
 import { registerPortalRouterView } from './router';
+import { nativeBodyParserPlugin, type NativeParserOptions } from './parsers';
 
 type RequestHook = (typeof requestHooks)[number];
 type OwnedHook = RequestHook | 'onReady' | 'preClose' | 'onClose';
@@ -54,6 +55,7 @@ export interface FastifyPreparation {
   register(plugin: CorePlugin, options?: { prefix?: string }): FastifyPreparation;
   register(plugin: typeof cookiePlugin, options?: FastifyCookieOptions): FastifyPreparation;
   register(plugin: typeof sessionPlugin, options: NativeSessionOptions): FastifyPreparation;
+  register(plugin: typeof nativeBodyParserPlugin, options: NativeParserOptions): FastifyPreparation;
   addHook<K extends OwnedHook>(name: K, hook: BoundHook<HookLookup<K>>): FastifyPreparation;
   route(
     options: Omit<
@@ -150,34 +152,53 @@ export function sealPreparation(
         ...instance.initialConfig,
         routerOptions: Object.freeze({ ...instance.initialConfig.routerOptions }),
       }),
-      register(plugin: CorePlugin | typeof cookiePlugin | typeof sessionPlugin, options: Record<string, unknown> = {}) {
+      register(
+        plugin: CorePlugin | typeof cookiePlugin | typeof sessionPlugin | typeof nativeBodyParserPlugin,
+        options: Record<string, unknown> = {}
+      ) {
         if (typeof plugin !== 'function') denied('register(non-function)');
         if (!options || typeof options !== 'object') denied('register options');
-        const native = plugin === cookiePlugin || plugin === sessionPlugin;
+        const native = plugin === cookiePlugin || plugin === sessionPlugin || plugin === nativeBodyParserPlugin;
         keys(
           options,
           new Set(
             plugin === cookiePlugin
               ? ['secret', 'parseOptions', 'hook', 'algorithm']
-              : plugin === sessionPlugin
-                ? [
-                    'secret',
-                    'cookieName',
-                    'cookiePrefix',
-                    'cookie',
-                    'store',
-                    'saveUninitialized',
-                    'rolling',
-                    'resave',
-                    'proxy',
-                  ]
-                : ['prefix']
+              : plugin === nativeBodyParserPlugin
+                ? ['parserExclusions']
+                : plugin === sessionPlugin
+                  ? [
+                      'secret',
+                      'cookieName',
+                      'cookiePrefix',
+                      'cookie',
+                      'store',
+                      'saveUninitialized',
+                      'rolling',
+                      'resave',
+                      'proxy',
+                    ]
+                  : ['prefix']
           ),
           'register options'
         );
         if (plugin === sessionPlugin && !(options.store instanceof NativeMongoSessionStore)) denied('session store');
         const wrapped = new Proxy(plugin, {
           apply(fn, _this, args) {
+            if (plugin === nativeBodyParserPlugin) {
+              const child = args[0] as FastifyInstance;
+              // This exact parser may consume the incoming stream. No native
+              // instance, decoration or registration capability reaches callers.
+              return Reflect.apply(fn, undefined, [
+                {
+                  addHook(name: string, hook: unknown) {
+                    if (name !== 'preParsing') denied(`native parser addHook(${name})`);
+                    child.addHook('preParsing', ownership.nativeHook('preParsing', hook) as never);
+                  },
+                },
+                args[1],
+              ]);
+            }
             if (native) {
               const child = args[0] as FastifyInstance;
               // Exact pinned framework plugins only. Decoration is synchronous;
@@ -214,7 +235,10 @@ export function sealPreparation(
                               (request, cookie, done) => qualified.decryptSession('', request, cookie, done)
                             )
                           : hook;
-                    child.addHook(name as RequestHook, ownership.nativeHook(name, owned) as never);
+                    // Bounded parsing must finish before any session read. The
+                    // authentication preValidation hook is registered afterwards.
+                    const stage = plugin === sessionPlugin && name === 'onRequest' ? 'preValidation' : name;
+                    child.addHook(stage as RequestHook, ownership.nativeHook(stage, owned) as never);
                   },
                 })
               );

@@ -143,7 +143,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: success/denial/callback-disconnect cases pass for every provider;
     state is application-local; no Express emulation/bridge or provider skip.
 
-- [ ] **FM-016 — Port context, policies, CSRF and safe errors.**
+- [x] **FM-016 — Port context, policies, CSRF and safe errors.**
   - Dependencies: FM-015, FM-010.
   - Work: implement immutable brand/portal/actor context, brand-scoped roles,
     language resolver, default-deny effective policy binding, canonical origin,

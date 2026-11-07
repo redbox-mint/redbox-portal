@@ -141,7 +141,8 @@ function payloadFixture(kind: PayloadKind, read: () => void = () => {}) {
       ),
     'web-stream': () => web,
     response: () => new Response(web),
-    'undici-response': () => new UndiciResponse(web),
+    // Node and undici declare the same WHATWG body protocol through separate types.
+    'undici-response': () => new UndiciResponse(web as unknown as ConstructorParameters<typeof UndiciResponse>[0]),
   };
   return {
     value: values[kind](),
@@ -751,7 +752,7 @@ describe('Fastify close ownership and cleanup retry (FM-012)', function () {
         const actual = await client(await start(f.host), '/matrix/probe').response;
         if ((streamKinds as readonly string[]).includes(kind)) {
           assert.equal(actual.status, 500);
-          if (entry !== 'serializer-promise') assert.match(actual.body, /qualified module with drain\/hijack/);
+          assert.equal(actual.body, '{"message":"Internal server error","details":""}');
           assert.equal(selected.reads(), 0);
         } else {
           const original = payloadFixture(kind);
@@ -763,7 +764,10 @@ describe('Fastify close ownership and cleanup retry (FM-012)', function () {
           });
           await raw.listen({ host: '127.0.0.1', port: 0 });
           const expected = await client((raw.server.address() as { port: number }).port, '/matrix/probe').response;
-          assert.deepEqual(actual, expected);
+          assert.deepEqual(actual, {
+            ...expected,
+            ...(expected.status === 500 ? { body: '{"message":"Internal server error","details":""}' } : {}),
+          });
           assert.equal(selected.reads(), 0);
           assert.equal(original.reads(), 0);
         }
@@ -826,7 +830,7 @@ describe('Fastify close ownership and cleanup retry (FM-012)', function () {
         });
         const response = await client(await start(f.host)).response;
         assert.equal(response.status, 500);
-        assert.match(response.body, /qualified module with drain\/hijack/);
+        assert.equal(response.body, '{"message":"Internal server error","details":""}');
         assert.equal(pipes, 0);
       });
     }
@@ -899,7 +903,7 @@ describe('Fastify close ownership and cleanup retry (FM-012)', function () {
       const f = fixture(
         async app => {
           // Test logger injection belongs at the native core boundary, before views.
-          sinon.stub(Reflect.get(f.host, 'fastify').log, 'error').callsFake(errors);
+          sinon.stub(f.owner.log, 'warn').callsFake(errors);
           app.get('/probe', (_request, reply) => {
             if (phase === 'after-send') {
               reply.send('early');
@@ -940,8 +944,7 @@ describe('Fastify close ownership and cleanup retry (FM-012)', function () {
       assert.equal(writes, 1);
       assert(closed);
       assert.equal(errors.callCount, phase === 'callback-rejects' ? 1 : 0);
-      if (phase === 'callback-rejects')
-        assert.match(errors.firstCall.args[0].err.message, /visible completion failure/);
+      if (phase === 'callback-rejects') assert.deepEqual(errors.firstCall.args, ['HTTP_REPLY_CALLBACK_FAILED']);
     });
   }
 
@@ -2889,7 +2892,7 @@ describe('FM-012 real Mongo ownership regressions', function () {
                   hooks++;
                 });
                 app.addHook('onError', async (_request, _reply, error) => {
-                  assert.match(error.message, /qualified module with drain\/hijack/);
+                  assert.equal(error.message, 'HTTP_REQUEST_FAILED');
                   errors++;
                 });
                 installDiscardPayload(app, mode, scope, completion, async () => {
@@ -2933,7 +2936,7 @@ describe('FM-012 real Mongo ownership regressions', function () {
               const response = await sending.response;
               assert.equal(response.status, 500);
               if (mode === 'head') assert.equal(response.body, '');
-              else assert.match(response.body, /qualified module with drain\/hijack/);
+              else assert.equal(response.body, '{"message":"Internal server error","details":""}');
             }
             await host.stop();
             await host.stop();

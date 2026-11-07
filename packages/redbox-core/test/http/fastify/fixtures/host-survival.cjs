@@ -5,8 +5,43 @@ const { ExpressHost } = require('../../../../dist/http/express/ExpressHost');
 const { FastifyHost } = require('../../../../dist/http/fastify/FastifyHost');
 
 const native = process.argv[2] === 'native';
-const fastify = process.argv[2] === 'fastify';
-const application = new ApplicationRuntime({ config: {}, log: { warn() {} } });
+const security = process.argv[2].endsWith('-security');
+const fastify = process.argv[2].startsWith('fastify');
+const diagnostics = process.argv[2].endsWith('-diagnostics');
+const defaultLogger = process.argv[2] === 'fastify-default-diagnostics';
+const diagnosticLogs = [];
+let loggerFault;
+const diagnosticThrow = kind => {
+  switch (kind) {
+    case 'null':
+      return null;
+    case 'undefined':
+      return undefined;
+    case 'false':
+      return false;
+    case 'zero':
+      return 0;
+    case 'string':
+      return 'exception-secret';
+    case 'symbol':
+      return Symbol('exception-secret');
+    case 'object':
+      return { message: 'exception-secret', headers: { authorization: 'credential-secret' } };
+    default:
+      return Object.assign(new Error('exception-secret'), { headers: { authorization: 'credential-secret' } });
+  }
+};
+const application = new ApplicationRuntime({
+  config: {},
+  log: {
+    warn(code) {
+      if (!defaultLogger) return;
+      diagnosticLogs.push({ code, level: 'warn' });
+      if (loggerFault === 'sync') throw new Error('logger-secret');
+      if (loggerFault === 'async') return Promise.reject(new Error('logger-secret'));
+    },
+  },
+});
 let socketError;
 let failStatus = false;
 const status = application.status.bind(application);
@@ -38,6 +73,15 @@ const host = native
   : new (fastify ? FastifyHost : ExpressHost)(application, {
       hostname: '127.0.0.1',
       port: 0,
+      ...(diagnostics && !defaultLogger
+        ? {
+            logger(record) {
+              diagnosticLogs.push(record);
+              if (loggerFault === 'sync') throw new Error('logger-secret');
+              if (loggerFault === 'async') return Promise.reject(new Error('logger-secret'));
+            },
+          }
+        : {}),
       async prepare(app, server) {
         // Node installs its HTTP socket error listener before this listener runs.
         server.on('connection', socket => {
@@ -49,7 +93,83 @@ const host = native
             socket.emit('error', Object.assign(new Error('injected socket failure'), { code }));
           });
         });
+        if (security) {
+          if (fastify) {
+            require('../../../../dist/http/fastify/responses').installSafeHttpErrors(app);
+            require('../../../../dist/http/fastify/parsers').prepareNativeParsers(app);
+            app.post('/body', async () => ({ ok: true }));
+          } else {
+            const { httpBodyParser, httpErrorHandler } = require('../../../../dist/http/express/middleware');
+            app.use(httpBodyParser());
+            app.post('/body', (_req, res) => res.json({ ok: true }));
+            app.use(httpErrorHandler({ error() {}, warn() {} }));
+          }
+        }
         if (fastify) {
+          if (diagnostics) {
+            app.addHook('preSerialization', (req, _reply, payload, done) => {
+              if (req.url.includes('pending') || req.url.startsWith('/serializer-failure'))
+                setTimeout(() => done(null, payload), 10);
+              else done(null, payload);
+            });
+            app.addHook('onRequest', (req, reply, done) => {
+              if (req.url.startsWith('/serializer-failure'))
+                reply.serializer(() => {
+                  reply.header('X-Credential', 'credential-secret');
+                  reply.header('Set-Cookie', 'password=credential-secret');
+                  reply.raw.statusMessage = 'reason-secret';
+                  throw diagnosticThrow(req.query.kind);
+                });
+              done();
+            });
+            app.addHook('onSend', (req, reply, payload, done) => {
+              if (req.url.startsWith('/hook-failure')) {
+                reply.header('X-Credential', 'credential-secret');
+                reply.header('Set-Cookie', 'password=credential-secret');
+                reply.raw.statusMessage = 'reason-secret';
+                throw diagnosticThrow(req.query.kind);
+              }
+              done(null, payload);
+            });
+            app.get('/late-failure', async (req, reply) => {
+              reply.send({ ok: true });
+              await Promise.resolve();
+              throw diagnosticThrow(req.query.kind);
+            });
+            app.get('/sync-after-send', (req, reply) => {
+              reply.send({ ok: true });
+              throw diagnosticThrow(req.query.kind);
+            });
+            const doubleSend = (_req, reply) => {
+              reply.send({ ok: true });
+              reply.send({ password: 'credential-secret' });
+              return { password: 'credential-secret' };
+            };
+            app.get('/double-send', doubleSend);
+            app.get('/double-send-pending', doubleSend);
+            app.get('/reject-while-pending', async (req, reply) => {
+              reply.send({ ok: true });
+              await Promise.resolve();
+              throw diagnosticThrow(req.query.kind);
+            });
+            app.get('/native-logging', (req, reply) => {
+              const logger = Reflect.get(host, 'fastify').log;
+              for (const log of [logger, req.log, reply.log])
+                for (const level of ['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])
+                  log[level](
+                    {
+                      req: { url: '/native-logging?password=query-secret' },
+                      err: diagnosticThrow('error'),
+                      headers: { cookie: 'credential-secret' },
+                      body: 'body-secret',
+                    },
+                    'message-secret'
+                  );
+              return { ok: true };
+            });
+            app.get('/hook-failure', async () => ({ ok: true }));
+            app.get('/serializer-failure', async () => ({ ok: true }));
+          }
           app.addHook('onRequest', (req, _reply, done) => {
             if (req.url === '/sync-hook-error') throw new Error('injected synchronous hook failure');
             done();
@@ -75,6 +195,17 @@ process.on('message', message => {
       case 'socket-error':
         socketError = message.code;
         break;
+      case 'logger-fault':
+        loggerFault = message.code;
+        break;
+      case 'audit-diagnostics': {
+        const assert = require('node:assert/strict');
+        const { inspect } = require('node:util');
+        const { httpLogStats } = require('../../../../dist/http/fastify/logging');
+        assert(!inspect(diagnosticLogs, { depth: 10 }).includes('secret'));
+        assert(httpLogStats(Reflect.get(host, 'fastify').log).failures > 0);
+        break;
+      }
       case 'ping':
         // Give delayed socket events/rejections an event-loop turn to surface.
         await new Promise(resolve => setImmediate(resolve));

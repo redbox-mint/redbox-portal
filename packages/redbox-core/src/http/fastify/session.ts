@@ -12,6 +12,7 @@ import { prepareSessionIndexes } from '../../persistence/sessions/indexes';
 import { hasActiveHttpRequest, retainHttpRequestFollowup } from '../../middleware/requestLifetime';
 import type { FastifyPreparation } from './preparation';
 import { requestPathname } from './router';
+import { requestText } from '../requestValues';
 
 /** Separate from Express's unprefixed IDs; the existing expires_1 maintenance applies. */
 export const nativeSessionNamespace = 'redbox-fastify-v1:';
@@ -287,9 +288,7 @@ function secure(request: FastifyRequest, proxy: boolean | undefined, trust: Peer
   if (Reflect.get(request.raw.socket, 'encrypted') === true) return true;
   if (proxy === false) return false;
   if (proxy === undefined && !trust(request.raw.socket.remoteAddress ?? '', 0)) return false;
-  const first = String(request.headers['x-forwarded-proto'] ?? '')
-    .split(',', 1)[0]
-    .trim();
+  const first = (requestText(request.headers['x-forwarded-proto']) ?? '').split(',', 1)[0].trim();
   // Express's req.protocol preserves case; express-session's proxy:true override
   // explicitly lowercases the header. Both select the first forwarded entry.
   return (proxy === true ? first.toLowerCase() : first) === 'https';

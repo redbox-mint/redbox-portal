@@ -1,9 +1,11 @@
-import fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import fastify, { LogController, type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import qs from 'qs';
 import Router from 'find-my-way';
 import { ExtensionError } from '../../extensions/loading';
 import { parse as parseUrl } from 'node:url';
-import { STATUS_CODES } from 'node:http';
+import { HttpFailure, normalizeHttpError, writeHttpError, httpSendState } from './errorBoundary';
+import { createHttpLogger, type HttpLogTarget } from './logging';
+import type { PersistenceOwner } from '../../persistence/owner';
 
 /** Express's extended query parser, with the FM-003 bounds/defaults explicit. */
 function querystringParser(query: string): Record<string, unknown> {
@@ -103,23 +105,27 @@ export function createPortalRouter(
   options: Omit<
     FastifyServerOptions,
     'routerOptions' | 'rewriteUrl' | 'querystringParser' | 'frameworkErrors' | 'clientErrorHandler'
-  > = {}
+  > = {},
+  log?: HttpLogTarget,
+  owner?: PersistenceOwner
 ): FastifyInstance {
+  const {
+    logger: _logger,
+    loggerInstance: _loggerInstance,
+    disableRequestLogging: _disableRequestLogging,
+    ...nativeOptions
+  } = options;
   const app = fastify({
-    ...options,
+    ...nativeOptions,
+    loggerInstance: createHttpLogger(log, owner),
+    logController: new LogController({ disableRequestLogging: true }),
     routerOptions: portalRouterOptions,
     rewriteUrl: request => routerUrl(request.url ?? '/'),
     // These callbacks also run outside the request hook/error-handler boundary.
     // Emit only fixed headers and bounded bodies, never the target/provider error.
-    frameworkErrors(error, _request, reply) {
-      const status = error.code === 'FST_ERR_BAD_URL' ? 400 : error.code === 'FST_ERR_MAX_PARAM_LENGTH' ? 414 : 500;
-      const body = status === 500 ? '{"error":"internal-server-error"}' : '{"error":"invalid-request"}';
-      reply.hijack();
-      reply.raw.writeHead(status, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Length': Buffer.byteLength(body),
-      });
-      reply.raw.end(body);
+    frameworkErrors(error, request, reply) {
+      writeHttpError(normalizeHttpError(error), { request, reply, opaque: true });
+      return reply;
     },
     clientErrorHandler(error, socket) {
       // Match Node's default HTTP/1 parser responses used by ExpressHost. Node's
@@ -132,15 +138,38 @@ export function createPortalRouter(
             : error.code === 'ERR_HTTP_REQUEST_TIMEOUT'
               ? 408
               : 400;
-      const response: unknown = Reflect.get(socket, '_httpMessage');
-      if (
-        !socket.destroyed &&
-        socket.writable &&
-        (!response || (typeof response === 'object' && !Reflect.get(response, '_headerSent')))
-      )
-        socket.write(`HTTP/1.1 ${status} ${STATUS_CODES[status]}\r\nConnection: close\r\n\r\n`);
-      socket.destroy();
+      writeHttpError(new HttpFailure(status), { socket });
     },
+  });
+  app.setErrorHandler((error, request, reply) => {
+    writeHttpError(normalizeHttpError(error), { request, reply });
+    return reply;
+  });
+  app.addHook('onRequest', (request, reply, done) => {
+    const send = reply.send.bind(reply);
+    const state = httpSendState(reply);
+    reply.send = function (payload: unknown) {
+      if (state.submitted && payload instanceof Error && !reply.raw.headersSent) {
+        writeHttpError(normalizeHttpError(payload), { request, reply });
+        return reply;
+      }
+      if (reply.sent) {
+        reply.log.warn('HTTP_DUPLICATE_SEND');
+        return reply;
+      }
+      if (payload instanceof Error) return send(normalizeHttpError(payload));
+      if (state.submitted) {
+        reply.log.warn('HTTP_DUPLICATE_SEND');
+        return reply;
+      }
+      state.submitted = true;
+      if (reply.statusCode >= 400) {
+        writeHttpError(new HttpFailure(reply.statusCode), { request, reply, publicResponse: { payload, send } });
+        return reply;
+      }
+      return send(payload);
+    };
+    done();
   });
   app.addConstraintStrategy(nonemptyPathConstraint());
   app.addHook('onRequest', (request, reply, done) => {
@@ -152,13 +181,12 @@ export function createPortalRouter(
       // Express's finalhandler uses this fixed resource name when parseurl fails.
       // Node validates/bounds the method; no raw target or exception is reflected.
       const body = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot ${request.method} resource</pre>\n</body>\n</html>\n`;
-      reply
+      return reply
         .code(404)
         .header('Content-Security-Policy', "default-src 'none'")
         .header('X-Content-Type-Options', 'nosniff')
         .type('text/html; charset=utf-8')
         .send(body);
-      return;
     }
     done();
   });

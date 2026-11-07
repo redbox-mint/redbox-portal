@@ -409,6 +409,15 @@ describe('internal late-listening Fastify host', function () {
       stopFailed: false,
       failure: undefined,
       application: application.status(),
+      logging: {
+        degraded: false,
+        diagnostics: 0,
+        dropped: 0,
+        failures: 0,
+        fallbackFailures: 0,
+        fallbackWrites: 0,
+        pending: 0,
+      },
     });
     await assert.rejects(host.activate(), /Await host initialization/);
     const work = host.initialize();

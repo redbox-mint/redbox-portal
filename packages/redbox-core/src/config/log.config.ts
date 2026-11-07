@@ -11,12 +11,11 @@ import * as _ from 'lodash';
 const pino = require('pino');
 import type { Logger, LoggerOptions, DestinationStream } from 'pino';
 import { AvailableLogLevels, ILogger, isLogger } from '@researchdatabox/sails-ng-common';
-import { isPinoLogger } from '../utilities/PinoLoggerUtils';
+import { isPinoLogger, rememberPinoLoggerDestination } from '../utilities/PinoLoggerUtils';
 import { defaultRequestChronicleSettings, RequestChronicleSettings } from '../utilities/RequestChronicleSettings';
 import { cachePersistenceFailureForLog } from '../persistence/cache/errors';
 
 export { isPinoLogger } from '../utilities/PinoLoggerUtils';
-
 
 /**
  * The application log levels.
@@ -97,20 +96,20 @@ function createPinoLogger(level?: AvailableLogLevels, destination?: DestinationS
     },
   };
 
-  let logger: Logger;
-  if (destination) {
-    logger = pino(options, destination);
-  } else {
-    options.transport = {
+  // Retain the concrete, public destination for optional Fastify observation.
+  // No listeners, wrapping, recovery or logger settings change for Express.
+  const stream =
+    destination ||
+    pino.transport({
       target: logfmtTransportTarget,
       options: { ...logfmtTransportOptions },
-    };
-    logger = pino(options);
-  }
+    });
+  const logger: Logger = pino(options, stream);
 
   if (!isLogger(logger)) {
     throw new Error(`Pino logger does not have all the log level functions expected.`);
   }
+  rememberPinoLoggerDestination(logger, stream);
   return logger;
 }
 

@@ -18,7 +18,9 @@ function raw(port: number, target: string, method = 'GET', wire?: string): Promi
     socket.on('error', reject);
     socket.on('data', chunk => (data += chunk));
     socket.on('connect', () => {
-      socket.end(wire ?? `${method} ${target} HTTP/1.1\r\nHost: fixture.invalid\r\nConnection: close\r\n\r\n`);
+      // Keep the request transport open while delayed hooks complete. The
+      // Connection header asks the server to close after its complete response.
+      socket.write(wire ?? `${method} ${target} HTTP/1.1\r\nHost: fixture.invalid\r\nConnection: close\r\n\r\n`);
     });
     socket.on('end', () => {
       try {
@@ -39,7 +41,17 @@ function raw(port: number, target: string, method = 'GET', wire?: string): Promi
   });
 }
 
-async function inProcess<T>(kind: 'express' | 'fastify' | 'native', run: (fixture: Fixture) => Promise<T>): Promise<T> {
+async function inProcess<T>(
+  kind:
+    | 'express'
+    | 'fastify'
+    | 'native'
+    | 'express-security'
+    | 'fastify-security'
+    | 'fastify-diagnostics'
+    | 'fastify-default-diagnostics',
+  run: (fixture: Fixture) => Promise<T>
+): Promise<T> {
   const child = fork(join(__dirname, 'fixtures/host-survival.cjs'), [kind], {
     execArgv: ['--unhandled-rejections=strict'],
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
@@ -58,7 +70,7 @@ async function inProcess<T>(kind: 'express' | 'fastify' | 'native', run: (fixtur
     ]);
   const command: Fixture['command'] = async (command, code) => {
     const message = next();
-    child.send({ id: ++id, command, code });
+    child.send({ id: ++id, command, code }, () => {});
     assert.deepEqual(await message, { id });
   };
   const timer = setTimeout(() => child.kill('SIGKILL'), 7000);
@@ -78,7 +90,14 @@ async function inProcess<T>(kind: 'express' | 'fastify' | 'native', run: (fixtur
         ] as const) {
           const response = await raw(port, target);
           assert.match(response.status, new RegExp(`^HTTP/1.1 ${status} `));
-          assert.equal(response.body, body);
+          if (target === '/healthz' && JSON.parse(response.body).logging) {
+            const signal = JSON.parse(response.body);
+            assert.equal(signal.healthy, true);
+            assert(signal.logging.failures > 0);
+            assert.equal(typeof signal.logging.degraded, 'boolean');
+            assert.equal(typeof signal.logging.dropped, 'number');
+            assert(!response.body.includes('secret'));
+          } else assert.equal(response.body, body);
         }
         await command('ping');
         assert.equal(child.exitCode, null);
@@ -87,7 +106,8 @@ async function inProcess<T>(kind: 'express' | 'fastify' | 'native', run: (fixtur
     });
   } finally {
     try {
-      if (child.exitCode === null && child.signalCode === null && child.connected) child.send({ command: 'stop' });
+      if (child.exitCode === null && child.signalCode === null && child.connected)
+        child.send({ command: 'stop' }, () => {});
       const [code, signal] = await exit;
       assert.equal(code, 0, output);
       assert.equal(signal, null, output);
@@ -116,6 +136,125 @@ const malformed = [
 
 describe('Fastify host process survival at request boundaries', function () {
   this.timeout(15_000);
+
+  for (const logger of ['sync', 'async'])
+    it(`survives default application logger fault=${logger}`, async () => {
+      await inProcess('fastify-default-diagnostics', async fixture => {
+        await fixture.command('activate');
+        await fixture.command('logger-fault', logger);
+        const response = await raw(fixture.port, '/hook-failure?kind=error&password=query-secret');
+        assert.equal(response.status, 'HTTP/1.1 500 Internal Server Error');
+        assert.equal(response.body, '{"message":"Internal server error","details":""}');
+        assert(!JSON.stringify(response).includes('secret'));
+        await fixture.survives(true);
+        await fixture.command('audit-diagnostics');
+      });
+    });
+
+  for (const logger of ['sync', 'async'])
+    for (const point of [
+      'late-failure',
+      'sync-after-send',
+      'double-send',
+      'double-send-pending',
+      'reject-while-pending',
+      'native-logging',
+      'hook-failure',
+      'serializer-failure',
+    ])
+      for (const kind of ['error', 'object', 'string', 'null', 'undefined', 'false', 'zero', 'symbol'])
+        it(`survives ${point}, throw=${kind}, logger fault=${logger}`, async () => {
+          await inProcess('fastify-diagnostics', async fixture => {
+            await fixture.command('activate');
+            await fixture.command('logger-fault', logger);
+            const response = await raw(fixture.port, `/${point}?kind=${kind}&password=query-secret`);
+            const failed = ['hook-failure', 'serializer-failure', 'reject-while-pending'].includes(point);
+            assert.match(response.status, new RegExp(`^HTTP/1.1 ${failed ? 500 : 200} `));
+            assert.equal(response.body, failed ? '{"message":"Internal server error","details":""}' : '{"ok":true}');
+            assert(!JSON.stringify(response).includes('secret'));
+            await fixture.survives(true);
+            await fixture.command('audit-diagnostics');
+          });
+        });
+
+  for (const key of ['toString', 'valueOf', 'Symbol.toPrimitive']) {
+    for (const method of ['POST', 'HEAD'])
+      it(`survives malformed ${method} JSON with structured apiVersion ${key}`, async () => {
+        const responses = [];
+        for (const kind of ['express-security', 'fastify-security'] as const)
+          responses.push(
+            await inProcess(kind, async fixture => {
+              await fixture.command('activate');
+              const body = '{"bad":';
+              let response;
+              try {
+                response = await raw(
+                  fixture.port,
+                  '/body',
+                  method,
+                  `${method} /body?apiVersion[${key}]=constructor HTTP/1.1\r\nHost: fixture.invalid\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`
+                );
+              } catch (error) {
+                assert.equal(kind, 'express-security');
+                assert.equal(key, 'toString');
+                assert.match((error as Error).message, /complete HTTP response/);
+              }
+              await fixture.survives(true);
+              return response;
+            })
+          );
+        assert.match(responses[1]!.status, /^HTTP\/1.1 400 /);
+        assert.equal(responses[1]!.body, method === 'HEAD' ? '' : '{"message":"Invalid request","details":""}');
+        // ACCEPTED-NESTED-INPUT-SAFE-RESPONSE: Express abort is recorded above;
+        // native emits exact safe 400 and survives fresh connections and IPC.
+        if (key === 'toString') assert.equal(responses[0], undefined);
+        else assert.deepEqual(responses[1], responses[0]);
+      });
+    it(`rejects bracketed header names containing ${key} at the HTTP boundary and survives`, async () => {
+      const responses = [];
+      for (const kind of ['express-security', 'fastify-security'] as const)
+        responses.push(
+          await inProcess(kind, async fixture => {
+            await fixture.command('activate');
+            const response = await raw(
+              fixture.port,
+              '/body',
+              'POST',
+              `POST /body HTTP/1.1\r\nHost: fixture.invalid\r\nConnection: close\r\nAccept[${key}]: constructor\r\nContent-Length: 2\r\n\r\n{}`
+            );
+            await fixture.survives(true);
+            return response;
+          })
+        );
+      assert.deepEqual(responses[1], responses[0]);
+      assert.match(responses[0].status, /^HTTP\/1.1 400 /);
+    });
+  }
+
+  for (const key of Object.getOwnPropertyNames(Object.prototype))
+    for (const header of ['encoding', 'type', 'charset'] as const)
+      it(`survives request-controlled ${header} prototype key ${key} like Express`, async () => {
+        const responses = [];
+        for (const kind of ['express-security', 'fastify-security'] as const)
+          responses.push(
+            await inProcess(kind, async fixture => {
+              await fixture.command('activate');
+              const type =
+                header === 'type' ? key : `application/json${header === 'charset' ? '; charset=' + key : ''}`;
+              const extra = header === 'encoding' ? `Content-Encoding: ${key}\r\n` : '';
+              const response = await raw(
+                fixture.port,
+                '/body',
+                'POST',
+                `POST /body HTTP/1.1\r\nHost: fixture.invalid\r\nConnection: close\r\nContent-Type: ${type}\r\n${extra}Content-Length: 2\r\n\r\n{}`
+              );
+              await fixture.survives(true);
+              return response;
+            })
+          );
+        assert.deepEqual(responses[1], responses[0]);
+        assert.match(responses[0].status, new RegExp(`^HTTP/1.1 ${header === 'type' ? 200 : 415} `));
+      });
 
   for (const [category, targets] of malformed) {
     it(`matches Express for ${category} before/after activation and survives every target`, async () => {

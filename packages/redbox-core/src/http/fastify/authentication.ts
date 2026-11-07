@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
-import accepts from 'accepts';
+import { requestAccepts } from './responses';
+import { requestString } from '../requestValues';
 import type { AuthenticatedActor, HttpIdentity } from '../express/identity';
 import { AuthenticationRejected } from '../../authentication/Accounts';
 import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
@@ -59,8 +60,8 @@ export async function prepareNativeAuthentication(
     )
       await request.session.regenerate();
     const passport = data(request.session.get('passport'));
-    if (passport.user) {
-      const actor = await input.identity.session(String(passport.user));
+    if (requestString(passport.user)) {
+      const actor = await input.identity.session(passport.user as string);
       if (actor) actors.set(request, actor);
       else delete passport.user;
     }
@@ -74,7 +75,9 @@ export async function prepareNativeAuthentication(
       if (request.headers.authorization === undefined && actor) return actor;
       let token: unknown;
       if (request.headers.authorization) {
-        const parts = request.headers.authorization.split(' ');
+        const authorization = requestString(request.headers.authorization);
+        if (!authorization) return false;
+        const parts = authorization.split(' ');
         if (parts.length !== 2) return false;
         if (/^Bearer$/i.test(parts[0])) token = parts[1];
       }
@@ -84,6 +87,9 @@ export async function prepareNativeAuthentication(
           token = value;
         }
       }
+      // Preserve Express's safe 500 for an unsupported credential shape without
+      // handing request objects to the cryptographic/provider boundary.
+      if (token && typeof token !== 'string') throw new TypeError('Invalid credential input');
       return token ? input.identity.bearer(token as string) : false;
     },
   };
@@ -121,6 +127,15 @@ export function installNativeAuthenticationRoutes(
   input: NativeAuthenticationRoutesInput
 ) {
   const root = input.rootContext ?? '';
+  // Failure-event delivery is observation. Required account/session audit work
+  // remains in the transactional login path below.
+  const observeLoginFailure = async (request: FastifyRequest) => {
+    try {
+      await input.loginFailure(request);
+    } catch {
+      /* observation only */
+    }
+  };
   const context = (request: FastifyRequest) => {
     const params = data(request.params),
       body = data(request.body),
@@ -147,10 +162,12 @@ export function installNativeAuthenticationRoutes(
     local: boolean,
     reason: 'authorized-email-denied' | 'authentication-rejected' = 'authentication-rejected'
   ) => {
-    await input.loginFailure(request);
+    await observeLoginFailure(request);
     if (local) return reply.headers(noCache).send({ message: 'Incorrect username/password', user: false });
-    if (input.renderAuthenticationFailure && accepts(request.raw).types(['html', 'json']) === 'html')
-      return input.renderAuthenticationFailure(request, reply, reason);
+    if (input.renderAuthenticationFailure && requestAccepts(request).types(['html', 'json']) === 'html') {
+      await input.renderAuthenticationFailure(request, reply, reason);
+      return reply;
+    }
     return reply.headers(noCache).code(403).send({ message: 'Authentication rejected', user: false });
   };
   const login = (kind: 'local' | 'aaf' | 'oidc') => async (request: FastifyRequest, reply: FastifyReply) => {
@@ -173,7 +190,7 @@ export function installNativeAuthenticationRoutes(
       kind === 'local' &&
       [username, password].some(value => typeof value !== 'string' || !value || value.length > 4096)
     ) {
-      await input.loginFailure(request);
+      await observeLoginFailure(request);
       return reply.code(400).send({ message: 'Invalid login parameters' });
     }
     let actor: AuthenticatedActor | false = false;
@@ -203,9 +220,9 @@ export function installNativeAuthenticationRoutes(
       if (
         !(error instanceof AuthenticationRejected) &&
         !(error instanceof Error && error.message === 'Account is disabled') &&
-        !(error && typeof error === 'object' && String(Reflect.get(error, 'code')).startsWith('OAUTH_'))
+        !(error && typeof error === 'object' && requestString(Reflect.get(error, 'code'))?.startsWith('OAUTH_'))
       ) {
-        await input.loginFailure(request);
+        await observeLoginFailure(request);
         throw error;
       }
     }
@@ -235,7 +252,7 @@ export function installNativeAuthenticationRoutes(
       await request.session.save();
       await input.audit('login', actor, request);
     } catch (error) {
-      await input.loginFailure(request);
+      await observeLoginFailure(request);
       await request.session.destroy();
       clear(reply);
       throw error;

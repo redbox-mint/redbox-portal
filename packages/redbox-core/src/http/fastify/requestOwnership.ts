@@ -8,6 +8,14 @@ import {
 } from '../../middleware/requestLifetime';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { bindAcceptedPersistenceContext } from '../../persistence/runtime';
+import {
+  normalizeHttpError,
+  writeHttpError,
+  httpSendState,
+  beginHttpErrorHandler,
+  registerHttpReplyView,
+  httpReplySubmitted,
+} from './errorBoundary';
 
 // Preserve arity and AsyncFunction classification for Fastify's signature checks.
 export const requestHooks = [
@@ -44,6 +52,7 @@ function sendPayload(payload: unknown) {
 /** One lifetime adapter per sealed host. @internal */
 export function requestOwnership(owner: PersistenceOwner) {
   const contexts = new WeakMap<FastifyRequest, ReturnType<typeof bindAcceptedPersistenceContext>>();
+  const replies = new WeakMap<FastifyRequest, FastifyReply>();
   const current = new AsyncLocalStorage<FastifyRequest>();
   const wrapped = new WeakSet<Callable>();
   const publicObjects = new WeakMap<object, object>();
@@ -96,6 +105,7 @@ export function requestOwnership(owner: PersistenceOwner) {
       throw new TypeError(`Fastify cannot replace/use ${kind}.${String(key)}; use owned hooks/module drains.`);
     };
     const protectedKey = (key: PropertyKey) => {
+      if (key === 'log') return true;
       const value = Reflect.get(target, key, target);
       return typeof key === 'symbol' || typeof value === 'function' || publicValue(value) !== value;
     };
@@ -174,6 +184,7 @@ export function requestOwnership(owner: PersistenceOwner) {
     publicObjects.set(target, view);
     publicObjects.set(view, view);
     nativeObjects.set(view, target);
+    if (kind === 'reply') registerHttpReplyView(target as FastifyReply, view);
     return view;
   }
   let preparation: (instance: unknown) => unknown;
@@ -201,15 +212,54 @@ export function requestOwnership(owner: PersistenceOwner) {
             return args.length === 4 ? done(null, args[2]) : done();
           }
           if (requestIndex === 1) {
-            const reply = args[2] as FastifyReply;
-            return reply.code(500).send({ error: 'internal-server-error' });
+            // No admitted context exists for prepared work. Even this early
+            // error must bypass serializers/send hooks and the default parent.
+            return writeHttpError(normalizeHttpError(args[0]), { request: args[1], reply: args[2] });
           }
           return args.length >= 3 ? args[2] : undefined;
         }
+        const reply = replies.get(request);
+        let generation = reply && httpSendState(reply).generation;
+        const nativeDone = callback && outgoing && typeof args.at(-1) === 'function' ? args.at(-1) : undefined;
+        let continued = false;
+        if (nativeDone)
+          args[args.length - 1] = function (this: unknown, ...values: unknown[]) {
+            if (continued) return;
+            continued = true;
+            // A hijacked/committed response owns its bytes. Never resume a stale
+            // Fastify send pipeline after a concurrent failure or raw completion.
+            if (reply?.sent || reply?.raw.headersSent || (reply && httpSendState(reply).generation !== generation))
+              return;
+            if (values[0]) values[0] = normalizeHttpError(values[0]);
+            try {
+              return Reflect.apply(nativeDone, this, values);
+            } catch (error) {
+              // Native continuation work (for example writeHead) may throw too.
+              // It must never become an unhandled promise from our callback.
+              if (reply) writeHttpError(normalizeHttpError(error), { request, reply });
+            }
+          };
+        const failed = (error: unknown) => {
+          if (
+            continued ||
+            reply?.sent ||
+            reply?.raw.headersSent ||
+            (reply && httpSendState(reply).generation !== generation)
+          ) {
+            reply?.log.error('HTTP_POST_SEND_FAILURE');
+            return undefined;
+          }
+          throw normalizeHttpError(error);
+        };
         const handoff = (value: unknown) => {
           const native = nativeValue(value);
+          if (shortCircuit && !outgoing && reply && httpReplySubmitted(reply)) return reply;
           // Undefined keeps a hook's existing payload, including in-place changes.
           if (outgoing) sendPayload(native === undefined && callback && args.length === 4 ? args[2] : native);
+          if (outgoing && !callback && reply?.sent && native !== undefined && native !== reply) {
+            reply.log.warn('HTTP_DUPLICATE_SEND');
+            return undefined;
+          }
           return native;
         };
         const invoke = () =>
@@ -231,6 +281,7 @@ export function requestOwnership(owner: PersistenceOwner) {
                 };
                 args[args.length - 1] = function (this: unknown, ...values: unknown[]) {
                   try {
+                    if (!values[0] && shortCircuit && !outgoing && reply && httpReplySubmitted(reply)) return reply;
                     if (args.length === 4) {
                       if (outgoing && !values[0]) {
                         try {
@@ -253,6 +304,13 @@ export function requestOwnership(owner: PersistenceOwner) {
                 }
               }
               try {
+                if (requestIndex === 1) {
+                  args[0] = normalizeHttpError(args[0]);
+                  if (reply) {
+                    beginHttpErrorHandler(reply);
+                    generation = httpSendState(reply).generation;
+                  }
+                }
                 // Only pinned, qualified framework plugins receive native objects.
                 // Application hooks always receive capability views.
                 const result = Reflect.apply(
@@ -265,17 +323,32 @@ export function requestOwnership(owner: PersistenceOwner) {
                   void Promise.resolve(result).then(release, release);
                 // Return native capabilities only to Fastify.
                 return result && typeof result.then === 'function'
-                  ? Promise.resolve(result).then(handoff)
+                  ? Promise.resolve(result).then(handoff).catch(failed)
                   : callback
                     ? nativeValue(result)
                     : handoff(result);
               } catch (error) {
                 release?.();
-                throw error;
+                return failed(error);
               }
             })
           );
-        return context(invoke);
+        const result = context(invoke);
+        if (nativeDone) {
+          // Retain the original async work, but own the native continuation.
+          // Fastify must not also resume it through its promise hook runner.
+          if (result && typeof (result as PromiseLike<unknown>).then === 'function')
+            void Promise.resolve(result).then(
+              value => {
+                if (!continued) args.at(-1)(null, value);
+              },
+              error => {
+                if (!continued) args.at(-1)(normalizeHttpError(error));
+              }
+            );
+          return undefined;
+        }
+        return result;
       },
     });
     wrapped.add(proxy);
@@ -285,6 +358,13 @@ export function requestOwnership(owner: PersistenceOwner) {
     return wrap(fn, requestIndex, false, false, true);
   }
   function hook(name: string, fn: unknown) {
+    if (name === 'onError' && typeof fn === 'function')
+      fn = new Proxy(fn, {
+        apply(target, receiver, args) {
+          args[2] = normalizeHttpError(args[2]);
+          return Reflect.apply(target, receiver, args);
+        },
+      });
     return wrap(
       fn,
       0,
@@ -302,6 +382,7 @@ export function requestOwnership(owner: PersistenceOwner) {
     if (options.errorHandler) options.errorHandler = handler(options.errorHandler, 1);
   }
   const capture = (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
+    replies.set(request, reply);
     publicView(request, 'request');
     publicView(reply, 'reply');
     for (const transport of [request.raw, reply.raw, request.raw.socket]) publicView(transport, 'raw');
@@ -309,8 +390,17 @@ export function requestOwnership(owner: PersistenceOwner) {
     const send = reply.send;
     reply.send = function (payload: unknown) {
       sendPayload(payload);
+      if (reply.sent) {
+        reply.log.warn('HTTP_DUPLICATE_SEND');
+        return reply;
+      }
       if (payload && typeof (payload as PromiseLike<unknown>).then === 'function')
-        trackHttpRequestWork(request, payload as PromiseLike<unknown>);
+        trackHttpRequestWork(
+          request,
+          Promise.resolve(payload).catch(() => {
+            reply.log.error('HTTP_POST_SEND_FAILURE');
+          })
+        );
       return send.call(this, payload);
     };
     const then = reply.then;
@@ -324,18 +414,18 @@ export function requestOwnership(owner: PersistenceOwner) {
             const result = contexts.get(request)!(() =>
               current.run(request, () => runHttpRequestWork(request, invoke))
             );
-            void Promise.resolve(result).then(lease.resolve, error => {
-              reply.log.error({ err: error }, 'reply.then callback failed');
+            void Promise.resolve(result).then(lease.resolve, () => {
+              runHttpRequestContext(request, () => reply.log.error('HTTP_REPLY_CALLBACK_FAILED'));
               lease.resolve();
             });
             return result;
-          } catch (error) {
+          } catch {
+            runHttpRequestContext(request, () => reply.log.error('HTTP_REPLY_CALLBACK_FAILED'));
             lease.resolve();
-            throw error;
           }
         };
       try {
-        const onError = rejected ?? (() => reply.log.warn('unhandled rejection on reply.then'));
+        const onError = rejected ?? (() => reply.log.warn('HTTP_REPLY_REJECTED'));
         return then.call(this, completion(fulfilled), completion(onError));
       } catch (error) {
         lease.resolve();

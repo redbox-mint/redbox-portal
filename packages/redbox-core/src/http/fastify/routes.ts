@@ -13,7 +13,8 @@ import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig, PolicyChain } from '../../config/policies.config';
 import { portalHttpPolicies } from '../../application/portal/httpPolicies';
 import { resolveEffectivePolicies } from '../express/policies';
-import { apiNoCacheHeaders, apiVersion } from '../express/responses';
+import { sendApiErrors } from './responses';
+import { httpReplySubmitted } from './errorBoundary';
 import { adminApiRoutes } from '../../api-routes/groups/admin';
 import { assertPortalRouter, createNativeRouter, routerConstraints, routerUrl } from './router';
 export { createPortalRouter, portalRouterOptions } from './router';
@@ -24,7 +25,7 @@ interface RouteInstaller {
   readonly initialConfig: FastifyInstance['initialConfig'];
   readonly supportedMethods: readonly string[];
   addHttpMethod(...args: Parameters<FastifyInstance['addHttpMethod']>): unknown;
-  addHook(name: 'onRequest', hook: (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>): unknown;
+  addHook(name: 'preHandler', hook: (request: FastifyRequest, reply: FastifyReply) => Promise<unknown>): unknown;
   route(options: RouteOptions): unknown;
 }
 type NativeRouter = ReturnType<typeof createNativeRouter>;
@@ -346,15 +347,7 @@ function hasMalformedCapture(matches: ReturnType<typeof matchedMethods>): boolea
 }
 
 function invalidRequest(request: FastifyRequest, reply: FastifyReply) {
-  const version = apiVersion({ headers: request.headers, query: request.query as Record<string, unknown> });
-  return reply
-    .headers(apiNoCacheHeaders)
-    .code(400)
-    .send(
-      version === '2.0'
-        ? { errors: [{ detail: 'Invalid request' }], meta: {} }
-        : { message: 'Invalid request', details: '' }
-    );
+  return sendApiErrors(request, reply, 400, [{ detail: 'Invalid request' }]);
 }
 
 /** Candidate URLs only; the real routers decide whether either path matches.
@@ -488,7 +481,7 @@ export interface RouteComposition {
   /** Guards own policy/CSRF/validation ordering; called even for implicit/denied HEAD. */
   install(app: RouteInstaller, controllers: Pick<ControllerInstances, 'action'>, guards: RouteGuards): void;
 }
-export type RouteGuards = (binding: RouteBinding, request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+export type RouteGuards = (binding: RouteBinding, request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
 
 /** Preserve declared legacy precedence at crossed static/parameter segments.
  * Candidate construction is conservative; real find-my-way probes must match
@@ -903,8 +896,9 @@ export async function composeRoutes(
       assertPortalRouter(app);
       configureMethods(app);
       // Express decodes a matching layer's captures before checking its method.
-      // Preserve safe malformed-capture errors even when this method misses.
-      app.addHook('onRequest', async (request, reply) => {
+      // Reject only after bounded parsing and session/authentication middleware,
+      // preserving parser precedence even when the matching layer's method misses.
+      app.addHook('preHandler', async (request, reply) => {
         if (hasMalformedCapture(matchedMethods(runtimeProbe, request.raw.url!))) return invalidRequest(request, reply);
       });
       // HEAD first also protects installation on an instance whose global
@@ -971,7 +965,7 @@ export async function composeRoutes(
               return invalidRequest(request, reply);
             }
             await guards(binding, request, reply);
-            if (reply.sent) return;
+            if (httpReplySubmitted(reply)) return reply;
             if (binding.kind === 'denied-head') {
               const head = route.declaration.head;
               if (head?.kind === 'deny' && head.allow) reply.header('Allow', head.allow);

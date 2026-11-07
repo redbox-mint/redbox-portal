@@ -10,6 +10,9 @@ import { withTimeout } from '../../utilities/withTimeout';
 import { createPortalRouter, requestPathname } from './router';
 import { requestOwnership } from './requestOwnership';
 import { sealPreparation, type FastifyPreparation } from './preparation';
+import { normalizeHttpError } from './errorBoundary';
+import { drainHttpLogger, httpLogStats, type HttpLogTarget } from './logging';
+import { pinoLoggerDestinations } from '../../utilities/PinoLoggerUtils';
 
 export interface FastifyHostOptions {
   readonly hostname: string;
@@ -18,6 +21,9 @@ export interface FastifyHostOptions {
   readonly trustProxy?: FastifyServerOptions['trustProxy'];
   /** The application's persistence owner, when handlers borrow its operations. */
   readonly owner?: PersistenceOwner;
+  /** Borrowed sink receives fixed codes and query-free paths. External Pino
+   * loggers supply their concrete destinations in sources; no Pino symbols. */
+  readonly logger?: HttpLogTarget;
   /** Register the complete graph after application initialization. Never listen here.
    * Integrations borrow this server; register their cleanup with the application.
    * Route composition owns the configured root context; probes remain global.
@@ -70,28 +76,42 @@ export class FastifyHost {
       options.owner
     );
     registerHttpRequestDrain(this.owner, () => this.drainRequests());
-    this.fastify = createPortalRouter({
-      trustProxy: options.trustProxy ?? false,
-      exposeHeadRoutes: false,
-      // A framework plugin timeout cannot cancel its raw acquisition promise.
-      // Caller stop deadlines bound waiting while retaining that acquisition.
-      pluginTimeout: 0,
-      // Keep our admission envelope while close hooks run, until the listener closes.
-      return503OnClosing: false,
-      forceCloseConnections: false,
-    });
+    this.fastify = createPortalRouter(
+      {
+        trustProxy: options.trustProxy ?? false,
+        exposeHeadRoutes: false,
+        // A framework plugin timeout cannot cancel its raw acquisition promise.
+        // Caller stop deadlines bound waiting while retaining that acquisition.
+        pluginTimeout: 0,
+        // Keep our admission envelope while close hooks run, until the listener closes.
+        return503OnClosing: false,
+        forceCloseConnections: false,
+      },
+      options.logger ?? {
+        sources: pinoLoggerDestinations(this.owner.log),
+        write: record => {
+          if (['warn', 'error', 'fatal'].includes(record.level)) return this.owner.log.warn(record.code);
+        },
+      },
+      this.owner
+    );
     // Root hooks precede every prepared plugin, parser, action and fallback. Do not
     // register health routes: native case/slash matching and implicit HEAD differ
     // from the existing exact global GET probe contract.
     this.fastify.addHook('onRequest', async (request, reply) => {
-      const ready = this.status().ready;
-      const path = requestPathname(request.raw.url ?? '/');
-      if (request.method === 'GET' && path === '/healthz') {
-        const healthy = !this.failure && !this.stopFailed && !this.stopped;
-        return reply.code(healthy ? 200 : 503).send({ healthy });
+      try {
+        const ready = this.status().ready;
+        const path = requestPathname(request.raw.url ?? '/');
+        if (request.method === 'GET' && path === '/healthz') {
+          const healthy = !this.failure && !this.stopFailed && !this.stopped;
+          const logging = httpLogStats(this.fastify.log);
+          return reply.code(healthy ? 200 : 503).send({ healthy, ...(logging.failures ? { logging } : {}) });
+        }
+        if (request.method === 'GET' && path === '/readyz') return reply.code(ready ? 200 : 503).send({ ready });
+        if (!ready) return reply.code(503).send({ error: 'application-not-ready' });
+      } catch (error) {
+        throw normalizeHttpError(error);
       }
-      if (request.method === 'GET' && path === '/readyz') return reply.code(ready ? 200 : 503).send({ ready });
-      if (!ready) return reply.code(503).send({ error: 'application-not-ready' });
     });
     this.fastify.setNotFoundHandler((_request, reply) => reply.code(404).send({ error: 'not-found' }));
     // Callback form keeps Fastify's continuation in the accepted persistence and
@@ -116,7 +136,7 @@ export class FastifyHost {
         return promise;
       };
       void runAcceptedPersistenceWork(this.owner, dispatch).catch(() => {
-        void reply.code(503).send({ error: 'application-not-ready' });
+        return reply.code(503).send({ error: 'application-not-ready' });
       });
     });
     const ownership = requestOwnership(this.owner);
@@ -256,6 +276,7 @@ export class FastifyHost {
       stopFailed: this.stopFailed,
       failure: this.failure,
       application: this.application.status(),
+      logging: httpLogStats(this.fastify.log),
     };
   }
 
@@ -300,6 +321,7 @@ export class FastifyHost {
 
   private async drainRequests(): Promise<void> {
     while (this.requests.size) await Promise.allSettled(this.requests);
+    await drainHttpLogger(this.fastify.log);
   }
 
   private async closeTransport(): Promise<void> {

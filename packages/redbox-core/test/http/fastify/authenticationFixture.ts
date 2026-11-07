@@ -52,6 +52,7 @@ export interface FixtureOptions {
   logoutOrigins?: string[];
   hook?: AuthenticationAccountsInput['resolveHook'];
   audit?: () => Promise<void>;
+  loginFailure?: () => Promise<void>;
   bearer?: () => Promise<void>;
   renderFailure?: boolean;
 }
@@ -157,6 +158,7 @@ export async function authenticationFixture(native: boolean, options: FixtureOpt
     installNativeAuthenticationRoutes(app, authentication, {
       ...routeInput,
       loginFailure: async req => {
+        await options.loginFailure?.();
         events.push({
           ...authenticationFailureEvent(
             { method: req.method, path: req.url.split('?')[0].replace(/^\/portal/, ''), body: req.body },
