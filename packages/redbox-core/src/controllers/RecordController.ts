@@ -890,23 +890,31 @@ export namespace Controllers {
           if (!canEdit) {
             return res.forbidden();
           }
-          if (extFormName && extFormName !== existingRecord.metaMetadata?.form && req.session) {
+          if (extFormName && extFormName !== existingRecord.metaMetadata?.form) {
             if (
-              await routeFormAllowed(existingRecord, extFormName, step =>
+              !req.session ||
+              !req.sessionID ||
+              !req.sessionStore ||
+              !(await routeFormAllowed(existingRecord, extFormName, step =>
                 this.recordsService.hasTransitionRoleAuthorization(step, req.user ?? {})
-              )
+              ))
             ) {
-              const grant: RecordRouteForm = {
-                oid: String(oid),
-                brandId: String(brand.id),
-                username: String(req.user?.username ?? ''),
-                recordType: String(existingRecord.metaMetadata.type),
-                storedForm: String(existingRecord.metaMetadata.form),
-                stage: String(existingRecord.workflow?.stage),
-                formName: extFormName,
-              };
-              await storeRouteForm(req, grant);
+              return this.sendResp(req, res, {
+                status: 409,
+                displayErrors: [{ code: 'form-definition-changed' }],
+                v1: { message: TranslationService.t('form-definition-changed') },
+              });
             }
+            const grant: RecordRouteForm = {
+              oid: String(oid),
+              brandId: String(brand.id),
+              username: String(req.user?.username ?? ''),
+              recordType: String(existingRecord.metaMetadata.type),
+              storedForm: String(existingRecord.metaMetadata.form),
+              stage: String(existingRecord.workflow?.stage),
+              formName: extFormName,
+            };
+            await storeRouteForm(req, grant);
           }
         } catch (error) {
           sails.log.error(error);
@@ -1160,6 +1168,8 @@ export namespace Controllers {
         );
         // Discovery uses the authorised source contract without changing the
         // stored record or relaxing the discovery service's identity check.
+        // Transition operations and their allowed targets still come from each
+        // destination's authoritative form, as they do during saving.
         const validationOperations = await FormsService.discoverValidationOperations({
           brand,
           form,

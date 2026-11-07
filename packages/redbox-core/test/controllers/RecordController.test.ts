@@ -774,7 +774,7 @@ describe('RecordController getWorkflowSteps', () => {
           const sendView = sinon.stub(controller, 'sendView');
           (controller.recordsService.getMeta as sinon.SinonStub).resolves({
             redboxOid: 'oid-1',
-            metaMetadata: { type: recordType, form: 'saved-form' },
+            metaMetadata: { type: recordType, form: formSelection === 'named' ? 'named-form' : 'saved-form' },
             metadata: { title: 'Saved title' },
           });
           (FormsService.getFormByName as sinon.SinonStub).returns(of({ configuration: {} }));
@@ -816,7 +816,8 @@ describe('RecordController getWorkflowSteps', () => {
           const service = new RecordServices.Records();
           (controller.recordsService.hasEditAccess as sinon.SinonStub).callsFake(service.hasEditAccess.bind(service));
           (controller.recordsService.getMeta as sinon.SinonStub).resolves({
-            redboxOid: 'oid-1', metaMetadata: { type: 'rdmp', form: 'saved-form' },
+            redboxOid: 'oid-1',
+            metaMetadata: { type: 'rdmp', form: selection === 'named' ? 'named-form' : 'saved-form' },
             authorization: { edit: ['owner', 'editor'], editRoles: ['Admin'], view: ['viewer'], viewRoles: [] },
             metadata: { title: 'Protected saved title' },
           });
@@ -1455,7 +1456,7 @@ describe('RecordController getWorkflowSteps', () => {
       );
       return sendResp.lastCall.args[2];
     };
-    const open = async (oid = record.redboxOid, requestSession = session) =>
+    const open = async (oid = record.redboxOid, requestSession = session, overrides: Partial<Sails.Req> = {}) =>
       controller.edit(
         {
           param: name =>
@@ -1466,6 +1467,7 @@ describe('RecordController getWorkflowSteps', () => {
           sessionID: 'session-a',
           sessionStore,
           user,
+          ...overrides,
         } as unknown as Sails.Req,
         { forbidden: sinon.stub() } as unknown as Sails.Res
       );
@@ -1538,6 +1540,37 @@ describe('RecordController getWorkflowSteps', () => {
           )?.fingerprint
         ).to.equal(result.meta.formFingerprint);
         expect(sendView.calledOnce).to.equal(true);
+      });
+    }
+
+    for (const scenario of ['wrong-type', 'unreachable', 'unconfigured', 'transition-role']) {
+      it(`rejects an ineligible ${scenario} form at the edit-route boundary`, async () => {
+        if (scenario === 'wrong-type') form.configuration.type = 'dataPublication';
+        if (scenario === 'unreachable') currentStep.config.workflow.next = ['finalised'];
+        if (scenario === 'unconfigured') transitionStep.config.form = 'other-form';
+        if (scenario === 'transition-role') transitionStep.config.authorization = { transitionRoles: ['Admin'] };
+        const store = sinon.spy(sessionStore, 'set');
+
+        await open();
+
+        expect(sendResp.lastCall?.args[2]).to.deep.include({
+          status: 409,
+          displayErrors: [{ code: 'form-definition-changed' }],
+        });
+        expect(sendView.notCalled).to.equal(true);
+        expect(store.notCalled).to.equal(true);
+      });
+    }
+
+    for (const missing of ['sessionID', 'sessionStore']) {
+      it(`does not render an alternate form without ${missing} to hold its grant`, async () => {
+        await open(record.redboxOid, session, { [missing]: undefined });
+
+        expect(sendResp.lastCall?.args[2]).to.deep.include({
+          status: 409,
+          displayErrors: [{ code: 'form-definition-changed' }],
+        });
+        expect(sendView.notCalled).to.equal(true);
       });
     }
 

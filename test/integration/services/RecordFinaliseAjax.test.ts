@@ -7,8 +7,11 @@ describe('Record Management: finalise route form switching', function () {
   this.timeout(60_000);
   const sourceStage = 'finalise-regression-source';
   const sourceForm = 'finalise-regression-source-form';
+  const destinationStage = 'finalise-regression-finalised';
+  const destinationForm = 'finalise-regression-finalised-form';
   const oid = `finalise-regression-${Date.now()}`;
   const tabOids = [`${oid}-tab-a`, `${oid}-tab-b`];
+  const operationOid = `${oid}-operation`;
   let agent: supertest.Agent;
   let brand;
   let recordType;
@@ -28,7 +31,27 @@ describe('Record Management: finalise route form switching', function () {
           validationOperations: {
             ...finaliseConfiguration.validationOperations,
             finaliseRegression: { label: 'Finalise regression', enabledValidationGroups: ['all'] },
+            finaliseTransition: {
+              label: 'Finalise transition',
+              enabledValidationGroups: [],
+              allowedTargetSteps: [destinationStage],
+            },
+            finaliseSourceOnly: {
+              label: 'Source only',
+              enabledValidationGroups: [],
+              allowedTargetSteps: [destinationStage],
+            },
           },
+          componentDefinitions: [
+            ...finaliseConfiguration.componentDefinitions,
+            {
+              name: 'finaliseRegressionButton',
+              component: {
+                class: 'SaveButtonComponent',
+                config: { operation: 'finaliseTransition', targetStep: destinationStage },
+              },
+            },
+          ],
         },
       }
     );
@@ -36,6 +59,39 @@ describe('Record Management: finalise route form switching', function () {
       name: sourceForm,
       branding: brand.id,
       configuration: { name: sourceForm, type: 'rdmp', componentDefinitions: [] },
+    });
+    await Form.create({
+      name: destinationForm,
+      branding: brand.id,
+      configuration: {
+        name: destinationForm,
+        type: 'rdmp',
+        validationGroups: {
+          all: { description: 'All validators', initialMembership: 'all' },
+          none: { description: 'No validators', initialMembership: 'none' },
+        },
+        validationOperations: {
+          finaliseTransition: { enabledValidationGroups: ['all'], allowedTargetSteps: [destinationStage] },
+        },
+        componentDefinitions: [
+          {
+            name: 'finaliseConfirmation',
+            component: { class: 'SimpleInputComponent' },
+            model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } },
+          },
+        ],
+      },
+    });
+    await WorkflowStep.create({
+      name: destinationStage,
+      recordType: recordType.id,
+      config: {
+        form: destinationForm,
+        workflow: { stage: destinationStage, stageLabel: 'Finalise regression finalised' },
+        authorization: { viewRoles: ['Admin'], editRoles: ['Admin'], transitionRoles: ['Admin'] },
+      },
+      starting: false,
+      hidden: false,
     });
     await WorkflowStep.create({
       name: sourceStage,
@@ -48,7 +104,7 @@ describe('Record Management: finalise route form switching', function () {
       starting: false,
       hidden: true,
     });
-    for (const recordOid of [oid, ...tabOids]) {
+    for (const recordOid of [oid, ...tabOids, operationOid]) {
       const created = await sails.services.mongostorageservice.create(
         brand,
         {
@@ -81,10 +137,88 @@ describe('Record Management: finalise route form switching', function () {
     if (finaliseConfiguration) {
       await Form.update({ name: 'default-1.0-draft', branding: brand.id }, { configuration: finaliseConfiguration });
     }
-    await Record.destroy({ redboxOid: [oid, ...tabOids] });
-    await RecordAudit.destroy({ redboxOid: [oid, ...tabOids] });
-    await WorkflowStep.destroy({ name: sourceStage, recordType: recordType.id });
-    await Form.destroy({ name: sourceForm, branding: brand.id });
+    await Record.destroy({ redboxOid: [oid, ...tabOids, operationOid] });
+    await RecordAudit.destroy({ redboxOid: [oid, ...tabOids, operationOid] });
+    await WorkflowStep.destroy({ name: [sourceStage, destinationStage], recordType: recordType.id });
+    await Form.destroy({ name: [sourceForm, destinationForm], branding: brand.id });
+  });
+
+  it('rejects an ineligible alternate form before rendering the finalise page', async function () {
+    const criteria = { name: sourceStage, recordType: recordType.id };
+    const step = await WorkflowStep.findOne(criteria);
+    try {
+      await WorkflowStep.update(criteria, {
+        config: { ...step.config, workflow: { ...step.config.workflow, next: [] } },
+      });
+
+      const rejected = await agent
+        .get(`/default/rdmp/record/finalise/rdmp/edit/${operationOid}`)
+        .set('X-ReDBox-Api-Version', '2.0')
+        .expect(409);
+      expect(JSON.stringify(rejected.body)).to.include('form-definition-changed');
+      expect(rejected.text).not.to.include('<dmp-form');
+    } finally {
+      await WorkflowStep.update(criteria, { config: step.config });
+    }
+  });
+
+  it('discovers and enforces named transition operations on a distinct destination form', async function () {
+    const validationConfig = sails.config.recordValidation;
+    sails.config.recordValidation = { ...validationConfig, mode: 'enforce' };
+    try {
+      await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${operationOid}`).expect(200);
+      const requestForm = (targetStep?: string) =>
+        agent
+          .get(`/default/rdmp/record/form/rdmp/${operationOid}`)
+          .set('X-ReDBox-Api-Version', '2.0')
+          .query({ edit: 'true', formName: 'default-1.0-draft', ...(targetStep ? { targetStep } : {}) });
+      const delivered = await requestForm().expect(200);
+      expect(delivered.body.meta.validationOperations).to.deep.include({
+        name: 'finaliseTransition',
+        label: 'Finalise transition',
+        allowedTargetSteps: [destinationStage],
+      });
+      const sourceOnly = delivered.body.meta.validationOperations.find(item => item.name === 'finaliseSourceOnly');
+      expect(sourceOnly).to.deep.equal({ name: 'finaliseSourceOnly', label: 'Source only' });
+      const targeted = await requestForm(destinationStage).expect(200);
+      expect(targeted.body.meta.validationOperations).to.deep.equal([
+        { name: 'finaliseTransition', allowedTargetSteps: [destinationStage] },
+      ]);
+      const before = await sails.services.recordsservice.getMeta(operationOid);
+      const save = (operation: string, metadata: object) =>
+        agent
+          .put(`/default/rdmp/recordmeta/${operationOid}`)
+          .query({ targetStep: destinationStage, operation })
+          .set('X-Source', 'jsclient')
+          .set('X-ReDBox-Api-Version', '2.0')
+          .set('If-Match', delivered.headers.etag)
+          .set('X-ReDBox-Form-Fingerprint', delivered.body.meta.formFingerprint)
+          .send(metadata);
+
+      const unknown = await save('finaliseSourceOnly', {
+        title: 'Source operation cannot authorise destination',
+      }).expect(400);
+      expect(JSON.stringify(unknown.body)).to.include('record-validation-operation-invalid');
+      // The source operation enables no groups; the destination still requires confirmation.
+      const invalid = await save('finaliseTransition', { title: 'Missing destination requirement' }).expect(400);
+      expect(JSON.stringify(invalid.body)).to.include('record-validation-failed');
+      expect(JSON.stringify(invalid.body)).to.include('finaliseConfirmation');
+      const rejected = await sails.services.recordsservice.getMeta(operationOid);
+      expect(rejected.revision).to.equal(before.revision);
+      expect(rejected.workflow.stage).to.equal(sourceStage);
+      expect(rejected.metaMetadata.form).to.equal(sourceForm);
+
+      await save('finaliseTransition', { title: 'Named transition saved', finaliseConfirmation: 'Confirmed' }).expect(
+        200
+      );
+      const saved = await sails.services.recordsservice.getMeta(operationOid);
+      expect(saved.revision).to.equal(before.revision + 1);
+      expect(saved.workflow.stage).to.equal(destinationStage);
+      expect(saved.metaMetadata.form).to.equal(destinationForm);
+      expect(saved.metadata.finaliseConfirmation).to.equal('Confirmed');
+    } finally {
+      sails.config.recordValidation = validationConfig;
+    }
   });
 
   it('keeps grants for overlapping tabs and a reopened route through the configured session store', async function () {
