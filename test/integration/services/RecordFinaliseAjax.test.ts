@@ -1,6 +1,7 @@
 import supertest from 'supertest';
 import { firstValueFrom } from 'rxjs';
 import * as sinon from 'sinon';
+import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
 describe('Record Management: finalise route form switching', function () {
   this.timeout(60_000);
@@ -11,10 +12,26 @@ describe('Record Management: finalise route form switching', function () {
   let agent: supertest.Agent;
   let brand;
   let recordType;
+  let finaliseConfiguration: FormConfigFrame | undefined;
 
   before(async function () {
     brand = BrandingService.getDefault();
     recordType = await firstValueFrom(RecordTypesService.get(brand, 'rdmp'));
+    const finaliseForm = await firstValueFrom(FormsService.getFormByName('default-1.0-draft', true, String(brand.id)));
+    if (!finaliseForm?.configuration) throw new Error('The default finalise form is missing.');
+    finaliseConfiguration = finaliseForm.configuration;
+    await Form.update(
+      { name: 'default-1.0-draft', branding: brand.id },
+      {
+        configuration: {
+          ...finaliseConfiguration,
+          validationOperations: {
+            ...finaliseConfiguration.validationOperations,
+            finaliseRegression: { label: 'Finalise regression', enabledValidationGroups: ['all'] },
+          },
+        },
+      }
+    );
     await Form.create({
       name: sourceForm,
       branding: brand.id,
@@ -61,6 +78,9 @@ describe('Record Management: finalise route form switching', function () {
   });
 
   after(async function () {
+    if (finaliseConfiguration) {
+      await Form.update({ name: 'default-1.0-draft', branding: brand.id }, { configuration: finaliseConfiguration });
+    }
     await Record.destroy({ redboxOid: [oid, ...tabOids] });
     await RecordAudit.destroy({ redboxOid: [oid, ...tabOids] });
     await WorkflowStep.destroy({ name: sourceStage, recordType: recordType.id });
@@ -130,8 +150,15 @@ describe('Record Management: finalise route form switching', function () {
     await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${oid}`).expect(200);
     const delivered = await requestForm().expect(200);
     expect(delivered.body.meta.formName).to.equal('default-1.0-draft');
+    expect(delivered.body.meta.validationOperations).to.deep.include({
+      name: 'finaliseRegression',
+      label: 'Finalise regression',
+      allowedTargetSteps: ['draft'],
+    });
     const fingerprint = delivered.body.meta.formFingerprint;
     const current = await sails.services.recordsservice.getMeta(oid);
+    expect(current.metaMetadata.form).to.equal(sourceForm);
+    expect(current.workflow.stage).to.equal(sourceStage);
     const concurrent = await sails.services.mongostorageservice.updateMeta(
       brand,
       oid,

@@ -117,7 +117,7 @@ export function routeFormMatches(record: RecordModel | undefined, grant: RecordR
   );
 }
 
-/** Select the source contract for fingerprinting only; never mutate the saved workflow. */
+/** Select the authorised source contract without mutating the stored workflow. */
 export function routeFormFingerprintRecord(record: RecordModel, formName: string): RecordModel {
   return { ...record, metaMetadata: { ...record.metaMetadata, form: formName } };
 }

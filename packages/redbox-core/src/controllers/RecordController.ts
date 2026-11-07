@@ -1144,11 +1144,13 @@ export namespace Controllers {
           contextVariablesMap,
           { user: req.user as UserModel, brand }
         );
+        // Discovery uses the authorised source contract without changing the
+        // stored record or relaxing the discovery service's identity check.
         const validationOperations = await FormsService.discoverValidationOperations({
           brand,
           form,
           recordType: String(currentRec?.metaMetadata?.type ?? recordType ?? formConfig.type ?? ''),
-          record: currentRec,
+          record: currentRec && routeForm ? routeFormFingerprintRecord(currentRec, routeForm.formName) : currentRec,
           user: req.user,
           editable: editMode,
           targetStep: typeof req.query?.targetStep === 'string' ? req.query.targetStep : undefined,
@@ -1681,11 +1683,11 @@ export namespace Controllers {
           displayErrors: [{ code: 'record-validation-operation-invalid' }],
         });
       }
-      const saveRequest = await this.mutationSaveContext(req, oid, 'transition', parsedOperation.value, targetStep, true);
-      if (!saveRequest.valid) {
-        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-      }
       try {
+        const saveRequest = await this.mutationSaveContext(req, oid, 'transition', parsedOperation.value, targetStep, true);
+        if (!saveRequest.valid) {
+          return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+        }
         const currentRec = await firstValueFrom(this.getRecord(oid));
         if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });

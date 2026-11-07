@@ -10,6 +10,8 @@ import { Settings } from 'luxon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { UserModel, RoleModel } from '../../src/model';
 import { Services as RecordServices } from '../../src/services/RecordsService';
+import { Services as FormServices } from '../../src/services/FormsService';
+import { Services as ValidationServices } from '../../src/services/RecordValidationService';
 import { Controllers as AsynchControllers } from '../../src/controllers/AsynchController';
 import { RecordSaveResponse } from '../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../src/RecordEntityTag';
@@ -1539,6 +1541,79 @@ describe('RecordController getWorkflowSteps', () => {
       });
     }
 
+    it('discovers validation operations for an authorised alternate form without changing the stored context', async () => {
+      form.configuration.name = formName;
+      form.configuration.validationOperations = {
+        submit: { label: 'Submit for review', enabledValidationGroups: ['all'] },
+        adminOnly: { label: 'Private action', enabledValidationGroups: ['all'], roles: ['Admin'] },
+      };
+      const forms = new FormServices.Forms();
+      const validation = new ValidationServices.RecordValidation();
+      const discover = sinon.spy(validation, 'discoverOperations');
+      Object.assign(sails.services, {
+        recordsservice: controller.recordsService,
+        recordvalidationservice: validation,
+      });
+      (FormsService.discoverValidationOperations as sinon.SinonStub).callsFake(
+        forms.discoverValidationOperations.bind(forms)
+      );
+      (FormsService.getFormByName as sinon.SinonStub).callsFake(name =>
+        of(
+          name === formName
+            ? form
+            : {
+                name,
+                branding: 'brand-1',
+                configuration: { name, type: 'rdmp', componentDefinitions: [] },
+              }
+        )
+      );
+
+      await open();
+      const result = await load();
+
+      expect(result.meta.validationOperations).to.deep.equal([{ name: 'submit', label: 'Submit for review' }]);
+      expect(discover.calledOnce).to.equal(true);
+      const candidate = discover.firstCall.args[0].candidate;
+      expect(candidate.metaMetadata.form).to.equal(formName);
+      expect(candidate.workflow).to.deep.equal({ stage: 'draft' });
+      expect(record.metaMetadata.form).to.equal('rdmp-draft');
+      expect(record.workflow).to.deep.equal({ stage: 'draft' });
+    });
+
+    it('handles session-store failures on stepTo without saving or exposing error details', async () => {
+      const update = sinon.stub();
+      controller.recordsService.updateMeta = update;
+      sinon
+        .stub(sessionStore, 'get')
+        .callsFake((_key, callback) => callback(new Error('private session-store connection details')));
+      const req = {
+        params: { oid: record.redboxOid, targetStep: 'finalised' },
+        query: { formName: record.metaMetadata.form },
+        headers: {
+          'if-match': formatRecordEntityTag(record.redboxOid, record.revision),
+          'x-redbox-form-fingerprint': 'current-form-fingerprint',
+        },
+        body: { title: 'Finalise' },
+        session,
+        sessionID: 'session-a',
+        sessionStore,
+        user,
+      } as unknown as Sails.Req;
+
+      await controller.stepTo(req, {} as Sails.Res);
+
+      expect(sendResp.lastCall.args[2]).to.deep.equal({
+        status: 500,
+        displayErrors: [{ code: 'record-save-failed', title: '@record-save-failed' }],
+      });
+      expect(update.notCalled).to.equal(true);
+      expect(JSON.stringify(sendResp.args)).not.to.include('private session-store connection details');
+      expect(JSON.stringify((sails.log.error as sinon.SinonStub).args)).not.to.include(
+        'private session-store connection details'
+      );
+    });
+
     it('keeps the core default finalise route working with a different stored form', async () => {
       routeLocals = (routes['get /:branding/:portal/record/finalise/:recordType/edit/:oid'] as RouteTargetObject)
         .locals;
@@ -1711,6 +1786,7 @@ describe('RecordController getWorkflowSteps', () => {
         expect(result).to.include({ status: 409 });
         expect(result.displayErrors).to.deep.equal([{ code: 'form-definition-changed' }]);
         expect((global as any).FormsService.getForm.notCalled).to.equal(true);
+        expect((FormsService.discoverValidationOperations as sinon.SinonStub).notCalled).to.equal(true);
       });
     }
 
