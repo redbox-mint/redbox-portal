@@ -4,6 +4,8 @@ let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { firstValueFrom, of } from 'rxjs';
 import { tmpdir } from 'node:os';
+import { MemoryStore, Cookie } from 'express-session';
+import { readRouteForm } from '../../src/RecordRouteForm';
 import { Settings } from 'luxon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { UserModel, RoleModel } from '../../src/model';
@@ -54,6 +56,7 @@ describe('RecordController getWorkflowSteps', () => {
     (global as any).WorkflowStepsService = {
       getAllForRecordType: sinon.stub(),
     };
+    (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden = sinon.stub().callsFake((...args) => (global as any).WorkflowStepsService.getAllForRecordType(...args));
     (global as any).DashboardTypesService = {
       getDashboardView: sinon.stub(),
     };
@@ -944,7 +947,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect((controller.recordsService.getMeta as sinon.SinonStub).called).to.be.false;
   });
 
-  it('maps only the browser operation query to validationOperation while preserving CRUD intent', function () {
+  it('maps only the browser operation query to validationOperation while preserving CRUD intent', async function () {
     const req = {
       params: { targetStep: 'route-step' },
       query: { operation: ' submit ' },
@@ -962,7 +965,7 @@ describe('RecordController getWorkflowSteps', () => {
       param: sinon.stub().callsFake((name: string) => (name === 'operation' ? 'body-operation' : 'body-step')),
     } as unknown as Sails.Req;
     const parsed = (controller as any).publicValidationOperation(req);
-    const context = (controller as any).saveContext(req, 'transition', parsed.value);
+    const context = await (controller as any).saveContext(req, 'transition', parsed.value);
 
     expect(parsed).to.deep.equal({ valid: true, value: 'submit' });
     expect(context.operation).to.equal('transition');
@@ -1019,7 +1022,7 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendResp.firstCall.args[2]).not.to.have.property('v1');
   });
 
-  it('normalizes browser tags, form fingerprints, and resolution linkage once', function () {
+  it('normalizes browser tags, form fingerprints, and resolution linkage once', async function () {
     const entityTag = formatRecordEntityTag('oid-1', 6);
     const requestId = '00000000-0000-4000-8000-000000000011';
     const priorRequestId = '00000000-0000-4000-8000-000000000012';
@@ -1035,7 +1038,7 @@ describe('RecordController getWorkflowSteps', () => {
       },
     } as unknown as Sails.Req;
 
-    const parsed = (controller as any).mutationSaveContext(req, 'oid-1', 'update', undefined, undefined, true);
+    const parsed = await (controller as any).mutationSaveContext(req, 'oid-1', 'update', undefined, undefined, true);
     expect(parsed.valid).to.equal(true);
     expect(parsed.context.requestId).to.equal(requestId);
     expect(parsed.context.concurrency).to.deep.equal({
@@ -1046,7 +1049,7 @@ describe('RecordController getWorkflowSteps', () => {
       resolutionOfRequestId: priorRequestId,
     });
 
-    const malformed = (controller as any).mutationSaveContext(
+    const malformed = await (controller as any).mutationSaveContext(
       { headers: { 'if-match': `W/${entityTag}` } },
       'oid-1',
       'update',
@@ -1430,31 +1433,36 @@ describe('RecordController getWorkflowSteps', () => {
     let currentStep;
     let transitionStep;
     let session;
+    let sessionStore;
     let user;
     let sendResp;
     let sendView;
     let formName;
     let routeLocals;
-    const load = async () => {
+    const load = async (oid = record.redboxOid) => {
       await controller.getForm(
         {
-          param: name => (name === 'oid' ? record.redboxOid : name === 'formName' ? formName : 'rdmp'),
+          param: name => (name === 'oid' ? oid : name === 'formName' ? formName : 'rdmp'),
           query: { edit: 'true' },
           session,
+          sessionID: 'session-a',
+          sessionStore,
           user,
         } as unknown as Sails.Req,
         {} as Sails.Res
       );
       return sendResp.lastCall.args[2];
     };
-    const open = async () =>
+    const open = async (oid = record.redboxOid, requestSession = session) =>
       controller.edit(
         {
           param: name =>
-            name === 'oid' ? record.redboxOid : name === 'recordType' && routeLocals.localFormName ? 'rdmp' : undefined,
+            name === 'oid' ? oid : name === 'recordType' && routeLocals.localFormName ? 'rdmp' : undefined,
           options: { locals: routeLocals },
           query: {},
-          session,
+          session: requestSession,
+          sessionID: 'session-a',
+          sessionStore,
           user,
         } as unknown as Sails.Req,
         { forbidden: sinon.stub() } as unknown as Sails.Res
@@ -1482,7 +1490,8 @@ describe('RecordController getWorkflowSteps', () => {
         hidden: true,
         config: { form: formName, workflow: { stage: 'transition-finalised' } },
       };
-      session = { branding: 'default' };
+      session = { branding: 'default', cookie: new Cookie() };
+      sessionStore = new MemoryStore();
       user = { username: 'alice', roles: [] };
       (controller.recordsService.getMeta as sinon.SinonStub).resolves(record);
       (global as any).RecordTypesService.get.returns(of({ id: 'rt-1', name: 'rdmp' }));
@@ -1517,7 +1526,15 @@ describe('RecordController getWorkflowSteps', () => {
         expect((global as any).FormsService.getForm.firstCall.args[1]).to.equal(formName);
         expect(record.metaMetadata.form).to.equal('rdmp-draft');
         expect(record.workflow.stage).to.equal(stage);
-        expect(session.recordRouteForms[0].fingerprint).to.equal(result.meta.formFingerprint);
+        expect(
+          (
+            await readRouteForm(
+              { session, sessionID: 'session-a', sessionStore, user } as unknown as Sails.Req,
+              record.redboxOid,
+              { fingerprint: result.meta.formFingerprint }
+            )
+          )?.fingerprint
+        ).to.equal(result.meta.formFingerprint);
         expect(sendView.calledOnce).to.equal(true);
       });
     }
@@ -1534,6 +1551,139 @@ describe('RecordController getWorkflowSteps', () => {
       currentStep.config.workflow.next = 'transition-finalised';
       await open();
       expect((await load()).meta.formName).to.equal(formName);
+    });
+
+    it('allows a hidden finalise form whose save button targets an explicit next stage', async () => {
+      currentStep.config.workflow.next = ['finalised'];
+      const finalised = { name: 'finalised', config: { form: 'rdmp-finalised' } };
+      (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden.callsFake(() =>
+        of([currentStep, transitionStep, finalised])
+      );
+      form.configuration.componentDefinitions = [
+        {
+          name: 'finalise',
+          component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } },
+        },
+      ];
+      await open();
+      const result = await load();
+      expect(result.status).to.equal(undefined);
+      expect(result.meta.formName).to.equal(formName);
+    });
+
+    it('resolves nested reusable save buttons when authorising a direct transition form', async () => {
+      currentStep.config.workflow.next = ['finalised'];
+      (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden.callsFake(() =>
+        of([currentStep, transitionStep, { name: 'finalised', config: { form: 'rdmp-finalised' } }])
+      );
+      sails.config.reusableFormDefinitions = {
+        finaliseActions: [
+          { name: 'finalise', component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } } },
+        ],
+      };
+      form.configuration.componentDefinitions = [
+        {
+          name: 'actions',
+          component: {
+            class: 'GroupComponent',
+            config: {
+              componentDefinitions: [
+                {
+                  name: '',
+                  overrides: { reusableFormName: 'finaliseActions' },
+                  component: { class: 'ReusableComponent' },
+                },
+              ],
+            },
+          },
+        },
+      ];
+      await open();
+      expect((await load()).meta.formName).to.equal(formName);
+    });
+
+    for (const scenario of ['forbidden-target', 'target-role', 'non-hidden-form', 'metadata-target']) {
+      it(`rejects a direct transition form with ${scenario}`, async () => {
+        currentStep.config.workflow.next = ['finalised'];
+        const target = { name: 'finalised', config: { form: 'rdmp-finalised', authorization: {} } };
+        (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden.callsFake(() =>
+          of([currentStep, transitionStep, target])
+        );
+        const button = {
+          name: 'finalise',
+          component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } },
+        };
+        form.configuration.componentDefinitions = [button];
+        if (scenario === 'forbidden-target') button.component.config.targetStep = 'unreachable';
+        if (scenario === 'target-role') target.config.authorization = { transitionRoles: ['Admin'] };
+        if (scenario === 'non-hidden-form') transitionStep.hidden = false;
+        if (scenario === 'metadata-target') {
+          form.configuration.componentDefinitions = [];
+          record.metadata.button = button;
+        }
+        await open();
+        expect((await load()).status).to.equal(409);
+      });
+    }
+
+    it('loads a legacy transition form without an explicit type', async () => {
+      delete form.configuration.type;
+      await open();
+      const result = await load();
+      expect(result.status).to.equal(undefined);
+      expect(result.meta.formName).to.equal(formName);
+    });
+
+    it('retains grants across concurrent tabs with last-write-wins session snapshots', async () => {
+      const other = { ...record, redboxOid: 'oid-2' };
+      (controller.recordsService.getMeta as sinon.SinonStub).callsFake(async oid =>
+        oid === other.redboxOid ? other : record
+      );
+      // express-session loads a separate snapshot for each overlapping request.
+      const tabA = _.cloneDeep(session);
+      const tabB = _.cloneDeep(session);
+      await Promise.all([open(record.redboxOid, tabA), open(other.redboxOid, tabB)]);
+      const persist = snapshot =>
+        new Promise<void>((resolve, reject) =>
+          sessionStore.set('session-a', snapshot, error => (error ? reject(error) : resolve()))
+        );
+      await persist(tabA);
+      await persist(tabB);
+      session = _.cloneDeep(tabB);
+      expect((await load(record.redboxOid)).status).to.equal(undefined);
+      expect((await load(other.redboxOid)).status).to.equal(undefined);
+      const delivered = await Promise.all([load(record.redboxOid), load(other.redboxOid)]);
+      for (const [index, oid] of [record.redboxOid, other.redboxOid].entries()) {
+        const context = await (controller as any).saveContext(
+          {
+            params: { oid },
+            query: {},
+            headers: {},
+            sessionID: 'session-a',
+            sessionStore,
+            session,
+            user,
+          },
+          'transition',
+          undefined,
+          'finalised',
+          { formFingerprint: delivered[index].meta.formFingerprint }
+        );
+        expect(context.routeForm?.oid).to.equal(oid);
+      }
+    });
+
+    it('does not share route grants with another session or accept expired grants', async () => {
+      await open();
+      const req = { session, sessionID: 'session-b', sessionStore, user } as unknown as Sails.Req;
+      expect(await readRouteForm(req, record.redboxOid, { formName })).to.equal(undefined);
+      const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+      try {
+        clock.tick(86_400_001);
+        expect((await load()).status).to.equal(409);
+      } finally {
+        clock.restore();
+      }
     });
 
     for (const scenario of [
@@ -1569,6 +1719,8 @@ describe('RecordController getWorkflowSteps', () => {
         it(`${action} ${tampered ? 'rejects a tampered formName' : 'forwards only the session grant matched by the delivered fingerprint'}`, async () => {
           await open();
           const delivered = await load();
+          // Another tab opens the same page, but has not requested its form yet.
+          await open();
           const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000123');
           saved.oid = record.redboxOid;
           saved.outcome = 'saved';
@@ -1584,6 +1736,8 @@ describe('RecordController getWorkflowSteps', () => {
             },
             body: { title: 'Finalise' },
             session,
+            sessionID: 'session-a',
+            sessionStore,
             user,
           } as unknown as Sails.Req;
           if (action === 'stepTo') await controller.stepTo(req, {} as Sails.Res);
@@ -1593,7 +1747,11 @@ describe('RecordController getWorkflowSteps', () => {
             expect(update.notCalled).to.equal(true);
           } else {
             expect(update.calledOnce).to.equal(true);
-            expect(update.firstCall.args[8].routeForm).to.deep.equal(session.recordRouteForms[0]);
+            expect(update.firstCall.args[8].routeForm).to.include({
+              formName,
+              fingerprint: delivered.meta.formFingerprint,
+              oid: record.redboxOid,
+            });
             expect(update.firstCall.args[8].concurrency.expectedRevision).to.equal(3);
           }
         });
@@ -1603,7 +1761,13 @@ describe('RecordController getWorkflowSteps', () => {
     it('returns the existing no-permissions response and issues no grant without edit access', async () => {
       (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
       await open();
-      expect(session.recordRouteForms).to.equal(undefined);
+      expect(
+        await readRouteForm(
+          { session, sessionID: 'session-a', sessionStore, user } as unknown as Sails.Req,
+          record.redboxOid,
+          { formName }
+        )
+      ).to.equal(undefined);
       const result = await load();
       expect(result.status).to.equal(403);
       expect(result.displayErrors).to.deep.equal([{ code: 'view-error-no-permissions' }]);

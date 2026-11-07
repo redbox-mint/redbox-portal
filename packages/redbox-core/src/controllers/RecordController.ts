@@ -40,7 +40,14 @@ import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
-import { routeFormAllowed, routeFormMatches, routeFormFingerprintRecord, type RecordRouteForm } from '../RecordRouteForm';
+import {
+  routeFormAllowed,
+  routeFormMatches,
+  routeFormFingerprintRecord,
+  readRouteForm,
+  storeRouteForm,
+  type RecordRouteForm,
+} from '../RecordRouteForm';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
@@ -198,13 +205,13 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
-    private saveContext(
+    private async saveContext(
       req: Sails.Req,
       operation: RecordSaveOperation,
       validationOperation?: string,
       targetStep?: string,
       concurrency?: RecordConcurrencyContext
-    ): RecordSaveContext {
+    ): Promise<RecordSaveContext> {
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
@@ -215,18 +222,15 @@ export namespace Controllers {
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
         ...(concurrency ? { concurrency } : {}),
-        routeForm: req.session?.recordRouteForms?.find(
-          grant =>
-            grant.oid === this.requestString(req.params, 'oid') &&
-            grant.username === req.user?.username &&
-            grant.brandId === String(this.getReqBrand(req).id) &&
-            !!grant.fingerprint &&
-            grant.fingerprint === concurrency?.formFingerprint
-        ),
+        routeForm: concurrency?.formFingerprint
+          ? await readRouteForm(req, this.requestString(req.params, 'oid') ?? '', {
+              fingerprint: concurrency.formFingerprint,
+            })
+          : undefined,
       });
     }
 
-    private mutationSaveContext(
+    private async mutationSaveContext(
       req: Sails.Req,
       oid: string | undefined,
       operation: RecordSaveOperation,
@@ -238,7 +242,7 @@ export namespace Controllers {
       if (!parsed.valid) return parsed;
       return {
         valid: true as const,
-        context: this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
+        context: await this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
       };
     }
 
@@ -901,12 +905,7 @@ export namespace Controllers {
                 stage: String(existingRecord.workflow?.stage),
                 formName: extFormName,
               };
-              req.session.recordRouteForms = [
-                ...(req.session.recordRouteForms ?? []).filter(
-                  item => item.oid !== grant.oid || item.formName !== grant.formName
-                ),
-                grant,
-              ].slice(-20);
+              await storeRouteForm(req, grant);
             }
           }
         } catch (error) {
@@ -1081,18 +1080,11 @@ export namespace Controllers {
             });
           }
           if (requestedFormName && requestedFormName !== authoritativeFormName) {
-            routeForm = editMode
-              ? req.session?.recordRouteForms?.find(
-                  grant =>
-                    grant.formName === requestedFormName &&
-                    grant.username === req.user?.username &&
-                    grant.brandId === String(brand.id) &&
-                    currentRec !== null &&
-                    routeFormMatches(currentRec, grant)
-                )
-              : undefined;
+            routeForm = editMode ? await readRouteForm(req, oid, { formName: requestedFormName }) : undefined;
             if (
               !routeForm ||
+              routeForm.brandId !== String(brand.id) ||
+              !routeFormMatches(currentRec, routeForm) ||
               !(await routeFormAllowed(currentRec, requestedFormName, step =>
                 this.recordsService.hasTransitionRoleAuthorization(step, req.user ?? {})
               ))
@@ -1176,9 +1168,7 @@ export namespace Controllers {
           routeForm?.formName
         );
         if (routeForm) {
-          req.session.recordRouteForms = (req.session.recordRouteForms ?? []).map(grant =>
-            grant === routeForm ? { ...grant, fingerprint: formFingerprint } : grant
-          );
+          await storeRouteForm(req, { ...routeForm, fingerprint: formFingerprint });
         }
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
         const authoritativeRecordType = String(currentRec?.metaMetadata?.type ?? formConfig.type ?? '');
@@ -1244,7 +1234,7 @@ export namespace Controllers {
         };
         const recType = this.requestString(req.params, 'recordType');
         const targetStep = this.requestString(req.query, 'targetStep');
-        const saveRequest = this.mutationSaveContext(
+        const saveRequest = await this.mutationSaveContext(
           req,
           undefined,
           targetStep ? 'transition' : 'create',
@@ -1343,7 +1333,7 @@ export namespace Controllers {
           });
         }
         const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
-        const saveRequest = this.mutationSaveContext(req, oid, 'delete');
+        const saveRequest = await this.mutationSaveContext(req, oid, 'delete');
         if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
         const response = await this.recordsService.delete(
           oid,
@@ -1436,7 +1426,7 @@ export namespace Controllers {
       if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
         return this.sendResp(req, res, { status: 404 });
       }
-      const saveRequest = this.mutationSaveContext(req, oid, 'restore');
+      const saveRequest = await this.mutationSaveContext(req, oid, 'restore');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       const response = await this.recordsService.restoreRecord(oid, user ?? {}, brand, saveRequest.context);
       return this.sendLifecycleResult(req, res, brand, oid, response, msgFailed);
@@ -1462,7 +1452,7 @@ export namespace Controllers {
       if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
         return this.sendResp(req, res, { status: 404 });
       }
-      const saveRequest = this.mutationSaveContext(req, oid, 'purge');
+      const saveRequest = await this.mutationSaveContext(req, oid, 'purge');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {}, brand, saveRequest.context);
       return this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-destroy'));
@@ -1486,7 +1476,7 @@ export namespace Controllers {
       const oid = this.requestString(req.params, 'oid') ?? '';
       const targetStep = this.requestString(req.query, 'targetStep');
       const shouldMerge = this.requestString(req.query, 'merge') === 'true';
-      const saveRequest = this.mutationSaveContext(
+      const saveRequest = await this.mutationSaveContext(
         req,
         oid,
         targetStep ? 'transition' : 'update',
@@ -1691,7 +1681,7 @@ export namespace Controllers {
           displayErrors: [{ code: 'record-validation-operation-invalid' }],
         });
       }
-      const saveRequest = this.mutationSaveContext(req, oid, 'transition', parsedOperation.value, targetStep, true);
+      const saveRequest = await this.mutationSaveContext(req, oid, 'transition', parsedOperation.value, targetStep, true);
       if (!saveRequest.valid) {
         return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       }

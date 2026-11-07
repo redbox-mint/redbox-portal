@@ -1844,7 +1844,8 @@ export namespace Services {
       }
       const form = sourceForm ?? (await firstValueFrom(FormsService.getFormByName(formName, true, brandId)));
       if (!form) return undefined;
-      const workflowSteps = (await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType))) ?? [];
+      const workflowSteps =
+        (await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType))) ?? [];
       const workflowFormContract = workflowSteps
         .map(step => {
           const workflowStep = step as unknown as WorkflowStepLike;
@@ -1868,7 +1869,14 @@ export namespace Services {
           id: form.id,
           name: form.name,
           branding: form.branding,
-          configuration: form.configuration,
+          configuration: form.configuration
+            ? {
+                ...form.configuration,
+                type:
+                  String(form.configuration.type ?? '').trim() ||
+                  String(metaMetadata.type ?? recordType.name ?? '').trim(),
+              }
+            : form.configuration,
         },
         reusableFormDefinitions: sails.config.reusableFormDefinitions ?? {},
         validatorDefinitions: sails.config.validators?.definitions ?? [],
@@ -5380,8 +5388,11 @@ export namespace Services {
         (tracker.context.routeFamily === 'browser' &&
           routeForm.username === userObj.username &&
           routeFormMatches(originalRecord as unknown as RecordModel, routeForm) &&
-          (await routeFormAllowed(originalRecord as unknown as RecordModel, routeForm.formName, step =>
-            this.hasTransitionRoleAuthorization(step, userObj)
+          (await routeFormAllowed(
+            originalRecord as unknown as RecordModel,
+            routeForm.formName,
+            step => this.hasTransitionRoleAuthorization(step, userObj),
+            requestedTargetName
           )));
       let currentFormFingerprint: string | undefined;
       if (tracker.context.concurrency?.formFingerprint) {

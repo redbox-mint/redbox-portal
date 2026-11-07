@@ -1,6 +1,10 @@
 import { firstValueFrom } from 'rxjs';
+import { createHash } from 'node:crypto';
+import { Cookie } from 'express-session';
+import type { FormConfigOutline, AllFormComponentDefinitionOutlines } from '@researchdatabox/sails-ng-common';
 import type { RecordModel } from './model';
 import type { WorkflowStepModel } from './model/storage/WorkflowStepModel';
+import { ConstructFormConfigVisitor } from './visitor/construct.visitor';
 
 /** Server-held permission issued only by an existing-record edit route. */
 export interface RecordRouteForm {
@@ -12,6 +16,95 @@ export interface RecordRouteForm {
   readonly stage: string;
   readonly formName: string;
   readonly fingerprint?: string;
+}
+
+type GrantSelector = { formName: string } | { fingerprint: string };
+
+function grantKey(req: Sails.Req, oid: string, selector: GrantSelector): string {
+  return (
+    'redbox-route-form:' +
+    createHash('sha256')
+      .update(JSON.stringify([req.sessionID, oid, selector]))
+      .digest('hex')
+  );
+}
+
+/** Independent store entries avoid whole-session last-write-wins races between tabs. */
+export async function storeRouteForm(req: Sails.Req, grant: RecordRouteForm): Promise<void> {
+  if (!req.sessionID || !req.sessionStore || !req.session) return;
+  const expires = Date.now() + Math.min(req.session.cookie?.maxAge ?? 86_400_000, 86_400_000);
+  const cookie = new Cookie();
+  cookie.expires = new Date(expires);
+  const selector = grant.fingerprint ? { fingerprint: grant.fingerprint } : { formName: grant.formName };
+  await new Promise<void>((resolve, reject) => {
+    req.sessionStore.set(
+      grantKey(req, grant.oid, selector),
+      {
+        cookie,
+        branding: grant.brandId,
+        portal: '',
+        user: {},
+        redirUrl: '',
+        logoutUrl: '',
+        lang: '',
+        authenticated: false,
+        data: null,
+        recordRouteForm: grant,
+        recordRouteFormExpires: expires,
+      },
+      error => (error ? reject(error) : resolve())
+    );
+  });
+}
+
+export async function readRouteForm(
+  req: Sails.Req,
+  oid: string,
+  selector: GrantSelector
+): Promise<RecordRouteForm | undefined> {
+  if (!req.sessionID || !req.sessionStore || !req.session) return undefined;
+  return new Promise((resolve, reject) => {
+    req.sessionStore.get(grantKey(req, oid, selector), (error, entry) => {
+      if (error) return reject(error);
+      const grant = entry?.recordRouteForm;
+      resolve(
+        (entry?.recordRouteFormExpires ?? 0) > Date.now() && grant?.oid === oid && grant.username === req.user?.username
+          ? grant
+          : undefined
+      );
+    });
+  });
+}
+
+/** Follow schema containment only; metadata/default values cannot declare save targets. */
+function saveTargets(form: FormConfigOutline): Set<string> {
+  const targets = new Set<string>();
+  const visit = (definition: AllFormComponentDefinitionOutlines): void => {
+    const component = definition.component;
+    switch (component.class) {
+      case 'SaveButtonComponent':
+        if (component.config?.targetStep) targets.add(component.config.targetStep);
+        break;
+      case 'GroupComponent':
+      case 'QuestionTreeComponent':
+      case 'ReusableComponent':
+      case 'TabContentComponent':
+      case 'AccordionPanelComponent':
+        component.config?.componentDefinitions?.forEach(visit);
+        break;
+      case 'TabComponent':
+        component.config?.tabs?.forEach(visit);
+        break;
+      case 'AccordionComponent':
+        component.config?.panels?.forEach(visit);
+        break;
+      case 'RepeatableComponent':
+        if (component.config?.elementTemplate) visit(component.config.elementTemplate);
+        break;
+    }
+  };
+  form.componentDefinitions.forEach(visit);
+  return targets;
 }
 
 export function routeFormMatches(record: RecordModel | undefined, grant: RecordRouteForm): boolean {
@@ -32,7 +125,8 @@ export function routeFormFingerprintRecord(record: RecordModel, formName: string
 export async function routeFormAllowed(
   record: RecordModel,
   formName: string,
-  canTransition: (step: unknown) => boolean
+  canTransition: (step: unknown) => boolean,
+  targetStep?: string
 ): Promise<boolean> {
   const meta = record.metaMetadata;
   if (!meta?.brandId || !meta.type || !record.workflow?.stage) return false;
@@ -44,9 +138,11 @@ export async function routeFormAllowed(
     | undefined;
   if (!current) return false;
   const form = await firstValueFrom(FormsService.getFormByName(formName, true, String(meta.brandId)));
+  const configuredType = String(form?.configuration?.type ?? '').trim();
   if (
     form?.name !== formName ||
-    form.configuration?.type !== meta.type ||
+    !form.configuration ||
+    (configuredType && configuredType !== meta.type) ||
     (form.branding && String(form.branding) !== String(meta.brandId))
   )
     return false;
@@ -58,12 +154,19 @@ export async function routeFormAllowed(
   // policy permits configured stages subject to transitionRoles. An explicit
   // next list narrows that policy for route-selected forms.
   const reachable = next === undefined ? undefined : Array.isArray(next) ? next : [next];
-  return steps.some(step => {
-    const config = step.config as { form?: string };
-    return (
-      config?.form === formName &&
-      (step.name === current.name || !reachable || reachable.includes(step.name)) &&
-      canTransition(step)
-    );
+  const isReachable = (step: WorkflowStepModel) =>
+    (step.name === current.name || !reachable || reachable.includes(step.name)) && canTransition(step);
+  if (targetStep && !steps.some(step => step.name === targetStep && isReachable(step))) return false;
+  const owners = steps.filter(step => (step.config as { form?: string })?.form === formName && canTransition(step));
+  if (owners.some(isReachable)) return true;
+  // A hidden form can perform a direct transition without persisting its own
+  // stage. Its server-configured save target must be reachable instead.
+  if (!owners.some(step => step.hidden)) return false;
+  const constructed = await new ConstructFormConfigVisitor(sails.log).start({
+    data: { ...form.configuration, name: formName },
+    reusableFormDefs: sails.config.reusableFormDefinitions,
+    formMode: 'edit',
   });
+  const targets = saveTargets(constructed);
+  return steps.some(step => targets.has(step.name) && isReachable(step) && (!targetStep || step.name === targetStep));
 }

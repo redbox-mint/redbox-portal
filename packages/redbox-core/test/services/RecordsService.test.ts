@@ -297,6 +297,7 @@ describe('RecordsService', function () {
         })
       ),
     };
+    (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden = sinon.stub().callsFake((...args) => (global as any).WorkflowStepsService.getAllForRecordType(...args));
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
@@ -2960,7 +2961,13 @@ describe('RecordsService', function () {
         };
       });
 
-      const save = (revision = 4, fingerprint = issued, routeForm = grant, routeFamily = 'browser') =>
+      const save = (
+        revision = 4,
+        fingerprint = issued,
+        routeForm = grant,
+        routeFamily = 'browser',
+        targetStep = 'finalised'
+      ) =>
         RecordsService.updateMeta(
           { id: 'brand-1' },
           'record-123',
@@ -2968,12 +2975,12 @@ describe('RecordsService', function () {
           { username: 'user-1', roles: [] },
           true,
           false,
-          steps[2],
+          steps.find(step => step.name === targetStep),
           { metadata: { title: 'Finalised title' }, mode: 'replace' },
           createRecordSaveContext({
             routeFamily,
             operation: 'transition',
-            targetStep: 'finalised',
+            targetStep,
             routeForm,
             concurrency: { entityTagSupplied: true, expectedRevision: revision, formFingerprint: fingerprint },
           })
@@ -3011,6 +3018,66 @@ describe('RecordsService', function () {
         expect(recordSaveFailureStatus(result)).to.equal(412);
         expect(result.problems[0].issues[0].code).to.equal('record-revision-stale');
         expect(writes).to.have.length(0);
+      });
+
+      it('saves directly to an explicit next stage using a distinct hidden transition form', async () => {
+        steps[0].config.workflow.next = ['finalised'];
+        sourceForm.configuration.componentDefinitions = [
+          {
+            name: 'finalise',
+            component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } },
+          },
+        ];
+        issued = grant.fingerprint = await RecordsService.getRecordFormFingerprint(
+          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+          recordType,
+          sourceForm
+        );
+        const result = await save();
+        expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+        expect(stored.workflow.stage).to.equal('finalised');
+        expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
+      });
+
+      it('rejects a tampered target even when the hidden form has an authorised direct destination', async () => {
+        steps[0].config.workflow.next = ['finalised'];
+        sourceForm.configuration.componentDefinitions = [
+          {
+            name: 'finalise',
+            component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } },
+          },
+        ];
+        issued = grant.fingerprint = await RecordsService.getRecordFormFingerprint(
+          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+          recordType,
+          sourceForm
+        );
+        const result = await save(4, issued, grant, 'browser', 'transition-finalised');
+        expect(recordSaveFailureStatus(result), JSON.stringify(result)).to.equal(409);
+        expect(result.problems[0].issues[0].code).to.equal('form-definition-changed');
+        expect(writes).to.have.length(0);
+      });
+
+      it('rejects hidden workflow configuration changes since form delivery', async () => {
+        steps[1].config.workflow.stageLabel = 'Changed finalisation policy';
+        const result = await save();
+        expect(recordSaveFailureStatus(result), JSON.stringify(result)).to.equal(409);
+        expect(result.problems[0].issues[0].code).to.equal('form-definition-changed');
+        expect(writes).to.have.length(0);
+      });
+
+      it('fingerprints type-enriched delivery and raw legacy configuration consistently', async () => {
+        delete sourceForm.configuration.type;
+        issued = grant.fingerprint = await RecordsService.getRecordFormFingerprint(
+          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+          recordType,
+          { ...sourceForm, configuration: { ...sourceForm.configuration, type: 'rdmp' } }
+        );
+        const result = await save();
+        expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+        expect(stored.workflow.stage).to.equal('finalised');
+        expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
+        expect(sourceForm.configuration.type).to.equal(undefined);
       });
 
       it('retains the transition form fingerprint when a final compare-and-swap loses a race', async () => {
