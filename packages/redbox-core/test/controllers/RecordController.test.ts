@@ -1441,7 +1441,7 @@ describe('RecordController getWorkflowSteps', () => {
     let sendView;
     let formName;
     let routeLocals;
-    const load = async (oid = record.redboxOid) => {
+    const load = async (oid = record.redboxOid, res = {} as Sails.Res) => {
       await controller.getForm(
         {
           param: name => (name === 'oid' ? oid : name === 'formName' ? formName : 'rdmp'),
@@ -1451,7 +1451,7 @@ describe('RecordController getWorkflowSteps', () => {
           sessionStore,
           user,
         } as unknown as Sails.Req,
-        {} as Sails.Res
+        res
       );
       return sendResp.lastCall.args[2];
     };
@@ -1614,6 +1614,39 @@ describe('RecordController getWorkflowSteps', () => {
       );
     });
 
+    for (const operation of ['get', 'set'] as const) {
+      for (const apiVersion of ['1.0', '2.0']) {
+        it(`sanitises grant-store ${operation} failures during form delivery (API ${apiVersion})`, async () => {
+          await open();
+          const storeError = new Error('private grant-store diagnostics');
+          if (operation === 'get') {
+            sinon.stub(sessionStore, 'get').callsFake((_key, callback) => callback(storeError));
+          } else {
+            sinon.stub(sessionStore, 'set').callsFake((_key, _entry, callback) => callback(storeError));
+          }
+          (controller.getApiVersion as sinon.SinonStub).returns(apiVersion);
+          sendResp.callThrough();
+          const status = sinon.stub().returnsThis();
+          const json = sinon.stub().returnsThis();
+          const res = { status, json, set: sinon.stub() } as unknown as Sails.Res;
+
+          const result = await load(record.redboxOid, res);
+
+          expect(status.calledOnceWithExactly(500)).to.equal(true);
+          expect(json.calledOnce).to.equal(true);
+          expect(result.errors).to.equal(undefined);
+          expect(result.displayErrors).to.deep.equal([{ title: 'Error getting form definition' }]);
+          expect(JSON.stringify(json.firstCall.args[0])).not.to.include(storeError.message);
+          expect(JSON.stringify(json.firstCall.args[0])).not.to.include(storeError.stack);
+          expect(
+            (sails.log.error as sinon.SinonStub).calledWith('record_route_form_store_failed', storeError)
+          ).to.equal(true);
+          expect(record.metaMetadata.form).to.equal('rdmp-draft');
+          if (operation === 'get') expect((FormsService.getForm as sinon.SinonStub).notCalled).to.equal(true);
+        });
+      }
+    }
+
     it('keeps the core default finalise route working with a different stored form', async () => {
       routeLocals = (routes['get /:branding/:portal/record/finalise/:recordType/edit/:oid'] as RouteTargetObject)
         .locals;
@@ -1676,6 +1709,48 @@ describe('RecordController getWorkflowSteps', () => {
       await open();
       expect((await load()).meta.formName).to.equal(formName);
     });
+
+    for (const scenario of ['reachable', 'unreachable', 'role-restricted']) {
+      it(`checks a hidden transition form's headerActions save target when ${scenario}`, async () => {
+        currentStep.config.workflow.next = ['finalised'];
+        const finalised = {
+          name: 'finalised',
+          config: {
+            form: 'rdmp-finalised',
+            authorization: { transitionRoles: scenario === 'role-restricted' ? ['Admin'] : [] },
+          },
+        };
+        (WorkflowStepsService.getAllForRecordTypeIncludingHidden as sinon.SinonStub).returns(
+          of([currentStep, transitionStep, finalised])
+        );
+        form.configuration.componentDefinitions = [
+          {
+            name: 'dataLocations',
+            component: {
+              class: 'PublishDataLocationSelectorComponent',
+              config: {
+                headerActions: [
+                  {
+                    name: 'finalise',
+                    component: {
+                      class: 'SaveButtonComponent',
+                      config: { targetStep: scenario === 'unreachable' ? 'private' : 'finalised' },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ];
+
+        await open();
+        const result = await load();
+
+        expect(result.status).to.equal(scenario === 'reachable' ? undefined : 409);
+        if (scenario === 'reachable') expect(result.meta.formName).to.equal(formName);
+        else expect(result.displayErrors).to.deep.equal([{ code: 'form-definition-changed' }]);
+      });
+    }
 
     for (const scenario of ['forbidden-target', 'target-role', 'non-hidden-form', 'metadata-target']) {
       it(`rejects a direct transition form with ${scenario}`, async () => {

@@ -1014,6 +1014,16 @@ export namespace Controllers {
       return of(this.recordsService.hasViewAccess(brand, u, (u['roles'] ?? []) as AnyRecord[], currentRec));
     }
 
+    private sendFormGrantStoreFailure(req: Sails.Req, res: Sails.Res, error: unknown) {
+      sails.log.error('record_route_form_store_failed', error);
+      const message = 'Error getting form definition';
+      return this.sendResp(req, res, {
+        status: 500,
+        displayErrors: [{ title: message }],
+        v1: { message },
+      });
+    }
+
     public async getForm(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const recordType = req.param('name');
@@ -1080,7 +1090,11 @@ export namespace Controllers {
             });
           }
           if (requestedFormName && requestedFormName !== authoritativeFormName) {
-            routeForm = editMode ? await readRouteForm(req, oid, { formName: requestedFormName }) : undefined;
+            try {
+              routeForm = editMode ? await readRouteForm(req, oid, { formName: requestedFormName }) : undefined;
+            } catch (error) {
+              return this.sendFormGrantStoreFailure(req, res, error);
+            }
             if (
               !routeForm ||
               routeForm.brandId !== String(brand.id) ||
@@ -1170,7 +1184,11 @@ export namespace Controllers {
           routeForm?.formName
         );
         if (routeForm) {
-          await storeRouteForm(req, { ...routeForm, fingerprint: formFingerprint });
+          try {
+            await storeRouteForm(req, { ...routeForm, fingerprint: formFingerprint });
+          } catch (error) {
+            return this.sendFormGrantStoreFailure(req, res, error);
+          }
         }
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
         const authoritativeRecordType = String(currentRec?.metaMetadata?.type ?? formConfig.type ?? '');

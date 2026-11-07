@@ -101,6 +101,9 @@ function saveTargets(form: FormConfigOutline): Set<string> {
       case 'RepeatableComponent':
         if (component.config?.elementTemplate) visit(component.config.elementTemplate);
         break;
+      case 'PublishDataLocationSelectorComponent':
+        component.config?.headerActions?.forEach(visit);
+        break;
     }
   };
   form.componentDefinitions.forEach(visit);
