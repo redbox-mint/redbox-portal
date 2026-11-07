@@ -171,6 +171,7 @@ import type {
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
 import { issueInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
+import { routeFormAllowed, routeFormMatches, routeFormFingerprintRecord } from '../RecordRouteForm';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -5373,11 +5374,25 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
+      const routeForm = tracker.context.routeForm;
+      const routeFormValid =
+        !routeForm ||
+        (tracker.context.routeFamily === 'browser' &&
+          routeForm.username === userObj.username &&
+          routeFormMatches(originalRecord as unknown as RecordModel, routeForm) &&
+          (await routeFormAllowed(originalRecord as unknown as RecordModel, routeForm.formName, step =>
+            this.hasTransitionRoleAuthorization(step, userObj)
+          )));
       let currentFormFingerprint: string | undefined;
       if (tracker.context.concurrency?.formFingerprint) {
         try {
           currentFormFingerprint = await this.getRecordFormFingerprint(
-            originalRecord as AnyRecord,
+            routeForm && routeFormValid
+              ? (routeFormFingerprintRecord(
+                  originalRecord as unknown as RecordModel,
+                  routeForm.formName
+                ) as unknown as AnyRecord)
+              : (originalRecord as AnyRecord),
             recordType as RecordTypeLike
           );
         } catch (error) {
@@ -5405,7 +5420,11 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
-      if (currentFormFingerprint && tracker.context.concurrency?.formFingerprint !== currentFormFingerprint) {
+      if (
+        !routeFormValid ||
+        (routeForm && !tracker.context.concurrency?.formFingerprint) ||
+        (currentFormFingerprint && tracker.context.concurrency?.formFingerprint !== currentFormFingerprint)
+      ) {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'form-definition-changed'));
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
@@ -5739,10 +5758,23 @@ export namespace Services {
             if (latestRevision !== undefined) currentRevision = latestRevision;
             if (tracker.context.concurrency?.formFingerprint) {
               try {
-                currentFormFingerprint = await this.getRecordFormFingerprint(
-                  latestRecord,
-                  recordType as RecordTypeLike
-                );
+                const latestRouteFormAllowed =
+                  !routeForm ||
+                  (routeFormMatches(latestRecord as unknown as RecordModel, routeForm) &&
+                    (await routeFormAllowed(latestRecord as unknown as RecordModel, routeForm.formName, step =>
+                      this.hasTransitionRoleAuthorization(step, userObj)
+                    )));
+                currentFormFingerprint = latestRouteFormAllowed
+                  ? await this.getRecordFormFingerprint(
+                      routeForm
+                        ? (routeFormFingerprintRecord(
+                            latestRecord as unknown as RecordModel,
+                            routeForm.formName
+                          ) as unknown as AnyRecord)
+                        : latestRecord,
+                      recordType as RecordTypeLike
+                    )
+                  : undefined;
               } catch {
                 // The mutation is already certified not-applied. Omitting an
                 // unprovable fingerprint safely disables browser rebase.

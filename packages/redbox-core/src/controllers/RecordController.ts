@@ -40,6 +40,7 @@ import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
+import { routeFormAllowed, routeFormMatches, routeFormFingerprintRecord, type RecordRouteForm } from '../RecordRouteForm';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
@@ -214,6 +215,14 @@ export namespace Controllers {
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
         ...(concurrency ? { concurrency } : {}),
+        routeForm: req.session?.recordRouteForms?.find(
+          grant =>
+            grant.oid === this.requestString(req.params, 'oid') &&
+            grant.username === req.user?.username &&
+            grant.brandId === String(this.getReqBrand(req).id) &&
+            !!grant.fingerprint &&
+            grant.fingerprint === concurrency?.formFingerprint
+        ),
       });
     }
 
@@ -233,6 +242,11 @@ export namespace Controllers {
       };
     }
 
+    private saveFormNameMatches(req: Sails.Req, record: RecordModel, context: RecordSaveContext): boolean {
+      const formName = this.requestString(req.query, 'formName');
+      return !formName || formName === (context.routeForm?.formName ?? record.metaMetadata.form);
+    }
+
     /**
      * Fingerprint the form contract this response delivers, through the same
      * authoritative service routine a save recomputes. A create has no stored
@@ -244,7 +258,8 @@ export namespace Controllers {
       brand: BrandingModel,
       currentRec: RecordModel | null,
       requestedRecordType: string | undefined,
-      sourceForm: FormAttributes
+      sourceForm: FormAttributes,
+      routeFormName?: string
     ): Promise<string> {
       const formConfig = sourceForm.configuration;
       if (!formConfig) {
@@ -257,7 +272,9 @@ export namespace Controllers {
 
       let fingerprintRecord: AnyRecord;
       if (currentRec) {
-        fingerprintRecord = currentRec as unknown as AnyRecord;
+        fingerprintRecord = (routeFormName
+          ? routeFormFingerprintRecord(currentRec, routeFormName)
+          : currentRec) as unknown as AnyRecord;
       } else {
         const effectiveStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord;
         fingerprintRecord = {
@@ -869,6 +886,29 @@ export namespace Controllers {
           if (!canEdit) {
             return res.forbidden();
           }
+          if (extFormName && extFormName !== existingRecord.metaMetadata?.form && req.session) {
+            if (
+              await routeFormAllowed(existingRecord, extFormName, step =>
+                this.recordsService.hasTransitionRoleAuthorization(step, req.user ?? {})
+              )
+            ) {
+              const grant: RecordRouteForm = {
+                oid: String(oid),
+                brandId: String(brand.id),
+                username: String(req.user?.username ?? ''),
+                recordType: String(existingRecord.metaMetadata.type),
+                storedForm: String(existingRecord.metaMetadata.form),
+                stage: String(existingRecord.workflow?.stage),
+                formName: extFormName,
+              };
+              req.session.recordRouteForms = [
+                ...(req.session.recordRouteForms ?? []).filter(
+                  item => item.oid !== grant.oid || item.formName !== grant.formName
+                ),
+                grant,
+              ].slice(-20);
+            }
+          }
         } catch (error) {
           sails.log.error(error);
           return res.serverError();
@@ -986,6 +1026,7 @@ export namespace Controllers {
         let form: FormAttributes | null = null;
         let currentRec: RecordModel | null = null;
         let recordHasEditAccess = false;
+        let routeForm: RecordRouteForm | undefined;
         if (!oid) {
           //find form to create a record
           form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
@@ -1040,19 +1081,34 @@ export namespace Controllers {
             });
           }
           if (requestedFormName && requestedFormName !== authoritativeFormName) {
-            return this.sendResp(req, res, {
-              status: 409,
-              displayErrors: [{ code: 'form-definition-changed' }],
-              v1: { message: TranslationService.t('form-definition-changed') },
-            });
+            routeForm = editMode
+              ? req.session?.recordRouteForms?.find(
+                  grant =>
+                    grant.formName === requestedFormName &&
+                    grant.username === req.user?.username &&
+                    grant.brandId === String(brand.id) &&
+                    currentRec !== null &&
+                    routeFormMatches(currentRec, grant)
+                )
+              : undefined;
+            if (
+              !routeForm ||
+              !(await routeFormAllowed(currentRec, requestedFormName, step =>
+                this.recordsService.hasTransitionRoleAuthorization(step, req.user ?? {})
+              ))
+            ) {
+              return this.sendResp(req, res, {
+                status: 409,
+                displayErrors: [{ code: 'form-definition-changed' }],
+                v1: { message: TranslationService.t('form-definition-changed') },
+              });
+            }
           }
 
-          // The stored workflow/form reference owns the delivered contract.
-          // A route parameter may confirm that identity but cannot select a
-          // different form for an existing record.
+          // Only a server-held route grant can select another workflow form.
           form = (await FormsService.getForm(
             brand,
-            authoritativeFormName,
+            routeForm?.formName ?? authoritativeFormName,
             editMode,
             '',
             currentRec as RecordModel
@@ -1112,7 +1168,18 @@ export namespace Controllers {
           formConfig: mergedForm,
         });
 
-        const formFingerprint = await this.generatedFormFingerprint(brand, currentRec, recordType, form);
+        const formFingerprint = await this.generatedFormFingerprint(
+          brand,
+          currentRec,
+          recordType,
+          form,
+          routeForm?.formName
+        );
+        if (routeForm) {
+          req.session.recordRouteForms = (req.session.recordRouteForms ?? []).map(grant =>
+            grant === routeForm ? { ...grant, fingerprint: formFingerprint } : grant
+          );
+        }
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
         const authoritativeRecordType = String(currentRec?.metaMetadata?.type ?? formConfig.type ?? '');
 
@@ -1449,6 +1516,9 @@ export namespace Controllers {
       if (!hasEditAccess) {
         return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
       }
+      if (!this.saveFormNameMatches(req, currentRec, saveRequest.context)) {
+        return this.sendResp(req, res, { status: 409, displayErrors: [{ code: 'form-definition-changed' }] });
+      }
       const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
       let nextStepResp = null;
       if (targetStep) {
@@ -1638,6 +1708,9 @@ export namespace Controllers {
           });
         }
         const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
+        if (!this.saveFormNameMatches(req, currentRec, saveRequest.context)) {
+          return this.sendResp(req, res, { status: 409, displayErrors: [{ code: 'form-definition-changed' }] });
+        }
         const nextStep = await firstValueFrom(WorkflowStepsService.get(recordType, targetStep ?? ''));
         const response = await this.recordsService.updateMeta(
           brand,

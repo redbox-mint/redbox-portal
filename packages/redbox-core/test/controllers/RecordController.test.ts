@@ -1424,6 +1424,192 @@ describe('RecordController getWorkflowSteps', () => {
     expect(sendResp.firstCall.args[2].headers).to.deep.equal({ ETag: formatRecordEntityTag('oid-1', 3) });
   });
 
+  describe('route-authorised finalise forms', () => {
+    let record;
+    let form;
+    let currentStep;
+    let transitionStep;
+    let session;
+    let user;
+    let sendResp;
+    let sendView;
+    let formName;
+    let routeLocals;
+    const load = async () => {
+      await controller.getForm(
+        {
+          param: name => (name === 'oid' ? record.redboxOid : name === 'formName' ? formName : 'rdmp'),
+          query: { edit: 'true' },
+          session,
+          user,
+        } as unknown as Sails.Req,
+        {} as Sails.Res
+      );
+      return sendResp.lastCall.args[2];
+    };
+    const open = async () =>
+      controller.edit(
+        {
+          param: name =>
+            name === 'oid' ? record.redboxOid : name === 'recordType' && routeLocals.localFormName ? 'rdmp' : undefined,
+          options: { locals: routeLocals },
+          query: {},
+          session,
+          user,
+        } as unknown as Sails.Req,
+        { forbidden: sinon.stub() } as unknown as Sails.Res
+      );
+
+    beforeEach(() => {
+      record = {
+        redboxOid: 'oid-1',
+        revision: 3,
+        metaMetadata: { brandId: 'brand-1', type: 'rdmp', form: 'rdmp-draft' },
+        metadata: { title: 'Draft' },
+        workflow: { stage: 'draft' },
+      };
+      formName = 'rdmp-transition';
+      routeLocals = { localFormName: formName };
+      form = {
+        id: 'form-1',
+        name: formName,
+        branding: 'brand-1',
+        configuration: { type: 'rdmp', componentDefinitions: [] },
+      };
+      currentStep = { name: 'draft', config: { form: 'rdmp-draft', workflow: { stage: 'draft' } } };
+      transitionStep = {
+        name: 'transition-finalised',
+        hidden: true,
+        config: { form: formName, workflow: { stage: 'transition-finalised' } },
+      };
+      session = { branding: 'default' };
+      user = { username: 'alice', roles: [] };
+      (controller.recordsService.getMeta as sinon.SinonStub).resolves(record);
+      (global as any).RecordTypesService.get.returns(of({ id: 'rt-1', name: 'rdmp' }));
+      (global as any).BrandingService.getBrandById = sinon.stub().returns({ id: 'brand-1' });
+      const service = new RecordServices.Records();
+      controller.recordsService.hasTransitionRoleAuthorization = service.hasTransitionRoleAuthorization;
+      controller.recordsService.getRecordFormFingerprint = service.getRecordFormFingerprint.bind(service);
+      (global as any).WorkflowStepsService.get = sinon.stub().callsFake(() => of(currentStep));
+      (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden = sinon
+        .stub()
+        .callsFake(() => of([currentStep, transitionStep]));
+      (global as any).WorkflowStepsService.getAllForRecordType.callsFake(() => of([currentStep]));
+      (global as any).FormsService.getFormByName.callsFake(() => of(form));
+      (global as any).FormsService.getForm.callsFake(async () => form);
+      (global as any).FormsService.buildClientFormConfig.callsFake(async () => form.configuration);
+      (global as any).FormsService.discoverValidationOperations.resolves([]);
+      (global as any).sails.services = { formpayloadprehydrateservice: { build: sinon.stub().resolves({}) } };
+      sendView = sinon.stub(controller, 'sendView');
+      sendResp = sinon.stub(controller, 'sendResp');
+      sinon.stub(controller, 'getApiVersion').returns('2.0');
+    });
+
+    for (const stage of ['draft', 'finalised']) {
+      it(`loads the finalise transition form from ${stage} after the configured edit route authorises it`, async () => {
+        record.workflow.stage = currentStep.name = stage;
+        await open();
+        const result = await load();
+        expect(result.status).to.equal(undefined);
+        expect(result.meta.formName).to.equal(formName);
+        expect(result.meta.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
+        expect(result.headers.ETag).to.equal(formatRecordEntityTag('oid-1', 3));
+        expect((global as any).FormsService.getForm.firstCall.args[1]).to.equal(formName);
+        expect(record.metaMetadata.form).to.equal('rdmp-draft');
+        expect(record.workflow.stage).to.equal(stage);
+        expect(session.recordRouteForms[0].fingerprint).to.equal(result.meta.formFingerprint);
+        expect(sendView.calledOnce).to.equal(true);
+      });
+    }
+
+    it('keeps the core default finalise route working with a different stored form', async () => {
+      routeLocals = (routes['get /:branding/:portal/record/finalise/:recordType/edit/:oid'] as RouteTargetObject)
+        .locals;
+      formName = form.name = transitionStep.config.form = routeLocals.localFormName;
+      await open();
+      expect((await load()).meta.formName).to.equal('default-1.0-draft');
+    });
+
+    it('honors an explicit next stage', async () => {
+      currentStep.config.workflow.next = 'transition-finalised';
+      await open();
+      expect((await load()).meta.formName).to.equal(formName);
+    });
+
+    for (const scenario of [
+      'no-route',
+      'normal-edit',
+      'wrong-type',
+      'unreachable',
+      'unconfigured',
+      'transition-role',
+      'tampered-name',
+      'changed-stage',
+      'changed-user',
+    ]) {
+      it(`returns 409 for ${scenario}`, async () => {
+        if (scenario === 'normal-edit') routeLocals = {};
+        if (scenario === 'wrong-type') form.configuration.type = 'dataPublication';
+        if (scenario === 'unreachable') currentStep.config.workflow.next = 'finalised';
+        if (scenario === 'unconfigured') transitionStep.config.form = 'other-form';
+        if (scenario === 'transition-role') transitionStep.config.authorization = { transitionRoles: ['Admin'] };
+        if (scenario !== 'no-route') await open();
+        if (scenario === 'tampered-name') formName = 'client-selected';
+        if (scenario === 'changed-stage') record.workflow.stage = 'other-stage';
+        if (scenario === 'changed-user') user.username = 'bob';
+        const result = await load();
+        expect(result).to.include({ status: 409 });
+        expect(result.displayErrors).to.deep.equal([{ code: 'form-definition-changed' }]);
+        expect((global as any).FormsService.getForm.notCalled).to.equal(true);
+      });
+    }
+
+    for (const action of ['update', 'stepTo']) {
+      for (const tampered of [false, true]) {
+        it(`${action} ${tampered ? 'rejects a tampered formName' : 'forwards only the session grant matched by the delivered fingerprint'}`, async () => {
+          await open();
+          const delivered = await load();
+          const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000123');
+          saved.oid = record.redboxOid;
+          saved.outcome = 'saved';
+          saved.success = true;
+          const update = sinon.stub().resolves(saved);
+          controller.recordsService.updateMeta = update;
+          const req = {
+            params: { oid: record.redboxOid, targetStep: 'finalised' },
+            query: { targetStep: 'finalised', formName: tampered ? 'tampered-form' : formName },
+            headers: {
+              'if-match': delivered.headers.ETag,
+              'x-redbox-form-fingerprint': delivered.meta.formFingerprint,
+            },
+            body: { title: 'Finalise' },
+            session,
+            user,
+          } as unknown as Sails.Req;
+          if (action === 'stepTo') await controller.stepTo(req, {} as Sails.Res);
+          else await (controller as any).updateInternal(req, {} as Sails.Res);
+          if (tampered) {
+            expect(sendResp.lastCall.args[2]).to.include({ status: 409 });
+            expect(update.notCalled).to.equal(true);
+          } else {
+            expect(update.calledOnce).to.equal(true);
+            expect(update.firstCall.args[8].routeForm).to.deep.equal(session.recordRouteForms[0]);
+            expect(update.firstCall.args[8].concurrency.expectedRevision).to.equal(3);
+          }
+        });
+      }
+    }
+
+    it('returns the existing no-permissions response and issues no grant without edit access', async () => {
+      (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+      await open();
+      expect(session.recordRouteForms).to.equal(undefined);
+      const result = await load();
+      expect(result.status).to.equal(403);
+      expect(result.displayErrors).to.deep.equal([{ code: 'view-error-no-permissions' }]);
+    });
+  });
+
   it('rejects a caller-selected form that differs from the stored authoritative form', async function () {
     const currentRec = {
       redboxOid: 'oid-1',
