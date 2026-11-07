@@ -2974,7 +2974,7 @@ describe('RecordsService', function () {
         RecordsService.updateMeta(
           { id: 'brand-1' },
           'record-123',
-          record(),
+          _.cloneDeep(stored),
           { username: 'user-1', roles: [] },
           true,
           false,
@@ -3021,6 +3021,59 @@ describe('RecordsService', function () {
         expect(recordSaveFailureStatus(result)).to.equal(412);
         expect(result.problems[0].issues[0].code).to.equal('record-revision-stale');
         expect(writes).to.have.length(0);
+      });
+
+      for (const next of [['finalised'], ['private']]) {
+        it(`${next[0] === 'finalised' ? 'saves' : 'rejects'} a transition from a stage differing from its step name`, async () => {
+          stored.workflow.stage = steps[0].config.workflow.stage = grant.stage = 'under-review';
+          steps[0].name = 'review-step';
+          steps[0].config.workflow.next = next;
+          sourceForm.configuration.componentDefinitions = [
+            { name: 'finalise', component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } } },
+          ];
+          issued = grant.fingerprint = routeFormFingerprint(
+            (await RecordsService.getRecordFormFingerprint(
+              { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+              recordType,
+              sourceForm
+            ))!
+          );
+
+          const result = await save();
+
+          if (next[0] === 'finalised') {
+            expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+            expect(stored.workflow.stage).to.equal('finalised');
+            expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
+          } else {
+            expect(recordSaveFailureStatus(result)).to.equal(409);
+            expect(result.problems[0].issues[0].code).to.equal('form-definition-changed');
+            expect(writes).to.have.length(0);
+          }
+        });
+      }
+
+      it('permits another reachable destination for a reachable owner form regardless of its UI buttons', async () => {
+        steps[0].config.workflow.next = ['transition-finalised', 'finalised'];
+        sourceForm.configuration.componentDefinitions = [
+          {
+            name: 'review',
+            component: { class: 'SaveButtonComponent', config: { targetStep: 'transition-finalised' } },
+          },
+        ];
+        issued = grant.fingerprint = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            sourceForm
+          ))!
+        );
+
+        const result = await save();
+
+        expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+        expect(stored.workflow.stage).to.equal('finalised');
+        expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
       });
 
       it('rejects removing the route marker to avoid grant lookup', async () => {

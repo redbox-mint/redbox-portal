@@ -147,10 +147,20 @@ export async function routeFormAllowed(
   const brand = BrandingService.getBrandById(String(meta.brandId));
   const recordType = await firstValueFrom(RecordTypesService.get(brand, String(meta.type)));
   if (!recordType) return false;
-  const current = (await firstValueFrom(WorkflowStepsService.get(recordType, String(record.workflow.stage)))) as
-    | WorkflowStepModel
-    | undefined;
-  if (!current) return false;
+  const steps = await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType));
+  // Records persist config.workflow.stage, which can differ from the step name.
+  // Missing configured stages retain the legacy name default. Never select an
+  // unrelated same-name step, or guess between indistinguishable definitions.
+  const stageMatches = steps.filter(step => {
+    const config = step.config as { workflow?: { stage?: string } };
+    return String(config?.workflow?.stage ?? step.name).trim() === String(record.workflow.stage).trim();
+  });
+  const currentMatches =
+    stageMatches.length > 1
+      ? stageMatches.filter(step => (step.config as { form?: string })?.form === meta.form)
+      : stageMatches;
+  if (currentMatches.length !== 1) return false;
+  const current = currentMatches[0];
   const form = await firstValueFrom(FormsService.getFormByName(formName, true, String(meta.brandId)));
   const configuredType = String(form?.configuration?.type ?? '').trim();
   if (
@@ -161,7 +171,6 @@ export async function routeFormAllowed(
   )
     return false;
 
-  const steps = await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType));
   const currentConfig = current.config as { workflow?: { next?: unknown } };
   const next = currentConfig?.workflow?.next;
   // Legacy workflows can have no edge list: the existing save
@@ -172,6 +181,8 @@ export async function routeFormAllowed(
     (step.name === current.name || !reachable || reachable.includes(step.name)) && canTransition(step);
   if (targetStep && !steps.some(step => step.name === targetStep && isReachable(step))) return false;
   const owners = steps.filter(step => (step.config as { form?: string })?.form === formName && canTransition(step));
+  // A reachable owner authorises the source form. Workflow edges and roles
+  // constrain its save destination; UI buttons do not narrow that policy.
   if (owners.some(isReachable)) return true;
   // A hidden form can perform a direct transition without persisting its own
   // stage. Its server-configured save target must be reachable instead.

@@ -1520,7 +1520,7 @@ describe('RecordController getWorkflowSteps', () => {
 
     for (const stage of ['draft', 'finalised']) {
       it(`loads the finalise transition form from ${stage} after the configured edit route authorises it`, async () => {
-        record.workflow.stage = currentStep.name = stage;
+        record.workflow.stage = currentStep.name = currentStep.config.workflow.stage = stage;
         await open();
         const result = await load();
         expect(result.status).to.equal(undefined);
@@ -1540,6 +1540,88 @@ describe('RecordController getWorkflowSteps', () => {
           )?.fingerprint
         ).to.equal(result.meta.formFingerprint);
         expect(sendView.calledOnce).to.equal(true);
+      });
+    }
+
+    for (const collision of [false, true]) {
+      it(`loads a form from a persisted stage differing from its step name${collision ? ' despite a name collision' : ''}`, async () => {
+        record.workflow.stage = currentStep.config.workflow.stage = 'under-review';
+        currentStep.name = 'review-step';
+        currentStep.config.workflow.next = [transitionStep.name];
+        const other = {
+          name: 'under-review',
+          config: { form: 'other-form', workflow: { stage: 'other-stage', next: [] } },
+        };
+        const steps = [currentStep, transitionStep, ...(collision ? [other] : [])];
+        (WorkflowStepsService.get as sinon.SinonStub).callsFake((_type, name) =>
+          of(steps.find(step => step.name === name))
+        );
+        (WorkflowStepsService.getAllForRecordTypeIncludingHidden as sinon.SinonStub).returns(of(steps));
+
+        await open();
+        const result = await load();
+
+        expect(sendView.calledOnce).to.equal(true);
+        expect(result.status).to.equal(undefined);
+        expect(result.meta.formName).to.equal(formName);
+        expect(record.workflow.stage).to.equal('under-review');
+      });
+    }
+
+    it('does not borrow a permissive edge list from an unrelated same-name step', async () => {
+      record.workflow.stage = currentStep.config.workflow.stage = 'under-review';
+      currentStep.name = 'review-step';
+      currentStep.config.workflow.next = [];
+      const other = {
+        name: 'under-review',
+        config: { form: 'other-form', workflow: { stage: 'other-stage', next: [transitionStep.name] } },
+      };
+      (WorkflowStepsService.get as sinon.SinonStub).returns(of(other));
+      (WorkflowStepsService.getAllForRecordTypeIncludingHidden as sinon.SinonStub).returns(
+        of([other, currentStep, transitionStep])
+      );
+
+      await open();
+
+      expect(sendView.notCalled).to.equal(true);
+      expect(sendResp.lastCall.args[2]).to.deep.include({
+        status: 409,
+        displayErrors: [{ code: 'form-definition-changed' }],
+      });
+    });
+
+    it('retains the name default for a step without a configured persisted stage', async () => {
+      delete currentStep.config.workflow.stage;
+      await open();
+      expect((await load()).meta.formName).to.equal(formName);
+    });
+
+    for (const scenario of ['distinct-form', 'same-form', 'no-matching-form']) {
+      it(`${scenario === 'distinct-form' ? 'disambiguates' : 'rejects ambiguous'} steps sharing a persisted stage (${scenario})`, async () => {
+        if (scenario === 'no-matching-form') currentStep.config.form = 'different-form';
+        const other = {
+          name: 'other-step',
+          config: {
+            form: scenario === 'same-form' ? record.metaMetadata.form : 'other-form',
+            workflow: { stage: record.workflow.stage, next: [] },
+          },
+        };
+        (WorkflowStepsService.getAllForRecordTypeIncludingHidden as sinon.SinonStub).returns(
+          of([other, currentStep, transitionStep])
+        );
+
+        await open();
+
+        if (scenario === 'distinct-form') {
+          expect(sendView.calledOnce).to.equal(true);
+          expect((await load()).meta.formName).to.equal(formName);
+        } else {
+          expect(sendView.notCalled).to.equal(true);
+          expect(sendResp.lastCall.args[2]).to.deep.include({
+            status: 409,
+            displayErrors: [{ code: 'form-definition-changed' }],
+          });
+        }
       });
     }
 

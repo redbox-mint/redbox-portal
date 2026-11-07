@@ -6,12 +6,15 @@ import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 describe('Record Management: finalise route form switching', function () {
   this.timeout(60_000);
   const sourceStage = 'finalise-regression-source';
+  const aliasStep = 'finalise-regression-review-step';
+  const aliasStage = 'finalise-regression-under-review';
   const sourceForm = 'finalise-regression-source-form';
   const destinationStage = 'finalise-regression-finalised';
   const destinationForm = 'finalise-regression-finalised-form';
   const oid = `finalise-regression-${Date.now()}`;
   const tabOids = [`${oid}-tab-a`, `${oid}-tab-b`];
   const operationOid = `${oid}-operation`;
+  const aliasOid = `${oid}-alias`;
   let agent: supertest.Agent;
   let brand;
   let recordType;
@@ -104,14 +107,25 @@ describe('Record Management: finalise route form switching', function () {
       starting: false,
       hidden: true,
     });
-    for (const recordOid of [oid, ...tabOids, operationOid]) {
+    await WorkflowStep.create({
+      name: aliasStep,
+      recordType: recordType.id,
+      config: {
+        form: sourceForm,
+        workflow: { stage: aliasStage, next: ['draft', destinationStage] },
+        authorization: { viewRoles: ['Admin'], editRoles: ['Admin'] },
+      },
+      starting: false,
+      hidden: true,
+    });
+    for (const recordOid of [oid, ...tabOids, operationOid, aliasOid]) {
       const created = await sails.services.mongostorageservice.create(
         brand,
         {
           redboxOid: recordOid,
           metadata: { title: 'Finalise regression' },
           metaMetadata: { type: 'rdmp', brandId: brand.id, form: sourceForm, attachmentFields: [] },
-          workflow: { stage: sourceStage },
+          workflow: { stage: recordOid === aliasOid ? aliasStage : sourceStage },
           authorization: { edit: ['admin'], view: ['admin'], editRoles: [], viewRoles: [] },
         },
         {},
@@ -137,9 +151,9 @@ describe('Record Management: finalise route form switching', function () {
     if (finaliseConfiguration) {
       await Form.update({ name: 'default-1.0-draft', branding: brand.id }, { configuration: finaliseConfiguration });
     }
-    await Record.destroy({ redboxOid: [oid, ...tabOids, operationOid] });
-    await RecordAudit.destroy({ redboxOid: [oid, ...tabOids, operationOid] });
-    await WorkflowStep.destroy({ name: [sourceStage, destinationStage], recordType: recordType.id });
+    await Record.destroy({ redboxOid: [oid, ...tabOids, operationOid, aliasOid] });
+    await RecordAudit.destroy({ redboxOid: [oid, ...tabOids, operationOid, aliasOid] });
+    await WorkflowStep.destroy({ name: [sourceStage, aliasStep, destinationStage], recordType: recordType.id });
     await Form.destroy({ name: [sourceForm, destinationForm], branding: brand.id });
   });
 
@@ -160,6 +174,35 @@ describe('Record Management: finalise route form switching', function () {
     } finally {
       await WorkflowStep.update(criteria, { config: step.config });
     }
+  });
+
+  it('loads and saves from a persisted stage differing from its workflow step name', async function () {
+    await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${aliasOid}`).expect(200);
+    const delivered = await agent
+      .get(`/default/rdmp/record/form/rdmp/${aliasOid}`)
+      .set('X-ReDBox-Api-Version', '2.0')
+      .query({ edit: 'true', formName: 'default-1.0-draft', targetStep: destinationStage })
+      .expect(200);
+    expect(delivered.body.meta.validationOperations).to.deep.equal([
+      { name: 'finaliseTransition', allowedTargetSteps: [destinationStage] },
+    ]);
+    const original = await sails.services.recordsservice.getMeta(aliasOid);
+    expect(original.workflow.stage).to.equal(aliasStage);
+    expect(original.metaMetadata.form).to.equal(sourceForm);
+
+    await agent
+      .put(`/default/rdmp/recordmeta/${aliasOid}`)
+      .query({ targetStep: destinationStage, operation: 'finaliseTransition' })
+      .set('X-Source', 'jsclient')
+      .set('X-ReDBox-Api-Version', '2.0')
+      .set('If-Match', delivered.headers.etag)
+      .set('X-ReDBox-Form-Fingerprint', delivered.body.meta.formFingerprint)
+      .send({ title: 'Finalised from a persisted stage alias', finaliseConfirmation: 'Confirmed' })
+      .expect(200);
+    const saved = await sails.services.recordsservice.getMeta(aliasOid);
+    expect(saved.workflow.stage).to.equal(destinationStage);
+    expect(saved.metaMetadata.form).to.equal(destinationForm);
+    expect(saved.revision).to.equal(original.revision + 1);
   });
 
   it('discovers and enforces named transition operations on a distinct destination form', async function () {
