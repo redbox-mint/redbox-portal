@@ -325,6 +325,15 @@ describe('Record Management: finalise route form switching', function () {
     expect(saved.metaMetadata.form).to.equal('default-1.0-draft');
     expect(saved.metadata.title).to.equal('Finalise regression saved');
     expect(saved.revision).to.equal(current.revision + 2);
-    await agent.get(formUrl).set('X-ReDBox-Api-Version', '2.0').query({ edit: 'true' }).expect(200);
+    const normal = await agent.get(formUrl).set('X-ReDBox-Api-Version', '2.0').query({ edit: 'true' }).expect(200);
+    expect(normal.body.meta.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
+    await agent
+      .put(`/default/rdmp/recordmeta/${oid}`)
+      .set('X-Source', 'jsclient')
+      .set('X-ReDBox-Api-Version', '2.0')
+      .set('If-Match', normal.headers.etag)
+      .set('X-ReDBox-Form-Fingerprint', normal.body.meta.formFingerprint)
+      .send({ title: 'Ordinary edit after finalisation' })
+      .expect(200);
   });
 });

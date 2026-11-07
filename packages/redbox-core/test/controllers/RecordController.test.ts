@@ -1525,7 +1525,7 @@ describe('RecordController getWorkflowSteps', () => {
         const result = await load();
         expect(result.status).to.equal(undefined);
         expect(result.meta.formName).to.equal(formName);
-        expect(result.meta.formFingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
+        expect(result.meta.formFingerprint).to.match(/^route:sha256:[0-9a-f]{64}$/);
         expect(result.headers.ETag).to.equal(formatRecordEntityTag('oid-1', 3));
         expect((global as any).FormsService.getForm.firstCall.args[1]).to.equal(formName);
         expect(record.metaMetadata.form).to.equal('rdmp-draft');
@@ -1614,7 +1614,97 @@ describe('RecordController getWorkflowSteps', () => {
       expect(record.workflow).to.deep.equal({ stage: 'draft' });
     });
 
+    for (const action of ['update', 'stepTo']) {
+      it(`skips grant-store lookup for an ordinary fingerprint-protected ${action}`, async () => {
+        formName = form.name = record.metaMetadata.form;
+        const delivered = await load();
+        const get = sinon
+          .stub(sessionStore, 'get')
+          .callsFake((_key, callback) => callback(new Error('Store unavailable')));
+        const saved = new RecordSaveResponse('00000000-0000-4000-8000-000000000123');
+        saved.outcome = 'saved';
+        saved.success = true;
+        const update = sinon.stub().resolves(saved);
+        controller.recordsService.updateMeta = update;
+        const req = {
+          params: { oid: record.redboxOid, targetStep: 'finalised' },
+          query: {},
+          headers: {
+            'if-match': delivered.headers.ETag,
+            'x-redbox-form-fingerprint': delivered.meta.formFingerprint,
+          },
+          body: { title: 'Ordinary save' },
+          session,
+          sessionID: 'session-a',
+          sessionStore,
+          user,
+        } as unknown as Sails.Req;
+
+        if (action === 'stepTo') await controller.stepTo(req, {} as Sails.Res);
+        else {
+          const internal = controller as unknown as {
+            updateInternal(req: Sails.Req, res: Sails.Res): Promise<unknown>;
+          };
+          await internal.updateInternal(req, {} as Sails.Res);
+        }
+
+        expect(get.notCalled).to.equal(true);
+        expect(update.calledOnce).to.equal(true);
+        expect(update.firstCall.args[8].routeForm).to.equal(undefined);
+      });
+    }
+
+    for (const action of ['restoreRecord', 'destroyDeletedRecord'] as const) {
+      for (const apiVersion of ['1.0', '2.0']) {
+        for (const failure of ['snapshot', 'context', 'mutation']) {
+          it(`sanitises ${action} ${failure} failures (API ${apiVersion})`, async () => {
+            const error = new Error('private lifecycle diagnostics');
+            (controller.getApiVersion as sinon.SinonStub).returns(apiVersion);
+            controller.recordsService.getDeletedRecordMeta = sinon.stub().resolves(record);
+            const mutation = sinon.stub().rejects(error);
+            controller.recordsService[action] = mutation;
+            if (failure === 'snapshot') {
+              (controller.recordsService.getDeletedRecordMeta as sinon.SinonStub).rejects(error);
+            }
+            if (failure === 'context') {
+              const internal = controller as unknown as { mutationSaveContext(): Promise<unknown> };
+              sinon.stub(internal, 'mutationSaveContext').rejects(error);
+            }
+            const req = {
+              param: () => record.redboxOid,
+              params: { oid: record.redboxOid },
+              query: {},
+              headers: {},
+              session,
+              sessionID: 'session-a',
+              sessionStore,
+              user,
+            } as unknown as Sails.Req;
+
+            await controller[action](req, {} as Sails.Res);
+
+            expect(sendResp.lastCall.args[2]).to.deep.equal(
+              apiVersion === '1.0'
+                ? {
+                    status: 500,
+                    v1: { message: '@record-save-failed' },
+                  }
+                : {
+                    status: 500,
+                    displayErrors: [{ code: 'record-save-failed', title: '@record-save-failed' }],
+                  }
+            );
+            expect(mutation.callCount).to.equal(failure === 'mutation' ? 1 : 0);
+            expect(JSON.stringify(sendResp.args)).not.to.include(error.message);
+            expect(JSON.stringify((sails.log.error as sinon.SinonStub).args)).not.to.include(error.message);
+          });
+        }
+      }
+    }
+
     it('handles session-store failures on stepTo without saving or exposing error details', async () => {
+      await open();
+      const delivered = await load();
       const update = sinon.stub();
       controller.recordsService.updateMeta = update;
       sinon
@@ -1625,7 +1715,7 @@ describe('RecordController getWorkflowSteps', () => {
         query: { formName: record.metaMetadata.form },
         headers: {
           'if-match': formatRecordEntityTag(record.redboxOid, record.revision),
-          'x-redbox-form-fingerprint': 'current-form-fingerprint',
+          'x-redbox-form-fingerprint': delivered.meta.formFingerprint,
         },
         body: { title: 'Finalise' },
         session,

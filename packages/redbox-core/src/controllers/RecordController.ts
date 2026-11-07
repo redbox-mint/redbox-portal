@@ -43,6 +43,8 @@ import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import {
   routeFormAllowed,
   routeFormMatches,
+  routeFormFingerprint,
+  isRouteFormFingerprint,
   routeFormFingerprintRecord,
   readRouteForm,
   storeRouteForm,
@@ -213,6 +215,7 @@ export namespace Controllers {
       concurrency?: RecordConcurrencyContext
     ): Promise<RecordSaveContext> {
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      const formFingerprint = concurrency?.formFingerprint;
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
         routeFamily: 'browser',
@@ -222,9 +225,9 @@ export namespace Controllers {
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
         ...(concurrency ? { concurrency } : {}),
-        routeForm: concurrency?.formFingerprint
+        routeForm: isRouteFormFingerprint(formFingerprint)
           ? await readRouteForm(req, this.requestString(req.params, 'oid') ?? '', {
-              fingerprint: concurrency.formFingerprint,
+              fingerprint: formFingerprint,
             })
           : undefined,
       });
@@ -295,7 +298,7 @@ export namespace Controllers {
       if (!fingerprint) {
         throw new Error('The current form concurrency fingerprint could not be generated.');
       }
-      return fingerprint;
+      return routeFormName ? routeFormFingerprint(fingerprint) : fingerprint;
     }
 
     /** Read routing intent only from the explicit server-owned source. */
@@ -316,7 +319,7 @@ export namespace Controllers {
     private sendUnexpectedSaveFailure(
       req: Sails.Req,
       res: Sails.Res,
-      action: 'update' | 'transition',
+      action: 'update' | 'transition' | 'restore' | 'purge',
       error: unknown,
       meta?: RecordSaveResponse
     ) {
@@ -1450,16 +1453,20 @@ export namespace Controllers {
           },
         });
       }
-      const user = req.user;
-      const brand: BrandingModel = this.getReqBrand(req);
-      const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
-        return this.sendResp(req, res, { status: 404 });
+      try {
+        const user = req.user;
+        const brand: BrandingModel = this.getReqBrand(req);
+        const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
+        if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        const saveRequest = await this.mutationSaveContext(req, oid, 'restore');
+        if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+        const response = await this.recordsService.restoreRecord(oid, user ?? {}, brand, saveRequest.context);
+        return await this.sendLifecycleResult(req, res, brand, oid, response, msgFailed);
+      } catch (error) {
+        return this.sendUnexpectedSaveFailure(req, res, 'restore', error);
       }
-      const saveRequest = await this.mutationSaveContext(req, oid, 'restore');
-      if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-      const response = await this.recordsService.restoreRecord(oid, user ?? {}, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, brand, oid, response, msgFailed);
     }
 
     public async destroyDeletedRecord(req: Sails.Req, res: Sails.Res) {
@@ -1476,16 +1483,20 @@ export namespace Controllers {
           },
         });
       }
-      const user = req.user;
-      const brand: BrandingModel = this.getReqBrand(req);
-      const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
-      if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
-        return this.sendResp(req, res, { status: 404 });
+      try {
+        const user = req.user;
+        const brand: BrandingModel = this.getReqBrand(req);
+        const deleted = await this.recordsService.getDeletedRecordMeta(oid, brand);
+        if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        const saveRequest = await this.mutationSaveContext(req, oid, 'purge');
+        if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+        const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {}, brand, saveRequest.context);
+        return await this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-destroy'));
+      } catch (error) {
+        return this.sendUnexpectedSaveFailure(req, res, 'purge', error);
       }
-      const saveRequest = await this.mutationSaveContext(req, oid, 'purge');
-      if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-      const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {}, brand, saveRequest.context);
-      return this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-destroy'));
     }
 
     public update(req: Sails.Req, res: Sails.Res) {

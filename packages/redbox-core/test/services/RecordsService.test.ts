@@ -3,6 +3,7 @@ import { createSinonStubLogger } from '../logger.test';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
+import { routeFormFingerprint } from '../../src/RecordRouteForm';
 import { Settings } from 'luxon';
 import _ from 'lodash';
 import { of, firstValueFrom } from 'rxjs';
@@ -2944,10 +2945,12 @@ describe('RecordsService', function () {
             committedRecord: _.cloneDeep(stored),
           };
         });
-        issued = await RecordsService.getRecordFormFingerprint(
-          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
-          recordType,
-          sourceForm
+        issued = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            sourceForm
+          ))!
         );
         grant = {
           oid: stored.redboxOid,
@@ -3020,6 +3023,21 @@ describe('RecordsService', function () {
         expect(writes).to.have.length(0);
       });
 
+      it('rejects removing the route marker to avoid grant lookup', async () => {
+        const result = await save(4, issued.replace(/^route:/, ''), null);
+        expect(recordSaveFailureStatus(result)).to.equal(409);
+        expect(result.problems[0].issues[0].code).to.equal('form-definition-changed');
+        expect(writes).to.have.length(0);
+      });
+
+      it('rejects a route marker on a stored-form fingerprint without a grant', async () => {
+        const fingerprint = await RecordsService.getRecordFormFingerprint(stored, recordType);
+        const result = await save(4, routeFormFingerprint(fingerprint!), null);
+        expect(recordSaveFailureStatus(result)).to.equal(409);
+        expect(result.problems[0].issues[0].code).to.equal('form-definition-changed');
+        expect(writes).to.have.length(0);
+      });
+
       it('saves directly to an explicit next stage using a distinct hidden transition form', async () => {
         steps[0].config.workflow.next = ['finalised'];
         sourceForm.configuration.componentDefinitions = [
@@ -3028,10 +3046,12 @@ describe('RecordsService', function () {
             component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } },
           },
         ];
-        issued = grant.fingerprint = await RecordsService.getRecordFormFingerprint(
-          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
-          recordType,
-          sourceForm
+        issued = grant.fingerprint = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            sourceForm
+          ))!
         );
         const result = await save();
         expect(result.outcome, JSON.stringify(result)).to.equal('saved');
@@ -3047,10 +3067,12 @@ describe('RecordsService', function () {
             component: { class: 'SaveButtonComponent', config: { targetStep: 'finalised' } },
           },
         ];
-        issued = grant.fingerprint = await RecordsService.getRecordFormFingerprint(
-          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
-          recordType,
-          sourceForm
+        issued = grant.fingerprint = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            sourceForm
+          ))!
         );
         const result = await save(4, issued, grant, 'browser', 'transition-finalised');
         expect(recordSaveFailureStatus(result), JSON.stringify(result)).to.equal(409);
@@ -3068,10 +3090,12 @@ describe('RecordsService', function () {
 
       it('fingerprints type-enriched delivery and raw legacy configuration consistently', async () => {
         delete sourceForm.configuration.type;
-        issued = grant.fingerprint = await RecordsService.getRecordFormFingerprint(
-          { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
-          recordType,
-          { ...sourceForm, configuration: { ...sourceForm.configuration, type: 'rdmp' } }
+        issued = grant.fingerprint = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            { ...sourceForm, configuration: { ...sourceForm.configuration, type: 'rdmp' } }
+          ))!
         );
         const result = await save();
         expect(result.outcome, JSON.stringify(result)).to.equal('saved');

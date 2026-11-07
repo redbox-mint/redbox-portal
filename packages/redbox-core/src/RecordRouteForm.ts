@@ -20,6 +20,17 @@ export interface RecordRouteForm {
 
 type GrantSelector = { formName: string } | { fingerprint: string };
 
+const ROUTE_FORM_FINGERPRINT_PREFIX = 'route:';
+
+/** An opaque routing hint only; a matching server-held grant is still required. */
+export function routeFormFingerprint(fingerprint: string): string {
+  return ROUTE_FORM_FINGERPRINT_PREFIX + fingerprint;
+}
+
+export function isRouteFormFingerprint(fingerprint: string | undefined): fingerprint is string {
+  return fingerprint?.startsWith(ROUTE_FORM_FINGERPRINT_PREFIX) === true;
+}
+
 function grantKey(req: Sails.Req, oid: string, selector: GrantSelector): string {
   return (
     'redbox-route-form:' +

@@ -171,7 +171,12 @@ import type {
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
 import { issueInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
-import { routeFormAllowed, routeFormMatches, routeFormFingerprintRecord } from '../RecordRouteForm';
+import {
+  routeFormAllowed,
+  routeFormMatches,
+  routeFormFingerprintRecord,
+  routeFormFingerprint,
+} from '../RecordRouteForm';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -5406,6 +5411,9 @@ export namespace Services {
               : (originalRecord as AnyRecord),
             recordType as RecordTypeLike
           );
+          if (currentFormFingerprint && routeForm && routeFormValid) {
+            currentFormFingerprint = routeFormFingerprint(currentFormFingerprint);
+          }
         } catch (error) {
           tracker.recordPrimaryNotApplied(
             this.concurrencyProblem('pre-save', 'record-concurrency-capability-unavailable')
@@ -5786,6 +5794,9 @@ export namespace Services {
                       recordType as RecordTypeLike
                     )
                   : undefined;
+                if (currentFormFingerprint && routeForm) {
+                  currentFormFingerprint = routeFormFingerprint(currentFormFingerprint);
+                }
               } catch {
                 // The mutation is already certified not-applied. Omitting an
                 // unprovable fingerprint safely disables browser rebase.
