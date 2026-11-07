@@ -107,3 +107,30 @@ export function extensionRegistration(module: Record<string, unknown>, provider:
     throw new ExtensionError(provider, 'export registerRedboxExtension() using the v6 contract');
   return registration as () => unknown;
 }
+
+/** Import and await declarations only. Resource/factory acquisition belongs to the application.
+ * Version-specific loaders validate the unknown declarations before composition.
+ */
+export async function inspectInstalledExtensionProviders(
+  appPath: string,
+  options: { includeDevDependencies?: boolean } = {}
+) {
+  const installed = await discoverInstalledExtensions(appPath, options);
+  const providers: { name: string; root: string; declaration: unknown }[] = [];
+  const entrypoints = new Map<string, Record<string, unknown>>();
+  for (const extension of installed.extensions) {
+    try {
+      const entrypoint = await loadExtensionModule(extension);
+      entrypoints.set(extension.name, entrypoint);
+      providers.push({
+        name: extension.name,
+        root: extension.root,
+        declaration: await extensionRegistration(entrypoint, extension.name)(),
+      });
+    } catch (error) {
+      if (error instanceof ExtensionError) throw error;
+      throw new ExtensionError(extension.name, 'registration failed; declarations must be offline');
+    }
+  }
+  return { providers, hookLoadPriority: installed.hookLoadPriority, entrypoints };
+}

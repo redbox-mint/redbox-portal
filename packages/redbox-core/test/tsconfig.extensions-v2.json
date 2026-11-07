@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.controllers.json",
+  "include": ["extensions/v2*.test.ts", "http/fastify/fixtures/controllers.types.ts"]
+}

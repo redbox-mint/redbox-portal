@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import type { RequestHandler } from 'express';
 export type { RequestHandler } from 'express';
 import type { ApplicationModule } from '../application';
+import type { ControllerRegistration, HttpRouteDeclaration } from '../http/contracts';
 
 /**
  * Offline factory declaration with a concrete, application-bound input.
@@ -75,4 +76,16 @@ export interface RedboxExtension {
   /** Package-relative directories, resolved against the installed artifact. */
   readonly views?: readonly string[];
   readonly assets?: readonly string[];
+}
+
+/** Fastify declaration. Non-HTTP contributions retain their API1 types and semantics.
+ * Hooks/fallbacks are qualified separately; raw server integrations are not an extension capability.
+ */
+export interface RedboxExtensionV2 extends Omit<
+  RedboxExtension,
+  'apiVersion' | 'handlers' | 'routes' | 'middleware' | 'integrations'
+> {
+  readonly apiVersion: 2;
+  readonly controllers?: readonly ControllerRegistration[];
+  readonly routes?: readonly HttpRouteDeclaration[];
 }

@@ -2,6 +2,7 @@
 // Use the built public entrypoint, as an external controller author does.
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Request, Response } from 'express';
+import type { RedboxExtensionV2 } from '@researchdatabox/redbox-core/extensions';
 import {
   ApplicationStatusController,
   applicationStatusController,
@@ -88,6 +89,41 @@ bindControllerFactory(greeting, replacementInput);
 const invalidCoreInput: ApplicationStatusControllerInput = { application: { status: () => 'ready' } };
 
 const declarations: readonly ControllerRegistration[] = [applicationStatusController, statusReplacement, greeting];
+const extension: RedboxExtensionV2 = {
+  apiVersion: 2,
+  controllers: [statusReplacement, greeting],
+  routes: [
+    {
+      name: 'greeting',
+      method: 'get',
+      path: '/greeting',
+      controller: 'GreetingController',
+      action: 'greet',
+      access: { kind: 'public' },
+    },
+  ],
+  modules: [],
+  config: {},
+  forms: {},
+  workflows: {},
+  jobs: {},
+  migrations: [],
+  bootstrap: [],
+  configModels: [],
+  contributors: [],
+  views: ['views'],
+  assets: ['assets'],
+};
+const legacyVersion: RedboxExtensionV2 = {
+  // @ts-expect-error API1 declarations require explicit conversion.
+  apiVersion: 1,
+};
+const legacyHandlers: RedboxExtensionV2 = {
+  apiVersion: 2,
+  // @ts-expect-error API2 never accepts Express handler factories.
+  handlers: [],
+};
+void [extension, legacyVersion, legacyHandlers];
 const invalidProperty = defineController({
   name: 'Property',
   // @ts-expect-error Non-callable fields cannot appear in an allowlist.

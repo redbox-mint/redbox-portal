@@ -1,0 +1,13 @@
+{
+  "name": "fm017-commonjs",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "exports": {
+    ".": {
+      "import": "./index.cjs"
+    }
+  },
+  "redbox": {
+    "extension": "."
+  }
+}

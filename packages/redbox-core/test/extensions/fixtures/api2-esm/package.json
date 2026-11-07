@@ -1,0 +1,14 @@
+{
+  "name": "fm017-esm",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./extension": {
+      "import": "./index.mjs",
+      "require": "./unsupported.cjs"
+    }
+  },
+  "redbox": {
+    "extension": "./extension"
+  }
+}

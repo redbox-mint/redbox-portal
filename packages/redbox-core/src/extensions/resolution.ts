@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { parse, pathToRegexp, TokenData, type Token } from 'path-to-regexp';
 import type { RedboxExtension, ExtensionFactory, ExtensionRoute, ExtensionWork } from './contract';
-import { discoverInstalledExtensions, extensionRegistration, ExtensionError, loadExtensionModule } from './loading';
+import { ExtensionError, inspectInstalledExtensionProviders } from './loading';
 
 export interface ExtensionProvider {
   readonly name: string;
@@ -381,26 +381,15 @@ export async function loadInstalledExtensionProviders(
   hookLoadPriority: readonly string[];
   entrypoints: ReadonlyMap<string, Record<string, unknown>>;
 }> {
-  const installed = await discoverInstalledExtensions(appPath, options);
+  const installed = await inspectInstalledExtensionProviders(appPath, options);
   const providers: ExtensionProvider[] = options.core
     ? [{ name: 'core', root: appPath, declaration: options.core }]
     : [];
-  const entrypoints = new Map<string, Record<string, unknown>>();
-  for (const extension of installed.extensions) {
-    let declaration: RedboxExtension;
-    try {
-      const entrypoint = await loadExtensionModule(extension);
-      entrypoints.set(extension.name, entrypoint);
-      declaration = (await extensionRegistration(entrypoint, extension.name)()) as RedboxExtension;
-    } catch (error) {
-      if (error instanceof ExtensionError) throw error;
-      throw new ExtensionError(extension.name, 'registration failed; declarations must be offline');
-    }
-    providers.push({ name: extension.name, root: extension.root, declaration });
-  }
+  for (const provider of installed.providers)
+    providers.push({ ...provider, declaration: provider.declaration as RedboxExtension });
   return {
     providers: orderExtensionProviders(providers, installed.hookLoadPriority),
     hookLoadPriority: installed.hookLoadPriority,
-    entrypoints,
+    entrypoints: installed.entrypoints,
   };
 }

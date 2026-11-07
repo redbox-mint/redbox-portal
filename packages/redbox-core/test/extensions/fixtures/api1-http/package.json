@@ -1,0 +1,9 @@
+{
+  "name": "fm017-api1-http",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "exports": "./index.cjs",
+  "redbox": {
+    "extension": "."
+  }
+}

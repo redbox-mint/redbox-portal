@@ -3,3 +3,4 @@ export * from './loading';
 export * from './exports';
 export * from './resolution';
 export * from './composition';
+export * from './v2';

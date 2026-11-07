@@ -176,11 +176,11 @@
     "packages/redbox-core/src/dashboards/DashboardConfig.ts": "36f792ea7bc8efefe91c679d9a0cecaaed25fa2d37546353e93ddaf3dabd7443",
     "packages/redbox-core/src/dashboards/DashboardLegacyConversion.ts": "d3a7961e9b4fc3e7d9af56892f3a2462859c05a2fde5855a00bea3bb05bfde40",
     "packages/redbox-core/src/extensions/composition.ts": "45ad55512ee0986ba970bab4bb82ec4299feed1f5cc659801fb8991e48f9d115",
-    "packages/redbox-core/src/extensions/contract.ts": "d4f59d5386c72b6806e5106eff5ce14ea1e99c333fc625d4c4837a310e4dc625",
+    "packages/redbox-core/src/extensions/contract.ts": "a11d7a822b5c6cd9b161cc998849dbf8f9d94808742903c1ab60c69c12921bb6",
     "packages/redbox-core/src/extensions/exports.ts": "52248700fa015cfb08685662b790876a55a8ab05bf1babb0d493f37d779301f9",
     "packages/redbox-core/src/extensions/integrationModule.ts": "eb6df3af0bc7baf56c4d0011c263024b97b2b8474827705ed23cfc7213878dc2",
-    "packages/redbox-core/src/extensions/loading.ts": "e94fd637c6ece1a382a197c766d5fb5c596dcfd24a1c0e4aaca8db558060ffb7",
-    "packages/redbox-core/src/extensions/resolution.ts": "48c465ce6655bc58f479e32fe594d8438373c337aa32c2c7c853fa76c976c0ac",
+    "packages/redbox-core/src/extensions/loading.ts": "28bd41f8c84504cb8ad5851bd5b46c3094c34ba69f743048afb0bca26c41a672",
+    "packages/redbox-core/src/extensions/resolution.ts": "0447d987b564188b0039aaa3a218e85b3c1a4beb2608e99e702c85b5ebb6b77d",
     "packages/redbox-core/src/forms/ContextVariables.ts": "5520f614751d52912471569eea62260679e06e0477ca7afc3dca8ce478266421",
     "packages/redbox-core/src/forms/FormDelivery.ts": "09e0ccbc91a8c3cd85e7f0ff43675121e6d93aa6987931df6f678cdc1a402c59",
     "packages/redbox-core/src/forms/FormPayloadPrehydrate.ts": "7ac40cefdf4b6d15033b51aff9794f14ee6de676952d92081d7eeee5a2cae8e2",
@@ -44070,7 +44070,7 @@
       "source": {
         "file": "packages/redbox-core/src/extensions/contract.ts",
         "export": "ExtensionRoute",
-        "line": 23
+        "line": 24
       },
       "method": "declared method",
       "path": "installed extension declarations",

@@ -152,7 +152,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     policy ordering, CSRF, observation-failure isolation and secret-redaction tests
     pass. Unbranded/early requests do not receive fabricated context.
 
-- [ ] **FM-017 — Version extension loading and replacement.**
+- [x] **FM-017 — Version extension loading and replacement.**
   - Dependencies: FM-009, FM-010.
   - Work: implement API2 controller/route declarations and actionable API1 rejection;
     retain offline CommonJS/ESM inspection, dependency/provider precedence and
