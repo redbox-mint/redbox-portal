@@ -40,6 +40,14 @@ import { Server as TusServer, EVENTS } from '@tus/server';
 import type { Upload } from '@tus/server';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
+import {
+  routeFormAllowed,
+  routeFormMatches,
+  routeFormFingerprintRecord,
+  readRouteForm,
+  storeRouteForm,
+  type RecordRouteForm,
+} from '../RecordRouteForm';
 import * as FormPayloadPrehydrateServiceModule from '../services/FormPayloadPrehydrateService';
 import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
@@ -197,13 +205,13 @@ export namespace Controllers {
       return error instanceof Error ? error : new Error(String(error));
     }
 
-    private saveContext(
+    private async saveContext(
       req: Sails.Req,
       operation: RecordSaveOperation,
       validationOperation?: string,
       targetStep?: string,
       concurrency?: RecordConcurrencyContext
-    ): RecordSaveContext {
+    ): Promise<RecordSaveContext> {
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
       return createRecordSaveContext({
         requestId: readSaveRequestId(req.headers),
@@ -214,10 +222,15 @@ export namespace Controllers {
         validationOperation,
         validationRequestParameters: normalizeRecordValidationRequestFacts(req.params, req.query),
         ...(concurrency ? { concurrency } : {}),
+        routeForm: concurrency?.formFingerprint
+          ? await readRouteForm(req, this.requestString(req.params, 'oid') ?? '', {
+              fingerprint: concurrency.formFingerprint,
+            })
+          : undefined,
       });
     }
 
-    private mutationSaveContext(
+    private async mutationSaveContext(
       req: Sails.Req,
       oid: string | undefined,
       operation: RecordSaveOperation,
@@ -229,8 +242,13 @@ export namespace Controllers {
       if (!parsed.valid) return parsed;
       return {
         valid: true as const,
-        context: this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
+        context: await this.saveContext(req, operation, validationOperation, targetStep, parsed.context),
       };
+    }
+
+    private saveFormNameMatches(req: Sails.Req, record: RecordModel, context: RecordSaveContext): boolean {
+      const formName = this.requestString(req.query, 'formName');
+      return !formName || formName === (context.routeForm?.formName ?? record.metaMetadata.form);
     }
 
     /**
@@ -244,7 +262,8 @@ export namespace Controllers {
       brand: BrandingModel,
       currentRec: RecordModel | null,
       requestedRecordType: string | undefined,
-      sourceForm: FormAttributes
+      sourceForm: FormAttributes,
+      routeFormName?: string
     ): Promise<string> {
       const formConfig = sourceForm.configuration;
       if (!formConfig) {
@@ -257,7 +276,9 @@ export namespace Controllers {
 
       let fingerprintRecord: AnyRecord;
       if (currentRec) {
-        fingerprintRecord = currentRec as unknown as AnyRecord;
+        fingerprintRecord = (routeFormName
+          ? routeFormFingerprintRecord(currentRec, routeFormName)
+          : currentRec) as unknown as AnyRecord;
       } else {
         const effectiveStep = (await firstValueFrom(WorkflowStepsService.getFirst(recordType))) as unknown as AnyRecord;
         fingerprintRecord = {
@@ -869,6 +890,24 @@ export namespace Controllers {
           if (!canEdit) {
             return res.forbidden();
           }
+          if (extFormName && extFormName !== existingRecord.metaMetadata?.form && req.session) {
+            if (
+              await routeFormAllowed(existingRecord, extFormName, step =>
+                this.recordsService.hasTransitionRoleAuthorization(step, req.user ?? {})
+              )
+            ) {
+              const grant: RecordRouteForm = {
+                oid: String(oid),
+                brandId: String(brand.id),
+                username: String(req.user?.username ?? ''),
+                recordType: String(existingRecord.metaMetadata.type),
+                storedForm: String(existingRecord.metaMetadata.form),
+                stage: String(existingRecord.workflow?.stage),
+                formName: extFormName,
+              };
+              await storeRouteForm(req, grant);
+            }
+          }
         } catch (error) {
           sails.log.error(error);
           return res.serverError();
@@ -986,6 +1025,7 @@ export namespace Controllers {
         let form: FormAttributes | null = null;
         let currentRec: RecordModel | null = null;
         let recordHasEditAccess = false;
+        let routeForm: RecordRouteForm | undefined;
         if (!oid) {
           //find form to create a record
           form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, recordType, editMode));
@@ -1040,19 +1080,27 @@ export namespace Controllers {
             });
           }
           if (requestedFormName && requestedFormName !== authoritativeFormName) {
-            return this.sendResp(req, res, {
-              status: 409,
-              displayErrors: [{ code: 'form-definition-changed' }],
-              v1: { message: TranslationService.t('form-definition-changed') },
-            });
+            routeForm = editMode ? await readRouteForm(req, oid, { formName: requestedFormName }) : undefined;
+            if (
+              !routeForm ||
+              routeForm.brandId !== String(brand.id) ||
+              !routeFormMatches(currentRec, routeForm) ||
+              !(await routeFormAllowed(currentRec, requestedFormName, step =>
+                this.recordsService.hasTransitionRoleAuthorization(step, req.user ?? {})
+              ))
+            ) {
+              return this.sendResp(req, res, {
+                status: 409,
+                displayErrors: [{ code: 'form-definition-changed' }],
+                v1: { message: TranslationService.t('form-definition-changed') },
+              });
+            }
           }
 
-          // The stored workflow/form reference owns the delivered contract.
-          // A route parameter may confirm that identity but cannot select a
-          // different form for an existing record.
+          // Only a server-held route grant can select another workflow form.
           form = (await FormsService.getForm(
             brand,
-            authoritativeFormName,
+            routeForm?.formName ?? authoritativeFormName,
             editMode,
             '',
             currentRec as RecordModel
@@ -1096,11 +1144,13 @@ export namespace Controllers {
           contextVariablesMap,
           { user: req.user as UserModel, brand }
         );
+        // Discovery uses the authorised source contract without changing the
+        // stored record or relaxing the discovery service's identity check.
         const validationOperations = await FormsService.discoverValidationOperations({
           brand,
           form,
           recordType: String(currentRec?.metaMetadata?.type ?? recordType ?? formConfig.type ?? ''),
-          record: currentRec,
+          record: currentRec && routeForm ? routeFormFingerprintRecord(currentRec, routeForm.formName) : currentRec,
           user: req.user,
           editable: editMode,
           targetStep: typeof req.query?.targetStep === 'string' ? req.query.targetStep : undefined,
@@ -1112,7 +1162,16 @@ export namespace Controllers {
           formConfig: mergedForm,
         });
 
-        const formFingerprint = await this.generatedFormFingerprint(brand, currentRec, recordType, form);
+        const formFingerprint = await this.generatedFormFingerprint(
+          brand,
+          currentRec,
+          recordType,
+          form,
+          routeForm?.formName
+        );
+        if (routeForm) {
+          await storeRouteForm(req, { ...routeForm, fingerprint: formFingerprint });
+        }
         const representation = currentRec ? recordRepresentationConcurrency(currentRec) : undefined;
         const authoritativeRecordType = String(currentRec?.metaMetadata?.type ?? formConfig.type ?? '');
 
@@ -1177,7 +1236,7 @@ export namespace Controllers {
         };
         const recType = this.requestString(req.params, 'recordType');
         const targetStep = this.requestString(req.query, 'targetStep');
-        const saveRequest = this.mutationSaveContext(
+        const saveRequest = await this.mutationSaveContext(
           req,
           undefined,
           targetStep ? 'transition' : 'create',
@@ -1276,7 +1335,7 @@ export namespace Controllers {
           });
         }
         const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
-        const saveRequest = this.mutationSaveContext(req, oid, 'delete');
+        const saveRequest = await this.mutationSaveContext(req, oid, 'delete');
         if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
         const response = await this.recordsService.delete(
           oid,
@@ -1369,7 +1428,7 @@ export namespace Controllers {
       if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
         return this.sendResp(req, res, { status: 404 });
       }
-      const saveRequest = this.mutationSaveContext(req, oid, 'restore');
+      const saveRequest = await this.mutationSaveContext(req, oid, 'restore');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       const response = await this.recordsService.restoreRecord(oid, user ?? {}, brand, saveRequest.context);
       return this.sendLifecycleResult(req, res, brand, oid, response, msgFailed);
@@ -1395,7 +1454,7 @@ export namespace Controllers {
       if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
         return this.sendResp(req, res, { status: 404 });
       }
-      const saveRequest = this.mutationSaveContext(req, oid, 'purge');
+      const saveRequest = await this.mutationSaveContext(req, oid, 'purge');
       if (!saveRequest.valid) return this.sendConcurrencyRequestFailure(req, res, saveRequest);
       const response = await this.recordsService.destroyDeletedRecord(oid, user ?? {}, brand, saveRequest.context);
       return this.sendLifecycleResult(req, res, brand, oid, response, TranslationService.t('failed-destroy'));
@@ -1419,7 +1478,7 @@ export namespace Controllers {
       const oid = this.requestString(req.params, 'oid') ?? '';
       const targetStep = this.requestString(req.query, 'targetStep');
       const shouldMerge = this.requestString(req.query, 'merge') === 'true';
-      const saveRequest = this.mutationSaveContext(
+      const saveRequest = await this.mutationSaveContext(
         req,
         oid,
         targetStep ? 'transition' : 'update',
@@ -1448,6 +1507,9 @@ export namespace Controllers {
       const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, user, currentRec));
       if (!hasEditAccess) {
         return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'not-authorised' }] });
+      }
+      if (!this.saveFormNameMatches(req, currentRec, saveRequest.context)) {
+        return this.sendResp(req, res, { status: 409, displayErrors: [{ code: 'form-definition-changed' }] });
       }
       const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
       let nextStepResp = null;
@@ -1621,11 +1683,11 @@ export namespace Controllers {
           displayErrors: [{ code: 'record-validation-operation-invalid' }],
         });
       }
-      const saveRequest = this.mutationSaveContext(req, oid, 'transition', parsedOperation.value, targetStep, true);
-      if (!saveRequest.valid) {
-        return this.sendConcurrencyRequestFailure(req, res, saveRequest);
-      }
       try {
+        const saveRequest = await this.mutationSaveContext(req, oid, 'transition', parsedOperation.value, targetStep, true);
+        if (!saveRequest.valid) {
+          return this.sendConcurrencyRequestFailure(req, res, saveRequest);
+        }
         const currentRec = await firstValueFrom(this.getRecord(oid));
         if (!this.recordBelongsToBrand(currentRec as AnyRecord, brand)) {
           return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'missing-record' }] });
@@ -1638,6 +1700,9 @@ export namespace Controllers {
           });
         }
         const recordType = await firstValueFrom(RecordTypesService.get(brand, currentRec.metaMetadata.type));
+        if (!this.saveFormNameMatches(req, currentRec, saveRequest.context)) {
+          return this.sendResp(req, res, { status: 409, displayErrors: [{ code: 'form-definition-changed' }] });
+        }
         const nextStep = await firstValueFrom(WorkflowStepsService.get(recordType, targetStep ?? ''));
         const response = await this.recordsService.updateMeta(
           brand,

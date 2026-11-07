@@ -171,6 +171,7 @@ import type {
   ValidateResolvedRecordSchemaResult,
 } from './RecordSchemaService';
 import { issueInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
+import { routeFormAllowed, routeFormMatches, routeFormFingerprintRecord } from '../RecordRouteForm';
 
 /**
  * Detached post hooks remain fire-and-forget to the save caller, but audit
@@ -1843,7 +1844,8 @@ export namespace Services {
       }
       const form = sourceForm ?? (await firstValueFrom(FormsService.getFormByName(formName, true, brandId)));
       if (!form) return undefined;
-      const workflowSteps = (await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType))) ?? [];
+      const workflowSteps =
+        (await firstValueFrom(WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType))) ?? [];
       const workflowFormContract = workflowSteps
         .map(step => {
           const workflowStep = step as unknown as WorkflowStepLike;
@@ -1867,7 +1869,14 @@ export namespace Services {
           id: form.id,
           name: form.name,
           branding: form.branding,
-          configuration: form.configuration,
+          configuration: form.configuration
+            ? {
+                ...form.configuration,
+                type:
+                  String(form.configuration.type ?? '').trim() ||
+                  String(metaMetadata.type ?? recordType.name ?? '').trim(),
+              }
+            : form.configuration,
         },
         reusableFormDefinitions: sails.config.reusableFormDefinitions ?? {},
         validatorDefinitions: sails.config.validators?.definitions ?? [],
@@ -5373,11 +5382,28 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
+      const routeForm = tracker.context.routeForm;
+      const routeFormValid =
+        !routeForm ||
+        (tracker.context.routeFamily === 'browser' &&
+          routeForm.username === userObj.username &&
+          routeFormMatches(originalRecord as unknown as RecordModel, routeForm) &&
+          (await routeFormAllowed(
+            originalRecord as unknown as RecordModel,
+            routeForm.formName,
+            step => this.hasTransitionRoleAuthorization(step, userObj),
+            requestedTargetName
+          )));
       let currentFormFingerprint: string | undefined;
       if (tracker.context.concurrency?.formFingerprint) {
         try {
           currentFormFingerprint = await this.getRecordFormFingerprint(
-            originalRecord as AnyRecord,
+            routeForm && routeFormValid
+              ? (routeFormFingerprintRecord(
+                  originalRecord as unknown as RecordModel,
+                  routeForm.formName
+                ) as unknown as AnyRecord)
+              : (originalRecord as AnyRecord),
             recordType as RecordTypeLike
           );
         } catch (error) {
@@ -5405,7 +5431,11 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
-      if (currentFormFingerprint && tracker.context.concurrency?.formFingerprint !== currentFormFingerprint) {
+      if (
+        !routeFormValid ||
+        (routeForm && !tracker.context.concurrency?.formFingerprint) ||
+        (currentFormFingerprint && tracker.context.concurrency?.formFingerprint !== currentFormFingerprint)
+      ) {
         tracker.recordPrimaryNotApplied(this.concurrencyProblem('pre-save', 'form-definition-changed'));
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
@@ -5739,10 +5769,23 @@ export namespace Services {
             if (latestRevision !== undefined) currentRevision = latestRevision;
             if (tracker.context.concurrency?.formFingerprint) {
               try {
-                currentFormFingerprint = await this.getRecordFormFingerprint(
-                  latestRecord,
-                  recordType as RecordTypeLike
-                );
+                const latestRouteFormAllowed =
+                  !routeForm ||
+                  (routeFormMatches(latestRecord as unknown as RecordModel, routeForm) &&
+                    (await routeFormAllowed(latestRecord as unknown as RecordModel, routeForm.formName, step =>
+                      this.hasTransitionRoleAuthorization(step, userObj)
+                    )));
+                currentFormFingerprint = latestRouteFormAllowed
+                  ? await this.getRecordFormFingerprint(
+                      routeForm
+                        ? (routeFormFingerprintRecord(
+                            latestRecord as unknown as RecordModel,
+                            routeForm.formName
+                          ) as unknown as AnyRecord)
+                        : latestRecord,
+                      recordType as RecordTypeLike
+                    )
+                  : undefined;
               } catch {
                 // The mutation is already certified not-applied. Omitting an
                 // unprovable fingerprint safely disables browser rebase.
