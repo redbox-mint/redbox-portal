@@ -101,12 +101,6 @@ export const policies: PoliciesConfig = {
   RenderViewController: {
     render: noCachePlusDefaultPolicies,
   },
-  RecordController: {
-    '*': noCachePlusDefaultPolicies,
-    // companionAttachmentUploadAuth runs before checkAuth; bypass is route-scoped
-    // and ignored for non-companion attachment routes.
-    doAttachment: doAttachmentPolicies,
-  },
   'webservice/RecordController': {
     '*': noCachePlusDefaultPolicies,
   },
@@ -121,6 +115,12 @@ export const policies: PoliciesConfig = {
     renderFont: ['contentSecurityPolicy'],
   },
   ...contractApiPolicies,
+  // Preserve the route-scoped Companion guard alongside generated record policies.
+  RecordController: {
+    ...(contractApiPolicies.RecordController as ControllerPolicies),
+    '*': noCachePlusDefaultPolicies,
+    doAttachment: doAttachmentPolicies,
+  },
   'webservice/RecordSchemaController': {
     ...recordSchemaControllerPolicies,
     create: recordSchemaApiValidationPolicies,
