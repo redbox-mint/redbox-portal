@@ -20,6 +20,7 @@
 import { Observable, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, take, tap, map, catchError } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
+import { routeFormContractName } from '../RecordRouteForm';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { FormAttributes } from '../waterline-models/Form';
@@ -115,6 +116,7 @@ export interface ValidationOperationDiscoveryOptions {
   readonly user?: UserModel | Record<string, unknown> | null;
   readonly editable: boolean;
   readonly targetStep?: string;
+  readonly routeFormContract?: unknown;
 }
 
 /** Detached configured-form input for candidate-independent record-contract startup compilation. */
@@ -448,7 +450,9 @@ export namespace Services {
           record?.metaMetadata?.type ?? options.recordType ?? options.form.configuration?.type ?? ''
         ).trim();
         const brandId = String(record?.metaMetadata?.brandId ?? options.brand?.id ?? '').trim();
-        const formName = String(record?.metaMetadata?.form ?? options.form.name ?? '').trim();
+        const routeFormName = record ? routeFormContractName(options.routeFormContract, record) : undefined;
+        if (options.routeFormContract !== undefined && !routeFormName) return [];
+        const formName = String(routeFormName ?? record?.metaMetadata?.form ?? options.form.name ?? '').trim();
         if (!recordTypeName || !brandId || !formName) return [];
         if (record && String(options.form.name ?? '').trim() !== formName) return [];
         if (!record) {
@@ -485,12 +489,13 @@ export namespace Services {
             ...(record?.metaMetadata ?? {}),
             brandId,
             type: recordTypeName,
-            form: formName,
+            form: record?.metaMetadata?.form ?? formName,
           },
           ...(record?.workflow ? { workflow: record.workflow } : {}),
         };
         const operations = await validationService.discoverOperations({
           candidate,
+          routeFormContract: options.routeFormContract,
           writeKind: targetStep ? (record ? 'transition' : 'create') : record ? 'update' : 'create',
           ...(targetStep ? { targetStep } : {}),
           actor: { authenticated: true, roles: normalizedActorRoles },

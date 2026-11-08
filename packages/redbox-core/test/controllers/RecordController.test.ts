@@ -5,7 +5,7 @@ import * as sinon from 'sinon';
 import { firstValueFrom, of } from 'rxjs';
 import { tmpdir } from 'node:os';
 import { MemoryStore, Cookie } from 'express-session';
-import { readRouteForm } from '../../src/RecordRouteForm';
+import { readRouteForm, routeFormContractName } from '../../src/RecordRouteForm';
 import { Settings } from 'luxon';
 import { Controllers } from '../../src/controllers/RecordController';
 import { UserModel, RoleModel } from '../../src/model';
@@ -1156,6 +1156,28 @@ describe('RecordController getWorkflowSteps', () => {
     expect(result.concurrency).to.equal(undefined);
   });
 
+  it('disables route-form rebase when conflict metadata is projected through the stored form', async function () {
+    const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000016');
+    result.outcome = 'not-saved';
+    result.problems = [{ kind: 'conflict', phase: 'persistence', issues: [{ code: 'record-revision-stale' }] }];
+    result.setConcurrencyMetadata({ currentRevision: 5, formFingerprint: `route:sha256:${'a'.repeat(64)}` });
+    (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+      redboxOid: 'oid-1',
+      revision: 5,
+      metaMetadata: { brandId: 'brand-1', form: 'form-1' },
+      metadata: { title: 'Latest', finaliseNotes: 'Concurrent alternate-form value' },
+    });
+    (controller.recordsService.hasViewAccess as sinon.SinonStub).returns(true);
+    (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(true);
+    (FormsService.getFormByName as sinon.SinonStub).returns(of({ configuration: { componentDefinitions: [] } }));
+    (FormsService.buildClientFormConfig as sinon.SinonStub).resolves({ componentDefinitions: [] });
+    (FormRecordConsistencyService.projectMetadataClientFormConfig as sinon.SinonStub).resolves({ title: 'Latest' });
+    await (controller as any).projectSafeSaveFailure({ user: { username: 'alice' } }, { id: 'brand-1' }, 'oid-1', result);
+    expect(result.metadata).to.deep.equal({ title: 'Latest' });
+    expect(result.concurrency?.currentRevision).to.equal(5);
+    expect(result.concurrency?.formFingerprint).to.equal(undefined);
+  });
+
   it('never falls back to unrestricted conflict metadata when no safe form projection exists', async function () {
     const result = new RecordSaveResponse('00000000-0000-4000-8000-000000000016');
     result.outcome = 'not-saved';
@@ -1690,7 +1712,8 @@ describe('RecordController getWorkflowSteps', () => {
       expect(result.meta.validationOperations).to.deep.equal([{ name: 'submit', label: 'Submit for review' }]);
       expect(discover.calledOnce).to.equal(true);
       const candidate = discover.firstCall.args[0].candidate;
-      expect(candidate.metaMetadata.form).to.equal(formName);
+      expect(candidate.metaMetadata.form).to.equal('rdmp-draft');
+      expect(routeFormContractName(discover.firstCall.args[0].routeFormContract, candidate)).to.equal(formName);
       expect(candidate.workflow).to.deep.equal({ stage: 'draft' });
       expect(record.metaMetadata.form).to.equal('rdmp-draft');
       expect(record.workflow).to.deep.equal({ stage: 'draft' });

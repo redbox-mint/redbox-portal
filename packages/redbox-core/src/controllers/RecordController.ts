@@ -41,6 +41,7 @@ import type { Upload } from '@tus/server';
 import { FormAttributes } from '../waterline-models/Form';
 import { ContextVariableUtils } from '../utilities/ContextVariableUtils';
 import {
+  issueRouteFormContract,
   routeFormAllowed,
   routeFormMatches,
   routeFormFingerprint,
@@ -424,6 +425,12 @@ export namespace Controllers {
         result.problems.some(problem => problem.kind === 'conflict' || problem.kind === 'authorization');
       if (!certifiedNonWrite) {
         return true;
+      }
+
+      // The stored-form projection below may omit alternate-form controls.
+      // Require a reload instead of rebasing those controls on incomplete data.
+      if (isRouteFormFingerprint(result.concurrency?.formFingerprint)) {
+        result.setConcurrencyMetadata({ ...result.concurrency, formFingerprint: undefined });
       }
 
       result.setProjectedMetadata(null);
@@ -1169,15 +1176,16 @@ export namespace Controllers {
           contextVariablesMap,
           { user: req.user as UserModel, brand }
         );
-        // Discovery uses the authorised source contract without changing the
-        // stored record or relaxing the discovery service's identity check.
+        // Discovery uses the authorised source contract while retaining the
+        // stored form to disambiguate steps sharing a persisted stage.
         // Transition operations and their allowed targets still come from each
         // destination's authoritative form, as they do during saving.
         const validationOperations = await FormsService.discoverValidationOperations({
           brand,
           form,
           recordType: String(currentRec?.metaMetadata?.type ?? recordType ?? formConfig.type ?? ''),
-          record: currentRec && routeForm ? routeFormFingerprintRecord(currentRec, routeForm.formName) : currentRec,
+          record: currentRec,
+          routeFormContract: routeForm ? issueRouteFormContract(routeForm) : undefined,
           user: req.user,
           editable: editMode,
           targetStep: typeof req.query?.targetStep === 'string' ? req.query.targetStep : undefined,

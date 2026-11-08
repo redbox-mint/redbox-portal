@@ -3023,6 +3023,61 @@ describe('RecordsService', function () {
         expect(writes).to.have.length(0);
       });
 
+      it('persists the configured destination stage while authorizing its canonical step name', async () => {
+        steps[2].config.workflow.stage = 'completed';
+        issued = grant.fingerprint = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            sourceForm
+          ))!
+        );
+        const result = await save();
+        expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+        expect(stored.workflow.stage).to.equal('completed');
+        expect(stored.metaMetadata.form).to.equal('rdmp-finalised');
+      });
+
+      it('validates a no-target named save through its authorized source form without changing stored identity', async () => {
+        mockSails.config.recordValidation = { mode: 'enforce', timeoutMs: 5_000 };
+        mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
+        sourceForm.configuration.name = sourceForm.name;
+        sourceForm.configuration.validationOperations = { submit: { enabledValidationGroups: [] } };
+        mockSails.services.recordvalidationservice = new RecordValidationServices.RecordValidation({
+          loadRecordType: async () => recordType,
+          loadWorkflowSteps: async () => steps,
+          loadForm: async name => firstValueFrom(FormsService.getFormByName(name, true, 'brand-1')),
+        });
+        issued = grant.fingerprint = routeFormFingerprint(
+          (await RecordsService.getRecordFormFingerprint(
+            { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } },
+            recordType,
+            sourceForm
+          ))!
+        );
+        const result = await RecordsService.updateMeta(
+          { id: 'brand-1' },
+          stored.redboxOid,
+          _.cloneDeep(stored),
+          { username: 'user-1', roles: [] },
+          false,
+          false,
+          {},
+          { metadata: { title: 'Saved without a transition' }, mode: 'merge' },
+          createRecordSaveContext({
+            routeFamily: 'browser',
+            operation: 'update',
+            validationOperation: 'submit',
+            routeForm: grant,
+            concurrency: { expectedRevision: 4, formFingerprint: issued },
+          })
+        );
+        expect(result.outcome, JSON.stringify(result)).to.equal('saved');
+        expect(stored.workflow.stage).to.equal('draft');
+        expect(stored.metaMetadata.form).to.equal('default-form');
+        expect(stored.metadata.title).to.equal('Saved without a transition');
+      });
+
       for (const next of [['finalised'], ['private']]) {
         it(`${next[0] === 'finalised' ? 'saves' : 'rejects'} a transition from a stage differing from its step name`, async () => {
           stored.workflow.stage = steps[0].config.workflow.stage = grant.stage = 'under-review';

@@ -172,6 +172,7 @@ import type {
 } from './RecordSchemaService';
 import { issueInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
 import {
+  issueRouteFormContract,
   routeFormAllowed,
   routeFormMatches,
   routeFormFingerprintRecord,
@@ -442,6 +443,7 @@ export namespace Services {
     readonly recordType?: RecordTypeLike | null;
     readonly targetStep?: WorkflowStepLike;
     readonly authoritativeStep?: WorkflowStepLike;
+    readonly routeFormContract?: unknown;
     readonly requiresTransitionAuthorization?: boolean;
     readonly evaluateFormValidators?: boolean;
     readonly phase?: Extract<RecordSavePhase, 'pre-save' | 'post-save'>;
@@ -1155,6 +1157,7 @@ export namespace Services {
         user: AnyRecord;
         context: RecordSaveContext;
         internalAuthorizationCapability?: unknown;
+        routeFormContract?: unknown;
       }>
     ): Promise<UpdateStructuralPhaseResult> {
       const fallbackMode = this.fallbackValidationMode(
@@ -1180,6 +1183,7 @@ export namespace Services {
           branding,
           portal,
           oid: options.oid,
+          routeFormContract: options.routeFormContract,
           operation: options.context.schemaOperation,
           ifMatch: options.context.ifMatch,
           caller: {
@@ -1978,7 +1982,9 @@ export namespace Services {
       if (!normalizeReference('type', originalMeta.type ?? recordType?.name)) return false;
 
       const authoritativeStepName = this.workflowStepName(authoritativeStep);
-      const expectedWorkflowStep = authoritativeStepName ?? this.candidateWorkflowStep(original ?? {});
+      const expectedWorkflowStep = authoritativeStep
+        ? String(_.get(authoritativeStep, 'config.workflow.stage') ?? authoritativeStepName ?? '').trim()
+        : this.candidateWorkflowStep(original ?? {});
       if (expectedWorkflowStep) {
         const suppliedWorkflowStep = this.candidateWorkflowStep(candidate);
         if (suppliedWorkflowStep && suppliedWorkflowStep !== expectedWorkflowStep) return false;
@@ -2587,6 +2593,7 @@ export namespace Services {
           throw new Error('RecordValidationService is unavailable.');
         }
         const request: RecordValidationRequest = {
+          routeFormContract: options.routeFormContract,
           candidate: {
             ..._.cloneDeep(candidateToValidate),
             ...(typeof candidateToValidate.redboxOid === 'string' ? { redboxOid: candidateToValidate.redboxOid } : {}),
@@ -5456,6 +5463,7 @@ export namespace Services {
         this.logSaveOutcome(tracker, 'pre-save');
         return tracker.toResponse();
       }
+      const routeFormContract = routeForm ? issueRouteFormContract(routeForm) : undefined;
       if (transitionRequested && !requestedTargetName) {
         tracker.recordPrimaryNotApplied(
           this.workflowTargetProblem(
@@ -5551,6 +5559,7 @@ export namespace Services {
             user: userObj,
             context: tracker.context,
             internalAuthorizationCapability,
+            routeFormContract,
           });
           if (!structuralValidation.allowed) {
             tracker.recordPrimaryNotApplied(structuralValidation.problem);
@@ -5649,6 +5658,7 @@ export namespace Services {
           recordType,
           targetStep: transitionRequested ? nextStepObj : undefined,
           authoritativeStep,
+          routeFormContract: transitionRequested ? undefined : routeFormContract,
           requiresTransitionAuthorization: Boolean(authoritativeStep),
           evaluateFormValidators: requiresFormValidation,
           brand: brandObj,

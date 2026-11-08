@@ -10,11 +10,17 @@ describe('Record Management: finalise route form switching', function () {
   const aliasStage = 'finalise-regression-under-review';
   const sourceForm = 'finalise-regression-source-form';
   const destinationStage = 'finalise-regression-finalised';
+  const destinationAliasStep = 'finalise-regression-completed-step';
+  const destinationAliasStage = 'finalise-regression-completed';
   const destinationForm = 'finalise-regression-finalised-form';
   const oid = `finalise-regression-${Date.now()}`;
   const tabOids = [`${oid}-tab-a`, `${oid}-tab-b`];
   const operationOid = `${oid}-operation`;
   const aliasOid = `${oid}-alias`;
+  const contractOid = `${oid}-source-contract`;
+  const destinationAliasOid = `${oid}-destination-alias`;
+  const conflictOid = `${oid}-conflict`;
+  const recordOids = [oid, ...tabOids, operationOid, aliasOid, contractOid, destinationAliasOid, conflictOid];
   let agent: supertest.Agent;
   let brand;
   let recordType;
@@ -37,7 +43,7 @@ describe('Record Management: finalise route form switching', function () {
             finaliseTransition: {
               label: 'Finalise transition',
               enabledValidationGroups: [],
-              allowedTargetSteps: [destinationStage],
+              allowedTargetSteps: [destinationStage, destinationAliasStep],
             },
             finaliseSourceOnly: {
               label: 'Source only',
@@ -47,6 +53,11 @@ describe('Record Management: finalise route form switching', function () {
           },
           componentDefinitions: [
             ...finaliseConfiguration.componentDefinitions,
+            {
+              name: 'finaliseNotes',
+              component: { class: 'SimpleInputComponent' },
+              model: { class: 'SimpleInputModel' },
+            },
             {
               name: 'finaliseRegressionButton',
               component: {
@@ -108,6 +119,17 @@ describe('Record Management: finalise route form switching', function () {
       hidden: true,
     });
     await WorkflowStep.create({
+      name: destinationAliasStep,
+      recordType: recordType.id,
+      config: {
+        form: destinationForm,
+        workflow: { stage: destinationAliasStage },
+        authorization: { viewRoles: ['Admin'], editRoles: ['Admin'], transitionRoles: ['Admin'] },
+      },
+      starting: false,
+      hidden: false,
+    });
+    await WorkflowStep.create({
       name: aliasStep,
       recordType: recordType.id,
       config: {
@@ -118,14 +140,14 @@ describe('Record Management: finalise route form switching', function () {
       starting: false,
       hidden: true,
     });
-    for (const recordOid of [oid, ...tabOids, operationOid, aliasOid]) {
+    for (const recordOid of recordOids) {
       const created = await sails.services.mongostorageservice.create(
         brand,
         {
           redboxOid: recordOid,
           metadata: { title: 'Finalise regression' },
           metaMetadata: { type: 'rdmp', brandId: brand.id, form: sourceForm, attachmentFields: [] },
-          workflow: { stage: recordOid === aliasOid ? aliasStage : sourceStage },
+          workflow: { stage: [aliasOid, contractOid].includes(recordOid) ? aliasStage : sourceStage },
           authorization: { edit: ['admin'], view: ['admin'], editRoles: [], viewRoles: [] },
         },
         {},
@@ -151,9 +173,12 @@ describe('Record Management: finalise route form switching', function () {
     if (finaliseConfiguration) {
       await Form.update({ name: 'default-1.0-draft', branding: brand.id }, { configuration: finaliseConfiguration });
     }
-    await Record.destroy({ redboxOid: [oid, ...tabOids, operationOid, aliasOid] });
-    await RecordAudit.destroy({ redboxOid: [oid, ...tabOids, operationOid, aliasOid] });
-    await WorkflowStep.destroy({ name: [sourceStage, aliasStep, destinationStage], recordType: recordType.id });
+    await Record.destroy({ redboxOid: recordOids });
+    await RecordAudit.destroy({ redboxOid: recordOids });
+    await WorkflowStep.destroy({
+      name: [sourceStage, aliasStep, destinationStage, destinationAliasStep],
+      recordType: recordType.id,
+    });
     await Form.destroy({ name: [sourceForm, destinationForm], branding: brand.id });
   });
 
@@ -177,32 +202,174 @@ describe('Record Management: finalise route form switching', function () {
   });
 
   it('loads and saves from a persisted stage differing from its workflow step name', async function () {
-    await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${aliasOid}`).expect(200);
-    const delivered = await agent
-      .get(`/default/rdmp/record/form/rdmp/${aliasOid}`)
-      .set('X-ReDBox-Api-Version', '2.0')
-      .query({ edit: 'true', formName: 'default-1.0-draft', targetStep: destinationStage })
-      .expect(200);
-    expect(delivered.body.meta.validationOperations).to.deep.equal([
-      { name: 'finaliseTransition', allowedTargetSteps: [destinationStage] },
-    ]);
-    const original = await sails.services.recordsservice.getMeta(aliasOid);
-    expect(original.workflow.stage).to.equal(aliasStage);
-    expect(original.metaMetadata.form).to.equal(sourceForm);
+    const validationConfig = sails.config.recordValidation;
+    sails.config.recordValidation = { ...validationConfig, mode: 'enforce' };
+    try {
+      await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${aliasOid}`).expect(200);
+      const delivered = await agent
+        .get(`/default/rdmp/record/form/rdmp/${aliasOid}`)
+        .set('X-ReDBox-Api-Version', '2.0')
+        .query({ edit: 'true', formName: 'default-1.0-draft', targetStep: destinationStage })
+        .expect(200);
+      expect(delivered.body.meta.validationOperations).to.deep.equal([
+        { name: 'finaliseTransition', allowedTargetSteps: [destinationStage] },
+      ]);
+      const original = await sails.services.recordsservice.getMeta(aliasOid);
+      expect(original.workflow.stage).to.equal(aliasStage);
+      expect(original.metaMetadata.form).to.equal(sourceForm);
+      const save = (metadata: object) =>
+        agent
+          .put(`/default/rdmp/recordmeta/${aliasOid}`)
+          .query({ targetStep: destinationStage, operation: 'finaliseTransition' })
+          .set('X-Source', 'jsclient')
+          .set('X-ReDBox-Api-Version', '2.0')
+          .set('If-Match', delivered.headers.etag)
+          .set('X-ReDBox-Form-Fingerprint', delivered.body.meta.formFingerprint)
+          .send(metadata);
+      const missing = await save({ title: 'Missing confirmation from an alias stage' }).expect(400);
+      expect(JSON.stringify(missing.body)).to.include('record-validation-failed');
+      expect(JSON.stringify(missing.body)).to.include('finaliseConfirmation');
+      expect((await sails.services.recordsservice.getMeta(aliasOid)).revision).to.equal(original.revision);
+      await save({ title: 'Finalised from a persisted stage alias', finaliseConfirmation: 'Confirmed' }).expect(200);
+      const saved = await sails.services.recordsservice.getMeta(aliasOid);
+      expect(saved.workflow.stage).to.equal(destinationStage);
+      expect(saved.metaMetadata.form).to.equal(destinationForm);
+      expect(saved.revision).to.equal(original.revision + 1);
+    } finally {
+      sails.config.recordValidation = validationConfig;
+    }
+  });
 
-    await agent
-      .put(`/default/rdmp/recordmeta/${aliasOid}`)
-      .query({ targetStep: destinationStage, operation: 'finaliseTransition' })
-      .set('X-Source', 'jsclient')
-      .set('X-ReDBox-Api-Version', '2.0')
-      .set('If-Match', delivered.headers.etag)
-      .set('X-ReDBox-Form-Fingerprint', delivered.body.meta.formFingerprint)
-      .send({ title: 'Finalised from a persisted stage alias', finaliseConfirmation: 'Confirmed' })
-      .expect(200);
-    const saved = await sails.services.recordsservice.getMeta(aliasOid);
-    expect(saved.workflow.stage).to.equal(destinationStage);
-    expect(saved.metaMetadata.form).to.equal(destinationForm);
-    expect(saved.revision).to.equal(original.revision + 1);
+  it('uses the route source contract for enforced no-target operations and declared-field schemas', async function () {
+    const validationConfig = sails.config.recordValidation;
+    const schemaConfig = sails.config.recordSchema;
+    const criteria = { name: 'default-1.0-draft', branding: brand.id };
+    const configured = await Form.findOne(criteria);
+    sails.config.recordValidation = { ...validationConfig, mode: 'enforce' };
+    sails.config.recordSchema = { ...schemaConfig, enabled: true, unknownProperties: 'declared' };
+    try {
+      await Form.update(criteria, {
+        configuration: {
+          name: 'default-1.0-draft',
+          type: 'rdmp',
+          validationOperations: { finaliseDraftSave: { enabledValidationGroups: ['all'] } },
+          componentDefinitions: [
+            {
+              name: 'finaliseNotes',
+              component: { class: 'SimpleInputComponent' },
+              model: { class: 'SimpleInputModel', config: { validators: [{ class: 'required' }] } },
+            },
+          ],
+        },
+      });
+      await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${contractOid}`).expect(200);
+      const delivered = await agent
+        .get(`/default/rdmp/record/form/rdmp/${contractOid}`)
+        .set('X-ReDBox-Api-Version', '2.0')
+        .query({ edit: 'true', formName: 'default-1.0-draft' })
+        .expect(200);
+      expect(
+        delivered.body.meta.validationOperations.some(operation => operation.name === 'finaliseDraftSave')
+      ).to.equal(true);
+      const original = await sails.services.recordsservice.getMeta(contractOid);
+      const save = (metadata: object, fingerprint = delivered.body.meta.formFingerprint) =>
+        agent
+          .put(`/default/rdmp/recordmeta/${contractOid}`)
+          .query({ operation: 'finaliseDraftSave' })
+          .set('X-Source', 'jsclient')
+          .set('X-ReDBox-Api-Version', '2.0')
+          .set('If-Match', delivered.headers.etag)
+          .set('X-ReDBox-Form-Fingerprint', fingerprint)
+          .send(metadata);
+      await save({ finaliseNotes: 'No grant may be manufactured' }, `route:sha256:${'0'.repeat(64)}`).expect(409);
+      const rejected = await save({ undeclaredFinaliseField: 'Still prohibited' }).expect(400);
+      expect(JSON.stringify(rejected.body)).to.include('record-schema');
+      const missing = await save({}).expect(400);
+      expect(JSON.stringify(missing.body)).to.include('record-validation-failed');
+      expect((await sails.services.recordsservice.getMeta(contractOid)).revision).to.equal(original.revision);
+      await save({ finaliseNotes: 'Saved using the authorized source contract' }).expect(200);
+      const saved = await sails.services.recordsservice.getMeta(contractOid);
+      expect(saved.metadata.finaliseNotes).to.equal('Saved using the authorized source contract');
+      expect(saved.workflow.stage).to.equal(aliasStage);
+      expect(saved.metaMetadata.form).to.equal(sourceForm);
+      expect(saved.revision).to.equal(original.revision + 1);
+    } finally {
+      sails.config.recordValidation = validationConfig;
+      sails.config.recordSchema = schemaConfig;
+      await Form.update(criteria, { configuration: configured.configuration });
+    }
+  });
+
+  it('persists a destination stage distinct from the canonical target name', async function () {
+    const validationConfig = sails.config.recordValidation;
+    sails.config.recordValidation = { ...validationConfig, mode: 'enforce' };
+    try {
+      await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${destinationAliasOid}`).expect(200);
+      const delivered = await agent
+        .get(`/default/rdmp/record/form/rdmp/${destinationAliasOid}`)
+        .set('X-ReDBox-Api-Version', '2.0')
+        .query({ edit: 'true', formName: 'default-1.0-draft' })
+        .expect(200);
+      await agent
+        .put(`/default/rdmp/recordmeta/${destinationAliasOid}`)
+        .query({ targetStep: destinationAliasStep })
+        .set('X-Source', 'jsclient')
+        .set('X-ReDBox-Api-Version', '2.0')
+        .set('If-Match', delivered.headers.etag)
+        .set('X-ReDBox-Form-Fingerprint', delivered.body.meta.formFingerprint)
+        .send({ finaliseConfirmation: 'Confirmed' })
+        .expect(200);
+      const saved = await sails.services.recordsservice.getMeta(destinationAliasOid);
+      expect(saved.workflow.stage).to.equal(destinationAliasStage);
+      expect(saved.metaMetadata.form).to.equal(destinationForm);
+    } finally {
+      sails.config.recordValidation = validationConfig;
+    }
+  });
+
+  it('disables rebase after a storage race involving alternate-form-only metadata', async function () {
+    await agent.get(`/default/rdmp/record/finalise/rdmp/edit/${conflictOid}`).expect(200);
+    const formUrl = `/default/rdmp/record/form/rdmp/${conflictOid}`;
+    const query = { edit: 'true', formName: 'default-1.0-draft' };
+    const delivered = await agent.get(formUrl).set('X-ReDBox-Api-Version', '2.0').query(query).expect(200);
+    const storage = sails.services.mongostorageservice;
+    const originalUpdate = storage.updateMeta;
+    const update = sinon.stub(storage, 'updateMeta').callsFake(async (...args) => {
+      const current = await sails.services.recordsservice.getMeta(conflictOid);
+      const winner = await originalUpdate.call(
+        storage,
+        brand,
+        conflictOid,
+        {
+          ...current,
+          metadata: { ...current.metadata, finaliseNotes: 'Concurrent winner' },
+        },
+        { username: 'admin' }
+      );
+      expect(winner.success).to.equal(true);
+      return originalUpdate.apply(storage, args);
+    });
+    try {
+      const stale = await agent
+        .put(`/default/rdmp/recordmeta/${conflictOid}`)
+        .query({ targetStep: 'draft' })
+        .set('X-Source', 'jsclient')
+        .set('X-ReDBox-Api-Version', '2.0')
+        .set('If-Match', delivered.headers.etag)
+        .set('X-ReDBox-Form-Fingerprint', delivered.body.meta.formFingerprint)
+        .send({ finaliseNotes: 'Stale browser control' })
+        .expect(412);
+      expect(JSON.stringify(stale.body)).to.include('record-revision-stale');
+      expect(stale.body.meta.concurrency.formFingerprint).to.equal(undefined);
+      expect((await sails.services.recordsservice.getMeta(conflictOid)).metadata.finaliseNotes).to.equal(
+        'Concurrent winner'
+      );
+    } finally {
+      update.restore();
+    }
+    const reloaded = await agent.get(formUrl).set('X-ReDBox-Api-Version', '2.0').query(query).expect(200);
+    expect(reloaded.body).to.have.property('data');
+    expect(JSON.stringify(reloaded.body)).to.include('Concurrent winner');
   });
 
   it('discovers and enforces named transition operations on a distinct destination form', async function () {
@@ -357,6 +524,7 @@ describe('Record Management: finalise route form switching', function () {
 
     const stale = await save(delivered.headers.etag, fingerprint).expect(412);
     expect(JSON.stringify(stale.body)).to.include('record-revision-stale');
+    expect(stale.body.meta.concurrency.formFingerprint).to.equal(undefined);
     const refreshed = await requestForm().expect(200);
     const etag = refreshed.headers.etag;
     const tampered = await save(etag, `sha256:${'0'.repeat(64)}`).expect(409);

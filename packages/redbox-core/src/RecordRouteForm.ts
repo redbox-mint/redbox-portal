@@ -21,6 +21,44 @@ export interface RecordRouteForm {
 type GrantSelector = { formName: string } | { fingerprint: string };
 
 const ROUTE_FORM_FINGERPRINT_PREFIX = 'route:';
+const routeFormContracts = new WeakMap<object, RecordRouteForm>();
+
+type RouteFormRecord = {
+  readonly redboxOid?: unknown;
+  readonly metaMetadata?: { readonly brandId?: unknown; readonly type?: unknown; readonly form?: unknown };
+  readonly workflow?: { readonly stage?: unknown };
+};
+
+/** Carry a server-validated route grant within this process only. */
+export function issueRouteFormContract(grant: RecordRouteForm): object {
+  const capability = Object.freeze({});
+  routeFormContracts.set(capability, { ...grant });
+  return capability;
+}
+
+/** Request-shaped or serialized capabilities cannot select an alternate contract. */
+export function routeFormContractName(capability: unknown, record: RouteFormRecord): string | undefined {
+  if (!capability || typeof capability !== 'object') return undefined;
+  const grant = routeFormContracts.get(capability);
+  return grant && routeFormMatches(record, grant) ? grant.formName : undefined;
+}
+
+/** Resolve stored stages without confusing them with canonical target names. */
+export function resolvePersistedWorkflowStep<T extends { readonly name?: string; readonly config?: unknown }>(
+  steps: readonly T[],
+  stage: string,
+  storedForm: unknown
+): T | undefined {
+  const stageMatches = steps.filter(step => {
+    const config = step.config as { workflow?: { stage?: string } } | undefined;
+    return String(config?.workflow?.stage ?? step.name).trim() === stage.trim();
+  });
+  const currentMatches =
+    stageMatches.length > 1
+      ? stageMatches.filter(step => (step.config as { form?: string })?.form === storedForm)
+      : stageMatches;
+  return currentMatches.length === 1 ? currentMatches[0] : undefined;
+}
 
 /** An opaque routing hint only; a matching server-held grant is still required. */
 export function routeFormFingerprint(fingerprint: string): string {
@@ -121,7 +159,7 @@ function saveTargets(form: FormConfigOutline): Set<string> {
   return targets;
 }
 
-export function routeFormMatches(record: RecordModel | undefined, grant: RecordRouteForm): boolean {
+export function routeFormMatches(record: RouteFormRecord | undefined, grant: RecordRouteForm): boolean {
   return (
     record?.redboxOid === grant.oid &&
     record.metaMetadata?.brandId === grant.brandId &&
@@ -151,16 +189,8 @@ export async function routeFormAllowed(
   // Records persist config.workflow.stage, which can differ from the step name.
   // Missing configured stages retain the legacy name default. Never select an
   // unrelated same-name step, or guess between indistinguishable definitions.
-  const stageMatches = steps.filter(step => {
-    const config = step.config as { workflow?: { stage?: string } };
-    return String(config?.workflow?.stage ?? step.name).trim() === String(record.workflow.stage).trim();
-  });
-  const currentMatches =
-    stageMatches.length > 1
-      ? stageMatches.filter(step => (step.config as { form?: string })?.form === meta.form)
-      : stageMatches;
-  if (currentMatches.length !== 1) return false;
-  const current = currentMatches[0];
+  const current = resolvePersistedWorkflowStep(steps, String(record.workflow.stage), meta.form);
+  if (!current) return false;
   const form = await firstValueFrom(FormsService.getFormByName(formName, true, String(meta.brandId)));
   const configuredType = String(form?.configuration?.type ?? '').trim();
   if (
