@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import { firstValueFrom } from 'rxjs';
 
 // Run in the integration environment; no external identity provider is needed.
@@ -24,15 +25,8 @@ describe('Admin users and roles deferred endpoints', function () {
     );
     userId = String(user.id);
     await firstValueFrom(UsersService.updateUserRoles(userId, [roleId]));
-    agent = supertest.agent((sails as any).hooks.http.app);
-    csrf = (await agent.get('/csrfToken')).body._csrf;
-    await agent
-      .post('/user/login_local')
-      .set('X-CSRF-Token', csrf)
-      .set('X-Source', 'jsclient')
-      .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
-      .expect(200);
-    csrf = (await agent.get('/csrfToken')).body._csrf;
+    agent = await loginSession();
+    csrf = await csrfToken(agent);
   });
   after(async () => {
     if (userId) await User.destroy({ id: userId });
