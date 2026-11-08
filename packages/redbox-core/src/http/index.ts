@@ -7,6 +7,11 @@ export type {
   HttpRouteDeclaration,
   PortalHttpMethod,
   RouteAccess,
+  HttpHookScope,
+  HttpHookContribution,
+  HttpFallbackContribution,
+  HttpObservationRequest,
+  SafeHttpError,
 } from './contracts';
 export { defineController, bindControllerFactory, type BoundControllerFactory } from './controllers';
 export { requestContext, type HttpRequestContext, type AuthenticatedActor, type BrandRow } from './context';

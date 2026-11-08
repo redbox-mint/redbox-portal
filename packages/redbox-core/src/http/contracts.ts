@@ -64,3 +64,48 @@ export type ControllerAction<RouteGeneric extends RouteGenericInterface = RouteG
   request: FastifyRequest<RouteGeneric>,
   reply: FastifyReply
 ) => unknown;
+
+/** Explicit application scope includes admitted unmatched requests, never host probes. */
+export type HttpHookScope =
+  | { readonly kind: 'routes'; readonly names: readonly string[] }
+  | { readonly kind: 'application' };
+
+/** Detached, immutable observation data. No live request, transport, session or logger. */
+export interface HttpObservationRequest {
+  readonly id: string;
+  readonly method: string;
+  readonly url: string;
+  readonly routeName?: string;
+  readonly statusCode: number;
+}
+export interface SafeHttpError {
+  readonly code: string;
+  readonly statusCode: number;
+  readonly requestId: string;
+}
+interface HttpHookBase {
+  readonly name: string;
+  readonly scope: HttpHookScope;
+  /** Hook names in this same stage. Dependencies run first. */
+  readonly requires?: readonly string[];
+  readonly replaces?: true;
+}
+export type HttpHookContribution = HttpHookBase &
+  (
+    | {
+        readonly stage: 'afterAuthentication' | 'beforeAction';
+        run(request: FastifyRequest, reply: FastifyReply): Promise<void>;
+      }
+    | { readonly stage: 'onResponse'; observe(request: HttpObservationRequest): Promise<void> }
+    | { readonly stage: 'onError'; observe(request: HttpObservationRequest, error: SafeHttpError): Promise<void> }
+  );
+export interface HttpFallbackContribution extends ControllerTarget {
+  readonly name: string;
+  /** Literal, segment-bounded prefix, relative to the configured root context. */
+  readonly prefix: string;
+  readonly access: RouteAccess;
+  readonly csrf?: boolean;
+  readonly replaces?: true;
+  /** Trusted literal context; never inferred from an unmatched URL. Normal policies resolve it. */
+  readonly context?: { readonly branding: string; readonly portal: string };
+}

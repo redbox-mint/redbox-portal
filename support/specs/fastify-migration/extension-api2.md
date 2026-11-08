@@ -66,8 +66,9 @@ target and CSRF. An explicit CSRF value with changed access selects that value i
 place of the inherited mount adapter. HEAD behavior is derived by core; authors
 replace the frozen HEAD route separately to change its action.
 
-Replace API1 `middleware` with scoped named hooks/fallbacks under FM-018; these
-collections are not yet accepted by FM-017. `afterRoutes` is not response observation.
+Replace API1 `middleware` with [scoped named hooks and fallbacks](hooks.md).
+API2 now accepts both collections with offline dependency/scope/replacement checks.
+`afterRoutes` maps to unmatched dispatch when appropriate; it is not response observation.
 Raw-server `integrations` are API1 HTTP contributions: move their ownership into a
 qualified core integration, without exposing Fastify/server registration to an
 extension. No Express middleware bridge is supplied.
@@ -84,3 +85,8 @@ Bundled development, PDF and Mongo storage hooks still return API1. FM-038 must
 update their public declaration type/version and rebuild/qualify them. Their current
 declarations contribute no HTTP handlers/routes/middleware/integrations, so no HTTP
 conversion is needed at this revision. They remain unchanged for Express production.
+
+HTTP route/fallback names share one offline target namespace with reserved core
+owners; hook scopes resolve against it. `redbox.internal.*`, `portal.automatic-*`
+and `core-native-http-*` are internal prefixes, forbidden in user route, fallback
+and hook names and in scoped hook targets. See [hook semantics](hooks.md).

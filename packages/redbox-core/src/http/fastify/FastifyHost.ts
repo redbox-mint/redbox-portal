@@ -10,6 +10,7 @@ import { withTimeout } from '../../utilities/withTimeout';
 import { createPortalRouter, requestPathname } from './router';
 import { requestOwnership } from './requestOwnership';
 import { sealPreparation, type FastifyPreparation } from './preparation';
+import { HttpRouteRegistry } from './registry';
 import { normalizeHttpError } from './errorBoundary';
 import { drainHttpLogger, httpLogStats, type HttpLogTarget } from './logging';
 import { pinoLoggerDestinations } from '../../utilities/PinoLoggerUtils';
@@ -21,6 +22,8 @@ export interface FastifyHostOptions {
   readonly trustProxy?: FastifyServerOptions['trustProxy'];
   /** The application's persistence owner, when handlers borrow its operations. */
   readonly owner?: PersistenceOwner;
+  /** Core-only route ownership and ordered stage binding; never given to extensions. */
+  readonly routeRegistry?: HttpRouteRegistry;
   /** Borrowed sink receives fixed codes and query-free paths. External Pino
    * loggers supply their concrete destinations in sources; no Pino symbols. */
   readonly logger?: HttpLogTarget;
@@ -36,6 +39,7 @@ export class FastifyHost {
   private readonly fastify: FastifyInstance;
   private readonly owner: PersistenceOwner;
   private readonly preparation: FastifyPreparation;
+  private readonly routeRegistry: HttpRouteRegistry;
   private initializing?: Promise<void>;
   private activating?: Promise<void>;
   private inFlight?: Promise<void>;
@@ -76,6 +80,7 @@ export class FastifyHost {
       options.owner
     );
     registerHttpRequestDrain(this.owner, () => this.drainRequests());
+    this.routeRegistry = options.routeRegistry ?? new HttpRouteRegistry();
     this.fastify = createPortalRouter(
       {
         trustProxy: options.trustProxy ?? false,
@@ -102,12 +107,13 @@ export class FastifyHost {
       try {
         const ready = this.status().ready;
         const path = requestPathname(request.raw.url ?? '/');
-        if (request.method === 'GET' && path === '/healthz') {
+        if (request.method === 'GET' && path === this.routeRegistry.probe('healthz')) {
           const healthy = !this.failure && !this.stopFailed && !this.stopped;
           const logging = httpLogStats(this.fastify.log);
           return reply.code(healthy ? 200 : 503).send({ healthy, ...(logging.failures ? { logging } : {}) });
         }
-        if (request.method === 'GET' && path === '/readyz') return reply.code(ready ? 200 : 503).send({ ready });
+        if (request.method === 'GET' && path === this.routeRegistry.probe('readyz'))
+          return reply.code(ready ? 200 : 503).send({ ready });
         if (!ready) return reply.code(503).send({ error: 'application-not-ready' });
       } catch (error) {
         throw normalizeHttpError(error);
@@ -141,7 +147,12 @@ export class FastifyHost {
     });
     const ownership = requestOwnership(this.owner);
     const captureRequest = ownership.capture;
-    this.preparation = sealPreparation(this.fastify, ownership, options.trustProxy);
+    this.preparation = sealPreparation(this.fastify, ownership, options.trustProxy, this.routeRegistry);
+  }
+
+  /** Immutable descriptive snapshots only; no handler, request, router or server capabilities. */
+  public registeredRoutes() {
+    return this.routeRegistry.snapshot();
   }
 
   /** Initialize, prepare all plugins and bind one listener with admission still closed. */

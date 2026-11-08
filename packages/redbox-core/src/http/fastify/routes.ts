@@ -17,6 +17,7 @@ import { sendApiErrors } from './responses';
 import { httpReplySubmitted } from './errorBoundary';
 import { adminApiRoutes } from '../../api-routes/groups/admin';
 import { assertPortalRouter, createNativeRouter, routerConstraints, routerUrl } from './router';
+import { HttpTargetNamespace, assertPublicHttpName, automaticOptionsTarget, automaticHeadTarget } from './targetNames';
 export { createPortalRouter, portalRouterOptions } from './router';
 export { coreRoutePrecedence } from './precedence';
 /** The route plan needs only these registration capabilities; both the native
@@ -31,7 +32,9 @@ interface RouteInstaller {
 type NativeRouter = ReturnType<typeof createNativeRouter>;
 
 export type HeadPolicy =
-  { readonly kind: 'implicit' } | { readonly kind: 'none' } | { readonly kind: 'deny'; readonly allow?: string };
+  | { readonly kind: 'implicit' }
+  | { readonly kind: 'none' }
+  | { readonly kind: 'deny'; readonly allow?: string };
 
 /** ALL is an internal compatibility input, not a new public extension method. */
 export interface RouteDeclaration extends Omit<HttpRouteDeclaration, 'method'> {
@@ -287,7 +290,7 @@ export interface RouteBinding {
   readonly kind: 'action' | 'implicit-head' | 'denied-head' | 'automatic-options';
 }
 
-function validateAccess(
+export function validateAccess(
   registration: RouteRegistration,
   policyNames: ReadonlySet<string>
 ): readonly (string | false)[] {
@@ -475,6 +478,7 @@ function checkOverlaps(
 }
 
 export interface RouteComposition {
+  readonly targets: HttpTargetNamespace;
   readonly routes: readonly ResolvedHttpRoute[];
   readonly bindings: readonly RouteBinding[];
   readonly overlaps: readonly RouteOverlap[];
@@ -576,6 +580,7 @@ export async function composeRoutes(
     readonly precedence?: readonly RoutePrecedence[];
   }
 ): Promise<RouteComposition> {
+  const targets = new HttpTargetNamespace();
   const root = options.rootContext ?? '';
   if (root && (!/^\/(?:[A-Za-z0-9_-]+\/?)+$/.test(root) || root.endsWith('/') || root.includes('//')))
     fail('host', 'rootContext must be a segment-bounded absolute prefix without a trailing slash');
@@ -598,6 +603,7 @@ export async function composeRoutes(
       fail(provider, 'route requires a stable name, supported method and controller/action');
     if (declaration.replaces !== undefined && declaration.replaces !== true)
       fail(provider, `route ${declaration.name} has invalid replaces`);
+    assertPublicHttpName(provider, declaration.name);
     if (declaration.csrf !== undefined && typeof declaration.csrf !== 'boolean')
       fail(provider, `route ${declaration.name} has invalid csrf`);
     if (
@@ -702,6 +708,7 @@ export async function composeRoutes(
     }
   }
   const routes = [...selected.values()];
+  for (const route of routes) targets.declare(route.provider, route.declaration.name, 'route');
   const probe = createNativeRouter();
   const runtimeProbe = createNativeRouter();
   const pathProbes = new Map<TranslatedPath, NativeRouter>();
@@ -751,7 +758,7 @@ export async function composeRoutes(
     provider: '@researchdatabox/redbox-core',
     effectivePolicies: [],
     declaration: {
-      name: 'portal.automatic-options',
+      name: automaticOptionsTarget,
       method: 'options',
       path: '/*tail',
       controller: 'Portal',
@@ -888,7 +895,11 @@ export async function composeRoutes(
         );
     }
   }
+  for (const binding of bindings)
+    if (binding.kind === 'implicit-head' || binding.kind === 'denied-head')
+      targets.internal(automaticHeadTarget(binding.route.declaration.name, binding.path.url));
   return {
+    targets,
     routes,
     bindings,
     overlaps,
@@ -931,6 +942,37 @@ export async function composeRoutes(
                   return null;
                 }
               : undefined,
+          preHandler: [
+            async (request, reply) => {
+              if (binding.kind === 'automatic-options') {
+                if (hasMalformedCapture(matchedMethods(runtimeProbe, request.raw.url!)))
+                  return invalidRequest(request, reply);
+                return;
+              }
+              const params = request.params as Record<string, string>;
+              for (const { name, suffix } of path.suffixes ?? []) {
+                params[name] = params[name].slice(0, -suffix.length);
+              }
+              if (path.wildcard) {
+                // find-my-way trims the optional trailing slash before lookup. It
+                // belongs to a wildcard key, even when the final segment is empty.
+                const tail = params['*'] + ((request.raw.url ?? '').split('?')[0].endsWith('/') ? '/' : '');
+                if (path.wildcard.required && !tail) return reply.callNotFound();
+                delete params['*'];
+                if (tail) params[path.wildcard.name] = tail;
+              }
+              try {
+                for (const name of Object.keys(params)) params[name] = decodeURIComponent(params[name]);
+              } catch {
+                return invalidRequest(request, reply);
+              }
+            },
+            async (request, reply) => {
+              if (binding.kind === 'automatic-options' || httpReplySubmitted(reply)) return;
+              await guards(binding, request, reply);
+              if (httpReplySubmitted(reply)) return reply;
+            },
+          ],
           handler: async (request, reply) => {
             if (binding.kind === 'automatic-options') {
               const matches = matchedMethods(runtimeProbe, request.raw.url!);
@@ -947,25 +989,6 @@ export async function composeRoutes(
                 .type('text/plain')
                 .send(allow);
             }
-            const params = request.params as Record<string, string>;
-            for (const { name, suffix } of path.suffixes ?? []) {
-              params[name] = params[name].slice(0, -suffix.length);
-            }
-            if (path.wildcard) {
-              // find-my-way trims the optional trailing slash before lookup. It
-              // belongs to a wildcard key, even when the final segment is empty.
-              const tail = params['*'] + ((request.raw.url ?? '').split('?')[0].endsWith('/') ? '/' : '');
-              if (path.wildcard.required && !tail) return reply.callNotFound();
-              delete params['*'];
-              if (tail) params[path.wildcard.name] = tail;
-            }
-            try {
-              for (const name of Object.keys(params)) params[name] = decodeURIComponent(params[name]);
-            } catch {
-              return invalidRequest(request, reply);
-            }
-            await guards(binding, request, reply);
-            if (httpReplySubmitted(reply)) return reply;
             if (binding.kind === 'denied-head') {
               const head = route.declaration.head;
               if (head?.kind === 'deny' && head.allow) reply.header('Allow', head.allow);

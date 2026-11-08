@@ -160,7 +160,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: no resource acquisition during inspection; subclass replacement
     preserves policies/validation/CSRF; access changes require route replacement.
 
-- [ ] **FM-018 — Implement scoped hooks and fallback.**
+- [x] **FM-018 — Implement scoped hooks and fallback.**
   - Dependencies: FM-016, FM-017.
   - Work: bind documented stages, explicit route/application scope, stable ordering,
     hook dependency checks, safe observations and named unmatched-path fallback.

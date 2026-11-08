@@ -20,7 +20,9 @@ import {
   type NativeSessionOptions,
 } from './session';
 import { requestHooks, requestOwnership } from './requestOwnership';
-import { registerPortalRouterView } from './router';
+import { registerPortalRouterView, routerConstraints, routerUrl } from './router';
+import { HttpRouteRegistry } from './registry';
+import { requestStageHook } from './hooks';
 import { nativeBodyParserPlugin, type NativeParserOptions } from './parsers';
 
 type RequestHook = (typeof requestHooks)[number];
@@ -110,7 +112,8 @@ function keys(value: object, allowed: ReadonlySet<string>, surface: string) {
 export function sealPreparation(
   app: FastifyInstance,
   ownership: ReturnType<typeof requestOwnership>,
-  trustProxy?: FastifyServerOptions['trustProxy']
+  trustProxy?: FastifyServerOptions['trustProxy'],
+  registry = new HttpRouteRegistry()
 ): FastifyPreparation {
   const trust = sessionPeerTrust(trustProxy);
   const views = new WeakMap<object, FastifyPreparation>();
@@ -118,12 +121,30 @@ export function sealPreparation(
   ownership.bindPreparation(receiver);
   // No prepared onRoute is permitted. This final core hook runs after native
   // normalization, wraps executable fields and freezes the private route snapshot.
+  registry.bindLookup(
+    (method, path) =>
+      !!app.findRoute({
+        method: method as import('fastify').HTTPMethods,
+        url: routerUrl(path),
+        constraints: routerConstraints(path),
+      })
+  );
   app.addHook('onRoute', options => {
+    registry.capture(options);
     ownership.hooks(options as unknown as Record<string, unknown>);
     options.handler = ownership.handler(options.handler);
     for (const name of requestHooks) if (Array.isArray(options[name])) Object.freeze(options[name]);
     Object.freeze(options);
   });
+  // First preHandler on the root: after every parsing/authentication preValidation,
+  // before inherited core policy/CSRF hooks and route-local guard/validation hooks.
+  app.addHook(
+    'preHandler',
+    ownership.hook(
+      'preHandler',
+      requestStageHook((request, reply) => registry.afterAuthentication(request, reply))
+    ) as never
+  );
   function view(instance: FastifyInstance): FastifyPreparation {
     const previous = views.get(instance);
     if (previous) return previous;

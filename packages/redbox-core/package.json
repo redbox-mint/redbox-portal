@@ -18,7 +18,7 @@
     "test:record-schema-rollout:disabled": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --fail-zero --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 5000 test/services/RecordsService.test.ts --grep \"leaves the non-schema create chain unchanged while record schemas are disabled|preserves baseline update outputs and legacy structural validation while record schemas are disabled|preserves baseline transition outputs and workflow semantics while record schemas are disabled|preserves baseline browser merge and array replacement while record schemas are disabled\"",
     "test:record-schema-rollout:runtime": "npm --prefix ../.. run test:record-schema-rollout:runtime",
     "test:record-schema-rollout:evidence": "TS_NODE_PROJECT=scripts/tsconfig.json node --no-experimental-strip-types -r ts-node/register/transpile-only scripts/verify-record-schema-rollout.ts",
-    "build": "rm -rf dist && npm run generate:prisma && npm run check:portal-config && tsc && node scripts/prisma-contract.cjs copy",
+    "build": "rm -rf dist && npm run generate:prisma && npm run check:portal-config && node scripts/http-namespaces.cjs --check && tsc && node scripts/prisma-contract.cjs copy",
     "lint": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts",
     "lint:fix": "cd ../.. && oxlint packages/redbox-core/src packages/redbox-core/scripts --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

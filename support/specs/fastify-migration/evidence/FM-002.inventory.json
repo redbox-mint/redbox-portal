@@ -176,7 +176,7 @@
     "packages/redbox-core/src/dashboards/DashboardConfig.ts": "36f792ea7bc8efefe91c679d9a0cecaaed25fa2d37546353e93ddaf3dabd7443",
     "packages/redbox-core/src/dashboards/DashboardLegacyConversion.ts": "d3a7961e9b4fc3e7d9af56892f3a2462859c05a2fde5855a00bea3bb05bfde40",
     "packages/redbox-core/src/extensions/composition.ts": "45ad55512ee0986ba970bab4bb82ec4299feed1f5cc659801fb8991e48f9d115",
-    "packages/redbox-core/src/extensions/contract.ts": "a11d7a822b5c6cd9b161cc998849dbf8f9d94808742903c1ab60c69c12921bb6",
+    "packages/redbox-core/src/extensions/contract.ts": "fabd98aebd84df9b8b27530ef1f3679de8f7c4bbaa72ecb00cbed5eb3b21e157",
     "packages/redbox-core/src/extensions/exports.ts": "52248700fa015cfb08685662b790876a55a8ab05bf1babb0d493f37d779301f9",
     "packages/redbox-core/src/extensions/integrationModule.ts": "eb6df3af0bc7baf56c4d0011c263024b97b2b8474827705ed23cfc7213878dc2",
     "packages/redbox-core/src/extensions/loading.ts": "28bd41f8c84504cb8ad5851bd5b46c3094c34ba69f743048afb0bca26c41a672",
@@ -432,7 +432,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "10c6c81e3cdc05242698f95cef605f18e298f7c64cb4ea0ec893f9d6aa79121a"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "3c32db24e330d68a1b31801988974f6f4dffc83e4865aa95c6178638dd956dda"
   },
   "counts": {
     "routes": 335,
@@ -44070,7 +44070,7 @@
       "source": {
         "file": "packages/redbox-core/src/extensions/contract.ts",
         "export": "ExtensionRoute",
-        "line": 24
+        "line": 25
       },
       "method": "declared method",
       "path": "installed extension declarations",

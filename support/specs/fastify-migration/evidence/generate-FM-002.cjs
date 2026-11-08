@@ -5,7 +5,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../../../..');
+const trackedSources = new Set(
+  execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(Boolean)
+);
 require(path.join(root, 'node_modules/ts-node')).register({
   project: path.join(root, 'packages/redbox-core/test/tsconfig.json'),
   transpileOnly: true,
@@ -231,11 +235,9 @@ function collectInventory() {
   ];
   const api = fromSource(prefix + 'api-routes/route-registry.ts').registerCoreApiRoutes();
   const apiReferences = new Map();
-  for (const file of fs
-    .readdirSync(path.join(root, prefix, 'api-routes/groups'))
-    .filter(name => name.endsWith('.ts'))
+  for (const filename of [...trackedSources]
+    .filter(file => file.startsWith(prefix + 'api-routes/groups/') && file.endsWith('.ts'))
     .sort()) {
-    const filename = prefix + 'api-routes/groups/' + file;
     inputs.add(filename);
     for (const [name, value] of Object.entries(fromSource(filename))) {
       if (api.includes(value)) apiReferences.set(value, sourceReference(filename, name));
@@ -246,8 +248,7 @@ function collectInventory() {
         });
     }
   }
-  for (const file of fs.readdirSync(path.join(root, prefix, 'api-routes/schemas')))
-    inputs.add(prefix + 'api-routes/schemas/' + file);
+  for (const file of trackedSources) if (file.startsWith(prefix + 'api-routes/schemas/')) inputs.add(file);
   const configuration = portalHttpPolicies();
   const routes = collections.flatMap(collection => {
     assert(owners[collection.export], 'Unassigned source collection: ' + collection.export);
@@ -685,12 +686,11 @@ function collectInventory() {
       validation: 'none; response {ready:boolean}',
       replacement: route.replaces ?? false,
     }));
-  const bundled = fs
-    .readdirSync(path.join(root, 'packages'))
+  const bundled = [...trackedSources]
+    .filter(file => /^packages\/[^/]+\/src\/extension\.ts$/.test(file))
     .sort()
-    .flatMap(name => {
-      const file = `packages/${name}/src/extension.ts`;
-      if (!fs.existsSync(path.join(root, file))) return [];
+    .flatMap(file => {
+      const name = file.split('/')[1];
       inputs.add(file);
       const fields = inspectBundledRegistration(file);
       return [
@@ -742,9 +742,7 @@ function collectInventory() {
       const specifier = node.moduleSpecifier.text;
       if (!specifier.startsWith('.')) continue;
       const stem = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)).replace(/\.js$/, '');
-      const dependency = [stem + '.ts', stem + '/index.ts'].find(candidate =>
-        fs.existsSync(path.join(root, candidate))
-      );
+      const dependency = [stem + '.ts', stem + '/index.ts'].find(candidate => trackedSources.has(candidate));
       if (dependency) inputs.add(dependency);
     }
   }
@@ -794,7 +792,7 @@ function validateInventory(inventory) {
         typeof reference.file === 'string' && /\.test\.(?:ts|cjs)$/.test(reference.file),
         'Invalid executable test reference: ' + reference.file
       );
-      assert(fs.existsSync(path.join(root, reference.file)), 'Missing test: ' + reference.file);
+      assert(trackedSources.has(reference.file), 'Missing test: ' + reference.file);
       assert(typeof reference.scope === 'string' && reference.scope.trim(), 'Missing test coverage scope');
     }
     if (row.name) {

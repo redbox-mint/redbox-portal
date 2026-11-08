@@ -1,6 +1,9 @@
 import type { PoliciesConfig } from '../config/policies.config';
 import type { BoundControllerFactory } from '../http/controllers';
 import type { ControllerRegistration, PortalHttpMethod, RouteAccess } from '../http/contracts';
+import { composeHttpHooks } from '../http/fastify/hooks';
+import { composeHttpFallbacks } from '../http/fastify/fallbacks';
+import { HttpRouteRegistry, type CoreNamespaceConfiguration } from '../http/fastify/registry';
 import { composeControllers } from '../http/fastify/registration';
 import { apiRouteRegistrations, composeRoutes, coreRouteName, type RouteRegistration } from '../http/fastify/routes';
 import type { RedboxExtension, RedboxExtensionV2 } from './contract';
@@ -64,7 +67,9 @@ function contributions(provider: { name: string; root: string; declaration: unkn
     )
       fail(provider.name, 'invalid API2 route; use a supported method and HttpRouteDeclaration fields');
   }
-  const { controllers: _controllers, routes: _routes, ...data } = value;
+  for (const field of ['hooks', 'fallbacks'])
+    if (value[field] !== undefined && !Array.isArray(value[field])) fail(provider.name, `${field} must be an array`);
+  const { controllers: _controllers, routes: _routes, hooks: _hooks, fallbacks: _fallbacks, ...data } = value;
   return { ...provider, declaration: { ...data, apiVersion: 1 } as RedboxExtension };
 }
 
@@ -96,6 +101,8 @@ export interface ExtensionResolutionV2Options {
   /** Retain normalized core API security sources without copying schemas. */
   readonly coreRoutes?: readonly RouteRegistration[];
   readonly apiConfiguration?: PoliciesConfig;
+  readonly fallbackReservedPrefixes?: readonly string[];
+  readonly namespaceConfiguration?: CoreNamespaceConfiguration;
 }
 
 /** Inherit owned metadata before normalizing explicit API2 changes. Alias ownership
@@ -228,10 +235,28 @@ export async function resolveExtensionsV2(
   );
   const routeRegistrations = routeRegistrationsV2(ordered, options);
   const routePlan = await composeRoutes(routeRegistrations, options.routing);
+  const hookRegistrations = ordered.flatMap(provider =>
+    (provider.declaration.hooks ?? []).map(declaration => ({ provider: provider.name, declaration }))
+  );
+  const fallbackRegistrations = ordered.flatMap(provider =>
+    (provider.declaration.fallbacks ?? []).map(declaration => ({ provider: provider.name, declaration }))
+  );
+  const fallbackPlan = composeHttpFallbacks(
+    fallbackRegistrations,
+    routePlan,
+    options.routing,
+    new HttpRouteRegistry(
+      options.routing.rootContext,
+      options.fallbackReservedPrefixes,
+      options.namespaceConfiguration,
+      routePlan.targets
+    )
+  );
+  const hookPlan = composeHttpHooks(hookRegistrations, routePlan.targets);
   const controllerPlan = composeControllers(
     controllerRegistrations,
     options.bindings,
-    routePlan.routes.map(route => route.declaration),
+    [...routePlan.routes, ...fallbackPlan.routes].map(route => route.declaration),
     data.modules.map(module => module.declaration.name)
   );
   const {
@@ -248,5 +273,9 @@ export async function resolveExtensionsV2(
     routeRegistrations,
     controllerPlan,
     routePlan,
+    hookRegistrations,
+    fallbackRegistrations,
+    hookPlan,
+    fallbackPlan,
   };
 }

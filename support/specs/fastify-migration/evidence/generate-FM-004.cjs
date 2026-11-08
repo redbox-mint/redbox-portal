@@ -7,6 +7,12 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { collectInventory, checkInventory } = require('./generate-FM-002.cjs');
 const root = path.resolve(__dirname, '../../../..');
+const trackedSources = new Set(
+  require('node:child_process')
+    .execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+    .split('\0')
+    .filter(Boolean)
+);
 const ts = require(path.join(root, 'node_modules/typescript'));
 const prefix = 'packages/redbox-core/src/';
 const http = prefix + 'http/express/';
@@ -469,9 +475,7 @@ function collectOrdering() {
       const specifier = node.moduleSpecifier.text;
       if (!specifier.startsWith('.')) continue;
       const stem = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)).replace(/\.js$/, '');
-      const dependency = [stem + '.ts', stem + '/index.ts'].find(candidate =>
-        fs.existsSync(path.join(root, candidate))
-      );
+      const dependency = [stem + '.ts', stem + '/index.ts'].find(candidate => trackedSources.has(candidate));
       if (dependency) inputs.add(dependency);
     }
   }

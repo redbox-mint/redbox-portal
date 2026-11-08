@@ -22,6 +22,7 @@ export type HttpLogTarget =
 export const httpLogFallbackIntervalMs = 30_000;
 const codes = new Set([
   'HTTP_REQUEST_FAILED',
+  'HTTP_OBSERVATION_FAILED',
   'HTTP_POST_SEND_FAILURE',
   'HTTP_DUPLICATE_SEND',
   'HTTP_REPLY_CALLBACK_FAILED',

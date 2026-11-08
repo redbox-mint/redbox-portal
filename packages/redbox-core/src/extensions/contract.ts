@@ -1,3 +1,4 @@
+import type { HttpHookContribution, HttpFallbackContribution } from '../http/contracts';
 import type { Server } from 'node:http';
 import type { RequestHandler } from 'express';
 export type { RequestHandler } from 'express';
@@ -87,5 +88,7 @@ export interface RedboxExtensionV2 extends Omit<
 > {
   readonly apiVersion: 2;
   readonly controllers?: readonly ControllerRegistration[];
+  readonly hooks?: readonly HttpHookContribution[];
+  readonly fallbacks?: readonly HttpFallbackContribution[];
   readonly routes?: readonly HttpRouteDeclaration[];
 }
