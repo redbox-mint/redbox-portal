@@ -1,5 +1,5 @@
 @if (loadError) {
-  <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next }}</button></div>
+  <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button></div>
 }
 @if (isReady) {
 <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
