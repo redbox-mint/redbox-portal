@@ -15,7 +15,8 @@ describe('The UsersService', function () {
       const retrieved = await firstValueFrom(UsersService.getUserWithId(user.id));
       expect(retrieved).to.have.property('id', user.id);
       expect(UsersService.hasRole(retrieved, adminRole)).to.have.property('id', adminRole.id);
-      const updated = await firstValueFrom(UsersService.updateUserRoles(user.id, roles.filter(role => role.name !== 'Admin').map(role => role.id)));
+      await firstValueFrom(UsersService.updateUserRoles(user.id, roles.filter(role => role.name !== 'Admin').map(role => role.id)));
+      const updated = await firstValueFrom(UsersService.getUserWithId(user.id));
       expect(RolesService.getRoleWithName(updated.roles, 'Admin')).to.be.undefined;
     } finally {
       await User.destroy({ id: user.id });
