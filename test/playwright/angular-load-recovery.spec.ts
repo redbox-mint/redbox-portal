@@ -6,6 +6,14 @@ test.describe('Angular bootstrap recovery', () => {
 
   for (const endpoint of ['csrfToken', 'dynamic/apiClientConfig*']) {
     test(`renders recovery controls and retries after ${endpoint} fails`, async ({ page }) => {
+      // Pages normally embed config. Remove that snapshot to exercise the HTTP fallback.
+      if (endpoint === 'dynamic/apiClientConfig*') {
+        await page.route('**/default/rdmp/admin/users', async (route) => {
+          const response = await route.fetch();
+          const body = (await response.text()).replace(/<meta name="rb-client-config"[^>]*>/, '');
+          await route.fulfill({ response, body });
+        });
+      }
       let attempts = 0;
       await page.route(`**/${endpoint}`, async (route) => {
         attempts += 1;
