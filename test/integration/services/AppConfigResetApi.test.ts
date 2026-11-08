@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import { firstValueFrom } from 'rxjs';
 
 /** Real routes, session authorization and CSRF. All AppConfig rows/cache are restored. */
@@ -14,22 +15,8 @@ describe('AppConfig reset API', function () {
   let rows: any[];
   let otherRowId: string;
   const app = () => (sails as any).hooks.http.app;
-  const token = async (agent: supertest.Agent) => {
-    if (sails.config.security.csrf === false) return '';
-    // Establish brand context, also after login regenerates the session.
-    await agent.get('/default/rdmp/user/login').expect(200);
-    return (await agent.get('/csrfToken').expect(200)).body._csrf;
-  };
-  const login = async (username: string, password: string) => {
-    const agent = supertest.agent(app());
-    await agent
-      .post('/user/login_local')
-      .set('X-CSRF-Token', await token(agent))
-      .set('X-Source', 'jsclient')
-      .send({ username, password, branding: 'default', portal: 'rdmp' })
-      .expect(200);
-    return agent;
-  };
+  const token = csrfToken;
+  const login = loginSession;
   before(async () => {
     brand = BrandingService.getBrand('default');
     rows = await AppConfig.find({ branding: brand.id, configKey: 'menu' });
@@ -62,19 +49,20 @@ describe('AppConfig reset API', function () {
   });
   it('rejects anonymous and ordinary users', async () => {
     const anonymous = supertest.agent(app());
+    const anonymousToken = await token(anonymous);
     await anonymous
       .post(path)
-      .set('X-CSRF-Token', await token(anonymous))
+      .set('X-CSRF-Token', anonymousToken)
       .send({})
       .expect(403);
+    const ordinaryToken = await token(ordinary);
     await ordinary
       .post(path)
-      .set('X-CSRF-Token', await token(ordinary))
+      .set('X-CSRF-Token', ordinaryToken)
       .send({})
       .expect(403);
   });
   it('requires session CSRF even for Admin', async function () {
-    if (sails.config.security.csrf === false) this.skip();
     await admin.post(path).send({}).expect(403);
     await admin.post(path).set('X-CSRF-Token', 'invalid').send({}).expect(403);
   });
