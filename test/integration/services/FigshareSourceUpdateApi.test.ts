@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 
 describe('Figshare source update API', function () {
   this.timeout(60_000);
@@ -9,10 +10,8 @@ describe('Figshare source update API', function () {
     const brand = BrandingService.getDefault();
     vocabulary = await Vocabulary.create({ branding: brand.id, name: 'Source API fixture', slug: `source-api-${Date.now()}`, source: 'external', type: 'tree' }).fetch();
     source = await FigshareVocabularySource.create({ branding: brand.id, vocabulary: vocabulary.id, scope: 'public', taxonomyId: `source-api-${Date.now()}`, displayName: 'API fixture', createdBy: 'integration-test', updatedBy: 'integration-test' }).fetch();
-    admin = supertest.agent(app()); await admin.get('/default/rdmp/user/login').expect(200);
-    csrf = sails.config.security.csrf === false ? '' : (await admin.get('/csrfToken').expect(200)).body._csrf;
-    await admin.post('/user/login_local').set('X-CSRF-Token', csrf).set('X-Source','jsclient').send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' }).expect(200);
-    csrf = sails.config.security.csrf === false ? '' : (await admin.get('/csrfToken').expect(200)).body._csrf;
+    admin = await loginSession();
+    csrf = await csrfToken(admin);
   });
   after(async () => {
     if (source) {
