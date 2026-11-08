@@ -134,6 +134,8 @@ describe('Branding management controllers and contracts', function () {
   let stubs: Record<string, sinon.SinonStub>;
   let prevSails: unknown;
   let prevBrandingService: unknown;
+  let prevRolesService: unknown;
+  let prevUsersService: unknown;
 
   beforeEach(function () {
     sandbox = sinon.createSandbox();
@@ -150,11 +152,19 @@ describe('Branding management controllers and contracts', function () {
       },
     };
     stubs = stubBrandingService(sandbox);
+    const g = global as unknown as Record<string, unknown>;
+    prevRolesService = g.RolesService;
+    prevUsersService = g.UsersService;
+    stubs.getBrand = sandbox.stub().callsFake(name => ({ id: name }));
+    g.RolesService = { getAdminFromBrand: brand => ({ id: `${brand.id}-admin` }) };
+    g.UsersService = { hasRole: (user, role) => user.roles?.some(item => item.id === role.id) };
   });
 
   afterEach(function () {
     sandbox.restore();
     const g = global as unknown as Record<string, unknown>;
+    g.RolesService = prevRolesService;
+    g.UsersService = prevUsersService;
     if (prevSails === undefined) {
       delete g.sails;
     } else {
@@ -231,6 +241,7 @@ describe('Branding management controllers and contracts', function () {
     const res = { set: sandbox.stub(), contentType: sandbox.stub(), send: sandbox.stub() };
     await app.draftImage(
       {
+        user: { roles: [{ id: 'default-admin' }] },
         params: { branding: 'default', portal: 'rdmp', kind: 'logo' },
         query: { preview: 'a'.repeat(32) },
       } as unknown as Sails.Req,
@@ -253,6 +264,7 @@ describe('Branding management controllers and contracts', function () {
     const sent = captureSendResp(sandbox, app);
     await app.resetDraft(
       {
+        user: { roles: [{ id: 'other-admin' }] },
         params: { branding: 'other' },
         param: (key: string) => (key === 'branding' ? 'other' : undefined),
         body: { expectedVersion: 1, expectedDraftRevision: 2 },
@@ -265,6 +277,19 @@ describe('Branding management controllers and contracts', function () {
       expectedDraftRevision: 2,
     });
     expect(sent[0].data).to.deep.equal(ADMIN_STATE);
+  });
+
+  it('denies anonymous and foreign-brand users before reading or resetting drafts', async function () {
+    for (const action of ['draftImage', 'resetDraft']) {
+      for (const user of [undefined, { roles: [] }, { roles: [{ id: 'other-admin' }] }]) {
+        const app = new AjaxControllers.BrandingApp();
+        const sent = captureSendResp(sandbox, app);
+        await app[action]({ params: { branding: 'default' }, user } as unknown as Sails.Req, {} as Sails.Res);
+        expect(sent[0].status).to.equal(403);
+        expect(stubs.previewImage.called).to.equal(false);
+        expect(stubs.resetDraft.called).to.equal(false);
+      }
+    }
   });
 
   it('keeps management routes behind the Admin boundary', function () {

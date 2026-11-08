@@ -320,8 +320,21 @@ export namespace Controllers {
       }
     }
 
+    private requireBrandAdmin(req: Sails.Req, res: Sails.Res): boolean {
+      const brand = BrandingService.getBrand(getRouteParam(req, 'branding'));
+      const admin = brand && RolesService.getAdminFromBrand(brand);
+      if (req.user && admin && UsersService.hasRole(req.user, admin)) return true;
+      this.sendResp(req, res, {
+        status: 403,
+        displayErrors: [{ detail: 'Brand Admin permission required' }],
+        headers: this.getNoCacheHeaders(),
+      });
+      return false;
+    }
+
     /** Whole-draft reset uses the same brand/counter authority as Publish. */
     async resetDraft(req: Sails.Req, res: Sails.Res) {
+      if (!this.requireBrandAdmin(req, res)) return;
       try {
         const body = req.body ?? {};
         return this.sendState(
@@ -339,6 +352,7 @@ export namespace Controllers {
     }
 
     async draftImage(req: Sails.Req, res: Sails.Res) {
+      if (!this.requireBrandAdmin(req, res)) return;
       try {
         const kind = getRouteParam(req, 'kind');
         const image = req.query?.preview
