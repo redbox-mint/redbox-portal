@@ -2604,6 +2604,7 @@
   "admin-api-docs-yaml": "YAML",
   "admin-api-docs-key": "Get an API key",
   "admin-api-docs-heading": "API docs",
+  "admin-api-docs-loading": "Loading API documentation",
   "figshare-vocab-no-matching-sources": "No matching sources",
   "figshare-vocab-no-matching-crosswalks": "No matching crosswalks",
   "admin-vocabulary-create-action": "Create vocabulary",

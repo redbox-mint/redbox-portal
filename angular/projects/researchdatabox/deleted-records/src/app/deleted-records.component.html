@@ -1,7 +1,7 @@
 @if (loadError) {
   <div class="alert alert-danger" role="alert">
     {{ loadError }}
-    <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending || actionPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">{{ 'admin-retry' | i18next }}</button>
+    <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending || actionPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button>
   </div>
 }
 @if (isReady) {

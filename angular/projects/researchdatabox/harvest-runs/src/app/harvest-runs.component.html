@@ -1,4 +1,4 @@
-@if (loadError) { <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next }}</button></div> }
+@if (loadError) { <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button></div> }
 @if (!isReady && !loadError) {
   <div class="hr-loading hr-loading--page" role="status">
     <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
