@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
+import { csrfToken } from '../helpers/admin-session';
 import { MongoClient, ObjectId } from 'mongodb';
 import type { ExportJobDto } from '@researchdatabox/sails-ng-common';
 import type { ExportJobModel } from '@researchdatabox/redbox-core';
@@ -35,8 +36,7 @@ describe('Background admin CSV export integration', function () {
   }
 
   async function csrf(agent: supertest.Agent): Promise<string> {
-    if (!sails.config.security.csrf) return '';
-    return (await agent.get('/csrfToken').query({ branding: 'default', portal: 'rdmp' }).expect(200)).body._csrf;
+    return csrfToken(agent);
   }
 
   async function createExport(agent = librarian): Promise<ExportJobDto> {
@@ -412,28 +412,30 @@ describe('Background admin CSV export integration', function () {
     await collection().insertOne({ ...fields, jobId: id, status: 'queued', attemptId: null,
       objectKey: null, completedAt: null, startedAt: null, expiresAt: null, cleanedAt: null });
     const url = `${baseUrl}/${id}/cancel`;
-    if (sails.config.security.csrf) {
+    {
       await admin.post(url).set('X-Source', 'jsclient').send({}).expect(403);
       assert.equal((await collection().findOne({ jobId: id }))?.status, 'queued');
     }
     for (const agent of [anonymous, researcher, librarian]) {
-      await agent.post(url).set('X-Source', 'jsclient').send({ _csrf: await csrf(agent) }).expect(403);
+      const token = await csrf(agent);
+      await agent.post(url).set('X-Source', 'jsclient').send({ _csrf: token }).expect(403);
     }
+    const adminToken = await csrf(admin);
     for (const patch of [{ requestedByUserId: ownerId }, { brandId: 'another-brand' }, { portal: 'other' }]) {
       await collection().updateOne({ jobId: id }, { $set: patch });
-      await admin.post(url).send({ _csrf: await csrf(admin) }).expect(404);
+      await admin.post(url).send({ _csrf: adminToken }).expect(404);
       await collection().updateOne({ jobId: id }, { $set: { requestedByUserId: adminId, brandId: fields.brandId, portal: fields.portal } });
     }
-    const cancelled = await admin.post(url).set('X-ReDBox-Api-Version', '2.0').send({ _csrf: await csrf(admin) }).expect(200);
+    const cancelled = await admin.post(url).set('X-ReDBox-Api-Version', '2.0').send({ _csrf: adminToken }).expect(200);
     assert.equal(cancelled.body.data.status, 'cancelled');
     assert.equal(cancelled.body.data.downloadUrl, null);
     assert.equal('objectKey' in cancelled.body.data, false);
     await ExportService.generateCsvJob({ attrs: { data: { jobId: id } } });
     assert.equal((await collection().findOne({ jobId: id }))?.status, 'cancelled');
-    await admin.post(url).send({ _csrf: await csrf(admin) }).expect(409);
+    await admin.post(url).send({ _csrf: adminToken }).expect(409);
     await deleteExport(id, admin);
     await admin.get(`${baseUrl}/${id}`).expect(404);
-    await admin.post(`${baseUrl}/not-a-uuid/cancel`).send({ _csrf: await csrf(admin) }).expect(400);
+    await admin.post(`${baseUrl}/not-a-uuid/cancel`).send({ _csrf: adminToken }).expect(400);
   });
 
   it('rejects malformed selections before creating or enqueueing a job', async function () {
