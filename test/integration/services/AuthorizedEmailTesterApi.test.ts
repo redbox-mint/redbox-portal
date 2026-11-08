@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import { firstValueFrom } from 'rxjs';
 import { evaluateAuthorizedEmail } from '../../../packages/redbox-core/src/utilities/AuthorizedEmailAccess';
 
@@ -12,13 +13,8 @@ describe('Authorized email tester API', function () {
   let ordinaryCsrf: string;
   let userId: string;
   const app = () => (sails as any).hooks.http.app;
-  const token = async (agent: supertest.Agent) => sails.config.security.csrf === false ? '' : (await agent.get('/csrfToken')).body._csrf;
-  const login = async (username: string, password: string) => {
-    const agent = supertest.agent(app());
-    await agent.post('/user/login_local').set('X-CSRF-Token', await token(agent)).set('X-Source', 'jsclient')
-      .send({ username, password, branding: 'default', portal: 'rdmp' }).expect(200);
-    return agent;
-  };
+  const token = csrfToken;
+  const login = loginSession;
   before(async () => {
     const suffix = `emailtester${Date.now()}`;
     const user = await firstValueFrom(UsersService.addLocalUser(suffix, 'Address tester fixture', `${suffix}@example.test`, 'Testing123!'));
@@ -26,19 +22,21 @@ describe('Authorized email tester API', function () {
     await firstValueFrom(UsersService.updateUserRoles(userId, RolesService.getRoleIds(BrandingService.getDefault().roles, ['Researcher'])));
     admin = await login('admin', 'rbadmin');
     ordinary = await login(suffix, 'Testing123!');
-    csrf = await token(admin);
-    ordinaryCsrf = await token(ordinary);
+    const requestCsrf1 = await token(admin);
+    csrf = requestCsrf1;
+    const requestCsrf2 = await token(ordinary);
+    ordinaryCsrf = requestCsrf2;
   });
   after(async () => { if (userId) await User.destroy({ id: userId }); });
   const check = (body: object) => admin.post(path).set('X-CSRF-Token', csrf).set('X-Source', 'jsclient').send(body);
 
   it('rejects anonymous and non-Admin sessions', async () => {
     const anonymous = supertest.agent(app());
-    await anonymous.post(path).set('X-CSRF-Token', await token(anonymous)).send({ email: 'person@uni.edu.au', provider: 'aaf' }).expect(403);
+    const anonymousToken = await token(anonymous);
+    await anonymous.post(path).set('X-CSRF-Token', anonymousToken).send({ email: 'person@uni.edu.au', provider: 'aaf' }).expect(403);
     await ordinary.post(path).set('X-CSRF-Token', ordinaryCsrf).send({ email: 'person@uni.edu.au', provider: 'aaf' }).expect(403);
   });
   it('requires a CSRF token even for a logged-in Admin', async function () {
-    if (sails.config.security.csrf === false) this.skip();
     await admin.post(path).send({ email: 'person@uni.edu.au', provider: 'aaf' }).expect(403);
     await admin.post(path).set('X-CSRF-Token', 'invalid').send({ email: 'person@uni.edu.au', provider: 'aaf' }).expect(403);
   });
