@@ -122,4 +122,21 @@ describe('EmailTemplatesComponent', () => {
     expect(component.editor!.contextText).toContain('Edited two');
   });
 
+  it('protects breadcrumb navigation and restores focus to the template name after leaving', async () => {
+    await settle();
+    const name = fixture.nativeElement.querySelector('[data-template-action="name"]') as HTMLButtonElement;
+    name.click();
+    await settle();
+    const prepare = spyOn(component.editor!, 'prepareToLeave').and.resolveTo(false);
+    (fixture.nativeElement.querySelector('.et-crumb') as HTMLButtonElement).click();
+    await settle();
+    expect(prepare).toHaveBeenCalled();
+    expect(component.templateId).toBe('publicationReview');
+    prepare.and.resolveTo(true);
+    (fixture.nativeElement.querySelector('.et-crumb') as HTMLButtonElement).click();
+    await settle();
+    expect(component.templateId).toBeNull();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('[data-template-action="name"]'));
+  });
+
 });

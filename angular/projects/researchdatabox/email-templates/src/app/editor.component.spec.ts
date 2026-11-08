@@ -158,7 +158,7 @@ describe('EditorComponent', () => {
     expect((el('#et-subject') as HTMLInputElement).value).toBe('Ready for review: {{record.metadata.title}}');
     expect(el('.et-publish').hasAttribute('disabled')).toBeTrue();
     expect(el('#et-publish-reason').textContent).toContain('email-templates-publish-blocked-no-draft');
-    expect(el('.et-title-row').textContent).toContain('email-templates-badge-live-version version=4');
+    expect(el('.et-badges').textContent).toContain('email-templates-badge-live-version version=4');
     flush();
   }));
 
@@ -178,7 +178,7 @@ describe('EditorComponent', () => {
       null
     );
     expect(component.draftRevision).toBe(1);
-    expect(el('.et-title-row').textContent).toContain('email-templates-badge-draft-revision revision=1');
+    expect(el('.et-badges').textContent).toContain('email-templates-badge-draft-revision revision=1');
 
     typeBody('<p>Two</p>');
     tick(AUTOSAVE_DEBOUNCE_MS);
@@ -475,7 +475,7 @@ describe('EditorComponent', () => {
     expect(component.tab).toBe('edit');
     expect(component.content.body).toBe('<p>Old body</p>');
     expect(component.draftRevision).toBe(9);
-    expect(el('.et-title-row').textContent).toContain('email-templates-badge-restored-from version=3');
+    expect(el('.et-badges').textContent).toContain('email-templates-badge-restored-from version=3');
     flush();
   }));
 

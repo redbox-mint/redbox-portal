@@ -107,7 +107,7 @@ test.describe('email template administration', () => {
       await expect(dialog).toContainText('Ready for review:');
       await screenshot('publish-confirmation');
       await dialog.getByRole('button', { name: new RegExp(`Publish v${expectedVersion}`) }).click();
-      await expect(page.locator('.et-title-row')).toContainText(`Live v${expectedVersion}`);
+      await expect(page.locator('.et-badges')).toContainText(`Live v${expectedVersion}`);
       // Optional screenshot exercise against a disposable generated default.
       // The normal CI flow never changes a supplied template file.
       if (process.env.EMAIL_TEMPLATE_DEFAULT_PATH) {
@@ -129,6 +129,7 @@ test.describe('email template administration', () => {
       const published = page.locator(`tr[data-version="${expectedVersion}"]`);
       await expect(published).toContainText('Live');
       await screenshot('history');
+      await published.locator('summary').click();
       await published.getByRole('button', { name: /Restore to draft/ }).click();
       await expect(page.getByRole('tab', { name: 'Edit & preview' })).toHaveAttribute('aria-selected', 'true');
       await expect(page.locator('#et-body')).toHaveValue(body);

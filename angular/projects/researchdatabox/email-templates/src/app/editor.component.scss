@@ -1,31 +1,3 @@
-.et-back {
-  margin: -4px 0 4px;
-  padding-left: 0;
-  font-size: 13px;
-  text-decoration: none;
-}
-
-.et-title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 16px;
-}
-
-// The heading receives focus on navigation for screen readers; it isn't a control.
-.et-editor-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--bs-emphasis-color);
-
-  &:focus {
-    outline: none;
-  }
-}
-
 .et-alert {
   font-size: 14px;
   padding-top: 10px;
@@ -39,57 +11,18 @@
   gap: 8px;
 }
 
-.et-default-updated {
-  background: rgba(102, 16, 242, 0.06);
-  border-color: rgba(102, 16, 242, 0.2);
-  color: var(--bs-body-color);
-
-  > .fa-solid {
-    color: #520dc2;
-  }
-}
-
-// Tabs: underline style, consistent with the mocks; keyboard handled in TS.
-.et-tabs {
-  display: flex;
-  gap: 4px;
-  margin: 0 0 20px;
-  border-bottom: 1px solid var(--bs-border-color);
-}
-
-.et-tab {
-  margin-bottom: -1px;
-  padding: 8px 14px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--bs-secondary-color);
-  font-weight: 500;
-
-  &:hover {
-    color: var(--bs-body-color);
-  }
-
-  &.active {
-    color: var(--bs-emphasis-color);
-    border-bottom-color: var(--bs-primary);
-    font-weight: 600;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--bs-primary);
-    outline-offset: -2px;
-    border-radius: var(--bs-border-radius-sm);
-  }
-}
-
 .et-subject-input {
-  font-family: var(--bs-font-monospace);
+  font-family: var(--admin-mono);
   font-size: 14px;
 }
 
 .et-row {
   display: flex;
+  flex-wrap: wrap;
+
+  .et-section-label {
+    flex-shrink: 0;
+  }
   align-items: center;
   gap: 8px;
   min-height: 28px;
@@ -116,7 +49,7 @@
   align-items: center;
   gap: 4px 8px;
   border: 1px solid var(--bs-danger-border-subtle);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--admin-radius);
   background: var(--bs-danger-bg-subtle);
   color: var(--bs-danger-text-emphasis);
 
@@ -147,7 +80,7 @@
   min-width: 0;
   padding: 6px 10px;
   border: 0;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--admin-radius);
   background: none;
   color: inherit;
   text-align: left;
@@ -189,8 +122,8 @@
   padding: 2px 10px;
   border: 1px solid rgba(var(--bs-warning-rgb), 0.55);
   border-radius: 999px;
-  background: var(--bs-body-bg);
-  color: var(--bs-body-color);
+  background: var(--admin-bg);
+  color: var(--admin-ink);
   font-size: 12px;
 
   > .fa-solid {
@@ -202,7 +135,7 @@
     padding: 0 2px;
     border-radius: 3px;
     background: rgba(var(--bs-warning-rgb), 0.16);
-    color: var(--bs-emphasis-color);
+    color: var(--admin-heading);
     font-size: 12px;
   }
 
@@ -231,7 +164,7 @@
   gap: 6px;
   align-items: baseline;
   margin: 6px 0 0;
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 12px;
 }
 
@@ -252,9 +185,9 @@
 .et-help {
   margin-top: 16px;
   padding: 12px 16px;
-  border: 1px solid var(--bs-border-color-translucent);
-  border-radius: var(--bs-border-radius);
-  background: var(--bs-tertiary-bg);
+  border: 1px solid var(--admin-soft-line);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface);
   font-size: 13px;
 
   summary {
@@ -274,10 +207,8 @@
 .et-help-label {
   display: block;
   margin-bottom: 4px;
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .et-chips {
@@ -288,11 +219,11 @@
 
 .et-chip {
   padding: 1px 6px;
-  border: 1px solid var(--bs-border-color);
+  border: 1px solid var(--admin-line);
   border-radius: var(--bs-border-radius-sm);
-  background: var(--bs-body-bg);
-  color: var(--bs-body-color);
-  font-family: var(--bs-font-monospace);
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  font-family: var(--admin-mono);
   font-size: 12px;
 
   &:hover,
@@ -333,7 +264,7 @@
 }
 
 .et-helper-syntax {
-  color: var(--bs-body-color);
+  color: var(--admin-ink);
   font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -356,13 +287,13 @@
   min-height: 84px;
   margin-top: 6px;
   padding: 6px 10px;
-  border: 1px dashed var(--bs-border-color);
+  border: 1px dashed var(--admin-line);
   border-radius: var(--bs-border-radius-sm);
-  background: var(--bs-body-bg);
+  background: var(--admin-bg);
 }
 
 .et-helper-card-hint {
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 12px;
 }
 
@@ -371,7 +302,7 @@
   gap: 6px;
   align-items: baseline;
   margin: 6px 0 0;
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 12px;
   line-height: 1.45;
 
@@ -381,7 +312,7 @@
   }
 
   code {
-    color: var(--bs-emphasis-color);
+    color: var(--admin-heading);
     font-size: 11px;
   }
 }
@@ -391,7 +322,7 @@
   gap: 6px;
   align-items: baseline;
   margin: 2px 0 6px;
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 12px;
 
   > .fa-regular {
@@ -450,20 +381,18 @@ button.et-preview-diagnostic {
   font-size: 11px;
 }
 
+.et-context-actions {
+  margin-left: auto;
+}
+
 .et-context-action {
+  white-space: nowrap;
   font-size: 13px;
   text-decoration: none;
 
   &:hover:not(:disabled) {
     text-decoration: underline;
   }
-}
-
-.et-context-sep {
-  width: 1px;
-  height: 14px;
-  margin: 0 4px;
-  background: var(--bs-border-color);
 }
 
 // Shown after relaxed input (single quotes, bare keys, trailing commas) is rewritten.
@@ -482,7 +411,7 @@ button.et-preview-diagnostic {
 }
 
 .et-context-note-detail {
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
 }
 
 // Advisory schema differences in the preview data, listed at their JSON path.
@@ -490,7 +419,7 @@ button.et-preview-diagnostic {
   margin-top: 8px;
   padding: 8px 10px;
   border: 1px solid var(--bs-warning-border-subtle);
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--admin-radius);
   background: rgba(var(--bs-warning-rgb), 0.08);
   font-size: 13px;
 
@@ -525,8 +454,8 @@ button.et-preview-diagnostic {
 .et-context-path {
   padding: 0 4px;
   border-radius: 3px;
-  background: var(--bs-body-bg);
-  color: var(--bs-emphasis-color);
+  background: var(--admin-bg);
+  color: var(--admin-heading);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -536,9 +465,9 @@ button.et-preview-diagnostic {
   gap: 12px;
   align-items: flex-start;
   padding: 40px 24px;
-  border: 1px dashed var(--bs-border-color);
-  border-radius: var(--bs-border-radius);
-  color: var(--bs-secondary-color);
+  border: 1px dashed var(--admin-line);
+  border-radius: var(--admin-radius);
+  color: var(--admin-muted);
   font-size: 14px;
 
   > .fa-regular,
@@ -558,7 +487,7 @@ button.et-preview-diagnostic {
 .et-sanitiser-note {
   margin: 8px 0 0;
   padding: 6px 10px;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--admin-radius);
   background: var(--bs-warning-bg-subtle);
   color: var(--bs-warning-text-emphasis);
   font-size: 13px;
@@ -568,45 +497,17 @@ button.et-preview-diagnostic {
 .et-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 32px;
+  gap: 20px;
   align-items: start;
 
   @media (max-width: 1199.98px) {
     grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
+    gap: 20px;
   }
 }
 
 .et-split-col {
   min-width: 0;
-}
-
-// Inner panels: neutral header so the brand colour stays on the page card.
-.et-pane {
-  border-color: var(--bs-border-color-translucent);
-  border-radius: 6px;
-
-  > .card-header {
-    padding: 12px 16px;
-    background: var(--bs-tertiary-bg);
-    border-bottom: 1px solid var(--bs-border-color-translucent);
-  }
-
-  > .card-body {
-    padding: 16px;
-  }
-}
-
-.et-pane-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--bs-emphasis-color);
-
-  > .fa-solid,
-  > .fa-regular {
-    color: var(--bs-secondary-color);
-  }
 }
 
 .et-fieldset {
@@ -625,50 +526,21 @@ button.et-preview-diagnostic {
   line-height: inherit;
 }
 
-// Footer stays in reach on long templates.
+// Share the named-query/report workspace footer, fitted to the admin card body.
 .et-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  // Bleeds to the panel edges; the portal theme fixes panel-body padding at 15px.
-  margin: 24px -15px -15px;
-  padding: 12px 15px;
-  border-top: 1px solid #ddd;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  background: #f5f5f5;
-  box-shadow: 0 -6px 16px -12px rgba(15, 23, 42, 0.35);
-
-  .btn {
-    font-size: 14px;
-    padding: 6px 14px;
-  }
-}
-
-.et-footer-status {
-  flex: 1 1 240px;
-  color: var(--bs-secondary-color);
-  font-size: 13px;
+  margin: 24px -16px -16px;
+  padding: 12px 16px;
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+  border-radius: 0 0 var(--admin-radius) var(--admin-radius);
 }
 
 .et-footer-sep {
   margin: 0 6px;
 }
 
-.et-footer-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-left: auto;
-}
-
 .et-footer-reason {
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 13px;
 }
 
@@ -684,7 +556,7 @@ button.et-preview-diagnostic {
   font-size: 14px;
 
   dt {
-    color: var(--bs-secondary-color);
+    color: var(--admin-muted);
     font-weight: 600;
   }
 
@@ -700,7 +572,7 @@ button.et-preview-diagnostic {
   align-items: baseline;
 
   > .fa-solid {
-    color: var(--bs-secondary-color);
+    color: var(--admin-muted);
     font-size: 11px;
   }
 }
@@ -711,7 +583,7 @@ button.et-preview-diagnostic {
   align-items: baseline;
   margin: -4px 0 16px;
   padding: 8px 12px;
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--admin-radius);
   background: var(--bs-warning-bg-subtle);
   color: var(--bs-warning-text-emphasis);
   font-size: 13px;
@@ -721,7 +593,7 @@ button.et-preview-diagnostic {
 .et-summary-new {
   padding: 2px 8px;
   border-radius: var(--bs-border-radius-sm);
-  font-family: var(--bs-font-monospace);
+  font-family: var(--admin-mono);
   font-size: 13px;
 }
 
@@ -740,4 +612,48 @@ button.et-preview-diagnostic {
 .et-integration-sample {
   gap: 12px;
   font-size: 14px;
+}
+
+.et-editor > .card-header h1 {
+  color: inherit;
+}
+
+// Keep programmatic navigation/diagnostic focus clear of the action bar.
+.et-editor :is(input, textarea, button, summary, [tabindex]) {
+  scroll-margin-block: 24px calc(var(--admin-save-height) + 24px);
+}
+
+@media (max-width: 991.98px) {
+  .et-footer {
+    position: static;
+  }
+}
+
+@media (max-width: 575.98px) {
+  // Four lifecycle actions need two rows to keep their labels readable.
+  .et-footer-actions .btn {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .et-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .et-summary dd + dt {
+    margin-top: 8px;
+  }
+}
+
+.et-format-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  .btn-check:checked + .btn {
+    background: var(--admin-heading);
+    border-color: var(--admin-heading);
+    color: #fff;
+  }
+  .btn-check:focus-visible + .btn {
+    outline: 2px solid var(--admin-primary);
+    outline-offset: 3px;
+  }
 }
