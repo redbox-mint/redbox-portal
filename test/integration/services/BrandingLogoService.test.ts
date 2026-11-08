@@ -17,6 +17,7 @@ describe('BrandingLogoService (Task 6)', () => {
     );
     for (const key of keys) await StorageManagerService.primaryDisk().delete(String(key));
     await BrandingConfig.destroy({ id: testBrand.id });
+    await BrandingService.loadAvailableBrands(null).toPromise();
   });
 
   it('accepts and stores a PNG logo', async () => {

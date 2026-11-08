@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-expressions */
 const { expect } = require('chai');
 const supertest = require('supertest');
+const { csrfToken, loginSession } = require('../helpers/admin-session');
 
 // Uses throwaway brands exclusively: never reset, publish or restore default.
 describe('Branding image drafts (mounted)', function () {
@@ -22,27 +23,16 @@ describe('Branding image drafts (mounted)', function () {
     await BrandingService.refreshBrandingCache(brand.id);
     await BrandingService.refreshBrandingCache(other.id);
     prefix = `/${brand.name}/rdmp/app/branding`;
-    admin = supertest.agent(sails.hooks.http.app);
-    csrf = (await admin.get('/csrfToken')).body._csrf;
-    await admin
-      .post('/user/login_local')
-      .set('X-CSRF-Token', csrf)
-      .set('X-Source', 'jsclient')
-      .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
-      .expect(200);
+    admin = await loginSession();
+    csrf = await csrfToken(admin);
     // Grant the logged-in admin the test brand Admin role using the same brand
     // association as production authorization, and refresh the session below.
     const role = await Role.create({ name: 'Admin', branding: brand.id });
     await BrandingService.refreshBrandingCache(brand.id);
     const user = await User.findOne({ username: 'admin' });
     await User.addToCollection(user.id, 'roles').members([role.id]);
-    await admin
-      .post('/user/login_local')
-      .set('X-CSRF-Token', csrf)
-      .set('X-Source', 'jsclient')
-      .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
-      .expect(200);
-    csrf = (await admin.get('/csrfToken')).body._csrf;
+    admin = await loginSession();
+    csrf = await csrfToken(admin);
   });
 
   after(async function () {
