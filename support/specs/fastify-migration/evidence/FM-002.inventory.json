@@ -138,7 +138,8 @@
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
     "packages/redbox-core/src/application/migrations.ts": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
-    "packages/redbox-core/src/application/portal/http.ts": "cad31280fe054008a85284dae3376ed3cb8319e314913773e7d1539428870bc1",
+    "packages/redbox-core/src/application/portal/http.ts": "2e52a53cb156b67757e90860c2eb4eb5e2dda6dd58e5eb570a31c78bf090c155",
+    "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/authentication/Accounts.ts": "2d4259e1851fb2d1f319ab9c04530a287db2edc882073e63a900fb7eedb4a86c",
     "packages/redbox-core/src/authorization/PathRules.ts": "c02b304060622d5913851712b1fedd690e4404f8d6fdc7902f2c310a4178e888",
@@ -185,8 +186,11 @@
     "packages/redbox-core/src/forms/FormDelivery.ts": "09e0ccbc91a8c3cd85e7f0ff43675121e6d93aa6987931df6f678cdc1a402c59",
     "packages/redbox-core/src/forms/FormPayloadPrehydrate.ts": "7ac40cefdf4b6d15033b51aff9794f14ee6de676952d92081d7eeee5a2cae8e2",
     "packages/redbox-core/src/forms/FormProjection.ts": "3780605b0978db28a5b1f795916a1ff18be6ee0350aec66bb62d390e172096cf",
+    "packages/redbox-core/src/http/actions/recordMetadata.ts": "7fafbdd0abd1a1fe691ff5625a25e697a26048bd16f99efdf841753548852dc0",
+    "packages/redbox-core/src/http/actors.ts": "f3bbf8f73707e116e27f53038f52c6b42f68f4d19ba64e5a8d534107264092ed",
+    "packages/redbox-core/src/http/apiResponses.ts": "1ac0e609b96da940e3e9da7cbea724bff54075cb2410c36f79d6d8ed80c4c7aa",
     "packages/redbox-core/src/http/express/ExpressHost.ts": "bd9849007fddc3fa4638e229f8e4506f844f452e90f3ebbbc9c1e6f85f3b052d",
-    "packages/redbox-core/src/http/express/actors.ts": "2f726f3cfed67e29a23a5941785c6ed1f2eb3a8c853e249bed35f9ca61f16731",
+    "packages/redbox-core/src/http/express/actors.ts": "258d3615f34c30d6c631898dd96def35e8f54633574cc49cee317ca0dba7c52c",
     "packages/redbox-core/src/http/express/adminOperations.ts": "07385a448eef8315656c47f9e5fa089ba2c798de928fd7e5c8c25c80649f6d99",
     "packages/redbox-core/src/http/express/apiManifest.ts": "68a32161e415247ab7024035906a35f5aad0a0db4021e00d4c89de90bbefa2c5",
     "packages/redbox-core/src/http/express/authentication.ts": "4a08ac094d8fb9f6b58b5edebaaabee1f6964591892736258749e919f22b060b",
@@ -226,11 +230,11 @@
     "packages/redbox-core/src/http/express/progressSockets.ts": "a468b7582e937ec28e9d36c1748cf435b7b145c12fcb3dec295c7fd0d6466c35",
     "packages/redbox-core/src/http/express/queryReads.ts": "91d82fd29e3ade6491a38cbcd34a80d8e7067ae44ca2c700f3ff704b996c9492",
     "packages/redbox-core/src/http/express/queryWrites.ts": "6c553ed7385185d1b2305a2852f8b131f830eeb49f913d921efd0c8dc9bc2612",
-    "packages/redbox-core/src/http/express/recordMutations.ts": "84c67d3b1f472fa6767c7ba8c8cde6d99fb2660823a4d7ec9af05507df260d76",
-    "packages/redbox-core/src/http/express/recordReads.ts": "7ab618bb6e728572e2783fa66913f8706402b83a24627d7e2caede5321e1d8f4",
+    "packages/redbox-core/src/http/express/recordMutations.ts": "49e2dd3304b1dfadd9dd79f5e0f9b40e3902ae3870d3de4aedb4cd2ca94d496b",
+    "packages/redbox-core/src/http/express/recordReads.ts": "1c9c4053229a3b6e230bff231509e830e4f15d7fb2e758d52a7cdb84d2465804",
     "packages/redbox-core/src/http/express/recordSchemaReads.ts": "dc19e77ff9213695f490a0604a9cc24cd844a0ff9e531d0111d8d86415de3ecf",
     "packages/redbox-core/src/http/express/recordTypes.ts": "2b947b0e623309600b5107fad0dc12c2f5be77b323fa0ed95051c753998dcff2",
-    "packages/redbox-core/src/http/express/responses.ts": "71285a5532a0f84686d5c5f69e5ce1a96a520b054810d08eca96d87a33364b84",
+    "packages/redbox-core/src/http/express/responses.ts": "08e9e26ad6f618995badb423395a7eac65acedf7d94dee786bce0260856e85b4",
     "packages/redbox-core/src/http/express/resumableUploads.ts": "7539ccc7e65536a3ee79044122b9463798893e0b21c42ee4c03b485662acb664",
     "packages/redbox-core/src/http/express/session.ts": "d7e323c4b56d496865eac80889265c4dd2a92e6dcedcd4f20e8855fbcb23cf34",
     "packages/redbox-core/src/http/express/sessionData.ts": "8517ed3f4f28bda4fa2ea6347b4117785c9826e65c109bbba3c1d2ae440b703d",
@@ -432,7 +436,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "3c32db24e330d68a1b31801988974f6f4dffc83e4865aa95c6178638dd956dda"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "f107bf01710a46ed4b23a4020e88f9f51d781fc1554365f1b862f24bd6f36dfd"
   },
   "counts": {
     "routes": 335,
@@ -13145,7 +13149,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 0
       },
       "apiDeclaration": {
@@ -13315,7 +13319,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 1
       },
       "apiDeclaration": {
@@ -13485,7 +13489,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 2
       },
       "apiDeclaration": {
@@ -13669,7 +13673,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 3
       },
       "apiDeclaration": {
@@ -13818,7 +13822,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 4
       },
       "apiDeclaration": {
@@ -13998,7 +14002,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 5
       },
       "apiDeclaration": {
@@ -14178,7 +14182,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 6
       },
       "apiDeclaration": {
@@ -14358,7 +14362,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 7
       },
       "apiDeclaration": null,
@@ -14399,7 +14403,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14446,7 +14450,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 8
       },
       "apiDeclaration": null,
@@ -14487,7 +14491,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14534,7 +14538,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 9
       },
       "apiDeclaration": null,
@@ -14575,7 +14579,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14622,7 +14626,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 10
       },
       "apiDeclaration": null,
@@ -14663,7 +14667,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14710,7 +14714,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 11
       },
       "apiDeclaration": null,
@@ -14751,7 +14755,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14798,7 +14802,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 12
       },
       "apiDeclaration": null,
@@ -14839,7 +14843,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14886,7 +14890,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 13
       },
       "apiDeclaration": null,
@@ -14927,7 +14931,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -14974,7 +14978,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 14
       },
       "apiDeclaration": null,
@@ -15015,7 +15019,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15062,7 +15066,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 15
       },
       "apiDeclaration": {
@@ -15242,7 +15246,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 16
       },
       "apiDeclaration": null,
@@ -15371,7 +15375,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15418,7 +15422,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 17
       },
       "apiDeclaration": {
@@ -15757,7 +15761,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 18
       },
       "apiDeclaration": {
@@ -16096,7 +16100,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 19
       },
       "apiDeclaration": {
@@ -16420,7 +16424,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 67,
+        "line": 68,
         "index": 20
       },
       "apiDeclaration": null,
@@ -16461,7 +16465,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 67
+          "line": 68
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -16528,7 +16532,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 0
       },
       "apiDeclaration": {
@@ -16738,7 +16742,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 1
       },
       "apiDeclaration": {
@@ -17036,7 +17040,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 2
       },
       "apiDeclaration": {
@@ -17291,7 +17295,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 3
       },
       "apiDeclaration": {
@@ -17549,7 +17553,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 4
       },
       "apiDeclaration": {
@@ -17807,7 +17811,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 5
       },
       "apiDeclaration": {
@@ -18072,7 +18076,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 6
       },
       "apiDeclaration": {
@@ -18329,7 +18333,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 7
       },
       "apiDeclaration": {
@@ -18586,7 +18590,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 8
       },
       "apiDeclaration": {
@@ -18843,7 +18847,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 9
       },
       "apiDeclaration": {
@@ -19100,7 +19104,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 10
       },
       "apiDeclaration": {
@@ -19356,7 +19360,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 11
       },
       "apiDeclaration": {
@@ -19612,7 +19616,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 12
       },
       "apiDeclaration": {
@@ -19868,7 +19872,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 13
       },
       "apiDeclaration": {
@@ -20124,7 +20128,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 14
       },
       "apiDeclaration": {
@@ -20388,7 +20392,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 15
       },
       "apiDeclaration": null,
@@ -20429,7 +20433,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordMutations.ts",
           "export": "recordMutationRoutes",
-          "line": 66
+          "line": 67
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -20472,7 +20476,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 16
       },
       "apiDeclaration": null,
@@ -20513,7 +20517,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordMutations.ts",
           "export": "recordMutationRoutes",
-          "line": 66
+          "line": 67
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -20556,7 +20560,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 17
       },
       "apiDeclaration": null,
@@ -20597,7 +20601,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordMutations.ts",
           "export": "recordMutationRoutes",
-          "line": 66
+          "line": 67
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -20640,7 +20644,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 18
       },
       "apiDeclaration": null,
@@ -20681,7 +20685,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordMutations.ts",
           "export": "recordMutationRoutes",
-          "line": 66
+          "line": 67
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -20724,7 +20728,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 19
       },
       "apiDeclaration": null,
@@ -20765,7 +20769,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordMutations.ts",
           "export": "recordMutationRoutes",
-          "line": 66
+          "line": 67
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -20808,7 +20812,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordMutations.ts",
         "export": "recordMutationRoutes",
-        "line": 66,
+        "line": 67,
         "index": 20
       },
       "apiDeclaration": null,
@@ -20849,7 +20853,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordMutations.ts",
           "export": "recordMutationRoutes",
-          "line": 66
+          "line": 67
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },

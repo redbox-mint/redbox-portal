@@ -37,6 +37,32 @@ import { portalDataPlan } from './data';
 import { portalProviderPlan } from './providers';
 import { portalRecordOperations } from './recordOperations';
 import { FormConfigExports as coreForms } from '../../form-config';
+import { loadInstalledExtensionProvidersV2 } from '../../extensions/v2';
+import { resolvePortalInstallation, type PortalFastifySelection } from './installation';
+import type { ProductionExtensionLoadingOptions } from './compositionInputs';
+
+export interface PortalApplicationContext {
+  readonly owner: PersistenceOwner;
+  readonly config: Readonly<import('../../configuration/portal').PortalConfiguration>;
+  readonly data: ReturnType<typeof portalDataPlan>;
+  readonly providers: ReturnType<typeof portalProviderPlan>;
+  readonly log: ILogger;
+}
+type LifecycleResolution = Pick<
+  import('../../extensions').ResolvedExtensions,
+  'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'
+> &
+  Partial<Pick<import('../../extensions').ResolvedExtensions, 'handlers' | 'integrations' | 'routes' | 'middleware'>>;
+type InstalledContributions = {
+  readonly providers: readonly {
+    readonly name: string;
+    readonly declaration: Pick<
+      import('../../extensions').RedboxExtension,
+      'forms' | 'configModels' | 'contributors' | 'config' | 'workflows' | 'jobs'
+    >;
+  }[];
+  readonly entrypoints: ReadonlyMap<string, Record<string, unknown>>;
+};
 
 /** The optional PDF extension receives concrete selected ports, never an application locator. */
 export interface PortalPdfInput {
@@ -92,6 +118,46 @@ export async function createPortalApplication(options: PortalApplicationOptions)
   const installed = await loadInstalledExtensionProviders(options.appPath, {
     includeDevDependencies: options.includeDevDependencies,
   });
+  return buildPortalApplication(options, installed, ({ plans, config }) =>
+    resolveExtensions(
+      [
+        {
+          name: 'core',
+          root: options.appPath,
+          declaration: { apiVersion: 1, modules: plans.map(plan => plan.declaration) },
+        },
+        ...installed.providers,
+      ],
+      installed.hookLoadPriority,
+      portalOwnedHttpRoutes(config)
+    )
+  );
+}
+
+/** API2 production bootstrap. Discovery, data and HTTP resolution run offline once;
+ * the same application lifecycle owns every selected non-HTTP contribution. */
+export async function createPortalFastifyApplication(
+  options: PortalApplicationOptions & { readonly http: PortalFastifySelection }
+) {
+  if (!Array.isArray(options.http?.declarations) || !options.http.declarations.length)
+    throw new TypeError('Native portal assembly requires an explicit nonempty conversion scope.');
+  const installed = await loadInstalledExtensionProvidersV2(options.appPath, {
+    includeDevDependencies: options.includeDevDependencies ?? false,
+    core: undefined, // Core modules/controllers are selected with the hydrated configuration below.
+  } satisfies ProductionExtensionLoadingOptions);
+  const portal = await buildPortalApplication(options, installed, context =>
+    resolvePortalInstallation(installed, context, options.http, options.appPath)
+  );
+  return { ...portal, installation: portal.resolved };
+}
+
+async function buildPortalApplication<R extends LifecycleResolution>(
+  options: PortalApplicationOptions,
+  installed: InstalledContributions,
+  select: (
+    context: PortalApplicationContext & { readonly plans: readonly { readonly declaration: ExtensionFactory }[] }
+  ) => R | Promise<R>
+) {
   const config = await loadPortalConfiguration({
     extensions: installed,
     environment: options.environment,
@@ -241,18 +307,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
   for (const job of Object.values(config.agendaQueue.jobs))
     if (!Object.hasOwn(jobs, job.fnName)) throw new Error('Unregistered Agenda operation: ' + job.fnName);
   const plans = [...data.modules, ...providers.modules];
-  const resolved = resolveExtensions(
-    [
-      {
-        name: 'core',
-        root: options.appPath,
-        declaration: { apiVersion: 1, modules: plans.map(plan => plan.declaration) },
-      },
-      ...installed.providers,
-    ],
-    installed.hookLoadPriority,
-    portalOwnedHttpRoutes(config)
-  );
+  const resolved = await select({ owner, config, data, providers, log: options.log, plans });
   const storage = resolved.modules.find(item => item.declaration.name === 'storage');
   if (!storage) throw new Error('Select an installed storage extension.');
   const storageExports = installed.entrypoints.get(storage.provider);
@@ -334,12 +389,12 @@ export async function createPortalApplication(options: PortalApplicationOptions)
     requires: item.declaration.requires,
     run: bindWork(item),
   }));
-  const handlers = resolved.handlers.map(item => {
+  const handlers = (resolved.handlers ?? []).map(item => {
     if (!options.bindings?.handler) throw new Error('Bind extension HTTP handler: ' + item.declaration.name);
     return { name: item.declaration.name, create: options.bindings.handler(item) };
   });
   const integrations = new Map<string, import('../../extensions').ExtensionHostIntegration>();
-  for (const item of resolved.integrations) {
+  for (const item of resolved.integrations ?? []) {
     if (!options.bindings?.integration) throw new Error('Bind extension host integration: ' + item.declaration.name);
     const create = options.bindings.integration(item);
     factories.push(integrationModule(item.declaration.name, create, integrations));
@@ -456,9 +511,9 @@ export async function createPortalApplication(options: PortalApplicationOptions)
       );
       if (stage === 'beforeRoutes') {
         for (const instance of integrations.values()) await instance.prepare(server);
-        for (const { declaration: middleware } of resolved.middleware)
+        for (const { declaration: middleware } of resolved.middleware ?? [])
           if (middleware.stage === stage) router.use(handlerInstances.get(middleware.handler)!);
-        for (const { declaration: route } of resolved.routes) {
+        for (const { declaration: route } of resolved.routes ?? []) {
           const boundPolicy = route.access === 'public' ? undefined : policy(route.access);
           router[route.method](
             route.path,
@@ -473,7 +528,7 @@ export async function createPortalApplication(options: PortalApplicationOptions)
           );
         }
       } else {
-        for (const { declaration: middleware } of resolved.middleware)
+        for (const { declaration: middleware } of resolved.middleware ?? [])
           if (middleware.stage === stage) router.use(handlerInstances.get(middleware.handler)!);
       }
     },

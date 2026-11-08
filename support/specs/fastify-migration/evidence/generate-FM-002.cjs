@@ -742,7 +742,11 @@ function collectInventory() {
       const specifier = node.moduleSpecifier.text;
       if (!specifier.startsWith('.')) continue;
       const stem = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)).replace(/\.js$/, '');
-      const dependency = [stem + '.ts', stem + '/index.ts'].find(candidate => trackedSources.has(candidate));
+      // Follow real imported source before it is staged as well as after commit;
+      // a newly extracted action must not disappear from the executable hash graph.
+      const dependency = [stem + '.ts', stem + '/index.ts'].find(candidate =>
+        fs.statSync(path.join(root, candidate), { throwIfNoEntry: false })?.isFile()
+      );
       if (dependency) inputs.add(dependency);
     }
   }

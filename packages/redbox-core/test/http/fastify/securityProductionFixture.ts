@@ -73,7 +73,7 @@ function copiedComposition(mutation: 'mount' | 'policy') {
     mutation === 'mount'
       ? source.replace('http.mountQueryReadRoutes(router, {', 'if (false) http.mountQueryReadRoutes(router, {')
       : source.replace(
-          'const policyConfiguration = this.options.policyConfiguration ?? (0, httpPolicies_1.portalHttpPolicies)();',
+          'const { policyConfiguration } = (0, httpPlan_1.portalHttpPlan)(this.portal, this.options);',
           "const policyConfiguration = { '*': ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor'] };"
         );
   assert.notEqual(altered, source, 'Negative control must change the production source');

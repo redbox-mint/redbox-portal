@@ -1,7 +1,8 @@
 import { STATUS_CODES } from 'node:http';
 import type { Socket } from 'node:net';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { apiVersion } from '../express/responses';
+import { Readable } from 'node:stream';
+import { apiVersion } from '../apiResponses';
 import { requestStrings } from '../requestValues';
 
 export const nativeClientErrors = Object.freeze({
@@ -18,6 +19,10 @@ export const nativeClientErrors = Object.freeze({
   FST_ERR_ROUTE_MISSING_CONTENT: 400,
 } as const);
 const statuses = new WeakMap<object, number>();
+const emptyDenials = new WeakSet<object>();
+/** Internal framing payload; hooks continue to see an absent entity. */
+export const isEmptyHttpErrorPayload = (payload: unknown): boolean =>
+  payload !== null && typeof payload === 'object' && emptyDenials.has(payload);
 const sends = new WeakMap<FastifyReply, { submitted: boolean; generation: number }>();
 /** Internal coordination of replacement responses and pending send continuations. */
 export function httpSendState(reply: FastifyReply) {
@@ -63,6 +68,10 @@ export function safeHttpErrorStatus(error: unknown): number {
 // the trusted status stays private and no original diagnostic is retained.
 export const normalizeHttpError = (error: unknown): Error => new HttpFailure(safeHttpErrorStatus(error));
 const publicHeaders = new Set([
+  // Deliberate record/schema refusals carry authoritative representation headers.
+  // Caught faults still take reset(false), which removes every buffered header.
+  'etag',
+  'link',
   'allow',
   'www-authenticate',
   'content-type',
@@ -136,7 +145,18 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
     }
     if (target.publicResponse) {
       try {
-        target.publicResponse.send(target.publicResponse.payload);
+        // Express ends an empty denial without a representation
+        // length. An empty native stream preserves that framing while still
+        // running Fastify's session writes, send hooks and completion tracking.
+        const emptyEnd = target.publicResponse.payload === undefined && request && request.method !== 'HEAD';
+        let payload = target.publicResponse.payload;
+        if (emptyEnd) {
+          reply.header('Transfer-Encoding', 'chunked');
+          const empty = Readable.from([]);
+          emptyDenials.add(empty);
+          payload = empty;
+        }
+        target.publicResponse.send(payload);
         return;
       } catch (caught) {
         reply.log.error('HTTP_REQUEST_FAILED');

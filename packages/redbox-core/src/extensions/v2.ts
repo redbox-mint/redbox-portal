@@ -241,23 +241,20 @@ export async function resolveExtensionsV2(
   const fallbackRegistrations = ordered.flatMap(provider =>
     (provider.declaration.fallbacks ?? []).map(declaration => ({ provider: provider.name, declaration }))
   );
-  const fallbackPlan = composeHttpFallbacks(
-    fallbackRegistrations,
-    routePlan,
-    options.routing,
-    new HttpRouteRegistry(
-      options.routing.rootContext,
-      options.fallbackReservedPrefixes,
-      options.namespaceConfiguration,
-      routePlan.targets
-    )
+  const registry = new HttpRouteRegistry(
+    options.routing.rootContext,
+    options.fallbackReservedPrefixes,
+    options.namespaceConfiguration,
+    routePlan.targets
   );
+  const fallbackPlan = composeHttpFallbacks(fallbackRegistrations, routePlan, options.routing, registry);
   const hookPlan = composeHttpHooks(hookRegistrations, routePlan.targets);
+  const moduleNames = Object.freeze(data.modules.map(module => module.declaration.name));
   const controllerPlan = composeControllers(
     controllerRegistrations,
     options.bindings,
     [...routePlan.routes, ...fallbackPlan.routes].map(route => route.declaration),
-    data.modules.map(module => module.declaration.name)
+    moduleNames
   );
   const {
     handlers: _handlers,
@@ -277,5 +274,7 @@ export async function resolveExtensionsV2(
     fallbackRegistrations,
     hookPlan,
     fallbackPlan,
+    registry,
+    moduleNames,
   };
 }

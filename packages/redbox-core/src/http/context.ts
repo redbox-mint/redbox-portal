@@ -33,6 +33,13 @@ export function resolveRequestBrand(request: FastifyRequest, brand: BrandRow, po
   contexts.set(request, Object.freeze({ brand: freeze(structuredClone(brand)), portal }));
 }
 
+/** A repeated core branding policy retains its tenant snapshot but, like Express,
+ * requires the following configured authorization policy to resolve the actor again. */
+export function clearRequestActor(request: FastifyRequest): void {
+  const selected = requestContext(request);
+  if (selected.actor) contexts.set(request, Object.freeze({ brand: selected.brand, portal: selected.portal }));
+}
+
 /** Never retain a session/repository actor or roles belonging to another brand. @internal */
 export function resolveRequestActor(request: FastifyRequest, actor: AuthenticatedActor): void {
   const context = requestContext(request);

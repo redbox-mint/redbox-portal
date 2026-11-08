@@ -7,7 +7,7 @@ import { diffRecordValues } from '@researchdatabox/sails-ng-common';
 import type { ApplicationModule } from '../Application';
 import type { createPortalApplication } from './application';
 import type { PoliciesConfig } from '../../config/policies.config';
-import { portalHttpPolicies } from './httpPolicies';
+import { portalHttpPlan, portalHttpSettings } from './httpPlan';
 import * as http from '../../http/express';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 import { RecordAuditViews } from '../../queries/RecordAuditViews';
@@ -181,7 +181,8 @@ export class PortalHttp implements ApplicationModule {
     const log = this.log;
     const rootContext = config.server.rootContext;
     const identity = new http.HttpIdentity(persistence.getIdentityRepositories(owner));
-    const portals = this.options.portals ?? [config.auth.defaultPortal];
+    const settings = portalHttpSettings(config, this.options);
+    const portals = settings.portals;
     // Providers are prepared once, after AppConfig hydration. Request-time
     // settings (such as redirects) continue to read the current brand cache.
     const defaultAuth =
@@ -205,7 +206,7 @@ export class PortalHttp implements ApplicationModule {
     const authentication = await http.prepareHttpMiddleware(router, {
       owner,
       identity,
-      session: config.redboxSession,
+      session: settings.session,
       log,
       logSettings: this.options.requestLogging,
       // Only streaming paths bypass ordinary body parsing. Non-upload requests
@@ -232,7 +233,7 @@ export class PortalHttp implements ApplicationModule {
         ref.roles.get().getDefUnathenticatedRole(Object.assign(new BrandingModel(), brand)),
       authenticate: req => authentication.authenticate(req),
       rootContext,
-      loginPath: config.auth.loginPath,
+      loginPath: settings.loginPath,
       emitRequestFailure: async (req, eventType, source) => {
         const context = http.requestContext(req);
         await providers.security.get().emitSecurityEvent({
@@ -245,8 +246,11 @@ export class PortalHttp implements ApplicationModule {
         });
       },
     });
-    const csrf = http.createHttpCsrf({ origins: [this.origin], authenticateBearer: token => identity.bearer(token) });
-    const policyConfiguration = this.options.policyConfiguration ?? portalHttpPolicies();
+    const csrf = http.createHttpCsrf({
+      origins: settings.origins,
+      authenticateBearer: token => identity.bearer(token),
+    });
+    const { policyConfiguration } = portalHttpPlan(this.portal, this.options);
     const shared = { policies, policyConfiguration, csrf, log };
     const audit = (actor: { id: string; username: string }, action: string, context: { brandId: string }) =>
       this.audit(actor, action, context);
@@ -284,9 +288,7 @@ export class PortalHttp implements ApplicationModule {
     http.mountAuthenticationRoutes(router, {
       passport: authentication.passport,
       identity,
-      rootContext,
-      defaultBrand: config.auth.defaultBrand,
-      defaultPortal: config.auth.defaultPortal,
+      ...settings.login,
       validContext: (brand, portal) => !!ref.branding.get().getBrand(brand) && portals.includes(portal),
       brandId: name => ref.branding.get().getBrand(name).id,
       postLoginPath: (brand, portal) =>
@@ -296,11 +298,11 @@ export class PortalHttp implements ApplicationModule {
         '/' +
         portal +
         '/' +
-        (ref.appConfigs.get().getAppConfigurationForBrand(brand).auth?.local?.postLoginRedir ??
+        (
+          ref.appConfigs.get().getAppConfigurationForBrand(brand).auth?.local?.postLoginRedir ??
           defaultAuth.local?.postLoginRedir ??
-          'home').replace(/^\//, ''),
-      postLogoutPath: config.auth.postLogoutRedir,
-      logoutOrigins: config.auth.logoutOrigins,
+          'home'
+        ).replace(/^\//, ''),
       audit: async (action, actor, req) => {
         await audit(actor, action, { brandId: brandForRequest(req).id });
       },

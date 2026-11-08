@@ -168,7 +168,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     observation cannot alter dispatch; fallback cannot intercept protected host
     behavior or bypass access. `afterRoutes` is not treated as response observation.
 
-- [ ] **FM-019 — Run authenticated read/write and installed API2 pilot.**
+- [x] **FM-019 — Run authenticated read/write and installed API2 pilot.**
   - Dependencies: FM-016–FM-018.
   - Work: exercise a real read and mutation plus an installed extension containing
     a new controller and a core subclass with explicit different dependency inputs.

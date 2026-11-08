@@ -5,6 +5,7 @@ import { writeSync } from 'node:fs';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { runAcceptedPersistenceWork } from '../../persistence/runtime';
 import { retainHttpRequestFollowup } from '../../middleware/requestLifetime';
+import { pinoLoggerDestinations } from '../../utilities/PinoLoggerUtils';
 
 export interface HttpLogRecord {
   readonly code: string;
@@ -19,6 +20,15 @@ export type HttpLogTarget =
       readonly write: HttpLogSink;
       readonly sources: readonly unknown[];
     };
+/** Shared explicit production selection and low-level host default. */
+export function ownerHttpLogger(owner: PersistenceOwner): HttpLogTarget {
+  return {
+    sources: pinoLoggerDestinations(owner.log),
+    write: record => {
+      if (['warn', 'error', 'fatal'].includes(record.level)) return owner.log.warn(record.code);
+    },
+  };
+}
 export const httpLogFallbackIntervalMs = 30_000;
 const codes = new Set([
   'HTTP_REQUEST_FAILED',

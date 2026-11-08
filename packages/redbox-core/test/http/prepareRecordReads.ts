@@ -22,13 +22,16 @@ import { BrandingModel } from '../../src/model/storage/BrandingModel';
 import { mountRecordReadRoutes } from '../../src/http/express/recordReads';
 import { pilotPolicyChain } from '../../src/http/express/policies';
 export async function prepareRecordReads(
-  router: Router,
+  router: Router | undefined,
   f: Awaited<ReturnType<typeof mongoFixture>>,
   types: RecordTypes,
   storage: StorageService,
   audit: RecordAuditReader,
   search: Pick<SolrReads, 'searchFuzzy'>,
-  policies: Readonly<Record<string, RequestHandler>>
+  policies: Readonly<Record<string, RequestHandler>>,
+  policyConfiguration: import('../../src/config/policies.config').PoliciesConfig = { '*': [...pilotPolicyChain] },
+  mountReadRoutes: typeof mountRecordReadRoutes = mountRecordReadRoutes,
+  rootContext?: string
 ) {
   const refs = getReferenceRepositories(f.owner);
   const brand = Object.assign(new BrandingModel(), f.brand);
@@ -139,20 +142,22 @@ export async function prepareRecordReads(
   });
   schemas.init();
   registerPersistenceResource(f.owner, 'read-schemas', { close: () => schemas.close() });
-  mountRecordReadRoutes(router, {
-    storage,
-    audit,
-    forms,
-    schemas,
-    recordTypes: types,
-    search,
-    contextVariables: new ContextVariables({}, nothingLogger),
-    maxRows: 100,
-    returnFields: ['id'],
-    log: nothingLogger,
-    translate: key => key,
-    policies,
-    policyConfiguration: { '*': [...pilotPolicyChain] },
-  });
+  if (router)
+    mountReadRoutes(router, {
+      storage,
+      audit,
+      forms,
+      schemas,
+      recordTypes: types,
+      search,
+      contextVariables: new ContextVariables({}, nothingLogger),
+      maxRows: 100,
+      returnFields: ['id'],
+      log: nothingLogger,
+      translate: key => key,
+      policies,
+      policyConfiguration,
+      rootContext,
+    });
   return { schemas, forms, validation, workflows, config };
 }

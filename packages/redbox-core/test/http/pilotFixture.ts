@@ -1,3 +1,10 @@
+import { portalHttpSettings } from '../../src/application/portal/httpPlan';
+import type { NativeSessionConfiguration } from '../../src/http/fastify/session';
+import type { DeploymentConfiguration } from '../../src/configuration/deployment';
+import type { AuthBootstrapConfig } from '../../src/config/auth.config';
+import type { FastifyHost } from '../../src/http/fastify/FastifyHost';
+import type { ApplicationRuntime } from '../../src/application';
+import type { PersistenceOwner } from '../../src/persistence/owner';
 import type { Server } from 'node:http';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import type { RequestHandler, Router } from 'express';
@@ -17,6 +24,21 @@ import { mongoFixture } from './mongoFixture';
 
 export async function pilotFixture(
   options: Partial<Pick<RecordTypeHttpInput, 'routes' | 'policyConfiguration' | 'recordSchema'>> & {
+    transportConfiguration?(fixture: Awaited<ReturnType<typeof mongoFixture>>): {
+      server: DeploymentConfiguration['server'];
+      redboxSession: NativeSessionConfiguration & { secret: string };
+      auth: Pick<
+        AuthBootstrapConfig,
+        'defaultBrand' | 'defaultPortal' | 'loginPath' | 'postLogoutRedir' | 'logoutOrigins'
+      >;
+    };
+    portals?: readonly string[];
+    identityIds?: Parameters<typeof mongoFixture>[1];
+    nativeHost?(
+      application: ApplicationRuntime,
+      owner: PersistenceOwner,
+      prepare: () => Promise<void>
+    ): Promise<FastifyHost>;
     rootContext?: string;
     port?: number;
     trustProxy?: boolean;
@@ -35,14 +57,27 @@ export async function pilotFixture(
     ): Promise<void>;
   } = {}
 ) {
-  const f = await mongoFixture();
+  let nativeHost: FastifyHost | undefined;
+  const f = await mongoFixture(
+    options.nativeHost
+      ? async (application, owner) => {
+          nativeHost = await options.nativeHost!(application, owner, async () => {
+            await domain.initialize(f.brand);
+            await pathRules.loadRules();
+            await options.prepareRoutes?.(undefined!, f, {}, domain, undefined!);
+          });
+        }
+      : undefined,
+    options.identityIds
+  );
   const domain = new RecordTypes({
     repository: f.recordTypes,
     config: { appmode: {}, recordtype: { dataRecord: { packageType: 'dataRecord', searchable: true } } },
     log: nothingLogger,
     storageCapability: () => undefined,
   });
-  const session = {
+  const settings = options.transportConfiguration && portalHttpSettings(options.transportConfiguration(f), options);
+  const session = settings?.session ?? {
     name: 'redbox.v6.sid',
     secret: 'synthetic-secret-at-least-32-characters-long',
     adapter: 'mongo',
@@ -51,55 +86,59 @@ export async function pilotFixture(
     cookie: { secure: false },
   };
   const pathRules = new PathRules(() => f.identities.list('pathrule', {}, { populate: ['role', 'branding'] }));
-  const host = new ExpressHost(f.application, {
-    owner: f.owner,
-    hostname: '127.0.0.1',
-    port: options.port ?? 0,
-    trustProxy: options.trustProxy,
-    rootContext: options.rootContext,
-    prepare: async (router, server) => {
-      await domain.initialize(f.brand);
-      const auth = await prepareHttpMiddleware(router, {
-        owner: f.owner,
-        identity: f.identity,
-        session,
-        log: nothingLogger,
-        parserExclusions: options.parserExclusions,
-      });
-      await pathRules.loadRules();
-      const policies = createPilotPolicies({
-        branding: f.branding,
-        rootContext: options.rootContext,
-        pathRules,
-        defaultUnauthenticatedRole: () => undefined,
-        emitRequestFailure: async () => {},
-        portals: ['rdmp'],
-        authenticate: req => auth.authenticate(req),
-      });
-      router.post('/__test/login', auth.local, (_req, res) => res.json({ success: true }));
-      mountRecordTypeRoutes(router, {
-        recordTypes: domain,
-        policies: { ...policies, ...options.policyBindings },
-        policyConfiguration: options.policyConfiguration ?? { '*': [...pilotPolicyChain] },
-        routes: options.routes,
-        recordSchema: options.recordSchema,
-        rootContext: options.rootContext,
-      });
-      await options.prepareRoutes?.(router, f, policies, domain, {
-        server,
-        auth,
-        authenticateCredential: auth.authenticateCredential,
-      });
-      router.use(httpErrorHandler(nothingLogger));
-    },
-  });
+  const host =
+    nativeHost ??
+    new ExpressHost(f.application, {
+      owner: f.owner,
+      hostname: '127.0.0.1',
+      port: options.port ?? 0,
+      trustProxy: options.trustProxy,
+      rootContext: options.rootContext,
+      ...settings?.host,
+      prepare: async (router, server) => {
+        await domain.initialize(f.brand);
+        const auth = await prepareHttpMiddleware(router, {
+          owner: f.owner,
+          identity: f.identity,
+          session: { ...session },
+          log: nothingLogger,
+          parserExclusions: options.parserExclusions,
+        });
+        await pathRules.loadRules();
+        const policies = createPilotPolicies({
+          branding: f.branding,
+          rootContext: options.rootContext,
+          pathRules,
+          defaultUnauthenticatedRole: () => undefined,
+          emitRequestFailure: async () => {},
+          portals: settings?.portals ?? ['rdmp'],
+          loginPath: settings?.loginPath,
+          authenticate: req => auth.authenticate(req),
+        });
+        router.post('/__test/login', auth.local, (_req, res) => res.json({ success: true }));
+        mountRecordTypeRoutes(router, {
+          recordTypes: domain,
+          policies: { ...policies, ...options.policyBindings },
+          policyConfiguration: options.policyConfiguration ?? { '*': [...pilotPolicyChain] },
+          routes: options.routes,
+          recordSchema: options.recordSchema,
+          rootContext: options.rootContext,
+        });
+        await options.prepareRoutes?.(router, f, policies, domain, {
+          server,
+          auth,
+          authenticateCredential: auth.authenticateCredential,
+        });
+        router.use(httpErrorHandler(nothingLogger));
+      },
+    });
   async function close() {
     await host.stop();
     await domain.close();
     await f.close();
   }
   try {
-    await prepareSessionIndexes(f.owner, session, 'ensure');
+    await prepareSessionIndexes(f.owner, { ...session }, 'ensure');
     await host.initialize();
     await host.activate();
     return {

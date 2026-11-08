@@ -71,11 +71,23 @@ export async function recordWriteFixture(
       search: Solr.SolrSearchService;
       csrf: ReturnType<typeof createHttpCsrf>;
       policies: Readonly<Record<string, RequestHandler>>;
-      policyConfiguration: { '*': string[] };
+      policyConfiguration: import('../../src/config/policies.config').PoliciesConfig;
       realtime: Parameters<NonNullable<NonNullable<Parameters<typeof pilotFixture>[0]>['prepareRoutes']>>[4];
     }
   ) => Promise<void>,
   httpOptions: {
+    metadataRootContext?: string;
+    rootContext?: string;
+    origins?: readonly string[];
+    portals?: readonly string[];
+    transportConfiguration?: NonNullable<Parameters<typeof pilotFixture>[0]>['transportConfiguration'];
+    metadataAdapters?: {
+      read: typeof import('../../src/http/express/recordReads').mountRecordReadRoutes;
+      write: typeof mountRecordMutationRoutes;
+    };
+    identityIds?: NonNullable<Parameters<typeof pilotFixture>[0]>['identityIds'];
+    policyConfiguration?: import('../../src/config/policies.config').PoliciesConfig;
+    nativeHost?: NonNullable<Parameters<typeof pilotFixture>[0]>['nativeHost'];
     parserExclusions?: readonly string[];
     port?: number;
     trustProxy?: boolean;
@@ -104,7 +116,7 @@ export async function recordWriteFixture(
   try {
     const f = await pilotFixture({
       ...httpOptions,
-      rootContext: '/portal',
+      rootContext: httpOptions.rootContext ?? '/portal',
       prepareRoutes: async (router, f, policies, types, realtime) => {
         await ensureStoragePersistenceIndexes(f.owner);
         await initializeStoragePersistence(f.owner);
@@ -154,7 +166,18 @@ export async function recordWriteFixture(
           log: nothingLogger,
           resolveUser: username => f.identities.one('user', { username }),
         });
-        domains = await prepareRecordReads(router, f, types, storage, audit, search, policies);
+        domains = await prepareRecordReads(
+          router,
+          f,
+          types,
+          storage,
+          audit,
+          search,
+          policies,
+          httpOptions.policyConfiguration,
+          httpOptions.metadataAdapters?.read,
+          httpOptions.metadataRootContext
+        );
         const brand = Object.assign(new BrandingModel(), f.brand);
         const queueConfig = {
           options: { processEvery: '0.05 seconds' },
@@ -230,14 +253,16 @@ export async function recordWriteFixture(
           close: async () => writer.close(),
         });
         const csrf = createHttpCsrf({
-          origins: [
+          origins: httpOptions.origins ?? [
             'http://127.0.0.1',
-            'http://127.0.0.1:' + (realtime.server.address() as import('node:net').AddressInfo).port,
+            ...(realtime
+              ? ['http://127.0.0.1:' + (realtime.server.address() as import('node:net').AddressInfo).port]
+              : []),
           ],
           authenticateBearer: token => f.identity.bearer(token),
         });
-        const policyConfiguration = { '*': [...pilotPolicyChain] };
-        mountCsrfTokenRoute(router, csrf);
+        const policyConfiguration = httpOptions.policyConfiguration ?? { '*': [...pilotPolicyChain] };
+        if (router) mountCsrfTokenRoute(router, csrf);
         await ensureHarvestPersistenceIndexes(f.owner);
         await initializeHarvestPersistence(f.owner);
         const harvest = new Harvests.HarvestRunService({
@@ -287,7 +312,7 @@ export async function recordWriteFixture(
           defaultBrand: () => brand,
           recordAccess: { storage: getStorageRepositories(f.owner), records: writer },
         });
-        mountIdentityLinkRoutes(router, { users, csrf, policies, policyConfiguration, log: nothingLogger });
+        if (router) mountIdentityLinkRoutes(router, { users, csrf, policies, policyConfiguration, log: nothingLogger });
         await prepareAdditional?.(router, f, {
           accounts,
           domains,
@@ -303,28 +328,30 @@ export async function recordWriteFixture(
           policyConfiguration,
           realtime,
         });
-        mountHarvestMutationRoutes(router, {
-          harvest,
-          recordTypes: types,
-          csrf,
-          policies,
-          policyConfiguration,
-          log: nothingLogger,
-        });
-        mountRecordMutationRoutes(router, {
-          records: writer,
-          recordTypes: types,
-          workflows: domains.workflows,
-          forms: domains.forms,
-          contextVariables: new ContextVariables({}, nothingLogger),
-          schemaEnabled: true,
-          rootContext: '/portal',
-          csrf,
-          policies,
-          policyConfiguration,
-          log: nothingLogger,
-        });
-        httpOptions.afterRoutes?.(router);
+        if (router)
+          mountHarvestMutationRoutes(router, {
+            harvest,
+            recordTypes: types,
+            csrf,
+            policies,
+            policyConfiguration,
+            log: nothingLogger,
+          });
+        if (router)
+          (httpOptions.metadataAdapters?.write ?? mountRecordMutationRoutes)(router, {
+            records: writer,
+            recordTypes: types,
+            workflows: domains.workflows,
+            forms: domains.forms,
+            contextVariables: new ContextVariables({}, nothingLogger),
+            schemaEnabled: true,
+            rootContext: '/portal',
+            csrf,
+            policies,
+            policyConfiguration,
+            log: nothingLogger,
+          });
+        if (router) httpOptions.afterRoutes?.(router);
       },
     });
     await queue.activate();

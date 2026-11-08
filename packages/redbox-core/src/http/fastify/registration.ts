@@ -25,6 +25,8 @@ const forbiddenActions: ReadonlySet<ForbiddenControllerAction | string> = new Se
   'valueOf',
 ]);
 const identifier = /^[A-Za-z][A-Za-z0-9_-]{0,99}$/;
+// Preserve the inventoried API namespace while keeping module names unqualified.
+const controllerIdentifier = /^(?:webservice\/)?[A-Za-z][A-Za-z0-9_-]{0,99}$/;
 const actionIdentifier = /^[A-Za-z_$][A-Za-z0-9_$]{0,99}$/;
 
 function fail(provider: string, detail: string): never {
@@ -35,7 +37,7 @@ function validate({ provider, declaration }: ResolvedRegistration<ControllerRegi
   if (
     !declaration ||
     typeof declaration.name !== 'string' ||
-    !identifier.test(declaration.name) ||
+    !controllerIdentifier.test(declaration.name) ||
     typeof declaration.create !== 'function'
   )
     fail(provider, 'controller requires a bounded name and factory');

@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import type { ResolvedExtensions } from '../extensions/resolution';
+import type { RedboxExtension } from '../extensions/contract';
+
+/** Configuration depends only on version-independent data contributions. */
+export interface ConfigurationExtensions {
+  readonly providers: readonly {
+    readonly name: string;
+    readonly declaration: Pick<RedboxExtension, 'config' | 'workflows' | 'jobs'>;
+  }[];
+}
 
 export class ConfigurationError extends Error {
   public constructor(
@@ -26,7 +34,7 @@ export interface ConfigurationInput {
 export interface StartupConfigurationOptions<T extends Record<string, unknown>> {
   readonly schema: z.ZodType<T>;
   readonly core: ConfigurationLayer;
-  readonly extensions?: Pick<ResolvedExtensions, 'providers'>;
+  readonly extensions?: ConfigurationExtensions;
   readonly application?: ConfigurationLayer;
   readonly environment?: ConfigurationLayer;
   readonly local?: ConfigurationLayer;

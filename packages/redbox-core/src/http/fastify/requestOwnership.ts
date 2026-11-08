@@ -15,6 +15,7 @@ import {
   beginHttpErrorHandler,
   registerHttpReplyView,
   httpReplySubmitted,
+  isEmptyHttpErrorPayload,
 } from './errorBoundary';
 
 // Preserve arity and AsyncFunction classification for Fastify's signature checks.
@@ -199,6 +200,12 @@ export function requestOwnership(owner: PersistenceOwner) {
     if (typeof fn !== 'function' || wrapped.has(fn as Callable)) return fn;
     const proxy = new Proxy(fn as Callable, {
       apply(target, receiver, args) {
+        // The core's bounded empty-denial stream is framing, not application
+        // data. Preserve the absent-entity hook contract and keep that stream
+        // private; every application-provided replacement still passes the
+        // ordinary producer guard before reaching Fastify.
+        const emptyDenial = outgoing && isEmptyHttpErrorPayload(args[2]) ? args[2] : undefined;
+        if (emptyDenial) args[2] = undefined;
         const candidate = nativeValue(args[requestIndex]?.request ?? args[requestIndex]);
         const request =
           candidate && typeof candidate === 'object' && Reflect.get(candidate, 'raw')
@@ -252,15 +259,20 @@ export function requestOwnership(owner: PersistenceOwner) {
           throw normalizeHttpError(error);
         };
         const handoff = (value: unknown) => {
-          const native = nativeValue(value);
+          const result = nativeValue(value);
+          // An async hook's owned callback continuation can see this restored
+          // core payload a second time; the application never receives it.
+          if (emptyDenial && result === emptyDenial) return result;
           if (shortCircuit && !outgoing && reply && httpReplySubmitted(reply)) return reply;
           // Undefined keeps a hook's existing payload, including in-place changes.
-          if (outgoing) sendPayload(native === undefined && callback && args.length === 4 ? args[2] : native);
-          if (outgoing && !callback && reply?.sent && native !== undefined && native !== reply) {
+          const payload = result === undefined && callback && args.length === 4 ? args[2] : result;
+          if (outgoing) sendPayload(payload);
+          if (emptyDenial && payload !== undefined) reply?.removeHeader('Transfer-Encoding');
+          if (outgoing && !callback && reply?.sent && result !== undefined && result !== reply) {
             reply.log.warn('HTTP_DUPLICATE_SEND');
             return undefined;
           }
-          return native;
+          return emptyDenial && payload === undefined ? emptyDenial : result;
         };
         const invoke = () =>
           current.run(request, () =>

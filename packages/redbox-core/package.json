@@ -55,8 +55,10 @@
     "check:portal-config": "node scripts/portal-configuration-schema.cjs --check",
     "test:compiled-record-types:mongo": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 30000 test/recordTypes/CompiledRecordTypesMongo.test.ts",
     "test:http-sessions:full": "FM014_SESSION_FULL=1 TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 60000 test/http/fastify/session.test.ts test/http/fastify/sessionDifferential.test.ts test/http/fastify/sessionLifecycleDifferential.test.ts",
+    "test:http-pilot:fastify": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 360000 test/http/fastify/PilotMongo.test.ts test/http/fastify/installedPilotTypes.test.ts test/http/fastify/pilotResponses.test.ts",
     "test:http-auth:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL) throw new Error('HTTP_PILOT_TEST_MONGO_URL is required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/fastify/authenticationDifferential.test.ts",
-    "test:http-security:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL) throw new Error('HTTP_PILOT_TEST_MONGO_URL is required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/fastify/security.test.ts test/http/fastify/securityBodies.test.ts test/http/fastify/securityNested.test.ts test/http/fastify/securityInventoryDifferential.test.ts test/http/fastify/securityOrdering.test.ts test/http/fastify/securityMongo.test.ts test/http/fastify/securityOwnership.test.ts test/http/fastify/securityFailures.test.ts test/http/fastify/loggingSurvival.test.ts"
+    "test:http-security:fastify": "node -e \"if (!process.env.HTTP_PILOT_TEST_MONGO_URL) throw new Error('HTTP_PILOT_TEST_MONGO_URL is required')\" && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 45000 test/http/fastify/security.test.ts test/http/fastify/securityBodies.test.ts test/http/fastify/securityNested.test.ts test/http/fastify/securityInventoryDifferential.test.ts test/http/fastify/securityOrdering.test.ts test/http/fastify/securityMongo.test.ts test/http/fastify/securityOwnership.test.ts test/http/fastify/securityFailures.test.ts test/http/fastify/loggingSurvival.test.ts",
+    "test:http-metadata:fastify": "TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --node-option no-experimental-strip-types --require ts-node/register/transpile-only --timeout 900000 test/http/fastify/MetadataDifferentialMongo.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -115,6 +117,7 @@
     "find-my-way": "9.10.0",
     "flat": "6.0.1",
     "flydrive": "2.2.0",
+    "fresh": "2.0.0",
     "fs-extra": "11.4.1",
     "genson-js": "0.0.8",
     "glob": "13.0.6",

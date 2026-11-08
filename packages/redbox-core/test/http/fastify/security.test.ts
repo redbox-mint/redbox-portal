@@ -7,6 +7,9 @@ import { createNativeCsrf } from '../../../src/http/fastify/csrf';
 import { composeRoutes } from '../../../src/http/fastify/routes';
 import { safeHttpErrorStatus } from '../../../src/http/fastify/responses';
 import { bindNativeRouteSecurity } from '../../../src/http/fastify/policies';
+import { createNativePolicies } from '../../../src/http/fastify/policies';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import { resolveRequestBrand, resolveRequestActor } from '../../../src/http/context';
 
 const target = '/default/rdmp/api/probe';
 const get = (url: string, method = 'POST', headers: Record<string, string> = {}, body?: string | Buffer) =>
@@ -14,6 +17,105 @@ const get = (url: string, method = 'POST', headers: Record<string, string> = {},
 
 describe('FM-016 native context, policy, CSRF and error boundary', function () {
   this.timeout(10000);
+  for (const [token, status] of [
+    ['good', 200],
+    ['foreign', 403],
+    ['bad', 401],
+    ['', 401],
+  ] as const)
+    it('retains Express repeated explicit/configured policy chains for ' + (token || 'anonymous'), async () => {
+      const results = [];
+      for (const native of [false, true]) {
+        const source = route();
+        const f = await securityFixture(native, {
+          routes: [{ ...source, effectivePolicies: [...policyChain, ...policyChain] }],
+        });
+        try {
+          const result = await observation(
+            await get(f.url + target, 'POST', token ? { Authorization: 'Bearer ' + token } : {})
+          );
+          assert.equal(result.status, status);
+          results.push(result);
+        } finally {
+          await f.close();
+        }
+      }
+      assert.deepEqual(results[1], results[0]);
+    });
+  it('repeated branding policies preserve the tenant snapshot, refresh actors and reject another tenant', async () => {
+    const policies = createNativePolicies({
+      branding: {
+        getBrand: async query => {
+          const name = 'name' in query ? query.name : query.id;
+          return { id: 'brand-' + name, name };
+        },
+      },
+      portals: ['rdmp', 'research'],
+      pathRules: { getRulesFromPath: () => [], canRead: () => true },
+      defaultUnauthenticatedRole: () => undefined,
+      authenticate: async () => false,
+      emitRequestFailure: async () => {},
+    });
+    const params = { branding: 'default', portal: 'rdmp' };
+    const request = { params } as FastifyRequest;
+    const reply = {} as FastifyReply;
+    await policies.brandingandportal(request, reply);
+    const selected = requestContext(request);
+    await policies.brandingandportal(request, reply);
+    assert.strictEqual(requestContext(request), selected);
+    assert(Object.isFrozen(selected));
+    resolveRequestActor(request, {
+      id: 'user',
+      username: 'actor',
+      type: 'local',
+      roles: [{ id: 'admin', brandId: selected.brand.id, name: 'Admin' }],
+    });
+    const authenticated = requestContext(request);
+    await policies.brandingandportal(request, reply);
+    const refreshed = requestContext(request);
+    assert.strictEqual(refreshed.brand, authenticated.brand);
+    assert.equal(refreshed.actor, undefined);
+    assert.equal(authenticated.actor!.roles[0].name, 'Admin');
+    assert.throws(() => resolveRequestBrand(request, selected.brand, 'rdmp'), /already been resolved/);
+    params.branding = 'other';
+    await assert.rejects(async () => policies.brandingandportal(request, reply), /already been resolved/);
+    params.branding = 'default';
+    params.portal = 'research';
+    await assert.rejects(async () => policies.brandingandportal(request, reply), /already been resolved/);
+    assert.strictEqual(requestContext(request), refreshed);
+  });
+  it('rechecks changed roles between explicit and configured branding/authorization chains over real HTTP', async () => {
+    const results = [];
+    for (const native of [false, true]) {
+      let lookups = 0;
+      let changeRoles = () => {};
+      const source = route();
+      const f = await securityFixture(native, {
+        routes: [{ ...source, effectivePolicies: [...policyChain, 'brandingandportal', 'checkauth'] }],
+        brandLookup: () => {
+          if (++lookups === 2) changeRoles();
+        },
+        pathRules: {
+          getRulesFromPath: () => [],
+          canRead: (_rules, roles) => roles.some(role => role.id === 'admin'),
+        },
+      });
+      changeRoles = () => {
+        f.user.roles[0].id = 'reader';
+        f.user.roles[0].name = 'Reader';
+      };
+      try {
+        const result = await observation(await get(f.url + target, 'POST', { Authorization: 'Bearer good' }));
+        assert.equal(result.status, 403);
+        assert.equal(f.state.trace.filter(entry => entry === 'authenticate').length, 2);
+        assert(!f.state.trace.includes('action'));
+        results.push(result);
+      } finally {
+        await f.close();
+      }
+    }
+    assert.deepEqual(results[1], results[0]);
+  });
   for (const key of Object.getOwnPropertyNames(Object.prototype)) {
     it(`never resolves inherited policy/error/language/route names: ${key}`, async () => {
       const r = route('/' + key, 'get');

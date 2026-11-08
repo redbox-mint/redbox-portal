@@ -332,8 +332,7 @@ describe('FM-016 total error boundary and typed request extraction', function ()
   for (const method of ['POST', 'HEAD'])
     for (const throwingLog of [false, true])
       it(`publishes an unconditional fallback for a throwing negotiation dependency, ${method}, log throws=${throwingLog}`, async () => {
-        const dependency =
-          require('../../../src/http/express/responses') as typeof import('../../../src/http/express/responses');
+        const dependency = require('../../../src/http/apiResponses') as typeof import('../../../src/http/apiResponses');
         const stub = sinon
           .stub(dependency, 'apiVersion')
           .throws(new Error('dependency-secret password=credential-secret'));

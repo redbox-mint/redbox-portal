@@ -25,6 +25,7 @@ function fixture(overrides = {}) {
     setRequestInterception: async () => {},
     on() {},
     mainFrame: () => ({}),
+    emulateMediaType: async () => {},
     url: () => 'http://localhost/default/rdmp/record/view/oid',
     goto: async url => ({ status: () => 200, url: () => url, request: () => ({ redirectChain: () => [] }) }),
     waitForNetworkIdle: async () => {},

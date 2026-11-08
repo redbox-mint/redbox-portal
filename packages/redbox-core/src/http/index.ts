@@ -21,3 +21,8 @@ export {
   applicationStatusController,
   type ApplicationStatusControllerInput,
 } from './controllers/ApplicationStatusController';
+export {
+  RecordController,
+  recordController,
+  type RecordControllerInput,
+} from './controllers/webservice/RecordController';

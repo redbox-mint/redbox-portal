@@ -13,7 +13,8 @@ import { HttpIdentity } from '../../src/http/express/identity';
 
 let counter = 0;
 export async function mongoFixture(
-  beforeInitialize?: (application: ApplicationRuntime, owner: PersistenceOwner) => void
+  beforeInitialize?: (application: ApplicationRuntime, owner: PersistenceOwner) => void | Promise<void>,
+  identityIds?: { brand: string; otherBrand: string; role: string; reader: string; user: string }
 ) {
   assert.equal(Reflect.get(globalThis, 'sails'), undefined, 'Run standalone without legacy setup');
   assert(process.env.HTTP_PILOT_TEST_MONGO_URL, 'HTTP_PILOT_TEST_MONGO_URL is required, never skipped');
@@ -52,14 +53,25 @@ export async function mongoFixture(
         .createIndex(index.keys, { name: index.name, unique: index.unique });
     await initializePersistence(owner);
     await ensureBrandingPersistenceIndexes(owner);
-    beforeInitialize?.(application, owner);
+    await beforeInitialize?.(application, owner);
     await application.initialize();
     const branding = getBrandingRepository(owner);
     const identities = getIdentityRepositories(owner);
-    const brand = await branding.createBrand({ name: 'default' });
-    const otherBrand = await branding.createBrand({ name: 'other' });
-    const role = await identities.create('role', { name: 'Admin', branding: brand.id });
-    const reader = await identities.create('role', { name: 'Researcher', branding: brand.id });
+    const brand = await branding.createBrand({ name: 'default', ...(identityIds ? { id: identityIds.brand } : {}) });
+    const otherBrand = await branding.createBrand({
+      name: 'other',
+      ...(identityIds ? { id: identityIds.otherBrand } : {}),
+    });
+    const role = await identities.create('role', {
+      name: 'Admin',
+      branding: brand.id,
+      ...(identityIds ? { id: identityIds.role } : {}),
+    });
+    const reader = await identities.create('role', {
+      name: 'Researcher',
+      branding: brand.id,
+      ...(identityIds ? { id: identityIds.reader } : {}),
+    });
     await identities.create('pathrule', {
       path: '/:branding/:portal/api(/*)',
       role: role.id,
@@ -67,6 +79,7 @@ export async function mongoFixture(
       can_update: true,
     });
     const user = await identities.create('user', {
+      ...(identityIds ? { id: identityIds.user } : {}),
       username: 'pilot-admin',
       name: 'Synthetic Admin',
       type: 'local',

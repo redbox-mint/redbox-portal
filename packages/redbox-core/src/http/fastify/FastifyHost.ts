@@ -12,8 +12,7 @@ import { requestOwnership } from './requestOwnership';
 import { sealPreparation, type FastifyPreparation } from './preparation';
 import { HttpRouteRegistry } from './registry';
 import { normalizeHttpError } from './errorBoundary';
-import { drainHttpLogger, httpLogStats, type HttpLogTarget } from './logging';
-import { pinoLoggerDestinations } from '../../utilities/PinoLoggerUtils';
+import { drainHttpLogger, httpLogStats, ownerHttpLogger, type HttpLogTarget } from './logging';
 
 export interface FastifyHostOptions {
   readonly hostname: string;
@@ -92,12 +91,7 @@ export class FastifyHost {
         return503OnClosing: false,
         forceCloseConnections: false,
       },
-      options.logger ?? {
-        sources: pinoLoggerDestinations(this.owner.log),
-        write: record => {
-          if (['warn', 'error', 'fatal'].includes(record.level)) return this.owner.log.warn(record.code);
-        },
-      },
+      options.logger ?? ownerHttpLogger(this.owner),
       this.owner
     );
     // Root hooks precede every prepared plugin, parser, action and fallback. Do not

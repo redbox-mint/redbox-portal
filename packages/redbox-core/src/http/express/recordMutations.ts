@@ -1,3 +1,4 @@
+import { updateRecordMetadata } from '../actions/recordMetadata';
 import type { Router, RequestHandler } from 'express';
 import _ from 'lodash';
 import type { ILogger, ReusableFormDefinitions } from '@researchdatabox/sails-ng-common';
@@ -152,6 +153,17 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
       browser ? input.csrf.protect : input.csrf.apiProtect,
       httpAction(async (req, res) => {
         try {
+          if (!browser && action === 'updateMeta') {
+            const result = await updateRecordMetadata(input, {
+              params: req.params,
+              query: req.query,
+              headers: req.headers,
+              body: req.body,
+              context: requestContext(req),
+            });
+            res.set(result.headers).status(result.status).json(result.body);
+            return;
+          }
           const { brand: snapshot, actor, portal } = requestContext(req);
           if (!actor) throw new RecordMutationError(401, 'Authentication required');
           if (!actor.roles.some(role => role.brandId === snapshot.id))

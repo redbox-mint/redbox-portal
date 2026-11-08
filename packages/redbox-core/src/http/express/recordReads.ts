@@ -1,3 +1,4 @@
+import { readRecordMetadata } from '../actions/recordMetadata';
 import type { Router } from 'express';
 import { pipeline } from 'node:stream/promises';
 import _ from 'lodash';
@@ -143,6 +144,17 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
       ...bindHttpPolicies(resolveEffectivePolicies(route, input.policyConfiguration), input.policies),
       httpAction(async (req, res) => {
         try {
+          if (route.controller === 'webservice/RecordController' && route.action === 'getMeta') {
+            const result = await readRecordMetadata(input, {
+              params: req.params,
+              query: req.query,
+              headers: req.headers,
+              body: req.body,
+              context: requestContext(req),
+            });
+            res.set(result.headers).status(result.status).json(result.body);
+            return;
+          }
           let query: Record<string, unknown> = req.query;
           if ('request' in route) {
             const validated = validateApiRouteRequest(req, route as ApiRouteDefinition);

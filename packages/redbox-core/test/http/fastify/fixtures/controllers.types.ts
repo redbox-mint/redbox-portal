@@ -164,3 +164,9 @@ void [
   wrongRequest,
   expressAction,
 ];
+
+// The native production assembly accepts the same hydrated portal as the executable.
+import { createPortalFastifyApplication, createPortalFastifyHost } from '@researchdatabox/redbox-core/portal';
+declare const productionPortal: Awaited<ReturnType<typeof createPortalFastifyApplication>>;
+declare const nativeProductionOptions: Parameters<typeof createPortalFastifyHost>[1];
+createPortalFastifyHost(productionPortal, nativeProductionOptions);

@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { ApiValidationIssue } from '../../api-routes/validation';
-import { apiNoCacheHeaders, apiVersion, validationApiVersion } from '../express/responses';
+import { apiNoCacheHeaders, apiVersion, validationApiVersion } from '../apiResponses';
 import type { FastifyPreparation } from './preparation';
 import accepts from 'accepts';
 import { requestStrings, requestText } from '../requestValues';

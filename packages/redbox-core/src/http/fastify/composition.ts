@@ -18,6 +18,11 @@ import { HttpRouteRegistry, type CoreNamespaceConfiguration } from './registry';
 
 /** Internal prototype inputs, not an extension loader or production host selector. */
 export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare'> {
+  /** An already validated installation; no second selection/composition occurs. */
+  readonly composition?: Pick<
+    Awaited<ReturnType<typeof import('../../extensions/v2').resolveExtensionsV2>>,
+    'routePlan' | 'controllerPlan' | 'hookPlan' | 'fallbackPlan' | 'registry'
+  >;
   readonly controllers: readonly ResolvedRegistration<ControllerRegistration>[];
   readonly bindings: readonly BoundControllerFactory[];
   readonly moduleNames?: readonly string[];
@@ -49,6 +54,7 @@ export async function createControllerHost(
   options: ControllerHostOptions
 ): Promise<FastifyHost> {
   const {
+    composition,
     controllers,
     bindings,
     moduleNames,
@@ -62,16 +68,13 @@ export async function createControllerHost(
     namespaceConfiguration,
     ...hostOptions
   } = options;
-  const routePlan = await composeRoutes(routes, routing);
-  const registry = new HttpRouteRegistry(
-    routing.rootContext,
-    fallbackReservedPrefixes,
-    namespaceConfiguration,
-    routePlan.targets
-  );
-  const fallbackPlan = composeHttpFallbacks(fallbacks, routePlan, routing, registry);
+  const routePlan = composition?.routePlan ?? (await composeRoutes(routes, routing));
+  const registry =
+    composition?.registry ??
+    new HttpRouteRegistry(routing.rootContext, fallbackReservedPrefixes, namespaceConfiguration, routePlan.targets);
+  const fallbackPlan = composition?.fallbackPlan ?? composeHttpFallbacks(fallbacks, routePlan, routing, registry);
   const allRoutes = [...routePlan.routes, ...fallbackPlan.routes];
-  const hookPlan = composeHttpHooks(hooks, routePlan.targets);
+  const hookPlan = composition?.hookPlan ?? composeHttpHooks(hooks, routePlan.targets);
   if (
     !security &&
     allRoutes.some(
@@ -83,12 +86,14 @@ export async function createControllerHost(
   )
     throw new TypeError('Protected controller routes require native security bindings.');
   const securityGuard = security && bindNativeRouteSecurity({ routes: allRoutes }, security.policies, security.csrf);
-  const controllerPlan = composeControllers(
-    controllers,
-    bindings,
-    allRoutes.map(route => route.declaration),
-    moduleNames
-  );
+  const controllerPlan =
+    composition?.controllerPlan ??
+    composeControllers(
+      controllers,
+      bindings,
+      allRoutes.map(route => route.declaration),
+      moduleNames
+    );
   return new FastifyHost(application, {
     ...hostOptions,
     routeRegistry: registry,

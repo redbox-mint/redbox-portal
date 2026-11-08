@@ -8,7 +8,13 @@ import {
   RECORD_SCHEMA_RESPONSE_CACHE_CONTROL,
   RECORD_SCHEMA_RESPONSE_VARY,
 } from '../../api-routes/record-schema-response';
-import { requestContext, resolveRequestActor, resolveRequestBrand, type AuthenticatedActor } from '../context';
+import {
+  requestContext,
+  resolveRequestActor,
+  resolveRequestBrand,
+  clearRequestActor,
+  type AuthenticatedActor,
+} from '../context';
 import type { RouteComposition, RouteGuards } from './routes';
 import type { createNativeCsrf } from './csrf';
 import { requestPathname } from './router';
@@ -31,7 +37,18 @@ export interface NativePolicyInput {
   readonly loginPath?: string;
   readonly rootContext?: string;
 }
+export const nativePolicyNames = Object.freeze([
+  'nocache',
+  'brandingandportal',
+  'browseractor',
+  'browserauthenticated',
+  'iswebserviceauthenticated',
+  'brandactor',
+  'checkauth',
+  'checkrecordschemaauth',
+] as const);
 export function createNativePolicies(input: NativePolicyInput): Readonly<Record<string, NativePolicy>> {
+  const branded = new WeakSet<FastifyRequest>();
   const path = (request: FastifyRequest) =>
     (requestPathname(request.raw.url ?? '/') ?? '/').slice((input.rootContext ?? '').length) || '/';
   const schema = (request: FastifyRequest) => request.routeOptions.url?.includes('/api/records/schemas/') === true;
@@ -107,7 +124,18 @@ export function createNativePolicies(input: NativePolicyInput): Readonly<Record<
         return missing();
       const brand = await input.branding.getBrand({ name: branding }, true);
       if (!brand?.id) return missing();
+      // Explicit API policies precede the configured mapping, so a core policy
+      // can legitimately occur in both chains. Keep the first immutable context;
+      // a repeated policy must never select a different tenant or portal.
+      if (branded.has(request)) {
+        const selected = requestContext(request);
+        if (selected.brand.id !== brand.id || selected.portal !== portal)
+          throw new Error('Request brand has already been resolved.');
+        clearRequestActor(request);
+        return;
+      }
       resolveRequestBrand(request, brand, portal);
+      branded.add(request);
     },
     browseractor: async request => {
       requestContext(request);

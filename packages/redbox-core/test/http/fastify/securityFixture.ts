@@ -83,6 +83,9 @@ export function route(path = '/:branding/:portal/api/probe', method: 'get' | 'po
   };
 }
 export interface SecurityOptions {
+  /** Simulate a current identity change between explicit and configured policies. */
+  brandLookup?(): void;
+  pathRules?: import('../../../src/http/fastify/policies').NativePolicyInput['pathRules'];
   routes?: readonly RouteRegistration[];
   mongo?: boolean;
   productionRules?: boolean;
@@ -167,18 +170,20 @@ export async function securityFixture(native: boolean, options: SecurityOptions 
     portals: ['rdmp'],
     branding: {
       getBrand: async ({ name }: { name: string }) => {
+        options.brandLookup?.();
         state.trace.push('brand');
         if (state.failBrand) throw new Error('datastore-secret mongodb://credential@host');
         return name === 'default' ? brand : name === 'other' ? otherBrand : null;
       },
     },
-    pathRules: realRules ?? {
-      getRulesFromPath: () => {
-        state.trace.push('path');
-        return state.pathDenied ? [{ role: 'denied', branding: brand.id }] : null;
+    pathRules: options.pathRules ??
+      realRules ?? {
+        getRulesFromPath: () => {
+          state.trace.push('path');
+          return state.pathDenied ? [{ role: 'denied', branding: brand.id }] : null;
+        },
+        canRead: () => false,
       },
-      canRead: () => false,
-    },
     defaultUnauthenticatedRole: () => undefined,
     emitRequestFailure: async () => {
       state.trace.push('event');

@@ -52,7 +52,7 @@ import {
   type ConfigurationLayer,
   type ConfigurationInput,
 } from './resolution';
-import type { ResolvedExtensions } from '../extensions/resolution';
+import type { ConfigurationExtensions } from './resolution';
 
 const positive = z.number().int().positive();
 const nonnegative = z.number().int().nonnegative();
@@ -518,7 +518,7 @@ export const portalEnvironmentInputs: Readonly<Record<string, ConfigurationInput
 export async function loadPortalConfiguration(
   options: {
     environment?: string;
-    extensions?: Pick<ResolvedExtensions, 'providers'>;
+    extensions?: ConfigurationExtensions;
     files?: { application?: string; environment?: string; local?: string };
     env?: Readonly<Record<string, string | undefined>>;
     argv?: readonly string[];

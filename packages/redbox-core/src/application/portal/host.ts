@@ -1,3 +1,29 @@
+import type { Application } from '../Application';
+import { portalHostSettings, portalHttpSettings, type PortalMetadataContext } from './httpPlan';
+import type { PersistenceOwner } from '../../persistence/owner';
+import { recordMetadataBodyPrelude } from '../../http/controllers/webservice/RecordController';
+import { updateMetaRoute } from '../../api-routes/groups/records';
+import { createControllerHost } from '../../http/fastify/composition';
+import { createNativePolicies, type NativePolicyInput } from '../../http/fastify/policies';
+import { createNativeCsrf } from '../../http/fastify/csrf';
+import { prepareNativeSessions, type NativeSessionConfiguration } from '../../http/fastify/session';
+import {
+  prepareNativeAuthentication,
+  installNativeAuthenticationRoutes,
+  type NativeAuthentication,
+  type NativeAuthenticationRoutesInput,
+} from '../../http/fastify/authentication';
+import type { NativeIdentityProvidersInput } from '../../http/fastify/identityProviders';
+import type { HttpIdentity } from '../../http/express/identity';
+import type { FastifyPreparation } from '../../http/fastify/preparation';
+import { ownerHttpLogger } from '../../http/fastify/logging';
+import type {
+  ProductionControllerHostOptions,
+  ProductionPolicyInput,
+  ProductionCsrfInput,
+  ProductionAuthenticationRoutesInput,
+} from './compositionInputs';
+
 import { ExpressHost } from '../../http/express/ExpressHost';
 import { createPortalApplication, type PortalApplicationOptions } from './application';
 import { PortalHttp, type PortalHttpOptions } from './http';
@@ -15,12 +41,127 @@ export async function createPortalHost(options: PortalApplicationOptions & Porta
   const { config } = portal;
   const host = new ExpressHost(portal.application, {
     owner: portal.owner,
-    port: config.server.port,
-    hostname: config.server.hostname,
-    rootContext: config.server.rootContext,
-    trustProxy: config.server.trustProxy,
-    stopDeadlineMs: config.server.stopDeadlineMs,
+    ...portalHostSettings(config.server),
     prepare: (router, server) => http.prepare(router, server),
   });
   return { ...portal, host };
+}
+
+/** Native production portal assembly. The existing executable continues to use
+ * createPortalHost until cutover. Require an explicit conversion scope: the API
+ * declaration set alone is not the full API/browser/integration inventory. */
+export async function createPortalFastifyHost(
+  portal: PortalMetadataContext & {
+    readonly installation: import('./installation').ResolvedPortalInstallation;
+    readonly application: Application;
+    readonly owner: PersistenceOwner;
+    readonly config: {
+      readonly server: import('../../configuration/deployment').DeploymentConfiguration['server'];
+      readonly redboxSession: NativeSessionConfiguration;
+      readonly auth: Pick<
+        import('../../config/auth.config').AuthBootstrapConfig,
+        'defaultBrand' | 'defaultPortal' | 'loginPath' | 'postLogoutRedir' | 'logoutOrigins'
+      >;
+    };
+  },
+  input: {
+    authentication(): NativeIdentityProvidersInput & { readonly identity: HttpIdentity };
+    readonly login: Omit<
+      NativeAuthenticationRoutesInput,
+      | 'identity'
+      | 'csrf'
+      | 'rootContext'
+      | 'defaultBrand'
+      | 'defaultPortal'
+      | 'postLogoutPath'
+      | 'logoutOrigins'
+      | 'sessionCookie'
+    >;
+    readonly policies: Omit<NativePolicyInput, 'authenticate' | 'rootContext' | 'portals' | 'loginPath'>;
+    /** Owned domain preparation; no listener exists at this point. */
+    prepare?(): Promise<void>;
+  }
+) {
+  const { application, owner } = portal;
+  const rootContext = portal.config.server.rootContext;
+  const resolved = portal.installation;
+  const settings = portalHttpSettings(portal.config, { portals: resolved.portals });
+  let authentication: NativeAuthentication | undefined;
+  const policies = createNativePolicies({
+    ...input.policies,
+    rootContext,
+    portals: settings.portals,
+    loginPath: settings.loginPath,
+    authenticate: request => {
+      if (!authentication) throw new Error('Authentication has not been prepared');
+      return authentication.authenticate(request);
+    },
+  } satisfies ProductionPolicyInput);
+  const csrf = createNativeCsrf({
+    origins: settings.origins,
+    authenticateBearer: token => input.authentication().identity.bearer(token),
+  } satisfies ProductionCsrfInput);
+  const trustProxy = settings.host.trustProxy;
+  const host = await createControllerHost(application, {
+    owner,
+    hostname: settings.host.hostname,
+    port: settings.host.port,
+    stopDeadlineMs: settings.host.stopDeadlineMs,
+    trustProxy: typeof trustProxy === 'number' ? (_address, hop) => hop < trustProxy : trustProxy,
+    logger: ownerHttpLogger(owner),
+    routeRegistry: resolved.registry,
+    controllers: resolved.controllerRegistrations,
+    bindings: resolved.bindings,
+    moduleNames: resolved.moduleNames,
+    composition: resolved,
+    routes: resolved.routeRegistrations,
+    hooks: resolved.hookRegistrations,
+    fallbacks: resolved.fallbackRegistrations,
+    fallbackReservedPrefixes: resolved.fallbackReservedPrefixes,
+    namespaceConfiguration: resolved.namespaceConfiguration,
+    routing: resolved.routing,
+    guards: async (binding, request, reply) => {
+      if (
+        binding.route.declaration.api?.controller === updateMetaRoute.controller &&
+        binding.route.declaration.api?.action === updateMetaRoute.action
+      )
+        return recordMetadataBodyPrelude(request, reply);
+    },
+    security: {
+      policies,
+      csrf,
+      observers: { observe: undefined, log: undefined },
+      // Selected policies resolve brand/actor; this pilot has no raw mounts.
+      resolveContext: undefined,
+      parsers: { parserExclusions: [] },
+      prepare: async (app: FastifyPreparation) => {
+        await input.prepare?.();
+        await prepareNativeSessions(app, owner, settings.session);
+        authentication = await prepareNativeAuthentication(app, input.authentication());
+        app.get(rootContext + '/csrfToken', csrf.token);
+        installNativeAuthenticationRoutes(app, authentication, {
+          identity: input.authentication().identity,
+          validContext: input.login.validContext,
+          brandId: input.login.brandId,
+          postLoginPath: input.login.postLoginPath,
+          credentialFields: input.login.credentialFields,
+          audit: input.login.audit,
+          loginFailure: input.login.loginFailure,
+          renderAuthenticationFailure: input.login.renderAuthenticationFailure,
+          ...settings.login,
+          sessionCookie: {
+            name: portal.config.redboxSession.name ?? 'redbox.sid',
+            ...portal.config.redboxSession.cookie,
+          },
+          csrf: csrf.protect,
+        } satisfies ProductionAuthenticationRoutesInput);
+      },
+    },
+  } satisfies ProductionControllerHostOptions);
+  return {
+    host,
+    resolved,
+    policyConfiguration: resolved.policyConfiguration,
+    scope: resolved.scope,
+  };
 }
