@@ -59,6 +59,8 @@ test('F27 lifecycle-failure-navigation recovers a failed save and respects cance
   await adminPage.getByRole('link', { name: 'Home', exact: true }).click();
   await accepted;
   await expect(adminPage).toHaveURL(/\/researcher\/home$/);
+  // Let Home finish loading before navigating away so its assets are not aborted.
+  await adminPage.waitForLoadState('load');
   await adminPage.goto(`/default/rdmp/record/edit/${record.oid}`);
   await expect(field(adminPage, 'Title')).toHaveValue('Recovered title');
   await expect(field(adminPage, 'Notes')).toHaveValue('Original notes');
