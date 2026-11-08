@@ -104,7 +104,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'ejs',
     rootSelector: '#redoc',
-    requiredSelectors: ['#redoc'],
+    requiredSelectors: ['#redoc [data-testid="middle-panel"]:visible'],
     fallbackSelectors: ['#redoc img[src$="/images/loading.svg"]'],
     includeBaseAssets: false,
     requiredAssetIncludes: ['/default/default/js/redoc.standalone.js', '/default/default/js/admin-api-docs-bootstrap.js', '/default/default/js/admin-api-docs-init.js', '/admin/api-docs/openapi.json']
