@@ -6,14 +6,18 @@ test.describe('Angular bootstrap recovery', () => {
 
   for (const endpoint of ['csrfToken', 'dynamic/apiClientConfig*']) {
     test(`renders recovery controls and retries after ${endpoint} fails`, async ({ page }) => {
-      // Pages normally embed config. Remove that snapshot to exercise the HTTP fallback.
-      if (endpoint === 'dynamic/apiClientConfig*') {
-        await page.route('**/default/rdmp/admin/users', async (route) => {
-          const response = await route.fetch();
-          const body = (await response.text()).replace(/<meta name="rb-client-config"[^>]*>/, '');
-          await route.fulfill({ response, body });
+      // Hook layouts can omit page snapshots. Exercise that HTTP fallback before Angular starts.
+      const snapshotName = endpoint === 'csrfToken' ? 'rb-csrf-token' : 'rb-client-config';
+      await page.addInitScript((name) => {
+        const observer = new MutationObserver(() => {
+          const snapshot = document.querySelector(`meta[name="${name}"]`);
+          if (snapshot) {
+            snapshot.remove();
+            observer.disconnect();
+          }
         });
-      }
+        observer.observe(document, { childList: true, subtree: true });
+      }, snapshotName);
       let attempts = 0;
       await page.route(`**/${endpoint}`, async (route) => {
         attempts += 1;
@@ -25,6 +29,7 @@ test.describe('Angular bootstrap recovery', () => {
       });
 
       await page.goto('/default/rdmp/admin/users', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator(`meta[name="${snapshotName}"]`)).toHaveCount(0);
       const error = page.locator('manage-users [role="alert"]');
       await expect(error).toContainText('Unable to load data');
       await expect(page.locator('#manage-users-search')).toHaveCount(0);
