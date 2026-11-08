@@ -1,7 +1,8 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import { firstValueFrom } from 'rxjs';
 import { randomUUID } from 'node:crypto';
-import { ObjectId } from 'mongodb';
+
 
 /** Actual session/API saves and BSON restoration, including installations with no override. */
 describe('Authorized domain/email save normalization API', function () {
@@ -26,17 +27,15 @@ describe('Authorized domain/email save normalization API', function () {
   before(async () => {
     const brand = BrandingService.getBrand('default');
     collection = (AppConfig.getDatastore().manager as any).collection('appconfig');
-    query = { branding: new ObjectId(String(brand.id)), configKey: 'authorizedDomainsEmails' };
+    // Use the BSON ID supplied by this datastore driver, which may differ from the root MongoDB dependency.
+    const nativeBrand = await BrandingConfig.getDatastore().manager.collection(BrandingConfig.tableName).findOne({ name: brand.name });
+    query = { branding: nativeBrand._id, configKey: 'authorizedDomainsEmails' };
     original = await collection.find(query).toArray();
     const user = await User.findOne({ username: 'admin' });
     adminId = user.id; originalToken = user.token;
     await firstValueFrom(UsersService.setUserKey(adminId, token));
-    admin = supertest.agent((sails as any).hooks.http.app);
-    await admin.get('/default/rdmp/user/login').expect(200);
-    csrf = (await admin.get('/csrfToken')).body._csrf;
-    await admin.post('/user/login_local').set('X-CSRF-Token', csrf)
-      .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' }).expect(200);
-    csrf = (await admin.get('/csrfToken')).body._csrf;
+    admin = await loginSession();
+    csrf = await csrfToken(admin);
   });
   after(async () => {
     if (original) {
