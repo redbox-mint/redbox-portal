@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{host}}/default/rdmp/admin/roles/get
+  url: {{host}}/default/rdmp/admin/users/get
   body: none
   auth: none
 }
@@ -38,16 +38,10 @@ tests {
 
 
   test("Check that researcher user has guest, researcher and librarian roles", function(){
-      var researchUserRoles = [];
-      var jsonData = res.getBody();
-      for(var i=0; i< jsonData.length; i++) {
-          var role = jsonData[i];
-          for(var j=0; j< role.users.length; j++) {
-              if(role.users[j].id == bru.getEnvVar("researcherUserId")) {
-                  researchUserRoles.push(role.name);
-              }
-          }
-      }
+      const users = res.getBody();
+      const researcher = users.find(user => user.id === bru.getEnvVar("researcherUserId"));
+      expect(researcher, "researcher fixture").to.exist;
+      const researchUserRoles = researcher.roles.map(role => role.name);
 
       expect(researchUserRoles).to.contain("Researcher");
       expect(researchUserRoles).to.contain("Guest");

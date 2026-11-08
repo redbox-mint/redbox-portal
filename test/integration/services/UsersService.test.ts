@@ -3,25 +3,23 @@ describe('The UsersService', function () {
     done();
   });
 
-  it('should retrieve user using ID, with valid roles, can update roles', function (done) {
-    var brand = BrandingService.getDefault();
-    RolesService.getRolesWithBrand(brand).subscribe(function(roles){
-      var adminRole = RolesService.getAdminFromRoles(roles);
-      var adminUser = adminRole.users[0];
-      UsersService.getUserWithId(adminUser.id).subscribe(function(retrievedUser) {
-        expect(retrievedUser).to.have.property('id', adminUser.id);
-        expect(UsersService.hasRole(retrievedUser, adminRole)).to.have.property('id', adminRole.id);
-        var newRolesIds =  _.map(roles, function(role) {
-          if (role.name != 'Admin') {
-            return role.id;
-          }
-        });
-        UsersService.updateUserRoles(adminUser.id, newRolesIds).subscribe(function(updatedUser){
-          expect(RolesService.getRoleWithName(updatedUser.roles, 'Admin')).to.be.undefined;
-          done();
-        });
-      });
-    });
+  it('should retrieve user using ID, with valid roles, can update roles', async function () {
+    const { firstValueFrom } = await import('rxjs');
+    const brand = BrandingService.getDefault();
+    const roles = await firstValueFrom(RolesService.getRolesWithBrand(brand));
+    const adminRole = RolesService.getAdminFromRoles(roles);
+    const username = `role-update-${Date.now()}`;
+    const user = await firstValueFrom(UsersService.addLocalUser(username, 'Role update fixture', `${username}@example.test`, 'Testing123!'));
+    try {
+      await firstValueFrom(UsersService.updateUserRoles(user.id, [adminRole.id]));
+      const retrieved = await firstValueFrom(UsersService.getUserWithId(user.id));
+      expect(retrieved).to.have.property('id', user.id);
+      expect(UsersService.hasRole(retrieved, adminRole)).to.have.property('id', adminRole.id);
+      const updated = await firstValueFrom(UsersService.updateUserRoles(user.id, roles.filter(role => role.name !== 'Admin').map(role => role.id)));
+      expect(RolesService.getRoleWithName(updated.roles, 'Admin')).to.be.undefined;
+    } finally {
+      await User.destroy({ id: user.id });
+    }
   });
 
   describe('login restrictions using authorised email config', function () {
