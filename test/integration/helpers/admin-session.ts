@@ -2,7 +2,6 @@ import supertest from 'supertest';
 
 /** Obtain a real token even when only individual routes enable CSRF. */
 export async function csrfToken(agent: supertest.Agent): Promise<string> {
-  await agent.get('/default/rdmp/home').expect(200);
   const response = await agent.get('/csrfToken').expect(200);
   const token = response.body._csrf;
   if (typeof token !== 'string' || !token) throw new Error('The integration session did not receive a CSRF token');
