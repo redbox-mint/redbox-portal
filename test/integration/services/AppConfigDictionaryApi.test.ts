@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 
 /** Existing authenticated save routes must validate maps without dropping extension values. */
 describe('AppConfig dictionary save API', function () {
@@ -15,13 +16,8 @@ describe('AppConfig dictionary save API', function () {
     // Use the native BSON documents so timestamps, IDs, types and field order can be restored exactly.
     query = { configKey: { $in: keys } };
     original = await collection.find(query).toArray();
-    agent = supertest.agent((sails as any).hooks.http.app);
-    await agent.get('/default/rdmp/user/login').expect(200);
-    csrf = (await agent.get('/csrfToken')).body._csrf;
-    await agent.post('/user/login_local').set('X-CSRF-Token', csrf)
-      .send({ username: 'admin', password: 'rbadmin', branding: brand.name, portal: 'rdmp' }).expect(200);
-    await agent.get('/default/rdmp/user/login').expect(200);
-    csrf = (await agent.get('/csrfToken')).body._csrf;
+    agent = await loginSession();
+    csrf = await csrfToken(agent);
   });
   after(async () => {
     if (original) {
