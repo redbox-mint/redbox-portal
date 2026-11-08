@@ -106,6 +106,37 @@ describe('Admin foundation views', function () {
     expect(ordinaryHtml).not.to.include('rb-admin');
   });
 
+  it('mounts email administration inside the shared shell with its brand URLs and CSP nonce', async function () {
+    const html = await ejs.renderFile(path.join(views, 'email-templates.ejs'), {
+      ...locals,
+      req: { path: '/brand/portal/admin/email-templates' },
+      BrandingService: {
+        ...locals.BrandingService,
+        getRootContext: () => '/context',
+        getBrandNameFromReq: () => 'brand',
+        getPortalFromReq: () => 'portal'
+      },
+      CacheService: { getNgAppFileHash: () => '-bundle' }
+    });
+    const dom = new JSDOM(html);
+    try {
+      const document = dom.window.document;
+      const app = document.querySelector('.rb-admin .rb-admin-wrap > email-templates-root')!;
+      expect(app).not.to.equal(null);
+      expect(app.getAttribute('data-brand')).to.equal('brand');
+      expect(app.getAttribute('data-portal')).to.equal('portal');
+      expect(app.getAttribute('data-base-url')).to.equal('/brand/portal/app/email-templates');
+      expect(app.getAttribute('ngCspNonce')).to.equal('test-nonce');
+      expect(document.querySelectorAll('.rb-admin-sidebar')).to.have.lengthOf(1);
+      const modules = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="module"]'));
+      expect(modules.map(script => script.getAttribute('src'))).to.deep.equal([
+        '/context/angular/email-templates/browser/polyfills-bundle.js',
+        '/context/angular/email-templates/browser/main-bundle.js'
+      ]);
+      expect(modules.every(script => script.nonce === 'test-nonce')).to.equal(true);
+    } finally { dom.window.close(); }
+  });
+
   it('escapes header labels and URLs and translates optional actions', async function () {
     const html = await ejs.renderFile(path.join(views, 'layout/page-header.ejs'), {
       ...locals, titleKey: '<script>title</script>', descriptionKey: 'description',

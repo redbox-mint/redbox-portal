@@ -46,4 +46,22 @@ describe('HistoryPanelComponent', () => {
     expect(row(5).textContent).toContain('email-templates-badge-not-applied');
     expect((row(5).querySelectorAll('button')[1] as HTMLButtonElement).disabled).toBeTrue();
   });
+  it('closes history actions and focuses their summary before a restore dialog opens', () => {
+    const menu = row(1).querySelector('details')!;
+    menu.open = true;
+    const trigger = menu.querySelector('summary')!;
+    component.restore.subscribe(() => {
+      expect(menu.open).toBeFalse();
+      expect(document.activeElement).toBe(trigger);
+    });
+    const restore = menu.querySelector('button')!;
+    restore.focus();
+    restore.click();
+    menu.open = true;
+    restore.focus();
+    restore.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.open).toBeFalse();
+    expect(document.activeElement).toBe(trigger);
+  });
+
 });

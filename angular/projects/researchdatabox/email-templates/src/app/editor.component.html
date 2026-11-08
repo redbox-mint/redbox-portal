@@ -1,56 +1,55 @@
-<div class="et-editor panel panel-default et-panel">
-  <div class="panel-heading">
-    <span class="panel-title et-panel-title">
-      <i class="fa-regular fa-envelope me-2" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
-    </span>
+<section class="et-editor card panel-style panel-default rb-ws" aria-labelledby="et-editor-title">
+  <div class="card-header rb-ws-header">
+    <div class="rb-ws-heading">
+      <h1 #editorHeading id="et-editor-title" tabindex="-1" class="rb-ws-title">
+        <i class="fa-regular fa-envelope" aria-hidden="true"></i><span class="et-template-id">{{ templateId }}</span>
+      </h1>
+    </div>
+    <button type="button" class="btn btn-sm rb-ws-header-button" [disabled]="busy !== null" (click)="goBack()">
+      <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
+    </button>
   </div>
 
-  <div class="panel-body">
-    <nav [attr.aria-label]="'email-templates-breadcrumb-label' | i18next">
-      <button type="button" class="btn btn-link btn-sm et-back" (click)="goBack()">
-        <i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>{{ 'email-templates-heading' | i18next }}
-      </button>
-    </nav>
-    <div class="et-title-row">
-      <h1 #editorHeading tabindex="-1" class="et-editor-title">
-        <span class="et-template-id">{{ templateId }}</span>
-      </h1>
-      @if (state) {
-        <div class="et-badges">
-          @if (liveVersion !== null) {
-            <span class="et-badge et-badge-live">{{
-              'email-templates-badge-live-version' | i18next: { version: liveVersion }
-            }}</span>
-          } @else {
-            <span class="et-badge et-badge-default">{{ 'email-templates-badge-default' | i18next }}</span>
-          }
-          @if (hasDraft) {
-            <span class="et-badge et-badge-draft">{{
-              'email-templates-badge-draft-revision' | i18next: { revision: draftRevision }
-            }}</span>
-          }
-          @if (dirty) {
-            <span class="et-badge et-badge-muted">{{ 'email-templates-badge-unsaved' | i18next }}</span>
-          }
-          @if (state.draft?.restoredFromVersion) {
-            <span class="et-badge et-badge-muted">{{
-              'email-templates-badge-restored-from' | i18next: { version: state.draft?.restoredFromVersion }
-            }}</span>
-          }
-          @if (state.defaultUpdated) {
-            <span class="et-badge et-badge-updated">{{ 'email-templates-badge-default-updated' | i18next }}</span>
-          }
-          @if (state.invalid) {
-            <span class="et-badge et-badge-invalid">{{ 'email-templates-badge-invalid' | i18next }}</span>
-          }
-        </div>
-      }
-    </div>
+  <div class="card-body">
+    @if (state) {
+      <div class="et-badges mb-3">
+        @if (liveVersion !== null) {
+          <span class="badge rb-admin-badge-success et-badge et-badge-live">{{
+            'email-templates-badge-live-version' | i18next: { version: liveVersion }
+          }}</span>
+        } @else {
+          <span class="badge et-badge et-badge-default">{{ 'email-templates-badge-default' | i18next }}</span>
+        }
+        @if (hasDraft) {
+          <span class="badge rb-admin-badge-warning et-badge et-badge-draft">{{
+            'email-templates-badge-draft-revision' | i18next: { revision: draftRevision }
+          }}</span>
+        }
+        @if (dirty) {
+          <span class="badge et-badge et-badge-muted">{{ 'email-templates-badge-unsaved' | i18next }}</span>
+        }
+        @if (state.draft?.restoredFromVersion) {
+          <span class="badge et-badge et-badge-muted">{{
+            'email-templates-badge-restored-from' | i18next: { version: state.draft?.restoredFromVersion }
+          }}</span>
+        }
+        @if (state.defaultUpdated) {
+          <span class="badge rb-admin-badge-warning et-badge et-badge-updated">{{
+            'email-templates-badge-default-updated' | i18next
+          }}</span>
+        }
+        @if (state.invalid) {
+          <span class="badge rb-admin-badge-danger et-badge et-badge-invalid">{{
+            'email-templates-badge-invalid' | i18next
+          }}</span>
+        }
+      </div>
+    }
 
     <div class="visually-hidden" role="status" aria-live="polite">{{ announcement }}</div>
 
     @if (loading && !state) {
-      <div class="et-empty" role="status">
+      <div class="rb-admin-empty" role="status">
         <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span
         >{{ 'email-templates-loading' | i18next }}
       </div>
@@ -145,7 +144,7 @@
 
       <!-- Tabs -->
       <div
-        class="et-tabs"
+        class="nav nav-tabs"
         role="tablist"
         [attr.aria-label]="'email-templates-tabs-label' | i18next"
         (keydown)="onTabKeydown($event)"
@@ -154,7 +153,7 @@
           type="button"
           role="tab"
           id="et-tab-edit"
-          class="et-tab"
+          class="nav-link"
           aria-controls="et-panel-edit"
           [class.active]="tab === 'edit'"
           [attr.aria-selected]="tab === 'edit'"
@@ -167,7 +166,7 @@
           type="button"
           role="tab"
           id="et-tab-history"
-          class="et-tab"
+          class="nav-link"
           aria-controls="et-panel-history"
           [class.active]="tab === 'history'"
           [attr.aria-selected]="tab === 'history'"
@@ -182,9 +181,9 @@
       <div id="et-panel-edit" role="tabpanel" aria-labelledby="et-tab-edit" [hidden]="tab !== 'edit'">
         <div class="et-split">
           <div class="et-split-col">
-            <section class="card et-pane" aria-labelledby="et-pane-template">
-              <div class="card-header et-pane-header">
-                <h2 id="et-pane-template" class="et-pane-title">
+            <section class="card rb-ws-pane" aria-labelledby="et-pane-template">
+              <div class="card-header">
+                <h2 id="et-pane-template" class="rb-ws-pane-title">
                   <i class="fa-solid fa-pen-to-square me-2" aria-hidden="true"></i
                   >{{ 'email-templates-template-pane' | i18next }}
                 </h2>
@@ -227,8 +226,10 @@
                 </div>
 
                 <fieldset class="et-fieldset mb-3" [disabled]="busy !== null">
-                  <legend class="et-section-label et-legend">{{ 'email-templates-format-label' | i18next }}</legend>
-                  <div class="btn-group btn-group-sm" role="group">
+                  <legend id="et-format-label" class="et-section-label et-legend">
+                    {{ 'email-templates-format-label' | i18next }}
+                  </legend>
+                  <div class="et-format-options" role="group" aria-labelledby="et-format-label">
                     <input
                       type="radio"
                       class="btn-check"
@@ -411,9 +412,9 @@
           </div>
 
           <div class="et-split-col">
-            <section class="card et-pane et-preview-pane" aria-labelledby="et-pane-preview">
-              <div class="card-header et-pane-header">
-                <h2 id="et-pane-preview" class="et-pane-title">
+            <section class="card rb-ws-pane et-preview-pane" aria-labelledby="et-pane-preview">
+              <div class="card-header">
+                <h2 id="et-pane-preview" class="rb-ws-pane-title">
                   <i class="fa-regular fa-eye me-2" aria-hidden="true"></i
                   >{{ 'email-templates-preview-pane' | i18next }}
                 </h2>
@@ -462,31 +463,31 @@
                       'email-templates-context-label' | i18next
                     }}</label>
                     @if (contextEdited) {
-                      <span class="et-badge et-badge-muted et-context-edited">{{
+                      <span class="badge et-badge et-badge-muted et-context-edited">{{
                         'email-templates-context-edited' | i18next
                       }}</span>
                     }
-                    <span class="flex-grow-1"></span>
                     @if (!integrationContext) {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-link px-0 et-context-action"
-                        [disabled]="!contextSchema || busy !== null"
-                        [attr.title]="contextSchema ? null : ('email-templates-sample-unavailable' | i18next)"
-                        (click)="requestSample()"
-                      >
-                        <i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i
-                        >{{ 'email-templates-sample-action' | i18next }}
-                      </button>
-                      <span class="et-context-sep" aria-hidden="true"></span>
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-link px-0 et-context-action"
-                        [disabled]="recordContextText === null || !contextEdited || busy !== null"
-                        (click)="resetContext()"
-                      >
-                        {{ 'email-templates-context-reset' | i18next }}
-                      </button>
+                      <div class="rb-admin-page-actions et-context-actions">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-link px-0 et-context-action"
+                          [disabled]="!contextSchema || busy !== null"
+                          [attr.title]="contextSchema ? null : ('email-templates-sample-unavailable' | i18next)"
+                          (click)="requestSample()"
+                        >
+                          <i class="fa-solid fa-wand-magic-sparkles me-1" aria-hidden="true"></i
+                          >{{ 'email-templates-sample-action' | i18next }}
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-link px-0 et-context-action"
+                          [disabled]="recordContextText === null || !contextEdited || busy !== null"
+                          (click)="resetContext()"
+                        >
+                          {{ 'email-templates-context-reset' | i18next }}
+                        </button>
+                      </div>
                     }
                   </div>
                   <p id="et-context-scope" class="et-context-scope">
@@ -584,7 +585,7 @@
                   <span class="flex-grow-1"></span>
                   @if (content.format === 'html' || previewSource === 'default') {
                     <div
-                      class="btn-group btn-group-sm"
+                      class="rb-admin-segmented"
                       role="group"
                       [attr.aria-label]="'email-templates-preview-mode-label' | i18next"
                     >
@@ -695,8 +696,8 @@
           </div>
         </div>
 
-        <div class="et-footer">
-          <div class="et-footer-status">
+        <div class="rb-ws-footer et-footer">
+          <div class="rb-ws-footer-status et-footer-status">
             @if (saving) {
               <span
                 ><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span
@@ -727,7 +728,7 @@
               <i class="fa-solid fa-circle-info me-1" aria-hidden="true"></i>{{ publishBlocker | i18next }}
             </div>
           }
-          <div class="et-footer-actions">
+          <div class="rb-ws-footer-actions et-footer-actions">
             @if (hasDraft || dirty) {
               <button
                 type="button"
@@ -786,7 +787,7 @@
       </div>
     }
   </div>
-</div>
+</section>
 
 <!-- Dialogs -->
 <email-templates-dialog
@@ -862,9 +863,10 @@
   [open]="dialog === 'reset'"
   [heading]="'email-templates-reset-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-reset-description"
   (dismissed)="dismissDialog()"
 >
-  <p class="mb-0">
+  <p id="et-reset-description" class="mb-0">
     {{ 'email-templates-reset-body' | i18next: { brand: brandName, version: liveVersion, interpolation: raw } }}
   </p>
   <ng-container dialog-footer>
@@ -877,7 +879,7 @@
     >
       {{ 'email-templates-cancel' | i18next }}
     </button>
-    <button type="button" class="btn btn-danger" [disabled]="busy !== null" (click)="confirmReset()">
+    <button type="button" class="btn rb-admin-danger-confirm" [disabled]="busy !== null" (click)="confirmReset()">
       {{ 'email-templates-reset-confirm' | i18next }}
     </button>
   </ng-container>
@@ -888,9 +890,10 @@
   [open]="dialog === 'discard'"
   [heading]="'email-templates-discard-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-discard-description"
   (dismissed)="dismissDialog()"
 >
-  <p class="mb-0">{{ 'email-templates-discard-body' | i18next }}</p>
+  <p id="et-discard-description" class="mb-0">{{ 'email-templates-discard-body' | i18next }}</p>
   <ng-container dialog-footer>
     <button
       type="button"
@@ -901,7 +904,7 @@
     >
       {{ 'email-templates-cancel' | i18next }}
     </button>
-    <button type="button" class="btn btn-danger" [disabled]="busy !== null" (click)="confirmDiscard()">
+    <button type="button" class="btn rb-admin-danger-confirm" [disabled]="busy !== null" (click)="confirmDiscard()">
       {{ 'email-templates-action-discard' | i18next }}
     </button>
   </ng-container>
@@ -912,9 +915,10 @@
   [open]="dialog === 'change-record'"
   [heading]="'email-templates-change-record-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-change-record-description"
   (dismissed)="dismissDialog()"
 >
-  <p class="mb-0">
+  <p id="et-change-record-description" class="mb-0">
     {{
       'email-templates-change-record-body'
         | i18next: { title: pendingRecord?.title || pendingRecord?.oid, interpolation: raw }
@@ -941,9 +945,10 @@
   [open]="dialog === 'from-default'"
   [heading]="'email-templates-from-default-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-from-default-description"
   (dismissed)="dismissDialog()"
 >
-  <p class="mb-0">{{ 'email-templates-from-default-body' | i18next }}</p>
+  <p id="et-from-default-description" class="mb-0">{{ 'email-templates-from-default-body' | i18next }}</p>
   <ng-container dialog-footer>
     <button
       type="button"
@@ -965,9 +970,10 @@
   [open]="dialog === 'restore'"
   [heading]="'email-templates-restore-title' | i18next: { version: pendingRestore?.version }"
   [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-restore-description"
   (dismissed)="dismissDialog()"
 >
-  <p class="mb-0">{{ 'email-templates-restore-body' | i18next }}</p>
+  <p id="et-restore-description" class="mb-0">{{ 'email-templates-restore-body' | i18next }}</p>
   <ng-container dialog-footer>
     <button
       type="button"
@@ -1044,9 +1050,10 @@
   [open]="dialog === 'sample'"
   [heading]="'email-templates-sample-title' | i18next"
   [closeLabel]="'email-templates-close' | i18next"
+  describedBy="et-sample-description"
   (dismissed)="dismissDialog()"
 >
-  <p class="mb-0">
+  <p id="et-sample-description" class="mb-0">
     {{ 'email-templates-sample-body' | i18next: { type: contextSchemaLabel, interpolation: raw } }}
   </p>
   <ng-container dialog-footer>
