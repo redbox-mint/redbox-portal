@@ -758,6 +758,13 @@ describe('API routes contract layer', function () {
     }
   });
 
+  it('should retain Companion attachment authorization when record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    expect(recordPolicies.doAttachment).to.include('companionAttachmentUploadAuth');
+    expect(recordPolicies.doAttachment.indexOf('companionAttachmentUploadAuth')).to.be.lessThan(recordPolicies.doAttachment.indexOf('checkAuth'));
+    expect(recordPolicies.bulkDeletedRecords).to.include('validateApiContractRequest');
+  });
+
   it('should build and merge contract validation policies for hook API routes', function () {
     const hookRoute: ApiRouteDefinition = {
       method: 'post',

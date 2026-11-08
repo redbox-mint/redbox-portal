@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import { firstValueFrom } from 'rxjs';
 
 /** Real session policies and CSRF; run with the mounted Mocha integration suite. */
@@ -13,15 +14,8 @@ describe('Admin deleted-record bulk AJAX routes', function () {
 
   before(async () => {
     const app = (sails as any).hooks.http.app;
-    admin = supertest.agent(app);
-    await admin.get('/default/rdmp/user/login').expect(200);
-    token = sails.config.security.csrf === false ? '' : (await admin.get('/csrfToken')).body._csrf;
-    await admin
-      .post('/user/login_local')
-      .set('X-CSRF-Token', token)
-      .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
-      .expect(200);
-    token = sails.config.security.csrf === false ? '' : (await admin.get('/csrfToken')).body._csrf;
+    admin = await loginSession();
+    token = await csrfToken(admin);
     const brand = BrandingService.getDefault();
     const username = `bulkdeleted${Date.now()}`;
     const user = await firstValueFrom(
@@ -29,15 +23,8 @@ describe('Admin deleted-record bulk AJAX routes', function () {
     );
     userId = String(user.id);
     await firstValueFrom(UsersService.updateUserRoles(userId, RolesService.getRoleIds(brand.roles, ['Researcher'])));
-    researcher = supertest.agent(app);
-    await researcher.get('/default/rdmp/user/login').expect(200);
-    researcherToken = sails.config.security.csrf === false ? '' : (await researcher.get('/csrfToken')).body._csrf;
-    await researcher
-      .post('/user/login_local')
-      .set('X-CSRF-Token', researcherToken)
-      .send({ username, password: 'RBTest123!', branding: 'default', portal: 'rdmp' })
-      .expect(200);
-    researcherToken = sails.config.security.csrf === false ? '' : (await researcher.get('/csrfToken')).body._csrf;
+    researcher = await loginSession(username, 'RBTest123!');
+    researcherToken = await csrfToken(researcher);
   });
   after(async () => {
     if (userId) await User.destroy({ id: userId });
@@ -45,7 +32,6 @@ describe('Admin deleted-record bulk AJAX routes', function () {
 
   it('rejects a session mutation without a CSRF token', async function () {
     // The standard Mocha compose explicitly disables CSRF; exercise this check when enabled.
-    if (sails.config.security.csrf === false) this.skip();
     await admin.post(path).send({ action: 'restore', items: [] }).expect(403);
   });
   it('rejects a non-admin even with a valid CSRF token', async () => {
