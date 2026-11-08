@@ -80,7 +80,7 @@ function applyCheckAuth(
         return;
       } else {
         const contentTypeHeader = req.headers['content-type'] == null ? '' : req.headers['content-type'];
-        if (contentTypeHeader.indexOf('application/json') !== -1) {
+        if (/(?:^|\/)api(?:\/|$)/.test(req.path) || contentTypeHeader.indexOf('application/json') !== -1) {
           res.status(403).json({ message: 'Access Denied' });
           return;
         } else {
