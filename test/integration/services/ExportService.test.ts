@@ -205,9 +205,10 @@ describe('Background admin CSV export integration', function () {
       for (const suffix of ['', `/${queued.id}`, `/${queued.id}/download`]) {
         await agent.get(`${baseUrl}${suffix}`).set('Content-Type', 'application/json').expect(403);
       }
+      const token = await csrf(agent);
       await agent
         .post(baseUrl)
-        .send({ format: 'csv', recType: 'rdmp', _csrf: await csrf(agent) })
+        .send({ format: 'csv', recType: 'rdmp', _csrf: token })
         .expect(403);
       await deleteExport(queued.id, agent, 403);
     }
@@ -445,11 +446,13 @@ describe('Background admin CSV export integration', function () {
       { format: 'csv', recType: 'missing-record-type' },
       { format: 'csv', recType: 'rdmp', before: 'not-a-date' },
       { format: 'csv', recType: 'rdmp', before: '2026-01-01T00:00:00.000Z', after: '2026-02-01T00:00:00.000Z' },
-    ])
+    ]) {
+      const token = await csrf(librarian);
       await librarian
         .post(baseUrl)
-        .send({ ...input, _csrf: await csrf(librarian) })
+        .send({ ...input, _csrf: token })
         .expect(400);
+    }
     assert.equal(await collection().countDocuments({ requestedByUserId: ownerId }), count);
   });
 
