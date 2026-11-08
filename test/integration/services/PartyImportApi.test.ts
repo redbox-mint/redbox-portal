@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import * as sinon from 'sinon';
 
 /** Transport/auth/CSRF coverage; service unit tests exercise parsing and the real create handoff. */
@@ -10,12 +11,8 @@ describe('Party CSV import API', function () {
   const path = '/default/rdmp/admin/parties/import';
   const app = () => (sails as any).hooks.http.app;
   before(async () => {
-    admin = supertest.agent(app());
-    await admin.get('/default/rdmp/user/login').expect(200);
-    csrf = sails.config.security.csrf === false ? '' : (await admin.get('/csrfToken').expect(200)).body._csrf;
-    await admin.post('/user/login_local').set('X-CSRF-Token', csrf).set('X-Source', 'jsclient').send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' }).expect(200);
-    // Login rotates the session; use its current CSRF token for subsequent writes.
-    csrf = sails.config.security.csrf === false ? '' : (await admin.get('/csrfToken').expect(200)).body._csrf;
+    admin = await loginSession();
+    csrf = await csrfToken(admin);
   });
   afterEach(() => sinon.restore());
   after(async () => {
