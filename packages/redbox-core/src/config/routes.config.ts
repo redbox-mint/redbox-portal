@@ -28,7 +28,7 @@ export interface RoutesConfig {
 
 export const routes: RoutesConfig = {
   // CSRF Token
-  'GET /csrfToken': { action: 'security/grant-csrf-token' },
+  'GET /csrfToken': { action: 'security/grant-csrf-token', csrf: true },
 
   // Home routes (demo hook overrides to /default/rdmp/home)
   '/:branding/:portal/home': {
