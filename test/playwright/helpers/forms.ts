@@ -24,6 +24,13 @@ export async function fillField(page: Page, label: string, value: string): Promi
 export async function saveForm(page: Page): Promise<void> {
   const save = page.getByRole('button', { name: /save/i }).first();
   await expect(save).toBeEnabled();
+  const saved = page.waitForResponse(response =>
+    ['POST', 'PUT'].includes(response.request().method()) &&
+    new URL(response.url()).pathname.includes('/recordmeta/')
+  );
   await save.click();
+  const response = await saved;
+  expect(response.ok()).toBeTruthy();
+  expect(await response.finished()).toBeNull();
   await expect(page.locator('redbox-form-save-status [role="status"]')).toContainText(/saved|success/i);
 }
