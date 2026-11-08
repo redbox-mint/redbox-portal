@@ -49,6 +49,7 @@ describe('TranslationService', function () {
     (global as any).I18nBundle = mockI18nBundle;
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
+      getBrandById: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
       getBrandNameFromReq: sinon.stub().returns('default'),
       getAvailable: sinon.stub().returns(['default'])
     };
@@ -243,8 +244,13 @@ describe('TranslationService', function () {
         }
       };
 
+      const originalT = TranslationService.t;
+      const originalTInter = TranslationService.tInter;
       await TranslationService.handle(req, res, next);
 
+      expect(req.options.locals.TranslationService).not.to.equal(TranslationService);
+      expect(TranslationService.t).to.equal(originalT);
+      expect(TranslationService.tInter).to.equal(originalTInter);
       expect(req.session.lang).to.equal('de');
     });
 
@@ -277,9 +283,13 @@ describe('TranslationService', function () {
       const clearStub = sinon.stub(TranslationService, 'clearInstances').resolves();
       TranslationService.i18nextInstances = { 'brand-1': { mock: true } };
 
+      (global as any).BrandingService.getBrand.returns(undefined);
+      const rebuild = sinon.stub(TranslationService, 'getI18nextForBranding').resolves(mockI18nextInstance);
       await TranslationService.reloadResources('brand-1');
 
       expect(clearStub.calledWith('brand-1')).to.be.true;
+      expect(rebuild.calledOnceWithExactly({ id: 'brand-1', name: 'default' })).to.be.true;
+      rebuild.restore();
 
       clearStub.restore();
     });

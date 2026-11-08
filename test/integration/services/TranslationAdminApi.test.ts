@@ -1,4 +1,5 @@
 import supertest from 'supertest';
+import { csrfToken, loginSession } from '../helpers/admin-session';
 import { firstValueFrom } from 'rxjs';
 
 /** Session routes and real persistence; isolated locale removed in teardown. */
@@ -12,17 +13,8 @@ describe('Translation admin API', function () {
   let userId: string;
   let brand: any;
   const app = () => (sails as any).hooks.http.app;
-  const token = async (agent: supertest.Agent) => {
-    await agent.get('/default/rdmp/user/login').expect(200);
-    if (sails.config.security.csrf === false) return '';
-    return (await agent.get('/csrfToken').expect(200)).body._csrf;
-  };
-  const login = async (username: string, password: string) => {
-    const agent = supertest.agent(app());
-    await agent.post('/user/login_local').set('X-CSRF-Token', await token(agent))
-      .set('X-Source', 'jsclient').send({ username, password, branding: 'default', portal: 'rdmp' }).expect(200);
-    return agent;
-  };
+  const token = csrfToken;
+  const login = loginSession;
   before(async () => {
     brand = BrandingService.getBrand('default');
     const suffix = `translationfixture${Date.now()}`;
@@ -45,12 +37,11 @@ describe('Translation admin API', function () {
   it('requires brand Admin and session CSRF', async function () {
     const anonymous = supertest.agent(app());
     for (const agent of [anonymous, ordinary]) {
-      await agent.post(base + '/display-name').set('X-CSRF-Token', await token(agent)).send({ displayName: 'Forbidden' }).expect(403);
+      const agentToken = await token(agent);
+      await agent.post(base + '/display-name').set('X-CSRF-Token', agentToken).send({ displayName: 'Forbidden' }).expect(403);
     }
-    if (sails.config.security.csrf !== false) {
-      await admin.post(base + '/display-name').send({ displayName: 'Forbidden' }).expect(403);
-      await admin.post(base + '/display-name').set('X-CSRF-Token', 'invalid').send({ displayName: 'Forbidden' }).expect(403);
-    }
+    await admin.post(base + '/display-name').send({ displayName: 'Forbidden' }).expect(403);
+    await admin.post(base + '/display-name').set('X-CSRF-Token', 'invalid').send({ displayName: 'Forbidden' }).expect(403);
   });
   it('updates only the display name and rejects tenant/data injection', async () => {
     const bundle = await I18nEntriesService.getBundle(brand, locale, 'translation');
@@ -75,7 +66,8 @@ describe('Translation admin API', function () {
     await admin.post(base + '/revert').set('X-CSRF-Token', csrf).send({ key: 'unknown' }).expect(404);
     await ordinary.get(base + '/editor').expect(403);
     await ordinary.get('/default/rdmp/admin/translation/languages').expect(403);
-    await ordinary.post(base + '/revert').set('X-CSRF-Token', await token(ordinary)).send({ key: 'menu-admin' }).expect(403);
+    const ordinaryToken = await token(ordinary);
+    await ordinary.post(base + '/revert').set('X-CSRF-Token', ordinaryToken).send({ key: 'menu-admin' }).expect(403);
   });
 
   it('previews, exports and applies only allowed flat JSON changes', async () => {
@@ -107,8 +99,9 @@ describe('Translation admin API', function () {
     }
     await admin.post(base + '/import/preview').set('X-CSRF-Token', csrf).send({ json: JSON.stringify({ label: 'é'.repeat(1100000) }) }).expect(413);
     for (const action of ['preview', 'apply']) {
-      await ordinary.post(base + '/import/' + action).set('X-CSRF-Token', await token(ordinary)).send({ json: '{}' }).expect(403);
-      if (sails.config.security.csrf !== false) await admin.post(base + '/import/' + action).send({ json: '{}' }).expect(403);
+      const ordinaryToken = await token(ordinary);
+      await ordinary.post(base + '/import/' + action).set('X-CSRF-Token', ordinaryToken).send({ json: '{}' }).expect(403);
+      await admin.post(base + '/import/' + action).send({ json: '{}' }).expect(403);
     }
     await ordinary.get(base + '/export').expect(403);
   });
