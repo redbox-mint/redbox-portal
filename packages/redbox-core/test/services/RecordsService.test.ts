@@ -5,6 +5,11 @@ import { of, firstValueFrom } from 'rxjs';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import assert from 'node:assert/strict';
+import { StorageServiceResponse } from '../../src/StorageServiceResponse';
+import { RecordAuditActionType, RecordAuditModel } from '../../src/model/storage/RecordAuditModel';
+import { RecordWriteConflict } from '../../src/RecordWriteOptions';
+import { UserModel } from '../../src/model/storage/UserModel';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
 
 describe('RecordsService', function () {
@@ -626,44 +631,193 @@ describe('RecordsService', function () {
   });
 
   describe('auditRecord', function () {
-    it('should queue audit job when enabled', function () {
-      const record = { metadata: { title: 'Test' }, metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' } };
-      const user = { username: 'testuser' };
+    for (const environment of ['development', 'production', 'integrationtest']) {
+      it(`persists directly in ${environment} without enqueuing`, async function () {
+        mockSails.config.environment = environment;
+        const record = {
+          metadata: { title: 'Test' },
+          metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' },
+          authorization: { edit: ['testuser'] },
+          workflow: { stage: 'draft' }
+        };
+        const user = { username: 'testuser' };
 
-      RecordsService.auditRecord('record-123', record, user, 'updated');
+        await RecordsService.auditRecord('record-123', record, user);
 
-      expect(mockQueueService.now.called).to.be.true;
-      expect(mockQueueService.now.firstCall.args[0]).to.equal('RecordAudit');
-      expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-01T12:00:00Z');
-    });
+        sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+        const data = mockStorageService.createRecordAudit.firstCall.args[0];
+        expect(data).to.be.instanceOf(RecordAuditModel);
+        expect(data).to.include({ redboxOid: 'record-123', action: 'updated', occurredAt: '2026-03-01T12:00:00Z' });
+        expect(data.record).to.deep.equal(record);
+        expect(data.user).to.deep.equal(user);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
 
-    it('should not queue when auditing is disabled', function () {
-      mockSails.config.record.auditing.enabled = false;
-
-      RecordsService.auditRecord('record-123', {}, {}, 'updated');
-
-      expect(mockQueueService.now.called).to.be.false;
-    });
-
-    it('should skip when queue service is null', function () {
+    it('persists without a queue service or queue configuration', async function () {
       RecordsService.queueService = null;
+      delete mockSails.config.queue;
+      delete mockSails.services.agendaqueueservice;
+      delete mockSails.config.record.auditing.recordAuditJobName;
 
-      expect(() => {
-        RecordsService.auditRecord('record-123', {}, {}, 'updated');
-      }).to.not.throw();
+      await RecordsService.auditRecord('record-123', {}, {});
+
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.notCalled(mockQueueService.now);
     });
 
-    it('should remove password and token from user', function () {
+    it('awaits storage completion before resolving', async function () {
+      let finish!: (response: StorageServiceResponse) => void;
+      mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(resolve => { finish = resolve; }));
+      let completed = false;
+
+      const auditing = RecordsService.auditRecord('record-123', {}, {}).then(() => { completed = true; });
+      await Promise.resolve();
+      expect(completed).to.equal(false);
+
+      const response = new StorageServiceResponse();
+      response.success = true;
+      finish(response);
+      await auditing;
+      expect(completed).to.equal(true);
+    });
+
+    it('accepts the string true auditing setting', async function () {
+      mockSails.config.record.auditing.enabled = 'true';
+      await RecordsService.auditRecord('record-123', {}, {});
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+    });
+
+    for (const enabled of [false, 'false', undefined]) {
+      it(`skips storage and queue when auditing is ${enabled}`, async function () {
+        mockSails.config.record.auditing.enabled = enabled;
+        await RecordsService.auditRecord('record-123', {}, {});
+        sinon.assert.notCalled(mockStorageService.createRecordAudit);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
+
+    it('removes password and token before storage and logging', async function () {
       const user = { username: 'testuser', password: 'secret', token: 'token123' };
 
-      RecordsService.auditRecord('record-123', {}, user, 'updated');
+      await RecordsService.auditRecord('record-123', {}, user);
 
       expect(user.password).to.be.undefined;
       expect(user.token).to.be.undefined;
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].user).to.deep.equal({ username: 'testuser' });
+      const logs = mockSails.log.verbose.getCalls().map((call: sinon.SinonSpyCall) => call.args.join(' ')).join('\n');
+      expect(logs).not.to.include('secret');
+      expect(logs).not.to.include('token123');
+    });
+
+    it('normalizes class-backed snapshots without changing their serialized shape', async function () {
+      const snapshot = new StorageServiceResponse();
+      snapshot.success = true;
+      snapshot.metadata = { redboxOid: 'record-123', metadata: { title: 'Restored record' } };
+
+      await RecordsService.auditRecord('record-123', snapshot, {}, RecordAuditActionType.restored);
+
+      const data = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(Object.getPrototypeOf(data.record)).to.equal(Object.prototype);
+      expect(JSON.stringify(data.record)).to.equal(JSON.stringify(snapshot));
+      expect(data.action).to.equal('restored');
+    });
+
+    it('normalizes class-backed actors after redaction', async function () {
+      const actor = new UserModel();
+      actor.username = 'admin';
+      actor.password = 'actor-password';
+      actor.token = 'actor-token';
+      actor.lastLogin = new Date('2026-03-01T12:00:00Z');
+
+      await RecordsService.auditRecord('record-123', {}, actor);
+
+      const data = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(Object.getPrototypeOf(data.user)).to.equal(Object.prototype);
+      expect(data.user.username).to.equal('admin');
+      expect(data.user).not.to.have.property('password');
+      expect(data.user).not.to.have.property('token');
+      expect(JSON.stringify(data.user)).to.equal(JSON.stringify(actor));
+    });
+
+    it('preserves a null actor when normalizing audit data', async function () {
+      await RecordsService.auditRecord('record-123', {}, null);
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].user).to.equal(null);
+    });
+
+    it('logs unserializable snapshots without failing the persisted record operation', async function () {
+      const record: { self?: unknown } = {};
+      record.self = record;
+
+      await RecordsService.auditRecord('record-123', record, {});
+
+      sinon.assert.notCalled(mockStorageService.createRecordAudit);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit for record-123');
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
+    for (const action of Object.values(RecordAuditActionType)) {
+      it(`preserves the ${action} action and its event timestamp`, async function () {
+        sinon.useFakeTimers(new Date('2026-03-03T12:00:00Z'));
+        const record = { metaMetadata: { createdOn: '2026-03-01T12:00:00Z', lastSaveDate: '2026-03-02T12:00:00Z' } };
+
+        await RecordsService.auditRecord('record-123', record, {}, action);
+
+        const data = mockStorageService.createRecordAudit.firstCall.args[0];
+        expect(data.action).to.equal(action);
+        const expectedTime = action === RecordAuditActionType.created ? record.metaMetadata.createdOn
+          : action === RecordAuditActionType.updated ? record.metaMetadata.lastSaveDate : '2026-03-03T12:00:00.000Z';
+        expect(data.occurredAt).to.equal(expectedTime);
+      });
+    }
+
+    for (const failure of [new Error('audit database unavailable'), new RecordWriteConflict()]) {
+      it(`logs a rejected audit write without rejecting the saved record operation (${failure.name})`, async function () {
+        mockStorageService.createRecordAudit.rejects(failure);
+
+        await RecordsService.auditRecord('record-123', {}, {});
+
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit for record-123 (updated)');
+        sinon.assert.calledWithMatch(mockSails.log.error, failure.message);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
+
+    for (const message of ['audit insert failed', '']) {
+      it(`logs an unsuccessful storage response without rejecting (${message || 'no message'})`, async function () {
+        const response = new StorageServiceResponse();
+        response.message = message;
+        mockStorageService.createRecordAudit.resolves(response);
+
+        await RecordsService.auditRecord('record-123', {}, {});
+
+        sinon.assert.calledWithMatch(mockSails.log.error, message || 'unsuccessful record audit response');
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
+
+    it('logs missing storage capability without rejecting', async function () {
+      delete mockStorageService.createRecordAudit;
+
+      await RecordsService.auditRecord('record-123', {}, {});
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Storage service does not support createRecordAudit');
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
+    it('keeps a persisted partial record update successful when its audit fails', async function () {
+      mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true, recordVersion: 2 });
+      mockStorageService.createRecordAudit.rejects(new Error('audit insert failed'));
+
+      const result = await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Saved' }, 1, ['metadata.title'], {});
+
+      expect(result).to.deep.equal({ updated: true, recordVersion: 2 });
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'audit insert failed');
     });
   });
 
-  it('queues partial-write audits with the newer top-level save time', async function () {
+  it('persists partial-write audits with the newer top-level save time', async function () {
     mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true, recordVersion: 2 });
     mockStorageService.getMeta.resolves({
       redboxOid: 'record-123',
@@ -674,21 +828,75 @@ describe('RecordsService', function () {
 
     await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Updated by Figshare' }, 1, ['metadata.title'], {});
 
-    expect(mockQueueService.now.calledOnce).to.be.true;
-    expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-02T12:00:00Z');
+    sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+    expect(mockStorageService.createRecordAudit.firstCall.args[0].occurredAt).to.equal('2026-03-02T12:00:00Z');
+    sinon.assert.notCalled(mockQueueService.now);
   });
 
   describe('storeRecordAudit', function () {
-    it('should store audit via storage service', function () {
-      const job = {
-        attrs: {
-          data: { id: 'record-123', action: 'updated' }
-        }
-      };
+    for (const wrapped of [true, false]) {
+      it(`persists a legacy ${wrapped ? 'attrs.data' : 'attrs'} payload unchanged even when new audits are disabled`, async function () {
+        mockSails.config.record.auditing.enabled = false;
+        const data = { redboxOid: 'record-123', action: 'updated', user: { username: 'testuser' }, record: { lastSaveDate: '2026-03-01T12:00:00Z' } };
 
-      RecordsService.storeRecordAudit(job);
+        await RecordsService.storeRecordAudit({ attrs: wrapped ? { data } : data });
 
-      expect(mockStorageService.createRecordAudit.called).to.be.true;
+        sinon.assert.calledOnceWithExactly(mockStorageService.createRecordAudit, data);
+        expect(data).not.to.have.property('occurredAt');
+      });
+    }
+
+    it('does not complete the job until persistence finishes', async function () {
+      let finish!: (response: StorageServiceResponse) => void;
+      mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(resolve => { finish = resolve; }));
+      let completed = false;
+
+      const storing = Promise.resolve(RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }))
+        .then(() => { completed = true; });
+      await Promise.resolve();
+      expect(completed).to.equal(false);
+
+      const response = new StorageServiceResponse();
+      response.success = true;
+      finish(response);
+      await storing;
+      expect(completed).to.equal(true);
+    });
+
+    it('preserves explicit event time in queued snapshots', async function () {
+      const data = { redboxOid: 'record-123', occurredAt: '2026-03-01T12:00:00Z', action: 'deleted', record: { lastSaveDate: '2026-02-01T12:00:00Z' } };
+      await RecordsService.storeRecordAudit({ attrs: { data } });
+      sinon.assert.calledOnceWithExactly(mockStorageService.createRecordAudit, data);
+    });
+
+    it('rejects and logs storage rejections so Agenda can fail the job', async function () {
+      const failure = new Error('audit database unavailable');
+      mockStorageService.createRecordAudit.rejects(failure);
+
+      await assert.rejects(RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }), error => error === failure);
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to store legacy record audit for record-123');
+      sinon.assert.calledWithMatch(mockSails.log.error, failure.message);
+    });
+
+    for (const message of ['audit insert failed', '']) {
+      it(`rejects unsuccessful storage responses so Agenda can fail the job (${message || 'no message'})`, async function () {
+        const response = new StorageServiceResponse();
+        response.message = message;
+        mockStorageService.createRecordAudit.resolves(response);
+
+        await assert.rejects(RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }), /audit insert failed|unsuccessful record audit response/);
+
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to store legacy record audit for record-123');
+      });
+    }
+
+    it('rejects missing storage capability so Agenda can fail the job', async function () {
+      delete mockStorageService.createRecordAudit;
+
+      await assert.rejects(RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }), /does not support createRecordAudit/);
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to store legacy record audit for record-123');
     });
   });
 

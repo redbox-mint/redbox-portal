@@ -218,6 +218,14 @@ export module Controllers {
 
 See [Controllers Architecture](Controllers-Architecture) for controller locations, shim generation, and `init()` usage.
 
+## Record audit persistence
+
+When `record.auditing.enabled` is `true` (or the string `"true"`), `RecordsService.auditRecord()` writes through the configured storage service's `createRecordAudit()` method and awaits its result. New audits do not use Agenda or require a queue service. Snapshots, actors (with password and token removed), actions, and event timestamps retain the existing audit format.
+
+Record and audit writes are separate operations. If audit storage is unavailable, rejects, or returns an unsuccessful response, the service logs the record ID, action, and failure reason. The already persisted record operation remains successful. There is no automatic retry for these new audit writes; operators should investigate audit errors in the application logs.
+
+The `RecordsService-StoreRecordAudit` Agenda job, `record.auditing.recordAuditJobName` setting, and `storeRecordAudit()` worker remain available to drain outstanding jobs after rollout. The worker accepts the existing `job.attrs.data` payload and legacy `job.attrs` fallback without rebuilding the snapshot or event time. It awaits storage and rejects on failure so Agenda can record the failed job. Disabling new audits does not prevent outstanding jobs from draining. No queued data is deleted or migrated by this change.
+
 ## User Management Notes
 
 Recent user-management work extends `UsersService` beyond simple CRUD. It now also owns:

@@ -131,6 +131,7 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
+        // Retained to drain audit snapshots queued before RecordsService began writing audits directly.
         'RecordsService-StoreRecordAudit': {
             fnName: 'recordsservice.storeRecordAudit',
             options: {

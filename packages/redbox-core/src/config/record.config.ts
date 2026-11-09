@@ -5,6 +5,7 @@
 
 export interface RecordAuditingConfig {
     enabled: boolean;
+    /** Legacy Agenda job name retained for outstanding audit jobs; new audits write directly to storage. */
     recordAuditJobName: string;
 }
 

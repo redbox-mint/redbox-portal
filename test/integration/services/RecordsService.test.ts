@@ -1,4 +1,5 @@
 import { firstValueFrom } from 'rxjs';
+import { StorageServiceResponse, UserModel } from '@researchdatabox/redbox-core';
 
 describe('The RecordsService', function () {
   this.timeout(60_000);
@@ -89,7 +90,7 @@ describe('The RecordsService', function () {
         },
       },
       recordType,
-      { username: 'admin' },
+      { username: 'admin', password: 'audit-password', token: 'audit-token' },
       false,
       false
     );
@@ -97,6 +98,14 @@ describe('The RecordsService', function () {
     expect(createResponse.isSuccessful()).to.equal(true);
     const oid = String(createResponse.oid);
     createdOids.push(oid);
+
+    // A completed save exposes its audit immediately, without waiting for an Agenda worker.
+    const audits = await RecordAudit.find({ redboxOid: oid, action: 'created' });
+    expect(audits).to.have.length(1);
+    expect(audits[0].action).to.equal('created');
+    expect(audits[0].record.metadata.title).to.equal('RecordsService permission summary integration test');
+    expect(audits[0].occurredAt).to.equal(audits[0].record.metaMetadata.createdOn);
+    expect(audits[0].user).to.deep.equal({ username: 'admin' });
 
     const summary = await recordsService.getResolvedPermissionsSummary(oid);
 
@@ -123,5 +132,60 @@ describe('The RecordsService', function () {
     expect(summary.viewRoles).to.deep.equal(['Librarians']);
     expect(summary.editPending).to.deep.equal(['pending-edit@example.edu.au']);
     expect(summary.viewPending).to.deep.equal(['pending-view@example.edu.au']);
+  });
+
+  it('retains the restored response snapshot and class-backed actor through the Mongo audit sanitizer', async function () {
+    const oid = `records-service-restored-audit-${Date.now()}`;
+    createdOids.push(oid);
+    const brand = BrandingService.getDefault();
+    await DeletedRecord.create({
+      redboxOid: oid,
+      deletedRecordMetadata: {
+        redboxOid: oid,
+        metadata: { title: 'Restored record audit regression' },
+        metaMetadata: { brandId: brand.id, type: 'rdmp', createdBy: 'admin' },
+        workflow: { stage: 'draft' },
+        authorization: { edit: ['admin'], view: ['admin'] }
+      }
+    });
+    const actor = new UserModel();
+    actor.username = 'admin';
+    actor.password = 'restore-password';
+    actor.token = 'restore-token';
+    actor.lastLogin = new Date('2026-03-01T12:00:00Z');
+    const startedAt = Date.now();
+
+    const response = await recordsService.restoreRecord(oid, actor);
+
+    expect(response).to.be.instanceOf(StorageServiceResponse);
+    expect(response.isSuccessful()).to.equal(true);
+    const audits = await RecordAudit.find({ redboxOid: oid, action: 'restored' });
+    expect(audits).to.have.length(1);
+    expect(audits[0].record).to.deep.equal(JSON.parse(JSON.stringify(response)));
+    expect(audits[0].record.metadata.metadata.title).to.equal('Restored record audit regression');
+    expect(audits[0].user).to.deep.equal(JSON.parse(JSON.stringify(actor)));
+    expect(audits[0].user).to.include({ username: 'admin', lastLogin: '2026-03-01T12:00:00.000Z' });
+    expect(audits[0].user).not.to.have.property('password');
+    expect(audits[0].user).not.to.have.property('token');
+    expect(Date.parse(audits[0].occurredAt)).to.be.within(startedAt, Date.now());
+  });
+
+  it('persists an outstanding legacy audit before the worker completes', async function () {
+    const oid = `records-service-legacy-audit-${Date.now()}`;
+    createdOids.push(oid);
+    const data = {
+      redboxOid: oid,
+      action: 'updated',
+      user: { username: 'admin' },
+      record: { metadata: { title: 'Legacy snapshot' }, lastSaveDate: '2026-03-01T12:00:00Z' }
+    };
+
+    await recordsService.storeRecordAudit({ attrs: { data } });
+
+    const audits = await RecordAudit.find({ redboxOid: oid });
+    expect(audits).to.have.length(1);
+    expect(audits[0].record).to.deep.equal(data.record);
+    expect(audits[0].user).to.deep.equal(data.user);
+    expect(audits[0].action).to.equal('updated');
   });
 });

@@ -1278,58 +1278,54 @@ export namespace Services {
       record: AnyRecord,
       user: AnyRecord,
       action: RecordAuditActionType = RecordAuditActionType.updated
-    ) {
-      const auditingEnabled = sails.config.record.auditing.enabled as unknown;
+    ): Promise<void> {
+      const auditingEnabled: unknown = sails.config.record.auditing.enabled;
       if (auditingEnabled !== true && auditingEnabled !== 'true') {
         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
         return;
       }
-      sails.log.verbose(`${this.logHeader} adding record audit job: ${id} with data:`);
-      _.unset(user, 'password');
-      _.unset(user, 'token');
-      // storage_id is used as the main ID in searches
-      const data = new RecordAuditModel(id, record, user, action);
-      sails.log.verbose(JSON.stringify(data));
-      const envName = String((sails.config as AnyRecord).environment ?? process.env.NODE_ENV ?? '');
-      if (envName === 'integrationtest') {
-        const storageServiceAny = this.storageService as unknown as AnyRecord;
-        try {
-          await (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(data);
-        } catch (err) {
-            if (err instanceof RecordWriteConflict) throw err;
-          sails.log.error(`${this.logHeader} Failed to create record audit in integrationtest:`);
-          sails.log.error(JSON.stringify(err));
+      try {
+        _.unset(user, 'password');
+        _.unset(user, 'token');
+        const data = new RecordAuditModel(id, record, user, action);
+        // Agenda previously flattened these class instances. Keep their enumerable data plain for the storage sanitizer.
+        data.record = record == null ? record : { ...record };
+        data.user = user == null ? user : { ...user };
+        sails.log.verbose(`${this.logHeader} Storing record audit: ${id} with data:`);
+        sails.log.verbose(JSON.stringify(data));
+        if (typeof this.storageService?.createRecordAudit !== 'function') {
+          throw new Error('Storage service does not support createRecordAudit');
         }
-        return;
+        const response = await this.storageService.createRecordAudit(data);
+        if (response.success !== true) {
+          throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
+        }
+      } catch (err) {
+        // Record persistence has already completed. An audit failure must not turn that save into a reported failure.
+        sails.log.error(`${this.logHeader} Failed to persist record audit for ${id} (${action}); keeping the record operation successful: ${this.describeError(err)}`);
       }
-      if (this.queueService == null) {
-        sails.log.verbose(`${this.logHeader} Queue service isn't defined. Skipping auditing`);
-        return;
-      }
-      await this.queueService.now(sails.config.record.auditing.recordAuditJobName, data);
     }
 
-    public storeRecordAudit(job: AnyRecord) {
-      const jobObj = job as AnyRecord;
-      const jobAttrs = (jobObj.attrs ?? {}) as AnyRecord;
-      const data = ((jobAttrs as AnyRecord).data ?? jobAttrs) as AnyRecord;
-      sails.log.verbose(`${this.logHeader} Storing record Audit entry: `);
-      sails.log.verbose(JSON.stringify(data));
-      const storageServiceAny = this.storageService as unknown as AnyRecord;
-      (storageServiceAny.createRecordAudit as (...args: unknown[]) => Promise<unknown>)(data)
-        .then((response: unknown) => {
-          const responseObj = response as StorageServiceResponse;
-          if (responseObj.isSuccessful()) {
-            sails.log.verbose(`${this.logHeader} Record Audit stored successfully `);
-          } else {
-            sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record:`);
-            sails.log.verbose(JSON.stringify(responseObj));
-          }
-        })
-        .catch((err: unknown) => {
-          sails.log.error(`${this.logHeader} Failed to storeRecordAudit for record: `);
-          sails.log.error(JSON.stringify(err));
-        });
+    /** Drain audit jobs queued before direct persistence was introduced, preserving their original payloads. */
+    public async storeRecordAudit(job: AnyRecord): Promise<void> {
+      const jobAttrs = job.attrs ?? {};
+      const data = _.get(jobAttrs, 'data') ?? jobAttrs;
+      try {
+        sails.log.verbose(`${this.logHeader} Storing legacy record audit entry: `);
+        sails.log.verbose(JSON.stringify(data));
+        if (typeof this.storageService?.createRecordAudit !== 'function') {
+          throw new Error('Storage service does not support createRecordAudit');
+        }
+        const response = await this.storageService.createRecordAudit(data);
+        if (response.success !== true) {
+          throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
+        }
+        sails.log.verbose(`${this.logHeader} Record audit stored successfully`);
+      } catch (err) {
+        sails.log.error(`${this.logHeader} Failed to store legacy record audit for ${_.get(data, 'redboxOid', 'unknown')}: ${this.describeError(err)}`);
+        // Unlike a new audit after a record save, a queued job must reject so Agenda records the failure.
+        throw err;
+      }
     }
 
     private info(): Promise<unknown> {
