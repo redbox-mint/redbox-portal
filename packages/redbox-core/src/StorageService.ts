@@ -39,6 +39,7 @@ export interface StorageService {
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(username: unknown, roles: unknown, brand: unknown, format: unknown, modBefore: unknown, modAfter: unknown, recType: unknown): Readable;
 
+  /** Writes carrying auditId must be idempotent. Set retryable=false only for permanent payload failures. */
   createRecordAudit?(record: unknown): Promise<StorageServiceResponse>;
   createIntegrationAudit?(record: unknown): Promise<StorageServiceResponse>;
   exists(oid: unknown): Promise<boolean>;

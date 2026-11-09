@@ -255,7 +255,7 @@ export namespace Services {
       const collectionName = String(_.get(sails.config.agendaQueue, 'options.collection', 'agendaJobs'));
       const jobsCollection = dbManager.collection(collectionName);
       const historyCollection = dbManager.collection(`${collectionName}History`);
-      const finishedFilter = { nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } };
+      const finishedFilter = { nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: { $type: 'date' } };
       const completedJobs = await jobsCollection.find(finishedFilter).toArray();
 
       for (const doc of completedJobs) {
@@ -376,7 +376,11 @@ export namespace Services {
             ? datastoreUrl
             : undefined;
         agendaOptions.backend = !_.isNil(address)
-          ? new MongoBackend({ address, collection: options.collection })
+          ? new MongoBackend({
+            address,
+            collection: options.collection,
+            options: { socketTimeoutMS: 30000, waitQueueTimeoutMS: 30000, ...options.mongoOptions }
+          })
           : new MongoBackend({ mongo: dbManager as Db, collection: options.collection });
         return new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
       }
@@ -425,10 +429,11 @@ export namespace Services {
       });
     }
 
-    private async createMongoIndexes(dbManager: { collection: (name: string) => { createIndex: (query: Record<string, number>) => Promise<unknown> } }, options: AgendaQueueOptions) {
+    private async createMongoIndexes(dbManager: { collection: (name: string) => { createIndex: (query: Record<string, number>, options?: { socketTimeoutMS: number; maxTimeMS: number }) => Promise<unknown> } }, options: AgendaQueueOptions) {
       const collectionName = String(options.collection ?? 'agendaJobs');
-      await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
-      await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
+      const indexBuildOptions = { socketTimeoutMS: 0, maxTimeMS: 0 };
+      await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 }, indexBuildOptions);
+      await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 }, indexBuildOptions);
     }
 
     private runConfiguredStartupSchedules(jobs: AgendaJobDefinition[]) {

@@ -24,6 +24,8 @@ export class StorageServiceResponse {
   success: boolean = false;
   oid: string = '';
   message: string = '';
+  /** False when retrying the same payload cannot succeed; omitted failures remain retryable. */
+  retryable?: boolean;
   metadata: Record<string, unknown> | null = null;
   details?: Record<string, unknown> | string;
   totalItems: number = 0;
