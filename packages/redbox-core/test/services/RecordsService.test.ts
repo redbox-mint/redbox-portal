@@ -9,6 +9,8 @@ import assert from 'node:assert/strict';
 import { StorageServiceResponse } from '../../src/StorageServiceResponse';
 import { RecordAuditActionType, RecordAuditModel } from '../../src/model/storage/RecordAuditModel';
 import { RecordWriteConflict } from '../../src/RecordWriteOptions';
+import { agendaQueue } from '../../src/config/agendaQueue.config';
+import { PermanentAuditWriteError } from '../../src/services/record-audit/writer';
 import { UserModel } from '../../src/model/storage/UserModel';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject, configureModelMethod } from './testHelper';
 
@@ -963,6 +965,15 @@ describe('RecordsService', function () {
       sinon.assert.notCalled(mockSails.log.error);
     });
 
+    it('retains a permanently rejected direct payload once for operator recovery', async function () {
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false, message: 'Invalid audit document' });
+      await RecordsService.auditRecord('record-123', { metadata: { title: 'Retain this snapshot' } }, { username: 'original' });
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(mockQueueService.now);
+      expect(mockQueueService.now.firstCall.args[1]).to.equal(mockStorageService.createRecordAudit.firstCall.args[0]);
+    });
+
     for (const queueState of ['missing', 'rejected', 'stalled']) {
       it(`reports recovery failure without failing the saved record when the queue is ${queueState}`, async function () {
         const clock = sinon.useFakeTimers();
@@ -1023,6 +1034,91 @@ describe('RecordsService', function () {
       await clock.tickAsync(10000);
       expect(await recovered).to.be.instanceOf(Error);
       sinon.assert.calledWithMatch(mockSails.log.error, 'Record audit recovery will retry');
+    });
+
+    it('pauses a permanent storage failure durably before stopping Agenda retries', async function () {
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false, message: 'Invalid audit document' });
+      const job = { attrs: { data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      let failure: Error | undefined;
+      await assert.rejects(RecordsService.recoverRecordAudit(job), error => {
+        failure = error as Error;
+        return error instanceof PermanentAuditWriteError;
+      });
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(job.disable);
+      sinon.assert.calledOnce(job.save);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'paused for operator inspection', {
+        event: 'record_audit_recovery_quarantined', auditId: data.auditId
+      });
+      const backoff = agendaQueue.jobs['RecordsService-RecoverRecordAudit'].options!.backoff!;
+      expect(backoff({ attempt: 1, error: failure!, jobName: '', jobData: data })).to.equal(null);
+      expect(backoff({ attempt: 100, error: new Error('Mongo unavailable'), jobName: '', jobData: data })).to.equal(300000);
+      expect(job.attrs.data).to.equal(data);
+    });
+
+    it('keeps the recovery retryable if persisting its paused state fails', async function () {
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+      const failure = new Error('Queue unavailable');
+      const job = { attrs: { data }, disable: sinon.stub().returnsThis(), save: sinon.stub().rejects(failure) };
+      await assert.rejects(RecordsService.recoverRecordAudit(job), error => error === failure);
+      sinon.assert.neverCalledWithMatch(mockSails.log.error, sinon.match.string, { event: 'record_audit_recovery_quarantined' });
+      sinon.assert.calledWithMatch(mockSails.log.error, 'delivery will retry', { event: 'record_audit_recovery_retry' });
+    });
+
+    it('leaves permanent SQS failures unacknowledged for the backend dead-letter policy', async function () {
+      mockSails.config.agendaQueue = { options: { backend: 'sqs' }, jobs: {} };
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+      const job = { attrs: { data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+      sinon.assert.notCalled(job.disable);
+      sinon.assert.notCalled(job.save);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'requires operator inspection', {
+        event: 'record_audit_recovery_permanent_failure', auditId: data.auditId
+      });
+    });
+
+    for (const shape of ['map', 'array']) {
+      it(`honours a Mongo recovery override with ${shape} job definitions`, async function () {
+        const name = 'CustomAuditRecovery';
+        const definition = { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'mongodb' };
+        mockSails.config.agendaQueue = {
+          options: { backend: 'sqs' }, jobs: shape === 'array' ? [definition] : { [name]: definition }
+        };
+        mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+        const job = { attrs: { name, data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+        await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+        sinon.assert.calledOnce(job.disable);
+        sinon.assert.calledOnce(job.save);
+        sinon.assert.calledWithMatch(mockSails.log.error, 'paused for operator inspection', { event: 'record_audit_recovery_quarantined' });
+      });
+
+      it(`honours an SQS recovery override with ${shape} job definitions`, async function () {
+        const name = 'CustomAuditRecovery';
+        const definition = { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'sqs' };
+        mockSails.config.agendaQueue = {
+          options: { backend: 'mongodb' }, jobs: shape === 'array' ? [definition] : { [name]: definition }
+        };
+        mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+        const job = { attrs: { name, data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+        await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+        sinon.assert.notCalled(job.disable);
+        sinon.assert.notCalled(job.save);
+      });
+    }
+
+    it('uses the last array definition for a duplicate recovery job name, as the dispatcher does', async function () {
+      const name = 'CustomAuditRecovery';
+      mockSails.config.agendaQueue = {
+        options: { backend: 'sqs' }, jobs: [
+          { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'sqs' },
+          { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'mongodb' }
+        ]
+      };
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+      const job = { attrs: { name, data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+      sinon.assert.calledOnce(job.save);
     });
 
     for (const auditId of [undefined, '', 'not-an-event-id']) {

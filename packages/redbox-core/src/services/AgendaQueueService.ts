@@ -255,7 +255,7 @@ export namespace Services {
       const collectionName = String(_.get(sails.config.agendaQueue, 'options.collection', 'agendaJobs'));
       const jobsCollection = dbManager.collection(collectionName);
       const historyCollection = dbManager.collection(`${collectionName}History`);
-      const finishedFilter = { nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } };
+      const finishedFilter = { nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: { $type: 'date' } };
       const completedJobs = await jobsCollection.find(finishedFilter).toArray();
 
       for (const doc of completedJobs) {

@@ -15,7 +15,10 @@ export class AuditWriteTimeout extends Error {
   constructor(timeoutMs: number) { super(`Record audit write timed out after ${timeoutMs}ms`); }
 }
 
-/** A timeout stops waiting, while the permit follows the actual, non-cancellable storage write. */
+/** A retained payload needs operator correction before another delivery can succeed. */
+export class PermanentAuditWriteError extends Error {}
+
+/** Caller deadlines retain permits until storage settles; Mongo datastores also need finite driver timeouts. */
 export class AuditWriter {
   private readonly permits = Effect.unsafeMakeSemaphore(8);
 
@@ -28,7 +31,7 @@ export class AuditWriter {
     const operation = Effect.tryPromise({ try: write, catch: error => error }).pipe(
       // Mongo/Agenda promises cannot be cancelled. Keep the permit until the promise really settles.
       Effect.uninterruptible,
-      Effect.retry(schedule),
+      Effect.retry({ schedule, while: error => !(error instanceof PermanentAuditWriteError) }),
       this.permits.withPermits(1),
       Effect.disconnect,
       Effect.timeoutFail({ duration: timeoutMs, onTimeout: () => new AuditWriteTimeout(timeoutMs) })

@@ -1476,7 +1476,10 @@ export namespace Services {
       const auditId = recordAudit.auditId;
       const payload = this.sanitizeRecordAudit(recordAudit);
       try {
-        if (payload.id && !/^[a-f0-9]{24}$/.test(payload.id)) throw new Error('Invalid record audit ID');
+        if (payload.id && !/^[a-f0-9]{24}$/.test(payload.id)) {
+          response.retryable = false;
+          throw new Error('Invalid record audit ID');
+        }
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
         // Waterline renames id to the physical primary key in place. Keep verification data intact.
         const savedRecordAudit = await RecordAudit.create({ ...payload });
@@ -1484,6 +1487,16 @@ export namespace Services {
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record Audit created...`);
       } catch (err) {
+        // These payload failures cannot be repaired by waiting for Mongo to recover.
+        // Waterline wraps unrecognised Mongo failures in AdapterError.raw.
+        const raw = err != null && typeof err === 'object' && 'raw' in err ? err.raw : undefined;
+        for (const failure of [err, raw]) {
+          if (failure == null || typeof failure !== 'object') continue;
+          const code = 'code' in failure ? failure.code : undefined;
+          const name = 'name' in failure ? failure.name : undefined;
+          if (code === 121 || code === 10334 || code === 17419 || code === 'E_VALIDATION' || code === 'E_INVALID_NEW_RECORD'
+            || name === 'BSONError' || name === 'BSONVersionError') response.retryable = false;
+        }
         // Mongo's existing unique primary key makes retries atomic across processes and late inserts.
         const duplicate = err != null && typeof err === 'object' && 'code' in err
           && (err.code === 'E_UNIQUE' || err.code === 11000);
@@ -1496,6 +1509,7 @@ export namespace Services {
               response.success = true;
               return response;
             }
+            if (existing) response.retryable = false;
           } catch (lookupError) {
             response.message = this.getErrorMessage(lookupError);
             return response;

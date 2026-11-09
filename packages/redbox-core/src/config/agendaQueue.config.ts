@@ -1,4 +1,5 @@
 import type { BackoffStrategy } from 'agenda';
+import { PermanentAuditWriteError } from '../services/record-audit/writer';
 
 /**
  * Agenda Queue Config Interface
@@ -141,8 +142,9 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLifetime: 30 * 1000,
                 lockLimit: 1,
                 concurrency: 1,
-                // Retain failed snapshots and keep retrying, with a five-minute maximum delay.
-                backoff: ({ attempt }) => Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
+                // Permanent failures are paused by the worker; transient failures keep retrying.
+                backoff: ({ attempt, error }) => error instanceof PermanentAuditWriteError ? null
+                    : Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
             }
         },
         // Retained to drain audit snapshots queued before RecordsService began writing audits directly.

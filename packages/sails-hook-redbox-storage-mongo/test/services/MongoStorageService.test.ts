@@ -1234,11 +1234,14 @@ describe('MongoStorageService', function () {
     RecordAudit.create.rejects(Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' }));
     RecordAudit.findOne.resolves({ redboxOid: 'another-record', action: 'updated' });
     const event = { auditId: '0123456789abcdef01234567', redboxOid: 'oid-1', action: 'updated', record: {} };
-    expect((await service.createRecordAudit(event)).success).to.equal(false);
+    const conflict = await service.createRecordAudit(event);
+    expect(conflict.success).to.equal(false);
+    expect(conflict.retryable).to.equal(false);
     RecordAudit.findOne.rejects(new Error('lookup unavailable'));
     const response = await service.createRecordAudit(event);
     expect(response.success).to.equal(false);
     expect(response.message).to.equal('lookup unavailable');
+    expect(response.retryable).to.equal(undefined);
   });
 
   it('retains the event identity when Waterline mutates the insertion payload', async function () {
@@ -1256,7 +1259,66 @@ describe('MongoStorageService', function () {
     const response = await service.createRecordAudit({ auditId: 'invalid', redboxOid: 'oid-1', action: 'updated', record: {} });
     expect(response.success).to.equal(false);
     expect(response.message).to.equal('Invalid record audit ID');
+    expect(response.retryable).to.equal(false);
     expect(RecordAudit.create.called).to.equal(false);
+  });
+
+  for (const code of [121, 10334, 17419, 'E_VALIDATION']) {
+    it(`classifies a permanent audit payload rejection for operator recovery (${code})`, async function () {
+      RecordAudit.create.rejects(Object.assign(new Error('Invalid audit document'), { code }));
+      const response = await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', record: {} });
+      expect(response.success).to.equal(false);
+      expect(response.retryable).to.equal(false);
+      expect(response.message).to.equal('Invalid audit document');
+    });
+  }
+
+  it('does not classify connectivity failures as permanently invalid payloads', async function () {
+    RecordAudit.create.rejects(Object.assign(new Error('Network unavailable'), { code: 6, name: 'MongoNetworkError' }));
+    const response = await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', record: {} });
+    expect(response.success).to.equal(false);
+    expect(response.retryable).to.equal(undefined);
+  });
+
+  it('recognizes payload failures wrapped by Waterline without classifying wrapped network failures', async function () {
+    for (const raw of [{ code: 121 }, { name: 'BSONError' }, { code: 6, name: 'MongoNetworkError' }]) {
+      RecordAudit.create.rejects(Object.assign(new Error('Wrapped adapter failure'), { name: 'AdapterError', raw }));
+      const response = await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', record: {} });
+      expect(response.retryable).to.equal(raw.code === 6 ? undefined : false);
+    }
+  });
+
+  it('classifies an actual Waterline new-record validation failure as permanent', async function () {
+    const Waterline = require('waterline');
+    const { RecordAuditWLDef } = require('../../src/models/RecordAudit');
+    const waterline = new Waterline();
+    waterline.registerModel(Waterline.Model.extend({
+      ...RecordAuditWLDef,
+      attributes: { ...RecordAuditWLDef.attributes, id: { type: 'string', columnName: '_id' } }
+    }));
+    const create = sandbox.stub().callsFake((_datastore: unknown, query: { newRecord: unknown }, done: (error: null, result: unknown) => void) => {
+      done(null, query.newRecord);
+    });
+    await new Promise<void>((resolve, reject) => {
+      waterline.initialize({ adapters: { memory: { create } }, datastores: { redboxStorage: { adapter: 'memory' } } },
+        (error: Error | null, orm: { collections: { recordaudit: unknown } }) => {
+          if (error) return reject(error);
+          Object.assign(global, { RecordAudit: orm.collections.recordaudit });
+          resolve();
+        });
+    });
+    try {
+      const response = await service.createRecordAudit({
+        auditId: '0123456789abcdef01234567', redboxOid: 'oid-1', action: { invalid: true }, record: { retained: true }
+      });
+      expect(response.success).to.equal(false);
+      expect(response.retryable).to.equal(false);
+      expect(response.message).to.include('Invalid new record');
+      expect(create.called).to.equal(false);
+    } finally {
+      Object.assign(global, { RecordAudit });
+      await new Promise<void>((resolve, reject) => waterline.teardown((error: Error | null) => error ? reject(error) : resolve()));
+    }
   });
 
   it('drops unserializable audit values and handles record-audit persistence failures', async function () {

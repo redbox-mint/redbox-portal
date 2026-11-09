@@ -16,6 +16,8 @@ export interface DatastoreAdapterConfig {
     host?: string;
     port?: number;
     database?: string;
+    /** End inactive Mongo operations so timed-out audit writes eventually release their permits. */
+    socketTimeoutMS?: number;
 }
 
 export interface DatastoresConfig {
@@ -25,10 +27,12 @@ export interface DatastoresConfig {
 export const datastores: DatastoresConfig = {
     mongodb: {
         adapter: sailsMongo,
-        url: 'mongodb://localhost:27017/redbox-portal'
+        url: 'mongodb://localhost:27017/redbox-portal',
+        socketTimeoutMS: 30000
     },
     redboxStorage: {
         adapter: sailsMongo,
-        url: 'mongodb://mongodb:27017/redbox-storage'
+        url: 'mongodb://mongodb:27017/redbox-storage',
+        socketTimeoutMS: 30000
     }
 };

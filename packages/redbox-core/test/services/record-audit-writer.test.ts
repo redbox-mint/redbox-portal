@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { AuditWriter, AuditWriteTimeout } from '../../src/services/record-audit/writer';
+import { AuditWriter, AuditWriteTimeout, PermanentAuditWriteError } from '../../src/services/record-audit/writer';
 
 describe('Effect record audit writer', function () {
   afterEach(() => sinon.restore());
@@ -28,6 +28,13 @@ describe('Effect record audit writer', function () {
     assert.equal(await result, error);
     assert.equal(write.callCount, 2);
     assert.equal(clock.countTimers(), 0);
+  });
+
+  it('does not spend short retries on a permanently invalid payload', async function () {
+    const failure = new PermanentAuditWriteError('Document failed validation');
+    const write = sinon.stub().rejects(failure);
+    await assert.rejects(new AuditWriter().run(write, { writeAttempts: 3 }), error => error === failure);
+    assert.equal(write.callCount, 1);
   });
 
   it('holds permits for timed-out inserts and never starts cancelled waiters', async function () {

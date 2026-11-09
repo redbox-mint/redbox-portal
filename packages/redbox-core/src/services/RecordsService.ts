@@ -43,7 +43,7 @@ import axios from 'axios';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { randomBytes } from 'node:crypto';
-import { AuditWriter, AuditWriteTimeout, positiveInteger } from './record-audit/writer';
+import { AuditWriter, AuditWriteTimeout, PermanentAuditWriteError, positiveInteger } from './record-audit/writer';
 const luceneEscapeQueryModule = require('lucene-escape-query') as Record<string, unknown> | ((value: string) => string);
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
@@ -1326,7 +1326,8 @@ export namespace Services {
       }
       const response = await this.storageService.createRecordAudit(data);
       if (response.success !== true) {
-        throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
+        const message = response.message || 'Storage service returned an unsuccessful record audit response';
+        throw response.retryable === false ? new PermanentAuditWriteError(message) : new Error(message);
       }
     }
 
@@ -1351,13 +1352,13 @@ export namespace Services {
 
     /** Failure-only durable delivery; independent of the legacy harvest backlog and new-audit enablement. */
     public async recoverRecordAudit(job: AnyRecord): Promise<void> {
-      const attrs = job.attrs ?? {};
+      const attrs = (job.attrs ?? {}) as AnyRecord;
       const data = (_.get(attrs, 'data') ?? attrs) as RecordAuditModel;
-      if (!data || !/^[a-f0-9]{24}$/.test(data.auditId ?? '') || typeof data.redboxOid !== 'string') {
-        throw new Error('Record audit recovery requires a stable audit ID and record ID');
-      }
       const policy = sails.config.record.auditing;
       try {
+        if (!data || !/^[a-f0-9]{24}$/.test(data.auditId ?? '') || typeof data.redboxOid !== 'string' || !data.redboxOid) {
+          throw new PermanentAuditWriteError('Record audit recovery requires a stable audit ID and record ID');
+        }
         // Stay below the recovery worker's 30-second Agenda lock lifetime.
         await this.auditWriter.run(() => this.persistRecordAudit(data), {
           ...policy, writeTimeoutMs: Math.min(positiveInteger(policy.writeTimeoutMs, 5000), 10000)
@@ -1366,6 +1367,39 @@ export namespace Services {
           event: 'record_audit_recovered', auditId: data.auditId, redboxOid: data.redboxOid, action: data.action
         });
       } catch (err) {
+        if (err instanceof PermanentAuditWriteError) {
+          const jobName = String(attrs.name ?? policy.recordAuditRecoveryJobName ?? 'RecordsService-RecoverRecordAudit');
+          const jobs = sails.config.agendaQueue?.jobs;
+          const definition = Array.isArray(jobs) ? jobs.findLast(job => job.name === jobName) : jobs?.[jobName];
+          const backend = definition?.backend ?? sails.config.agendaQueue?.options?.backend ?? 'mongodb';
+          const disable = job.disable;
+          const save = job.save;
+          if (backend === 'mongodb' && typeof disable === 'function' && typeof save === 'function') {
+            // saveJobState does not persist disabled; save explicitly before stopping automatic retries.
+            try {
+              await this.auditRecoveryEnqueues.run(async () => { disable.call(job); await save.call(job); }, {
+                ...policy, writeTimeoutMs: Math.min(positiveInteger(policy.writeTimeoutMs, 5000), 10000)
+              }, 1);
+            } catch (pauseError) {
+              sails.log.error(`${this.logHeader} Failed to pause record audit recovery; delivery will retry`, {
+                event: 'record_audit_recovery_retry', auditId: data?.auditId, redboxOid: data?.redboxOid,
+                action: data?.action, error: this.describeError(pauseError)
+              });
+              throw pauseError;
+            }
+            sails.log.error(`${this.logHeader} Record audit recovery paused for operator inspection`, {
+              event: 'record_audit_recovery_quarantined', auditId: data?.auditId, redboxOid: data?.redboxOid,
+              action: data?.action, error: this.describeError(err)
+            });
+          } else {
+            // SQS retains failed messages for its configured redrive policy; never acknowledge them as successful.
+            sails.log.error(`${this.logHeader} Record audit recovery requires operator inspection`, {
+              event: 'record_audit_recovery_permanent_failure', auditId: data?.auditId, redboxOid: data?.redboxOid,
+              action: data?.action, error: this.describeError(err)
+            });
+          }
+          throw err;
+        }
         sails.log.error(`${this.logHeader} Record audit recovery will retry`, {
           event: 'record_audit_recovery_retry', auditId: data.auditId, redboxOid: data.redboxOid,
           action: data.action, error: this.describeError(err)

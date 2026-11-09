@@ -2,7 +2,9 @@ import { firstValueFrom } from 'rxjs';
 import * as sinon from 'sinon';
 import type { Agenda, Job } from 'agenda';
 import { randomBytes } from 'node:crypto';
+import { createServer, connect, Socket } from 'node:net';
 import { StorageServiceResponse, UserModel } from '@researchdatabox/redbox-core';
+import { AuditWriter, AuditWriteTimeout } from '../../../packages/redbox-core/src/services/record-audit/writer';
 
 // Mongo's repository exposes these lifecycle methods in addition to Agenda's generic contract.
 type MongoAuditQueueRepository = Agenda['db'] & {
@@ -305,6 +307,145 @@ describe('The RecordsService', function () {
     expect(audits[0].id).to.equal(data.auditId);
     expect(audits[0].record).to.deep.equal(data.record);
     expect(audits[0].occurredAt).to.equal(data.occurredAt);
+  });
+
+  it('releases an audit permit after the Sails Mongo driver ends a stalled insert', async function () {
+    // Exercise the driver's actual network timeout, rather than another Promise.race.
+    const { MongoClient } = require(require.resolve('mongodb', { paths: [require.resolve('sails-mongo')] })) as typeof import('mongodb');
+    for (const datastore of ['mongodb', 'redboxStorage']) {
+      const options = sails.config.datastores[datastore];
+      expect(options.socketTimeoutMS).to.be.greaterThan(0);
+      const manager = sails.getDatastore(datastore).manager;
+      expect(manager.client.options.socketTimeoutMS).to.equal(options.socketTimeoutMS);
+    }
+    const target = new URL(sails.config.datastores.redboxStorage.url);
+    const targetHost = target.hostname;
+    const targetPort = Number(target.port || 27017);
+    const sockets = new Set<Socket>();
+    let stalled = false;
+    const proxy = createServer(socket => {
+      socket.setNoDelay(true);
+      const upstream = connect(targetPort, targetHost);
+      upstream.setNoDelay(true);
+      sockets.add(socket);
+      sockets.add(upstream);
+      socket.on('data', data => { if (!stalled) upstream.write(data); });
+      upstream.pipe(socket);
+      socket.on('error', () => upstream.destroy());
+      upstream.on('error', () => socket.destroy());
+      socket.on('close', () => { sockets.delete(socket); upstream.destroy(); });
+      upstream.on('close', () => { sockets.delete(upstream); socket.destroy(); });
+    });
+    await new Promise<void>(resolve => proxy.listen(0, '127.0.0.1', resolve));
+    const address = proxy.address();
+    if (!address || typeof address === 'string') throw new Error('Mongo fault proxy has no TCP address');
+    target.host = `127.0.0.1:${address.port}`;
+    const client = new MongoClient(target.toString(), {
+      socketTimeoutMS: 1000, waitQueueTimeoutMS: 250, connectTimeoutMS: 1000,
+      serverSelectionTimeoutMS: 2000, maxPoolSize: 1, retryWrites: false
+    });
+    const collectionName = `auditDriverTimeoutTest_${randomBytes(12).toString('hex')}`;
+    let stage = 'opening the proxy connection';
+    try {
+      const collection = client.db().collection(collectionName);
+      await collection.insertOne({ warmup: true });
+      stage = 'ending a stalled write';
+      stalled = true;
+      const writer = new AuditWriter();
+      let finishWrite!: () => void;
+      const underlyingEnded = new Promise<void>(resolve => { finishWrite = resolve; });
+      let driverFailure: unknown;
+      try {
+        await writer.run(async () => {
+          try { await collection.insertOne({ stalled: true }); }
+          catch (error) { driverFailure = error; throw error; }
+          finally { finishWrite(); }
+        }, { maxConcurrentWrites: 1, writeAttempts: 1, writeTimeoutMs: 25 });
+        throw new Error('Expected the audit caller deadline to expire');
+      } catch (error) {
+        expect(error).to.be.instanceOf(AuditWriteTimeout);
+      }
+      const poolFailure = await collection.insertOne({ waitingForConnection: true }).then(() => null, error => error);
+      expect(poolFailure).to.have.property('name', 'MongoWaitQueueTimeoutError');
+      await waitForJob(underlyingEnded);
+      expect(driverFailure).to.have.property('name', 'MongoNetworkTimeoutError');
+      stalled = false;
+      stage = 'writing after driver recovery';
+      await writer.run(async () => { await collection.insertOne({ recovered: true }); }, {
+        maxConcurrentWrites: 1, writeAttempts: 3, writeTimeoutMs: 5000
+      });
+      expect(await collection.countDocuments({ recovered: true })).to.equal(1);
+    } catch (error) {
+      throw new Error(`Mongo fault test failed while ${stage}`, { cause: error });
+    } finally {
+      stalled = false;
+      try { await RecordAudit.getDatastore().manager.collection(collectionName).drop(); }
+      finally {
+        await client.close();
+        for (const socket of sockets) socket.destroy();
+        await new Promise<void>(resolve => proxy.close(() => resolve()));
+      }
+    }
+  });
+
+  it('quarantines an invalid recovery snapshot without blocking valid jobs or allowing history cleanup to remove it', async function () {
+    const oid = `records-service-quarantine-audit-${Date.now()}`;
+    createdOids.push(oid);
+    const jobName = sails.config.record.auditing.recordAuditRecoveryJobName;
+    const options = {
+      ...sails.config.agendaQueue.options, processEvery: '0.1 seconds',
+      collection: `recordAuditQuarantineTest_${randomBytes(12).toString('hex')}`
+    };
+    let dispatcher: Agenda | undefined;
+    try {
+      dispatcher = await AgendaQueueService.createAgendaForBackend('mongodb', options, User.getDatastore().manager);
+      const originalQueueConfig = sails.config.agendaQueue;
+      const definition = originalQueueConfig.jobs[jobName];
+      dispatcher!.define(jobName, async job => {
+        // Mixed-backend deployments also accept job arrays. Keep this override local to handler execution.
+        const config = sinon.stub(sails.config, 'agendaQueue').value({
+          ...originalQueueConfig, options: { ...originalQueueConfig.options, backend: 'sqs' },
+          jobs: [{ ...definition, name: jobName, backend: 'mongodb' }]
+        });
+        try { await recordsService.recoverRecordAudit(job); }
+        finally { config.restore(); }
+      }, definition.options);
+      const snapshot = {
+        auditId: randomBytes(12).toString('hex'), redboxOid: oid, action: { invalid: true },
+        record: { metadata: { title: 'Retain for operator inspection' } }
+      };
+      const invalid = await dispatcher!.now(jobName, snapshot);
+      const valid = await dispatcher!.now(jobName, { ...snapshot, action: 'updated', auditId: randomBytes(12).toString('hex') });
+      const completed = new Set<string>();
+      let finish!: () => void;
+      const finished = new Promise<void>(resolve => { finish = resolve; });
+      dispatcher!.on(`complete:${jobName}`, job => {
+        completed.add(String(job.attrs._id));
+        if (completed.has(String(invalid.attrs._id)) && completed.has(String(valid.attrs._id))) finish();
+      });
+      await dispatcher!.start();
+      await waitForJob(finished);
+      const quarantined = await dispatcher!.db.getJobById(String(invalid.attrs._id));
+      expect(quarantined?.disabled).to.equal(true);
+      expect(quarantined?.failCount).to.equal(1);
+      expect(quarantined?.nextRunAt == null).to.equal(true);
+      expect(quarantined?.data).to.deep.equal(snapshot);
+      expect(await RecordAudit.find({ redboxOid: oid })).to.have.length(1);
+
+      const config = sinon.stub(sails.config.agendaQueue, 'options').value(options);
+      try { await AgendaQueueService.moveCompletedJobsToHistory({}); }
+      finally { config.restore(); }
+      expect((await dispatcher!.db.getJobById(String(invalid.attrs._id)))?.data).to.deep.equal(snapshot);
+      expect(await dispatcher!.db.getJobById(String(valid.attrs._id)) == null).to.equal(true);
+    } finally {
+      if (dispatcher) {
+        await dispatcher.stop(false);
+        try {
+          await (dispatcher.db as MongoAuditQueueRepository).collection.drop();
+          await User.getDatastore().manager.collection(`${options.collection}History`).drop();
+        } finally { await (dispatcher.db as MongoAuditQueueRepository).disconnect(); }
+      }
+    }
   });
 
   it('recovers a failed direct write after dispatcher reconstruction and persists retry backoff', async function () {

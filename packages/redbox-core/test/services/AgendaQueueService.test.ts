@@ -323,7 +323,7 @@ describe('AgendaQueueService', function () {
       const service = new Services.AgendaQueue();
       const completedJob = { _id: 'job-id', name: 'completed-job', nextRunAt: null, lockedAt: null, lastFinishedAt: new Date('2026-07-16T10:00:00Z') };
       const jobsCollection = {
-        find: sinon.stub().withArgs({ nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } }).returns({
+        find: sinon.stub().withArgs({ nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: { $type: 'date' } }).returns({
           toArray: sinon.stub().resolves([completedJob])
         }),
         deleteOne: sinon.stub().resolves(undefined)
@@ -348,8 +348,8 @@ describe('AgendaQueueService', function () {
       await service.moveCompletedJobsToHistory({} as any);
 
       expect(historyCollection.replaceOne.calledOnceWithExactly({ _id: 'job-id' }, completedJob, { upsert: true })).to.equal(true);
-      expect(jobsCollection.find.calledOnceWithExactly({ nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } })).to.equal(true);
-      expect(jobsCollection.deleteOne.calledOnceWithExactly({ _id: 'job-id', nextRunAt: null, lockedAt: null, lastFinishedAt: completedJob.lastFinishedAt })).to.equal(true);
+      expect(jobsCollection.find.calledOnceWithExactly({ nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: { $type: 'date' } })).to.equal(true);
+      expect(jobsCollection.deleteOne.calledOnceWithExactly({ _id: 'job-id', nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: completedJob.lastFinishedAt })).to.equal(true);
       expect(historyCollection.deleteMany.calledOnceWithExactly({
         lastFinishedAt: { $lt: new Date('2026-07-15T00:00:00.000Z') }
       })).to.equal(true);
