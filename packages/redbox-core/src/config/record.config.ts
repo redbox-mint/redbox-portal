@@ -7,6 +7,14 @@ export interface RecordAuditingConfig {
     enabled: boolean;
     /** Maximum wait for a direct audit write in milliseconds; defaults to 5000. */
     writeTimeoutMs?: number;
+    /** Maximum actual audit inserts in flight per RecordsService instance, including timed-out writes. */
+    maxConcurrentWrites?: number;
+    /** Total short direct-write attempts before durable recovery; defaults to 3. */
+    writeAttempts?: number;
+    /** Initial Effect retry delay in milliseconds, with exponential backoff and jitter. */
+    retryDelayMs?: number;
+    /** Separate recovery job so failed new audits do not join the legacy audit backlog. */
+    recordAuditRecoveryJobName?: string;
     /** Legacy Agenda job name retained for outstanding audit jobs; new audits write directly to storage. */
     recordAuditJobName: string;
 }
@@ -88,6 +96,10 @@ export const record: RecordConfig = {
     auditing: {
         enabled: true,
         writeTimeoutMs: 5000,
+        maxConcurrentWrites: 8,
+        writeAttempts: 3,
+        retryDelayMs: 100,
+        recordAuditRecoveryJobName: 'RecordsService-RecoverRecordAudit',
         recordAuditJobName: 'RecordsService-StoreRecordAudit'
     },
     baseUrl: {

@@ -42,6 +42,8 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 import axios from 'axios';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { AuditWriter, AuditWriteTimeout, positiveInteger } from './record-audit/writer';
 const luceneEscapeQueryModule = require('lucene-escape-query') as Record<string, unknown> | ((value: string) => string);
 const luceneEscapeQuery: (value: string) => string =
   typeof luceneEscapeQueryModule === 'function'
@@ -87,6 +89,8 @@ export namespace Services {
 
     searchService!: SearchService;
     protected queueService!: QueueService;
+    private readonly auditWriter = new AuditWriter();
+    private readonly auditRecoveryEnqueues = new AuditWriter();
 
     constructor() {
       super();
@@ -347,6 +351,7 @@ export namespace Services {
       'getRecords',
       'exportAllPlans',
       'storeRecordAudit',
+      'recoverRecordAudit',
       'exists',
       'transitionWorkflowStep',
       'setWorkflowStepRelatedMetadata',
@@ -1286,42 +1291,86 @@ export namespace Services {
         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
         return;
       }
-      const configuredTimeout = sails.config.record.auditing.writeTimeoutMs;
-      const timeoutMs = typeof configuredTimeout === 'number' && Number.isInteger(configuredTimeout)
-        && configuredTimeout > 0 && configuredTimeout <= 2147483647 ? configuredTimeout : 5000;
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let timedOut = false;
+      const policy = sails.config.record.auditing;
+      const timeoutMs = positiveInteger(policy.writeTimeoutMs, 5000);
+      let data: RecordAuditModel | undefined;
       try {
         _.unset(user, 'password');
         _.unset(user, 'token');
-        const data = new RecordAuditModel(id, record, user, action);
+        const snapshot = new RecordAuditModel(id, record, user, action);
+        snapshot.auditId = randomBytes(12).toString('hex');
         // Agenda previously flattened these class instances. Keep their enumerable data plain for the storage sanitizer.
-        data.record = record == null ? record : { ...record };
-        data.user = user == null ? user : { ...user };
+        snapshot.record = record == null ? record : { ...record };
+        snapshot.user = user == null ? user : { ...user };
+        // Freeze the event's serialized content before any retries or caller mutations.
+        const serialized = JSON.stringify(snapshot);
+        data = Object.assign(snapshot, JSON.parse(serialized) as RecordAuditModel);
         sails.log.verbose(`${this.logHeader} Storing record audit: ${id} with data:`);
-        sails.log.verbose(JSON.stringify(data));
-        if (typeof this.storageService?.createRecordAudit !== 'function') {
-          throw new Error('Storage service does not support createRecordAudit');
-        }
-        const deadline = new Promise<never>((_resolve, reject) => {
-          timer = setTimeout(() => {
-            timedOut = true;
-            reject(new Error(`Record audit write timed out after ${timeoutMs}ms`));
-          }, timeoutMs);
-        });
-        // The storage operation may finish after timeout; race also handles a late rejection.
-        const response = await Promise.race([this.storageService.createRecordAudit(data), deadline]);
-        if (response.success !== true) {
-          throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
-        }
+        sails.log.verbose(serialized);
+        const event = data;
+        await this.auditWriter.run(() => this.persistRecordAudit(event), policy);
       } catch (err) {
         // Record persistence has already completed. An audit failure must not turn that save into a reported failure.
         const error = this.describeError(err);
         sails.log.error(`${this.logHeader} Failed to persist record audit for ${id} (${action}); keeping the record operation successful: ${error}`, {
-          event: 'record_audit_write_failed', redboxOid: id, action, timedOut, timeoutMs, error
+          event: 'record_audit_write_failed', auditId: data?.auditId, redboxOid: id, action,
+          timedOut: err instanceof AuditWriteTimeout, timeoutMs, error
         });
-      } finally {
-        clearTimeout(timer);
+        if (data) await this.enqueueRecordAuditRecovery(data);
+      }
+    }
+
+    private async persistRecordAudit(data: RecordAuditModel): Promise<void> {
+      if (typeof this.storageService?.createRecordAudit !== 'function') {
+        throw new Error('Storage service does not support createRecordAudit');
+      }
+      const response = await this.storageService.createRecordAudit(data);
+      if (response.success !== true) {
+        throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
+      }
+    }
+
+    private async enqueueRecordAuditRecovery(data: RecordAuditModel): Promise<void> {
+      const policy = sails.config.record.auditing;
+      try {
+        if (typeof this.queueService?.now !== 'function') throw new Error('Audit recovery queue is unavailable');
+        const jobName = policy.recordAuditRecoveryJobName || 'RecordsService-RecoverRecordAudit';
+        // A successful enqueue acknowledges durable acceptance. Its own wait and in-flight work are bounded too.
+        await this.auditRecoveryEnqueues.run(async () => { await this.queueService.now(jobName, data); }, policy, 1);
+        sails.log.warn(`${this.logHeader} Record audit retained for durable recovery`, {
+          event: 'record_audit_recovery_queued', auditId: data.auditId, redboxOid: data.redboxOid, action: data.action
+        });
+      } catch (err) {
+        // Both persistence paths are unavailable. Do not claim that this event is durably retained.
+        sails.log.error(`${this.logHeader} Unable to retain record audit for recovery`, {
+          event: 'record_audit_recovery_failed', auditId: data.auditId, redboxOid: data.redboxOid,
+          action: data.action, error: this.describeError(err)
+        });
+      }
+    }
+
+    /** Failure-only durable delivery; independent of the legacy harvest backlog and new-audit enablement. */
+    public async recoverRecordAudit(job: AnyRecord): Promise<void> {
+      const attrs = job.attrs ?? {};
+      const data = (_.get(attrs, 'data') ?? attrs) as RecordAuditModel;
+      if (!data || !/^[a-f0-9]{24}$/.test(data.auditId ?? '') || typeof data.redboxOid !== 'string') {
+        throw new Error('Record audit recovery requires a stable audit ID and record ID');
+      }
+      const policy = sails.config.record.auditing;
+      try {
+        // Stay below the recovery worker's 30-second Agenda lock lifetime.
+        await this.auditWriter.run(() => this.persistRecordAudit(data), {
+          ...policy, writeTimeoutMs: Math.min(positiveInteger(policy.writeTimeoutMs, 5000), 10000)
+        });
+        sails.log.info(`${this.logHeader} Recovered record audit`, {
+          event: 'record_audit_recovered', auditId: data.auditId, redboxOid: data.redboxOid, action: data.action
+        });
+      } catch (err) {
+        sails.log.error(`${this.logHeader} Record audit recovery will retry`, {
+          event: 'record_audit_recovery_retry', auditId: data.auditId, redboxOid: data.redboxOid,
+          action: data.action, error: this.describeError(err)
+        });
+        throw err;
       }
     }
 

@@ -93,6 +93,7 @@ describe('MongoStorageService', function () {
     RecordAudit = {
       tableName: 'recordaudit',
       create: sandbox.stub().resolves({}),
+      findOne: sandbox.stub().resolves(null),
       find: sandbox.stub().resolves([]),
     };
     IntegrationAudit = {
@@ -1204,6 +1205,58 @@ describe('MongoStorageService', function () {
     const occurredAt = '2026-03-01T12:00:00Z';
     await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', occurredAt, record: {} });
     expect(RecordAudit.create.firstCall.args[0].occurredAt).to.equal(occurredAt);
+  });
+
+  it('uses a stable audit identity as Mongo primary key for direct and queued attempts', async function () {
+    const auditId = '0123456789abcdef01234567';
+    RecordAudit.create.resolves({ id: auditId });
+    const response = await service.createRecordAudit({ auditId, redboxOid: 'oid-1', action: 'updated', record: {} });
+    expect(response.success).to.equal(true);
+    expect(response.oid).to.equal(auditId);
+    expect(RecordAudit.create.firstCall.args[0].id).to.equal(auditId);
+    expect(RecordAudit.create.firstCall.args[0]).not.to.have.property('auditId');
+  });
+
+  for (const code of ['E_UNIQUE', 11000]) {
+    it(`acknowledges a matching event already inserted by a late write or redelivery (${code})`, async function () {
+      const auditId = '0123456789abcdef01234567';
+      const event = { auditId, redboxOid: 'oid-1', action: 'updated', occurredAt: '2026-03-01T12:00:00Z', record: {} };
+      RecordAudit.create.rejects(Object.assign(new Error('duplicate key'), { code }));
+      RecordAudit.findOne.resolves({ ...event, id: auditId });
+      const response = await service.createRecordAudit(event);
+      expect(response.success).to.equal(true);
+      expect(response.oid).to.equal(auditId);
+      expect(RecordAudit.findOne.calledOnceWithExactly({ id: auditId })).to.equal(true);
+    });
+  }
+
+  it('does not swallow unrelated uniqueness conflicts or failed duplicate verification', async function () {
+    RecordAudit.create.rejects(Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' }));
+    RecordAudit.findOne.resolves({ redboxOid: 'another-record', action: 'updated' });
+    const event = { auditId: '0123456789abcdef01234567', redboxOid: 'oid-1', action: 'updated', record: {} };
+    expect((await service.createRecordAudit(event)).success).to.equal(false);
+    RecordAudit.findOne.rejects(new Error('lookup unavailable'));
+    const response = await service.createRecordAudit(event);
+    expect(response.success).to.equal(false);
+    expect(response.message).to.equal('lookup unavailable');
+  });
+
+  it('retains the event identity when Waterline mutates the insertion payload', async function () {
+    const event = { auditId: '0123456789abcdef01234567', redboxOid: 'oid-1', action: 'updated', record: {} };
+    RecordAudit.create.callsFake(async (payload: { id?: string }) => {
+      delete payload.id;
+      throw Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' });
+    });
+    RecordAudit.findOne.resolves({ redboxOid: event.redboxOid, action: event.action });
+    expect((await service.createRecordAudit(event)).success).to.equal(true);
+    expect(RecordAudit.findOne.calledOnceWithExactly({ id: event.auditId })).to.equal(true);
+  });
+
+  it('rejects malformed audit identities before calling Waterline', async function () {
+    const response = await service.createRecordAudit({ auditId: 'invalid', redboxOid: 'oid-1', action: 'updated', record: {} });
+    expect(response.success).to.equal(false);
+    expect(response.message).to.equal('Invalid record audit ID');
+    expect(RecordAudit.create.called).to.equal(false);
   });
 
   it('drops unserializable audit values and handles record-audit persistence failures', async function () {

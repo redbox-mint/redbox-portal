@@ -1,7 +1,14 @@
 import { firstValueFrom } from 'rxjs';
 import * as sinon from 'sinon';
-import type { Job } from 'agenda';
+import type { Agenda, Job } from 'agenda';
+import { randomBytes } from 'node:crypto';
 import { StorageServiceResponse, UserModel } from '@researchdatabox/redbox-core';
+
+// Mongo's repository exposes these lifecycle methods in addition to Agenda's generic contract.
+type MongoAuditQueueRepository = Agenda['db'] & {
+  disconnect(): Promise<void>;
+  collection: { drop(): Promise<boolean> };
+};
 
 describe('The RecordsService', function () {
   this.timeout(60_000);
@@ -16,7 +23,7 @@ describe('The RecordsService', function () {
       return await Promise.race([
         completion,
         new Promise<never>((_resolve, reject) => {
-          timer = setTimeout(() => reject(new Error('Timed out waiting for the legacy audit Agenda job')), 15000);
+          timer = setTimeout(() => reject(new Error('Timed out waiting for the record audit Agenda job')), 15000);
         })
       ]);
     } finally {
@@ -278,5 +285,113 @@ describe('The RecordsService', function () {
     expect(audits[0].record).to.deep.equal(data.record);
     expect(audits[0].user).to.deep.equal(data.user);
     expect(audits[0].action).to.equal('updated');
+  });
+
+  it('deduplicates simultaneous direct inserts and queue redelivery using the same audit ID', async function () {
+    const oid = `records-service-idempotent-audit-${Date.now()}`;
+    createdOids.push(oid);
+    const storageService = sails.services[sails.config.storage.serviceName];
+    const data = {
+      auditId: randomBytes(12).toString('hex'), redboxOid: oid, action: 'updated',
+      occurredAt: '2026-03-01T12:00:00Z', user: { username: 'admin' },
+      record: { metadata: { title: 'Single event, multiple deliveries' } }
+    };
+
+    const responses = await Promise.all(Array.from({ length: 4 }, () => storageService.createRecordAudit(data)));
+    expect(responses.every(response => response.success === true)).to.equal(true);
+    await recordsService.recoverRecordAudit({ attrs: { data: JSON.parse(JSON.stringify(data)) } });
+    const audits = await RecordAudit.find({ redboxOid: oid });
+    expect(audits).to.have.length(1);
+    expect(audits[0].id).to.equal(data.auditId);
+    expect(audits[0].record).to.deep.equal(data.record);
+    expect(audits[0].occurredAt).to.equal(data.occurredAt);
+  });
+
+  it('recovers a failed direct write after dispatcher reconstruction and persists retry backoff', async function () {
+    const oid = `records-service-durable-audit-${Date.now()}`;
+    createdOids.push(oid);
+    const storageService = sails.services[sails.config.storage.serviceName];
+    const originalWrite = storageService.createRecordAudit.bind(storageService);
+    let storageAvailable = false;
+    const write = sinon.stub(storageService, 'createRecordAudit').callsFake(async (payload: unknown) => {
+      if (_.get(payload, 'redboxOid') === oid && !storageAvailable) throw new Error('Durable audit integration outage');
+      return originalWrite(payload);
+    });
+    const jobName = sails.config.record.auditing.recordAuditRecoveryJobName;
+    const options = {
+      ...sails.config.agendaQueue.options, processEvery: '0.1 seconds',
+      collection: `recordAuditRecoveryTest_${randomBytes(12).toString('hex')}`
+    };
+    const originalNow = AgendaQueueService.now.bind(AgendaQueueService);
+    let enqueue: sinon.SinonStub | undefined;
+    let producer: Agenda | undefined;
+    let queuedJob: Job | undefined;
+    let restarted: Agenda | undefined;
+    try {
+      // The producer never starts polling. Existing application workers cannot see this collection.
+      producer = await AgendaQueueService.createAgendaForBackend('mongodb', options, User.getDatastore().manager);
+      const initial = producer!;
+      enqueue = sinon.stub(AgendaQueueService, 'now').callsFake((name: string, data: unknown) => {
+        return name === jobName && _.get(data, 'redboxOid') === oid
+          ? initial.now(name, data)
+          : originalNow(name, data);
+      });
+      await recordsService.auditRecord(oid, {
+        metadata: { title: 'Snapshot retained through restart' }, lastSaveDate: '2026-03-01T12:00:00Z'
+      }, { username: 'admin', password: 'secret', token: 'secret-token' });
+      const recoveryCall = enqueue.getCalls().find(call => call.args[0] === jobName && _.get(call.args[1], 'redboxOid') === oid);
+      if (!recoveryCall) throw new Error('Failed direct audit was not enqueued for recovery');
+      queuedJob = await recoveryCall.returnValue;
+      const saved = await initial.db.getJobById(String(queuedJob!.attrs._id));
+      expect(saved?.data.auditId).to.match(/^[a-f0-9]{24}$/);
+      expect(saved?.data.user).to.deep.equal({ username: 'admin' });
+      expect(saved?.data.record.metadata.title).to.equal('Snapshot retained through restart');
+      expect(saved?.data.occurredAt).to.equal('2026-03-01T12:00:00Z');
+
+      // A fresh dispatcher reads the Mongo-persisted job; no in-memory retry fiber is reused.
+      restarted = await AgendaQueueService.createAgendaForBackend('mongodb', options, User.getDatastore().manager);
+      expect(restarted!.attrs.processEvery).to.equal(100);
+      const configuredJob = sails.config.agendaQueue.jobs[jobName];
+      expect(typeof configuredJob.options.backoff).to.equal('function');
+      restarted!.define(jobName, job => recordsService.recoverRecordAudit(job), configuredJob.options);
+      let resolveFailed!: () => void;
+      let resolveRecovered!: () => void;
+      const failed = new Promise<void>(resolve => { resolveFailed = resolve; });
+      const recovered = new Promise<void>(resolve => { resolveRecovered = resolve; });
+      restarted!.on(`complete:${jobName}`, job => {
+        if (_.get(job.attrs.data, 'redboxOid') !== oid) return;
+        if (!storageAvailable) resolveFailed();
+        else resolveRecovered();
+      });
+      await restarted!.start();
+      await waitForJob(failed);
+      const retrying = await restarted!.db.getJobById(String(queuedJob!.attrs._id));
+      expect(retrying?.failCount).to.be.greaterThan(0);
+      expect(retrying?.nextRunAt).to.be.instanceOf(Date);
+      expect(retrying?.data.auditId).to.equal(saved!.data.auditId);
+      expect(await RecordAudit.find({ redboxOid: oid })).to.have.length(0);
+
+      storageAvailable = true;
+      await waitForJob(recovered);
+      const finished = await restarted!.db.getJobById(String(queuedJob!.attrs._id));
+      expect(finished?.nextRunAt == null).to.equal(true);
+      expect(finished?.lastFinishedAt).to.be.instanceOf(Date);
+      const audits = await RecordAudit.find({ redboxOid: oid });
+      expect(audits).to.have.length(1);
+      expect(audits[0].id).to.equal(saved!.data.auditId);
+      expect(audits[0].record.metadata.title).to.equal('Snapshot retained through restart');
+      expect(audits[0].occurredAt).to.equal(saved!.data.occurredAt);
+    } finally {
+      storageAvailable = true;
+      if (restarted) await restarted.stop(false);
+      write.restore();
+      enqueue?.restore();
+      try {
+        if (producer) await (producer.db as MongoAuditQueueRepository).collection.drop();
+      } finally {
+        if (producer) await (producer.db as MongoAuditQueueRepository).disconnect();
+        if (restarted) await (restarted.db as MongoAuditQueueRepository).disconnect();
+      }
+    }
   });
 });

@@ -1,3 +1,5 @@
+import type { BackoffStrategy } from 'agenda';
+
 /**
  * Agenda Queue Config Interface
  * (sails.config.agendaQueue)
@@ -54,6 +56,8 @@ export interface AgendaQueueSqsOptions {
 }
 
 export interface AgendaJobOptions {
+    /** Durable automatic retry policy, persisted by the configured Agenda backend. */
+    backoff?: BackoffStrategy;
     /** Lock lifetime in milliseconds */
     lockLifetime?: number;
     /** Maximum number of locks */
@@ -129,6 +133,16 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLifetime: 3 * 1000,
                 lockLimit: 1,
                 concurrency: 1
+            }
+        },
+        'RecordsService-RecoverRecordAudit': {
+            fnName: 'recordsservice.recoverRecordAudit',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1,
+                // Retain failed snapshots and keep retrying, with a five-minute maximum delay.
+                backoff: ({ attempt }) => Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
             }
         },
         // Retained to drain audit snapshots queued before RecordsService began writing audits directly.

@@ -46,7 +46,7 @@ describe('RecordsService', function () {
     };
 
     mockQueueService = {
-      now: sinon.stub()
+      now: sinon.stub().resolves({ attrs: { name: 'RecordsService-RecoverRecordAudit' } })
     };
 
     mockDatastreamService = {
@@ -66,6 +66,7 @@ describe('RecordsService', function () {
           },
           auditing: {
             enabled: true,
+            writeAttempts: 1,
             recordAuditJobName: 'RecordAudit'
           },
           datastreamService: 'datastreamservice'
@@ -735,7 +736,9 @@ describe('RecordsService', function () {
         timedOut: true, timeoutMs: 50, error: 'Error: Record audit write timed out after 50ms'
       });
       expect(clock.countTimers()).to.equal(0);
-      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.calledOnceWithMatch(mockQueueService.now, 'RecordsService-RecoverRecordAudit', {
+        redboxOid: 'record-123', auditId: sinon.match(/^[a-f0-9]{24}$/)
+      });
     });
 
     for (const configuredTimeout of [undefined, 0, -1, 1.5, '50', NaN, Infinity, 2147483648]) {
@@ -768,7 +771,7 @@ describe('RecordsService', function () {
       });
     }
 
-    it('handles storage rejection after the audit deadline without another failure or retry', async function () {
+    it('handles late storage rejection after retaining the same event for durable recovery', async function () {
       const clock = sinon.useFakeTimers();
       mockSails.config.record.auditing.writeTimeoutMs = 50;
       let rejectWrite!: (error: Error) => void;
@@ -782,7 +785,8 @@ describe('RecordsService', function () {
 
       sinon.assert.calledOnce(mockSails.log.error);
       sinon.assert.calledOnce(mockStorageService.createRecordAudit);
-      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.calledOnce(mockQueueService.now);
+      expect(mockQueueService.now.firstCall.args[1]).to.equal(mockStorageService.createRecordAudit.firstCall.args[0]);
     });
 
     it('accepts the string true auditing setting', async function () {
@@ -885,7 +889,7 @@ describe('RecordsService', function () {
         sinon.assert.calledWithMatch(mockSails.log.error, sinon.match.string, {
           event: 'record_audit_write_failed', redboxOid: 'record-123', action: 'updated', timedOut: false
         });
-        sinon.assert.notCalled(mockQueueService.now);
+        sinon.assert.calledOnce(mockQueueService.now);
       });
     }
 
@@ -898,7 +902,7 @@ describe('RecordsService', function () {
         await RecordsService.auditRecord('record-123', {}, {});
 
         sinon.assert.calledWithMatch(mockSails.log.error, message || 'unsuccessful record audit response');
-        sinon.assert.notCalled(mockQueueService.now);
+        sinon.assert.calledOnce(mockQueueService.now);
       });
     }
 
@@ -908,7 +912,7 @@ describe('RecordsService', function () {
       await RecordsService.auditRecord('record-123', {}, {});
 
       sinon.assert.calledWithMatch(mockSails.log.error, 'Storage service does not support createRecordAudit');
-      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.calledOnce(mockQueueService.now);
     });
 
     it('keeps a persisted partial record update successful when its audit fails', async function () {
@@ -921,6 +925,112 @@ describe('RecordsService', function () {
       sinon.assert.calledOnce(mockStorageService.createRecordAudit);
       sinon.assert.calledWithMatch(mockSails.log.error, 'audit insert failed');
     });
+
+    it('retries the same immutable redacted event before falling back to Agenda', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.rejects(new Error('temporary outage'));
+      const record = { metadata: { title: 'Original' }, lastSaveDate: '2026-03-01T12:00:00Z' };
+      const user = { username: 'original', password: 'secret', token: 'secret-token' };
+      const auditing = RecordsService.auditRecord('record-123', record, user);
+      record.metadata.title = 'Changed';
+      user.username = 'changed';
+      await clock.tickAsync(500);
+      await auditing;
+
+      sinon.assert.calledThrice(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(mockQueueService.now);
+      const event = mockQueueService.now.firstCall.args[1];
+      expect(event.auditId).to.match(/^[a-f0-9]{24}$/);
+      expect(event.record.metadata.title).to.equal('Original');
+      expect(event.user).to.deep.equal({ username: 'original' });
+      expect(event.occurredAt).to.equal('2026-03-01T12:00:00Z');
+      for (const call of mockStorageService.createRecordAudit.getCalls()) expect(call.args[0]).to.equal(event);
+      sinon.assert.calledWithMatch(mockSails.log.warn, 'retained for durable recovery', {
+        event: 'record_audit_recovery_queued', auditId: event.auditId
+      });
+    });
+
+    it('does not enqueue when a short retry succeeds', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.onFirstCall().rejects(new Error('temporary failure'));
+      const auditing = RecordsService.auditRecord('record-123', {}, {});
+      await clock.tickAsync(200);
+      await auditing;
+      sinon.assert.calledTwice(mockStorageService.createRecordAudit);
+      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.notCalled(mockSails.log.error);
+    });
+
+    for (const queueState of ['missing', 'rejected', 'stalled']) {
+      it(`reports recovery failure without failing the saved record when the queue is ${queueState}`, async function () {
+        const clock = sinon.useFakeTimers();
+        mockSails.config.record.auditing.writeTimeoutMs = 50;
+        mockStorageService.createRecordAudit.rejects(new Error('audit insert failed'));
+        if (queueState === 'missing') RecordsService.queueService = null;
+        else if (queueState === 'rejected') mockQueueService.now.rejects(new Error('queue insert failed'));
+        else mockQueueService.now.returns(new Promise(() => {}));
+
+        const auditing = RecordsService.auditRecord('record-123', {}, {});
+        await clock.tickAsync(50);
+        await auditing;
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Unable to retain record audit', {
+          event: 'record_audit_recovery_failed', auditId: sinon.match(/^[a-f0-9]{24}$/), redboxOid: 'record-123'
+        });
+        sinon.assert.notCalled(mockSails.log.warn);
+      });
+    }
+
+    it('honours a configured failure-only recovery job name', async function () {
+      mockSails.config.record.auditing.recordAuditRecoveryJobName = 'CustomAuditRecovery';
+      mockStorageService.createRecordAudit.rejects(new Error('audit insert failed'));
+      await RecordsService.auditRecord('record-123', {}, {});
+      sinon.assert.calledOnceWithMatch(mockQueueService.now, 'CustomAuditRecovery');
+    });
+  });
+
+  describe('recoverRecordAudit', function () {
+    const data = {
+      auditId: '0123456789abcdef01234567', redboxOid: 'record-123', action: RecordAuditActionType.updated,
+      occurredAt: '2026-03-01T12:00:00Z', record: { metadata: { title: 'Original snapshot' } }, user: { username: 'original' }
+    };
+
+    it('delivers a serialized retained event through a fresh service instance even when new audits are disabled', async function () {
+      mockSails.config.record.auditing.enabled = false;
+      const recovered = JSON.parse(JSON.stringify({ attrs: { data } }));
+      await RecordsService.recoverRecordAudit(recovered);
+      sinon.assert.calledOnceWithExactly(mockStorageService.createRecordAudit, recovered.attrs.data);
+      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.calledWithMatch(mockSails.log.info, 'Recovered record audit', {
+        event: 'record_audit_recovered', auditId: data.auditId
+      });
+    });
+
+    it('rejects failed recovery so Agenda schedules durable backoff instead of acknowledging it', async function () {
+      const failure = new Error('audit database unavailable');
+      mockStorageService.createRecordAudit.rejects(failure);
+      await assert.rejects(RecordsService.recoverRecordAudit({ attrs: { data } }), error => error === failure);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Record audit recovery will retry', { event: 'record_audit_recovery_retry' });
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
+    it('bounds a stalled queued write below its Agenda lock lifetime', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeTimeoutMs = 120000;
+      mockStorageService.createRecordAudit.returns(new Promise(() => {}));
+      const recovered = RecordsService.recoverRecordAudit({ attrs: { data } }).catch((error: unknown) => error);
+      await clock.tickAsync(10000);
+      expect(await recovered).to.be.instanceOf(Error);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Record audit recovery will retry');
+    });
+
+    for (const auditId of [undefined, '', 'not-an-event-id']) {
+      it(`rejects an invalid recovery identity (${auditId}) before inserting`, async function () {
+        await assert.rejects(RecordsService.recoverRecordAudit({ attrs: { data: { ...data, auditId } } }), /stable audit ID/);
+        sinon.assert.notCalled(mockStorageService.createRecordAudit);
+      });
+    }
   });
 
   it('persists partial-write audits with the newer top-level save time', async function () {
