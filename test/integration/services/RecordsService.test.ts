@@ -1,4 +1,6 @@
 import { firstValueFrom } from 'rxjs';
+import * as sinon from 'sinon';
+import type { Job } from 'agenda';
 import { StorageServiceResponse, UserModel } from '@researchdatabox/redbox-core';
 
 describe('The RecordsService', function () {
@@ -7,6 +9,20 @@ describe('The RecordsService', function () {
   let recordsService;
   const createdOids: string[] = [];
   const createdUserIds: string[] = [];
+
+  async function waitForJob<T>(completion: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        completion,
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error('Timed out waiting for the legacy audit Agenda job')), 15000);
+        })
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   before(function () {
     recordsService = sails.services.recordsservice;
@@ -169,6 +185,81 @@ describe('The RecordsService', function () {
     expect(audits[0].user).not.to.have.property('token');
     expect(Date.parse(audits[0].occurredAt)).to.be.within(startedAt, Date.now());
   });
+
+  for (const failWrite of [false, true]) {
+    it(`dispatches the configured legacy audit job and records ${failWrite ? 'storage failure' : 'completion after persistence'}`, async function () {
+      const oid = `records-service-agenda-audit-${Date.now()}-${failWrite}`;
+      createdOids.push(oid);
+      const storageService = sails.services[sails.config.storage.serviceName];
+      const originalWrite = storageService.createRecordAudit.bind(storageService);
+      let releaseWrite!: () => void;
+      let signalStarted!: () => void;
+      const released = new Promise<void>(resolve => { releaseWrite = resolve; });
+      const started = new Promise<void>(resolve => { signalStarted = resolve; });
+      const failureMessage = 'Legacy audit integration storage failure';
+      const write = sinon.stub(storageService, 'createRecordAudit').callsFake(async (payload: unknown) => {
+        if (_.get(payload, 'redboxOid') !== oid) return originalWrite(payload);
+        signalStarted();
+        await released;
+        if (failWrite) throw new Error(failureMessage);
+        return originalWrite(payload);
+      });
+      let queuedJob: Job | undefined;
+      let resolveComplete!: (job: Job) => void;
+      let didComplete = false;
+      const completed = new Promise<Job>(resolve => { resolveComplete = resolve; });
+      const onComplete = (job: Job) => {
+        if (_.get(job.attrs.data, 'redboxOid') === oid) {
+          didComplete = true;
+          resolveComplete(job);
+        }
+      };
+      const jobName = sails.config.record.auditing.recordAuditJobName;
+
+      try {
+        queuedJob = await AgendaQueueService.now(jobName, {
+          redboxOid: oid, action: 'updated', user: { username: 'admin' },
+          record: { metadata: { title: 'Dispatched legacy snapshot' } }
+        });
+        queuedJob.agenda.on(`complete:${jobName}`, onComplete);
+        await waitForJob(started);
+        // Give Agenda time to expose an incorrectly completed fire-and-forget handler.
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const running = await queuedJob.agenda.db.getJobById(String(queuedJob.attrs._id));
+        expect(didComplete).to.equal(false);
+        expect(running?.lastFinishedAt == null).to.equal(true);
+        expect(running?.failedAt == null).to.equal(true);
+        expect(await RecordAudit.find({ redboxOid: oid })).to.have.length(0);
+
+        releaseWrite();
+        await waitForJob(completed);
+        const finished = await queuedJob.agenda.db.getJobById(String(queuedJob.attrs._id));
+        if (failWrite) {
+          expect(finished?.failedAt).to.be.instanceOf(Date);
+          expect(finished?.failReason).to.equal(failureMessage);
+          expect(finished?.failCount).to.equal(1);
+          expect(await RecordAudit.find({ redboxOid: oid })).to.have.length(0);
+        } else {
+          expect(finished?.lastFinishedAt).to.be.instanceOf(Date);
+          expect(finished?.failedAt == null).to.equal(true);
+          const audits = await RecordAudit.find({ redboxOid: oid });
+          expect(audits).to.have.length(1);
+          expect(audits[0].record.metadata.title).to.equal('Dispatched legacy snapshot');
+        }
+      } finally {
+        releaseWrite();
+        try {
+          if (queuedJob) await waitForJob(completed);
+        } finally {
+          write.restore();
+          if (queuedJob) {
+            queuedJob.agenda.off(`complete:${jobName}`, onComplete);
+            await queuedJob.remove();
+          }
+        }
+      }
+    });
+  }
 
   it('persists an outstanding legacy audit before the worker completes', async function () {
     const oid = `records-service-legacy-audit-${Date.now()}`;

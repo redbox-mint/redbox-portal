@@ -717,6 +717,74 @@ describe('RecordsService', function () {
       expect(completed).to.equal(true);
     });
 
+    it('bounds a stalled audit write and logs structured failure data', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeTimeoutMs = 50;
+      mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(() => {}));
+      let completed = false;
+      const auditing = RecordsService.auditRecord('record-123', {}, {}).then(() => { completed = true; });
+
+      await clock.tickAsync(49);
+      expect(completed).to.equal(false);
+      await clock.tickAsync(1);
+      expect(completed).to.equal(true);
+      await auditing;
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit', {
+        event: 'record_audit_write_failed', redboxOid: 'record-123', action: 'updated',
+        timedOut: true, timeoutMs: 50, error: 'Error: Record audit write timed out after 50ms'
+      });
+      expect(clock.countTimers()).to.equal(0);
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
+    for (const configuredTimeout of [undefined, 0, -1, 1.5, '50', NaN, Infinity, 2147483648]) {
+      it(`uses the default audit deadline for an absent or invalid timeout (${configuredTimeout})`, async function () {
+        const clock = sinon.useFakeTimers();
+        mockSails.config.record.auditing.writeTimeoutMs = configuredTimeout;
+        mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(() => {}));
+        let completed = false;
+        const auditing = RecordsService.auditRecord('record-123', {}, {}).then(() => { completed = true; });
+
+        await clock.tickAsync(4999);
+        expect(completed).to.equal(false);
+        await clock.tickAsync(1);
+        expect(completed).to.equal(true);
+        await auditing;
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit', { timedOut: true, timeoutMs: 5000 });
+      });
+    }
+
+    for (const fails of [false, true]) {
+      it(`clears the audit deadline after a ${fails ? 'rejected' : 'successful'} write`, async function () {
+        const clock = sinon.useFakeTimers();
+        if (fails) mockStorageService.createRecordAudit.rejects(new Error('audit storage unavailable'));
+
+        await RecordsService.auditRecord('record-123', {}, {});
+
+        expect(clock.countTimers()).to.equal(0);
+        await clock.tickAsync(5000);
+        expect(mockSails.log.error.callCount).to.equal(fails ? 1 : 0);
+      });
+    }
+
+    it('handles storage rejection after the audit deadline without another failure or retry', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeTimeoutMs = 50;
+      let rejectWrite!: (error: Error) => void;
+      mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>((_resolve, reject) => { rejectWrite = reject; }));
+
+      const auditing = RecordsService.auditRecord('record-123', {}, {});
+      await clock.tickAsync(50);
+      await auditing;
+      rejectWrite(new Error('late storage rejection'));
+      await clock.tickAsync(0);
+
+      sinon.assert.calledOnce(mockSails.log.error);
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
     it('accepts the string true auditing setting', async function () {
       mockSails.config.record.auditing.enabled = 'true';
       await RecordsService.auditRecord('record-123', {}, {});
@@ -814,6 +882,9 @@ describe('RecordsService', function () {
 
         sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit for record-123 (updated)');
         sinon.assert.calledWithMatch(mockSails.log.error, failure.message);
+        sinon.assert.calledWithMatch(mockSails.log.error, sinon.match.string, {
+          event: 'record_audit_write_failed', redboxOid: 'record-123', action: 'updated', timedOut: false
+        });
         sinon.assert.notCalled(mockQueueService.now);
       });
     }
@@ -1177,6 +1248,38 @@ describe('RecordsService', function () {
   });
 
   describe('delete', function () {
+    for (const permanentlyDelete of [false, true]) {
+      it(`removes search results and completes ${permanentlyDelete ? 'permanent' : 'soft'} deletion when audit storage never settles`, async function () {
+        const clock = sinon.useFakeTimers();
+        mockSails.config.record.auditing.writeTimeoutMs = 50;
+        mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(() => {}));
+        const response = new StorageServiceResponse();
+        response.success = true;
+        mockStorageService.delete.resolves(response);
+        sinon.stub(RecordsService, 'triggerPreSaveTriggers').resolves({});
+        const postSync = sinon.stub(RecordsService, 'triggerPostSaveSyncTriggers').resolves(response);
+        const post = sinon.stub(RecordsService, 'triggerPostSaveTriggers');
+        let completed = false;
+
+        const deleting = RecordsService.delete('record-123', permanentlyDelete, {}, {}, { username: 'admin' })
+          .then((result: StorageServiceResponse) => { completed = true; return result; });
+        await clock.tickAsync(0);
+
+        sinon.assert.calledOnceWithExactly(mockSearchService.remove, 'record-123');
+        sinon.assert.callOrder(mockStorageService.delete, mockSearchService.remove, mockStorageService.createRecordAudit);
+        expect(completed).to.equal(false);
+        await clock.tickAsync(50);
+        expect(completed).to.equal(true);
+        expect(await deleting).to.equal(response);
+        sinon.assert.calledOnce(postSync);
+        sinon.assert.calledOnce(post);
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit', {
+          event: 'record_audit_write_failed', redboxOid: 'record-123',
+          action: permanentlyDelete ? 'destroyed' : 'deleted', timedOut: true
+        });
+      });
+    }
+
     it('should delete record if user has access', async function () {
       const user = { username: 'admin' };
       const record = {

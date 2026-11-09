@@ -1128,8 +1128,8 @@ export namespace Services {
         const action: RecordAuditActionType = permanentlyDelete
           ? RecordAuditActionType.destroyed
           : RecordAuditActionType.deleted;
-        await this.auditRecord(oid, {}, user, action);
         this.searchService.remove(oid);
+        await this.auditRecord(oid, {}, user, action);
 
         try {
           sails.log.verbose('RecordsService - delete - calling triggerPostSaveSyncTriggers');
@@ -1286,6 +1286,11 @@ export namespace Services {
         sails.log.verbose(`${this.logHeader} Not enabled. Skipping auditing`);
         return;
       }
+      const configuredTimeout = sails.config.record.auditing.writeTimeoutMs;
+      const timeoutMs = typeof configuredTimeout === 'number' && Number.isInteger(configuredTimeout)
+        && configuredTimeout > 0 && configuredTimeout <= 2147483647 ? configuredTimeout : 5000;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let timedOut = false;
       try {
         _.unset(user, 'password');
         _.unset(user, 'token');
@@ -1298,13 +1303,25 @@ export namespace Services {
         if (typeof this.storageService?.createRecordAudit !== 'function') {
           throw new Error('Storage service does not support createRecordAudit');
         }
-        const response = await this.storageService.createRecordAudit(data);
+        const deadline = new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => {
+            timedOut = true;
+            reject(new Error(`Record audit write timed out after ${timeoutMs}ms`));
+          }, timeoutMs);
+        });
+        // The storage operation may finish after timeout; race also handles a late rejection.
+        const response = await Promise.race([this.storageService.createRecordAudit(data), deadline]);
         if (response.success !== true) {
           throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
         }
       } catch (err) {
         // Record persistence has already completed. An audit failure must not turn that save into a reported failure.
-        sails.log.error(`${this.logHeader} Failed to persist record audit for ${id} (${action}); keeping the record operation successful: ${this.describeError(err)}`);
+        const error = this.describeError(err);
+        sails.log.error(`${this.logHeader} Failed to persist record audit for ${id} (${action}); keeping the record operation successful: ${error}`, {
+          event: 'record_audit_write_failed', redboxOid: id, action, timedOut, timeoutMs, error
+        });
+      } finally {
+        clearTimeout(timer);
       }
     }
 

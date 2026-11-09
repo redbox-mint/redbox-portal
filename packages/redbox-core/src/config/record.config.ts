@@ -5,6 +5,8 @@
 
 export interface RecordAuditingConfig {
     enabled: boolean;
+    /** Maximum wait for a direct audit write in milliseconds; defaults to 5000. */
+    writeTimeoutMs?: number;
     /** Legacy Agenda job name retained for outstanding audit jobs; new audits write directly to storage. */
     recordAuditJobName: string;
 }
@@ -85,6 +87,7 @@ export interface RecordConfig {
 export const record: RecordConfig = {
     auditing: {
         enabled: true,
+        writeTimeoutMs: 5000,
         recordAuditJobName: 'RecordsService-StoreRecordAudit'
     },
     baseUrl: {
