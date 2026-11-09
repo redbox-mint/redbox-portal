@@ -22,6 +22,8 @@ declare module 'express-session' {
     lang: string;
     authenticated: boolean;
     data: unknown;
+    recordRouteForm?: import('./RecordRouteForm').RecordRouteForm;
+    recordRouteFormExpires?: number;
   }
 }
 
