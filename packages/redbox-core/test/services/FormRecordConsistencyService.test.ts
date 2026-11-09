@@ -6,6 +6,7 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { of } from 'rxjs';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
+import { buildNestedViewForm, nestedViewFixture } from '../fixtures/nested-view-metadata.fixtures';
 
 describe('FormRecordConsistencyService', function () {
   let mockSails: any;
@@ -135,6 +136,223 @@ describe('FormRecordConsistencyService', function () {
       expect(strippedNested).to.equal(undefined);
       expect(originalTopLevel).to.equal('asfsafasfa');
       expect(originalNested).to.equal('nested-value');
+    });
+  });
+
+  describe('metadataForViewForm authorization', function () {
+    it('round3 filters restricted children before preserving leaves regardless of saved row shape', async function () {
+      const { data, metadata } = nestedViewFixture(false);
+      const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
+      const saved = { ...metadata, rows: [
+        ['row-role-secret'], 'row-role-secret', null, 42, false,
+        { public: { arbitrary: 'whole leaf' }, restricted: { extra: 'row-role-secret' } },
+      ] };
+      const result = FormRecordConsistencyService.metadataForViewForm(saved, form);
+      expect(result.rows).to.deep.equal([{ public: { arbitrary: 'whole leaf' } }]);
+      expect(JSON.stringify(result)).not.to.contain('role-secret');
+    });
+
+    it('round3 fails closed when a real transformed input loses its provenance', async function () {
+      const { viewMetadataSource } = require('@researchdatabox/sails-ng-common');
+      const data = { name: 'missing-provenance', componentDefinitions: [{ name: 'saved',
+        component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+      }] };
+      const metadata = { saved: { nested: 'secret' } };
+      const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
+      expect(FormRecordConsistencyService.metadataForViewForm(metadata, form)).to.deep.equal(metadata);
+      delete form.componentDefinitions[0][viewMetadataSource];
+      expect(FormRecordConsistencyService.metadataForViewForm(metadata, form)).to.deep.equal({});
+    });
+
+    for (const retain of [true, false]) {
+      for (const roles of [['Researcher'], ['Admin']]) {
+        it(`projects nested view metadata for ${roles}, retained containers=${retain}`, async function () {
+          const { data, metadata, expected } = nestedViewFixture(retain);
+          const form = await buildNestedViewForm(data, 'view', roles, metadata);
+          expect(form.componentDefinitions[0].component.class).to.equal(retain ? 'GroupComponent' : 'ContentComponent');
+          expect(form.componentDefinitions[1].component.class).to.equal(retain ? 'RepeatableComponent' : 'ContentComponent');
+          expect(form.componentDefinitions.find(field => field.name === 'objectLeaf').component.class)
+            .to.equal(retain ? 'SimpleInputComponent' : 'ContentComponent');
+          if (roles.includes('Admin')) {
+            for (const name of ['servicenow_teams_result', 'servicenow_irds_result']) {
+              const hiddenLeaf = form.componentDefinitions.find(field => field.name === name);
+              expect(hiddenLeaf.component.class).to.equal('ContentComponent');
+              expect(hiddenLeaf.component.config.content).to.deep.equal(metadata[name]);
+            }
+          }
+          const result = FormRecordConsistencyService.metadataForViewForm(metadata, form);
+          expect(result).to.deep.equal(expected(roles));
+          const serialized = JSON.stringify(result);
+          for (const secret of ['mode-secret', 'server-secret', 'top-level-secret']) {
+            expect(serialized).not.to.contain(secret);
+          }
+          expect(serialized.includes('role-secret')).to.equal(roles.includes('Admin'));
+          expect(metadata.parent).to.have.property('serverOnly', 'parent-server-secret');
+          expect(metadata.rows[0]).to.have.property('restricted', 'row0-role-secret');
+        });
+      }
+    }
+
+    it('fails closed for saved objects without an authorized content shape', function () {
+      const form = { componentDefinitions: [
+        { name: 'missing', component: { class: 'ContentComponent', config: {} } },
+        { name: 'partial', component: { class: 'ContentComponent', config: { content: { visible: 'shown', nested: {} } } } },
+      ] };
+      expect(FormRecordConsistencyService.metadataForViewForm({
+        missing: { secret: 'hidden' },
+        partial: { visible: 'saved', secret: 'hidden', nested: { secret: 'hidden' } },
+      }, form)).to.deep.equal({});
+    });
+
+    it('projects mixed retained parents and transformed nested groups', async function () {
+      const { data, metadata, expected } = nestedViewFixture(true);
+      const parent = data.componentDefinitions[0] as any;
+      const repeatable = data.componentDefinitions[1] as any;
+      delete parent.component.config.componentDefinitions.find(field => field.name === 'nested').constraints;
+      delete repeatable.component.config.elementTemplate.component.config.componentDefinitions
+        .find(field => field.name === 'nested').constraints;
+      const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
+      expect(form.componentDefinitions[0].component.config.componentDefinitions
+        .find(field => field.name === 'nested').component.class).to.equal('ContentComponent');
+      expect(FormRecordConsistencyService.metadataForViewForm(metadata, form)).to.deep.equal(expected(['Researcher']));
+      for (const secret of ['role-secret', 'mode-secret', 'server-secret', 'top-level-secret']) {
+        expect(JSON.stringify(form)).not.to.contain(secret);
+      }
+    });
+
+    it('omits malformed containers and repeatable rows without a permitted shape', function () {
+      const form = { componentDefinitions: [
+        { name: 'group', model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: {} } },
+        { name: 'repeatable', model: { class: 'RepeatableModel' }, component: { class: 'RepeatableComponent', config: {} } },
+        { name: 'transformed', component: { class: 'ContentComponent', config: { content: [{ public: 'display' }] } } },
+      ] };
+      expect(FormRecordConsistencyService.metadataForViewForm({
+        group: 'unmodeled', repeatable: [{ secret: 'hidden' }],
+        transformed: [{ public: 'saved', secret: 'hidden' }, { secret: 'hidden' }],
+      }, form)).to.deep.equal({});
+    });
+
+    it('round2 aligns displayed repeatable rows after authorized empty-row removal at every depth', async function () {
+      const { data, metadata } = nestedViewFixture(false);
+      const row = (data.componentDefinitions[1] as any).component.config.elementTemplate;
+      row.component.config.componentDefinitions.push({
+        name: 'inner', component: { class: 'RepeatableComponent', config: { elementTemplate: {
+          name: '', component: { class: 'GroupComponent', config: { componentDefinitions: [
+            { name: 'public', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+            { name: 'restricted', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+              constraints: { authorization: { allowRoles: ['Admin'] } } },
+          ] } }, model: { class: 'GroupModel' },
+        } } }, model: { class: 'RepeatableModel' },
+      });
+      metadata.rows = [
+        { public: '', restricted: 'first-role-secret' },
+        { public: 'second', inner: [{ public: '', restricted: 'inner-role-secret' }, { public: 'inner-second' }] },
+        { public: 'third' },
+      ] as any;
+      const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
+      expect(FormRecordConsistencyService.metadataForViewForm(metadata, form).rows).to.deep.equal([
+        { public: 'second', inner: [{ public: 'inner-second' }] }, { public: 'third' },
+      ]);
+      expect(JSON.stringify(form)).not.to.contain('role-secret');
+    });
+
+    for (const roles of [['Researcher', 'Guest'], ['Admin', 'Librarians', 'Researcher', 'Guest']]) {
+      it(`round2 restores the whole Typeahead leaf object for ${roles}`, async function () {
+        const data = { name: 'school', componentDefinitions: [{ name: 'information_steward',
+          component: { class: 'TypeaheadInputComponent', config: { displayField: 'name' } },
+          model: { class: 'TypeaheadInputModel' },
+        }] };
+        const metadata = { information_steward: { name: 'School of Testing', code: 'TEST', extra: { saved: true } },
+          workspaces: [{ restricted: 'workspace-secret' }] };
+        const form = await buildNestedViewForm(data, 'view', roles, metadata);
+        expect(form.componentDefinitions[0].component.class).to.equal('ContentComponent');
+        expect(form.componentDefinitions[0].component.config.content).to.be.a('string');
+        expect(FormRecordConsistencyService.metadataForViewForm(metadata, form)).to.deep.equal({
+          information_steward: metadata.information_steward,
+        });
+      });
+    }
+
+    for (const kind of ['group', 'repeatable']) {
+      for (const content of ['display string', '', {}, [], undefined]) {
+        it(`round2 keeps transformed ${kind} closed with content ${JSON.stringify(content)}`, async function () {
+          const { data, metadata } = nestedViewFixture(false);
+          const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
+          const node = form.componentDefinitions[kind === 'group' ? 0 : 1];
+          node.component.config.content = content;
+          const projected = FormRecordConsistencyService.metadataForViewForm(metadata, form);
+          expect(JSON.stringify(projected)).not.to.contain('role-secret');
+          expect(JSON.stringify(projected)).not.to.contain('server-secret');
+        });
+      }
+    }
+
+    it('round2 does not treat a group using descendant fallback content as a leaf', async function () {
+      const { data, metadata } = nestedViewFixture(false);
+      metadata.parent = { restricted: 'fallback-role-secret' } as any;
+      const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
+      expect(form.componentDefinitions[0].component.config.content).to.have.property('public');
+      expect(FormRecordConsistencyService.metadataForViewForm(metadata, form).parent).to.deep.equal({});
+      expect(JSON.stringify(form)).not.to.contain('fallback-role-secret');
+    });
+
+    async function viewForm(roles: string[]) {
+      const { nothingLogger } = require('@researchdatabox/sails-ng-common');
+      const { ConstructFormConfigVisitor } = require('../../src/visitor/construct.visitor');
+      const { ClientFormConfigVisitor } = require('../../src/visitor/client.visitor');
+      const fields = ['public', 'restricted', 'editOnly'].map((name) => ({
+        name,
+        component: { class: 'SimpleInputComponent', config: {} },
+        model: { class: 'SimpleInputModel', config: {} },
+        ...(name === 'restricted' ? { constraints: { authorization: { allowRoles: ['Admin'] } } } : {}),
+        ...(name === 'editOnly' ? { constraints: { allowModes: ['edit'] } } : {}),
+      }));
+      const constructed = await new ConstructFormConfigVisitor(nothingLogger).start({
+        data: { name: 'authorization', componentDefinitions: fields },
+        formMode: 'view',
+      });
+      return new ClientFormConfigVisitor(nothingLogger).start({
+        form: constructed,
+        formMode: 'view',
+        userRoles: roles,
+      });
+    }
+
+    for (const roles of [['Researcher'], ['Admin']]) {
+      it(`selects only role and mode permitted view fields for ${roles}`, async function () {
+        const form = await viewForm(roles);
+        const result = FormRecordConsistencyService.metadataForViewForm(
+          { public: 'visible', restricted: 'secret', editOnly: 'edit secret', serverOnly: 'server secret' },
+          form,
+        );
+        expect(result).to.deep.equal({
+          public: 'visible',
+          ...(roles.includes('Admin') ? { restricted: 'secret' } : {}),
+        });
+      });
+    }
+
+    it('stops at modeled parents so nested names cannot select unrelated top-level metadata', function () {
+      const form = {
+        componentDefinitions: [
+          {
+            name: 'parent',
+            model: { class: 'GroupModel' },
+            component: {
+              class: 'GroupComponent',
+              config: {
+                componentDefinitions: [{ name: 'restricted', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } }],
+              },
+            },
+          },
+        ],
+      };
+      expect(
+        FormRecordConsistencyService.metadataForViewForm(
+          { parent: { restricted: 'nested' }, restricted: 'top-level secret', orphan: 'secret' },
+          form,
+        ),
+      ).to.deep.equal({ parent: { restricted: 'nested' } });
     });
   });
 

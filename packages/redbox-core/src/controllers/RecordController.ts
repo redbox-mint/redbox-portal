@@ -749,12 +749,14 @@ export namespace Controllers {
               );
               if (clientFormConfig) {
                 const reusableFormDefs = sails.config.reusableFormDefinitions;
-                record.metadata = await FormRecordConsistencyService.projectMetadataClientFormConfig(
-                  record.metadata as AnyRecord,
-                  clientFormConfig,
-                  formMode,
-                  reusableFormDefs
-                );
+                record.metadata = formMode === 'view'
+                  ? FormRecordConsistencyService.metadataForViewForm(record.metadata as AnyRecord, clientFormConfig)
+                  : await FormRecordConsistencyService.projectMetadataClientFormConfig(
+                      record.metadata as AnyRecord,
+                      clientFormConfig,
+                      formMode,
+                      reusableFormDefs
+                    );
               }
             } catch (formErr) {
               sails.log.error(`Failed to filter metadata for record ${oid} using form ${formName}:`, formErr);
@@ -1176,6 +1178,9 @@ export namespace Controllers {
           contextVariablesMap,
           { user: req.user as UserModel, brand }
         );
+        const viewMetadata = formMode === 'view' && recordData?.metadata
+          ? FormRecordConsistencyService.metadataForViewForm(recordData.metadata as AnyRecord, mergedForm)
+          : undefined;
         // Discovery uses the authorised source contract while retaining the
         // stored form to disambiguate steps sharing a persisted stage.
         // Transition operations and their allowed targets still come from each
@@ -1226,7 +1231,7 @@ export namespace Controllers {
               contextVariables: contextVariablesMap,
               runtimeContext: {
                 user: { roles: userRoles },
-                record: { type: authoritativeRecordType, hasEditAccess: recordHasEditAccess },
+                record: { type: authoritativeRecordType, hasEditAccess: recordHasEditAccess, ...(viewMetadata ? { metadata: viewMetadata } : {}) },
               },
               validationOperations,
               formFingerprint,
