@@ -2,7 +2,13 @@ import Runtime from 'handlebars/runtime.js';
 import type Handlebars from 'handlebars';
 import { registerHandlebarsHelpers } from './handlebars-registration';
 
-export { handlebarsHelperDefinitions, loadMarkdownParser } from './handlebars-helper-definitions';
+export {
+  handlebarsHelperDefinitions,
+  loadMarkdownParser,
+  dateModifyOperations,
+  dateModifyShiftUnits,
+  dateModifyPlusUnits,
+} from './handlebars-helper-definitions';
 
 // Handlebars' runtime.d.ts declares an empty module. Describe only the runtime
 // surface so browser consumers cannot accidentally call a missing compiler.
@@ -34,3 +40,5 @@ export function handlebarsInstance() {
 export function handlebarsTemplate(precompilation: TemplateSpecification): HandlebarsTemplateDelegate {
   return handlebarsInstance().template(precompilation);
 }
+
+export type { DateModifyOperations } from './handlebars-helper-definitions';

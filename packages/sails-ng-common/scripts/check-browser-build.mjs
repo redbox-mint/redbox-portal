@@ -102,17 +102,18 @@ try {
     const api = await import(pathToFileURL(join(directory, 'stdin.mjs')));
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(globalThis.markdownEvaluations, 0, 'import must not start Markdown loading');
-    assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('html', 'html'), 'html');
-    assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('', 'markdown'), '');
+    const helperOptions = { lookupProperty: (object, key) => object[key] };
+    assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('html', 'html', helperOptions), 'html');
+    assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('', 'markdown', helperOptions), '');
     assert.equal(globalThis.markdownEvaluations, 0);
-    assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('text', 'markdown'), 'text');
+    assert.equal(api.handlebarsHelperDefinitions.markdownToHtml('text', 'markdown', helperOptions), 'text');
     const loading = api.loadMarkdownParser();
     assert.equal(api.loadMarkdownParser(), loading, 'concurrent requests must share one import');
     if (fail) await assert.rejects(loading, /unavailable chunk/);
     else await loading;
     assert.equal(globalThis.markdownEvaluations, 1);
     assert.equal(
-      api.handlebarsHelperDefinitions.markdownToHtml('text', 'markdown'),
+      api.handlebarsHelperDefinitions.markdownToHtml('text', 'markdown', helperOptions),
       fail ? 'text' : '<parsed>text</parsed>'
     );
     if (fail) {
@@ -150,7 +151,9 @@ try {
     const spec = Function(`return ${compiler.precompile('{{explicitCompilerHook name}}')}`)();
     const originalFunction = globalThis.Function;
     try {
-      globalThis.Function = () => { throw new Error('CSP forbids dynamic code generation'); };
+      globalThis.Function = () => {
+        throw new Error('CSP forbids dynamic code generation');
+      };
       assert.equal(runtime.handlebarsTemplate(spec)({ name: 'Ada' }), 'hook:Ada');
     } finally {
       globalThis.Function = originalFunction;
@@ -164,7 +167,11 @@ try {
   }
   // A new Node process proves import/HTML do not preload Marked and the very
   // first synchronous server Markdown render contains HTML, without a timer.
-  execFileSync(process.execPath, ['-e', `
+  execFileSync(
+    process.execPath,
+    [
+      '-e',
+      `
     const assert = require('node:assert/strict');
     const api = require('@researchdatabox/sails-ng-common');
     const loaded = () => Object.keys(require.cache).some(path => path.endsWith('/marked-parser.cjs'));
@@ -175,10 +182,19 @@ try {
     assert.equal(loaded(), false);
     assert.equal(render({ content: '**first**', outputFormat: 'markdown' }), '<p><strong>first</strong></p>\\n');
     assert.equal(loaded(), true);
-  `], { cwd: packageDirectory, stdio: 'pipe' });
+  `,
+    ],
+    { cwd: packageDirectory, stdio: 'pipe' }
+  );
   // Resolve the actual browser export condition in an isolated process, without
   // the CommonJS API sharing Handlebars' vendor singleton with this test runner.
-  execFileSync(process.execPath, ['--conditions=browser', '--input-type=module', '-e', `
+  execFileSync(
+    process.execPath,
+    [
+      '--conditions=browser',
+      '--input-type=module',
+      '-e',
+      `
     import assert from 'node:assert/strict';
     import { handlebarsInstance as full } from '@researchdatabox/sails-ng-common';
     import { handlebarsInstance as runtime, handlebarsHelperDefinitions, loadMarkdownParser }
@@ -189,7 +205,10 @@ try {
     await loadMarkdownParser();
     assert.equal(full().compile('{{{markdownToHtml content "markdown"}}}')({ content: '**browser**' }),
       '<p><strong>browser</strong></p>\\n');
-  `], { cwd: packageDirectory, stdio: 'pipe' });
+  `,
+    ],
+    { cwd: packageDirectory, stdio: 'pipe' }
+  );
   assert.deepEqual(
     [...browser.FieldComponentDefinitionMap.keys()],
     [...node.FieldComponentDefinitionMap.keys()],

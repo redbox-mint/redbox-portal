@@ -47,6 +47,7 @@ import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { RecordMetaMetadata, RecordWorkflow } from '../model/storage/RecordModel';
 import { formatRecordFormFingerprint } from '../RecordFormFingerprint';
 import { RecordContractContextResolutionError } from '../record-contract/record-contract-context';
+import { resolvePersistedWorkflowStep, routeFormContractName } from '../RecordRouteForm';
 import type {
   RecordContractContext,
   RecordContractContextActor,
@@ -140,6 +141,8 @@ export interface RecordValidationActor {
 
 export interface RecordValidationRequest {
   readonly candidate: RecordValidationCandidate;
+  /** Process-local source-contract capability; never populated from request parameters. */
+  readonly routeFormContract?: unknown;
   readonly writeKind: RecordValidationWriteKind;
   /** Server-owned validation intent; separate from the CRUD write kind. */
   readonly validationOperation?: string;
@@ -173,6 +176,7 @@ export interface RecordValidationRequest {
  */
 export interface RecordValidationOperationDiscoveryRequest {
   readonly candidate: RecordValidationCandidate;
+  readonly routeFormContract?: unknown;
   readonly writeKind: RecordValidationWriteKind;
   /** Optional narrowing to one actor-authorized transition target. */
   readonly targetStep?: string;
@@ -912,6 +916,7 @@ export namespace Services {
         writeKind: request.kind,
         validationOperation: request.operation,
         evaluateFormValidators: false,
+        ...(request.kind === 'update' ? { routeFormContract: request.routeFormContract } : {}),
         ...(request.kind === 'create' && request.targetStep !== undefined ? { targetStep: request.targetStep } : {}),
         actor,
       };
@@ -1009,6 +1014,7 @@ export namespace Services {
       const normalized = this.normalizeRequest(
         {
           candidate: request.candidate,
+          routeFormContract: request.routeFormContract,
           writeKind: request.writeKind,
           targetStep: request.targetStep,
           currentStep: request.currentStep,
@@ -1068,6 +1074,7 @@ export namespace Services {
       };
       const discoveryDependencies: RecordValidationServiceDependencies = {
         ...dependencies,
+        loadWorkflowSteps: async () => workflowSteps,
         loadWorkflowStep: async (_recordType, step) => await loadWorkflowStep(step),
         loadStartingWorkflowStep: async () =>
           workflowSteps.find(step => step.starting === true) ?? dependencies.loadStartingWorkflowStep(recordType),
@@ -1743,7 +1750,9 @@ export namespace Services {
         loadWorkflowStep: async (recordType, step) =>
           (await firstValueFrom(WorkflowStepsService.get(recordType, step))) as WorkflowStepLike | null,
         loadWorkflowSteps: async recordType =>
-          (await firstValueFrom(WorkflowStepsService.getAllForRecordType(recordType))) as WorkflowStepLike[],
+          (await firstValueFrom(
+            WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType)
+          )) as WorkflowStepLike[],
         loadForm: async (formName, brand) => await firstValueFrom(FormsService.getFormByName(formName, true, brand)),
         constructForm: async (form, metadata, reusableFormDefinitions) =>
           await new ConstructFormConfigVisitor(this.logger).start({
@@ -1923,7 +1932,17 @@ export namespace Services {
         }
         return this.selectionFromWorkflowStep(step, diagnostics);
       }
-      const formName = request.source.candidate.metaMetadata.form;
+      const routeFormName = routeFormContractName(request.source.routeFormContract, request.source.candidate);
+      if (request.source.routeFormContract !== undefined && !routeFormName) {
+        diagnostics.push(
+          createDiagnostic(
+            RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceDivergence,
+            'The authorized source contract no longer matches the stored record.'
+          )
+        );
+        return undefined;
+      }
+      const formName = routeFormName ?? request.source.candidate.metaMetadata.form;
       if (typeof formName !== 'string' || !formName.trim()) {
         diagnostics.push(
           createDiagnostic(
@@ -1961,10 +1980,24 @@ export namespace Services {
       // A malformed stored stage is configuration state, not a malformed
       // operation request. Continue with the exact form and non-stage policy
       // so form and record-type operation restrictions remain authoritative.
-      const workflowStep = parsedWorkflowStep.ok ? parsedWorkflowStep.value : undefined;
+      let workflowStep = parsedWorkflowStep.ok ? parsedWorkflowStep.value : undefined;
       let workflowConfig: Readonly<Partial<WorkflowStageConfig> & Record<string, unknown>> | undefined;
       if (workflowStep) {
-        const step = await dependencies.loadWorkflowStep(recordType, workflowStep);
+        const steps = await dependencies.loadWorkflowSteps(recordType);
+        let step = resolvePersistedWorkflowStep(steps, workflowStep, request.source.candidate.metaMetadata.form);
+        if (!step) {
+          // Older service overrides may omit hidden steps from the list. A
+          // name lookup is only a candidate: configured stage/form identity
+          // must still resolve uniquely, including every listed definition.
+          const fallback = await dependencies.loadWorkflowStep(recordType, workflowStep);
+          if (fallback) {
+            step = resolvePersistedWorkflowStep(
+              [...steps, fallback],
+              workflowStep,
+              request.source.candidate.metaMetadata.form
+            );
+          }
+        }
         if (!step) {
           diagnostics.push(
             createDiagnostic(
@@ -1974,6 +2007,7 @@ export namespace Services {
             )
           );
         } else {
+          workflowStep = step.name;
           workflowConfig = step.config;
         }
       }

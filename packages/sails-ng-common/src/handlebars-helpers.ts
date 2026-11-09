@@ -1,7 +1,13 @@
 import { normaliseVisual } from './config/names/naming-helpers';
 import { handlebarsInstance as compilerInstance } from './handlebars-browser-compiler';
 
-export { handlebarsHelperDefinitions, loadMarkdownParser } from './handlebars-helper-definitions';
+export {
+  handlebarsHelperDefinitions,
+  loadMarkdownParser,
+  dateModifyOperations,
+  dateModifyShiftUnits,
+  dateModifyPlusUnits,
+} from './handlebars-helper-definitions';
 
 /** The original full compiler instance for Node/CommonJS callers. */
 export function handlebarsInstance() {
@@ -19,3 +25,5 @@ export function handlebarsCompile(input: unknown, options?: CompileOptions): Han
 export function handlebarsTemplate(precompilation: TemplateSpecification): HandlebarsTemplateDelegate {
   return handlebarsInstance().template(precompilation);
 }
+
+export type { DateModifyOperations } from './handlebars-helper-definitions';

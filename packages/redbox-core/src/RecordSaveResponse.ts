@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { RecordRouteForm } from './RecordRouteForm';
 import { cloneDeep as _cloneDeep } from 'lodash';
 import {
   emptyRecordSaveCompletion,
@@ -99,6 +100,8 @@ export interface RecordSaveSchemaOutcomeInput {
 export type RecordSaveSchemaOutcomeMetadata = Readonly<RecordSaveSchemaOutcomeInput>;
 
 export interface RecordSaveContext {
+  /** Copied only from the server session by browser transport, never from request data. */
+  readonly routeForm?: Readonly<RecordRouteForm>;
   readonly requestId: string;
   readonly routeFamily?: RecordSaveRouteFamily;
   readonly operation?: RecordSaveOperation;
@@ -124,6 +127,7 @@ export interface RecordSaveContext {
 
 /** Trusted values accepted by the save-context factory. */
 export interface RecordSaveContextOptions {
+  readonly routeForm?: Readonly<RecordRouteForm>;
   readonly requestId?: string;
   readonly routeFamily?: RecordSaveRouteFamily;
   readonly operation?: RecordSaveOperation;
@@ -674,6 +678,7 @@ export function createRecordSaveContext(context: RecordSaveContextOptions = {}):
     validationBypass,
     concurrency: concurrencyInput,
     recordSchemaIfMatch,
+    routeForm,
   } = context;
   const parsedSchemaOperation = parsePublicValidationOperation(validationOperation);
   const concurrency = normalizeRecordConcurrencyContext(concurrencyInput);
@@ -696,6 +701,7 @@ export function createRecordSaveContext(context: RecordSaveContextOptions = {}):
     validationRuntimeContext: snapshotRecordSaveContextObject(validationRuntimeContext, 'validationRuntimeContext'),
     validationBypass: snapshotRecordValidationBypass(validationBypass),
     ...(concurrency ? { concurrency: Object.freeze(concurrency) } : {}),
+    ...(routeForm ? { routeForm: Object.freeze({ ...routeForm }) } : {}),
   }) as RecordSaveContext;
   trustedRecordSaveContexts.add(trustedContext);
   return trustedContext;

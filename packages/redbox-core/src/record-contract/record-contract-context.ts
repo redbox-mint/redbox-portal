@@ -33,6 +33,8 @@ export interface RecordContractUpdateContextRequest extends RecordContractContex
   readonly kind: 'update';
   readonly oid: string;
   readonly recordType?: never;
+  /** Process-local source-contract capability issued after route-grant validation. */
+  readonly routeFormContract?: unknown;
 }
 
 export type RecordContractContextRequest = RecordContractCreateContextRequest | RecordContractUpdateContextRequest;

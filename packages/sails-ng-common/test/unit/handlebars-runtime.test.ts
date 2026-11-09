@@ -2,12 +2,7 @@ import assert from 'node:assert/strict';
 import { runInNewContext } from 'node:vm';
 import { handlebarsInstance as compilerInstance, handlebarsPrecompile } from '../../src/handlebars-helpers';
 import { handlebarsCompile as browserCompile } from '../../src/handlebars-browser-compiler';
-import {
-  handlebarsInstance,
-  handlebarsTemplate,
-  loadMarkdownParser,
-  handlebarsHelperDefinitions,
-} from '../../src/handlebars-runtime';
+import { handlebarsInstance, handlebarsTemplate, loadMarkdownParser } from '../../src/handlebars-runtime';
 
 describe('Handlebars runtime compatibility', () => {
   it('executes server-precompiled helpers without dynamic code generation', () => {
@@ -59,8 +54,10 @@ describe('Handlebars runtime compatibility', () => {
 
   it('supports deterministic Markdown rendering after explicitly awaiting its parser', async () => {
     await loadMarkdownParser();
-    assert.equal(handlebarsHelperDefinitions.markdownToHtml('**bold**', 'markdown'), '<p><strong>bold</strong></p>\n');
-    assert.equal(handlebarsHelperDefinitions.markdownToHtml('<b>HTML</b>', 'html'), '<b>HTML</b>');
-    assert.equal(handlebarsHelperDefinitions.markdownToHtml(null, 'markdown'), '');
+    const spec = runInNewContext(`(${handlebarsPrecompile('{{{markdownToHtml value format}}}')})`);
+    const render = handlebarsTemplate(spec);
+    assert.equal(render({ value: '**bold**', format: 'markdown' }), '<p><strong>bold</strong></p>\n');
+    assert.equal(render({ value: '<b>HTML</b>', format: 'html' }), '<b>HTML</b>');
+    assert.equal(render({ value: null, format: 'markdown' }), '');
   });
 });
