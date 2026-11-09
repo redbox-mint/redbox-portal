@@ -315,7 +315,7 @@ describe('The RecordsService', function () {
     const { MongoClient } = require(require.resolve('mongodb', { paths: [require.resolve('sails-mongo')] })) as typeof import('mongodb');
     for (const datastore of ['mongodb', 'redboxStorage']) {
       const options = sails.config.datastores[datastore];
-      expect(options.socketTimeoutMS).to.be.greaterThan(0);
+      expect(options.socketTimeoutMS).to.equal(120000);
       const manager = sails.getDatastore(datastore).manager;
       expect(manager.client.options.socketTimeoutMS).to.equal(options.socketTimeoutMS);
     }
