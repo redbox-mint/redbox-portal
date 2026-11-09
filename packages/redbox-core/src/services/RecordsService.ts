@@ -282,7 +282,9 @@ export namespace Services {
     private getServices(ref: Records = this) {
       ref.getDatastreamService(ref);
       ref.searchService = sails.services[sails.config.search.serviceName] as unknown as SearchService;
-      ref.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
+      if (sails.config.queue?.serviceName) {
+        ref.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
+      }
       ref.getStorageService(ref);
     }
 

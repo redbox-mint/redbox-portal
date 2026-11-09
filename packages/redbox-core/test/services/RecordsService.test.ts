@@ -174,6 +174,41 @@ describe('RecordsService', function () {
     sinon.restore();
   });
 
+  describe('initialization', function () {
+    for (const queueState of ['configured', 'missing configuration', 'unavailable service']) {
+      it(`initializes storage and persists audits with the queue ${queueState}`, async function () {
+        if (queueState === 'missing configuration') {
+          delete mockSails.config.queue;
+          delete mockSails.services.agendaqueueservice;
+        } else if (queueState === 'unavailable service') {
+          delete mockSails.services.agendaqueueservice;
+        }
+        delete RecordsService.storageService;
+        delete RecordsService.searchService;
+        delete RecordsService.datastreamService;
+        delete RecordsService.queueService;
+        mockSails.after = sinon.stub();
+
+        RecordsService.init();
+
+        sinon.assert.calledOnce(mockSails.after);
+        const [events, onReady] = mockSails.after.firstCall.args;
+        expect(events).to.deep.equal(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready']);
+        onReady();
+
+        expect(RecordsService.storageService).to.equal(mockStorageService);
+        expect(RecordsService.datastreamService).to.equal(mockDatastreamService);
+        expect(RecordsService.searchService).to.equal(mockSearchService);
+        expect(RecordsService.queueService).to.equal(queueState === 'configured' ? mockQueueService : undefined);
+
+        await RecordsService.auditRecord('record-123', { metadata: { title: 'Initialized audit' } }, { username: 'admin' });
+
+        sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
+  });
+
   describe('durable Figshare save boundaries', () => {
     let previousConfig: unknown;
     let previousFigshare: unknown;
