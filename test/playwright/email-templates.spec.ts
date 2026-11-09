@@ -276,9 +276,11 @@ test.describe('stage 4 email editor regressions', () => {
     await page.locator('#et-body').fill('Must retain failed save');
     await expect(page.locator('.et-footer-status')).toContainText('Draft not saved');
     await page.getByRole('button', { name: /Reset to default/ }).click();
-    await page.locator('dialog[open] .btn-danger').click();
+    const resetButton = page.getByRole('dialog', { name: 'Reset to the supplied default?', exact: true })
+      .getByRole('button', { name: 'Reset to default', exact: true });
+    await resetButton.click();
     await expect(page.locator('#et-body')).toHaveValue('Must retain failed save');
-    await expect(page.locator('dialog[open] .btn-danger')).toBeEnabled();
+    await expect(resetButton).toBeEnabled();
     expect((await state(page)).live.token).toEqual(before.live.token);
   });
 

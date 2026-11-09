@@ -193,7 +193,7 @@ export const smokeRoutes: SmokeRoute[] = [
     auth: 'admin',
     type: 'angular',
     rootSelector: 'email-templates-root',
-    requiredSelectors: ['email-templates-root .et-table'],
+    requiredSelectors: ['email-templates-catalogue table'],
     fallbackSelectors: [],
     requiredAssetIncludes: [
       '/angular/email-templates/browser/polyfills',
