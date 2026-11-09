@@ -2282,6 +2282,10 @@ describe('RecordController getWorkflowSteps', () => {
       const send = sinon.stub(controller as any, 'sendResp');
       await controller.bulkDeletedRecords(req, {} as any);
       expect(mutate.getCalls().map(call => call.args[0])).to.deep.equal(['ok', 'stale', 'throw', 'last']);
+      for (const call of mutate.getCalls()) {
+        expect(call.args[3]).to.include({ operation: action === 'restore' ? 'restore' : 'purge', routeFamily: 'browser' });
+        expect(call.args[3].concurrency).to.include({ expectedRevision: 3 });
+      }
       expect(read.getCalls().every(call => call.args[1].id === 'brand-1')).to.equal(true);
       expect(send.firstCall.args[2].v1.results.map(item => item.status)).to.deep.equal(['succeeded', 'failed', 'failed', 'failed', 'failed', 'unknown', 'succeeded']);
       expect(send.firstCall.args[2].v1.results[4].reason).to.equal('record-changed');

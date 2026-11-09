@@ -1529,7 +1529,7 @@ export namespace Controllers {
             results.push({ oid: item.oid, status: 'failed', reason: 'invalid-precondition' });
             continue;
           }
-          const context = this.saveContext(req, parsed.data.action === 'restore' ? 'restore' : 'purge', undefined, undefined, precondition.context);
+          const context = await this.saveContext(req, parsed.data.action === 'restore' ? 'restore' : 'purge', undefined, undefined, precondition.context);
           const result = parsed.data.action === 'restore'
             ? await this.recordsService.restoreRecord(item.oid, user, brand, context)
             : await this.recordsService.destroyDeletedRecord(item.oid, user, brand, context);
