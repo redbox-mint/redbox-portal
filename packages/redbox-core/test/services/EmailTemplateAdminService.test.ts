@@ -1031,7 +1031,7 @@ describe('Email template administration', () => {
     assert.deepEqual(result.diagnostics, []);
     assert.equal(result.text, '|false|0|Own|Literal|b|3');
   });
-  it('runs the complete 43-helper review probe in the actual preview environment', async () => {
+  it('runs the complete registered-helper review probe in the actual preview environment', async () => {
     const h = handlebarsInstance();
     const outputs = {
       formatDate: '(formatDate "2026-01-01" "yyyy")', formatDateLocale: '(formatDateLocale "2026-01-01")',
@@ -1049,8 +1049,13 @@ describe('Email template administration', () => {
       lookup: '(lookup record.metadata "nested")', if: '(if true)', unless: '(unless false)',
       each: '(each record.metadata.items)', with: '(with record.metadata)', log: '(log "HELPER_PROBE")',
       helperMissing: '(helperMissing)', blockHelperMissing: '(blockHelperMissing true)',
+      dateModify: '(dateModify "2026-01-01" "days" 7)', asArray: '(asArray record.metadata.nested)',
+      trimArray: '(trimArray record.metadata.strings)', flattenArray: '(flattenArray record.metadata.items)',
+      filterArray: '(filterArray record.metadata.items)', displayName: '(displayName record.metadata.nested)',
+      displayNameArray: '(displayNameArray record.metadata.items)', sort: '(sort record.metadata.strings)',
+      unique: '(unique record.metadata.strings)',
     };
-    assert.equal(Object.keys(outputs).length, 43);
+    assert.equal(Object.keys(outputs).length, 52);
     assert.deepEqual(Object.keys(outputs).sort(), Object.keys(h.helpers).sort());
     sinon.stub(h, 'log'); // This probe explicitly invokes log during the real render.
     for (const [name, expression] of Object.entries(outputs)) {

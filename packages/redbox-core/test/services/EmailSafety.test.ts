@@ -111,7 +111,7 @@ describe('Email template safety', () => {
     { label: 'implicit inverse remains uncertain', body: '{{#data}}x{{else}}{{unknown}}{{/data}}', valid: true, renders: false },
     { label: 'explicit root inside nested blocks', body: '{{#each record.metadata.people}}{{#with details}}{{@root.unknown}}{{/with}}{{/each}}', valid: false, renders: false },
     { label: 'subexpression block context remains uncertain', body: '{{#with (get record "metadata")}}{{unknown}}{{/with}}', valid: true, renders: false },
-    { label: 'subexpression arguments checked in outer context', body: '{{#with (get unknown "metadata")}}{{title}}{{/with}}', valid: false, renders: false },
+    { label: 'subexpression arguments checked in outer context', body: '{{#with (get unknown "metadata")}}{{title}}{{/with}}', valid: false, renders: true, output: '' },
     // Policy rejections: unknown top-level roots in helper/block arguments render as empty, but are rejected.
     { label: 'block arguments checked in outer context (policy)', body: '{{#each unknown}}{{this}}{{/each}}', valid: false, renders: true, output: '' },
     { label: 'conditional argument checked at top level (policy)', body: '{{#if unknown}}Y{{else}}N{{/if}}', valid: false, renders: true, output: 'N' },

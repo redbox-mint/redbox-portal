@@ -9588,5 +9588,95 @@
     "category": "email-templates",
     "description": "Empty preview hint for integration templates without record selection",
     "contentFormat": "plain"
+  },
+  "email-templates-helper-dateModify-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the dateModify helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-dateModify-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the dateModify helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-asArray-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the asArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-asArray-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the asArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-trimArray-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the trimArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-trimArray-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the trimArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-flattenArray-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the flattenArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-flattenArray-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the flattenArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-filterArray-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the filterArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-filterArray-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the filterArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-displayName-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the displayName helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-displayName-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the displayName helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-displayNameArray-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the displayNameArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-displayNameArray-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the displayNameArray helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-sort-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the sort helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-sort-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the sort helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-unique-syntax": {
+    "category": "email-templates",
+    "description": "Email editor syntax guidance for the unique helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
+  },
+  "email-templates-helper-unique-example": {
+    "category": "email-templates",
+    "description": "Email editor example guidance for the unique helper; Handlebars tokens are literal examples.",
+    "contentFormat": "plain"
   }
 }
