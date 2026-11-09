@@ -359,9 +359,6 @@ export const dateModifyPlusUnits = [
   'seconds',
   'milliseconds',
 ] as const;
-export type DateModifyOperations = (typeof dateModifyOperations)[number];
-export type DateModifyShiftUnits = (typeof dateModifyShiftUnits)[number];
-export type DateModifyPlusUnits = (typeof dateModifyPlusUnits)[number];
 
 function isIn<T>(values: readonly T[], x: any): x is T {
   return values.includes(x);
@@ -370,6 +367,9 @@ function isIn<T>(values: readonly T[], x: any): x is T {
 /**
  * Helper function definitions that can be registered with Handlebars.
  * Each function is a pure, deterministic helper that does not execute arbitrary code.
+ *
+ * These functions return an appropriate empty value when given unexpected arguments, instead of throwing an error.
+ * Templates can be edited by users, and we want to validate where the user is editing and be able to show the rendered content.
  */
 export const handlebarsHelperDefinitions = {
   /**

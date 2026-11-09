@@ -217,235 +217,227 @@ describe('Shared Handlebars Helpers', async function () {
 
   describe('isEmpty', function () {
     it('should return true for empty string', function () {
-      expect(handlebarsHelperDefinitions.isEmpty('')).to.be.true;
+      expect(handlebarsCompile(`{{isEmpty input}}`)({ input: '' })).to.equal('true');
     });
 
     it('should return true for empty array', function () {
-      expect(handlebarsHelperDefinitions.isEmpty([])).to.be.true;
+      expect(handlebarsCompile(`{{isEmpty input}}`)({ input: [] })).to.equal('true');
     });
 
     it('should return true for empty object', function () {
-      expect(handlebarsHelperDefinitions.isEmpty({})).to.be.true;
+      expect(handlebarsCompile(`{{isEmpty input}}`)({ input: {} })).to.equal('true');
     });
 
     it('should return false for non-empty string', function () {
-      expect(handlebarsHelperDefinitions.isEmpty('hello')).to.be.false;
+      expect(handlebarsCompile(`{{isEmpty input}}`)({ input: 'hello' })).to.equal('false');
     });
 
     it('should return false for non-empty array', function () {
-      expect(handlebarsHelperDefinitions.isEmpty([1, 2, 3])).to.be.false;
+      expect(handlebarsCompile(`{{isEmpty input}}`)({ input: [1, 2, 3] })).to.equal('false');
     });
   });
 
   describe('isDefined and isUndefined', function () {
     it('should return true for defined value', function () {
-      expect(handlebarsHelperDefinitions.isDefined('hello')).to.be.true;
-      expect(handlebarsHelperDefinitions.isUndefined('hello')).to.be.false;
+      expect(handlebarsCompile(`{{isDefined input}}`)({ input: 'hello' })).to.equal('true');
+      expect(handlebarsCompile(`{{isUndefined input}}`)({ input: 'hello' })).to.equal('false');
     });
 
     it('should return true for zero', function () {
-      expect(handlebarsHelperDefinitions.isDefined(0)).to.be.true;
-      expect(handlebarsHelperDefinitions.isUndefined(0)).to.be.false;
+      expect(handlebarsCompile(`{{isDefined input}}`)({ input: 0 })).to.equal('true');
+      expect(handlebarsCompile(`{{isUndefined input}}`)({ input: 0 })).to.equal('false');
     });
 
     it('should return false for undefined', function () {
-      expect(handlebarsHelperDefinitions.isDefined(undefined)).to.be.false;
-      expect(handlebarsHelperDefinitions.isUndefined(undefined)).to.be.true;
+      expect(handlebarsCompile(`{{isDefined input}}`)({ input: undefined })).to.equal('false');
+      expect(handlebarsCompile(`{{isUndefined input}}`)({ input: undefined })).to.equal('true');
     });
 
     it('should return false for null', function () {
-      expect(handlebarsHelperDefinitions.isDefined(null)).to.be.false;
-      expect(handlebarsHelperDefinitions.isUndefined(null)).to.be.false;
+      expect(handlebarsCompile(`{{isDefined input}}`)({ input: null })).to.equal('false');
+      expect(handlebarsCompile(`{{isUndefined input}}`)({ input: null })).to.equal('false');
     });
   });
 
   describe('isArray', function () {
     it('should return false for plain objects', function () {
-      expect(handlebarsHelperDefinitions.isArray({ key: 'value' })).to.be.false;
+      expect(handlebarsCompile(`{{isArray input}}`)({ input: { key: 'value' } })).to.equal('false');
     });
 
     it('should return true for arrays', function () {
-      expect(handlebarsHelperDefinitions.isArray(['value'])).to.be.true;
+      expect(handlebarsCompile(`{{isArray input}}`)({ input: ['value'] })).to.equal('true');
     });
 
     it('should return false for null', function () {
-      expect(handlebarsHelperDefinitions.isArray(null)).to.be.false;
+      expect(handlebarsCompile(`{{isArray input}}`)({ input: null })).to.equal('false');
     });
   });
 
   describe('isNull', function () {
     it('should return false for plain objects', function () {
-      expect(handlebarsHelperDefinitions.isNull({ key: 'value' })).to.be.false;
+      expect(handlebarsCompile(`{{isNull input}}`)({ input: { key: 'value' } })).to.equal('false');
     });
 
     it('should return false for arrays', function () {
-      expect(handlebarsHelperDefinitions.isNull(['value'])).to.be.false;
+      expect(handlebarsCompile(`{{isNull input}}`)({ input: ['value'] })).to.equal('false');
     });
 
     it('should return true for null', function () {
-      expect(handlebarsHelperDefinitions.isNull(null)).to.be.true;
+      expect(handlebarsCompile(`{{isNull input}}`)({ input: null })).to.equal('true');
     });
 
     it('should return false for undefined', function () {
-      expect(handlebarsHelperDefinitions.isNull(undefined)).to.be.false;
+      expect(handlebarsCompile(`{{isNull input}}`)({ input: undefined })).to.equal('false');
     });
   });
 
   describe('isObject', function () {
     it('should return true for plain objects', function () {
-      expect(handlebarsHelperDefinitions.isObject({ key: 'value' })).to.be.true;
+      expect(handlebarsCompile(`{{isObject input}}`)({ input: { key: 'value' } })).to.equal('true');
     });
 
     it('should return false for arrays', function () {
-      expect(handlebarsHelperDefinitions.isObject(['value'])).to.be.false;
+      expect(handlebarsCompile(`{{isObject input}}`)({ input: ['value'] })).to.equal('false');
     });
 
     it('should return false for null', function () {
-      expect(handlebarsHelperDefinitions.isObject(null)).to.be.false;
+      expect(handlebarsCompile(`{{isObject input}}`)({ input: null })).to.equal('false');
     });
   });
 
   describe('eq and ne', function () {
     it('should return true for equal values', function () {
-      expect(handlebarsHelperDefinitions.eq('a', 'a')).to.be.true;
+      expect(handlebarsCompile(`{{eq a b}}`)({ a: 'a', b: 'a' })).to.equal('true');
     });
 
     it('should return false for unequal values', function () {
-      expect(handlebarsHelperDefinitions.eq('a', 'b')).to.be.false;
+      expect(handlebarsCompile(`{{eq a b}}`)({ a: 'a', b: 'b' })).to.equal('false');
     });
 
     it('should return true for unequal values with ne', function () {
-      expect(handlebarsHelperDefinitions.ne('a', 'b')).to.be.true;
+      expect(handlebarsCompile(`{{ne a b}}`)({ a: 'a', b: 'b' })).to.equal('true');
     });
   });
 
   describe('and and or', function () {
     it('and should return true if all args are truthy', function () {
-      // The last arg is options hash, so we add a dummy
-      expect(handlebarsHelperDefinitions.and(true, true, {})).to.be.true;
+      expect(handlebarsCompile(`{{and a b}}`)({ a: true, b: true })).to.equal('true');
     });
 
     it('and should return false if any arg is falsy', function () {
-      expect(handlebarsHelperDefinitions.and(true, false, {})).to.be.false;
+      expect(handlebarsCompile(`{{and a b}}`)({ a: true, b: false })).to.equal('false');
     });
 
     it('or should return true if any arg is truthy', function () {
-      expect(handlebarsHelperDefinitions.or(false, true, {})).to.be.true;
+      expect(handlebarsCompile(`{{or a b}}`)({ a: false, b: true })).to.equal('true');
     });
 
     it('or should return false if all args are falsy', function () {
-      expect(handlebarsHelperDefinitions.or(false, false, null)).to.be.false;
+      expect(handlebarsCompile(`{{or a b}}`)({ a: false, b: false })).to.equal('false');
     });
   });
 
   describe('not', function () {
     it('should return true if false', function () {
-      expect(handlebarsHelperDefinitions.not(false)).to.be.true;
+      expect(handlebarsCompile(`{{not input}}`)({ input: false })).to.equal('true');
     });
 
     it('should return false if truthy', function () {
-      expect(handlebarsHelperDefinitions.not(1)).to.be.false;
-      expect(handlebarsHelperDefinitions.not('a')).to.be.false;
-      expect(handlebarsHelperDefinitions.not([])).to.be.false;
+      expect(handlebarsCompile(`{{not input}}`)({ input: 1 })).to.equal('false');
+      expect(handlebarsCompile(`{{not input}}`)({ input: 'a' })).to.equal('false');
+      expect(handlebarsCompile(`{{not input}}`)({ input: [] })).to.equal('false');
     });
 
     it('should return true if falsy', function () {
-      expect(handlebarsHelperDefinitions.not(null)).to.be.true;
-      expect(handlebarsHelperDefinitions.not(undefined)).to.be.true;
-      expect(handlebarsHelperDefinitions.not('')).to.be.true;
-      expect(handlebarsHelperDefinitions.not(0)).to.be.true;
+      expect(handlebarsCompile(`{{not input}}`)({ input: null })).to.equal('true');
+      expect(handlebarsCompile(`{{not input}}`)({ input: undefined })).to.equal('true');
+      expect(handlebarsCompile(`{{not input}}`)({ input: '' })).to.equal('true');
+      expect(handlebarsCompile(`{{not input}}`)({ input: 0 })).to.equal('true');
     });
   });
 
   describe('concat', function () {
     it('should concatenate strings', function () {
-      const value = 'Hello World';
-      const result = handlebarsHelperDefinitions.concat('Hello', ' ', 'World');
-      expect(result).to.equal(value);
-
-      expect(handlebarsCompile('{{concat "Hello" " " "World"}}')({})).to.equal(value);
+      expect(handlebarsCompile('{{concat "Hello" " " "World"}}')({})).to.equal('Hello World');
     });
   });
 
   describe('string case helpers', function () {
     it('toLower should lowercase text values', function () {
-      const result = handlebarsHelperDefinitions.toLower('Ada Lovelace');
-      expect(result).to.equal('ada lovelace');
+      expect(handlebarsCompile('{{toLower "Ada Lovelace"}}')({})).to.equal('ada lovelace');
     });
 
     it('toUpper should uppercase text values', function () {
-      const result = handlebarsHelperDefinitions.toUpper('Ada Lovelace');
-      expect(result).to.equal('ADA LOVELACE');
+      expect(handlebarsCompile('{{toUpper "Ada Lovelace"}}')({})).to.equal('ADA LOVELACE');
     });
 
     it('should treat nullish values as empty strings', function () {
-      expect(handlebarsHelperDefinitions.toLower(null)).to.equal('');
-      expect(handlebarsHelperDefinitions.toUpper(undefined)).to.equal('');
+      expect(handlebarsCompile('{{toLower input}}')({ input: null })).to.equal('');
+      expect(handlebarsCompile('{{toUpper input}}')({ input: undefined })).to.equal('');
     });
   });
 
   describe('translation helper', function () {
     it('should show translated string from code', function () {
-      const result = handlebarsHelperDefinitions.t.call(
-        { translationService: { t: (key: string) => `translated-${key}` } },
-        'Ada Lovelace'
-      );
-      expect(result).to.equal(`translated-Ada Lovelace`);
+      const compiled = handlebarsCompile(`{{t input}}`);
+      const context = { input: '@translation-code', translationService: { t: (key: string) => `translated-${key}` } };
+      expect(compiled(context)).to.equal('translated-@translation-code');
     });
   });
 
   describe('trim string helpers', function () {
     it('trim should remove whitespace from start and end', function () {
-      const result = handlebarsHelperDefinitions.trim('\n \t  \f example  \n  text\r');
-      expect(result).to.equal('example  \n  text');
+      expect(handlebarsCompile('{{trim input}}')({ input: '\n \t  \f example  \n  text\r' })).to.equal(
+        'example  \n  text'
+      );
     });
 
     it('trimArray should remove whitespace from string items in array', function () {
-      const result = handlebarsHelperDefinitions.trimArray(['\n \t  \f example  \n  text\r', 0, {}, null]);
-      expect(result).to.deep.equal(['example  \n  text', 0, {}, null]);
+      expect(
+        handlebarsCompile(`{{{json (trimArray input)}}}`)({ input: ['\n \t  \f example  \n  text\r', 0, {}, null] })
+      ).to.equal(JSON.stringify(['example  \n  text', 0, {}, null]));
     });
 
     it('trimArray should return non-array without change', function () {
-      expect(handlebarsHelperDefinitions.trimArray({ aProp: ['value'] })).to.deep.equal({ aProp: ['value'] });
-      expect(handlebarsHelperDefinitions.trimArray(null)).to.deep.equal(null);
+      expect(handlebarsCompile('{{{json (trimArray input)}}}')({ input: { aProp: ['value'] } })).to.equal(
+        JSON.stringify({ aProp: ['value'] })
+      );
+      expect(handlebarsCompile('{{json (trimArray input)}}')({ input: null })).to.equal(`null`);
     });
   });
 
   describe('join', function () {
     it('should join array elements', function () {
-      const result = handlebarsHelperDefinitions.join(['a', 'b', 'c'], ', ');
-      expect(result).to.equal('a, b, c');
+      expect(handlebarsCompile(`{{join input ', '}}`)({ input: ['a', 'b', 'c'] })).to.equal('a, b, c');
     });
 
     it('should return empty string for non-array', function () {
-      const result = handlebarsHelperDefinitions.join('not an array' as any);
-      expect(result).to.equal('');
+      expect(handlebarsCompile(`{{join input ', '}}`)({ input: 'not an array' })).to.equal('');
     });
   });
 
   describe('pluck', function () {
     it('should extract a property from each item using dot notation', function () {
       const creators = [{ email: 'a@x' }, { email: 'b@x' }, { email: 'c@x' }];
-      const result = handlebarsHelperDefinitions.pluck(creators, 'email');
-      expect(result).to.deep.equal(['a@x', 'b@x', 'c@x']);
+      expect(handlebarsCompile(`{{{json (pluck input 'email')}}}`)({ input: creators })).to.equal(
+        JSON.stringify(['a@x', 'b@x', 'c@x'])
+      );
     });
 
     it('should support nested paths and default missing values to empty string', function () {
       const items = [{ meta: { name: 'one' } }, { meta: {} }];
-      const result = handlebarsHelperDefinitions.pluck(items, 'meta.name');
-      expect(result).to.deep.equal(['one', '']);
+      expect(handlebarsCompile(`{{{json (pluck input 'meta.name')}}}`)({ input: items })).to.equal(
+        JSON.stringify(['one', ''])
+      );
     });
 
     it('should return empty array for non-array input', function () {
-      const result = handlebarsHelperDefinitions.pluck('not an array' as any, 'email');
-      expect(result).to.deep.equal([]);
+      expect(handlebarsCompile(`{{json (pluck input 'email')}}`)({ input: 'not an array' })).to.equal('[]');
     });
 
     it('should combine with join to build a delimited string', function () {
       const creators = [{ email: 'a@x' }, { email: 'b@x' }];
-      const plucked = handlebarsHelperDefinitions.pluck(creators, 'email');
-      const result = handlebarsHelperDefinitions.join(plucked, ',');
-      expect(result).to.equal('a@x,b@x');
+      expect(handlebarsCompile(`{{join (pluck input 'email') ','}}`)({ input: creators })).to.equal('a@x,b@x');
     });
 
     it('should extract multiple properties', function () {
@@ -453,160 +445,142 @@ describe('Shared Handlebars Helpers', async function () {
         { email: 'a@x', name: 'name1' },
         { email: 'b@x', name: 'name2' },
       ];
-      const plucked = handlebarsHelperDefinitions.pluck(creators, 'email', 'name');
-      expect(plucked).to.deep.equal([
-        ['a@x', 'name1'],
-        ['b@x', 'name2'],
-      ]);
+      expect(handlebarsCompile(`{{{json (pluck input 'email' 'name')}}}`)({ input: creators })).to.equal(
+        JSON.stringify([
+          ['a@x', 'name1'],
+          ['b@x', 'name2'],
+        ])
+      );
     });
   });
 
   describe('substring', function () {
     it('should return sliced substring', function () {
-      const result = handlebarsHelperDefinitions.substring('https://linked.data.gov.au/def/anzsrc-for/2020/300101', -6);
-      expect(result).to.equal('300101');
+      expect(
+        handlebarsCompile(`{{substring input 8 14}}`)({
+          input: 'https://linked.data.gov.au/def/anzsrc-for/2020/300101',
+        })
+      ).to.equal('linked');
+    });
+    it('should return sliced substring from end', function () {
+      expect(
+        handlebarsCompile(`{{substring input -6}}`)({ input: 'https://linked.data.gov.au/def/anzsrc-for/2020/300101' })
+      ).to.equal('300101');
     });
   });
 
   describe('split', function () {
     it('should return a selected segment by index', function () {
-      const result = handlebarsHelperDefinitions.split(
-        'https://linked.data.gov.au/def/anzsrc-for/2020/300101',
-        '/',
-        -1
-      );
-      expect(result).to.equal('300101');
+      expect(
+        handlebarsCompile(`{{split input '/' -1}}`)({ input: 'https://linked.data.gov.au/def/anzsrc-for/2020/300101' })
+      ).to.equal('300101');
     });
 
     it('should return all segments when index is omitted', function () {
-      const result = handlebarsHelperDefinitions.split('a/b/c', '/');
-      expect(result).to.deep.equal(['a', 'b', 'c']);
+      expect(handlebarsCompile(`{{{json (split input '/')}}}`)({ input: 'a/b/c' })).to.equal(
+        JSON.stringify(['a', 'b', 'c'])
+      );
     });
   });
 
   describe('urlEncode', function () {
     it('should encode path segment values and preserve path separators', function () {
-      const result = handlebarsHelperDefinitions.urlEncode('/mounted app/oid with spaces/#1/');
-
-      expect(result).to.equal('/mounted%20app/oid%20with%20spaces/%231');
+      expect(handlebarsCompile(`{{urlEncode '/mounted app/oid with spaces/#1/'}}`)({})).to.equal(
+        `/mounted%20app/oid%20with%20spaces/%231`
+      );
     });
 
     it('should return an empty string for empty input', function () {
-      const result = handlebarsHelperDefinitions.urlEncode('');
-
-      expect(result).to.equal('');
+      expect(handlebarsCompile(`{{urlEncode ''}}`)({})).to.equal('');
     });
   });
 
   describe('attachmentDownloadUrl', function () {
     it('should build a branded attachment download URL from fileId and oid', function () {
-      const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
-        { fileId: 'content 1.txt', name: 'content1.txt' },
-        'oid/1',
-        'default',
-        'rdmp'
-      );
-
-      expect(result).to.equal('/default/rdmp/record/oid%2F1/attach/content%201.txt');
+      expect(
+        handlebarsCompile(`{{attachmentDownloadUrl attachment 'oid/1' 'default' 'rdmp'}}`)({
+          attachment: { fileId: 'content 1.txt', name: 'content1.txt' },
+        })
+      ).to.equal('/default/rdmp/record/oid%2F1/attach/content%201.txt');
     });
 
     it('should prefix record-relative attachment locations with branding and portal', function () {
-      const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
-        { location: '/record/oid-1/attach/file-1' },
-        'oid-1',
-        'default',
-        'rdmp'
-      );
-
-      expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+      expect(
+        handlebarsCompile(`{{attachmentDownloadUrl attachment 'oid-1' 'default' 'rdmp'}}`)({
+          attachment: { location: '/record/oid-1/attach/file-1' },
+        })
+      ).to.equal('/default/rdmp/record/oid-1/attach/file-1');
     });
 
     it('should normalize migrated attachment locations without a leading record segment', function () {
-      const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
-        { location: 'oid-1/attach/file-1' },
-        '',
-        'default',
-        'rdmp'
-      );
-
-      expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+      expect(
+        handlebarsCompile(`{{attachmentDownloadUrl attachment '' 'default' 'rdmp'}}`)({
+          attachment: { location: 'oid-1/attach/file-1' },
+        })
+      ).to.equal('/default/rdmp/record/oid-1/attach/file-1');
     });
 
     it('should derive a branded attachment path from uploadUrl', function () {
-      const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
-        { uploadUrl: 'https://researchdata.example/default/rdmp/record/oid-1/attach/file-1' },
-        '',
-        'default',
-        'rdmp'
-      );
-
-      expect(result).to.equal('/default/rdmp/record/oid-1/attach/file-1');
+      expect(
+        handlebarsCompile(`{{attachmentDownloadUrl attachment '' 'default' 'rdmp'}}`)({
+          attachment: { uploadUrl: 'https://researchdata.example/default/rdmp/record/oid-1/attach/file-1' },
+        })
+      ).to.equal('/default/rdmp/record/oid-1/attach/file-1');
     });
 
     it('should keep safe absolute URLs', function () {
-      const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
-        { url: 'https://example.test/download/file-1' },
-        'oid-1',
-        'default',
-        'rdmp'
-      );
-
-      expect(result).to.equal('https://example.test/download/file-1');
+      expect(
+        handlebarsCompile(`{{attachmentDownloadUrl attachment 'oid-1' 'default' 'rdmp'}}`)({
+          attachment: { url: 'https://example.test/download/file-1' },
+        })
+      ).to.equal('https://example.test/download/file-1');
     });
 
     it('should reject unsafe attachment URLs', function () {
-      const result = handlebarsHelperDefinitions.attachmentDownloadUrl(
-        { url: 'javascript:alert(1)', location: 'javascript:alert(2)' },
-        'oid-1',
-        'default',
-        'rdmp'
-      );
-
-      expect(result).to.equal('');
+      expect(
+        handlebarsCompile(`{{attachmentDownloadUrl attachment 'oid-1' 'default' 'rdmp'}}`)({
+          attachment: { url: 'javascript:alert(1)', location: 'javascript:alert(2)' },
+        })
+      ).to.equal('');
     });
   });
 
   describe('default', function () {
     it('should return value if truthy', function () {
-      const result = handlebarsHelperDefinitions.default('hello', 'default');
-      expect(result).to.equal('hello');
+      expect(handlebarsCompile(`{{default 'hello' 'default'}}`)({})).to.equal('hello');
     });
 
     it('should return default if value is falsy', function () {
-      const result = handlebarsHelperDefinitions.default('', 'default');
-      expect(result).to.equal('default');
+      expect(handlebarsCompile(`{{default '' 'default'}}`)({})).to.equal('default');
     });
   });
 
   describe('markdownToHtml', function () {
     it('should convert markdown input when output format is markdown', function () {
-      const result = handlebarsHelperDefinitions.markdownToHtml('**bold**', 'markdown');
-      expect(result).to.contain('<strong>bold</strong>');
+      expect(handlebarsCompile(`{{{markdownToHtml '**bold**' 'markdown'}}}`)({})).to.contain('<strong>bold</strong>');
     });
 
     it('should pass html input through when output format is html', function () {
       const html = '<p><em>hello</em></p>';
-      const result = handlebarsHelperDefinitions.markdownToHtml(html, 'html');
-      expect(result).to.equal(html);
+      expect(handlebarsCompile(`{{{markdownToHtml input 'html'}}}`)({ input: html })).to.equal(html);
     });
 
     it('should return empty string when value is nullish', function () {
-      const result = handlebarsHelperDefinitions.markdownToHtml(null, 'markdown');
-      expect(result).to.equal('');
+      expect(handlebarsCompile(`{{markdownToHtml input 'markdown'}}`)({ input: null })).to.equal('');
     });
   });
 
   describe('plaintextToHtml', function () {
     it('should escape text and preserve line breaks', function () {
-      const result = handlebarsHelperDefinitions.plaintextToHtml('Line 1\n<script>alert("x")</script>\r\nLine 3');
-      expect(result).to.equal('Line 1<br>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;<br>Line 3');
+      expect(
+        handlebarsCompile(`{{{plaintextToHtml input}}}`)({ input: 'Line 1\n<script>alert("x")</script>\r\nLine 3' })
+      ).to.equal('Line 1<br>&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;<br>Line 3');
     });
   });
 
   describe('json', function () {
     it('should display string', function () {
-      const result = handlebarsHelperDefinitions.json({ test: 'value' });
-      expect(result).to.equal('{"test":"value"}');
+      expect(handlebarsCompile(`{{{json input}}}`)({ input: { test: 'value' } })).to.equal('{"test":"value"}');
     });
   });
 
@@ -634,9 +608,11 @@ describe('Shared Handlebars Helpers', async function () {
 
   describe('renderMetadataValue', function () {
     it('should render plain objects as nested key-value rows', function () {
-      const result = handlebarsHelperDefinitions.renderMetadataValue({
-        given: 'Alice',
-        family: 'Scott',
+      const result = handlebarsCompile('{{renderMetadataValue input}}')({
+        input: {
+          given: 'Alice',
+          family: 'Scott',
+        },
       });
 
       expect(result).to.contain('rb-view-metadata__nested');
@@ -647,33 +623,42 @@ describe('Shared Handlebars Helpers', async function () {
     });
 
     it('should render string arrays as unordered lists', function () {
-      const result = handlebarsHelperDefinitions.renderMetadataValue(['one', 'two']);
+      const result = handlebarsCompile('{{{renderMetadataValue input}}}')({
+        input: ['one', 'two'],
+      });
 
       expect(result).to.contain('<ul');
       expect(result).to.contain('<li>one</li>');
       expect(result).to.contain('<li>two</li>');
+      expect(result).to.contain('</ul>');
     });
 
     it('should render arrays of flat objects as tables', function () {
-      const result = handlebarsHelperDefinitions.renderMetadataValue([
-        { name: 'Alice', role: 'CI' },
-        { name: 'Bob', role: 'DM' },
-      ]);
+      const result = handlebarsCompile('{{{renderMetadataValue input}}}')({
+        input: [
+          { name: 'Alice', role: 'CI' },
+          { name: 'Bob', role: 'DM' },
+        ],
+      });
 
       expect(result).to.contain('<table');
       expect(result).to.contain('<th>name</th>');
       expect(result).to.contain('<th>role</th>');
       expect(result).to.contain('<td>Alice</td>');
       expect(result).to.contain('<td>DM</td>');
+      expect(result).to.contain('</table>');
     });
 
     it('should render mixed nested arrays recursively', function () {
-      const result = handlebarsHelperDefinitions.renderMetadataValue(['one', { nested: ['two', 'three'] }]);
+      const result = handlebarsCompile('{{{renderMetadataValue input}}}')({
+        input: ['one', { nested: ['two', 'three'] }],
+      });
 
       expect(result).to.contain('<ul');
       expect(result).to.contain('<li>one</li>');
       expect(result).to.contain('nested');
       expect(result).to.contain('<li>two</li>');
+      expect(result).to.contain('</ul>');
     });
   });
 
@@ -732,17 +717,48 @@ describe('Shared Handlebars Helpers', async function () {
         }
         expect(handlebarsCompile(`{{${helperName}}}`)({})).to.equal(expected);
       });
+      it(`should render ${helperName} as expected with empty string argument`, function () {
+        let expected: any = '';
+        switch (helperName) {
+          case 'isEmpty':
+          case 'isDefined':
+          case 'ne':
+          case 'not':
+            expected = 'true';
+            break;
+          case 'isNull':
+          case 'isUndefined':
+          case 'isArray':
+          case 'isObject':
+          case 'eq':
+          case 'and':
+          case 'or':
+          case 'gt':
+          case 'gte':
+          case 'lt':
+          case 'lte':
+            expected = 'false';
+            break;
+          case 'json':
+            expected = '""';
+            break;
+          case 'renderMetadataValue':
+            expected = '<em class="text-muted">—</em>';
+            break;
+        }
+        expect(handlebarsCompile(`{{{${helperName} ''}}}`)({})).to.equal(expected);
+      });
     });
   });
 
   describe('asArray', async function () {
     it('convert values to array', function () {
-      expect(handlebarsCompile('{{json (asArray data)}}')({ data: ['value', '', 0] })).to.deep.equal(
-        '[&quot;value&quot;,&quot;&quot;,0]'
+      expect(handlebarsCompile('{{{json (asArray data)}}}')({ data: ['value', '', 0] })).to.deep.equal(
+        JSON.stringify(['value', '', 0])
       );
       expect(handlebarsCompile('{{json (asArray data)}}')({ data: 'value' })).to.deep.equal('[&quot;value&quot;]');
-      expect(handlebarsCompile('{{json (asArray data)}}')({ data: { aProp: 'value' } })).to.deep.equal(
-        '[{&quot;aProp&quot;:&quot;value&quot;}]'
+      expect(handlebarsCompile('{{{json (asArray data)}}}')({ data: { aProp: 'value' } })).to.deep.equal(
+        JSON.stringify([{ aProp: 'value' }])
       );
     });
   });
@@ -752,24 +768,24 @@ describe('Shared Handlebars Helpers', async function () {
       expect(handlebarsCompile('{{json (flattenArray data)}}')({ data: ['value'] })).to.equal('[&quot;value&quot;]');
       expect(handlebarsCompile('{{json (flattenArray data)}}')({ data: 'value' })).to.equal('[&quot;value&quot;]');
       expect(
-        handlebarsCompile('{{json (flattenArray data1 data2 data3 data4)}}')({
+        handlebarsCompile('{{{json (flattenArray data1 data2 data3 data4)}}}')({
           data1: { aProp: 'value' },
           data2: null,
           data3: 30,
           data4: ['value'],
         })
-      ).to.equal('[{&quot;aProp&quot;:&quot;value&quot;},null,30,&quot;value&quot;]');
+      ).to.equal(JSON.stringify([{ aProp: 'value' }, null, 30, 'value']));
       expect(
-        handlebarsCompile('{{json (flattenArray data1 data2 data3 data4)}}')({
+        handlebarsCompile('{{{json (flattenArray data1 data2 data3 data4)}}}')({
           data1: { aProp: 'value' },
           data2: null,
           data3: 0,
           data4: [['value']],
         })
-      ).to.equal('[{&quot;aProp&quot;:&quot;value&quot;},null,0,[&quot;value&quot;]]');
+      ).to.equal(JSON.stringify([{ aProp: 'value' }, null, 0, ['value']]));
       expect(
-        handlebarsCompile('{{json (flattenArray data)}}')({ data: [{ aProp: 'value' }, null, 0, ['value']] })
-      ).to.equal('[{&quot;aProp&quot;:&quot;value&quot;},null,0,&quot;value&quot;]');
+        handlebarsCompile('{{{json (flattenArray data)}}}')({ data: [{ aProp: 'value' }, null, 0, ['value']] })
+      ).to.equal(JSON.stringify([{ aProp: 'value' }, null, 0, 'value']));
     });
   });
 
@@ -778,32 +794,36 @@ describe('Shared Handlebars Helpers', async function () {
       const date = new Date();
       const input = ['one', '  ', undefined, null, {}, date, 0];
       const expected = ['one', {}, date, 0];
-      expect(handlebarsHelperDefinitions.filterArray(input)).to.deep.equal(expected);
+      expect(handlebarsCompile('{{{json (filterArray input)}}}')({ input })).to.equal(JSON.stringify(expected));
 
-      expect(handlebarsHelperDefinitions.filterArray(undefined)).to.deep.equal(undefined);
+      expect(handlebarsCompile('{{{json (filterArray input)}}}')({ input: undefined })).to.equal('');
     });
   });
 
   describe('displayName and displayNameArray', function () {
     it('should format the display name using text_full_name first', function () {
-      const input1 = {
+      const input = {
         text_full_name: 'Mr Given1 Family1',
         givenName: 'given',
         familyName: 'family',
         honorific: 'HON',
       };
-      const expected1 = 'Mr Given1 Family1';
-      expect(handlebarsHelperDefinitions.displayName(input1)).to.deep.equal(expected1);
-      expect(handlebarsHelperDefinitions.displayNameArray([input1])).to.deep.equal([expected1]);
+      const expected = 'Mr Given1 Family1';
+      expect(handlebarsCompile('{{{json (displayName input)}}}')({ input: input })).to.equal(JSON.stringify(expected));
+      expect(handlebarsCompile('{{{json (displayNameArray input)}}}')({ input: [input] })).to.equal(
+        JSON.stringify([expected])
+      );
     });
     it('should format the display name using individual properties', function () {
-      const input2 = { givenName: 'given', familyName: 'family', honorific: 'HON' };
-      const expected2 = 'HON given family';
-      expect(handlebarsHelperDefinitions.displayName(input2)).to.deep.equal(expected2);
-      expect(handlebarsHelperDefinitions.displayNameArray([input2])).to.deep.equal([expected2]);
+      const input = { givenName: 'given', familyName: 'family', honorific: 'HON' };
+      const expected = 'HON given family';
+      expect(handlebarsCompile('{{{json (displayName input)}}}')({ input })).to.equal(JSON.stringify(expected));
+      expect(handlebarsCompile('{{{json (displayNameArray input)}}}')({ input: [input] })).to.equal(
+        JSON.stringify([expected])
+      );
     });
     it('should format the display name as empty string when no properties are suitable', function () {
-      const input2 = {
+      const input = {
         text_full_name: null,
         givenName: ['given'],
         familyName: { value: 'family' },
@@ -811,17 +831,21 @@ describe('Shared Handlebars Helpers', async function () {
           return 'HON';
         },
       };
-      const expected2 = '';
-      expect(handlebarsHelperDefinitions.displayName(input2)).to.deep.equal(expected2);
-      expect(handlebarsHelperDefinitions.displayNameArray([input2])).to.deep.equal([expected2]);
+      const expected = '';
+      expect(handlebarsCompile('{{{json (displayName input)}}}')({ input })).to.equal(JSON.stringify(expected));
+      expect(handlebarsCompile('{{{json (displayNameArray input)}}}')({ input: [input] })).to.equal(
+        JSON.stringify([expected])
+      );
     });
     it('should format the display name as empty string when input is not an object', function () {
-      const input3 = ['one'];
-      const expected3 = '';
-      expect(handlebarsHelperDefinitions.displayName(input3)).to.deep.equal(expected3);
-      expect(handlebarsHelperDefinitions.displayNameArray([input3])).to.deep.equal([expected3]);
+      const input = ['one'];
+      const expected = '';
 
-      expect(handlebarsHelperDefinitions.displayNameArray({})).to.deep.equal({});
+      expect(handlebarsCompile('{{{json (displayName input)}}}')({ input })).to.equal(JSON.stringify(expected));
+      expect(handlebarsCompile('{{{json (displayNameArray input)}}}')({ input: [input] })).to.equal(
+        JSON.stringify([expected])
+      );
+      expect(handlebarsCompile('{{{json (displayNameArray input)}}}')({ input: {} })).to.equal(JSON.stringify({}));
     });
   });
 
@@ -829,11 +853,11 @@ describe('Shared Handlebars Helpers', async function () {
     it('should sort ignoring case and punctuation', function () {
       const input = ['réservé', 'Premier', 'Cli.ché', 'communiqué', 'c!afé', 'Adieu'];
       const expected = ['Adieu', 'c!afé', 'Cli.ché', 'communiqué', 'Premier', 'réservé'];
-      expect(handlebarsHelperDefinitions.sort(input)).to.deep.equal(expected);
+      expect(handlebarsCompile('{{{json (sort input)}}}')({ input })).to.equal(JSON.stringify(expected));
     });
     it('should return a non-array input unchanged', function () {
       const input = { text_full_name: 'My Name' };
-      expect(handlebarsHelperDefinitions.sort(input)).to.deep.equal(input);
+      expect(handlebarsCompile('{{{json (sort input)}}}')({ input })).to.equal(JSON.stringify(input));
     });
   });
 
@@ -841,16 +865,16 @@ describe('Shared Handlebars Helpers', async function () {
     it('should remove duplicate strings', function () {
       const input = ['one', 'one', 'two', 'three', 'four', 'two', 0];
       const expected = ['one', 'two', 'three', 'four', 0];
-      expect(handlebarsHelperDefinitions.unique(input)).to.deep.equal(expected);
+      expect(handlebarsCompile('{{{json (unique input)}}}')({ input })).to.equal(JSON.stringify(expected));
     });
     it('should return non-array', function () {
       const input = { text_full_name: 'My Name' };
-      expect(handlebarsHelperDefinitions.unique(input)).to.deep.equal(input);
+      expect(handlebarsCompile('{{{json (unique input)}}}')({ input })).to.equal(JSON.stringify(input));
     });
     it('should keep duplicate non-string entries', function () {
       const input = [{ text_full_name: 'My Name' }, 'one', 'one', null, undefined, 2, []];
       const expected = [{ text_full_name: 'My Name' }, 'one', null, undefined, 2, []];
-      expect(handlebarsHelperDefinitions.unique(input)).to.deep.equal(expected);
+      expect(handlebarsCompile('{{{json (unique input)}}}')({ input })).to.equal(JSON.stringify(expected));
     });
   });
 
