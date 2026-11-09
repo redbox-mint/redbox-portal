@@ -48,6 +48,7 @@ describe('Email template administration', () => {
         appUrl: 'https://portal.example',
         dompurify,
         search: { serviceName: 'search' },
+        storage: { serviceName: 'storage' },
         emailnotification: {
           settings: { enabled: true, templateDir: dir, additionalContextRoots: ['scuEmail'] },
           defaults: { subject: 'Default', format: 'text' },
@@ -1124,28 +1125,96 @@ describe('Email template administration', () => {
     assert.throws(() => admin.validate(content()), { code: 'LENGTH_LIMIT' });
     await assert.rejects(admin.saveDraft('a', 'notice', content(), null, actor), { code: 'LENGTH_LIMIT' });
   });
-  it('rechecks search candidates against actual record brand/access and discloses no unauthorized metadata', async () => {
-    mock.services.search = {
-      searchFuzzy: sinon
-        .stub()
-        .resolves({
-          records: [{ storage_id: 'allowed' }, { storage_id: 'foreign' }, { storage_id: 'denied' }],
-          totalItems: 999,
-        }),
-    };
-    const records = (global as any).RecordsService;
-    records.getMeta.callsFake(async (oid: string) => ({
-      metadata: { title: oid === 'allowed' ? 'Allowed' : 'PRIVATE' },
-      metaMetadata: { brandId: oid === 'foreign' ? 'b' : 'a' },
-      oid,
+  it('rechecks storage candidates, advances across denied batches, and never consults Solr or its totals', async () => {
+    const candidates = Array.from({ length: 125 }, (_, index) => ({
+      redboxOid: `oid-${String(index).padStart(3, '0')}`,
+      metadata: { title: index < 105 ? 'PRIVATE' : `Allowed ${index}` },
+      metaMetadata: { brandId: index === 105 ? 'b' : 'a' },
     }));
-    records.hasViewAccess.callsFake((_brand: any, _user: any, _roles: any, record: any) => record.oid !== 'denied');
-    const result = await admin.searchPreviewRecords('a', { roles: [] } as any, 'title:foo OR *:*');
-    assert.deepEqual(result.records, [{ oid: 'allowed', title: 'Allowed' }]);
-    assert.ok(!JSON.stringify(result).includes('PRIVATE'));
-    assert.equal(mock.services.search.searchFuzzy.firstCall.args[6].id, 'a');
-    assert.ok(mock.services.search.searchFuzzy.firstCall.args[3].includes('\\:'));
+    const search = sinon.stub().callsFake(async (...args) => ({
+      success: true,
+      items: candidates
+        .filter(record => args[14].afterOid === null || record.redboxOid > args[14].afterOid)
+        .slice(0, args[3]),
+    }));
+    mock.services.storage = { getRecords: search };
+    mock.services.search = { searchFuzzy: sinon.stub().throws(new Error('Solr unavailable')) };
+    const records = (global as any).RecordsService;
+    records.hasViewAccess.callsFake((_brand: any, _user: any, _roles: any, record: any) => {
+      if (record.metadata.title === 'PRIVATE') throw new Error('Permission hook denied this record');
+      return true;
+    });
+    const user = { username: 'reader', roles: [] } as any;
+    const first = await admin.searchPreviewRecords('a', user, 'title:foo OR *:*');
+    assert.deepEqual(
+      first.records.map(record => record.oid),
+      candidates.slice(106, 116).map(record => record.redboxOid)
+    );
+    assert.equal(first.hasMore, true);
+    const second = await admin.searchPreviewRecords('a', user, 'title:foo OR *:*', 2);
+    assert.deepEqual(
+      second.records.map(record => record.oid),
+      candidates.slice(116).map(record => record.redboxOid)
+    );
+    assert.equal(second.hasMore, false);
+    assert.ok(!JSON.stringify([first, second]).includes('PRIVATE'));
+    assert.equal(mock.services.search.searchFuzzy.callCount, 0);
+    assert.equal(records.getMeta.callCount, 0);
+    assert.equal(search.firstCall.args[6].id, 'a');
+    assert.deepEqual(search.firstCall.args[14].anyOf, [
+      { field: 'metadata.title', value: 'title:foo OR *:*', match: 'contains' },
+      { field: 'redboxOid', value: 'title:foo OR *:*', match: 'exact' },
+    ]);
+    assert.ok(search.getCalls().every(call => call.args[3] === 100 && call.args[14].count === false));
   });
+
+  it('does not reveal denied trailing candidates through hasMore or an inaccessible exact OID', async () => {
+    const candidates = Array.from({ length: 11 }, (_, index) => ({
+      redboxOid: `oid-${String(index).padStart(3, '0')}`,
+      metadata: { title: index < 10 ? 'Allowed' : 'PRIVATE' },
+      metaMetadata: { brandId: 'a' },
+    }));
+    mock.services.storage = { getRecords: sinon.stub().resolves({ success: true, items: candidates }) };
+    (global as any).RecordsService.hasViewAccess.callsFake(
+      (_brand: any, _user: any, _roles: any, record: any) => record.metadata.title !== 'PRIVATE'
+    );
+    const result = await admin.searchPreviewRecords('a', { roles: [] } as any, '');
+    assert.equal(result.records.length, 10);
+    assert.equal(result.hasMore, false);
+    mock.services.storage.getRecords.resolves({ success: true, items: [candidates[10]] });
+    assert.deepEqual(await admin.searchPreviewRecords('a', { roles: [] } as any, 'oid-010'), {
+      records: [],
+      page: 1,
+      hasMore: false,
+    });
+  });
+
+  it('retains preview search validation and fails safely for unsupported or unavailable storage', async () => {
+    const search = sinon.stub().resolves({ success: true, items: [] });
+    mock.services.storage = { getRecords: search };
+    for (const [query, page] of [
+      [null, 1],
+      ['x'.repeat(201), 1],
+      ['', 0],
+      ['', 1001],
+      ['', 1.5],
+    ]) {
+      await assert.rejects(admin.searchPreviewRecords('a', { roles: [] } as any, query as string, page as number), {
+        code: 'INVALID_CONTEXT',
+      });
+    }
+    assert.equal(search.callCount, 0);
+    assert.deepEqual(await admin.searchPreviewRecords('a', { roles: [] } as any, '', 1000), {
+      records: [],
+      page: 1000,
+      hasMore: false,
+    });
+    delete mock.services.storage.getRecords;
+    await assert.rejects(admin.searchPreviewRecords('a', { roles: [] } as any, ''), { code: 'PERSISTENCE' });
+    mock.services.storage.getRecords = sinon.stub().rejects(new Error('storage down'));
+    await assert.rejects(admin.searchPreviewRecords('a', { roles: [] } as any, ''), { code: 'PERSISTENCE' });
+  });
+
   it('validates history retention and context size settings at startup', async () => {
     for (const key of ['historyMaxVersions', 'maxPreviewContextBytes']) {
       mock.config.emailnotification.settings[key] = 0;

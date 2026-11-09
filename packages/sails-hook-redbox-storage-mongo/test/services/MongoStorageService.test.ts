@@ -2492,6 +2492,163 @@ describe('MongoStorageService', function () {
     }
   });
 
+  it('preserves legacy getRecords query, sorting, offsets and counting with omitted or empty options', async function () {
+    service.recordCol = {
+      find: sandbox.stub().returns({ toArray: sandbox.stub().resolves([{ redboxOid: 'record-a' }]) }),
+      count: sandbox.stub().resolves(17),
+    };
+    const run = sandbox.spy(service, 'runRecordQuery');
+    const args = [
+      'draft',
+      'rdmp',
+      7,
+      25,
+      'user',
+      [{ name: 'Reader', branding: 'brand-a' }],
+      { id: 'brand-a', roles: [{ id: 'different', name: 'Canonical' }] },
+      undefined,
+      undefined,
+      undefined,
+      ['metadata.title'],
+      'water',
+      undefined,
+      undefined,
+    ];
+    const expectedQuery = {
+      'metaMetadata.brandId': 'brand-a',
+      'metaMetadata.type': 'rdmp',
+      'workflow.stage': 'draft',
+      $and: [
+        {
+          $or: [
+            { 'authorization.view': 'user' },
+            { 'authorization.edit': 'user' },
+            { 'authorization.editRoles': { $in: ['Reader'] } },
+            { 'authorization.viewRoles': { $in: ['Reader'] } },
+          ],
+        },
+        { 'metadata.title': /water/i },
+      ],
+    };
+    const expectedOptions = { limit: 25, skip: 7, sort: { lastSaveDate: -1, _id: 1 } };
+    for (const extra of [[], [{}], [{ count: true }]]) {
+      const response = await service.getRecords(...args, ...extra);
+      expect(response.totalItems).to.equal(17);
+      expect(service.recordCol.find.lastCall.args).to.deep.equal([expectedQuery, expectedOptions]);
+      expect(service.recordCol.count.lastCall.args).to.deep.equal([expectedQuery]);
+      expect(run.lastCall.args).to.have.length(3);
+    }
+    expect(service.recordCol.count.callCount).to.equal(3);
+  });
+
+  it('combines opt-in mixed literal predicates with existing scope and filters, skipping only the requested count', async function () {
+    service.recordCol = {
+      find: sandbox.stub().returns({ toArray: sandbox.stub().resolves([]) }),
+      count: sandbox.stub().throws(new Error('count must not run')),
+    };
+    const run = sandbox.spy(service, 'runRecordQuery');
+    const response = await service.getRecords(
+      'draft',
+      ['rdmp', 'publication'],
+      0,
+      50,
+      'user',
+      [{ id: 'reader-id' }],
+      { id: 'brand-a', roles: [{ id: 'reader-id', name: 'Reader' }] },
+      undefined,
+      'data',
+      'metadata.title:-1',
+      ['workflow.stage'],
+      'draft',
+      'equal',
+      undefined,
+      {
+        anyOf: [
+          { field: 'metadata.title', value: 'water.* (plan)', match: 'contains' },
+          { field: 'redboxOid', value: 'water.* (plan)', match: 'exact' },
+        ],
+        afterOid: 'last-oid',
+        count: false,
+        authorization: 'record-view',
+      }
+    );
+    const [query, options] = service.recordCol.find.firstCall.args;
+    expect(query['metaMetadata.brandId']).to.equal('brand-a');
+    expect(query['metaMetadata.packageType']).to.equal('data');
+    expect(query['workflow.stage']).to.equal('draft');
+    expect(query.$or).to.deep.equal([{ 'metaMetadata.type': 'rdmp' }, { 'metaMetadata.type': 'publication' }]);
+    expect(query.$and[0].$or[0].$or[2]).to.deep.equal({ 'authorization.editRoles': { $in: ['Reader'] } });
+    expect(query.$and[0].$or[1].authorization).to.equal(null);
+    expect(query.$and[1]).to.deep.equal({ 'workflow.stage': 'draft' });
+    expect(query.$and[2].$or[0]['metadata.title'].test('A water.* (plan) title')).to.equal(true);
+    expect(query.$and[2].$or[0]['metadata.title'].test('waterAAA plan')).to.equal(false);
+    expect(query.$and[2].$or[1]).to.deep.equal({ redboxOid: 'water.* (plan)' });
+    expect(query.redboxOid).to.deep.equal({ $type: 'string', $gt: 'last-oid' });
+    expect(options).to.deep.equal({
+      limit: 50,
+      skip: 0,
+      sort: { redboxOid: 1 },
+      collation: { locale: 'simple' },
+      projection: { _id: 0 },
+      maxTimeMS: 5000,
+    });
+    expect(run.firstCall.args[3]).to.equal(false);
+    expect(response.totalItems).to.equal(0);
+    expect(service.recordCol.count.callCount).to.equal(0);
+  });
+
+  it('rejects unsafe or unbounded record query options before querying storage', async function () {
+    const run = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
+    const args = [
+      '',
+      undefined,
+      0,
+      10,
+      'user',
+      [],
+      { id: 'brand-a' },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ];
+    const valid = { field: 'metadata.title', value: 'x', match: 'contains' };
+    for (const options of [
+      null,
+      [],
+      { $where: 'evil' },
+      { count: 'false' },
+      { authorization: 'admin' },
+      { afterOid: {} },
+      { afterOid: 'x'.repeat(1025) },
+      { anyOf: {} },
+      { anyOf: [null] },
+      { anyOf: Array(21).fill(valid) },
+      { anyOf: [{ ...valid, value: 'x'.repeat(1025) }] },
+      { anyOf: [{ ...valid, value: { $ne: 'x' } }] },
+      { anyOf: [{ ...valid, match: 'regex' }] },
+      { anyOf: [{ ...valid, $where: 'evil' }] },
+      ...['$where', 'metadata.$ne', '__proto__.x', 'metadata.constructor', 'metadata.prototype.x'].map(field => ({
+        anyOf: [{ ...valid, field }],
+      })),
+    ])
+      await expectRejects(() => service.getRecords(...args, options), 'Invalid record query options');
+    for (const rows of [0, -1, 101, 1.5, '10']) {
+      await expectRejects(
+        () => service.getRecords(...args.slice(0, 3), rows, ...args.slice(4), { afterOid: null }),
+        'OID cursor batches'
+      );
+    }
+    await expectRejects(
+      () => service.getRecords(...args.slice(0, 2), 1, ...args.slice(3), { afterOid: null }),
+      'OID cursor batches'
+    );
+    expect(run.callCount).to.equal(0);
+  });
+
   it('queries records with escaped regex filters', async function () {
     const runStub = sandbox.stub(service, 'runRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 
