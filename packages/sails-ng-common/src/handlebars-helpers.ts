@@ -26,20 +26,50 @@ import {
   isNull as _isNull,
   isArray as _isArray,
   isPlainObject as _isPlainObject,
+  isFunction as _isFunction,
 } from 'lodash';
 import { mapMomentToLuxonFormat } from './date-format-helpers';
 import { escapeHtmlText } from './html-helpers';
 import { normaliseVisual } from './config/names/naming-helpers';
 import { guessType } from './config/helpers';
 
-function isHandlebarsOptionsArg(value: unknown): boolean {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    (Object.prototype.hasOwnProperty.call(value, 'hash') ||
-      Object.prototype.hasOwnProperty.call(value, 'data') ||
-      Object.prototype.hasOwnProperty.call(value, 'fn') ||
-      Object.prototype.hasOwnProperty.call(value, 'inverse'))
+/**
+ * Get the handlebars helper options object.
+ *
+ * The exact shape of the helper options object is uncertain.
+ *
+ * There are two parts to this approach:
+ * 1. Assume that the last argument is always the handlebars options object.
+ * 2. Confirm the assumption by checking for the documented shape of the options object.
+ *
+ * @see https://handlebarsjs.com/api-reference/helpers.html
+ * @param value
+ */
+function getHandlebarsOptions(value: unknown): unknown {
+  let err = undefined;
+  try {
+    const args = value as unknown[];
+    const hbOpts: any = args[args.length - 1];
+
+    // The handlebars helper options is always an object.
+    const isObj = hbOpts !== null && typeof hbOpts === 'object' && !Array.isArray(hbOpts);
+
+    // The only documented property of the helper options object is the 'lookupProperty' function.
+    // Require it to be present.
+    const hasLookupProperty = 'lookupProperty' in hbOpts && _isFunction(hbOpts.lookupProperty);
+
+    if (isObj && hasLookupProperty) {
+      return hbOpts;
+    }
+  } catch (error) {
+    err = error;
+  }
+
+  // This is the only place that throwing an error make sense.
+  // Getting to this point means that the handlebars helper function has not been called as expected.
+  throw new Error(
+    `Expected handlebars helper to be called by handlebars and include helper options as last argument.`,
+    { cause: err }
   );
 }
 
@@ -47,9 +77,6 @@ function isHandlebarsOptionsArg(value: unknown): boolean {
 function resolveDateFormatArg(formatOrOptions?: string | Record<string, unknown>): string | undefined {
   if (typeof formatOrOptions === 'string') {
     return mapMomentToLuxonFormat(formatOrOptions);
-  }
-  if (isHandlebarsOptionsArg(formatOrOptions)) {
-    return undefined;
   }
   return undefined;
 }
@@ -359,6 +386,7 @@ export const dateModifyPlusUnits = [
   'seconds',
   'milliseconds',
 ] as const;
+export type DateModifyOperations = (typeof dateModifyOperations)[number];
 
 function isIn<T>(values: readonly T[], x: any): x is T {
   return values.includes(x);
@@ -368,8 +396,10 @@ function isIn<T>(values: readonly T[], x: any): x is T {
  * Helper function definitions that can be registered with Handlebars.
  * Each function is a pure, deterministic helper that does not execute arbitrary code.
  *
- * These functions return an appropriate empty value when given unexpected arguments, instead of throwing an error.
+ * These functions return an appropriate empty value, or the first value, when given unexpected arguments, instead of throwing an error.
  * Templates can be edited by users, and we want to validate where the user is editing and be able to show the rendered content.
+ *
+ * All functions must allow for a handlebars options object as the last argument.
  */
 export const handlebarsHelperDefinitions = {
   /**
@@ -386,7 +416,8 @@ export const handlebarsHelperDefinitions = {
     formatOrOptions?: string | Record<string, unknown>,
     zoneOrOptions?: string | Record<string, unknown>
   ): string {
-    if (!dateValue || isHandlebarsOptionsArg(dateValue)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (!dateValue || dateValue === hbOpts) {
       return '';
     }
     try {
@@ -415,7 +446,8 @@ export const handlebarsHelperDefinitions = {
     presetNameOrOptions?: string | Record<string, unknown>,
     localeOrOptions?: string | Record<string, unknown>
   ): string {
-    if (!dateValue || isHandlebarsOptionsArg(dateValue)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (!dateValue || dateValue === hbOpts) {
       return '';
     }
     try {
@@ -447,7 +479,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{parseDateString dateString}}
    */
   parseDateString: function (dateString: string): string {
-    if (isHandlebarsOptionsArg(dateString)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (dateString === hbOpts) {
       return '';
     }
     return dateString || '';
@@ -455,69 +488,101 @@ export const handlebarsHelperDefinitions = {
 
   /**
    * Modify a date by adding the provided time units, or setting to the start or end of the given time unit.
-   * Returns the date value unchanged or empty string if the call was not valid.
-   * @param args The date value to modify.
-   *    Then the 'plus' operation duration, or the operation name, or the handlebars options.
-   *    Then the operation duration, or operation unit, or handlebars options.
+   * Supports ISO date strings and JavaScript Date instances.
+   *
+   * The parsed date time uses the specified offset, or 'UTC' otherwise.
+   * The date time is then converted to UTC.
+   * Use formatDate or formatDateLocale to format date for display.
+   *
+   * Returns a new date value with the described change applied.
+   * Returns the first provided argument unchanged if the call was not valid.
+   * Returns empty string if no arguments were provided.
+   * @param args The arguments to set the operation, duration units, and duration values.
+   *    1. The date value to modify or handlebars options.
+   *    2. Then the first 'plus' operation duration unit, or the operation name, or the handlebars options.
+   *    3. Then the duration unit, or duration value (allows multiple pairs), or handlebars options.
    */
-  dateModify: function (...args: unknown[]): string {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+  dateModify: function (...args: unknown[]): string | Date | unknown {
+    const hbOpts = getHandlebarsOptions(arguments);
+    args.pop();
 
-    const failResult = args.length > 0 && typeof args[0] === 'string' ? args[0] : '';
+    const dateValue = args.length > 0 ? args[0] : '';
+
     try {
-      const dt =
-        args.length > 0 && typeof args[0] === 'string'
-          ? DateTime.fromISO(args[0])
-          : args[0] instanceof Date
-            ? DateTime.fromJSDate(args[0])
-            : DateTime.invalid('no date value provided');
-
-      if (!dt.isValid) {
-        return String(failResult);
+      // Parse the provided date value to a DateTime in UTC.
+      let dt;
+      if (typeof dateValue === 'string' && dateValue.length > 0) {
+        dt = DateTime.fromISO(dateValue, { zone: 'utc' });
+      } else if (dateValue instanceof Date) {
+        dt = DateTime.fromJSDate(dateValue, { zone: 'utc' });
+      } else {
+        dt = DateTime.invalid('no date value provided');
       }
 
-      const secondParamIsOperation =
-        args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1]);
-      const operation =
-        args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1]) ? args[1] : 'plus';
+      if (!dt.isValid) {
+        return dateValue;
+      }
+
+      let operation: DateModifyOperations;
+      let durationItems: unknown[];
+
+      if (args.length > 1 && typeof args[1] === 'string' && isIn(dateModifyOperations, args[1])) {
+        operation = args[1];
+        durationItems = args.length > 2 ? args.slice(2) : [];
+      } else if (args.length > 1) {
+        operation = 'plus';
+        durationItems = args.length > 1 ? args.slice(1) : [];
+      } else {
+        operation = 'plus';
+        durationItems = [];
+      }
 
       switch (operation) {
         case 'plus':
-          const durationItems = secondParamIsOperation ? args.slice(2) : args.slice(1);
-          const opts = Object.fromEntries(
-            durationItems
-              .map((val, index, arr) => {
-                if (index % 2 !== 0) {
-                  return null;
-                }
-                const key = typeof val === 'string' && isIn(dateModifyPlusUnits, val) ? val : null;
-                if (!key) {
-                  return null;
-                }
-                return [key, arr[index + 1]];
-              })
-              .filter(i => i !== null)
-          );
-          return Object.keys(opts).length > 0 ? dt.plus(opts).toISO() : failResult;
+          let opts: Record<string, number> = {};
+          for (let index = 0; index < durationItems.length; index++) {
+            const curr = durationItems[index];
+            if (index % 2 !== 0) {
+              continue;
+            }
+
+            // If one of the duration units or values is not valid, remove all duration units and values.
+            const key = typeof curr === 'string' && isIn(dateModifyPlusUnits, curr) ? curr : null;
+            if (!key) {
+              opts = {};
+              break;
+            }
+
+            const value = durationItems[index + 1];
+            if (typeof value !== 'number' || !Number.isFinite(value)) {
+              opts = {};
+              break;
+            } else {
+              opts[key] = value;
+            }
+          }
+
+          if (Object.keys(opts).length === 0) {
+            return dateValue;
+          }
+          return dt.plus(opts).toISO();
 
         case 'startOf':
           if (args.length >= 3 && isIn(dateModifyShiftUnits, args[2])) {
             return dt.startOf(args[2]).toISO();
           }
-          return failResult;
+          return dateValue;
         case 'endOf':
           if (args.length >= 3 && isIn(dateModifyShiftUnits, args[2])) {
             return dt.endOf(args[2]).toISO();
           }
-          return failResult;
+          return dateValue;
         default:
           const _: never = operation;
-          return failResult;
+          return dateValue;
       }
     } catch {
-      return failResult;
+      return dateValue;
     }
   },
 
@@ -528,10 +593,11 @@ export const handlebarsHelperDefinitions = {
    * @example {{get this "metadata.contributor_ci.text_full_name"}}
    */
   get: function (obj: unknown, path: string, defaultValue?: unknown): unknown {
-    if (isHandlebarsOptionsArg(obj) || isHandlebarsOptionsArg(path)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (obj === hbOpts || path === hbOpts) {
       return '';
     }
-    if (isHandlebarsOptionsArg(defaultValue)) {
+    if (defaultValue === hbOpts) {
       defaultValue = null;
     }
     return _get(obj, path, defaultValue ?? '');
@@ -543,7 +609,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isEmpty value)}}empty{{/if}}
    */
   isEmpty: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return true;
     }
     return _isEmpty(value);
@@ -555,7 +622,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isUndefined value)}}undefined{{/if}}
    */
   isUndefined: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return true;
     }
     return _isUndefined(value);
@@ -567,7 +635,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isNull value)}}null{{/if}}
    */
   isNull: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return false;
     }
     return _isNull(value);
@@ -579,7 +648,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isDefined value)}}defined{{/if}}
    */
   isDefined: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return false;
     }
     return !_isUndefined(value) && !_isNull(value);
@@ -591,7 +661,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isArray value)}}is array{{/if}}
    */
   isArray: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return false;
     }
     return _isArray(value);
@@ -603,7 +674,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (isObject value)}}is object{{/if}}
    */
   isObject: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return false;
     }
     return _isPlainObject(value);
@@ -615,7 +687,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (eq status "active")}}active{{/if}}
    */
   eq: function (a: unknown, b: unknown): boolean {
-    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (a === hbOpts || b === hbOpts) {
       return false;
     }
     return a === b;
@@ -627,7 +700,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (ne status "inactive")}}not inactive{{/if}}
    */
   ne: function (a: unknown, b: unknown): boolean {
-    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (a === hbOpts || b === hbOpts) {
       return true;
     }
     return a !== b;
@@ -640,9 +714,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (and condition1 condition2)}}both true{{/if}}
    */
   and: function (...args: unknown[]): boolean {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+    getHandlebarsOptions(arguments);
+    args.pop();
+
     return args.length > 0 && args.every(Boolean);
   },
 
@@ -653,9 +727,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (or condition1 condition2)}}at least one true{{/if}}
    */
   or: function (...args: unknown[]): boolean {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+    getHandlebarsOptions(arguments);
+    args.pop();
+
     return args.length > 0 && args.some(Boolean);
   },
 
@@ -665,7 +739,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (not condition)}}condition is false{{/if}}
    */
   not: function (value: unknown): boolean {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return true;
     }
     return !value;
@@ -678,7 +753,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (gt count 0)}}has items{{/if}}
    */
   gt: function (a: unknown, b: unknown): boolean {
-    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (a === hbOpts || b === hbOpts) {
       return false;
     }
     const aNum = Number(a);
@@ -693,7 +769,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (gte count 1)}}at least one{{/if}}
    */
   gte: function (a: unknown, b: unknown): boolean {
-    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (a === hbOpts || b === hbOpts) {
       return false;
     }
     const aNum = Number(a);
@@ -708,7 +785,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (lt count 10)}}less than ten{{/if}}
    */
   lt: function (a: unknown, b: unknown): boolean {
-    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (a === hbOpts || b === hbOpts) {
       return false;
     }
     const aNum = Number(a);
@@ -723,7 +801,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{#if (lte count 10)}}ten or less{{/if}}
    */
   lte: function (a: unknown, b: unknown): boolean {
-    if (isHandlebarsOptionsArg(a) || isHandlebarsOptionsArg(b)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (a === hbOpts || b === hbOpts) {
       return false;
     }
     const aNum = Number(a);
@@ -738,7 +817,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{trim title}}
    */
   trim: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     return String(value ?? '').trim();
@@ -751,7 +831,8 @@ export const handlebarsHelperDefinitions = {
    * @param value
    */
   trimArray: function (value: unknown): string[] | unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return [];
     }
     return Array.isArray(value) ? value.map(item => (typeof item === 'string' ? item.trim() : item)) : value;
@@ -764,7 +845,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{toLower value}}
    */
   toLower: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     return String(value ?? '').toLowerCase();
@@ -777,7 +859,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{toUpper value}}
    */
   toUpper: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     return String(value ?? '').toUpperCase();
@@ -790,7 +873,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{t "label.title"}}
    */
   t: function (this: { translationService?: { t: (key: string) => string } }, key: string): string {
-    if (isHandlebarsOptionsArg(key)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (key === hbOpts) {
       return '';
     }
     const translationService = this?.translationService;
@@ -806,11 +890,13 @@ export const handlebarsHelperDefinitions = {
    * @example {{join items ", "}}
    */
   join: function (arr: unknown[], separator?: string): string {
+    const hbOpts = getHandlebarsOptions(arguments);
+
     if (!_isArray(arr)) {
       return '';
     }
 
-    if (isHandlebarsOptionsArg(separator) || separator === null) {
+    if (separator === hbOpts || separator === null) {
       separator = undefined;
     }
     return arr.join(separator);
@@ -828,9 +914,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{join (pluck record.metadata.creators "email") ","}}
    */
   pluck: function (...args: unknown[]): unknown[] {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+    getHandlebarsOptions(arguments);
+    args.pop();
+
     if (args.length === 0 || !_isArray(args[0])) {
       return [];
     }
@@ -853,17 +939,18 @@ export const handlebarsHelperDefinitions = {
    * @example {{substring notation 0 6}}
    */
   substring: function (value: unknown, start: number, end?: number): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     const text = String(value ?? '');
 
-    if (isHandlebarsOptionsArg(start)) {
+    if (start === hbOpts) {
       return text;
     }
     const from = Number(start);
 
-    const to = end === undefined || end === null || isHandlebarsOptionsArg(start) ? undefined : Number(end);
+    const to = end === undefined || end === null || end === hbOpts ? undefined : Number(end);
     // Use slice semantics so negative offsets work (e.g. -1 for last char, -6 for trailing code).
     // String.prototype.substring() clamps negatives to 0 and cannot express this.
     return text.slice(Number.isNaN(from) ? 0 : from, Number.isNaN(to as number) ? undefined : to);
@@ -876,16 +963,17 @@ export const handlebarsHelperDefinitions = {
    * @example {{split notation "/" -1}}
    */
   split: function (value: unknown, separator: string, index?: number): unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     const text = String(value ?? '');
 
-    if (isHandlebarsOptionsArg(separator)) {
+    if (separator === hbOpts) {
       return text;
     }
     const parts = text.split(String(separator ?? ''));
-    if (index === undefined || index === null || isHandlebarsOptionsArg(index)) {
+    if (index === undefined || index === null || index === hbOpts) {
       return parts;
     }
     const parsedIndex = Number(index);
@@ -906,7 +994,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{urlEncode oid}}
    */
   urlEncode: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
 
@@ -938,9 +1027,9 @@ export const handlebarsHelperDefinitions = {
    * @example {{concat prefix value suffix}}
    */
   concat: function (...args: unknown[]): string {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+    getHandlebarsOptions(arguments);
+    args.pop();
+
     return args.map(String).join('');
   },
 
@@ -950,10 +1039,11 @@ export const handlebarsHelperDefinitions = {
    * @example {{default title "Untitled"}}
    */
   default: function (value: unknown, defaultValue: unknown): unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
-    if (isHandlebarsOptionsArg(defaultValue)) {
+    if (defaultValue === hbOpts) {
       defaultValue = '';
     }
     return value || defaultValue;
@@ -967,7 +1057,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{{markdownToHtml content outputFormat}}}
    */
   markdownToHtml: function (value: unknown, outputFormat?: string): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
 
@@ -990,7 +1081,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{{plaintextToHtml content}}}
    */
   plaintextToHtml: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     return escapeHtmlText(value).replace(/\r\n|\r|\n/g, '<br>');
@@ -1002,7 +1094,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{json data}}
    */
   json: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     try {
@@ -1018,7 +1111,8 @@ export const handlebarsHelperDefinitions = {
    * @example {{{renderMetadataValue metadata.someField}}}
    */
   renderMetadataValue: function (value: unknown): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       return '';
     }
     return renderMetadataValue(value);
@@ -1030,12 +1124,13 @@ export const handlebarsHelperDefinitions = {
    * @example {{attachmentDownloadUrl this oid branding portal}}
    */
   attachmentDownloadUrl: function (attachment: unknown, oid: unknown, branding: unknown, portal: unknown): string {
-    if (isHandlebarsOptionsArg(attachment)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (attachment === hbOpts) {
       return '';
     }
-    oid = isHandlebarsOptionsArg(oid) ? '' : oid;
-    branding = isHandlebarsOptionsArg(branding) ? '' : branding;
-    portal = isHandlebarsOptionsArg(portal) ? '' : portal;
+    oid = oid === hbOpts ? '' : oid;
+    branding = branding === hbOpts ? '' : branding;
+    portal = portal === hbOpts ? '' : portal;
     return buildAttachmentDownloadUrl(attachment, oid, branding, portal);
   },
 
@@ -1051,9 +1146,9 @@ export const handlebarsHelperDefinitions = {
    * @param args The values to get as an array.
    */
   asArray: function (...args: unknown[]): unknown[] {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+    getHandlebarsOptions(arguments);
+    args.pop();
+
     if (args.length === 0) {
       return [];
     }
@@ -1078,9 +1173,9 @@ export const handlebarsHelperDefinitions = {
    * @param args
    */
   flattenArray: function (...args: unknown[]): unknown[] {
-    if (args.length > 0 && isHandlebarsOptionsArg(args[args.length - 1])) {
-      args.pop();
-    }
+    getHandlebarsOptions(arguments);
+    args.pop();
+
     if (args.length === 0) {
       return [];
     }
@@ -1099,7 +1194,8 @@ export const handlebarsHelperDefinitions = {
    * @param value The array to filter.
    */
   filterArray: function (value: unknown): unknown[] | unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       value = [];
     }
     return Array.isArray(value)
@@ -1131,7 +1227,8 @@ export const handlebarsHelperDefinitions = {
     givenOrOptions?: string[],
     familyOrOptions?: string[]
   ): string {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       value = {};
     }
     return contributorDisplayName(value, fullOrOptions, honorificOrOptions, givenOrOptions, familyOrOptions);
@@ -1156,7 +1253,8 @@ export const handlebarsHelperDefinitions = {
     givenOrOptions?: string[],
     familyOrOptions?: string[]
   ): string[] | unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       value = [];
     }
     return Array.isArray(value)
@@ -1174,7 +1272,8 @@ export const handlebarsHelperDefinitions = {
    * @param value
    */
   sort: function (value: unknown): any[] | unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       value = [];
     }
     return Array.isArray(value)
@@ -1189,7 +1288,8 @@ export const handlebarsHelperDefinitions = {
    * @param value
    */
   unique: function (value: unknown): string[] | unknown {
-    if (isHandlebarsOptionsArg(value)) {
+    const hbOpts = getHandlebarsOptions(arguments);
+    if (value === hbOpts) {
       value = [];
     }
     return Array.isArray(value)

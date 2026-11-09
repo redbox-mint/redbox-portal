@@ -191,27 +191,102 @@ describe('Shared Handlebars Helpers', async function () {
   describe('dateModify', function () {
     const when = '2023-05-18T01:30:00.000Z';
     const whenDt = DateTime.fromISO(when);
+    it('should accept plus operation', function () {
+      expect(handlebarsCompile(`{{dateModify when 'plus' 'days' 3 'months' 1}}`)({ when })).to.equal(
+        whenDt.plus({ months: 1, days: 3 }).toUTC().toISO()
+      );
+      expect(handlebarsCompile(`{{dateModify when 'plus' 'days' -3}}`)({ when })).to.equal(
+        whenDt.plus({ days: -3 }).toUTC().toISO()
+      );
+      expect(handlebarsCompile(`{{dateModify when 'plus' 'years' 1}}`)({ when })).to.equal(
+        whenDt.plus({ years: 1 }).toUTC().toISO()
+      );
+    });
     it('should default to plus operation', function () {
       expect(handlebarsCompile(`{{dateModify when 'days' 3 'months' 1}}`)({ when })).to.equal(
-        whenDt.plus({ months: 1, days: 3 }).toISO()
+        whenDt.plus({ months: 1, days: 3 }).toUTC().toISO()
       );
-      expect(handlebarsCompile(`{{dateModify when 'days' -3}}`)({ when })).to.equal(whenDt.plus({ days: -3 }).toISO());
-      expect(handlebarsCompile(`{{dateModify when 'years' 1}}`)({ when })).to.equal(whenDt.plus({ years: 1 }).toISO());
+      expect(handlebarsCompile(`{{dateModify when 'days' -3}}`)({ when })).to.equal(
+        whenDt.plus({ days: -3 }).toUTC().toISO()
+      );
+      expect(handlebarsCompile(`{{dateModify when 'years' 1}}`)({ when })).to.equal(
+        whenDt.plus({ years: 1 }).toUTC().toISO()
+      );
     });
     it('should allow startOf and endOf operations', function () {
       expect(handlebarsCompile(`{{dateModify when 'startOf' 'day'}}`)({ when })).to.equal(
-        whenDt.startOf('day').toISO()
+        whenDt.startOf('day').toUTC().toISO()
       );
       expect(handlebarsCompile(`{{dateModify when 'endOf' 'month'}}`)({ when })).to.equal(
-        whenDt.endOf('month').toISO()
+        whenDt.endOf('month').toUTC().toISO()
       );
     });
     it('should return first input if called incorrectly', function () {
-      expect(handlebarsCompile(`{{dateModify when}}`)({ when })).to.equal(when);
-      expect(handlebarsCompile(`{{dateModify when 'something'}}`)({ when })).to.equal(when);
-      expect(handlebarsCompile(`{{dateModify 'plus'}}`)({ when })).to.equal('plus');
-      expect(handlebarsCompile(`{{dateModify when 'plus' 'notAUnit' 10}}`)({ when })).to.equal(when);
-      expect(handlebarsCompile(`{{dateModify when 'startOf' 'days' 10}}`)({ when })).to.equal(when);
+      expect(handlebarsCompile(`{{dateModify when}}`)({ when })).to.equal(when, 'only when');
+      expect(handlebarsCompile(`{{dateModify when 'day' 3}}`)({ when })).to.equal(when, 'missing s');
+      expect(handlebarsCompile(`{{dateModify when 'days' 3 'months'}}`)({ when })).to.equal(when, 'missing value');
+      expect(handlebarsCompile(`{{dateModify when 'plus' 3}}`)({ when })).to.equal(when, 'missing unit');
+      expect(handlebarsCompile(`{{dateModify when 'something'}}`)({ when })).to.equal(when, 'unknown unit');
+      expect(handlebarsCompile(`{{dateModify 'plus'}}`)({ when })).to.equal('plus', 'missing datevalue');
+      expect(handlebarsCompile(`{{dateModify when 'plus' 'notAUnit' 10}}`)({ when })).to.equal(
+        when,
+        'plus with unknown unit'
+      );
+      expect(handlebarsCompile(`{{dateModify when 'startOf' 'days' 10}}`)({ when })).to.equal(
+        when,
+        'startof with value'
+      );
+      expect(handlebarsCompile(`{{dateModify when 'endOf' 'years'}}`)({ when })).to.equal(
+        when,
+        'endof with unknown unit'
+      );
+      expect(handlebarsCompile(`{{dateModify}}`)({ when })).to.equal('', 'no args');
+      expect(handlebarsCompile(`{{dateModify when 'plus' 'days' 'days'}}`)({ when })).to.equal(when, 'two units');
+      expect(handlebarsCompile(`{{dateModify when 'plus' 3 5}}`)({ when })).to.equal(when, 'two values');
+    });
+
+    describe('modifies the date time according to the attached timezone or UTC otherwise', function () {
+      const cases: [string, string, string, string | Date, string | Date][] = [
+        [
+          'adds 7 months with host across DST change date time in UTC',
+          `'months' 7`,
+          'Australia/Adelaide',
+          '2027-01-01T00:01:00.000Z',
+          '2027-08-01T00:01:00.000Z',
+        ],
+        [
+          'adds 7 months with host across DST change using offset',
+          `'months' 7`,
+          'Australia/Adelaide',
+          '2027-01-01T00:01:00.000+04:30',
+          '2027-07-31T19:31:00.000Z',
+        ],
+        [
+          'adds 7 months in same DST Date',
+          `'months' 7`,
+          'UTC',
+          new Date(2027, 0, 1, 0, 1, 0),
+          '2027-08-01T00:01:00.000Z',
+        ],
+        [
+          'adds 7 months with host across DST change no offset',
+          `'months' 7`,
+          'Australia/Adelaide',
+          '2027-01-01T00:01:00.000',
+          '2027-08-01T00:01:00.000Z',
+        ],
+      ];
+      for (const [name, args, hostTz, input, expected] of cases) {
+        it(name, function () {
+          const priorZone = Settings.defaultZone;
+          try {
+            Settings.defaultZone = hostTz;
+            expect(handlebarsCompile(`{{dateModify input ${args}}}`)({ input })).to.equal(expected);
+          } finally {
+            Settings.defaultZone = priorZone;
+          }
+        });
+      }
     });
   });
 
@@ -691,62 +766,120 @@ describe('Shared Handlebars Helpers', async function () {
         '&lt;ul class&#x3D;&quot;rb-view-metadata__list&quot;&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;'
       );
     });
-    Object.keys(handlebarsHelperDefinitions).forEach(helperName => {
-      it(`should render ${helperName} as expected with no arguments`, function () {
-        let expected: any = '';
-        switch (helperName) {
-          case 'isEmpty':
-          case 'isUndefined':
-          case 'ne':
-          case 'not':
-            expected = 'true';
-            break;
-          case 'isNull':
-          case 'isDefined':
-          case 'isArray':
-          case 'isObject':
-          case 'eq':
-          case 'and':
-          case 'or':
-          case 'gt':
-          case 'gte':
-          case 'lt':
-          case 'lte':
-            expected = 'false';
-            break;
-        }
-        expect(handlebarsCompile(`{{${helperName}}}`)({})).to.equal(expected);
-      });
-      it(`should render ${helperName} as expected with empty string argument`, function () {
-        let expected: any = '';
-        switch (helperName) {
-          case 'isEmpty':
-          case 'isDefined':
-          case 'ne':
-          case 'not':
-            expected = 'true';
-            break;
-          case 'isNull':
-          case 'isUndefined':
-          case 'isArray':
-          case 'isObject':
-          case 'eq':
-          case 'and':
-          case 'or':
-          case 'gt':
-          case 'gte':
-          case 'lt':
-          case 'lte':
-            expected = 'false';
-            break;
-          case 'json':
-            expected = '""';
-            break;
-          case 'renderMetadataValue':
-            expected = '<em class="text-muted">—</em>';
-            break;
-        }
-        expect(handlebarsCompile(`{{{${helperName} ''}}}`)({})).to.equal(expected);
+
+    describe('allows for handlebars options argument', function () {
+      Object.keys(handlebarsHelperDefinitions).forEach(helperName => {
+        it(`should render ${helperName} as expected with no arguments`, function () {
+          let expected: any = '';
+          switch (helperName) {
+            case 'isEmpty':
+            case 'isUndefined':
+            case 'ne':
+            case 'not':
+              expected = 'true';
+              break;
+            case 'isNull':
+            case 'isDefined':
+            case 'isArray':
+            case 'isObject':
+            case 'eq':
+            case 'and':
+            case 'or':
+            case 'gt':
+            case 'gte':
+            case 'lt':
+            case 'lte':
+              expected = 'false';
+              break;
+          }
+          expect(handlebarsCompile(`{{{${helperName}}}}`)({})).to.equal(expected);
+        });
+        it(`should render ${helperName} as expected with empty string argument`, function () {
+          let expected: any = '';
+          switch (helperName) {
+            case 'isEmpty':
+            case 'isDefined':
+            case 'ne':
+            case 'not':
+              expected = 'true';
+              break;
+            case 'isNull':
+            case 'isUndefined':
+            case 'isArray':
+            case 'isObject':
+            case 'eq':
+            case 'and':
+            case 'or':
+            case 'gt':
+            case 'gte':
+            case 'lt':
+            case 'lte':
+              expected = 'false';
+              break;
+            case 'json':
+              expected = '""';
+              break;
+            case 'renderMetadataValue':
+              expected = '<em class="text-muted">—</em>';
+              break;
+          }
+          expect(handlebarsCompile(`{{{${helperName} ''}}}`)({})).to.equal(expected);
+        });
+
+        it(`should call ${helperName} and not mistake data for the handlebars options`, function () {
+          const input = { data: { id: 123 }, title: 'My title', hash: {} };
+          let expected: any = 'My title';
+          switch (helperName) {
+            case 'isDefined':
+            case 'ne':
+            case 'isObject':
+            case 'and':
+            case 'or':
+              expected = 'true';
+              break;
+            case 'isEmpty':
+            case 'isNull':
+            case 'isUndefined':
+            case 'isArray':
+            case 'eq':
+            case 'not':
+            case 'gt':
+            case 'gte':
+            case 'lt':
+            case 'lte':
+              expected = 'false';
+              break;
+            case 'formatDate':
+            case 'formatDateLocale':
+            case 'trim':
+            case 'substring':
+            case 'split':
+            case 'concat':
+            case 'markdownToHtml':
+            case 'plaintextToHtml':
+              expected = '[object Object]';
+              break;
+            case 'get':
+            case 'join':
+            case 'attachmentDownloadUrl':
+            case 'displayName':
+              expected = '""';
+              break;
+            case 'toLower':
+              expected = '[object object]';
+              break;
+            case 'toUpper':
+              expected = '[OBJECT OBJECT]';
+              break;
+            case 'pluck':
+              expected = '[]';
+              break;
+            case 'urlEncode':
+              expected = '%5Bobject%20Object%5D';
+              break;
+          }
+          expect(handlebarsCompile(`{{{json (${helperName} input)}}}`)({ input })).to.contain(expected);
+        });
       });
     });
   });
