@@ -40,6 +40,8 @@ import { normalizeRecordRelations, NormalizedRecordRelation } from '@researchdat
 
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
+// Index builds can legitimately be silent for minutes. Mongo drivers 6/7 pass this command override to the socket.
+const indexBuildOptions = { socketTimeoutMS: 0, maxTimeMS: 0 };
 
 const CSV_DANGEROUS_PREFIX = /^[=+\-@\t\r\n]/;
 function sanitizeCsvCell(value: unknown): unknown {
@@ -240,11 +242,13 @@ export namespace Services {
         await Record.create(initRec);
         await Record.destroyOne({ redboxOid: uuid });
       }
-      this.gridFsBucket = new mongodb.GridFSBucket(this.db);
-      this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
-      await this.recordCol.createIndex({ "figshareSyncIntent.pending": 1, "figshareSyncIntent.readiness": 1, "figshareSyncIntent.requestedAt": 1 });
-      this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
+      const recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      await recordCol.createIndex({ "figshareSyncIntent.pending": 1, "figshareSyncIntent.readiness": 1, "figshareSyncIntent.requestedAt": 1 }, indexBuildOptions);
       await this.createIndices(this.db);
+      // Publish the initialized collections only after required startup work succeeds, allowing a failed attempt to retry.
+      this.gridFsBucket = new mongodb.GridFSBucket(this.db);
+      this.recordCol = recordCol;
+      this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
       sails.log.verbose(`${this.logHeader} Ready!`);
@@ -258,14 +262,14 @@ export namespace Services {
         const storageConfig = sails.config.storage as { mongodb?: { indices?: mongodb.IndexDescription[] } };
         const indices = storageConfig.mongodb?.indices ?? [];
         if (_.size(indices) > 0) {
-          await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
+          await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices, indexBuildOptions);
         }
       } catch (err) {
         sails.log.error(`Failed to create indices:`);
         sails.log.error(JSON.stringify(err));
       }
       try {
-        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 });
+        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 }, indexBuildOptions);
       } catch (err) {
         sails.log.error(`Failed to create record audit index:`);
         sails.log.error(JSON.stringify(err));

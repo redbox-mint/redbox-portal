@@ -92,6 +92,8 @@ export interface AgendaQueueOptions {
     backend?: AgendaQueueBackend;
     /** MongoDB connection string */
     db?: string;
+    /** Mongo client limits for Agenda's own connection; both default to 30000ms. */
+    mongoOptions?: { socketTimeoutMS?: number; waitQueueTimeoutMS?: number };
     /** MongoDB collection name */
     collection?: string;
     /** Default lock lifetime */

@@ -358,6 +358,17 @@ describe('AgendaQueueService', function () {
   });
 
   describe('startup configuration', function () {
+    it('allows startup index builds to outlast the ordinary Mongo socket timeout', async function () {
+      const service = new Services.AgendaQueue();
+      const createIndex = sinon.stub().resolves();
+      const manager = { collection: sinon.stub().withArgs('agendaJobs').returns({ createIndex }) };
+
+      await (service as any).createMongoIndexes(manager, { collection: 'agendaJobs' });
+
+      expect(createIndex.callCount).to.equal(2);
+      expect(createIndex.getCalls().every(call => call.args[1].socketTimeoutMS === 0 && call.args[1].maxTimeMS === 0)).to.equal(true);
+    });
+
     it('applies the default backend and per-job overrides', async function () {
       const mockSails = createMockSails({
         config: {

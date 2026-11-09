@@ -9,6 +9,7 @@ import { AuditWriter, AuditWriteTimeout } from '../../../packages/redbox-core/sr
 // Mongo's repository exposes these lifecycle methods in addition to Agenda's generic contract.
 type MongoAuditQueueRepository = Agenda['db'] & {
   disconnect(): Promise<void>;
+  getDb(): import('mongodb').Db;
   collection: { drop(): Promise<boolean> };
 };
 
@@ -309,7 +310,7 @@ describe('The RecordsService', function () {
     expect(audits[0].occurredAt).to.equal(data.occurredAt);
   });
 
-  it('releases an audit permit after the Sails Mongo driver ends a stalled insert', async function () {
+  it('keeps index builds alive and releases stalled audit and Agenda write permits at the driver', async function () {
     // Exercise the driver's actual network timeout, rather than another Promise.race.
     const { MongoClient } = require(require.resolve('mongodb', { paths: [require.resolve('sails-mongo')] })) as typeof import('mongodb');
     for (const datastore of ['mongodb', 'redboxStorage']) {
@@ -323,6 +324,7 @@ describe('The RecordsService', function () {
     const targetPort = Number(target.port || 27017);
     const sockets = new Set<Socket>();
     let stalled = false;
+    let responseDelayMs = 0;
     const proxy = createServer(socket => {
       socket.setNoDelay(true);
       const upstream = connect(targetPort, targetHost);
@@ -330,7 +332,10 @@ describe('The RecordsService', function () {
       sockets.add(socket);
       sockets.add(upstream);
       socket.on('data', data => { if (!stalled) upstream.write(data); });
-      upstream.pipe(socket);
+      upstream.on('data', data => {
+        if (responseDelayMs > 0) setTimeout(() => { if (!socket.destroyed) socket.write(data); }, responseDelayMs);
+        else socket.write(data);
+      });
       socket.on('error', () => upstream.destroy());
       upstream.on('error', () => socket.destroy());
       socket.on('close', () => { sockets.delete(socket); upstream.destroy(); });
@@ -345,10 +350,17 @@ describe('The RecordsService', function () {
       serverSelectionTimeoutMS: 2000, maxPoolSize: 1, retryWrites: false
     });
     const collectionName = `auditDriverTimeoutTest_${randomBytes(12).toString('hex')}`;
+    const queueCollection = `${collectionName}_jobs`;
+    let dispatcher: Agenda | undefined;
     let stage = 'opening the proxy connection';
     try {
       const collection = client.db().collection(collectionName);
       await collection.insertOne({ warmup: true });
+      stage = 'building an index beyond the ordinary socket timeout';
+      responseDelayMs = 1500;
+      const indexBuildOptions = { socketTimeoutMS: 0, maxTimeMS: 0 };
+      await collection.createIndex({ warmup: 1 }, indexBuildOptions);
+      responseDelayMs = 0;
       stage = 'ending a stalled write';
       stalled = true;
       const writer = new AuditWriter();
@@ -375,12 +387,54 @@ describe('The RecordsService', function () {
         maxConcurrentWrites: 1, writeAttempts: 3, writeTimeoutMs: 5000
       });
       expect(await collection.countDocuments({ recovered: true })).to.equal(1);
+
+      stage = 'opening Agenda’s separate Mongo connection';
+      target.searchParams.set('retryWrites', 'false');
+      target.searchParams.set('maxPoolSize', '1');
+      target.searchParams.set('serverSelectionTimeoutMS', '2000');
+      dispatcher = await AgendaQueueService.createAgendaForBackend('mongodb', {
+        ...sails.config.agendaQueue.options, db: target.toString(), collection: queueCollection,
+        mongoOptions: { socketTimeoutMS: 1000, waitQueueTimeoutMS: 250 }
+      }, User.getDatastore().manager);
+      const queued = await dispatcher!.now('audit-timeout-test', {});
+      const repository = dispatcher!.db as MongoAuditQueueRepository;
+      expect(repository.getDb().client.options.socketTimeoutMS).to.equal(1000);
+      expect(repository.getDb().client.options.waitQueueTimeoutMS).to.equal(250);
+      const enqueueWriter = new AuditWriter();
+      let finishSave!: () => void;
+      const saveEnded = new Promise<void>(resolve => { finishSave = resolve; });
+      let saveFailure: unknown;
+      stage = 'ending a stalled Agenda quarantine save';
+      stalled = true;
+      try {
+        await enqueueWriter.run(async () => {
+          try { await queued.disable().save(); }
+          catch (error) { saveFailure = error; throw error; }
+          finally { finishSave(); }
+        }, { maxConcurrentWrites: 1, writeAttempts: 1, writeTimeoutMs: 25 });
+        throw new Error('Expected the recovery caller deadline to expire');
+      } catch (error) {
+        expect(error).to.be.instanceOf(AuditWriteTimeout);
+      }
+      await waitForJob(saveEnded);
+      expect(saveFailure).to.have.property('name', 'MongoNetworkTimeoutError');
+      stalled = false;
+      stage = 'enqueuing after Agenda driver recovery';
+      await enqueueWriter.run(async () => { await dispatcher!.now('audit-timeout-recovered', {}); }, {
+        maxConcurrentWrites: 1, writeAttempts: 3, writeTimeoutMs: 5000
+      });
+      expect(await repository.getDb().collection(queueCollection).countDocuments({ name: 'audit-timeout-recovered' })).to.equal(1);
     } catch (error) {
       throw new Error(`Mongo fault test failed while ${stage}`, { cause: error });
     } finally {
       stalled = false;
-      try { await RecordAudit.getDatastore().manager.collection(collectionName).drop(); }
+      responseDelayMs = 0;
+      try {
+        await RecordAudit.getDatastore().manager.collection(collectionName).drop();
+        if (dispatcher) await (dispatcher.db as MongoAuditQueueRepository).collection.drop();
+      }
       finally {
+        if (dispatcher) await (dispatcher.db as MongoAuditQueueRepository).disconnect();
         await client.close();
         for (const socket of sockets) socket.destroy();
         await new Promise<void>(resolve => proxy.close(() => resolve()));
@@ -415,6 +469,9 @@ describe('The RecordsService', function () {
         record: { metadata: { title: 'Retain for operator inspection' } }
       };
       const invalid = await dispatcher!.now(jobName, snapshot);
+      const clientOptions = (dispatcher!.db as MongoAuditQueueRepository).getDb().client.options;
+      expect(clientOptions.socketTimeoutMS).to.equal(30000);
+      expect(clientOptions.waitQueueTimeoutMS).to.equal(30000);
       const valid = await dispatcher!.now(jobName, { ...snapshot, action: 'updated', auditId: randomBytes(12).toString('hex') });
       const completed = new Set<string>();
       let finish!: () => void;

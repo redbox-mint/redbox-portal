@@ -180,8 +180,35 @@ describe('MongoStorageService', function () {
     expect(service.gridFsBucket).to.be.ok;
     expect(service.recordCol).to.equal(recordCollection);
     expect(service.deletedRecordCol).to.equal(deletedCollection);
-    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
-    expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
+    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 }, { socketTimeoutMS: 0, maxTimeMS: 0 })).to.be.true;
+    expect(recordCollection.createIndex.firstCall.args[1]).to.deep.equal({ socketTimeoutMS: 0, maxTimeMS: 0 });
+    expect(recordCollection.createIndexes.calledOnceWithExactly(mockSails.config.storage.mongodb.indices, { socketTimeoutMS: 0, maxTimeMS: 0 })).to.be.true;
+  });
+
+  it('retries required index initialization before publishing collections or readiness', async function () {
+    service.gridFsBucket = undefined;
+    const recordCollection = {
+      indexes: sandbox.stub().resolves([]),
+      createIndex: sandbox.stub().onFirstCall().rejects(new Error('index interrupted')).onSecondCall().resolves(),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) => name === 'record'
+      ? recordCollection : { createIndex: sandbox.stub().resolves() });
+
+    await expectRejects(() => service.performInit(), 'index interrupted');
+    expect(service.recordCol).to.equal(undefined);
+    expect(service.deletedRecordCol).to.equal(undefined);
+    expect(service.gridFsBucket).to.equal(undefined);
+    expect(mockSails.emit.called).to.be.false;
+
+    await service.performInit();
+    await service.performInit();
+    expect(recordCollection.createIndex.calledTwice).to.be.true;
+    expect(service.recordCol).to.equal(recordCollection);
+    expect(service.gridFsBucket).to.be.ok;
+    expect(mockSails.emit.getCalls().map(call => call.args[0])).to.deep.equal([
+      'hook:redbox:storage:ready', 'hook:redbox:datastream:ready'
+    ]);
   });
 
   it('creates the collection through a seed record when strict lookup fails', async function () {
@@ -232,7 +259,7 @@ describe('MongoStorageService', function () {
     await service.createIndices(mockDb);
 
     expect(recordCollection.createIndexes.called).to.be.false;
-    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
+    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 }, { socketTimeoutMS: 0, maxTimeMS: 0 })).to.be.true;
   });
 
   it('logs audit index creation failures without throwing', async function () {
