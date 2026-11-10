@@ -1,4 +1,6 @@
-import { printSchema } from 'graphql';
+import { printSchema, GraphQLError } from 'graphql';
+import { firstValueFrom } from 'rxjs';
+import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
 import { Services as services } from '../CoreService';
 import { recordGraphql, validateRecordGraphqlConfig, type RecordGraphqlConfig } from '../config/recordGraphql.config';
 import { recordSchema } from '../config/recordSchema.config';
@@ -15,12 +17,25 @@ import { createRecordYoga, QUERY_LIMITS } from '../record-graphql/schema';
 import { isObject } from '../record-graphql/renderer';
 import type { ReadCaller, ReadPorts } from '../record-graphql/read-record';
 
-export interface RecordGraphqlDependencies extends ReadPorts {
+export interface RecordGraphqlDependencies extends ReadPorts, GridPorts {
   readonly getConfig: () => RecordGraphqlConfig;
   readonly getCandidates: (caller: ReadCaller) => Promise<readonly ReadContractCandidate[]>;
   readonly getReusableDefinitions: () => typeof sails.config.reusableFormDefinitions;
   readonly getContributorRegistry: () => RecordContractContributorRegistry | undefined;
   readonly getContributorRegistrationIssues: () => readonly RecordContractRegistrationIssue[];
+}
+
+interface GridSearchAdapter {
+  getRecordQuerySchema: (coreId: string, deadline: number) => Promise<GridIndexSchema>;
+  searchRecordPage: (coreId: string, params: URLSearchParams, deadline: number) => Promise<GridIndexPage>;
+}
+function hasGridSearch(value: unknown): value is GridSearchAdapter {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof Reflect.get(value, 'getRecordQuerySchema') === 'function' &&
+    typeof Reflect.get(value, 'searchRecordPage') === 'function'
+  );
 }
 
 type ReadSchema = ReturnType<typeof createRecordYoga>;
@@ -53,6 +68,26 @@ export namespace Services {
         getReusableDefinitions: () => sails.config.reusableFormDefinitions,
         getContributorRegistry: () => undefined,
         getContributorRegistrationIssues: () => [],
+        getGridEnvironment: async (caller, recordType, deadline) => {
+          const type = await firstValueFrom(RecordTypesService.get(caller.brand, recordType));
+          if (!type)
+            throw new GraphQLError('Record type is unavailable.', { extensions: { code: 'UNKNOWN_RECORD_TYPE' } });
+          const coreId = type.searchCore || 'default';
+          const config = sails.config.solr.cores[coreId];
+          const search: unknown = sails.services[sails.config.search.serviceName];
+          if (!config || !hasGridSearch(search))
+            throw new GraphQLError('Configured search backend does not support record grids.', {
+              extensions: { code: 'COLLECTION_UNAVAILABLE' },
+            });
+          const schema = await search.getRecordQuerySchema(coreId, deadline);
+          return {
+            coreId,
+            config,
+            schema,
+            search: (params, until) => search.searchRecordPage(coreId, params, until),
+            cursorSecret: this.dependencies.getConfig().cursorSecret,
+          };
+        },
         getRecord: oid => RecordsService.getMeta(oid),
         hasViewAccess: (caller, record) =>
           RecordsService.hasViewAccess(caller.brand, caller.user, caller.roles, record),
@@ -216,7 +251,7 @@ export namespace Services {
       if (formatRecordFormFingerprint({ candidates, reusableFormDefinitions }) !== fingerprint) {
         throw new Error('Read configuration changed during compilation.');
       }
-      return createRecordYoga(contracts, this.dependencies);
+      return createRecordYoga(contracts, this.dependencies, this.dependencies);
     }
   }
 }

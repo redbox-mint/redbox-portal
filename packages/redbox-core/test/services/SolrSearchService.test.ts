@@ -486,6 +486,50 @@ describe('SolrSearchService', function () {
     });
   });
 
+  describe('bounded record-grid adapter', () => {
+    it('loads the live schema with defaults and transport bounds', async () => {
+      const get = sinon.stub(require('axios'), 'get');
+      get.onCall(0).resolves({ data: { schema: { uniqueKey: 'id', fields: [], fieldTypes: [] } } });
+      get.onCall(1).resolves({ data: { fields: [{ name: 'id', docValues: true }] } });
+      get.onCall(2).resolves({ data: { dynamicFields: [] } });
+      const result = await SolrSearchService.getRecordQuerySchema('default', Date.now() + 2000);
+      assert.deepEqual(result.dynamicFields, []);
+      assert.deepEqual(result.fields, [{ name: 'id', docValues: true }]);
+      assert.equal(get.callCount, 3);
+      const options = get.firstCall.args[1];
+      assert.equal(options.params.showDefaults, true);
+      assert.ok(options.timeout <= 2000 && options.timeout > 0);
+      assert.ok(options.signal instanceof AbortSignal);
+      assert.equal(options.maxContentLength, 2097152);
+    });
+    it('does not return partial, malformed, oversized or unbounded search pages', async () => {
+      const get = sinon.stub(require('axios'), 'get');
+      const params = new URLSearchParams({ rows: '50', cursorMark: '*' });
+      for (const data of [
+        { responseHeader: { partialResults: true }, response: { docs: [] }, nextCursorMark: '*' },
+        { response: { docs: [{ redbox_grid_oid: ['bad'] }] }, nextCursorMark: '*' },
+        { response: { docs: [] } },
+        { response: { docs: Array.from({ length: 51 }, () => ({ redbox_grid_oid: 'a' })) }, nextCursorMark: 'next' },
+      ]) {
+        get.resolves({ data });
+        await assert.rejects(() => SolrSearchService.searchRecordPage('default', params, Date.now() + 2000));
+      }
+      get.resolves({ data: { response: { docs: [{ redbox_grid_oid: 'a' }] }, nextCursorMark: 'next' } });
+      assert.deepEqual(await SolrSearchService.searchRecordPage('default', params, Date.now() + 2000), {
+        oids: ['a'],
+        nextCursor: 'next',
+        exhausted: true,
+      });
+      const options = get.lastCall.args[1];
+      assert.ok(Number(options.params.get('timeAllowed')) <= 2000);
+      assert.equal(options.maxContentLength, 262144);
+      await assert.rejects(() =>
+        SolrSearchService.searchRecordPage('default', new URLSearchParams({ rows: '51' }), Date.now() + 2000)
+      );
+      await assert.rejects(() => SolrSearchService.searchRecordPage('default', params, Date.now() - 1));
+    });
+  });
+
   describe('searchAdvanced', function () {
     it('should pass the parsed query fragment to solr', async function () {
       const axiosGet = sinon.stub(require('axios'), 'get').resolves({ data: {} });
@@ -1011,6 +1055,36 @@ describe('SolrSearchService', function () {
       expect(data).to.deep.equal(original);
       result.redbox_acl2_view.push('not-a-source-mutation');
       expect(data.authorization.view).to.deep.equal(original.authorization.view);
+    });
+
+    it('protects grid scope, identity and explicit scalar copies from metadata and templates', function () {
+      mockSails.config.recordGraphql = { enabled: true, cursorSecret: 'integration-fixture-secret-over-32-chars' };
+      const core = mockSails.config.solr.cores.default;
+      core.recordGraphqlFields = { 'metadata:/title': 'grid_title' };
+      core.preIndex.copy = [{ source: 'metadata.title', dest: 'grid_title' }];
+      core.preIndex.template = [{ source: 'metadata', dest: 'ignored', template: '<% data.title="tampered" %>done' }];
+      const data = {
+        id: 'storage-id',
+        redboxOid: 'original-oid',
+        metaMetadata: { brandId: 'brand-1', type: 'type-A', form: 'form-A' },
+        workflow: { stage: 'draft' },
+        metadata: {
+          title: 'original-title',
+          id: 'spoof-id',
+          redbox_grid_oid: 'spoof-oid',
+          redbox_grid_type: 'spoof-type',
+          redbox_grid_version: 'spoof',
+        },
+        authorization: {},
+      };
+      const result = SolrSearchService.preIndex(data);
+      expect(result.redbox_grid_oid).to.equal('original-oid');
+      expect(result.redbox_grid_type).to.equal('type-A');
+      expect(result.redbox_grid_stage).to.equal('draft');
+      expect(result.redbox_grid_form).to.equal('form-A');
+      expect(result.redbox_grid_version).to.equal('1');
+      expect(result.id).to.equal('storage-id');
+      expect(result.grid_title).to.equal('original-title');
     });
 
     it('snapshots the protected ACL before a configured template can mutate its source array', function() {

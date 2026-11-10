@@ -134,6 +134,7 @@ function harness() {
   let config = { ...recordGraphql, enabled: true };
   const deps: RecordGraphqlDependencies = {
     getConfig: () => config,
+    getGridEnvironment: async () => { throw new Error('Grid search not configured in the single-record fixture.'); },
     getCandidates: async () => candidates,
     getReusableDefinitions: () => reusable,
     getContributorRegistry: () => currentRegistry,

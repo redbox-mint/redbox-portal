@@ -211,3 +211,7 @@ persisted core component is a fatal coverage defect.
 - [Record Schema Contract API](Record-Schema-Contract-API)
 - [Using a Sails hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox)
 - [Redbox Loader](Redbox-Loader)
+
+## Read-only GraphQL exposure
+
+Contributors can mark a contract node with `annotations: { writeOnly: true }` to exclude it from read metadata and field discovery. This is an explicit storage-read restriction, separate from UI edit/view modes or role-dependent form variants. A private descendant in incompatible variants restricts the opaque region as a whole. The JSON Schema renderer preserves the standard `writeOnly` annotation. See [Record GraphQL Grids](Record-GraphQL-Grids) for scalar catalogue capabilities and opaque/repeating-field restrictions.

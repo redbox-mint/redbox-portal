@@ -60,6 +60,18 @@ async function compile(
 }
 
 describe('Read contract UI variants', () => {
+  it('preserves configured layout labels for read discovery without changing write contracts', async () => {
+    const title = { ...simple('title'), layout: { class: 'DefaultLayout' as const, config: { label: '@title' } } };
+    for (const mode of ['read', 'edit'] as const) {
+      const result = await compile([title], mode);
+      assert.equal(result.kind, 'compiled');
+      if (result.kind === 'compiled')
+        assert.equal(
+          result.contract.root.properties.title.annotations?.extensions?.['x-redbox-label'],
+          mode === 'read' ? '@title' : undefined
+        );
+    }
+  });
   it('compiles the checked-in edit/view related URL definitions in both modes', async () => {
     const definitions = reusableRelatedObjectsFormDefinitions['related-objects-field-url'];
     for (const mode of ['read', 'edit'] as const) {
