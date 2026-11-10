@@ -1,5 +1,6 @@
 import {
   FormOverride,
+  viewMetadataSource,
   ContentComponentName,
   RepeatableComponentName,
   RepeatableFieldComponentDefinitionFrame,
@@ -1310,4 +1311,61 @@ describe('FormOverride reusable expansion', () => {
     expect(template).to.equal('<span class="custom-link">{{content}}</span>');
     expect(template).to.not.contain('target="_blank"');
   });
+});
+
+
+describe('view expression opt-in', () => {
+  it('keeps only flagged visibility expressions on transformed fields', () => {
+    const expressions = [
+      ...['layout.visible', 'component.visible', 'field.visible', 'model.value', 'validationGroup.visible'].map(target => ({ name: target, config: { target, template: 'true', runInViewMode: true } })),
+      { name: 'legacy', config: { target: 'component.visible', template: 'false' } },
+      { name: 'explicit-off', config: { target: 'field.visible', template: 'false', runInViewMode: false } },
+      { name: 'operation', config: { operation: 'save', runInViewMode: true } },
+    ];
+    const transformed = new FormOverride(testLogger).applyOverrideTransform({
+      name: 'answer', component: { class: SimpleInputComponentName }, model: { class: 'SimpleInputModel', config: { value: 'saved' } }, expressions,
+    } as never, 'view', { phase: 'client' });
+    expect(transformed.expressions?.map(expression => expression.name)).to.deep.equal(['layout.visible', 'component.visible', 'field.visible']);
+  });
+});
+
+
+describe('View metadata provenance', () => {
+  for (const className of ['TypeaheadInputComponent', 'GroupComponent', 'RepeatableComponent']) {
+    it(`preserves server-only source identity for ${className} even with empty content`, () => {
+      const override = new FormOverride(testLogger);
+      const source = { name: 'value', component: { class: className, config: {
+        ...(className === 'GroupComponent' ? { componentDefinitions: [] } : {}),
+      } }, model: { config: { value: className === 'RepeatableComponent' ? [] : {} } } };
+      const transformed = override.applyOverrideTransform(source as never, 'view', { phase: 'client' });
+      const provenance = (transformed as any)[viewMetadataSource];
+      expect(provenance.component.class).to.equal(className);
+      expect(provenance).not.to.equal(source);
+      expect(JSON.stringify(transformed)).not.to.contain('viewMetadataSource');
+      expect(JSON.stringify(transformed)).not.to.contain('"model"');
+      // The client can deep-clone content transformed during construction.
+      const copy = override.applyOverrideTransform(transformed, 'view', { phase: 'client' });
+      expect((copy as any)[viewMetadataSource].component.class).to.equal(className);
+    });
+  }
+});
+
+
+describe('round3 malformed group display values', () => {
+  for (const value of [[{ public: 'shown', restricted: 'malformed-secret' }], ['malformed-secret'], 'malformed-secret', 42, false, null]) {
+    for (const fallback of [false, true]) {
+      it(`rejects nested ${JSON.stringify(value)} with descendant fallback=${fallback}`, () => {
+        const override = new FormOverride(testLogger);
+        const nested = { name: 'nested', component: { class: GroupFieldComponentName, config: { componentDefinitions: [
+          { name: 'public', component: { class: SimpleInputComponentName }, model: { class: 'SimpleInputModel' } },
+        ] } }, model: { class: 'GroupModel', config: { value } } };
+        const source = { name: 'parent', component: { class: GroupFieldComponentName, config: { componentDefinitions: [nested] } },
+          model: { class: 'GroupModel', config: fallback ? {} : { value: { nested: value } } } };
+        const transformed = override.applyOverrideTransform(source as never, 'view', { phase: 'client' });
+        const content = (transformed.component.config as { content: unknown }).content;
+        expect(content).not.to.have.property('nested');
+        expect(JSON.stringify(transformed)).not.to.contain('malformed-secret');
+      });
+    }
+  }
 });
