@@ -55,9 +55,10 @@ export class FormComponentValueChangeEventConsumer extends FormComponentEventBas
 
   protected override async getMatchedExpressions(event: FormComponentEvent, expressions: FormExpressionsConfigFrame[]) {
     // Modeled siblings also emit initial value events. The direct ready handler
-    // above owns view initialization, so those events must not run it again.
+    // above owns templated view initialization, so those events must not run it
+    // again. Template-free rules still copy their source's initial value here.
     const candidates = this.formComp?.editMode() === false && event.sourceId === FormComponentEventType.FORM_DEFINITION_READY
-      ? expressions.filter(expr => expr.config.runInViewMode !== true)
+      ? expressions.filter(expr => expr.config.runInViewMode !== true || !expr.config.hasTemplate)
       : expressions;
     return super.getMatchedExpressions(event, candidates);
   }

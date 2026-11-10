@@ -45,6 +45,28 @@ describe('Expression runtime context integration', () => {
   }
 
   for (const scenario of [
+    { editMode: false, runOnFormReady: true, expected: true },
+    { editMode: true, runOnFormReady: true, expected: true },
+    { editMode: false, runOnFormReady: false, expected: false },
+  ]) {
+    it(`copies an initially true retained source with runOnFormReady=${scenario.runOnFormReady} in editMode=${scenario.editMode}`, async () => {
+      const config: FormConfigFrame = { name: 'template-free-initial', componentDefinitions: [
+        { name: 'source', model: { class: 'SimpleInputModel', config: { value: true as never } },
+          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } } },
+        { name: 'answer', component: { class: 'ContentComponent', config: { visible: false, content: 'Conditional answer' } },
+          expressions: [{ name: 'copy-source', config: { condition: '/source::field.value.changed',
+            target: 'component.visible', runInViewMode: true, runOnFormReady: scenario.runOnFormReady } as never }] },
+      ] };
+      const { fixture } = await createFormAndWaitForReady(config, { editMode: scenario.editMode });
+      await new Promise<void>(resolve => setTimeout(resolve, 20));
+      await fixture.whenStable(); fixture.detectChanges();
+      const content = fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent;
+      expect(content.isVisible).toBe(scenario.expected);
+      fixture.destroy();
+    });
+  }
+
+  for (const scenario of [
     { name: 'flagged view rule', editMode: false, flagged: true, ready: true, expected: 2 },
     { name: 'unflagged view rule', editMode: false, flagged: false, ready: true, expected: 0 },
     { name: 'view rule opting out of form ready', editMode: false, flagged: true, ready: false, expected: 0 },
