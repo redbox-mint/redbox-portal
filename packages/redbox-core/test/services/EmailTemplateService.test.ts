@@ -14,6 +14,7 @@ import { Services as EmailServices } from '../../src/services/EmailService';
 import { Services as NotificationServices, EmailChannel } from '../../src/services/IntegrationNotificationService';
 import { Controllers as EmailControllers } from '../../src/controllers/EmailController';
 import { EmailTemplateWLDef } from '../../src/waterline-models/EmailTemplate';
+import { coreBootstrap } from '../../src/bootstrap';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 
 // This fake models the DB's conditional write and unique constraint. The real
@@ -134,7 +135,7 @@ describe('Email template overrides', () => {
     model.getDatastore = () => ({ manager: undefined });
     await service.bootstrap();
     assert.equal((await render('a')).subject, 'Stored Reader');
-    assert.equal((await render('b', { name: 'Reader', sailsConfig: mockSails.config })).subject, 'Hook Reader');
+    assert.equal((await render('b', { name: 'Reader' })).subject, 'Hook Reader');
     await assert.rejects(service.update('a', 'notice', content('X'), version(created)), { code: 'PERSISTENCE' });
     await assert.rejects(service.reset('a', 'notice', version(created)), { code: 'PERSISTENCE' });
   });
@@ -150,7 +151,7 @@ describe('Email template overrides', () => {
     mockSails.config.emailnotification.templates.notice.subject = 'Subject {{subjectOnly}}';
     await service.create('a', 'notice', content('Override'));
     const result = await firstValueFrom(
-      email.buildFromTemplate('notice', { name: 'Reader', sailsConfig: mockSails.config })
+      email.buildFromTemplate('notice', { name: 'Reader' })
     );
     assert.equal(result.status, 200);
     assert.equal(result.body, 'Default Reader https://portal.example');
@@ -188,14 +189,14 @@ describe('Email template overrides', () => {
 
   it('uses only defaults for legacy calls even when data contains another brand', async () => {
     await service.create('a', 'notice', content('A'));
-    const result = await render(undefined, { name: 'Reader', brandId: 'a', sailsConfig: mockSails.config });
+    const result = await render(undefined, { name: 'Reader', brandId: 'a' });
     assert.equal(result.body, 'Default Reader https://portal.example');
     assert.equal(model.findOne.callCount, 0);
   });
 
   it('observes create, update and reset from another service instance without restart', async () => {
     const secondWorker = new EmailServices.Email();
-    const data = { name: 'Reader', sailsConfig: mockSails.config };
+    const data = { name: 'Reader' };
     const read = () => firstValueFrom(secondWorker.buildFromTemplate('notice', data, { brandId: 'a' }));
     assert.equal((await read()).source, 'default');
     const created = await service.create('a', 'notice', content('One'), 'editor');
@@ -382,12 +383,15 @@ describe('Email template overrides', () => {
         data: Record<string, unknown> = {},
         response: Record<string, unknown> = {}
       ): Promise<Record<string, unknown>> {
-        return super.buildFromTemplateAsync(name, { ...data, scuEmail: { display: 'Hook display' } }, response);
+        assert.deepEqual(data.sailsConfig, { appUrl: 'https://portal.example' });
+        return super.buildFromTemplateAsync(name, {
+          ...data, sailsConfig: mockSails.config, scuEmail: { display: 'Hook display' },
+        }, response);
       }
     }
     email = new HookEmail();
-    writeFileSync(join(directory, 'hook-body.hbs'), '{{scuEmail.display}} {{name}}');
-    assert.equal((await render('a')).body, 'Hook display Reader');
+    writeFileSync(join(directory, 'hook-body.hbs'), '{{scuEmail.display}} {{name}} {{sailsConfig.appUrl}}');
+    assert.equal((await render('a')).body, 'Hook display Reader https://portal.example');
     await service.create('a', 'notice', {
       subject: '{{scuEmail.display}}',
       body: '{{scuEmail.display}} override',
@@ -396,6 +400,13 @@ describe('Email template overrides', () => {
     const result = await render('a');
     assert.equal(result.subject, 'Hook display');
     assert.equal(result.body, 'Hook display override');
+    // The hook re-injected the live config above; the core seam must still replace it.
+    mockSails.config.session = { secret: 'HOOK-REINJECTED-SECRET' };
+    writeFileSync(join(directory, 'hook-body.hbs'), '{{sailsConfig.session.secret}}');
+    email = new HookEmail(); // fresh per-instance file-template cache
+    const leaked = await render('b');
+    assert.equal(leaked.status, 500);
+    assert.ok(!String(leaked.body).includes('HOOK-REINJECTED-SECRET'));
   });
 
   it('takes record tenant context from metaMetadata, preserving recipients and post-send actions', async () => {
@@ -520,5 +531,253 @@ describe('Email template overrides', () => {
     assert.equal(await new EmailChannel().send(legacy, { recipients: ['admin@example.com'], channelConfig: {} }), true);
     assert.equal(send.lastCall.args[1], 'Failure oid');
     assert.equal(send.lastCall.args[2], 'Legacy title');
+  });
+
+  describe('restricted email render context', () => {
+    const secret = 'EMAIL-CONFIG-SECRET';
+    const attacks = ['{{sailsConfig.datastores.mongodb.url}}', '{{sailsConfig.session.secret}}',
+      '{{sailsConfig.emailnotification.settings.serverOptions.auth.pass}}', '{{sailsConfig.auth.apiSecret}}'];
+    const display = '{{sailsConfig.appUrl}}|{{portal.appUrl}}|{{portal.brandName}}|{{portal.brandUrl}}|{{portal.portalName}}';
+    const expected = 'https://portal.example|https://portal.example|brand-a|https://portal.example/root/brand-a/research|research';
+    const spoofed = () => ({ name: 'Reader', sailsConfig: mockSails.config, portal: { brandName: 'untrusted' }, brandId: 'b' });
+
+    beforeEach(() => {
+      mockSails.config.datastores = { mongodb: { url: secret } };
+      mockSails.config.session = { secret };
+      mockSails.config.auth = { defaultPortal: 'research', apiSecret: secret };
+      mockSails.config.http = { rootContext: 'root' };
+      mockSails.config.emailnotification.settings.serverOptions = { auth: { pass: secret } };
+      (global as any).BrandingService = { getBrandById: (id: string) => ({ id, name: `brand-${id}` }) };
+    });
+
+    it('constructs portal values from trusted context and replaces caller aliases without mutating data', async () => {
+      writeFileSync(join(directory, 'hook-body.hbs'), display);
+      const data = spoofed();
+      const result = await render('a', data);
+      assert.equal(result.body, expected);
+      assert.equal(data.sailsConfig, mockSails.config);
+      assert.equal(data.portal.brandName, 'untrusted');
+      assert.equal((await render(undefined, data)).body,
+        'https://portal.example|https://portal.example|||research');
+      delete mockSails.config.auth;
+      delete mockSails.config.appUrl;
+      assert.equal((await render()).body, '||||');
+    });
+
+    for (const attack of attacks) {
+      it(`blocks file bodies, subjects, addresses and direct string rendering: ${attack}`, async () => {
+        assert.throws(() => email.runTemplate(attack, spoofed()));
+        for (const field of ['subject', 'to', 'cc', 'bcc', 'from']) {
+          assert.throws(() => email.evaluateProperties({ [field]: attack }, {}, spoofed()), field);
+        }
+        writeFileSync(join(directory, 'hook-body.hbs'), attack);
+        assert.equal((await email.buildFromTemplateAsync('notice', spoofed())).status, 500);
+        assert.equal((await render(undefined, spoofed())).status, 500);
+      });
+    }
+
+    it('blocks DB body and subject secrets, including sendTemplate caller subjects', async () => {
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      const created = await service.create('a', 'notice', { ...content('Safe'), body: attacks[0] });
+      assert.equal((await render('a', spoofed())).status, 500);
+      const unsafeSubject = await service.update('a', 'notice', { ...content('Safe'), subject: attacks[0] }, version(created));
+      assert.equal((await render('a', spoofed())).status, 500);
+      // Safe persisted content, so only the caller-supplied subject can fail the send.
+      await service.update('a', 'notice', content('Safe'), version(unsafeSubject));
+      await email.sendTemplate('reader@example.com', 'Caller {{name}}', 'notice', spoofed(), { brandId: 'a' });
+      assert.equal(send.callCount, 1);
+      await assert.rejects(email.sendTemplate('reader@example.com', attacks[0], 'notice', spoofed(), { brandId: 'a' }),
+        { code: 'RENDER_FAILED' });
+      assert.equal(send.callCount, 1);
+    });
+
+    it('validates the exposed-config allowlist eagerly with the offending path named', () => {
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['appUrl', 'publicEmail'];
+      mockSails.config.publicEmail = { since: new Date() };
+      assert.throws(() => email.validateExposedConfig(), /exposedConfigPaths entry 'publicEmail'.*plain/);
+      // buildFromTemplate reports the failure through its Observable, not synchronously.
+      const built = email.buildFromTemplate('notice', { name: 'Reader' }, {});
+      return assert.rejects(firstValueFrom(built), /publicEmail/);
+    });
+
+    it('names malformed allowlist entries and tolerates apps without email settings', () => {
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['appUrl', 'bad..entry'];
+      assert.throws(() => email.validateExposedConfig(), /entry 1 \("bad\.\.entry"\)/);
+      const settings = mockSails.config.emailnotification;
+      delete mockSails.config.emailnotification;
+      try {
+        email.validateExposedConfig();
+        assert.equal(email.runTemplate('{{sailsConfig.appUrl}}', {}), 'https://portal.example');
+      } finally {
+        mockSails.config.emailnotification = settings;
+      }
+    });
+
+    it('renders into a fresh response for each subscription', async () => {
+      writeFileSync(join(directory, 'hook-body.hbs'), 'Body {{name}}');
+      const built = email.buildFromTemplate('notice', { name: 'Reader' }, {});
+      const first = await firstValueFrom(built);
+      const second = await firstValueFrom(built);
+      assert.notEqual(first, second);
+      assert.equal(first.body, 'Body Reader');
+      assert.equal(second.body, 'Body Reader');
+    });
+
+    it('runs allowlist validation in coreBootstrap before other services start', async () => {
+      const brandingBootstrap = sinon.stub();
+      mockSails.services = {
+        emailtemplateservice: { bootstrap: sinon.stub().resolves() },
+        emailservice: { validateExposedConfig: sinon.stub().throws(new Error('bad allowlist')) },
+        brandingservice: { bootstrap: brandingBootstrap },
+      };
+      await assert.rejects(coreBootstrap(), /bad allowlist/);
+      assert.equal(mockSails.services.emailservice.validateExposedConfig.callCount, 1);
+      assert.equal(brandingBootstrap.callCount, 0);
+    });
+
+    it('keeps appUrl as a string without a missing-path warning when unconfigured', () => {
+      delete mockSails.config.appUrl;
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['appUrl'];
+      mockSails.log.warn.resetHistory();
+      email.validateExposedConfig();
+      assert.equal(email.runTemplate('[{{sailsConfig.appUrl}}]', {}), '[]');
+      assert.equal(mockSails.log.warn.callCount, 0);
+    });
+
+    it('keeps json available while exposing only the constructed alias in every rendered field', async () => {
+      const json = '{{json sailsConfig}}';
+      writeFileSync(join(directory, 'hook-body.hbs'), json);
+      const props = email.evaluateProperties({ template: 'notice', subject: json, to: json, cc: json, bcc: json, from: json },
+        {}, spoofed(), { brandId: 'a' });
+      const result = await firstValueFrom(props.templateRendered!);
+      for (const rendered of [result.body, result.subject, props.toRendered, props.ccRendered, props.bccRendered, props.fromRendered]) {
+        assert.equal(typeof rendered, 'string');
+        assert.ok((rendered as string).includes('https://portal.example'));
+        assert.ok(!(rendered as string).includes(secret));
+        assert.ok(!(rendered as string).includes('datastores'));
+      }
+      await service.create('a', 'notice', { ...content('Safe'), subject: json, body: json });
+      const stored = await render('a', spoofed());
+      assert.equal(stored.body, result.body);
+      assert.equal(stored.subject, result.subject);
+    });
+
+    it('copies allowlisted plain values at their dotted paths and isolates sends from live config', async () => {
+      mockSails.config.publicEmail = { label: 'Public', links: [{ href: '/help' }], enabled: true, count: 3, optional: null };
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['publicEmail'];
+      let captured: any;
+      const props = email.evaluateProperties({ to: '{{sailsConfig.publicEmail.label}}' }, {
+        to: { templateFunc: (value: string, data: any) => { captured = data; return email.runTemplate(value, data); } },
+      });
+      assert.equal(props.toRendered, 'Public');
+      assert.deepEqual(captured.sailsConfig, { appUrl: 'https://portal.example', publicEmail: mockSails.config.publicEmail });
+      assert.notEqual(captured.sailsConfig.publicEmail, mockSails.config.publicEmail);
+      captured.sailsConfig.publicEmail.links[0].href = '/changed';
+      captured.sailsConfig.publicEmail.label = 'Changed';
+      assert.equal(mockSails.config.publicEmail.links[0].href, '/help');
+      assert.equal(mockSails.config.publicEmail.label, 'Public');
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['publicEmail.links'];
+      assert.equal(email.runTemplate('{{sailsConfig.publicEmail.links.[0].href}}', {}), '/help');
+      assert.throws(() => email.runTemplate('{{sailsConfig.publicEmail.label}}', {}));
+      assert.equal(email.runTemplate('{{sailsConfig.appUrl}}', {}), 'https://portal.example');
+    });
+
+    it('omits missing paths and warns only once per service instance and path', () => {
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['missing.value', 'missing.other'];
+      assert.equal(email.runTemplate('{{{json sailsConfig}}}', {}), '{"appUrl":"https://portal.example"}');
+      email.runTemplate('{{sailsConfig.appUrl}}', {});
+      assert.equal(mockSails.log.warn.callCount, 2);
+      assert.throws(() => email.runTemplate('{{sailsConfig.missing.value}}', {}));
+      assert.equal(mockSails.log.warn.callCount, 2);
+    });
+
+    it('rejects malformed allowlists and prototype segments before reading config', () => {
+      for (const paths of [null, 'appUrl', [null], [1], [''], [' '], ['appUrl.'], ['a..b'],
+        ['__proto__.polluted'], ['a.constructor.name'], ['a.prototype.b']]) {
+        mockSails.config.emailnotification.settings.exposedConfigPaths = paths;
+        assert.throws(() => email.runTemplate('{{sailsConfig.appUrl}}', {}), /exposedConfigPaths/);
+      }
+      assert.equal(({} as any).polluted, undefined);
+    });
+
+    it('rejects live functions, instances, accessors, cycles and nested prototype keys', () => {
+      mockSails.config.emailnotification.settings.exposedConfigPaths = ['publicEmail'];
+      const cycle: any = {}; cycle.self = cycle;
+      for (const value of [() => secret, new Date(), cycle, { nested: () => secret },
+        JSON.parse('{"__proto__":{"polluted":true}}'), { get label() { throw new Error('accessor executed'); } }]) {
+        mockSails.config.publicEmail = value;
+        assert.throws(() => email.runTemplate('{{json sailsConfig}}', {}), /plain|prototype|accessors/);
+      }
+    });
+
+    it('preserves record config subjects, addresses and display data', async () => {
+      writeFileSync(join(directory, 'hook-body.hbs'), '{{record.metadata.name}} {{oid}} {{imports.oid}} ' + display);
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      sinon.stub(email as any, 'metTriggerCondition').returns('true');
+      const record = { metaMetadata: { brandId: 'a' }, metadata: { name: 'Reader', email: 'reader@example.com' } };
+      await email.sendRecordNotification('oid', record, {
+        template: 'notice', subject: '{{record.metadata.name}} {{portal.brandName}}',
+        to: '{{record.metadata.email}}', cc: '{{imports.record.metadata.email}}',
+        bcc: '{{record.metadata.email}}', from: '{{portal.brandName}}@example.com',
+      }, {}, {});
+      assert.deepEqual(send.firstCall.args.slice(0, 7), ['reader@example.com', `Reader oid oid ${expected}`,
+        'Reader brand-a', 'brand-a@example.com', 'text', 'reader@example.com', 'reader@example.com']);
+    });
+
+    it('restricts HTTP caller subject and address templates while retaining Handlebars rendering', async () => {
+      const controller = new EmailControllers.Email();
+      (controller as any).emailService = email;
+      (global as any).BrandingService.getBrand = () => ({ id: 'a' });
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      const respond = sinon.stub(controller as any, 'apiRespond');
+      const failure = sinon.stub(controller as any, 'sendResp');
+      const request = { options: { locals: { branding: 'route-brand' } }, apiRequest: { body: {
+        to: 'reader@example.com', template: 'notice', data: spoofed(), subject: 'Reader {{portal.brandName}}',
+      } } } as any;
+      const invoke = () => new Promise<void>(resolve => {
+        respond.callsFake(() => resolve()); failure.callsFake(() => resolve());
+        controller.sendNotification(request, {} as Sails.Res);
+      });
+      await invoke();
+      assert.equal(send.firstCall.args[2], 'Reader brand-a');
+      for (const field of ['subject', 'to', 'cc', 'bcc', 'from']) {
+        request.apiRequest.body[field] = attacks[0];
+        await invoke();
+        assert.equal(failure.lastCall.args[2].status, 500);
+        if (field === 'to') request.apiRequest.body.to = 'reader@example.com';
+        else delete request.apiRequest.body[field];
+      }
+      assert.equal(send.callCount, 1);
+    });
+
+    it('restricts integration body and subject data and retains payload and portal values', async () => {
+      const channel = new EmailChannel();
+      const payload = { kind: 'failure', brandId: 'a', title: 'Failure', redboxOid: 'oid' } as any;
+      const ctx = { recipients: ['admin@example.com'], channelConfig: {} };
+      const send = sinon.stub(email, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
+      writeFileSync(join(directory, 'integrationFailure.hbs'), '{{redboxOid}} ' + display + ' {{json sailsConfig}}');
+      assert.equal(await channel.send(payload, ctx), true);
+      assert.ok(send.firstCall.args[1].startsWith(`oid ${expected}`));
+      assert.ok(!send.firstCall.args[1].includes(secret));
+      const created = await service.create('a', 'integrationFailure', { ...content('Safe'), body: attacks[0] });
+      assert.equal(await channel.send(payload, ctx), false);
+      await service.update('a', 'integrationFailure', { ...content('Safe'), body: 'Safe', subject: attacks[0] }, version(created));
+      assert.equal(await channel.send(payload, ctx), false);
+      assert.equal(send.callCount, 1);
+    });
+
+    it('renders every bundled email template with existing display data', async () => {
+      const { readdirSync } = await import('node:fs');
+      mockSails.config.emailnotification.settings.templateDir = join(__dirname, '../../../../views/emailTemplates');
+      const person = { text_full_name: 'Reader' };
+      const data = { name: 'Reader', oid: 'oid', data: 'Test', title: 'Integration', summary: 'Summary', redboxOid: 'oid',
+        integrationName: 'example', integrationAction: 'sync', status: 'failed', traceId: 'trace', spanId: 'span',
+        startedAt: 'now', timestamp: 'now', record: { metadata: { title: 'Title', dataowner_name: 'Owner',
+          contributor_ci: person, contributor_data_manager: person, contributor_supervisor: person, creators: [person] } } };
+      for (const file of readdirSync(mockSails.config.emailnotification.settings.templateDir).filter(file => file.endsWith('.hbs'))) {
+        const result = await email.buildFromTemplateAsync(file.slice(0, -4), data);
+        assert.equal(result.status, 200, `${file}: ${result.ex}`);
+      }
+    });
   });
 });
