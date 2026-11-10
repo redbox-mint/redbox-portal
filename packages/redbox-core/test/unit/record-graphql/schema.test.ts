@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Worker } from 'node:worker_threads';
 import { GraphQLObjectType, GraphQLSchema, printSchema, graphql, buildSchema } from 'graphql';
 import { createRecordYoga, QUERY_LIMITS } from '../../../src/record-graphql/schema';
 import { fromTree, renderMetadata, hash, type WorkBudget } from '../../../src/record-graphql/renderer';
@@ -69,6 +70,102 @@ describe('GraphQL renderer and query bounds', () => {
     const result = await graphql({ schema, source: '{ metadata { value } }', contextValue: budget });
     assert.equal(result.errors, undefined);
     assert.deepEqual(JSON.parse(JSON.stringify(result.data)), { metadata: { value: { stored: 'legacy' } } });
+  });
+  it('retains nullable list siblings and indexed historical errors', async () => {
+    const list = (items: ContractNode): ContractNode => ({ kind: 'array', nullable: true, items });
+    const { type } = renderMetadata(
+      fromTree(object({ tags: list(scalar), rows: list(object({ title: scalar })), matrix: list(list(scalar)) })),
+      'HistoricalLists'
+    );
+    const schema = new GraphQLSchema({
+      query: new GraphQLObjectType({
+        name: 'Query',
+        fields: {
+          metadata: {
+            type,
+            resolve: () => ({
+              tags: ['valid', 17, 'still-valid'],
+              rows: [{ title: 'first' }, 17, { title: 'last' }],
+              matrix: [['yes', 17], 42, ['last']],
+            }),
+          },
+        },
+      }),
+    });
+    const result = await graphql({
+      schema,
+      source: '{ metadata { tags rows { title } matrix } }',
+      contextValue: budget,
+    });
+    assert.deepEqual(JSON.parse(JSON.stringify(result.data)), {
+      metadata: {
+        tags: ['valid', null, 'still-valid'],
+        rows: [{ title: 'first' }, null, { title: 'last' }],
+        matrix: [['yes', null], null, ['last']],
+      },
+    });
+    assert.deepEqual(
+      result.errors?.map(error => error.path).sort(),
+      [
+        ['metadata', 'tags', 1],
+        ['metadata', 'rows', 1],
+        ['metadata', 'matrix', 0, 1],
+        ['metadata', 'matrix', 1],
+      ].sort()
+    );
+    assert.ok(result.errors?.every(error => error.extensions.code === 'HISTORICAL_VALUE_TYPE'));
+    assert.ok(result.errors?.every(error => error.message === 'Stored value does not match the current field type.'));
+  });
+  it('bounds field-free cyclic and acyclic fragment graphs under an external timeout', async function () {
+    this.timeout(8_000);
+    const graph = (cycle: boolean) =>
+      `query { ...F0 } ${Array.from({ length: 24 }, (_, i) => `fragment F${i} on Query { ...F${i === 23 ? (cycle ? 0 : 'missing') : i + 1} ...F${i === 23 ? (cycle ? 0 : 'missing') : i + 1} }`).join(' ')}`;
+    const worker = new Worker(
+      `
+      const { workerData, parentPort } = require('node:worker_threads');
+      const { createRecordYoga } = require(workerData.schemaPath);
+      let reads = 0;
+      const { yoga } = createRecordYoga([], { getRecord: async () => { reads++; throw new Error('Unexpected read'); }, hasViewAccess: () => true });
+      (async () => {
+        const results = [];
+        for (const query of workerData.queries) {
+          const response = await yoga.fetch('http://redbox/graphql', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/graphql-response+json' }, body: JSON.stringify({ query }) }, { caller: { brand: { id: 'default', name: 'default', css: '', roles: [] }, portal: 'rdmp', user: { username: 'viewer' }, roles: [] } });
+          results.push({ status: response.status, body: await response.json() });
+        }
+        parentPort.postMessage({ reads, results });
+      })().catch(error => { throw error; });
+    `,
+      {
+        eval: true,
+        execArgv: ['--no-experimental-strip-types', '-r', require.resolve('ts-node/register/transpile-only')],
+        workerData: {
+          schemaPath: require.resolve('../../../src/record-graphql/schema'),
+          queries: [graph(true), graph(false)],
+        },
+      }
+    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await new Promise<{
+        reads: number;
+        results: { status: number; body: { errors: { extensions: { code: string } }[] } }[];
+      }>((resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Fragment validation exceeded its external timeout.')), 5_000);
+        worker.once('message', resolve);
+        worker.once('error', reject);
+        worker.once('exit', code => {
+          if (code !== 0) reject(new Error(`Worker exited with ${code}`));
+        });
+      });
+      assert.equal(result.reads, 0);
+      for (const response of result.results) {
+        assert.equal(response.status, 400);
+        assert.ok(response.body.errors.some(error => error.extensions.code === 'QUERY_LIMIT'));
+      }
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+      await worker.terminate();
+    }
   });
   it('rejects excessive valid nesting, parser tokens and expanded fragments before reads', async () => {
     let node: ContractNode = scalar;

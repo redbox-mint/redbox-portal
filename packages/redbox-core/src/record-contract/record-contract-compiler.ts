@@ -79,6 +79,7 @@ class CloneDepthLimitError extends Error {
 }
 
 interface CompilerState {
+  readonly readMode: boolean;
   readonly definitions: Record<string, ContractNode>;
   readonly diagnostics: RecordContractDiagnostic[];
   readonly fieldOwners: Record<string, ContractOwner>;
@@ -91,6 +92,7 @@ interface CompilerState {
 
 function forkCompilerState(state: CompilerState): CompilerState {
   return {
+    readMode: state.readMode,
     definitions: { ...state.definitions },
     diagnostics: [...state.diagnostics],
     fieldOwners: { ...state.fieldOwners },
@@ -100,6 +102,43 @@ function forkCompilerState(state: CompilerState): CompilerState {
     propertyCount: state.propertyCount,
     partial: state.partial,
   };
+}
+
+/** Read contracts describe the union of stored shapes across UI variants. */
+function mergeReadNodes(left: ContractNode, right: ContractNode): ContractNode {
+  if (left.kind === 'conditional') {
+    return mergeReadNodes(left.elseNode ? mergeReadNodes(left.thenNode, left.elseNode) : left.thenNode, right);
+  }
+  if (right.kind === 'conditional') {
+    return mergeReadNodes(left, right.elseNode ? mergeReadNodes(right.thenNode, right.elseNode) : right.thenNode);
+  }
+  const nullable = left.nullable || right.nullable;
+  if (left.kind === 'object' && right.kind === 'object') {
+    return {
+      kind: 'object',
+      nullable,
+      unknownProperties:
+        left.unknownProperties === 'allow' || right.unknownProperties === 'allow' ? 'allow' : 'declared',
+      properties: Object.fromEntries(
+        [...new Set([...Object.keys(left.properties), ...Object.keys(right.properties)])]
+          .sort()
+          .map(key => [
+            key,
+            Object.hasOwn(left.properties, key) && Object.hasOwn(right.properties, key)
+              ? mergeReadNodes(left.properties[key], right.properties[key])
+              : Object.hasOwn(left.properties, key)
+                ? left.properties[key]
+                : right.properties[key],
+          ])
+      ),
+    };
+  }
+  if (left.kind === 'array' && right.kind === 'array')
+    return { kind: 'array', nullable, items: mergeReadNodes(left.items, right.items) };
+  if (left.kind === 'scalar' && right.kind === 'scalar' && left.scalarType === right.scalarType) {
+    return { kind: 'scalar', nullable, scalarType: left.scalarType };
+  }
+  return { kind: 'any', nullable: true, reason: 'incompatible-read-variants' };
 }
 
 function replaceRecord<T>(target: Record<string, T>, source: Readonly<Record<string, T>>): void {
@@ -438,6 +477,7 @@ export class RecordContractCompiler {
 
   public async compile(request: RecordContractCompileRequest): Promise<RecordContractCompileResult> {
     const state: CompilerState = {
+      readMode: request.fieldMode === 'read',
       definitions: {},
       diagnostics: [],
       fieldOwners: {},
@@ -469,6 +509,7 @@ export class RecordContractCompiler {
         state
       );
       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
+      if (snapshot.fieldMode === 'read' && containsPermissiveNode(root)) state.partial = true;
       this.validateNodeBounds(root, 0, recordContractPointer(''));
 
       const contract = freezeDeep<RecordContract>({
@@ -529,12 +570,16 @@ export class RecordContractCompiler {
     const properties: Record<string, ContractNode> = {};
     const roleFilteredComponents = new Map<string, FormComponentDefinitionFrame[]>();
     for (const component of components) {
-      if (this.isRoleFilteredDuplicate(component, roleFilteredComponents, request.fieldMode)) {
+      if (request.fieldMode !== 'read' && this.isRoleFilteredDuplicate(component, roleFilteredComponents)) {
         continue;
       }
       const contributions = await this.compileComponent(component, parent, depth + 1, request, state);
       for (const [name, node] of contributions) {
         if (Object.hasOwn(properties, name)) {
+          if (request.fieldMode === 'read') {
+            properties[name] = mergeReadNodes(properties[name], node);
+            continue;
+          }
           throw this.invalidFailure(
             'record-contract.path-ownership-collision',
             `Multiple components attempted to own ${joinRecordContractPointer(parent, name)}.`,
@@ -801,14 +846,17 @@ export class RecordContractCompiler {
         const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}${displayKey}`;
         const referencedNode: ContractNode = { ...node, definitionKey };
         const prior = state.definitions[definitionKey];
-        if (prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {
+        if (request.fieldMode !== 'read' && prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {
           throw this.invalidFailure(
             RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
             `Reusable form definition ${name} property ${propertyName} compiled inconsistently.`,
             parent
           );
         }
-        state.definitions[definitionKey] = referencedNode;
+        state.definitions[definitionKey] =
+          prior && request.fieldMode === 'read'
+            ? { ...mergeReadNodes(prior, referencedNode), definitionKey }
+            : referencedNode;
         return [propertyName, referencedNode] as const;
       });
     } finally {
@@ -830,10 +878,9 @@ export class RecordContractCompiler {
    */
   private isRoleFilteredDuplicate(
     component: FormComponentDefinitionFrame,
-    roleFilteredComponents: Map<string, FormComponentDefinitionFrame[]>,
-    fieldMode?: 'edit' | 'read'
+    roleFilteredComponents: Map<string, FormComponentDefinitionFrame[]>
   ): boolean {
-    if (!component.model || (fieldMode !== 'read' && !this.isAvailableInEditMode(component))) {
+    if (!component.model || !this.isAvailableInEditMode(component)) {
       return false;
     }
 
@@ -953,7 +1000,7 @@ export class RecordContractCompiler {
     state: CompilerState,
     kind: ContractOwner['kind'] = 'component'
   ): void {
-    if (state.fieldOwners[pointer]) {
+    if (!state.readMode && state.fieldOwners[pointer]) {
       throw this.invalidFailure(
         'record-contract.path-ownership-collision',
         `Metadata path ${pointer} already has an owner.`,
@@ -968,7 +1015,8 @@ export class RecordContractCompiler {
         pointer
       );
     }
-    state.fieldOwners[pointer] = { kind, key, ...(contributor ? { contributor } : {}) };
+    if (!state.fieldOwners[pointer])
+      state.fieldOwners[pointer] = { kind, key, ...(contributor ? { contributor } : {}) };
   }
 
   private claimOwnedPointer(
@@ -978,7 +1026,7 @@ export class RecordContractCompiler {
     state: CompilerState
   ): void {
     const existing = state.fieldOwners[pointer];
-    if (existing && existing.contributor?.key !== contributor.key) {
+    if (!state.readMode && existing && existing.contributor?.key !== contributor.key) {
       throw this.invalidFailure(
         'record-contract.path-ownership-collision',
         `Contributor ${contributor.key} attempted to overwrite ${pointer}.`,
