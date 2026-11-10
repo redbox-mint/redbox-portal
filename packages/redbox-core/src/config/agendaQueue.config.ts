@@ -1,3 +1,6 @@
+import type { BackoffStrategy } from 'agenda';
+import { PermanentAuditWriteError } from '../services/record-audit/writer';
+
 /**
  * Agenda Queue Config Interface
  * (sails.config.agendaQueue)
@@ -54,6 +57,8 @@ export interface AgendaQueueSqsOptions {
 }
 
 export interface AgendaJobOptions {
+    /** Durable automatic retry policy, persisted by the configured Agenda backend. */
+    backoff?: BackoffStrategy;
     /** Lock lifetime in milliseconds */
     lockLifetime?: number;
     /** Maximum number of locks */
@@ -87,6 +92,8 @@ export interface AgendaQueueOptions {
     backend?: AgendaQueueBackend;
     /** MongoDB connection string */
     db?: string;
+    /** Mongo client limits for Agenda's own connection; both default to 30000ms. */
+    mongoOptions?: { socketTimeoutMS?: number; waitQueueTimeoutMS?: number };
     /** MongoDB collection name */
     collection?: string;
     /** Backend connection deadline in milliseconds (default 30000). */
@@ -167,6 +174,18 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
+        'RecordsService-RecoverRecordAudit': {
+            fnName: 'recordsservice.recoverRecordAudit',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1,
+                // Permanent failures are paused by the worker; transient failures keep retrying.
+                backoff: ({ attempt, error }) => error instanceof PermanentAuditWriteError ? null
+                    : Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
+            }
+        },
+        // Retained to drain audit snapshots queued before RecordsService began writing audits directly.
         'RecordsService-StoreRecordAudit': {
             fnName: 'recordsservice.storeRecordAudit',
             options: {

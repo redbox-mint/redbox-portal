@@ -3,7 +3,7 @@ const sinon = require('sinon');
 const { of, firstValueFrom } = require('rxjs');
 const { PassThrough, Readable } = require('node:stream');
 const mongodb = require('mongodb');
-const sailsMongoMongodb = require('sails-mongo/node_modules/mongodb');
+const sailsMongoMongodb = require(require.resolve('mongodb', { paths: [require.resolve('sails-mongo')] }));
 
 async function expectRejects(fn: () => Promise<unknown>, message: string) {
   let rejection: unknown;
@@ -132,6 +132,7 @@ describe('MongoStorageService', function () {
     RecordAudit = {
       tableName: 'recordaudit',
       create: sandbox.stub().resolves({}),
+      findOne: sandbox.stub().resolves(null),
       find: sandbox.stub().resolves([]),
     };
     IntegrationAudit = {
@@ -286,7 +287,12 @@ describe('MongoStorageService', function () {
     expect(service.recordCol).to.equal(recordCollection);
     expect(service.deletedRecordCol).to.equal(deletedCollection);
     expect(service.recordIdentityCol).to.equal(identityCollection);
-    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
+    expect(
+      auditCollection.createIndex.calledOnceWithExactly(
+        { redboxOid: 1, createdAt: 1 },
+        { socketTimeoutMS: 0, maxTimeMS: 0 }
+      )
+    ).to.be.true;
     expect(recordCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.indices)).to.be.true;
     expect(deletedCollection.createIndexes.calledOnceWith(mockSails.config.storage.mongodb.deletedRecordIndices)).to.be
       .true;
@@ -533,6 +539,43 @@ describe('MongoStorageService', function () {
     expect(rejection).to.equal(failure);
     expect(artifactCollection.createIndexes.called).to.equal(false);
     expect(referenceCollection.createIndexes.called).to.equal(false);
+  });
+
+  it('retries required index initialization before publishing collections or readiness', async function () {
+    service.gridFsBucket = undefined;
+    service.recordCol = undefined;
+    service.deletedRecordCol = undefined;
+    mockSails.config.recordSchema = { enabled: false };
+    const recordCollection = {
+      indexes: sandbox.stub().resolves([]),
+      createIndex: sandbox.stub().onFirstCall().rejects(new Error('index interrupted')).onSecondCall().resolves(),
+      createIndexes: sandbox.stub().resolves([]),
+    };
+    mockDb.collection.callsFake((name: string) =>
+      name === 'record'
+        ? recordCollection
+        : {
+            createIndex: sandbox.stub().resolves(),
+            createIndexes: sandbox.stub().resolves(),
+            indexes: sandbox.stub().resolves([]),
+          }
+    );
+
+    await expectRejects(() => service.performInit(), 'index interrupted');
+    expect(service.recordCol).to.equal(undefined);
+    expect(service.deletedRecordCol).to.equal(undefined);
+    expect(service.gridFsBucket).to.equal(undefined);
+    expect(mockSails.emit.called).to.be.false;
+
+    await service.performInit();
+    await service.performInit();
+    expect(recordCollection.createIndex.calledTwice).to.be.true;
+    expect(service.recordCol).to.equal(recordCollection);
+    expect(service.gridFsBucket).to.be.ok;
+    expect(mockSails.emit.getCalls().map(call => call.args[0])).to.deep.equal([
+      'hook:redbox:storage:ready',
+      'hook:redbox:datastream:ready',
+    ]);
   });
 
   it('creates the collection through a seed record when strict lookup fails', async function () {
@@ -807,7 +850,12 @@ describe('MongoStorageService', function () {
     await service.createIndices(mockDb);
 
     expect(recordCollection.createIndexes.called).to.be.false;
-    expect(auditCollection.createIndex.calledOnceWithExactly({ redboxOid: 1, createdAt: 1 })).to.be.true;
+    expect(
+      auditCollection.createIndex.calledOnceWithExactly(
+        { redboxOid: 1, createdAt: 1 },
+        { socketTimeoutMS: 0, maxTimeMS: 0 }
+      )
+    ).to.be.true;
   });
 
   it('logs audit index creation failures without throwing', async function () {
@@ -2409,9 +2457,21 @@ describe('MongoStorageService', function () {
     for (const mode of ['equal', 'regex']) {
       it(`filters deleted records by ${field} using ${mode} without losing query restrictions`, async function () {
         const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
-        await service.getDeletedRecords('draft', ['rdmp'], 0, 20, 'user',
-          [{ name: 'Admin', branding: 'brand-1' }], { id: 'brand-1' },
-          undefined, ['package-a'], undefined, [field], 'Title.[x]', mode);
+        await service.getDeletedRecords(
+          'draft',
+          ['rdmp'],
+          0,
+          20,
+          'user',
+          [{ name: 'Admin', branding: 'brand-1' }],
+          { id: 'brand-1' },
+          undefined,
+          ['package-a'],
+          undefined,
+          [field],
+          'Title.[x]',
+          mode
+        );
 
         const query = runStub.firstCall.args[1];
         expect(query['deletedRecordMetadata.metaMetadata.brandId']).to.equal('brand-1');
@@ -2424,7 +2484,9 @@ describe('MongoStorageService', function () {
           { 'deletedRecordMetadata.authorization.viewRoles': { $in: ['Admin'] } },
         ]);
         expect(query.$and[1]).to.deep.equal({ $or: [{ 'deletedRecordMetadata.metaMetadata.type': 'rdmp' }] });
-        expect(query.$and[2]).to.deep.equal({ $or: [{ 'deletedRecordMetadata.metaMetadata.packageType': 'package-a' }] });
+        expect(query.$and[2]).to.deep.equal({
+          $or: [{ 'deletedRecordMetadata.metaMetadata.packageType': 'package-a' }],
+        });
         const filter = query.$and[3];
         expect(Object.keys(filter)).to.deep.equal(['deletedRecordMetadata.metadata.title']);
         const value = filter['deletedRecordMetadata.metadata.title'];
@@ -2960,6 +3022,136 @@ describe('MongoStorageService', function () {
     const occurredAt = '2026-03-01T12:00:00Z';
     await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', occurredAt, record: {} });
     expect(RecordAudit.create.firstCall.args[0].occurredAt).to.equal(occurredAt);
+  });
+
+  it('uses a stable audit identity as Mongo primary key for direct and queued attempts', async function () {
+    const auditId = '0123456789abcdef01234567';
+    RecordAudit.create.resolves({ id: auditId });
+    const response = await service.createRecordAudit({ auditId, redboxOid: 'oid-1', action: 'updated', record: {} });
+    expect(response.success).to.equal(true);
+    expect(response.oid).to.equal(auditId);
+    expect(RecordAudit.create.firstCall.args[0].id).to.equal(auditId);
+    expect(RecordAudit.create.firstCall.args[0]).not.to.have.property('auditId');
+  });
+
+  for (const code of ['E_UNIQUE', 11000]) {
+    it(`acknowledges a matching event already inserted by a late write or redelivery (${code})`, async function () {
+      const auditId = '0123456789abcdef01234567';
+      const event = { auditId, redboxOid: 'oid-1', action: 'updated', occurredAt: '2026-03-01T12:00:00Z', record: {} };
+      RecordAudit.create.rejects(Object.assign(new Error('duplicate key'), { code }));
+      RecordAudit.findOne.resolves({ ...event, id: auditId });
+      const response = await service.createRecordAudit(event);
+      expect(response.success).to.equal(true);
+      expect(response.oid).to.equal(auditId);
+      expect(RecordAudit.findOne.calledOnceWithExactly({ id: auditId })).to.equal(true);
+    });
+  }
+
+  it('does not swallow unrelated uniqueness conflicts or failed duplicate verification', async function () {
+    RecordAudit.create.rejects(Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' }));
+    RecordAudit.findOne.resolves({ redboxOid: 'another-record', action: 'updated' });
+    const event = { auditId: '0123456789abcdef01234567', redboxOid: 'oid-1', action: 'updated', record: {} };
+    const conflict = await service.createRecordAudit(event);
+    expect(conflict.success).to.equal(false);
+    expect(conflict.retryable).to.equal(false);
+    RecordAudit.findOne.rejects(new Error('lookup unavailable'));
+    const response = await service.createRecordAudit(event);
+    expect(response.success).to.equal(false);
+    expect(response.message).to.equal('lookup unavailable');
+    expect(response.retryable).to.equal(undefined);
+  });
+
+  it('retains the event identity when Waterline mutates the insertion payload', async function () {
+    const event = { auditId: '0123456789abcdef01234567', redboxOid: 'oid-1', action: 'updated', record: {} };
+    RecordAudit.create.callsFake(async (payload: { id?: string }) => {
+      delete payload.id;
+      throw Object.assign(new Error('duplicate key'), { code: 'E_UNIQUE' });
+    });
+    RecordAudit.findOne.resolves({ redboxOid: event.redboxOid, action: event.action });
+    expect((await service.createRecordAudit(event)).success).to.equal(true);
+    expect(RecordAudit.findOne.calledOnceWithExactly({ id: event.auditId })).to.equal(true);
+  });
+
+  it('rejects malformed audit identities before calling Waterline', async function () {
+    const response = await service.createRecordAudit({
+      auditId: 'invalid',
+      redboxOid: 'oid-1',
+      action: 'updated',
+      record: {},
+    });
+    expect(response.success).to.equal(false);
+    expect(response.message).to.equal('Invalid record audit ID');
+    expect(response.retryable).to.equal(false);
+    expect(RecordAudit.create.called).to.equal(false);
+  });
+
+  for (const code of [121, 10334, 17419, 'E_VALIDATION']) {
+    it(`classifies a permanent audit payload rejection for operator recovery (${code})`, async function () {
+      RecordAudit.create.rejects(Object.assign(new Error('Invalid audit document'), { code }));
+      const response = await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', record: {} });
+      expect(response.success).to.equal(false);
+      expect(response.retryable).to.equal(false);
+      expect(response.message).to.equal('Invalid audit document');
+    });
+  }
+
+  it('does not classify connectivity failures as permanently invalid payloads', async function () {
+    RecordAudit.create.rejects(Object.assign(new Error('Network unavailable'), { code: 6, name: 'MongoNetworkError' }));
+    const response = await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', record: {} });
+    expect(response.success).to.equal(false);
+    expect(response.retryable).to.equal(undefined);
+  });
+
+  it('recognizes payload failures wrapped by Waterline without classifying wrapped network failures', async function () {
+    for (const raw of [{ code: 121 }, { name: 'BSONError' }, { code: 6, name: 'MongoNetworkError' }]) {
+      RecordAudit.create.rejects(Object.assign(new Error('Wrapped adapter failure'), { name: 'AdapterError', raw }));
+      const response = await service.createRecordAudit({ redboxOid: 'oid-1', action: 'updated', record: {} });
+      expect(response.retryable).to.equal(raw.code === 6 ? undefined : false);
+    }
+  });
+
+  it('classifies an actual Waterline new-record validation failure as permanent', async function () {
+    const Waterline = require('waterline');
+    const { RecordAuditWLDef } = require('../../src/models/RecordAudit');
+    const waterline = new Waterline();
+    waterline.registerModel(
+      Waterline.Model.extend({
+        ...RecordAuditWLDef,
+        attributes: { ...RecordAuditWLDef.attributes, id: { type: 'string', columnName: '_id' } },
+      })
+    );
+    const create = sandbox
+      .stub()
+      .callsFake((_datastore: unknown, query: { newRecord: unknown }, done: (error: null, result: unknown) => void) => {
+        done(null, query.newRecord);
+      });
+    await new Promise<void>((resolve, reject) => {
+      waterline.initialize(
+        { adapters: { memory: { create } }, datastores: { redboxStorage: { adapter: 'memory' } } },
+        (error: Error | null, orm: { collections: { recordaudit: unknown } }) => {
+          if (error) return reject(error);
+          Object.assign(global, { RecordAudit: orm.collections.recordaudit });
+          resolve();
+        }
+      );
+    });
+    try {
+      const response = await service.createRecordAudit({
+        auditId: '0123456789abcdef01234567',
+        redboxOid: 'oid-1',
+        action: { invalid: true },
+        record: { retained: true },
+      });
+      expect(response.success).to.equal(false);
+      expect(response.retryable).to.equal(false);
+      expect(response.message).to.include('Invalid new record');
+      expect(create.called).to.equal(false);
+    } finally {
+      Object.assign(global, { RecordAudit });
+      await new Promise<void>((resolve, reject) =>
+        waterline.teardown((error: Error | null) => (error ? reject(error) : resolve()))
+      );
+    }
   });
 
   it('drops unserializable audit values and handles record-audit persistence failures', async function () {
