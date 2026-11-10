@@ -503,7 +503,7 @@ describe('SolrSearchService', function () {
       assert.equal(options.maxContentLength, 2097152);
     });
     it('does not return partial, malformed, oversized or unbounded search pages', async () => {
-      const get = sinon.stub(require('axios'), 'get');
+      const post = sinon.stub(require('axios'), 'post');
       const params = new URLSearchParams({ rows: '50', cursorMark: '*' });
       for (const data of [
         { responseHeader: { partialResults: true }, response: { docs: [] }, nextCursorMark: '*' },
@@ -511,17 +511,21 @@ describe('SolrSearchService', function () {
         { response: { docs: [] } },
         { response: { docs: Array.from({ length: 51 }, () => ({ redbox_grid_oid: 'a' })) }, nextCursorMark: 'next' },
       ]) {
-        get.resolves({ data });
+        post.resolves({ data });
         await assert.rejects(() => SolrSearchService.searchRecordPage('default', params, Date.now() + 2000));
       }
-      get.resolves({ data: { response: { docs: [{ redbox_grid_oid: 'a' }] }, nextCursorMark: 'next' } });
+      post.resolves({ data: { response: { docs: [{ redbox_grid_oid: 'a' }] }, nextCursorMark: 'next' } });
       assert.deepEqual(await SolrSearchService.searchRecordPage('default', params, Date.now() + 2000), {
         oids: ['a'],
         nextCursor: 'next',
         exhausted: true,
       });
-      const options = get.lastCall.args[1];
-      assert.ok(Number(options.params.get('timeAllowed')) <= 2000);
+      const options = post.lastCall.args[2];
+      const sent = new URLSearchParams(post.lastCall.args[1]);
+      assert.equal(post.lastCall.args[0], 'http://localhost:8983/solr/redbox/select');
+      assert.equal(options.headers['Content-Type'], 'application/x-www-form-urlencoded');
+      assert.equal(options.maxBodyLength, 262144);
+      assert.ok(Number(sent.get('timeAllowed')) <= 2000);
       assert.equal(options.maxContentLength, 262144);
       await assert.rejects(() =>
         SolrSearchService.searchRecordPage('default', new URLSearchParams({ rows: '51' }), Date.now() + 2000)

@@ -479,8 +479,11 @@ export namespace Services {
           response?: { docs?: Array<Record<string, unknown>> };
           nextCursorMark?: string;
         };
-      } = await axios.get(`${this.getBaseUrl(core.options)}${core.options.core}/select`, {
-        params: request,
+      } = await axios.post(`${this.getBaseUrl(core.options)}${core.options.core}/select`, request.toString(), {
+        // Default scope can contain every registered workflow stage. Keep
+        // generated parameters out of the URL while bounding the request body.
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        maxBodyLength: 262_144,
         maxContentLength: 262_144,
         timeout,
         signal: AbortSignal.timeout(timeout),

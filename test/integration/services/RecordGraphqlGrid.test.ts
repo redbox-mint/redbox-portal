@@ -11,7 +11,9 @@ describe('GraphQL grid over Sails and Solr', function () {
   const path = '/default/rdmp/api/graphql';
   const username = `grid-${suffix}`;
   const token = `grid-token-${suffix}`;
-  const oids = ['a', 'hidden-b', 'c', 'hidden-d', 'e', 'f', 'foreign'].map(key => `grid-${key}-${suffix}`);
+  const oids = ['a', 'hidden-b', 'c', 'hidden-d', 'e', 'f', 'foreign', 'unregistered-stage', 'published'].map(
+    key => `grid-${key}-${suffix}`
+  );
   let app;
   let configBefore;
   let coreBefore;
@@ -121,10 +123,10 @@ describe('GraphQL grid over Sails and Solr', function () {
         metaMetadata: {
           brandId: index === 6 ? 'foreign-brand' : brand.id,
           type: 'dataPublication',
-          form: 'dataPublication-1.0-draft',
+          form: index === 8 ? 'dataPublication-1.0-published' : 'dataPublication-1.0-draft',
           searchCore: 'default',
         },
-        workflow: { stage: 'draft' },
+        workflow: { stage: index === 7 ? `unregistered-${suffix}` : index === 8 ? 'published' : 'draft' },
         authorization: { view: index === 1 || index === 3 ? [] : [username], edit: [], viewRoles: [], editRoles: [] },
       });
       await sails.services.solrsearchservice.solrAddOrUpdate({ attrs: { data: await RecordsService.getMeta(oid) } });
@@ -244,6 +246,33 @@ describe('GraphQL grid over Sails and Solr', function () {
       range.body.data.records.nodes.map(row => row.oid),
       [oids[2]]
     );
+  });
+  it('limits omitted and empty stage scopes to configured stages in Solr and storage', async () => {
+    const query = `query($stages:[String!],$filters:[RecordFilterInput!]){records(recordType:"dataPublication",workflowStages:$stages,filters:$filters,first:50){nodes{oid workflowStep} hasNextPage endCursor}}`;
+    const filters = [{ field: 'record:oid', in: oids.map(text => ({ text })) }];
+    for (const stages of [undefined, [], ['draft']]) {
+      const response = await send(query, { filters, stages });
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      const expected = [oids[0], oids[2], oids[4], oids[5], ...(stages?.length ? [] : [oids[8]])];
+      assert.deepEqual(response.body.data.records.nodes.map(row => row.oid).sort(), expected.sort());
+      assert.equal(response.body.data.records.hasNextPage, false);
+      assert.equal(response.body.data.records.endCursor, null);
+    }
+    // Simulate an index that still claims a configured stage after storage moved.
+    const stored = await RecordsService.getMeta(oids[7]);
+    await sails.services.solrsearchservice.solrAddOrUpdate({
+      attrs: { data: { ...stored, workflow: { stage: 'draft' } } },
+    });
+    const stale = await send(query, { filters });
+    assert.equal(stale.body.errors, undefined, JSON.stringify(stale.body));
+    assert.ok(!stale.body.data.records.nodes.some(row => row.oid === oids[7]));
+  });
+  it('rejects invalid timestamp components through the authenticated HTTP contract', async () => {
+    for (const dateTime of ['2026-01-01T00:00:00+99:99', '2026-01-01T24:00:00Z', '2026-01-01T00:00:00-01:60']) {
+      const response = await send(page, { filters: [{ field: 'metadata:/eventDate', eq: { dateTime } }] });
+      assert.equal(response.body.errors?.[0].extensions.code, 'INVALID_FILTER_VALUE', JSON.stringify(response.body));
+      assert.equal(response.body.data.records, null);
+    }
   });
   it('keeps disabled endpoint behavior for collection and catalogue requests', async () => {
     sails.config.recordGraphql.enabled = false;

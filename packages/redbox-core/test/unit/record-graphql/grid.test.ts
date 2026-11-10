@@ -189,6 +189,37 @@ describe('Record grid catalogue and pagination', () => {
     );
     assert.equal(result.body.data?.records?.hasNextPage, false);
   });
+  it('restricts omitted and empty workflow scope before page boundaries and lookahead', async () => {
+    for (const stages of [undefined, []]) {
+      const h = gridHarness(['a', 'retired', 'published', 'retired-2', 'b']);
+      for (const id of ['retired', 'retired-2']) h.records.get(id)!.workflow.stage = 'retired';
+      h.records.get('published')!.workflow.stage = 'published';
+      h.records.get('published')!.metaMetadata.form = 'published-form';
+      const first = await h.query(pageQuery, { stages });
+      assert.equal(first.body.errors, undefined);
+      assert.deepEqual(
+        first.body.data?.records?.nodes.map(row => row.oid),
+        ['a', 'published']
+      );
+      assert.equal(first.body.data?.records?.hasNextPage, true);
+      const next = await h.query(pageQuery, { stages, after: first.body.data?.records?.endCursor });
+      assert.equal(next.body.errors, undefined);
+      assert.deepEqual(
+        next.body.data?.records?.nodes.map(row => row.oid),
+        ['b']
+      );
+      assert.equal(next.body.data?.records?.hasNextPage, false);
+      const stageFilter = h.calls[0].getAll('fq').find(value => value.includes('redbox_grid_stage'));
+      assert.ok(stageFilter);
+      assert.ok([...h.calls[0].values()].includes('draft'));
+      assert.ok([...h.calls[0].values()].includes('published'));
+      const last = gridHarness(['a', 'retired']);
+      last.records.get('retired')!.workflow.stage = 'retired';
+      const exhausted = await last.query(pageQuery, { first: 1, stages });
+      assert.equal(exhausted.body.data?.records?.hasNextPage, false);
+      assert.equal(exhausted.body.data?.records?.endCursor, null);
+    }
+  });
   it('fails collection reads on storage outages while preserving single-record failure semantics', async () => {
     const h = gridHarness(['a']);
     const stub = sinon.stub(h.records, 'get').throws(new Error('storage-offline'));
@@ -358,6 +389,45 @@ describe('Typed grid search planning', () => {
         .getAll('fq')
         .some(value => value.includes('\\*\\:'))
     );
+  });
+  it('validates timestamp components before normalization for every date operator', async () => {
+    const invalidDates = [
+      '2026-01-01T00:00:00+99:99',
+      '2026-01-01T00:00:00+24:00',
+      '2026-01-01T00:00:00-01:60',
+      '2026-01-01T24:00:00Z',
+      '2026-01-01T24:00:00.000Z',
+      '2026-01-01T00:60:00Z',
+      '2026-01-01T00:00:60Z',
+      '2026-00-01T00:00:00Z',
+      '2026-01-00T00:00:00Z',
+      '2026-01-01T00:00:00Z\n',
+    ];
+    for (const dateTime of invalidDates) {
+      const invalidValue = { dateTime };
+      for (const operation of [
+        { eq: invalidValue },
+        { in: [invalidValue] },
+        { gt: invalidValue },
+        { lt: invalidValue },
+        { between: { from: { dateTime: '2026-01-01T00:00:00Z' }, to: invalidValue } },
+      ])
+        assert.throws(
+          () => plan([{ field: 'metadata:/eventDate', ...operation }]),
+          (error: unknown) =>
+            error instanceof Error && Reflect.get(error, 'extensions')?.code === 'INVALID_FILTER_VALUE'
+        );
+    }
+    const valid = plan([{ field: 'metadata:/eventDate', eq: { dateTime: '2026-01-02T23:59:59.999+23:59' } }]);
+    assert.ok([...valid.values()].includes('2026-01-02T00:00:59.999Z'));
+    const h = gridHarness();
+    const result = await h.query(
+      'query($value:RecordFilterValue!){records(recordType:"grid-fixture",filters:[{field:"metadata:/eventDate",eq:$value}]){hasNextPage}}',
+      { value: { dateTime: invalidDates[0] } }
+    );
+    assert.equal(result.body.errors?.[0].extensions.code, 'INVALID_FILTER_VALUE');
+    assert.equal(h.calls.length, 0);
+    assert.equal(h.reads.length, 0);
   });
   const invalid = [
     [{ field: 'metadata:/removed', eq: { text: 'x' } }],
