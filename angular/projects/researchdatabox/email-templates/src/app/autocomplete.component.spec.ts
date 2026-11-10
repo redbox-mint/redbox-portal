@@ -1,3 +1,4 @@
+import { blockHelperScaffold } from './helper-usage';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
@@ -12,9 +13,17 @@ import { CompletionSource } from './template-completion';
   imports: [AutocompleteComponent],
   template: `
     <textarea #area (input)="inputs = inputs + 1; value = area.value" [readOnly]="readonly"></textarea>
-    <email-templates-autocomplete [target]="area" [source]="source"></email-templates-autocomplete>
+    <email-templates-autocomplete
+      translationPrefix="email-templates"
+      [target]="area"
+      [source]="source"
+    ></email-templates-autocomplete>
     <input #line (input)="lineValue = line.value" />
-    <email-templates-autocomplete [target]="line" [source]="source"></email-templates-autocomplete>
+    <email-templates-autocomplete
+      translationPrefix="email-templates"
+      [target]="line"
+      [source]="source"
+    ></email-templates-autocomplete>
   `,
 })
 class HostComponent {
@@ -22,6 +31,7 @@ class HostComponent {
     fields: flattenContextFields(contextSchemaFixture()),
     roots: ['oid', 'portal', 'record'],
     helpers: ['each', 'if'],
+    blockScaffold: blockHelperScaffold,
   };
   inputs = 0;
   value = '';

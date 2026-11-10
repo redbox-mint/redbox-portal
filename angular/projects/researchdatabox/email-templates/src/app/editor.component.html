@@ -210,6 +210,7 @@
                       (ngModelChange)="onSubjectChange($event)"
                     />
                     <email-templates-autocomplete
+                      translationPrefix="email-templates"
                       [target]="subjectInput"
                       [source]="completionSource"
                     ></email-templates-autocomplete>
@@ -257,6 +258,7 @@
 
                 <label class="et-section-label" for="et-body">{{ 'email-templates-body-label' | i18next }}</label>
                 <email-templates-code-editor
+                  translationPrefix="email-templates"
                   #bodyEditor
                   inputId="et-body"
                   describedBy="et-body-diagnostics"
@@ -302,6 +304,11 @@
                   <div class="et-help-group">
                     <span class="et-help-label">{{ 'email-templates-help-variables' | i18next }}</span>
                     <email-templates-field-tree
+                      idPrefix="et-fields"
+                      [initialExpanded]="fieldExpanded"
+                      [aliasRoots]="fieldAliases"
+                      [insertion]="fieldInsertion"
+                      translationPrefix="email-templates"
                       [fields]="schemaFields"
                       [roots]="state.help.contextRoots"
                       [disabled]="busy !== null"
@@ -487,6 +494,7 @@
                     <span>{{ 'email-templates-context-temporary' | i18next }}</span>
                   </p>
                   <email-templates-code-editor
+                    translationPrefix="email-templates"
                     inputId="et-context"
                     [describedBy]="
                       integrationContext
@@ -1005,6 +1013,7 @@
       </dl>
       <label class="et-section-label" for="et-view-body">{{ 'email-templates-body-label' | i18next }}</label>
       <email-templates-code-editor
+        translationPrefix="email-templates"
         inputId="et-view-body"
         [rows]="16"
         [readonly]="true"
@@ -1079,6 +1088,7 @@
     </dl>
     <label class="et-section-label" for="et-conflict-body">{{ 'email-templates-conflict-your-body' | i18next }}</label>
     <email-templates-code-editor
+      translationPrefix="email-templates"
       inputId="et-conflict-body"
       [rows]="8"
       [readonly]="true"

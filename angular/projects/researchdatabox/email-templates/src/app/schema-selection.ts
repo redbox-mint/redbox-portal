@@ -1,8 +1,6 @@
 import type { EmailSchemaTarget } from '@researchdatabox/sails-ng-common';
-export interface SchemaSelection {
-  recordType: string;
-  stage: string;
-}
+import type { SchemaSelection } from '@researchdatabox/sails-ng-common';
+export type { SchemaSelection } from '@researchdatabox/sails-ng-common';
 /** Prefer a valid saved selection, then the selected record, then the brand's first type. */
 export function defaultSchemaSelection(
   targets: EmailSchemaTarget[],

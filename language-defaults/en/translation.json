@@ -3991,5 +3991,21 @@
   "email-templates-helper-sort-syntax": "{{sort array}} — returns a sorted copy of an array using locale comparison, ignoring punctuation.",
   "email-templates-helper-sort-example": "{{join (sort (asArray \"Beta\" \"Alpha\")) \", \"}}",
   "email-templates-helper-unique-syntax": "{{unique array}} — removes duplicate strings while preserving non-string items.",
-  "email-templates-helper-unique-example": "{{join (unique (asArray \"First\" \"First\" \"Second\")) \", \"}}"
+  "email-templates-helper-unique-example": "{{join (unique (asArray \"First\" \"First\" \"Second\")) \", \"}}",
+  "schema-assist-ac-label": "Field suggestions",
+  "schema-assist-ac-hint": "↑ ↓ to choose · Enter or Tab to insert · Esc to close",
+  "schema-assist-ac-count_one": "{{count}} suggestion. Use the up and down arrows to choose.",
+  "schema-assist-ac-count_other": "{{count}} suggestions. Use the up and down arrows to choose.",
+  "schema-assist-fields-search-label": "Filter fields",
+  "schema-assist-fields-search-placeholder": "Filter by name or title",
+  "schema-assist-fields-count_one": "{{count}} field",
+  "schema-assist-fields-count_other": "{{count}} fields",
+  "schema-assist-fields-matches_one": "{{count}} match",
+  "schema-assist-fields-matches_other": "{{count}} matches",
+  "schema-assist-fields-expand": "Show fields in {{name}}",
+  "schema-assist-fields-collapse": "Hide fields in {{name}}",
+  "schema-assist-fields-required": "required",
+  "schema-assist-fields-optional": "optional",
+  "schema-assist-fields-none": "No fields match “{{query}}”.",
+  "schema-assist-help-variables": "Available fields"
 }
