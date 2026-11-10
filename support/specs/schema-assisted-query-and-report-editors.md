@@ -1,6 +1,8 @@
 # Schema-assisted named query and report editors
 
-Status: proposed implementation plan. This change plans the work; it does not implement the editors.
+Status: implemented across the six-PR schema-assistance stack. Release verification
+and remaining fixture limitations are recorded in
+[the PR 6 verification handoff](schema-assist-06-verification.md).
 
 ## Goal
 
@@ -140,13 +142,15 @@ Exit: an authorized report author can select a query, add columns, bind filters 
 
 ### 4. Compatibility and release verification
 
-- [ ] Run focused core tests and Angular specs for all affected apps, including email regression coverage after extraction.
-- [ ] Add Mocha/Bruno coverage for new service/controller operations, brand isolation, permissions, CSRF, malformed drafts and execution limits.
-- [ ] Verify desktop/narrow layouts, keyboard field selection, focus and unsaved-change protection in the browser.
-- [ ] Exercise end-to-end query-to-report creation, partial schemas, a namespaced client hook, non-record queries, custom mappings, date ranges, multivalue columns and display/CSV parity.
-- [ ] Update the named-query/report wiki documentation and generated API references if public routes change.
+- [x] Run focused core tests and Angular specs for all affected apps, including email regression coverage after extraction.
+- [x] Add Mocha/Bruno coverage for new service/controller operations, brand isolation, permissions, CSRF, malformed drafts and execution limits.
+- [x] Verify desktop/narrow layouts, keyboard field selection, focus and unsaved-change protection in the browser.
+- [x] Exercise end-to-end query-to-report creation, partial schemas, a namespaced client hook, non-record queries, custom mappings, date ranges, multivalue columns and display/CSV parity.
+- [x] Update the named-query/report wiki documentation and generated API references if public routes change.
 
-No application tests are required for this planning-only document. Implementation tests should target these behaviors rather than snapshotting the proposed component structure.
+Verification uses service/controller behavior tests, lifted route tests, Bruno
+requests and repeatable Playwright workflows. See the PR 6 handoff for commands,
+counts, browser evidence and the optional external SCU fixture requirement.
 
 ## Acceptance examples
 
