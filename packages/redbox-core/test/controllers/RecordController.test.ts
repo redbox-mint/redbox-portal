@@ -18,6 +18,7 @@ import { formatRecordEntityTag } from '../../src/RecordEntityTag';
 import { routes, RouteTargetObject } from '../../src/config/routes.config';
 import { Services as FormConsistencyServices } from '../../src/services/FormRecordConsistencyService';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
+import { buildNestedViewForm, nestedViewFixture } from '../fixtures/nested-view-metadata.fixtures';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -72,6 +73,7 @@ describe('RecordController getWorkflowSteps', () => {
     };
     (global as any).FormRecordConsistencyService = {
       projectMetadataClientFormConfig: sinon.stub(),
+      metadataForViewForm: new FormConsistencyServices.FormRecordConsistency().metadataForViewForm,
     };
     (global as any).TranslationService = {
       t: sinon.stub().callsFake(
@@ -506,6 +508,304 @@ describe('RecordController getWorkflowSteps', () => {
       v1: record.metadata,
       headers: { ETag: formatRecordEntityTag('oid-1', 3) },
     });
+  });
+
+  describe('view saved metadata authorization', () => {
+    const round3Cases: Array<{ name: string; mutate: (data: any, saved: any) => void; check: (projected: any, response: any, saved: any) => void; retain?: boolean }> = [];
+    for (const retain of [false, true]) {
+      for (const location of ['top', 'nested', 'row']) {
+        for (const value of ['workspace-secret', ['workspace-secret'], 42, false, null, { saved: 'workspace-secret' }]) {
+          round3Cases.push({ name: `static content ${location} ${JSON.stringify(value)} retained=${retain}`, retain,
+            mutate: (data, saved) => {
+              const field = { name: 'workspaces', component: { class: 'ContentComponent', config: { content: 'Relationships' } } };
+              const defs = location === 'top' ? data.componentDefinitions : location === 'nested'
+                ? data.componentDefinitions[0].component.config.componentDefinitions
+                : data.componentDefinitions[1].component.config.elementTemplate.component.config.componentDefinitions;
+              defs.push(field);
+              const target = location === 'top' ? saved : location === 'nested' ? saved.parent : saved.rows[0];
+              target.workspaces = value;
+            },
+            check: (projected, response) => {
+              const target = location === 'top' ? projected : location === 'nested' ? projected.parent : projected.rows[0];
+              expect(target).not.to.have.property('workspaces');
+              expect(JSON.stringify(response)).not.to.contain('workspace-secret');
+              const parent = response.data?.componentDefinitions?.[0];
+              if (retain && location === 'nested' && parent) expect(parent.model.config.value).not.to.have.property('workspaces');
+            },
+          });
+        }
+      }
+    }
+    for (const location of ['top', 'nested']) {
+      for (const value of [[{ public: 'visible', restricted: 'malformed-role-secret' }], ['malformed-role-secret'], 'malformed-role-secret', 42, false, null]) {
+        round3Cases.push({ name: `malformed transformed group ${location} ${JSON.stringify(value)}`,
+          mutate: (_data, saved) => { if (location === 'top') saved.parent = value; else saved.parent.nested = value; },
+          check: (projected, response) => {
+            expect(location === 'top' ? projected : projected.parent).not.to.have.property(location === 'top' ? 'parent' : 'nested');
+            expect(JSON.stringify(response)).not.to.contain('malformed-role-secret');
+            const content = response.data?.componentDefinitions?.[0]?.component.config.content;
+            if (content !== undefined) {
+              expect(content).to.be.an('object');
+              if (location === 'nested') expect(content).not.to.have.property('nested');
+            }
+          },
+        });
+      }
+    }
+    for (const retain of [false, true]) {
+      round3Cases.push({ name: `whole nested optionObject leaves retained=${retain}`, retain,
+        mutate: (data, saved) => {
+          const leaf = { name: 'school', component: { class: 'TypeaheadInputComponent', config: { valueMode: 'optionObject' } }, model: { class: 'TypeaheadInputModel' } };
+          const school = { label: 'School of Testing', value: 'TEST', sourceType: 'static', extra: { saved: true } };
+          for (const group of [data.componentDefinitions[0], data.componentDefinitions[1].component.config.elementTemplate]) {
+            group.component.config.componentDefinitions.push(structuredClone(leaf));
+            group.component.config.componentDefinitions.find((c: any) => c.name === 'nested').component.config.componentDefinitions.push(structuredClone(leaf));
+          }
+          saved.parent.school = school; saved.parent.nested.school = school;
+          saved.rows.forEach((row: any) => { row.school = school; row.nested.school = school; });
+        },
+        check: (projected, response, saved) => {
+          expect(projected.parent.school).to.deep.equal(saved.parent.school);
+          expect(projected.parent.nested.school).to.deep.equal(saved.parent.nested.school);
+          projected.rows.forEach((row: any, i: number) => {
+            expect(row.school).to.deep.equal(saved.rows[i].school);
+            expect(row.nested.school).to.deep.equal(saved.rows[i].nested.school);
+          });
+          for (const secret of ['role-secret', 'mode-secret', 'server-secret']) expect(JSON.stringify(response)).not.to.contain(secret);
+        },
+      });
+    }
+    for (const endpoint of ['getForm', 'getMeta'] as const) {
+      for (const scenario of round3Cases) {
+        it(`round3 ${endpoint} ${scenario.name}`, async () => {
+          const { data, metadata } = nestedViewFixture(scenario.retain ?? false);
+          scenario.mutate(data, metadata);
+          const form = { name: data.name, configuration: data };
+          const record = { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1', type: 'dataset', form: form.name }, metadata };
+          (global as any).sails.config = { reusableFormDefinitions: {} };
+          (global as any).sails.services = { formpayloadprehydrateservice: { build: sinon.stub().resolves({}) } };
+          (global as any).FormsService.getForm.resolves(form);
+          (global as any).FormsService.getFormByName.returns(of(form));
+          (global as any).FormsService.discoverValidationOperations.resolves([]);
+          (global as any).FormsService.buildClientFormConfig.callsFake(buildNestedViewForm);
+          (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+          (controller.recordsService.getMeta as sinon.SinonStub).callsFake(async () => structuredClone(record));
+          (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+          Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
+          const req = { param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
+            query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
+            user: { username: 'reader', roles: [{ name: 'Researcher' }] },
+          } as unknown as Sails.Req;
+          const sendResp = sinon.stub(controller as any, 'sendResp');
+          await controller[endpoint](req, {} as Sails.Res);
+          const response = sendResp.firstCall.args[2];
+          expect(response.status).not.to.equal(500);
+          scenario.check(endpoint === 'getForm' ? response.meta.runtimeContext.record.metadata : response.data, response, metadata);
+        });
+      }
+    }
+
+    for (const endpoint of ['getForm', 'getMeta'] as const) {
+      for (const roles of [['Researcher', 'Guest'], ['Admin', 'Librarians', 'Researcher', 'Guest']]) {
+        for (const scenario of ['leaf', 'rows', 'malformed-top', 'malformed-nested', 'string', 'empty', 'fallback']) {
+          it(`round2 ${endpoint} whole response ${scenario} for ${roles}`, async () => {
+            const { data, metadata } = nestedViewFixture(scenario.startsWith('malformed'));
+            const saved = metadata as any;
+            saved.information_steward = { name: 'School of Testing', code: 'TEST', extra: { saved: true } };
+            saved.workspaces = [{ restricted: 'workspace-secret' }];
+            (data.componentDefinitions as any[]).push({ name: 'information_steward',
+              component: { class: 'TypeaheadInputComponent', config: { displayField: 'name' } },
+              model: { class: 'TypeaheadInputModel' },
+            }, { name: 'workspaces', component: { class: 'ContentComponent', config: { content: 'Relationships' } } });
+            if (scenario === 'rows') saved.rows = [{ public: '', restricted: 'first-role-secret' }, { public: 'second' }];
+            if (scenario === 'malformed-top') saved.parent = [{ public: 'visible', restricted: 'malformed-role-secret' }];
+            if (scenario === 'malformed-nested') saved.parent.nested = [{ public: 'visible', restricted: 'malformed-role-secret' }];
+            if (scenario === 'fallback') saved.parent = { restricted: 'fallback-role-secret' };
+            const form = { name: data.name, configuration: data };
+            const record = { redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1', type: 'dataset', form: form.name }, metadata };
+            (global as any).sails.config = { reusableFormDefinitions: {} };
+            (global as any).sails.services = { formpayloadprehydrateservice: { build: sinon.stub().resolves({}) } };
+            (global as any).FormsService.getForm.resolves(form);
+            (global as any).FormsService.getFormByName.returns(of(form));
+            (global as any).FormsService.discoverValidationOperations.resolves([]);
+            (global as any).FormsService.buildClientFormConfig.callsFake(async (...args) => {
+              const built = await buildNestedViewForm(args[0], args[1], args[2], args[3]);
+              if (scenario === 'string' || scenario === 'empty') {
+                for (const node of built.componentDefinitions.slice(0, 2)) {
+                  node.component.config.content = scenario === 'string' ? 'Display only' : '';
+                }
+              }
+              return built;
+            });
+            (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+            (controller.recordsService.getMeta as sinon.SinonStub).callsFake(async () => structuredClone(record));
+            (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+            Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
+            const req = { param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
+              query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
+              user: { username: 'reader', roles: roles.map(name => ({ name })) },
+            } as unknown as Sails.Req;
+            const sendResp = sinon.stub(controller as any, 'sendResp');
+            await controller[endpoint](req, {} as Sails.Res);
+            const response = sendResp.firstCall.args[2];
+            expect(response.status).not.to.equal(500);
+            const projected = endpoint === 'getForm' ? response.meta.runtimeContext.record.metadata : response.data;
+            const serialized = JSON.stringify(response);
+            // Check the whole response before the leaf assertion, so malformed
+            // retained model leaks are independently visible in the red run.
+            expect(serialized).not.to.contain('workspace-secret');
+            if (!roles.includes('Admin')) {
+              expect(serialized).not.to.contain('role-secret');
+              expect(serialized).not.to.contain('service-result');
+              expect(serialized).not.to.contain('irds-result');
+            }
+            expect(serialized).not.to.contain('server-secret');
+            if (scenario === 'rows' && !roles.includes('Admin')) {
+              expect(projected.rows).to.deep.equal([{ public: 'second' }]);
+            }
+            expect(projected.information_steward).to.deep.equal(saved.information_steward);
+            expect(serialized).to.contain('School of Testing');
+            expect(projected).not.to.have.property('workspaces');
+          });
+        }
+      }
+    }
+
+    for (const retain of [true, false]) {
+      for (const roles of [['Researcher'], ['Admin']]) {
+        for (const endpoint of ['getForm', 'getMeta'] as const) {
+          it(`${endpoint} projects nested view metadata for ${roles}, retained containers=${retain}`, async () => {
+            const { data, metadata, expected } = nestedViewFixture(retain);
+            const form = { name: data.name, configuration: data };
+            const record = {
+              redboxOid: 'oid-1',
+              metaMetadata: { brandId: 'brand-1', type: 'dataset', form: form.name },
+              metadata,
+            };
+            (global as any).sails.config = { reusableFormDefinitions: {} };
+            (global as any).sails.services = {
+              formpayloadprehydrateservice: { build: sinon.stub().resolves({}) },
+            };
+            (global as any).FormsService.getForm.resolves(form);
+            (global as any).FormsService.getFormByName.returns(of(form));
+            (global as any).FormsService.discoverValidationOperations.resolves([]);
+            (global as any).FormsService.buildClientFormConfig.callsFake(buildNestedViewForm);
+            (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+            (controller.recordsService.getMeta as sinon.SinonStub).callsFake(async () => structuredClone(record));
+            (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(false);
+            Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
+            const req = {
+              param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
+              query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
+              user: { username: 'reader', roles: roles.map(name => ({ name })) },
+            } as unknown as Sails.Req;
+            const sendResp = sinon.stub(controller as any, 'sendResp');
+            await controller[endpoint](req, {} as Sails.Res);
+            const response = sendResp.firstCall.args[2];
+            expect(response.status).not.to.equal(500);
+            const result = endpoint === 'getForm' ? response.meta.runtimeContext.record.metadata : response.data;
+            expect(result).to.deep.equal(expected(roles));
+            const serialized = JSON.stringify(response);
+            for (const secret of ['mode-secret', 'server-secret', 'top-level-secret']) {
+              expect(serialized).not.to.contain(secret);
+            }
+            expect(serialized.includes('role-secret')).to.equal(roles.includes('Admin'));
+          });
+        }
+      }
+    }
+
+    for (const roles of [['Researcher'], ['Admin']]) {
+      for (const mode of ['view', 'edit']) {
+        it(`filters real ${mode} forms for ${roles} on both record endpoints`, async () => {
+          const { ConstructFormConfigVisitor } = require('../../src/visitor/construct.visitor');
+          const { ClientFormConfigVisitor } = require('../../src/visitor/client.visitor');
+          const { nothingLogger } = require('@researchdatabox/sails-ng-common');
+          const service = new FormConsistencyServices.FormRecordConsistency();
+          (global as any).FormRecordConsistencyService = service;
+          const fields = ['title', 'restricted', 'editOnly'].map((name) => ({
+            name,
+            component: { class: 'SimpleInputComponent', config: {} },
+            model: { class: 'SimpleInputModel', config: {} },
+            ...(name === 'restricted' ? { constraints: { authorization: { allowRoles: ['Admin'] } } } : {}),
+            ...(name === 'editOnly' ? { constraints: { allowModes: ['edit'] } } : {}),
+          }));
+          const form = {
+            name: 'dataset-draft',
+            configuration: { type: 'dataset', name: 'dataset-draft', componentDefinitions: fields },
+          };
+          const record = {
+            redboxOid: 'oid-1',
+            metaMetadata: { brandId: 'brand-1', type: 'dataset', form: form.name },
+            metadata: {
+              title: 'Visible',
+              restricted: 'restricted-secret',
+              editOnly: 'edit-secret',
+              serverOnly: 'server-secret',
+            },
+          };
+          (global as any).sails.config = { reusableFormDefinitions: {} };
+          (global as any).sails.services = {
+            formpayloadprehydrateservice: { build: sinon.stub().resolves({}) },
+          };
+          (global as any).FormsService.getForm.resolves(form);
+          (global as any).FormsService.getFormByName.returns(of(form));
+          (global as any).FormsService.discoverValidationOperations.resolves([]);
+          (global as any).FormsService.buildClientFormConfig.callsFake(
+            async (data, formMode, userRoles, metadata) => {
+              const constructed = await new ConstructFormConfigVisitor(nothingLogger).start({
+                data,
+                formMode,
+                record: metadata,
+              });
+              return new ClientFormConfigVisitor(nothingLogger).start({
+                form: constructed,
+                formMode,
+                userRoles,
+              });
+            },
+          );
+          (global as any).RecordTypesService.get.returns(of({ name: 'dataset' }));
+          (controller.recordsService.getMeta as sinon.SinonStub).callsFake(async () => structuredClone(record));
+          (controller.recordsService.hasEditAccess as sinon.SinonStub).returns(mode === 'edit');
+          Object.assign(controller.recordsService, {
+            getRecordFormFingerprint: sinon.stub().resolves('fingerprint'),
+          });
+          const req = {
+            param: sinon
+              .stub()
+              .callsFake((name) => (name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined)),
+            query: { edit: String(mode === 'edit'), apiVersion: '2.0' },
+            session: { branding: 'default' },
+            user: { username: 'reader', roles: roles.map((name) => ({ name })) },
+          } as unknown as Sails.Req;
+          const sendResp = sinon.stub(controller as any, 'sendResp');
+          await controller.getForm(req, {} as Sails.Res);
+          const response = sendResp.firstCall.args[2];
+          expect(response.status).not.to.equal(500);
+          if (mode === 'view') {
+            expect(response.meta.runtimeContext.record.metadata).to.deep.equal({
+              title: 'Visible',
+              ...(roles.includes('Admin') ? { restricted: 'restricted-secret' } : {}),
+            });
+            expect(JSON.stringify(response.meta)).not.to.contain('edit-secret');
+            expect(JSON.stringify(response.meta)).not.to.contain('server-secret');
+            expect(JSON.stringify(response.meta).includes('restricted-secret')).to.equal(
+              roles.includes('Admin'),
+            );
+          } else {
+            expect(response.meta.runtimeContext.record).not.to.have.property('metadata');
+          }
+          sendResp.resetHistory();
+          await controller.getMeta(req, {} as Sails.Res);
+          expect(sendResp.firstCall.args[2].data).to.deep.equal({
+            title: 'Visible',
+            ...(roles.includes('Admin') ? { restricted: 'restricted-secret' } : {}),
+            ...(mode === 'edit' ? { editOnly: 'edit-secret' } : {}),
+          });
+        });
+      }
+    }
   });
 
   describe("Data Record metadata projection", () => {
@@ -1461,7 +1761,7 @@ describe('RecordController getWorkflowSteps', () => {
           ).meta;
           expect(meta.runtimeContext).to.deep.equal({
             user: { roles: roleNames ?? [] },
-            record: { type: 'dataset', hasEditAccess: editable },
+            record: { type: 'dataset', hasEditAccess: editable, ...(edit === 'false' ? { metadata: {} } : {}) },
           });
           expect(meta.recordType).to.equal('dataset');
           expect((controller.recordsService.hasEditAccess as sinon.SinonStub).calledOnce).to.equal(true);
@@ -1475,7 +1775,7 @@ describe('RecordController getWorkflowSteps', () => {
           const next = (json.secondCall.args[0] as { meta: typeof meta }).meta;
           expect(next.runtimeContext).to.deep.equal({
             user: { roles: roleNames ?? [] },
-            record: { type: 'dataset', hasEditAccess: editable },
+            record: { type: 'dataset', hasEditAccess: editable, ...(edit === 'false' ? { metadata: {} } : {}) },
           });
           expect(user?.roles.map(role => role.name) ?? []).to.deep.equal(roleNames ?? []);
         });

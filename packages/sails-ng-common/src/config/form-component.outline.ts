@@ -50,6 +50,8 @@ interface FormExpressionsBaseConfigFrame {
      * Optional flag to indicate whether the expression will run when the form is ready. Defaults to true.
      */
     runOnFormReady?: boolean;
+    /** Keep this visibility expression when the field is transformed for view mode. */
+    runInViewMode?: boolean;
 }
 
 /**

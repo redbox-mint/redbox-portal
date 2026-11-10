@@ -30,7 +30,7 @@ export class DropdownInputModel extends FormFieldModel<DropdownInputModelValueTy
           <option [value]="''" disabled>{{ placeholder | i18next }}</option>
         }
         @for (opt of options; track opt.value) {
-          <option [value]="opt.value" [disabled]="opt.disabled === true">{{ opt.label | i18next }}</option>
+          <option [value]="opt.value" [disabled]="isOptionDisabled(opt)">{{ opt.label | i18next }}</option>
         }
       </select>
       <ng-container *ngTemplateOutlet="getTemplateRef('after')" />
