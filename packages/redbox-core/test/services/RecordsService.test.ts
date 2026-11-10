@@ -1,3 +1,9 @@
+import assert from 'node:assert/strict';
+import { RecordAuditActionType, RecordAuditModel } from '../../src/model/storage/RecordAuditModel';
+import { RecordWriteConflict } from '../../src/RecordWriteOptions';
+import { agendaQueue } from '../../src/config/agendaQueue.config';
+import { PermanentAuditWriteError } from '../../src/services/record-audit/writer';
+import { UserModel } from '../../src/model/storage/UserModel';
 import { createSinonStubLogger } from '../logger.test';
 
 let expect: Chai.ExpectStatic;
@@ -167,7 +173,7 @@ describe('RecordsService', function () {
     };
 
     mockQueueService = {
-      now: sinon.stub(),
+      now: sinon.stub().resolves({ attrs: { name: 'RecordsService-RecoverRecordAudit' } }),
     };
 
     mockDatastreamService = {
@@ -188,6 +194,7 @@ describe('RecordsService', function () {
           },
           auditing: {
             enabled: true,
+            writeAttempts: 1,
             recordAuditJobName: 'RecordAudit',
           },
           datastreamService: 'datastreamservice',
@@ -298,7 +305,9 @@ describe('RecordsService', function () {
         })
       ),
     };
-    (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden = sinon.stub().callsFake((...args) => (global as any).WorkflowStepsService.getAllForRecordType(...args));
+    (global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden = sinon
+      .stub()
+      .callsFake((...args) => (global as any).WorkflowStepsService.getAllForRecordType(...args));
     (global as any).RecordTypesService = {
       get: sinon.stub().returns(of({ name: 'rdmp', hooks: {} })),
     };
@@ -347,6 +356,45 @@ describe('RecordsService', function () {
     delete (global as any).SolrSearchService;
     delete (globalThis as any).__w05Hooks;
     sinon.restore();
+  });
+
+  describe('initialization', function () {
+    for (const queueState of ['configured', 'missing configuration', 'unavailable service']) {
+      it(`initializes storage and persists audits with the queue ${queueState}`, async function () {
+        if (queueState === 'missing configuration') {
+          delete mockSails.config.queue;
+          delete mockSails.services.agendaqueueservice;
+        } else if (queueState === 'unavailable service') {
+          delete mockSails.services.agendaqueueservice;
+        }
+        delete RecordsService.storageService;
+        delete RecordsService.searchService;
+        delete RecordsService.datastreamService;
+        delete RecordsService.queueService;
+        mockSails.after = sinon.stub();
+
+        RecordsService.init();
+
+        sinon.assert.calledOnce(mockSails.after);
+        const [events, onReady] = mockSails.after.firstCall.args;
+        expect(events).to.deep.equal(['hook:redbox:storage:ready', 'hook:redbox:datastream:ready', 'ready']);
+        onReady();
+
+        expect(RecordsService.storageService).to.equal(mockStorageService);
+        expect(RecordsService.datastreamService).to.equal(mockDatastreamService);
+        expect(RecordsService.searchService).to.equal(mockSearchService);
+        expect(RecordsService.queueService).to.equal(queueState === 'configured' ? mockQueueService : undefined);
+
+        await RecordsService.auditRecord(
+          'record-123',
+          { metadata: { title: 'Initialized audit' } },
+          { username: 'admin' }
+        );
+
+        sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
   });
 
   function enableLifecycleStorage() {
@@ -1026,44 +1074,543 @@ describe('RecordsService', function () {
   });
 
   describe('auditRecord', function () {
-    it('should queue audit job when enabled', function () {
-      const record = { metadata: { title: 'Test' }, metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' } };
-      const user = { username: 'testuser' };
+    for (const environment of ['development', 'production', 'integrationtest']) {
+      it(`persists directly in ${environment} without enqueuing`, async function () {
+        mockSails.config.environment = environment;
+        const record = {
+          metadata: { title: 'Test' },
+          metaMetadata: { lastSaveDate: '2026-03-01T12:00:00Z' },
+          authorization: { edit: ['testuser'] },
+          workflow: { stage: 'draft' },
+        };
+        const user = { username: 'testuser' };
 
-      RecordsService.auditRecord('record-123', record, user, 'updated');
+        await RecordsService.auditRecord('record-123', record, user);
 
-      expect(mockQueueService.now.called).to.be.true;
-      expect(mockQueueService.now.firstCall.args[0]).to.equal('RecordAudit');
-      expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-01T12:00:00Z');
-    });
+        sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+        const data = mockStorageService.createRecordAudit.firstCall.args[0];
+        expect(data).to.be.instanceOf(RecordAuditModel);
+        expect(data).to.include({ redboxOid: 'record-123', action: 'updated', occurredAt: '2026-03-01T12:00:00Z' });
+        expect(data.record).to.deep.equal(record);
+        expect(data.user).to.deep.equal(user);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
 
-    it('should not queue when auditing is disabled', function () {
-      mockSails.config.record.auditing.enabled = false;
-
-      RecordsService.auditRecord('record-123', {}, {}, 'updated');
-
-      expect(mockQueueService.now.called).to.be.false;
-    });
-
-    it('should skip when queue service is null', function () {
+    it('persists without a queue service or queue configuration', async function () {
       RecordsService.queueService = null;
+      delete mockSails.config.queue;
+      delete mockSails.services.agendaqueueservice;
+      delete mockSails.config.record.auditing.recordAuditJobName;
 
-      expect(() => {
-        RecordsService.auditRecord('record-123', {}, {}, 'updated');
-      }).to.not.throw();
+      await RecordsService.auditRecord('record-123', {}, {});
+
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.notCalled(mockQueueService.now);
     });
 
-    it('should remove password and token from user', function () {
+    it('awaits storage completion before resolving', async function () {
+      let finish!: (response: StorageServiceResponse) => void;
+      mockStorageService.createRecordAudit.returns(
+        new Promise<StorageServiceResponse>(resolve => {
+          finish = resolve;
+        })
+      );
+      let completed = false;
+
+      const auditing = RecordsService.auditRecord('record-123', {}, {}).then(() => {
+        completed = true;
+      });
+      await Promise.resolve();
+      expect(completed).to.equal(false);
+
+      const response = new StorageServiceResponse();
+      response.success = true;
+      finish(response);
+      await auditing;
+      expect(completed).to.equal(true);
+    });
+
+    it('bounds a stalled audit write and logs structured failure data', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeTimeoutMs = 50;
+      mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(() => {}));
+      let completed = false;
+      const auditing = RecordsService.auditRecord('record-123', {}, {}).then(() => {
+        completed = true;
+      });
+
+      await clock.tickAsync(49);
+      expect(completed).to.equal(false);
+      await clock.tickAsync(1);
+      expect(completed).to.equal(true);
+      await auditing;
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit', {
+        event: 'record_audit_write_failed',
+        redboxOid: 'record-123',
+        action: 'updated',
+        timedOut: true,
+        timeoutMs: 50,
+        error: 'Error: Record audit write timed out after 50ms',
+      });
+      expect(clock.countTimers()).to.equal(0);
+      sinon.assert.calledOnceWithMatch(mockQueueService.now, 'RecordsService-RecoverRecordAudit', {
+        redboxOid: 'record-123',
+        auditId: sinon.match(/^[a-f0-9]{24}$/),
+      });
+    });
+
+    for (const configuredTimeout of [undefined, 0, -1, 1.5, '50', NaN, Infinity, 2147483648]) {
+      it(`uses the default audit deadline for an absent or invalid timeout (${configuredTimeout})`, async function () {
+        const clock = sinon.useFakeTimers();
+        mockSails.config.record.auditing.writeTimeoutMs = configuredTimeout;
+        mockStorageService.createRecordAudit.returns(new Promise<StorageServiceResponse>(() => {}));
+        let completed = false;
+        const auditing = RecordsService.auditRecord('record-123', {}, {}).then(() => {
+          completed = true;
+        });
+
+        await clock.tickAsync(4999);
+        expect(completed).to.equal(false);
+        await clock.tickAsync(1);
+        expect(completed).to.equal(true);
+        await auditing;
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit', {
+          timedOut: true,
+          timeoutMs: 5000,
+        });
+      });
+    }
+
+    for (const fails of [false, true]) {
+      it(`clears the audit deadline after a ${fails ? 'rejected' : 'successful'} write`, async function () {
+        const clock = sinon.useFakeTimers();
+        if (fails) mockStorageService.createRecordAudit.rejects(new Error('audit storage unavailable'));
+
+        await RecordsService.auditRecord('record-123', {}, {});
+
+        expect(clock.countTimers()).to.equal(0);
+        await clock.tickAsync(5000);
+        expect(mockSails.log.error.callCount).to.equal(fails ? 1 : 0);
+      });
+    }
+
+    it('handles late storage rejection after retaining the same event for durable recovery', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeTimeoutMs = 50;
+      let rejectWrite!: (error: Error) => void;
+      mockStorageService.createRecordAudit.returns(
+        new Promise<StorageServiceResponse>((_resolve, reject) => {
+          rejectWrite = reject;
+        })
+      );
+
+      const auditing = RecordsService.auditRecord('record-123', {}, {});
+      await clock.tickAsync(50);
+      await auditing;
+      rejectWrite(new Error('late storage rejection'));
+      await clock.tickAsync(0);
+
+      sinon.assert.calledOnce(mockSails.log.error);
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(mockQueueService.now);
+      expect(mockQueueService.now.firstCall.args[1]).to.equal(mockStorageService.createRecordAudit.firstCall.args[0]);
+    });
+
+    it('accepts the string true auditing setting', async function () {
+      mockSails.config.record.auditing.enabled = 'true';
+      await RecordsService.auditRecord('record-123', {}, {});
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+    });
+
+    for (const enabled of [false, 'false', undefined]) {
+      it(`skips storage and queue when auditing is ${enabled}`, async function () {
+        mockSails.config.record.auditing.enabled = enabled;
+        await RecordsService.auditRecord('record-123', {}, {});
+        sinon.assert.notCalled(mockStorageService.createRecordAudit);
+        sinon.assert.notCalled(mockQueueService.now);
+      });
+    }
+
+    it('removes password and token before storage and logging', async function () {
       const user = { username: 'testuser', password: 'secret', token: 'token123' };
 
-      RecordsService.auditRecord('record-123', {}, user, 'updated');
+      await RecordsService.auditRecord('record-123', {}, user);
 
       expect(user.password).to.be.undefined;
       expect(user.token).to.be.undefined;
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].user).to.deep.equal({ username: 'testuser' });
+      const logs = mockSails.log.verbose
+        .getCalls()
+        .map((call: sinon.SinonSpyCall) => call.args.join(' '))
+        .join('\n');
+      expect(logs).not.to.include('secret');
+      expect(logs).not.to.include('token123');
+    });
+
+    it('normalizes class-backed snapshots without changing their serialized shape', async function () {
+      const snapshot = new StorageServiceResponse();
+      snapshot.success = true;
+      snapshot.metadata = { redboxOid: 'record-123', metadata: { title: 'Restored record' } };
+
+      await RecordsService.auditRecord('record-123', snapshot, {}, RecordAuditActionType.restored);
+
+      const data = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(Object.getPrototypeOf(data.record)).to.equal(Object.prototype);
+      expect(JSON.stringify(data.record)).to.equal(JSON.stringify(snapshot));
+      expect(data.action).to.equal('restored');
+    });
+
+    it('normalizes class-backed actors after redaction', async function () {
+      const actor = new UserModel();
+      actor.username = 'admin';
+      actor.password = 'actor-password';
+      actor.token = 'actor-token';
+      actor.lastLogin = new Date('2026-03-01T12:00:00Z');
+
+      await RecordsService.auditRecord('record-123', {}, actor);
+
+      const data = mockStorageService.createRecordAudit.firstCall.args[0];
+      expect(Object.getPrototypeOf(data.user)).to.equal(Object.prototype);
+      expect(data.user.username).to.equal('admin');
+      expect(data.user).not.to.have.property('password');
+      expect(data.user).not.to.have.property('token');
+      expect(JSON.stringify(data.user)).to.equal(JSON.stringify(actor));
+    });
+
+    it('preserves a null actor when normalizing audit data', async function () {
+      await RecordsService.auditRecord('record-123', {}, null);
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].user).to.equal(null);
+    });
+
+    it('logs unserializable snapshots without failing the persisted record operation', async function () {
+      const record: { self?: unknown } = {};
+      record.self = record;
+
+      await RecordsService.auditRecord('record-123', record, {});
+
+      sinon.assert.notCalled(mockStorageService.createRecordAudit);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit for record-123');
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
+    for (const action of Object.values(RecordAuditActionType)) {
+      it(`preserves the ${action} action and its event timestamp`, async function () {
+        sinon.useFakeTimers(new Date('2026-03-03T12:00:00Z'));
+        const record = { metaMetadata: { createdOn: '2026-03-01T12:00:00Z', lastSaveDate: '2026-03-02T12:00:00Z' } };
+
+        await RecordsService.auditRecord('record-123', record, {}, action);
+
+        const data = mockStorageService.createRecordAudit.firstCall.args[0];
+        expect(data.action).to.equal(action);
+        const expectedTime =
+          action === RecordAuditActionType.created
+            ? record.metaMetadata.createdOn
+            : action === RecordAuditActionType.updated
+              ? record.metaMetadata.lastSaveDate
+              : '2026-03-03T12:00:00.000Z';
+        expect(data.occurredAt).to.equal(expectedTime);
+      });
+    }
+
+    for (const failure of [new Error('audit database unavailable'), new RecordWriteConflict()]) {
+      it(`logs a rejected audit write without rejecting the saved record operation (${failure.name})`, async function () {
+        mockStorageService.createRecordAudit.rejects(failure);
+
+        await RecordsService.auditRecord('record-123', {}, {});
+
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to persist record audit for record-123 (updated)');
+        sinon.assert.calledWithMatch(mockSails.log.error, failure.message);
+        sinon.assert.calledWithMatch(mockSails.log.error, sinon.match.string, {
+          event: 'record_audit_write_failed',
+          redboxOid: 'record-123',
+          action: 'updated',
+          timedOut: false,
+        });
+        sinon.assert.calledOnce(mockQueueService.now);
+      });
+    }
+
+    for (const message of ['audit insert failed', '']) {
+      it(`logs an unsuccessful storage response without rejecting (${message || 'no message'})`, async function () {
+        const response = new StorageServiceResponse();
+        response.message = message;
+        mockStorageService.createRecordAudit.resolves(response);
+
+        await RecordsService.auditRecord('record-123', {}, {});
+
+        sinon.assert.calledWithMatch(mockSails.log.error, message || 'unsuccessful record audit response');
+        sinon.assert.calledOnce(mockQueueService.now);
+      });
+    }
+
+    it('logs missing storage capability without rejecting', async function () {
+      delete mockStorageService.createRecordAudit;
+
+      await RecordsService.auditRecord('record-123', {}, {});
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Storage service does not support createRecordAudit');
+      sinon.assert.calledOnce(mockQueueService.now);
+    });
+
+    it('keeps a persisted partial record update successful when its audit fails', async function () {
+      mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true, recordVersion: 2 });
+      mockStorageService.createRecordAudit.rejects(new Error('audit insert failed'));
+
+      const result = await RecordsService.setRecordFields(
+        'record-123',
+        { 'metadata.title': 'Saved' },
+        1,
+        ['metadata.title'],
+        {}
+      );
+
+      expect(result).to.deep.equal({ updated: true, recordVersion: 2 });
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'audit insert failed');
+    });
+
+    it('retries the same immutable redacted event before falling back to Agenda', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.rejects(new Error('temporary outage'));
+      const record = { metadata: { title: 'Original' }, lastSaveDate: '2026-03-01T12:00:00Z' };
+      const user = { username: 'original', password: 'secret', token: 'secret-token' };
+      const auditing = RecordsService.auditRecord('record-123', record, user);
+      record.metadata.title = 'Changed';
+      user.username = 'changed';
+      await clock.tickAsync(500);
+      await auditing;
+
+      sinon.assert.calledThrice(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(mockQueueService.now);
+      const event = mockQueueService.now.firstCall.args[1];
+      expect(event.auditId).to.match(/^[a-f0-9]{24}$/);
+      expect(event.record.metadata.title).to.equal('Original');
+      expect(event.user).to.deep.equal({ username: 'original' });
+      expect(event.occurredAt).to.equal('2026-03-01T12:00:00Z');
+      for (const call of mockStorageService.createRecordAudit.getCalls()) expect(call.args[0]).to.equal(event);
+      sinon.assert.calledWithMatch(mockSails.log.warn, 'retained for durable recovery', {
+        event: 'record_audit_recovery_queued',
+        auditId: event.auditId,
+      });
+    });
+
+    it('does not enqueue when a short retry succeeds', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.onFirstCall().rejects(new Error('temporary failure'));
+      const auditing = RecordsService.auditRecord('record-123', {}, {});
+      await clock.tickAsync(200);
+      await auditing;
+      sinon.assert.calledTwice(mockStorageService.createRecordAudit);
+      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.notCalled(mockSails.log.error);
+    });
+
+    it('retains a permanently rejected direct payload once for operator recovery', async function () {
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.resolves({
+        success: false,
+        retryable: false,
+        message: 'Invalid audit document',
+      });
+      await RecordsService.auditRecord(
+        'record-123',
+        { metadata: { title: 'Retain this snapshot' } },
+        { username: 'original' }
+      );
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(mockQueueService.now);
+      expect(mockQueueService.now.firstCall.args[1]).to.equal(mockStorageService.createRecordAudit.firstCall.args[0]);
+    });
+
+    for (const queueState of ['missing', 'rejected', 'stalled']) {
+      it(`reports recovery failure without failing the saved record when the queue is ${queueState}`, async function () {
+        const clock = sinon.useFakeTimers();
+        mockSails.config.record.auditing.writeTimeoutMs = 50;
+        mockStorageService.createRecordAudit.rejects(new Error('audit insert failed'));
+        if (queueState === 'missing') RecordsService.queueService = null;
+        else if (queueState === 'rejected') mockQueueService.now.rejects(new Error('queue insert failed'));
+        else mockQueueService.now.returns(new Promise(() => {}));
+
+        const auditing = RecordsService.auditRecord('record-123', {}, {});
+        await clock.tickAsync(50);
+        await auditing;
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Unable to retain record audit', {
+          event: 'record_audit_recovery_failed',
+          auditId: sinon.match(/^[a-f0-9]{24}$/),
+          redboxOid: 'record-123',
+        });
+        sinon.assert.notCalled(mockSails.log.warn);
+      });
+    }
+
+    it('honours a configured failure-only recovery job name', async function () {
+      mockSails.config.record.auditing.recordAuditRecoveryJobName = 'CustomAuditRecovery';
+      mockStorageService.createRecordAudit.rejects(new Error('audit insert failed'));
+      await RecordsService.auditRecord('record-123', {}, {});
+      sinon.assert.calledOnceWithMatch(mockQueueService.now, 'CustomAuditRecovery');
     });
   });
 
-  it('queues partial-write audits with the newer top-level save time', async function () {
+  describe('recoverRecordAudit', function () {
+    const data = {
+      auditId: '0123456789abcdef01234567',
+      redboxOid: 'record-123',
+      action: RecordAuditActionType.updated,
+      occurredAt: '2026-03-01T12:00:00Z',
+      record: { metadata: { title: 'Original snapshot' } },
+      user: { username: 'original' },
+    };
+
+    it('delivers a serialized retained event through a fresh service instance even when new audits are disabled', async function () {
+      mockSails.config.record.auditing.enabled = false;
+      const recovered = JSON.parse(JSON.stringify({ attrs: { data } }));
+      await RecordsService.recoverRecordAudit(recovered);
+      sinon.assert.calledOnceWithExactly(mockStorageService.createRecordAudit, recovered.attrs.data);
+      sinon.assert.notCalled(mockQueueService.now);
+      sinon.assert.calledWithMatch(mockSails.log.info, 'Recovered record audit', {
+        event: 'record_audit_recovered',
+        auditId: data.auditId,
+      });
+    });
+
+    it('rejects failed recovery so Agenda schedules durable backoff instead of acknowledging it', async function () {
+      const failure = new Error('audit database unavailable');
+      mockStorageService.createRecordAudit.rejects(failure);
+      await assert.rejects(RecordsService.recoverRecordAudit({ attrs: { data } }), error => error === failure);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Record audit recovery will retry', {
+        event: 'record_audit_recovery_retry',
+      });
+      sinon.assert.notCalled(mockQueueService.now);
+    });
+
+    it('bounds a stalled queued write below its Agenda lock lifetime', async function () {
+      const clock = sinon.useFakeTimers();
+      mockSails.config.record.auditing.writeTimeoutMs = 120000;
+      mockStorageService.createRecordAudit.returns(new Promise(() => {}));
+      const recovered = RecordsService.recoverRecordAudit({ attrs: { data } }).catch((error: unknown) => error);
+      await clock.tickAsync(10000);
+      expect(await recovered).to.be.instanceOf(Error);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Record audit recovery will retry');
+    });
+
+    it('pauses a permanent storage failure durably before stopping Agenda retries', async function () {
+      mockSails.config.record.auditing.writeAttempts = 3;
+      mockStorageService.createRecordAudit.resolves({
+        success: false,
+        retryable: false,
+        message: 'Invalid audit document',
+      });
+      const job = { attrs: { data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      let failure: Error | undefined;
+      await assert.rejects(RecordsService.recoverRecordAudit(job), error => {
+        failure = error as Error;
+        return error instanceof PermanentAuditWriteError;
+      });
+      sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+      sinon.assert.calledOnce(job.disable);
+      sinon.assert.calledOnce(job.save);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'paused for operator inspection', {
+        event: 'record_audit_recovery_quarantined',
+        auditId: data.auditId,
+      });
+      const backoff = agendaQueue.jobs['RecordsService-RecoverRecordAudit'].options!.backoff!;
+      expect(backoff({ attempt: 1, error: failure!, jobName: '', jobData: data })).to.equal(null);
+      expect(backoff({ attempt: 100, error: new Error('Mongo unavailable'), jobName: '', jobData: data })).to.equal(
+        300000
+      );
+      expect(job.attrs.data).to.equal(data);
+    });
+
+    it('keeps the recovery retryable if persisting its paused state fails', async function () {
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+      const failure = new Error('Queue unavailable');
+      const job = { attrs: { data }, disable: sinon.stub().returnsThis(), save: sinon.stub().rejects(failure) };
+      await assert.rejects(RecordsService.recoverRecordAudit(job), error => error === failure);
+      sinon.assert.neverCalledWithMatch(mockSails.log.error, sinon.match.string, {
+        event: 'record_audit_recovery_quarantined',
+      });
+      sinon.assert.calledWithMatch(mockSails.log.error, 'delivery will retry', {
+        event: 'record_audit_recovery_retry',
+      });
+    });
+
+    it('leaves permanent SQS failures unacknowledged for the backend dead-letter policy', async function () {
+      mockSails.config.agendaQueue = { options: { backend: 'sqs' }, jobs: {} };
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+      const job = { attrs: { data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+      sinon.assert.notCalled(job.disable);
+      sinon.assert.notCalled(job.save);
+      sinon.assert.calledWithMatch(mockSails.log.error, 'requires operator inspection', {
+        event: 'record_audit_recovery_permanent_failure',
+        auditId: data.auditId,
+      });
+    });
+
+    for (const shape of ['map', 'array']) {
+      it(`honours a Mongo recovery override with ${shape} job definitions`, async function () {
+        const name = 'CustomAuditRecovery';
+        const definition = { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'mongodb' };
+        mockSails.config.agendaQueue = {
+          options: { backend: 'sqs' },
+          jobs: shape === 'array' ? [definition] : { [name]: definition },
+        };
+        mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+        const job = { attrs: { name, data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+        await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+        sinon.assert.calledOnce(job.disable);
+        sinon.assert.calledOnce(job.save);
+        sinon.assert.calledWithMatch(mockSails.log.error, 'paused for operator inspection', {
+          event: 'record_audit_recovery_quarantined',
+        });
+      });
+
+      it(`honours an SQS recovery override with ${shape} job definitions`, async function () {
+        const name = 'CustomAuditRecovery';
+        const definition = { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'sqs' };
+        mockSails.config.agendaQueue = {
+          options: { backend: 'mongodb' },
+          jobs: shape === 'array' ? [definition] : { [name]: definition },
+        };
+        mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+        const job = { attrs: { name, data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+        await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+        sinon.assert.notCalled(job.disable);
+        sinon.assert.notCalled(job.save);
+      });
+    }
+
+    it('uses the last array definition for a duplicate recovery job name, as the dispatcher does', async function () {
+      const name = 'CustomAuditRecovery';
+      mockSails.config.agendaQueue = {
+        options: { backend: 'sqs' },
+        jobs: [
+          { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'sqs' },
+          { name, fnName: 'recordsservice.recoverRecordAudit', backend: 'mongodb' },
+        ],
+      };
+      mockStorageService.createRecordAudit.resolves({ success: false, retryable: false });
+      const job = { attrs: { name, data }, disable: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      await assert.rejects(RecordsService.recoverRecordAudit(job), PermanentAuditWriteError);
+      sinon.assert.calledOnce(job.save);
+    });
+
+    for (const auditId of [undefined, '', 'not-an-event-id']) {
+      it(`rejects an invalid recovery identity (${auditId}) before inserting`, async function () {
+        await assert.rejects(
+          RecordsService.recoverRecordAudit({ attrs: { data: { ...data, auditId } } }),
+          /stable audit ID/
+        );
+        sinon.assert.notCalled(mockStorageService.createRecordAudit);
+      });
+    }
+  });
+
+  it('persists partial-write audits with the newer top-level save time', async function () {
     mockStorageService.setRecordFields = sinon.stub().resolves({ updated: true, recordVersion: 2 });
     mockStorageService.getMeta.resolves({
       redboxOid: 'record-123',
@@ -1080,21 +1627,101 @@ describe('RecordsService', function () {
       {}
     );
 
-    expect(mockQueueService.now.calledOnce).to.be.true;
-    expect(mockQueueService.now.firstCall.args[1].occurredAt).to.equal('2026-03-02T12:00:00Z');
+    sinon.assert.calledOnce(mockStorageService.createRecordAudit);
+    expect(mockStorageService.createRecordAudit.firstCall.args[0].occurredAt).to.equal('2026-03-02T12:00:00Z');
+    sinon.assert.notCalled(mockQueueService.now);
   });
 
   describe('storeRecordAudit', function () {
-    it('should store audit via storage service', function () {
-      const job = {
-        attrs: {
-          data: { id: 'record-123', action: 'updated' },
-        },
+    for (const wrapped of [true, false]) {
+      it(`persists a legacy ${wrapped ? 'attrs.data' : 'attrs'} payload unchanged even when new audits are disabled`, async function () {
+        mockSails.config.record.auditing.enabled = false;
+        const data = {
+          redboxOid: 'record-123',
+          action: 'updated',
+          user: { username: 'testuser' },
+          record: { lastSaveDate: '2026-03-01T12:00:00Z' },
+        };
+
+        await RecordsService.storeRecordAudit({ attrs: wrapped ? { data } : data });
+
+        sinon.assert.calledOnceWithExactly(mockStorageService.createRecordAudit, data);
+        expect(data).not.to.have.property('occurredAt');
+      });
+    }
+
+    it('does not complete the job until persistence finishes', async function () {
+      let finish!: (response: StorageServiceResponse) => void;
+      mockStorageService.createRecordAudit.returns(
+        new Promise<StorageServiceResponse>(resolve => {
+          finish = resolve;
+        })
+      );
+      let completed = false;
+
+      const storing = Promise.resolve(
+        RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } })
+      ).then(() => {
+        completed = true;
+      });
+      await Promise.resolve();
+      expect(completed).to.equal(false);
+
+      const response = new StorageServiceResponse();
+      response.success = true;
+      finish(response);
+      await storing;
+      expect(completed).to.equal(true);
+    });
+
+    it('preserves explicit event time in queued snapshots', async function () {
+      const data = {
+        redboxOid: 'record-123',
+        occurredAt: '2026-03-01T12:00:00Z',
+        action: 'deleted',
+        record: { lastSaveDate: '2026-02-01T12:00:00Z' },
       };
+      await RecordsService.storeRecordAudit({ attrs: { data } });
+      sinon.assert.calledOnceWithExactly(mockStorageService.createRecordAudit, data);
+    });
 
-      RecordsService.storeRecordAudit(job);
+    it('rejects and logs storage rejections so Agenda can fail the job', async function () {
+      const failure = new Error('audit database unavailable');
+      mockStorageService.createRecordAudit.rejects(failure);
 
-      expect(mockStorageService.createRecordAudit.called).to.be.true;
+      await assert.rejects(
+        RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }),
+        error => error === failure
+      );
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to store legacy record audit for record-123');
+      sinon.assert.calledWithMatch(mockSails.log.error, failure.message);
+    });
+
+    for (const message of ['audit insert failed', '']) {
+      it(`rejects unsuccessful storage responses so Agenda can fail the job (${message || 'no message'})`, async function () {
+        const response = new StorageServiceResponse();
+        response.message = message;
+        mockStorageService.createRecordAudit.resolves(response);
+
+        await assert.rejects(
+          RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }),
+          /audit insert failed|unsuccessful record audit response/
+        );
+
+        sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to store legacy record audit for record-123');
+      });
+    }
+
+    it('rejects missing storage capability so Agenda can fail the job', async function () {
+      delete mockStorageService.createRecordAudit;
+
+      await assert.rejects(
+        RecordsService.storeRecordAudit({ attrs: { data: { redboxOid: 'record-123' } } }),
+        /does not support createRecordAudit/
+      );
+
+      sinon.assert.calledWithMatch(mockSails.log.error, 'Failed to store legacy record audit for record-123');
     });
   });
 
@@ -4229,7 +4856,7 @@ describe('RecordsService', function () {
       expect(mockStorageService.updateMeta.firstCall.args[1]).to.equal(createOid);
       expect(mockStorageService.getMeta.calledWith(createOid)).to.equal(true);
       expect(mockSearchService.index.calledWith(createOid)).to.equal(true);
-      expect(mockQueueService.now.firstCall.args[1].redboxOid).to.equal(createOid);
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].redboxOid).to.equal(createOid);
     });
 
     it('ignores wrong and blank adapter OIDs on the bootstrap-safe create path', async function () {
@@ -4281,7 +4908,10 @@ describe('RecordsService', function () {
           ),
           JSON.stringify({ adapterOid })
         ).to.equal(true);
-        expect(mockQueueService.now.firstCall.args[1].redboxOid, JSON.stringify({ adapterOid })).to.equal(createOid);
+        expect(
+          mockStorageService.createRecordAudit.firstCall.args[0].redboxOid,
+          JSON.stringify({ adapterOid })
+        ).to.equal(createOid);
       }
     });
 
@@ -6877,7 +7507,12 @@ describe('RecordsService', function () {
               ],
             },
             onCreate: {
-              pre: [{ function: '(_oid, record, _options, _user, _response, context) => ({ ...record, metadata: { ...record.metadata, createHookOperation: context.operation } })' }],
+              pre: [
+                {
+                  function:
+                    '(_oid, record, _options, _user, _response, context) => ({ ...record, metadata: { ...record.metadata, createHookOperation: context.operation } })',
+                },
+              ],
             },
           },
           searchable: false,
@@ -7255,7 +7890,7 @@ describe('RecordsService', function () {
         expect(mockStorageService.updateMeta.firstCall.args[2].redboxOid).to.equal('route-create-oid');
         expect(mockStorageService.getMeta.calledWith('route-create-oid')).to.equal(true);
         expect(mockSearchService.index.calledWith('route-create-oid', sinon.match.object)).to.equal(true);
-        expect(mockQueueService.now.firstCall.args[1].redboxOid).to.equal('route-create-oid');
+        expect(mockStorageService.createRecordAudit.firstCall.args[0].redboxOid).to.equal('route-create-oid');
         expect((globalThis as any).__configuredCreateOids).to.deep.equal([
           ['pre', 'route-create-oid', 'route-create-oid'],
           ['postSync', 'route-create-oid', 'route-create-oid', 'route-create-oid'],
@@ -9359,8 +9994,9 @@ describe('RecordsService', function () {
             searchable: false,
             hooks: {
               onUpdate: {
-                pre: [{
-                  function: `async (oid, record) => {
+                pre: [
+                  {
+                    function: `async (oid, record) => {
                     if (!Array.isArray(record.metadata.workspaces)) {
                       await sails.services.triggerservice.validateFieldUsingRegex(oid, record, {
                         fieldDBName: 'metadata.workspaces',
@@ -9370,15 +10006,23 @@ describe('RecordsService', function () {
                     }
                     return record;
                   }`,
-                }],
+                  },
+                ],
               },
             },
           })
         );
 
         const result = await RecordsService.updateMeta(
-          { id: 'brand-1' }, 'record-123', stored, { username: 'user-1' }, true, false, {},
-          { metadata: rawDelta, mode: 'merge' }, createRecordSaveContext()
+          { id: 'brand-1' },
+          'record-123',
+          stored,
+          { username: 'user-1' },
+          true,
+          false,
+          {},
+          { metadata: rawDelta, mode: 'merge' },
+          createRecordSaveContext()
         );
 
         expect(result.outcome).to.equal('not-saved');
@@ -9414,8 +10058,15 @@ describe('RecordsService', function () {
       mockRecordValidationService.resolve.resolves(allowResult());
 
       const result = await RecordsService.updateMeta(
-        { id: 'brand-1' }, 'record-123', stored, { username: 'user-1' }, true, false, {},
-        { metadata: rawDelta, mode: 'merge' }, createRecordSaveContext()
+        { id: 'brand-1' },
+        'record-123',
+        stored,
+        { username: 'user-1' },
+        true,
+        false,
+        {},
+        { metadata: rawDelta, mode: 'merge' },
+        createRecordSaveContext()
       );
 
       expect(result.wasPersisted(), JSON.stringify(result)).to.equal(true);
@@ -10496,7 +11147,10 @@ describe('RecordsService', function () {
           mockRecordValidationService.resolve.callsFake(async request =>
             outcome === 'invalid-candidate' && request.phase === 'post-save' ? blockingResult() : allowResult()
           );
-          const actor = { username: 'user-1', roles: [{ name: outcome === 'unauthorized' ? 'Researcher' : 'Publisher' }] };
+          const actor = {
+            username: 'user-1',
+            roles: [{ name: outcome === 'unauthorized' ? 'Researcher' : 'Publisher' }],
+          };
           try {
             const result =
               operation === 'create'
@@ -10641,7 +11295,9 @@ describe('RecordsService', function () {
           const permitted = target === 'authorized';
           expect(result.outcome, JSON.stringify(result)).to.equal(permitted ? 'saved' : 'saved-with-warnings');
           expect(steps.get.calledWith(recordType, 'archived')).to.equal(true);
-          expect(mockStorageService.updateMeta.callCount).to.equal((operation === 'update' ? 1 : 0) + (permitted ? 2 : 0));
+          expect(mockStorageService.updateMeta.callCount).to.equal(
+            (operation === 'update' ? 1 : 0) + (permitted ? 2 : 0)
+          );
           const persisted = await mockStorageService.getMeta(result.oid);
           expect(persisted.workflow.stage).to.equal(permitted ? 'archived' : 'published');
           expect(persisted.metaMetadata.form).to.equal(permitted ? 'archived-form' : 'published-form');
@@ -11700,56 +12356,80 @@ describe('RecordsService', function () {
           recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
         });
         mockStorageService.getMeta.callsFake(async () => structuredClone(current));
-        mockStorageService.updateMeta.callsFake(async (
-          _brand: unknown,
-          oid: string,
-          candidate: Snapshot,
-          _user: unknown,
-          options: { precondition?: { expectedRevision?: number } }
-        ) => {
-          if (mockStorageService.updateMeta.callCount > 1) {
-            expect(options.precondition?.expectedRevision).to.equal(current.revision);
-          }
-          if (concurrentRevocation && mockStorageService.updateMeta.callCount === 3) {
-            current = {
-              ...current,
-              revision: current.revision + 1,
-              metadata: { ...current.metadata, concurrent: true },
+        mockStorageService.updateMeta.callsFake(
+          async (
+            _brand: unknown,
+            oid: string,
+            candidate: Snapshot,
+            _user: unknown,
+            options: { precondition?: { expectedRevision?: number } }
+          ) => {
+            if (mockStorageService.updateMeta.callCount > 1) {
+              expect(options.precondition?.expectedRevision).to.equal(current.revision);
+            }
+            if (concurrentRevocation && mockStorageService.updateMeta.callCount === 3) {
+              current = {
+                ...current,
+                revision: current.revision + 1,
+                metadata: { ...current.metadata, concurrent: true },
+              };
+              return { success: false, oid, applicationState: 'not-applied', nonApplicationReason: 'stale-revision' };
+            }
+            current = { ...structuredClone(candidate), redboxOid: oid, revision: current.revision + 1 };
+            return {
+              success: true,
+              oid,
+              applicationState: 'applied',
+              committedRevision: current.revision,
+              committedRecord: structuredClone(current),
             };
-            return { success: false, oid, applicationState: 'not-applied', nonApplicationReason: 'stale-revision' };
           }
-          current = { ...structuredClone(candidate), redboxOid: oid, revision: current.revision + 1 };
-          return {
-            success: true, oid, applicationState: 'applied', committedRevision: current.revision,
-            committedRecord: structuredClone(current),
-          };
-        });
+        );
         const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
         const steps = Reflect.get(globalThis, 'WorkflowStepsService') as { get: sinon.SinonStub };
         const nextStep = {
           name: 'published',
           config: {
-            form: 'published-form', workflow: { stage: 'published' },
+            form: 'published-form',
+            workflow: { stage: 'published' },
             authorization: { transitionRoles: ['Approver'], viewRoles: [], editRoles: [] },
           },
         };
         steps.get.returns(of(nextStep));
-        types.get.returns(of({
-          name: 'rdmp', searchable: false, concurrentModification: { mode: 'last-write-wins' },
-          hooks: {
-            onUpdate: {
-              postSync: [{ function: '(_oid, record) => ({ ...record, authorization: { edit: [], view: ["user-1"], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } })' }],
+        types.get.returns(
+          of({
+            name: 'rdmp',
+            searchable: false,
+            concurrentModification: { mode: 'last-write-wins' },
+            hooks: {
+              onUpdate: {
+                postSync: [
+                  {
+                    function:
+                      '(_oid, record) => ({ ...record, authorization: { edit: [], view: ["user-1"], editRoles: [], viewRoles: [], editPending: [], viewPending: [] } })',
+                  },
+                ],
+              },
+              onTransitionWorkflow: {
+                postSync: [
+                  { function: '(_oid, record) => ({ ...record, metadata: { ...record.metadata, approved: true } })' },
+                ],
+              },
             },
-            onTransitionWorkflow: {
-              postSync: [{ function: '(_oid, record) => ({ ...record, metadata: { ...record.metadata, approved: true } })' }],
-            },
-          },
-        }));
+          })
+        );
         mockRecordValidationService.resolve.resolves(allowResult());
         const actor = { username: 'user-1', roles: [{ name: 'Approver' }] };
         const result = await RecordsService.updateMeta(
-          { id: 'brand-1' }, 'record-123', baseRecord('Approved title'), actor, true, true, nextStep,
-          undefined, createRecordSaveContext({ routeFamily: 'browser', operation: 'transition', targetStep: 'published' })
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Approved title'),
+          actor,
+          true,
+          true,
+          nextStep,
+          undefined,
+          createRecordSaveContext({ routeFamily: 'browser', operation: 'transition', targetStep: 'published' })
         );
 
         expect(result.outcome, JSON.stringify(result)).to.equal(concurrentRevocation ? 'saved-with-warnings' : 'saved');
@@ -11758,16 +12438,23 @@ describe('RecordsService', function () {
         expect(current.workflow.stage).to.equal('published');
         expect(current.metaMetadata.form).to.equal('published-form');
         expect(current.authorization).to.deep.equal({
-          edit: [], view: ['user-1'], editRoles: [], viewRoles: [], editPending: [], viewPending: [],
+          edit: [],
+          view: ['user-1'],
+          editRoles: [],
+          viewRoles: [],
+          editPending: [],
+          viewPending: [],
         });
         expect(current.metadata).to.deep.equal({
           title: 'Approved title',
           ...(concurrentRevocation ? { concurrent: true } : { approved: true }),
         });
         if (concurrentRevocation) {
-          expect(result.problems.some((problem: RecordSaveProblem) =>
-            problem.issues?.some(issue => issue.code === 'record-revision-stale')
-          )).to.equal(true);
+          expect(
+            result.problems.some((problem: RecordSaveProblem) =>
+              problem.issues?.some(issue => issue.code === 'record-revision-stale')
+            )
+          ).to.equal(true);
         } else {
           // The postSync validator sees the current candidate and current
           // workflow, while edit authorization remains tied to this save's
@@ -11781,8 +12468,15 @@ describe('RecordsService', function () {
         const beforeReplay = structuredClone(current);
         const writes = mockStorageService.updateMeta.callCount;
         const replay = await RecordsService.updateMeta(
-          { id: 'brand-1' }, 'record-123', current, actor, true, true, nextStep,
-          undefined, createRecordSaveContext({ routeFamily: 'browser', operation: 'transition', targetStep: 'published' })
+          { id: 'brand-1' },
+          'record-123',
+          current,
+          actor,
+          true,
+          true,
+          nextStep,
+          undefined,
+          createRecordSaveContext({ routeFamily: 'browser', operation: 'transition', targetStep: 'published' })
         );
         expect(replay.outcome).to.equal('not-saved');
         expect(replay.problems[0].issues[0].code).to.equal('record-validation-edit-unauthorized');
@@ -11802,37 +12496,46 @@ describe('RecordsService', function () {
         recordConcurrency: RECORD_STORAGE_CONCURRENCY_CAPABILITY_VERSION,
       });
       mockStorageService.getMeta.callsFake(async () => structuredClone(current));
-      mockStorageService.updateMeta.callsFake(async (
-        _brand: unknown,
-        oid: string,
-        candidate: Snapshot,
-        _user: unknown,
-        options: { precondition?: { expectedRevision?: number } }
-      ) => {
-        if (mockStorageService.updateMeta.callCount > 1) {
-          expect(options.precondition?.expectedRevision).to.equal(current.revision);
+      mockStorageService.updateMeta.callsFake(
+        async (
+          _brand: unknown,
+          oid: string,
+          candidate: Snapshot,
+          _user: unknown,
+          options: { precondition?: { expectedRevision?: number } }
+        ) => {
+          if (mockStorageService.updateMeta.callCount > 1) {
+            expect(options.precondition?.expectedRevision).to.equal(current.revision);
+          }
+          current = { ...structuredClone(candidate), redboxOid: oid, revision: current.revision + 1 };
+          events.push(`persist:${current.revision}`);
+          return {
+            success: true,
+            oid,
+            applicationState: 'applied',
+            committedRevision: current.revision,
+            committedRecord: structuredClone(current),
+          };
         }
-        current = { ...structuredClone(candidate), redboxOid: oid, revision: current.revision + 1 };
-        events.push(`persist:${current.revision}`);
-        return {
-          success: true, oid, applicationState: 'applied', committedRevision: current.revision,
-          committedRecord: structuredClone(current),
-        };
-      });
+      );
       const types = Reflect.get(globalThis, 'RecordTypesService') as { get: sinon.SinonStub };
-      types.get.returns(of({
-        name: 'rdmp', searchable: false, concurrentModification: { mode: 'last-write-wins' },
-        hooks: {
-          onUpdate: {
-            postSync: [{ function: '(_oid, record) => record' }],
-            post: [{ function: '() => globalThis.__transitionNotificationEvents.push("update-post")' }],
+      types.get.returns(
+        of({
+          name: 'rdmp',
+          searchable: false,
+          concurrentModification: { mode: 'last-write-wins' },
+          hooks: {
+            onUpdate: {
+              postSync: [{ function: '(_oid, record) => record' }],
+              post: [{ function: '() => globalThis.__transitionNotificationEvents.push("update-post")' }],
+            },
+            onTransitionWorkflow: {
+              postSync: [{ function: '(_oid, record) => record' }],
+              post: [{ function: '(oid, record) => globalThis.__transitionNotificationAfterCommit(oid, record)' }],
+            },
           },
-          onTransitionWorkflow: {
-            postSync: [{ function: '(_oid, record) => record' }],
-            post: [{ function: '(oid, record) => globalThis.__transitionNotificationAfterCommit(oid, record)' }],
-          },
-        },
-      }));
+        })
+      );
       let notificationWrite: Promise<unknown> | undefined;
       Object.assign(globalThis, {
         __transitionNotificationEvents: events,
@@ -11841,7 +12544,8 @@ describe('RecordsService', function () {
           expect(record.revision).to.equal(4);
           expect(record.workflow.stage).to.equal('published');
           notificationWrite = RecordsService.updateNotificationLog(oid, record, {
-            logName: 'notification.log.submitted', saveRecord: true,
+            logName: 'notification.log.submitted',
+            saveRecord: true,
           });
           return notificationWrite;
         },
@@ -11851,21 +12555,34 @@ describe('RecordsService', function () {
       const nextStep = {
         name: 'published',
         config: {
-          form: 'published-form', workflow: { stage: 'published' },
+          form: 'published-form',
+          workflow: { stage: 'published' },
           authorization: { transitionRoles: ['Publisher'], viewRoles: [], editRoles: [] },
         },
       };
       try {
         const result = await RecordsService.updateMeta(
-          { id: 'brand-1' }, 'record-123', baseRecord('Submitted title'),
-          { username: 'user-1', roles: [{ name: 'Publisher' }] }, true, true, nextStep
+          { id: 'brand-1' },
+          'record-123',
+          baseRecord('Submitted title'),
+          { username: 'user-1', roles: [{ name: 'Publisher' }] },
+          true,
+          true,
+          nextStep
         );
         await new Promise(resolveImmediate => setImmediate(resolveImmediate));
         expect(result.outcome, JSON.stringify({ result, events })).to.equal('saved');
         expect(notificationWrite).not.to.equal(undefined);
         await notificationWrite;
 
-        expect(events).to.deep.equal(['persist:2', 'persist:3', 'persist:4', 'update-post', 'transition-post', 'persist:5']);
+        expect(events).to.deep.equal([
+          'persist:2',
+          'persist:3',
+          'persist:4',
+          'update-post',
+          'transition-post',
+          'persist:5',
+        ]);
         expect(current.workflow.stage).to.equal('published');
         expect(current.metadata.title).to.equal('Submitted title');
         expect(current.notification?.log?.submitted).to.have.length(1);
@@ -12002,8 +12719,11 @@ describe('RecordsService', function () {
 
       expect(bypassResult.outcome).to.equal('saved');
       expect(resolve.notCalled).to.equal(true);
-      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
-      const audit = mockStorageService.createRecordAudit.firstCall.args[0];
+      const bypassAudits = mockStorageService.createRecordAudit
+        .getCalls()
+        .filter(call => call.args[0].action === 'validation-bypassed');
+      expect(bypassAudits).to.have.length(1);
+      const audit = bypassAudits[0].args[0];
       expect(audit.action).to.equal('validation-bypassed');
       expect(audit.record.validationBypass).to.deep.include({
         mode: 'bypass',
@@ -12868,9 +13588,9 @@ describe('RecordsService', function () {
         expect(JSON.stringify(storedRecord)).not.to.include('executionId');
         expect(Object.keys(result)).not.to.include('executionSummary');
 
-        const auditSummary = mockQueueService.now
+        const auditSummary = mockStorageService.createRecordAudit
           .getCalls()
-          .map((call: any) => call.args[1]?.executionSummary)
+          .map((call: any) => call.args[0]?.executionSummary)
           .find((candidate: any) => candidate !== undefined);
         expect(auditSummary.completedThrough).to.equal('post-dispatch');
         expect(auditSummary.partial).to.equal(false);
@@ -12900,9 +13620,9 @@ describe('RecordsService', function () {
       expect(JSON.stringify(result)).not.to.include('secret pre failure');
     });
 
-    it('keeps a postSync failure persisted with warnings and queues its summary', async function () {
+    it('keeps a postSync failure persisted with warnings and persists its summary', async function () {
       mockStorageService.create.resetHistory();
-      mockQueueService.now.resetHistory();
+      mockStorageService.createRecordAudit.resetHistory();
       const result = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: { title: 'Warning' } },
@@ -12917,8 +13637,8 @@ describe('RecordsService', function () {
       expect(result.wasPersisted()).to.equal(true);
       expect(result.outcome).to.equal('saved-with-warnings');
       expect(result.problems[0].phase).to.equal('post-save');
-      expect(mockQueueService.now.calledOnce).to.equal(true);
-      const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+      expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+      const summary = mockStorageService.createRecordAudit.firstCall.args[0].executionSummary;
       expect(summary.completedThrough).to.equal('postSync');
       expect(summary.partial).to.equal(false);
       expect(summary.actions[0].status).to.equal('failed');
@@ -13006,8 +13726,8 @@ describe('RecordsService', function () {
       expect(JSON.stringify(mockSails.log.error.args)).not.to.include('detached secret');
     });
 
-    it('queues the terminal detached outcome instead of a dispatch-only audit result', async function () {
-      mockQueueService.now.resetHistory();
+    it('persists the terminal detached outcome instead of a dispatch-only audit result', async function () {
+      mockStorageService.createRecordAudit.resetHistory();
       const result = await RecordsService.create(
         { id: 'brand-1' },
         { metadata: { title: 'Detached audit' } },
@@ -13020,7 +13740,7 @@ describe('RecordsService', function () {
       await new Promise(resolve => setImmediate(resolve));
 
       expect(result.outcome).to.equal('saved');
-      const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+      const summary = mockStorageService.createRecordAudit.firstCall.args[0].executionSummary;
       expect(summary.completedThrough).to.equal('post-dispatch');
       expect(summary.counts.dispatched).to.equal(undefined);
       expect(summary.counts.failed).to.equal(1);
@@ -13030,7 +13750,7 @@ describe('RecordsService', function () {
 
     it('finalizes a detached audit after a bounded grace period and does so exactly once', async function () {
       const clock = sinon.useFakeTimers();
-      mockQueueService.now.resetHistory();
+      mockStorageService.createRecordAudit.resetHistory();
       mockSails.log.info.resetHistory();
       (globalThis as any).__resolvePendingDetached = undefined;
       try {
@@ -13054,14 +13774,14 @@ describe('RecordsService', function () {
         // The response and indexing path do not wait for the detached grace
         // period, and the unresolved Promise has not prevented submission yet.
         expect(result.outcome).to.equal('saved');
-        expect(mockQueueService.now.notCalled).to.equal(true);
+        expect(mockStorageService.createRecordAudit.notCalled).to.equal(true);
 
         await clock.tickAsync(1000);
         await Promise.resolve();
         await Promise.resolve();
 
-        expect(mockQueueService.now.calledOnce).to.equal(true);
-        const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+        expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
+        const summary = mockStorageService.createRecordAudit.firstCall.args[0].executionSummary;
         expect(summary.partial).to.equal(true);
         expect(summary.detachedFinalization).to.equal('grace-expired');
         expect(summary.detachedPending).to.equal(1);
@@ -13084,7 +13804,7 @@ describe('RecordsService', function () {
         (globalThis as any).__resolvePendingDetached?.();
         await Promise.resolve();
         await Promise.resolve();
-        expect(mockQueueService.now.calledOnce).to.equal(true);
+        expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
         expect(completedEvents).to.have.length(1);
       } finally {
         delete (globalThis as any).__resolvePendingDetached;
@@ -13146,8 +13866,8 @@ describe('RecordsService', function () {
       }
     });
 
-    it('passes execution summaries through the existing audit queue payload', async function () {
-      mockQueueService.now.resetHistory();
+    it('passes execution summaries through the direct audit payload', async function () {
+      mockStorageService.createRecordAudit.resetHistory();
       const summary = {
         schemaVersion: 1,
         executionId: 'execution-1',
@@ -13168,8 +13888,8 @@ describe('RecordsService', function () {
         summary
       );
 
-      expect(mockQueueService.now.firstCall.args[1].executionSummary).to.deep.equal(summary);
-      expect(mockQueueService.now.firstCall.args[1].record).not.to.have.property('executionSummary');
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].executionSummary).to.deep.equal(summary);
+      expect(mockStorageService.createRecordAudit.firstCall.args[0].record).not.to.have.property('executionSummary');
     });
 
     it('lets a custom RecordsService subclass inherit the core hook coordinator', async function () {
@@ -13229,7 +13949,7 @@ describe('RecordsService', function () {
     });
 
     it('writes a partial audit before detached post work starts', async function () {
-      mockQueueService.now.resetHistory();
+      mockStorageService.createRecordAudit.resetHistory();
       const recordType = {
         name: 'rdmp',
         searchable: false,
@@ -13246,7 +13966,7 @@ describe('RecordsService', function () {
       await new Promise(resolve => setImmediate(resolve));
 
       expect(result.success).to.equal(true);
-      const summary = mockQueueService.now.firstCall.args[1].executionSummary;
+      const summary = mockStorageService.createRecordAudit.firstCall.args[0].executionSummary;
       expect(summary.partial).to.equal(true);
       expect(summary.completedThrough).to.equal('persistence');
       expect(summary.actions.every((action: any) => action.phase !== 'post')).to.equal(true);
@@ -13852,8 +14572,8 @@ describe('RecordsService', function () {
         expect(result.requestId).to.equal(mockStorageService.updateMeta.firstCall.args[4].requestId);
         expect(result.concurrency).to.include({ mode, revision: 8, resolution: 'internal' });
         expect(mockSearchService.index.calledWith('internal-record-1', sinon.match({ revision: 8 }))).to.equal(true);
-        expect(mockQueueService.now.calledWith('RecordAudit')).to.equal(true);
-        expect(mockQueueService.now.lastCall.args[1].concurrency).to.deep.equal({
+        expect(mockStorageService.createRecordAudit.calledWithMatch({ action: 'updated' })).to.equal(true);
+        expect(mockStorageService.createRecordAudit.lastCall.args[0].concurrency).to.deep.equal({
           revision: 8,
           resolution: 'internal',
         });
