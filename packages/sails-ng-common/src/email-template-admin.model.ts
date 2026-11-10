@@ -1,3 +1,7 @@
+import type { EditorContextSchema, EditorDiagnostic, SchemaTarget, FieldCompleteness } from './schema-assist.model';
+
+export type EmailContextKind = 'record' | 'integration';
+
 /** Shared JSON contracts for the email template Admin application. */
 export interface EmailAdminContent {
   subject: string;
@@ -12,12 +16,10 @@ export interface EmailAdminActor {
   id: string;
   name: string;
 }
-export interface EmailAdminDiagnostic {
-  code: string;
+export interface EmailAdminDiagnostic extends EditorDiagnostic {
+  /** Fixed allow-list only; no source expressions leave the server. */
+  helper?: 'each' | 'if' | 'unless' | 'with';
   field: 'subject' | 'body' | 'context';
-  reason: string;
-  line: number;
-  column: number;
 }
 export interface EmailAdminChange {
   updatedBy: string | null;
@@ -52,6 +54,9 @@ export interface EmailAdminHelp {
 }
 export interface EmailAdminEditorState {
   templateId: string;
+  /** Omitted by older servers; defaults to record. */
+  contextKind?: EmailContextKind;
+  description?: string;
   suppliedDefault: EmailAdminContent;
   live: EmailAdminLive | null;
   draft: EmailAdminDraft | null;
@@ -65,7 +70,11 @@ export interface EmailAdminEditorState {
 }
 export interface EmailAdminCatalogueEntry extends EmailAdminChange {
   templateId: string;
-  description: string;
+  /** Omitted by older servers; defaults to record. */
+  contextKind?: EmailContextKind;
+  description?: string;
+  /** Supplied default subject, independent of the optional purpose description. */
+  subject: string;
   source: 'default' | 'override';
   liveVersion: number | null;
   latestVersion: number;
@@ -93,6 +102,8 @@ export interface EmailAdminPreview {
   subject: string;
   html?: string;
   text?: string;
+  /** Short-lived, session-bound same-origin URL; only present for HTML. */
+  frameUrl?: string;
   sanitiserRemovals: Array<{ element?: string; attribute?: string }>;
   diagnostics: EmailAdminDiagnostic[];
 }
@@ -117,9 +128,13 @@ export interface EmailAdminResetRequest {
 }
 export interface EmailAdminContentRequest {
   content: EmailAdminContent;
+  recordType?: string;
+  stage?: string;
 }
 export interface EmailAdminPreviewRequest extends EmailAdminContentRequest {
   context: string;
+  /** Integration subject semantics; omission preserves legacy override-subject behavior. */
+  source?: 'default' | 'override';
 }
 export interface EmailAdminDraftResponse {
   draft: EmailAdminDraft;
@@ -152,4 +167,19 @@ export interface EmailAdminValidationResponse {
 }
 export interface EmailAdminRecordContextResponse {
   context: Record<string, unknown>;
+}
+
+/** Compatibility names for existing email clients. */
+export type EmailContextSchema = EditorContextSchema;
+export type EmailSchemaTarget = SchemaTarget;
+export interface EmailSchemaTargetsResponse {
+  recordTypes: EmailSchemaTarget[];
+}
+export interface EmailContextSchemaResponse {
+  recordType: string;
+  stage: string;
+  contextKind?: EmailContextKind;
+  precision: 'record-schema' | 'form-config' | 'none' | 'integration';
+  completeness?: FieldCompleteness;
+  schema: EmailContextSchema;
 }

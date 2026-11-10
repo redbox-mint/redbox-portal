@@ -111,7 +111,7 @@ describe('Email template safety', () => {
     { label: 'implicit inverse remains uncertain', body: '{{#data}}x{{else}}{{unknown}}{{/data}}', valid: true, renders: false },
     { label: 'explicit root inside nested blocks', body: '{{#each record.metadata.people}}{{#with details}}{{@root.unknown}}{{/with}}{{/each}}', valid: false, renders: false },
     { label: 'subexpression block context remains uncertain', body: '{{#with (get record "metadata")}}{{unknown}}{{/with}}', valid: true, renders: false },
-    { label: 'subexpression arguments checked in outer context', body: '{{#with (get unknown "metadata")}}{{title}}{{/with}}', valid: false, renders: false },
+    { label: 'subexpression arguments checked in outer context', body: '{{#with (get unknown "metadata")}}{{title}}{{/with}}', valid: false, renders: true, output: '' },
     // Policy rejections: unknown top-level roots in helper/block arguments render as empty, but are rejected.
     { label: 'block arguments checked in outer context (policy)', body: '{{#each unknown}}{{this}}{{/each}}', valid: false, renders: true, output: '' },
     { label: 'conditional argument checked at top level (policy)', body: '{{#if unknown}}Y{{else}}N{{/if}}', valid: false, renders: true, output: 'N' },
@@ -268,7 +268,9 @@ describe('Email template safety', () => {
         assert.throws(() => validateEmailTemplate({ ...content('Body'), [field]: source }), (error: any) => {
           assert.ok(error instanceof EmailTemplateError);
           assert.equal(error.cause, undefined);
-          assert.deepEqual(Object.keys(error.diagnostic!).sort(), ['column', 'field', 'line', 'reason']);
+          assert.deepEqual(Object.keys(error.diagnostic!).sort(),
+            ['column', 'field', ...(error.diagnostic!.helper ? ['helper'] : []), 'line', 'reason']);
+          if (error.diagnostic!.helper) assert.ok(['each', 'if', 'unless', 'with'].includes(error.diagnostic!.helper));
           assert.ok(!inspect(error).includes('PRIVATE'));
           return true;
         });

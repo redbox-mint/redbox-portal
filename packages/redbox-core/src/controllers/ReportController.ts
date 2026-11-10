@@ -173,8 +173,10 @@ export namespace Controllers {
     public async previewConfig(req: Sails.Req, res: Sails.Res) {
       try {
         const brand = BrandingService.getBrand(req.session.branding as string);
-        const params = { param: (name: string) => req.param(name) as string | undefined | null };
-        return this.sendResp(req, res, { data: await ReportsService.previewConfig(brand, req.body, params), headers: this.getNoCacheHeaders() });
+        const params = { param: (name: string) => req.query?.[name] };
+        return this.sendResp(req, res, { data: await ReportsService.previewConfig(brand, req.body, params, {
+          portal: String(req.param('portal') ?? ''), caller: { brand, user: req.user } as unknown as import('../services/FormsService').FormRecordAccessContext
+        }), headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       } catch (error: unknown) {
         return this.sendReportConfigError(req, res, error);
       }

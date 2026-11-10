@@ -334,8 +334,18 @@ describe('The RecordsService', function () {
     const oid = String(createResponse.oid);
     createdOids.push(oid);
 
-    // A completed save exposes its audit immediately, without waiting for an Agenda worker.
-    const audits = await RecordAudit.find({ redboxOid: oid, action: 'created' });
+    // Save finalization writes the audit after detached hooks finish, without an Agenda worker.
+    const audits = await waitForJob(
+      (async () => {
+        const deadline = Date.now() + 10000;
+        while (Date.now() < deadline) {
+          const audits = await RecordAudit.find({ redboxOid: oid, action: 'created' });
+          if (audits.length > 0) return audits;
+          await new Promise(resolve => setTimeout(resolve, 25));
+        }
+        throw new Error('Timed out waiting for the created record audit');
+      })()
+    );
     expect(audits).to.have.length(1);
     expect(audits[0].action).to.equal('created');
     expect(audits[0].record.metadata.title).to.equal('RecordsService permission summary integration test');
@@ -620,24 +630,28 @@ describe('The RecordsService', function () {
     const oid = `records-service-restored-audit-${Date.now()}`;
     createdOids.push(oid);
     const brand = BrandingService.getDefault();
-    await DeletedRecord.create({
-      redboxOid: oid,
-      revision: 1,
-      lifecycleState: 'deleted',
-      deletedRecordMetadata: {
-        redboxOid: oid,
-        revision: 0,
-        metadata: { title: 'Restored record audit regression' },
-        metaMetadata: { brandId: brand.id, type: 'rdmp', form: 'default-1.0-draft', createdBy: 'admin' },
-        workflow: { stage: 'draft' },
-        authorization: { edit: ['admin'], view: ['admin'] },
-      },
-    });
     const actor = new UserModel();
     actor.username = 'admin';
     actor.password = 'restore-password';
     actor.token = 'restore-token';
     actor.lastLogin = new Date('2026-03-01T12:00:00Z');
+    const storage = sails.services[sails.config.storage.serviceName];
+    const created = await storage.create(
+      brand,
+      {
+        redboxOid: oid,
+        metadata: { title: 'Restored record audit regression' },
+        metaMetadata: { brandId: brand.id, type: 'rdmp', form: 'default-1.0-draft', createdBy: 'admin' },
+        workflow: { stage: 'draft' },
+        authorization: { edit: ['admin'], view: ['admin'] },
+      },
+      {},
+      actor
+    );
+    expect(created.success).to.equal(true);
+    // Use the lifecycle service so the tombstone owns the record's durable identity and revision.
+    const deleted = await recordsService.delete(oid, actor);
+    expect(deleted.wasPersisted(), JSON.stringify(deleted)).to.equal(true);
     const startedAt = Date.now();
 
     const response = await recordsService.restoreRecord(oid, actor);

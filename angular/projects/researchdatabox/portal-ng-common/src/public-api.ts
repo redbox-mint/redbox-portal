@@ -55,3 +55,11 @@ export * from './lib/admin-pager.component';
 export * from './lib/admin-save-shortcut.component';
 
 export * from './lib/formly-field-wrapper.component';
+export * from './lib/schema-assist/field-tree';
+export * from './lib/schema-assist/field-tree.component';
+export * from './lib/schema-assist/autocomplete.component';
+export * from './lib/schema-assist/code-editor.component';
+export * from './lib/schema-assist/caret-coordinates';
+export * from './lib/schema-assist/template-completion';
+export * from './lib/schema-assist/schema-target-selector.component';
+export * from './lib/schema-assist/latest-request';

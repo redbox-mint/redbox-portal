@@ -139,3 +139,12 @@ export * from './validation/validators-support';
 export * from './translation-html';
 
 export * from './email-template-admin.model';
+
+export * from './email-context-json';
+
+export * from './schema-assist.model';
+export * from './schema-utils';
+export * from './template-path';
+export * from './schema-fields';
+export * from './query-report-context';
+export * from './named-query-assist.model';

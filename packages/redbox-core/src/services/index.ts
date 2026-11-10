@@ -23,6 +23,8 @@ import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
 import * as EmailTemplateAdminServiceModule from './EmailTemplateAdminService';
 import * as EmailTemplateServiceModule from './EmailTemplateService';
+import * as NamedQueryEditorServiceModule from './NamedQueryEditorService';
+import * as FieldDescriptionsServiceModule from './FieldDescriptionsService';
 import * as FigshareServiceModule from './FigshareService';
 import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
 import * as FormVocabularyServiceModule from './FormVocabularyService';
@@ -83,6 +85,8 @@ export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
 export { EmailTemplateServiceModule as EmailTemplateService };
 export { EmailTemplateAdminServiceModule as EmailTemplateAdminService };
+export { NamedQueryEditorServiceModule as NamedQueryEditorService };
+export { FieldDescriptionsServiceModule as FieldDescriptionsService };
 export { FigshareServiceModule as FigshareService };
 export { FigshareVocabularyServiceModule as FigshareVocabularyService };
 export { FormVocabularyServiceModule as FormVocabularyService };
@@ -319,6 +323,16 @@ export const ServiceExports = {
   get RecordTypesService() {
     return getOrCreateService('RecordTypesService', () =>
       new RecordTypesServiceModule.Services.RecordTypes().exports()
+    );
+  },
+  get NamedQueryEditorService() {
+    return getOrCreateService('NamedQueryEditorService', () =>
+      new NamedQueryEditorServiceModule.Services.NamedQueryEditor().exports()
+    );
+  },
+  get FieldDescriptionsService() {
+    return getOrCreateService('FieldDescriptionsService', () =>
+      new FieldDescriptionsServiceModule.Services.FieldDescriptions().exports()
     );
   },
   get RecordSchemaService() {

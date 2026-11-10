@@ -55,6 +55,14 @@ form fingerprints, and the typed 409/412/428 response variants. Run both
 `npm run validate:api-routes` and `npm run docs:audit` after changing these
 contracts.
 
+The REST reference also describes the named-query editor's target discovery,
+field guidance, draft validation/description/preview and saved-query description
+routes, plus the report-owned query description and report validation/preview
+routes. Their descriptions distinguish advisory guidance from execution paths,
+list server-owned preview limits/refusals and explain `deadlineEnforced` for
+native record reads versus compatible saved custom queries. Regenerate the REST
+reference with `npm run doc:api` before composing it with `npm run docs:generate`.
+
 The TypeDoc reflection model is an internal intermediate under `.tmp/documentation-intermediate` and is not published.
 
 ## CI and publication

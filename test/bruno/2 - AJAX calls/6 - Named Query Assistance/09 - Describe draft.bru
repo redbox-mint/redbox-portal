@@ -1,0 +1,53 @@
+meta {
+  name: Named queries - Describe draft
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/describe
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "record",
+      "mongoQuery": {},
+      "queryParams": {
+        "createdAfter": {
+          "type": "date",
+          "path": "dateCreated",
+          "queryType": ">=",
+          "whenUndefined": "ignore"
+        }
+      },
+      "resultObjectMapping": {
+        "projectTitle": "record.metadata.title"
+      }
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Keeps mapping aliases and parameter keys", () => {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.parameters[0].key).to.equal("createdAfter");
+    expect(data.parameters[0].path).to.equal("dateCreated");
+    expect(data.result.fields.some(field => field.path === "metadata.projectTitle")).to.equal(true);
+  });
+}

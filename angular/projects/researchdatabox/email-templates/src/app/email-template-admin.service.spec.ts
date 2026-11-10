@@ -187,4 +187,39 @@ describe('EmailTemplateAdminService', () => {
     httpMock.expectOne(`${BASE}/templates/t1/history/2`).flush({ version: 2 });
     expect((await version).version).toBe(2);
   });
+  it('requests an integration schema by template without a record target', async () => {
+    const schema = service.contextSchema(undefined, undefined, 'integrationRecovery');
+    const request = httpMock.expectOne(r => r.url === `${BASE}/context-schema`);
+    expect(request.request.params.get('templateId')).toBe('integrationRecovery');
+    expect(request.request.params.has('recordType')).toBeFalse();
+    expect(request.request.params.has('stage')).toBeFalse();
+    request.flush({ recordType: '', stage: '', precision: 'integration', schema: { type: 'object' } });
+    expect((await schema).precision).toBe('integration');
+    const preview = service.preview('integrationRecovery', content, '{}', 'default');
+    const render = httpMock.expectOne(`${BASE}/templates/integrationRecovery/preview`);
+    expect(render.request.body).toEqual({ content, context: '{}', source: 'default' });
+    render.flush({ subject: 'Alert', text: 'Body', diagnostics: [], sanitiserRemovals: [] });
+    expect((await preview).subject).toBe('Alert');
+  });
+
+  it('loads targets and context schemas and includes the selected target only in validate', async () => {
+    const targets = service.schemaTargets();
+    httpMock.expectOne(`${BASE}/schema-targets`).flush({ recordTypes: [] });
+    expect(await targets).toEqual({ recordTypes: [] });
+    const schema = service.contextSchema('rdmp', 'draft');
+    const request = httpMock.expectOne(r => r.url === `${BASE}/context-schema`);
+    expect(request.request.params.get('recordType')).toBe('rdmp');
+    expect(request.request.params.get('stage')).toBe('draft');
+    request.flush({ recordType: 'rdmp', stage: 'draft', precision: 'form-config', schema: { type: 'object' } });
+    expect((await schema).precision).toBe('form-config');
+    const validate = service.validate('test', content, { recordType: 'rdmp', stage: 'draft' });
+    const validation = httpMock.expectOne(`${BASE}/templates/test/validate`);
+    expect(validation.request.body).toEqual({ content, recordType: 'rdmp', stage: 'draft' });
+    validation.flush({
+      diagnostics: [
+        { code: 'PRINTS_OBJECT', severity: 'warning', field: 'body', reason: 'PRINTS_OBJECT', line: 1, column: 3 },
+      ],
+    });
+    expect((await validate)[0].severity).toBe('warning');
+  });
 });

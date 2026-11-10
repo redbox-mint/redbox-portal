@@ -9,6 +9,8 @@ export const storage = {
       { key: { lastSaveDate: 1 } },
       { key: { lastSaveDate: -1 } },
       { key: { 'metaMetadata.brandId': 1 } },
+      // Email preview search scans one brand in stable OID order.
+      { key: { 'metaMetadata.brandId': 1, redboxOid: 1 } },
       { key: { 'metaMetadata.type': 1 } },
       { key: { 'metaMetadata.createdOn': 1 } },
       { key: { 'metaMetadata.createdOn': -1 } },

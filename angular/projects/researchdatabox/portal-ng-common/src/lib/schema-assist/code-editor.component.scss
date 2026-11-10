@@ -59,6 +59,11 @@ $pad-y: 8px;
     color: var(--bs-danger-text-emphasis);
     font-weight: 600;
   }
+
+  &.et-code-ln-warning {
+    color: var(--bs-warning-text-emphasis);
+    font-weight: 600;
+  }
 }
 
 .et-code-surface {
@@ -81,6 +86,13 @@ $pad-y: 8px;
   height: $line-height;
   background: var(--bs-danger-bg-subtle);
   box-shadow: inset 3px 0 0 var(--bs-danger);
+
+  // Advisory: a lighter wash and a dashed amber edge, distinct from errors without colour alone.
+  &.et-code-mark-warning {
+    background: rgba(var(--bs-warning-rgb), 0.12);
+    box-shadow: none;
+    border-left: 3px dashed rgba(var(--bs-warning-rgb), 0.9);
+  }
 }
 
 .et-code-input {

@@ -1,3 +1,10 @@
+import { QueryAssistanceModule } from '../query-assistance.module';
+import {
+  TranslationService as AssistanceTranslationService,
+  FieldTreeComponent,
+  SchemaTargetSelectorComponent,
+} from '@researchdatabox/portal-ng-common';
+import { of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +24,13 @@ describe('QueryParamEditorComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [QueryParamEditorComponent, I18NextPipeStub],
-      imports: [FormsModule]
+      providers: [
+        {
+          provide: AssistanceTranslationService,
+          useValue: { t: (v: string) => v, isInitializing: () => false, translationChanges$: of(undefined) },
+        },
+      ],
+      imports: [QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(QueryParamEditorComponent);
@@ -26,9 +39,16 @@ describe('QueryParamEditorComponent', () => {
 
   it('rebuilds entries on input change', () => {
     component.queryParams = {
-      p1: { type: 'string', path: 'a.b', whenUndefined: 'ignore' }
+      p1: { type: 'string', path: 'a.b', whenUndefined: 'ignore' },
     };
-    component.ngOnChanges({ queryParams: { currentValue: component.queryParams, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      queryParams: {
+        currentValue: component.queryParams,
+        previousValue: undefined,
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+    });
     expect(component.entries.length).toBe(1);
     expect(component.entries[0].key).toBe('p1');
   });
@@ -36,10 +56,14 @@ describe('QueryParamEditorComponent', () => {
   it('ignores change if same reference as last emitted', () => {
     const params = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' } };
     component.queryParams = params;
-    component.ngOnChanges({ queryParams: { currentValue: params, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      queryParams: { currentValue: params, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
     (component as any).lastEmitted = params;
     const before = component.entries.length;
-    component.ngOnChanges({ queryParams: { currentValue: params, previousValue: params, firstChange: false, isFirstChange: () => false } });
+    component.ngOnChanges({
+      queryParams: { currentValue: params, previousValue: params, firstChange: false, isFirstChange: () => false },
+    });
     expect(component.entries.length).toBe(before);
   });
 
@@ -59,7 +83,7 @@ describe('QueryParamEditorComponent', () => {
 
   it('adds a new param', () => {
     let emitted: Record<string, any> | undefined;
-    component.queryParamsChange.subscribe((v) => emitted = v);
+    component.queryParamsChange.subscribe(v => (emitted = v));
 
     component.startAdd();
     component.newParam.key = 'p2';
@@ -73,7 +97,7 @@ describe('QueryParamEditorComponent', () => {
 
   it('does not add param without key', () => {
     let emitted = false;
-    component.queryParamsChange.subscribe(() => emitted = true);
+    component.queryParamsChange.subscribe(() => (emitted = true));
 
     component.startAdd();
     component.newParam.key = '';
@@ -84,10 +108,17 @@ describe('QueryParamEditorComponent', () => {
 
   it('updates field and emits', () => {
     component.queryParams = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' } };
-    component.ngOnChanges({ queryParams: { currentValue: component.queryParams, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      queryParams: {
+        currentValue: component.queryParams,
+        previousValue: undefined,
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+    });
 
     let emitted: Record<string, any> | undefined;
-    component.queryParamsChange.subscribe((v) => emitted = v);
+    component.queryParamsChange.subscribe(v => (emitted = v));
 
     const entry = component.entries[0];
     component.onFieldChange(entry, 'path', 'new.path');
@@ -96,11 +127,21 @@ describe('QueryParamEditorComponent', () => {
   });
 
   it('removes a param', () => {
-    component.queryParams = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' }, p2: { type: 'number', path: 'b', whenUndefined: 'ignore' } };
-    component.ngOnChanges({ queryParams: { currentValue: component.queryParams, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.queryParams = {
+      p1: { type: 'string', path: 'a', whenUndefined: 'ignore' },
+      p2: { type: 'number', path: 'b', whenUndefined: 'ignore' },
+    };
+    component.ngOnChanges({
+      queryParams: {
+        currentValue: component.queryParams,
+        previousValue: undefined,
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+    });
 
     let emitted: Record<string, any> | undefined;
-    component.queryParamsChange.subscribe((v) => emitted = v);
+    component.queryParamsChange.subscribe(v => (emitted = v));
 
     component.expandedParam = 'p1';
     component.removeParam(component.entries[0]);
@@ -116,13 +157,25 @@ describe('QueryParamEditorComponent', () => {
 
   it('ignores ngOnChanges when queryParams is not in changes', () => {
     component.queryParams = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' } };
-    component.ngOnChanges({ someOtherInput: { currentValue: 'x', previousValue: undefined, firstChange: true, isFirstChange: () => true } } as any);
+    component.ngOnChanges({
+      someOtherInput: { currentValue: 'x', previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    } as any);
     expect(component.entries.length).toBe(0);
   });
 
   it('does not collapse expanded param when removing different param', () => {
-    component.queryParams = { p1: { type: 'string', path: 'a', whenUndefined: 'ignore' }, p2: { type: 'number', path: 'b', whenUndefined: 'ignore' } };
-    component.ngOnChanges({ queryParams: { currentValue: component.queryParams, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.queryParams = {
+      p1: { type: 'string', path: 'a', whenUndefined: 'ignore' },
+      p2: { type: 'number', path: 'b', whenUndefined: 'ignore' },
+    };
+    component.ngOnChanges({
+      queryParams: {
+        currentValue: component.queryParams,
+        previousValue: undefined,
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+    });
 
     component.expandedParam = 'p2';
     component.removeParam(component.entries[0]);

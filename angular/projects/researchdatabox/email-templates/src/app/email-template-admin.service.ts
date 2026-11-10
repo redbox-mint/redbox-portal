@@ -4,6 +4,8 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientService, ConfigService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { Observable, firstValueFrom } from 'rxjs';
 import type {
+  EmailContextSchemaResponse,
+  EmailSchemaTargetsResponse,
   EmailAdminCatalogueEntry,
   EmailAdminCatalogueResponse,
   EmailAdminContent,
@@ -21,7 +23,8 @@ import type {
   EmailAdminToken,
   EmailAdminValidationResponse,
 } from '@researchdatabox/sails-ng-common';
-import { EmailTemplateApiError } from './email-templates.model';
+import type { SchemaSelection } from './schema-selection';
+import { EmailTemplateApiError, type EmailPreviewWorkspace } from './email-templates.model';
 
 /**
  * Email Template Admin Service
@@ -32,6 +35,23 @@ import { EmailTemplateApiError } from './email-templates.model';
  */
 @Injectable()
 export class EmailTemplateAdminService extends HttpClientService {
+  /** Per-app, per-template UI state; never sent as template configuration. */
+  readonly previewWorkspaces = new Map<string, EmailPreviewWorkspace>();
+  readonly schemaSelections = new Map<string, SchemaSelection>();
+  readonly heldEdits = new Map<string, { content: EmailAdminContent; conflict: EmailTemplateApiError | null }>();
+
+  public schemaTargets(): Promise<EmailSchemaTargetsResponse> {
+    return this.get<EmailSchemaTargetsResponse>(`${this.base}/schema-targets`);
+  }
+
+  public contextSchema(recordType?: string, stage?: string, templateId?: string): Promise<EmailContextSchemaResponse> {
+    let params = new HttpParams();
+    if (recordType) params = params.set('recordType', recordType);
+    if (templateId) params = params.set('templateId', templateId);
+    if (stage) params = params.set('stage', stage);
+    return this.get<EmailContextSchemaResponse>(`${this.base}/context-schema`, params);
+  }
+
   constructor(
     @Inject(HttpClient) http: HttpClient,
     @Inject(APP_BASE_HREF) rootContext: string,
@@ -140,10 +160,15 @@ export class EmailTemplateAdminService extends HttpClientService {
    * Validate editor content. A 400 carrying diagnostics is an expected
    * outcome, so it resolves with those diagnostics instead of throwing.
    */
-  public async validate(templateId: string, content: EmailAdminContent): Promise<EmailAdminDiagnostic[]> {
+  public async validate(
+    templateId: string,
+    content: EmailAdminContent,
+    selection?: SchemaSelection | null
+  ): Promise<EmailAdminDiagnostic[]> {
     try {
       const response = await this.post<EmailAdminValidationResponse>(this.template(templateId, '/validate'), {
         content,
+        ...(selection ?? {}),
       });
       return response.diagnostics;
     } catch (error) {
@@ -155,8 +180,17 @@ export class EmailTemplateAdminService extends HttpClientService {
   }
 
   /** Render a preview. `context` is the JSON text from the editor, sent as a string. */
-  public preview(templateId: string, content: EmailAdminContent, context: string): Promise<EmailAdminPreview> {
-    return this.post<EmailAdminPreview>(this.template(templateId, '/preview'), { content, context });
+  public preview(
+    templateId: string,
+    content: EmailAdminContent,
+    context: string,
+    source?: 'default' | 'override'
+  ): Promise<EmailAdminPreview> {
+    return this.post<EmailAdminPreview>(this.template(templateId, '/preview'), {
+      content,
+      context,
+      ...(source ? { source } : {}),
+    });
   }
 
   public searchRecords(query: string, page = 1): Promise<EmailAdminRecordSearch> {

@@ -52,6 +52,11 @@ const publicTranslationPolicies: PolicyName[] = [
 
 const noCachePlusCspNoncePolicy: PolicyName[] = ['noCache', 'contentSecurityPolicy'];
 
+// Check browser authentication before bearer middleware assigns req.user.
+const namedQueryMutationPolicies = noCachePlusApiValidationPolicies.flatMap(policy =>
+  policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
+);
+
 export function buildContractApiPolicies(
   apiRoutes: readonly ApiRouteDefinition[] = registerCoreApiRoutes()
 ): PoliciesConfig {
@@ -60,7 +65,14 @@ export function buildContractApiPolicies(
     acc[route.controller] = {
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
-      [route.action]: noCachePlusApiValidationPolicies,
+      [route.action]:
+        route.controller === 'webservice/NamedQueryController' &&
+        ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
+          ? namedQueryMutationPolicies
+          : route.controller === 'webservice/ReportController' &&
+              ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action)
+            ? namedQueryMutationPolicies
+            : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);
@@ -92,6 +104,9 @@ const recordSchemaControllerPolicies = contractApiPolicies['webservice/RecordSch
 export const policies: PoliciesConfig = {
   EmailTemplateAdminController: {
     '*': ['noCache', 'emailTemplateAdmin', ...defaultPolicies],
+    // The page follows the portal's normal sign-in flow (checkAuth redirects to login);
+    // the Admin check still runs afterwards. JSON endpoints keep the early typed 403.
+    page: ['noCache', ...defaultPolicies, 'emailTemplateAdmin'],
   },
   UserController: {
     '*': noCachePlusDefaultPolicies,
