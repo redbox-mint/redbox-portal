@@ -41,6 +41,60 @@ export interface EmailRenderContext {
   format?: string;
 }
 
+export function curateEmailRecordData(data: Record<string, unknown>): Record<string, unknown> {
+  const prepared = { ...data };
+  const raw = data.record as Record<string, unknown> | undefined;
+  if (raw && typeof raw === 'object') {
+    // Explicitly construct display data: no authorization, storage, version or form internals.
+    const meta = (raw.metaMetadata ?? {}) as Record<string, unknown>;
+    const workflow = (raw.workflow ?? {}) as Record<string, unknown>;
+    prepared['record'] = {
+      oid: data.oid ?? raw.oid ?? raw.redboxOid ?? '',
+      metadata: _.cloneDeep(raw.metadata ?? {}),
+      lastSaveDate: raw.lastSaveDate,
+      dateCreated: raw.dateCreated,
+      workflow: _.pick(workflow, ['stage', 'stageLabel']),
+      metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
+    };
+    prepared['oid'] = (prepared['record'] as Record<string, unknown>).oid;
+  }
+  // Retain the legacy alias without leaving a second copy of the full record reachable.
+  if (data.imports) prepared['imports'] = { record: prepared['record'], oid: prepared['oid'] };
+  return prepared;
+}
+
+// Content/context overrides exist only for response objects created by this internal
+// admin helper. No data/context property, send argument or notification input can select them.
+const adminPreviewRequests = new WeakMap<Record<string, unknown>, {
+  content: { subject: string; body: string; format: 'html' | 'text' }; data: Record<string, unknown>;
+  // Content-free marker of which field was rendering when a preview failed.
+  failedField?: 'subject' | 'body';
+}>();
+
+/** Internal service-to-service preview seam, deliberately absent from EmailService.exports(). */
+export async function renderEmailAdminPreview(email: Pick<Services.Email, 'buildFromTemplateAsync'>,
+  templateId: string, content: { subject: string; body: string; format: 'html' | 'text' }, data: Record<string, unknown>) {
+  const response: Record<string, unknown> = {};
+  const request: { content: typeof content; data: Record<string, unknown>; failedField?: 'subject' | 'body' } =
+    { content: { ...content }, data };
+  adminPreviewRequests.set(response, request);
+  try {
+    // Hooks still run, including post-render processing. Their pre-render additions
+    // cannot replace edited display values or widen the filtered submitted context.
+    const result = await email.buildFromTemplateAsync(templateId, structuredClone(data), response);
+    if (result['status'] !== 200 || typeof result['subject'] !== 'string' || typeof result['body'] !== 'string') {
+      const failure = result['ex'] instanceof EmailTemplateError ? result['ex']
+        : new EmailTemplateError('RENDER_FAILED', 'Unable to render email preview.');
+      if (failure.code === 'RENDER_FAILED' && request.failedField) {
+        throw new EmailTemplateError('RENDER_FAILED', failure.message, undefined,
+          { field: request.failedField, reason: 'INVALID_SYNTAX', line: 1, column: 1 });
+      }
+      throw failure;
+    }
+    return result;
+  } finally { adminPreviewRequests.delete(response); }
+}
+
 export namespace Services {
   /**
    *
@@ -54,6 +108,7 @@ export namespace Services {
       'buildFromTemplate',
       'buildFromTemplateAsync',
       'validateExposedConfig',
+      'buildPreviewContext',
       'sendTemplate',
       'sendRecordNotification',
       'evaluateProperties',
@@ -62,6 +117,8 @@ export namespace Services {
 
     // Keep the three-argument async hook seam intact. Hooks (including SCU) pass
     // the response object to super after adding display values to data.
+    private previewContextRequests = new WeakMap<Record<string, unknown>, EmailRenderContext>();
+
     private renderContexts = new WeakMap<Record<string, unknown>, EmailRenderContext>();
 
     // Preserve trusted brand display context during address/string rendering,
@@ -169,25 +226,7 @@ export namespace Services {
         portalName,
       };
       const prepared: Record<string, unknown> = { ...data, sailsConfig, portal };
-      if (curateRecord) {
-        const raw = data.record as Record<string, unknown> | undefined;
-        if (raw && typeof raw === 'object') {
-          // Explicitly construct display data: no authorization, storage, version or form internals.
-          const meta = (raw.metaMetadata ?? {}) as Record<string, unknown>;
-          const workflow = (raw.workflow ?? {}) as Record<string, unknown>;
-          prepared['record'] = {
-            oid: data.oid ?? raw.oid ?? raw.redboxOid ?? '',
-            metadata: _.cloneDeep(raw.metadata ?? {}),
-            lastSaveDate: raw.lastSaveDate,
-            dateCreated: raw.dateCreated,
-            workflow: _.pick(workflow, ['stage', 'stageLabel']),
-            metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
-          };
-          prepared['oid'] = (prepared['record'] as Record<string, unknown>).oid;
-        }
-        // Retain the legacy alias without leaving a second copy of the full record reachable.
-        if (data.imports) prepared['imports'] = { record: prepared['record'], oid: prepared['oid'] };
-      }
+      if (curateRecord) Object.assign(prepared, curateEmailRecordData({ ...data, sailsConfig, portal }));
       this.renderDataContexts.set(prepared, { ...context });
       return prepared;
     }
@@ -355,9 +394,17 @@ export namespace Services {
      */
     public async buildFromTemplateAsync(templateName: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        const context = this.renderContexts.get(res);
-        data = this.createRenderData(data, context);
-        const template = context?.brandId !== undefined
+        const preview = adminPreviewRequests.get(res);
+        const capture = this.previewContextRequests.get(res);
+        const context = capture ?? this.renderContexts.get(res);
+        data = preview ? preview.data : this.createRenderData(data, context);
+        if (capture) {
+          // This branch runs AFTER hook overrides inject display values, before any compile or send.
+          res['context'] = data;
+          res['status'] = 200;
+          return res;
+        }
+        const template = preview ? { ...preview.content, source: 'override' as const, fileName: undefined, revision: undefined } : context?.brandId !== undefined
           ? await EmailTemplateService.resolve(templateName, context.brandId)
           : readEmailTemplateDefault(templateName);
         const selected = {
@@ -368,6 +415,7 @@ export namespace Services {
         validateEmailTemplate(selected as Parameters<typeof validateEmailTemplate>[0], false);
         // DB compilation is deliberately uncached. Every send queries storage;
         // revision updates and delete/recreate cycles are visible on all workers.
+        if (preview) preview.failedField = 'body';
         const body = template.source === 'override'
           ? handlebarsCompile(template.body, { strict: true })(data)
           : this.getCompiledTemplate(template.fileName ?? templateName)(data);
@@ -376,7 +424,9 @@ export namespace Services {
         res['status'] = 200;
         res['body'] = body;
         // Direct legacy body-only calls need not supply subject display values.
-        if (context) res['subject'] = hardenEmailSubject(this.runTemplate(selected.subject, data));
+        if (preview) preview.failedField = 'subject';
+        if (context || preview) res['subject'] = hardenEmailSubject(preview ? handlebarsCompile(selected.subject, { strict: true })(data) : this.runTemplate(selected.subject, data));
+        if (preview) preview.failedField = undefined;
         res['format'] = selected.format;
         res['source'] = template.source;
         res['revision'] = template.revision;
@@ -402,6 +452,15 @@ export namespace Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
+    public async buildPreviewContext(templateName: string, data: Record<string, unknown>, brandId: string): Promise<Record<string, unknown>> {
+      const response: Record<string, unknown> = {};
+      this.previewContextRequests.set(response, { brandId });
+      // Same virtual method dispatch and pre-curation as buildFromTemplate; SCU's override runs here.
+      const result = await this.buildFromTemplateAsync(templateName, this.createRenderData(data, { brandId }), response);
+      if (result['status'] !== 200) throw result['ex'] ?? new EmailTemplateError('RENDER_FAILED', 'Unable to prepare preview context.');
+      return result['context'] as Record<string, unknown>;
+    }
+
     public buildFromTemplate(template: string, data: Record<string, unknown> = {}, context?: EmailRenderContext): Observable<Record<string, unknown>> {
       // Deferred so render-data errors surface through the Observable, not
       // synchronously. Each subscription renders into its own response object.

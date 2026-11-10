@@ -32,6 +32,12 @@ export class EmailTemplateClass {
   public revision!: number;
 
   @Attr({ type: 'string' })
+  public defaultHash?: string;
+
+  @Attr({ type: 'string' })
+  public updatedByName?: string;
+
+  @Attr({ type: 'string' })
   public updatedBy?: string;
 
   @Attr({ type: 'string', autoCreatedAt: true })
@@ -51,6 +57,8 @@ export interface EmailTemplateAttributes extends Sails.WaterlineAttributes {
   body: string;
   format: 'html' | 'text';
   revision: number;
+  defaultHash?: string;
+  updatedByName?: string;
   updatedBy?: string;
   createdAt: string;
   updatedAt: string;

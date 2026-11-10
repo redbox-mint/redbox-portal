@@ -18,4 +18,4 @@ mkdir -p /opt/redbox-portal/.tmp/playwright/storage
 
 rm -f /opt/redbox-portal/.tmp/junit/backend-playwright/backend-playwright.xml || true
 
-node_modules/.bin/playwright test
+node_modules/.bin/playwright test "$@"

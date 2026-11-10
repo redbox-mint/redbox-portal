@@ -1,0 +1,34 @@
+meta {
+  name: Email templates - Editor state
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Returns defaults and validator-generated help", () => {
+    expect(res.getStatus()).to.equal(200);
+    const state = res.getBody();
+    expect(state.help.contextRoots).to.include("record");
+    expect(state.help.helpers).to.include("if");
+    bru.setVar("emailAdminDraftRevision", state.draft ? state.draft.draftRevision : null);
+    bru.setVar("emailAdminLiveToken", JSON.stringify(state.live ? state.live.token : null));
+  });
+}
