@@ -97,7 +97,7 @@
     "node-schedule": "2.1.2",
     "nodemailer": "10.2.1",
     "numeral": "2.0.6",
-    "openid-client": "6.8.8",
+    "openid-client": "6.8.9",
     "passport": "0.7.0",
     "passport-http-bearer": "1.0.1",
     "passport-jwt": "4.0.1",
