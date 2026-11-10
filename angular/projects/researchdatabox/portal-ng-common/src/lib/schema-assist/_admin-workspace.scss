@@ -8,6 +8,39 @@
   margin-bottom: 24px;
 }
 
+// The theme's global `code` style is brand red on pink. Inside the editors,
+// paths and keys appear everywhere, so keep them neutral and readable.
+.rb-ws,
+.nq-panel-card,
+.report-config-app {
+  code {
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-emphasis-color);
+    font-size: 0.875em;
+    overflow-wrap: anywhere;
+  }
+}
+
+// Preview result cells: plain text, with structured values in a muted,
+// height-limited monospace block so wide JSON doesn't dominate the table.
+.rb-ws-cell {
+  overflow-wrap: anywhere;
+}
+
+.rb-ws-cell-json {
+  display: block;
+  max-height: 7.5em;
+  overflow: auto;
+  font-family: var(--bs-font-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--bs-secondary-color);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .rb-ws-header {
   display: flex;
   flex-wrap: wrap;
