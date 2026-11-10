@@ -31,6 +31,7 @@ import { DataValueFormConfigVisitor } from "../visitor/data-value.visitor";
 import { JsonTypeDefSchemaFormConfigVisitor } from "../visitor/json-type-def.visitor";
 import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
+import { projectViewMetadata } from '../ViewFormMetadata';
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
@@ -154,6 +155,11 @@ export namespace Services {
                 redboxOid: original?.redboxOid ?? "",
                 metadata: this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
             }
+        }
+
+        /** Saved values for the fields in a view form that has already passed the role and mode checks. */
+        public metadataForViewForm(metadata: Record<string, unknown>, viewForm: FormConfigFrame): Record<string, unknown> {
+            return projectViewMetadata(metadata, viewForm);
         }
 
         /**
