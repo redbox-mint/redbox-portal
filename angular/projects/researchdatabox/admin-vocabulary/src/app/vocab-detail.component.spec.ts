@@ -233,4 +233,20 @@ describe('VocabDetailComponent', () => {
     component.togglePreviewNode(root);
     expect(component.isPreviewNodeCollapsed(root)).toBeFalse();
   });
+  it('disables read-only fields and hides entry mutations', () => {
+    component.readOnly = true;
+    component.draft.entries = [{ id: 'a', label: 'One', value: 'one' }, { id: 'b', label: 'Two', value: 'two' }];
+    const original = JSON.stringify(component.draft);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#vocab-name').matches(':disabled')).toBeTrue();
+    expect(fixture.nativeElement.textContent).not.toContain('admin-vocabulary-add-entry');
+    expect(fixture.nativeElement.querySelector('tbody .btn-outline-danger')).toBeNull();
+    component.addEntry();
+    component.moveEntryDown(0);
+    component.moveEntryUp(1);
+    component.requestRemoveEntry(0);
+    expect(JSON.stringify(component.draft)).toBe(original);
+    expect(component.isRemoveEntryModalOpen).toBeFalse();
+  });
+
 });

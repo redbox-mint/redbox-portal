@@ -1,6 +1,6 @@
 <div class="card">
-  <div class="card-header"><h2>{{ 'figshare-vocab-tab-sources' | i18next }}</h2><span>{{ total }}</span></div>
-  <div class="rb-admin-filter-bar">
+  <div class="card-header"><h2>{{ 'figshare-vocab-tab-sources' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ filteredItems.length | adminCount: 'source': total }}</span></div>
+  <div *ngIf="total > 0 || search || scopeFilter" class="rb-admin-filter-bar">
     <div class="rb-admin-field">
       <label class="form-label" for="figshare-source-scope-filter">{{
         'figshare-vocab-scope-filter-label' | i18next
@@ -17,12 +17,13 @@
       </select>
     </div>
     <div class="rb-admin-field rb-admin-field-grow"><label for="figshare-sources-search">{{ 'admin-lookups-search' | i18next }}</label><input id="figshare-sources-search" [placeholder]="'admin-figshare-search-sources' | i18next" type="search" class="form-control" [(ngModel)]="search" /></div>
+  <button *ngIf="search || scopeFilter" type="button" class="btn rb-admin-ghost" (click)="search = ''; onScopeFilter('')">{{ 'admin-report-clear' | i18next }}</button>
   </div>
 
   @if (loading) {
   <p class="text-muted mb-0" role="status">{{ 'figshare-vocab-loading' | i18next }}</p>
   } @else if (filteredItems.length === 0) {
-  <div class="rb-admin-empty"><i class="fa fa-list fa-3x" aria-hidden="true"></i><h3>{{ (sources.length ? 'figshare-vocab-no-matching-sources' : 'figshare-vocab-sources-empty-title') | i18next }}</h3><p>{{ 'figshare-vocab-sources-empty-help' | i18next }}</p><button type="button" class="btn btn-primary" (click)="addRequested.emit()"><span aria-hidden="true">+</span> {{ 'figshare-vocab-add-action' | i18next }}</button> <a class="btn rb-admin-ghost" href="#figshare-explainer">{{ 'figshare-vocab-how-crosswalks-work' | i18next }}</a></div>
+  <div class="rb-admin-empty"><i class="fa fa-list fa-3x" aria-hidden="true"></i><h3>{{ (sources.length ? 'figshare-vocab-no-matching-sources' : 'figshare-vocab-sources-empty-title') | i18next }}</h3><p>{{ 'figshare-vocab-sources-empty-help' | i18next }}</p><button type="button" class="btn btn-primary" (click)="addRequested.emit()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'figshare-vocab-add-action' | i18next }}</button> <a class="btn rb-admin-ghost" href="#figshare-explainer">{{ 'figshare-vocab-how-crosswalks-work' | i18next }}</a></div>
   } @else {
   <div class="table-responsive"><table class="table table-hover">
     <caption class="visually-hidden">{{ 'figshare-vocab-source-table-caption' | i18next }}</caption>
@@ -33,7 +34,7 @@
         <th scope="col">{{ 'figshare-vocab-source-column-last-sync' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-schedule' | i18next }}</th>
         <th scope="col">{{ 'figshare-vocab-source-column-status' | i18next }}</th>
-        <th scope="col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
+        <th scope="col" class="rb-admin-actions-col">{{ 'figshare-vocab-source-column-actions' | i18next }}</th>
       </tr>
     </thead>
     <tbody>
@@ -60,9 +61,9 @@
           <span class="badge rb-admin-badge-primary">{{ 'figshare-vocab-status-current' | i18next }}</span>
           }
         </td>
-        <td>
+        <td class="rb-admin-actions-col">
 <div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="editRequested.emit(source)">{{ 'figshare-vocab-action-edit' | i18next }}</button><button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="resyncRequested.emit(source)">{{ 'figshare-vocab-action-resync' | i18next }}</button>
-        <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-lookups-more-actions' | i18next">⋯</summary><div>
+        <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: source.displayName }">⋯</summary><div>
           <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="isBusy(source)" (click)="cloneRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-clone' | i18next }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" (click)="historyRequested.emit(source); actions.open = false">{{ 'figshare-vocab-action-history' | i18next }}</button>
         </div></details></div>
@@ -78,4 +79,5 @@
     </tbody>
   </table></div>
   }
+  <rb-admin-list-footer [total]="filteredItems.length" [end]="filteredItems.length"></rb-admin-list-footer>
 </div>

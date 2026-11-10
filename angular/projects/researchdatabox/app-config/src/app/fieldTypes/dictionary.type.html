@@ -1,19 +1,21 @@
-<div class="app-config-dictionary">
+<div class="app-config-dictionary" [id]="id + '-dictionary'">
   @if (props.label && !props['flat']) { <h4>{{ props.label }}</h4> }
   @if (props.description) { <p class="rb-admin-hint">{{ props.description }}</p> }
   @if (!field.fieldGroup?.length) {
     <div class="rb-admin-empty"><p>{{ 'admin-config-dictionary-empty' | i18next }}</p></div>
   }
   @for (child of field.fieldGroup; track child; let i = $index) {
-    <details class="app-config-dictionary-entry" [open]="child.props?.['entryExpanded']" (toggle)="child.props!['entryExpanded'] = $any($event.target).open">
-      <summary><strong>{{ entryKey(child) }}</strong><span class="rb-admin-hint">{{ summary(child) }}</span>@if (child.formControl?.invalid) { <span class="badge rb-admin-badge-warning">{{ 'admin-config-dictionary-check' | i18next }}</span> }<span class="app-config-dictionary-toggle">{{ (child.props?.['entryExpanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!child.props?.['entryExpanded']" [class.fa-angle-up]="child.props?.['entryExpanded']" aria-hidden="true"></i></span></summary>
+    <details class="app-config-dictionary-entry" [open]="child.props?.['entryExpanded']" (toggle)="toggleEntry(child, $event)">
+      <summary><strong class="rb-admin-mono">{{ entryKey(child) }}</strong><span class="rb-admin-hint rb-admin-mono">{{ summary(child) }}</span>@if (child.formControl?.invalid) { <span class="badge rb-admin-badge-warning">{{ 'admin-config-dictionary-check' | i18next }}</span> }<span class="app-config-dictionary-toggle">{{ (child.props?.['entryExpanded'] ? 'admin-config-collapse' : 'admin-config-expand') | i18next }} <i class="fa" [class.fa-angle-down]="!child.props?.['entryExpanded']" [class.fa-angle-up]="child.props?.['entryExpanded']" aria-hidden="true"></i></span></summary>
+      @if (child.props?.['entryExpanded'] || child.props?.['entryRendered']) {
       <div class="app-config-dictionary-body">
         <div class="rb-admin-field">
           <label [for]="id + '-key-' + i">{{ 'admin-config-dictionary-key' | i18next }}</label>
           <div class="d-flex gap-2">
-            <input class="form-control" [id]="id + '-key-' + i" [value]="child.props?.['keyDraft'] ?? entryKey(child)" [disabled]="props.disabled || fixed(entryKey(child))"
+            <input class="form-control rb-admin-mono" [id]="id + '-key-' + i" [value]="child.props?.['keyDraft'] ?? entryKey(child)" [disabled]="props.disabled || fixed(entryKey(child))"
               [class.is-invalid]="child.props?.['keyDraft'] !== undefined && error(child.props!['keyDraft'], entryKey(child))"
-              [attr.aria-describedby]="id + '-error-' + i" (change)="rename(child, $any($event.target).value)" (input)="child.props!['keyDraft'] = $any($event.target).value; draftChanged()">
+              [attr.aria-invalid]="child.props?.['keyDraft'] !== undefined && !!error(child.props!['keyDraft'], entryKey(child))"
+              [attr.aria-describedby]="child.props?.['keyDraft'] !== undefined && error(child.props!['keyDraft'], entryKey(child)) ? id + '-error-' + i : null" (change)="rename(child, $any($event.target).value)" (input)="child.props!['keyDraft'] = $any($event.target).value; draftChanged()">
             <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="props.disabled" (click)="startAdd(child)">{{ 'admin-config-dictionary-duplicate' | i18next }}</button>
             <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="props.disabled || fixed(entryKey(child))" (click)="requestRemove(child, $event)">{{ 'admin-config-dictionary-remove' | i18next }}</button>
           </div>
@@ -21,12 +23,13 @@
         </div>
         <formly-field [field]="child"></formly-field>
       </div>
+      }
     </details>
   }
   @if (adding) {
     <div class="app-config-dictionary-add">
       <label [for]="id + '-new-key'">{{ 'admin-config-dictionary-new-key' | i18next }}</label>
-      <input class="form-control" [id]="id + '-new-key'" [value]="newKey" (input)="newKey = $any($event.target).value; draftChanged()" (keydown.enter)="$event.preventDefault(); add()" [class.is-invalid]="!!error(newKey)" [attr.aria-describedby]="id + '-new-error'">
+      <input class="form-control rb-admin-mono" [id]="id + '-new-key'" [value]="newKey" (input)="newKey = $any($event.target).value; draftChanged()" (keydown.enter)="$event.preventDefault(); add()" [class.is-invalid]="!!error(newKey)" [attr.aria-invalid]="!!error(newKey)" [attr.aria-describedby]="error(newKey) ? id + '-new-error' : null">
       @if (error(newKey); as message) { <p class="invalid-feedback d-block" role="alert" [id]="id + '-new-error'">{{ message | i18next }} @if (message === 'admin-config-dictionary-key-pattern') { <code>{{ patternHint }}</code> }</p> }
       <div class="d-flex gap-2 mt-2">
         <button type="button" class="btn btn-sm btn-primary" [disabled]="!!error(newKey)" (click)="add()">{{ 'admin-config-dictionary-add' | i18next }}</button>
@@ -37,9 +40,9 @@
     <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="props.disabled" [id]="id + '-add-entry'" (click)="startAdd()">+ {{ 'admin-config-dictionary-add' | i18next }}</button>
   }
   @if (pendingRemove) {
-    <div class="modal d-block" role="dialog" aria-modal="true" [attr.aria-labelledby]="id + '-remove-title'" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelRemove()">
+    <div class="modal d-block" role="dialog" aria-modal="true" [attr.aria-labelledby]="id + '-remove-title'" rbAdminModal cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelRemove()">
       <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <div class="modal-header"><h3 [id]="id + '-remove-title'">{{ 'admin-config-dictionary-remove-title' | i18next }}</h3></div>
+        <div class="modal-header"><h3 [id]="id + '-remove-title'">{{ 'admin-config-dictionary-remove-title' | i18next }}</h3><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelRemove()"></button></div>
         <div class="modal-body"><p>{{ 'admin-config-dictionary-remove-help' | i18next: { key: entryKey(pendingRemove) } }}</p></div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelRemove()">{{ 'admin-config-cancel' | i18next }}</button>

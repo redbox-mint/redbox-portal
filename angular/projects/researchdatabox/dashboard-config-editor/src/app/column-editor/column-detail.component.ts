@@ -1,14 +1,18 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
 import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config-api.service';
 
 @Component({
   selector: 'column-detail',
   template: `
     <div class="dc-column-detail" *ngIf="column">
-      <h6 class="dc-column-detail-title">
-        <i class="fa fa-pencil"></i>
+      <h4 *ngIf="headingLevel === 4" #heading tabindex="-1" class="dc-column-detail-title">
+        <i class="fa fa-pencil" aria-hidden="true"></i>
         {{ 'admin-dashboard-column-edit' | i18next: { name: ((column.title || 'admin-dashboard-untitled') | i18next) } }}
-      </h6>
+      </h4>
+      <h5 *ngIf="headingLevel === 5" #heading tabindex="-1" class="dc-column-detail-title">
+        <i class="fa fa-pencil" aria-hidden="true"></i>
+        {{ 'admin-dashboard-column-edit' | i18next: { name: ((column.title || 'admin-dashboard-untitled') | i18next) } }}
+      </h5>
       <div class="dc-column-detail-grid">
         <div class="form-group">
           <label class="dc-form-label" [for]="id + 'title'">{{ 'admin-dashboard-title' | i18next }}</label>
@@ -16,24 +20,24 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
         </div>
         <div class="form-group">
           <label class="dc-form-label" [attr.for]="id + '-field'">{{ 'admin-dashboard-record-field' | i18next }}</label>
-          <dashboard-field-picker [inputId]="id + '-field'" [catalogue]="catalogue" [(value)]="column.variable" (valueChange)="columnChange.emit()" placeholder="e.g. metadata.title"></dashboard-field-picker>
+          <dashboard-field-picker [inputId]="id + '-field'" [catalogue]="catalogue" [(value)]="column.variable" (valueChange)="columnChange.emit()" [placeholder]="'admin-dashboard-field-example' | i18next"></dashboard-field-picker>
           <small class="dc-form-help">{{ 'admin-dashboard-field-help' | i18next }}</small>
         </div>
         <div class="form-group dc-column-detail-full">
           <label class="dc-form-label" [for]="id + 'template'">{{ 'admin-dashboard-template' | i18next }}</label>
-          <textarea class="form-control dc-mono" rows="4" [id]="id + 'template'" [(ngModel)]="column.template" (ngModelChange)="columnChange.emit()" [placeholder]="templatePlaceholder"></textarea>
+          <textarea class="form-control dc-mono" rows="4" [id]="id + 'template'" [(ngModel)]="column.template" (ngModelChange)="columnChange.emit()" [placeholder]="'admin-dashboard-template-example' | i18next: { example: templateExample }"></textarea>
         </div>
         <div class="form-group">
           <label class="dc-form-label" [for]="id + 'sort'">{{ 'admin-dashboard-initial-sort' | i18next }}</label>
-          <select class="form-control" [id]="id + 'sort'" [ngModel]="column.initialSort || ''" (ngModelChange)="setInitialSort($event)">
+          <select class="form-select" [id]="id + 'sort'" [ngModel]="column.initialSort || ''" (ngModelChange)="setInitialSort($event)">
             <option value="">{{ 'admin-dashboard-none' | i18next }}</option>
             <option value="asc">{{ 'admin-dashboard-ascending' | i18next }}</option>
             <option value="desc">{{ 'admin-dashboard-descending' | i18next }}</option>
           </select>
         </div>
         <div class="form-group dc-column-detail-flag">
-          <label class="dc-inline-toggle">
-            <input type="checkbox" [(ngModel)]="column.defaultSort" (ngModelChange)="columnChange.emit()" />
+          <label class="dc-inline-toggle" [for]="id + '-default-sort'">
+            <input [id]="id + '-default-sort'" type="checkbox" [(ngModel)]="column.defaultSort" (ngModelChange)="columnChange.emit()" />
             <span>{{ 'admin-dashboard-default-sort-column' | i18next }}</span>
           </label>
         </div>
@@ -43,6 +47,16 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
   standalone: false
 })
 export class ColumnDetailComponent {
+  @Input() headingLevel = 4;
+  @ViewChild('heading') heading?: ElementRef<HTMLHeadingElement>;
+
+  focusHeading(): void {
+    const heading = this.heading?.nativeElement;
+    if (!heading) return;
+    heading.scrollIntoView({ block: 'start', behavior: 'auto' });
+    heading.focus({ preventScroll: true });
+  }
+
   @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Output() columnChange = new EventEmitter<void>();
   @Input() column: DashboardRowConfig | null = null;
@@ -55,5 +69,5 @@ export class ColumnDetailComponent {
     this.columnChange.emit();
   }
 
-  readonly templatePlaceholder = 'Handlebars template, e.g. {{title}}';
+  readonly templateExample = '{{title}}';
 }

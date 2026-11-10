@@ -20,6 +20,7 @@ import { HomePanel, HomePanelItem } from './home-panel.interface';
   standalone: false
 })
 export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
   /** Currently expanded panel indices */
   expandedPanels: Set<number> = new Set([0]);
   

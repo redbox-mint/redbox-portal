@@ -115,21 +115,19 @@ describe('ReportComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       fixture.detectChanges();
-      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '2')!;
       pageTwo.click();
       fixture.detectChanges();
       const page = http.expectOne(req => req.url.includes('getReportResults'));
       const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
-      const submit = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
       for (const title of ['discarded', 'latest']) {
         input.value = title;
-        input.dispatchEvent(new Event('input'));
-        submit.click();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
       }
-      // Editing without submitting must not alter the queued or retry criteria.
-      input.value = 'unsubmitted';
-      input.dispatchEvent(new Event('input'));
+      // A later edit must not alter the captured criteria of an in-flight query.
+      component.filterParams.title = 'unsubmitted';
       http.expectNone(req => req.url.includes('getReportResults'));
       if (paginationFails) {
         page.flush('failed', { status: 500, statusText: 'Server Error' });
@@ -146,7 +144,7 @@ describe('ReportComponent', () => {
       await settle();
       await fixture.whenStable();
       fixture.detectChanges();
-      expect(component.reportResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.reportResult.pageNum).toBe(1);
       expect(component.loadError).toContain('Unable to load');
       (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
       await settle();
@@ -203,9 +201,9 @@ describe('ReportComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === String(page))!;
-    const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+    const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager button[aria-current="page"]')?.textContent.trim();
     let reject!: (reason: unknown) => void;
     const read = spyOn(reportService, 'getReportResult').and.returnValue(new Promise((_resolve, rejectRequest) => { reject = rejectRequest; }));
     expect(activePage()).toBe('1');
@@ -310,9 +308,10 @@ describe('ReportComponent', () => {
     fixture.componentInstance.report.reportSource = 'database';
     fixture.componentInstance.report.databaseQuery = { queryName: 'listRDMPRecords' };
     translationService.translationMap['admin-report-source-description'] = 'Source: {{source}}';
+    translationService.translationMap['report-source-database'] = 'Database';
     fixture.detectChanges();
     const description = fixture.nativeElement.querySelector('.rb-admin-page-header p');
-    expect(description.textContent).toContain('Source: database');
+    expect(description.textContent).toContain('Source: Database');
     expect(description.querySelector('code').textContent).toBe('listRDMPRecords');
   });
 
@@ -652,4 +651,17 @@ describe('ReportComponent', () => {
       app.filterParams['dateObjectModifiedRange_fromDate'] = from;
     }
   });
+  it('shows empty-state Clear filters only while filters are active', async () => {
+    const fixture = TestBed.createComponent(ReportComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit(); fixture.detectChanges();
+    app.reportResult = { records: [], total: 0, pageNum: 1, recordsPerPage: 10 } as any;
+    app.initTracker.resultsReturned = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).toBeNull();
+    app.filterParams.title = 'Search'; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).not.toBeNull();
+    fixture.destroy();
+  });
+
 });

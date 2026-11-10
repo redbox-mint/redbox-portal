@@ -34,5 +34,7 @@
 :host .hr-global-stats .rb-admin-stat { min-width: 0; }
 :host .hr-global-stat--danger { border-color: var(--admin-danger-ink); background: color-mix(in srgb, var(--admin-danger-ink) 6%, var(--admin-bg)); }
 :host .hr-global-stat--danger b, :host .hr-global-stat--danger span { color: var(--admin-danger-ink); }
-:host .hr-global-stat--success b { font-size: 21px; overflow-wrap: anywhere; }
+:host .hr-global-stat--success b.hr-global-stat__date { font-size: 21px; overflow-wrap: anywhere; }
 .hr-global-stat__source { display: block; font-size: 13px; overflow-wrap: anywhere; }
+
+.hr-full-error { white-space: pre-wrap; overflow-wrap: anywhere; }

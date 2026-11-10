@@ -1,5 +1,6 @@
 <div class="branding-admin" *ngIf="initialized">
-  <div [attr.inert]="pendingAction ? '' : null">
+  <div [attr.inert]="pendingAction || pendingRestoreId ? '' : null">
+    <div class="rb-admin-save-content">
     <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
       <ol>
         <li>
@@ -18,7 +19,7 @@
       </div>
       <div class="rb-admin-page-actions">
         <span class="badge" [class.rb-admin-badge-warning]="hasDraft" [class.rb-admin-badge-success]="!hasDraft">{{
-          (hasDraft ? 'admin-branding-draft-count' : 'admin-branding-published') | i18next: { count: draftChangeCount }
+          (hasDraft ? 'admin-branding-unpublished-count' : 'admin-branding-published') | i18next: { count: draftChangeCount }
         }}</span>
         <button
           type="button"
@@ -33,6 +34,7 @@
         <button
           type="button"
           class="btn btn-primary branding-publish"
+          aria-describedby="branding-publish-help"
           (click)="pendingAction = 'publish'"
           [disabled]="!state || isUnavailable('publish') || customIncomplete || invalidColours"
         >
@@ -40,6 +42,7 @@
         </button>
       </div>
     </header>
+    <p class="rb-admin-hint" id="branding-publish-help">{{ 'admin-branding-draft-publish-help' | i18next }}</p>
     <div class="alert alert-success" *ngIf="message" role="status">{{ message }}</div>
     <div class="alert alert-danger" *ngIf="error" role="alert">{{ error }}</div>
     <div class="alert alert-warning" *ngIf="conflict" role="alert">
@@ -51,15 +54,16 @@
     <div class="alert alert-warning" *ngIf="invalidColours" role="alert">
       {{ 'admin-branding-invalid-hex' | i18next }}
     </div>
-    <nav [attr.aria-label]="'admin-branding-sections' | i18next">
-      <ul class="nav nav-tabs branding-tabs">
-        <li class="nav-item" *ngFor="let tab of tabs">
+    <div>
+      <ul class="nav nav-tabs branding-tabs" role="tablist" rbAdminTabs [attr.aria-label]="'admin-branding-sections' | i18next">
+        <li class="nav-item" role="presentation" *ngFor="let tab of tabs">
           <button
             type="button"
-            class="nav-link"
+            class="nav-link" role="tab"
             [id]="'branding-tab-' + tab"
             [class.active]="activeTab === tab"
-            [attr.aria-current]="activeTab === tab ? 'page' : null"
+            [attr.aria-selected]="activeTab === tab"
+            [attr.tabindex]="activeTab === tab ? 0 : -1"
             [attr.aria-controls]="'branding-' + tab"
             (click)="activeTab = tab"
           >
@@ -68,8 +72,8 @@
           </button>
         </li>
       </ul>
-    </nav>
-    <div id="branding-colours" [hidden]="activeTab !== 'colours'" aria-labelledby="branding-tab-colours">
+    </div>
+    <div id="branding-colours" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'colours'" aria-labelledby="branding-tab-colours">
       <div class="rb-admin-split branding-colour-layout">
         <nav class="rb-admin-section-rail" [attr.aria-label]="'admin-branding-colour-groups' | i18next">
           <a
@@ -84,7 +88,7 @@
           <section class="rb-admin-form-section" [id]="'branding-group-' + selectedGroup">
             <div class="rb-admin-form-section-header">
               <div>
-                <h3>{{ group.name }}</h3>
+                <h2 class="h3">{{ group.name }}</h2>
                 <p [innerHTML]="group.help"></p>
               </div>
             </div>
@@ -248,12 +252,12 @@
         </aside>
       </div>
     </div>
-    <section id="branding-assets" [hidden]="activeTab !== 'assets'" aria-labelledby="branding-tab-assets">
+    <section id="branding-assets" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'assets'" aria-labelledby="branding-tab-assets">
       <div class="alert alert-info" role="status">{{ 'admin-branding-assets-draft' | i18next }}</div>
       <div class="rb-admin-form-grid">
         <section class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
-            <h3>{{ 'admin-branding-logo' | i18next }}</h3>
+            <h2 class="h3">{{ 'admin-branding-logo' | i18next }}</h2>
             <span class="badge rb-admin-badge-info">{{ 'branding-optional' | i18next }}</span>
           </div>
           <div class="rb-admin-form-section-body">
@@ -276,7 +280,7 @@
         </section>
         <section class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
-            <h3>{{ 'admin-branding-favicon' | i18next }}</h3>
+            <h2 class="h3">{{ 'admin-branding-favicon' | i18next }}</h2>
             <span class="badge rb-admin-badge-info">{{ 'branding-optional' | i18next }}</span>
           </div>
           <div class="rb-admin-form-section-body">
@@ -299,11 +303,11 @@
         </section>
       </div>
     </section>
-    <section id="branding-typography" [hidden]="activeTab !== 'typography'" aria-labelledby="branding-tab-typography">
+    <section id="branding-typography" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'typography'" aria-labelledby="branding-tab-typography">
       <section class="rb-admin-form-section">
         <div class="rb-admin-form-section-header">
           <div>
-            <h3>{{ 'branding-typography-title' | i18next }}</h3>
+            <h2 class="h3">{{ 'branding-typography-title' | i18next }}</h2>
             <p>{{ 'branding-typography-help' | i18next }}</p>
           </div>
         </div>
@@ -327,7 +331,7 @@
             <div class="branding-face" *ngFor="let card of typefaceSlots">
               <div class="rb-admin-form-section h-100" [attr.aria-label]="card.label | i18next">
                 <div class="rb-admin-form-section-body">
-                  <h6 class="card-title">
+                  <h3 class="card-title h6">
                     {{ card.label | i18next }}
                     <span class="badge rb-admin-badge-warning ms-1" *ngIf="card.required">{{
                       'branding-required' | i18next
@@ -335,7 +339,7 @@
                     <span class="badge rb-admin-badge-info ms-1" *ngIf="!card.required">{{
                       'branding-optional' | i18next
                     }}</span>
-                  </h6>
+                  </h3>
                   <p class="card-text small text-muted">{{ card.hint | i18next }}</p>
                   <ng-container *ngIf="faceFor(card.slot) as face; else emptySlot">
                     <dl class="small mb-2">
@@ -427,7 +431,7 @@
         </div>
       </section>
     </section>
-    <section id="branding-history" [hidden]="activeTab !== 'history'" aria-labelledby="branding-tab-history">
+    <section id="branding-history" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'history'" aria-labelledby="branding-tab-history">
       <div class="card">
         <div class="card-header">
           <h2>{{ 'admin-branding-tab-history' | i18next }}</h2>
@@ -445,7 +449,7 @@
                 <th scope="col">{{ 'admin-branding-published-date' | i18next }}</th>
                 <th scope="col">{{ 'admin-branding-published-by' | i18next }}</th>
                 <th scope="col">{{ 'branding-typography-title' | i18next }}</th>
-                <th scope="col" class="text-end">{{ 'admin-branding-actions' | i18next }}</th>
+                <th scope="col" class="rb-admin-actions-col text-end">{{ 'admin-branding-actions' | i18next }}</th>
               </tr>
             </thead>
             <tbody>
@@ -459,7 +463,7 @@
                 <td>{{ version.dateCreated | adminDate }}</td>
                 <td>{{ version.actorDisplayName || version.actorId || '–' }}</td>
                 <td>{{ typefaceSummary(version.typeface) }}</td>
-                <td class="text-end">
+                <td class="rb-admin-actions-col text-end">
                   <div class="rb-admin-page-actions">
                     <button
                       type="button"
@@ -473,25 +477,9 @@
                       class="btn btn-sm btn-outline-danger"
                       (click)="confirmRestore(version.id)"
                       [disabled]="isUnavailable('restore-' + version.id)"
-                      *ngIf="pendingRestoreId !== version.id"
                     >
                       {{ 'branding-history-restore' | i18next }}
                     </button>
-                  </div>
-                  <div class="alert alert-warning mt-2" *ngIf="pendingRestoreId === version.id">
-                    <p>{{ 'branding-restore-confirm' | i18next }}</p>
-                    <div class="rb-admin-page-actions">
-                      <button type="button" class="btn btn-outline-secondary" (click)="cancelRestore()">
-                        {{ 'branding-restore-confirm-no' | i18next }}</button
-                      ><button
-                        type="button"
-                        class="btn btn-outline-danger"
-                        (click)="restoreVersion(version)"
-                        [disabled]="isUnavailable('restore-' + version.id)"
-                      >
-                        {{ 'branding-restore-confirm-yes' | i18next }}
-                      </button>
-                    </div>
                   </div>
                 </td>
               </tr>
@@ -505,13 +493,13 @@
       <div class="col-12 px-0">
         <div class="rb-admin-form-section">
           <div class="rb-admin-form-section-header">
-            <h5 class="card-title mb-0">
-              <i class="fas fa-eye me-2"></i>
+            <h2 class="card-title h5 mb-0">
+              <i class="fa fa-eye me-2"></i>
               {{ 'branding-preview-title' | i18next }}
               <span class="badge rb-admin-badge-info ms-2" *ngIf="previewKind === 'version'">{{
                 'branding-preview-version' | i18next
               }}</span>
-            </h5>
+            </h2>
           </div>
           <div class="rb-admin-form-section-body">
             <div class="mb-3">
@@ -538,6 +526,7 @@
       </div>
     </div>
 
+    </div>
     <div class="rb-admin-save-bar">
       <span class="rb-admin-save-state" [class.branding-dirty]="localChangeCount > 0" aria-live="polite"
         ><i
@@ -558,7 +547,7 @@
       <div class="rb-admin-page-actions">
         <button
           type="button"
-          class="btn branding-reset"
+          class="btn btn-outline-danger"
           (click)="pendingAction = 'reset'"
           [disabled]="(!hasDraft && !localChangeCount) || isUnavailable('reset-draft')"
         >
@@ -574,6 +563,16 @@
       </div>
     </div>
   </div>
+  <ng-container *ngIf="pendingRestoreId">
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="branding-restore-title" aria-describedby="branding-restore-help" (keydown.escape)="cancelRestore()">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-header"><h2 id="branding-restore-title" class="modal-title">{{ 'branding-history-restore' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'admin-config-close' | i18next" (click)="cancelRestore()"></button></div>
+        <div class="modal-body"><p id="branding-restore-help">{{ 'branding-restore-confirm' | i18next }}</p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelRestore()">{{ 'branding-restore-confirm-no' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" (click)="confirmVersionRestore()">{{ 'branding-restore-confirm-yes' | i18next }}</button></div>
+      </div></div>
+    </div>
+  </ng-container>
   <ng-container *ngIf="pendingAction">
     <div class="modal-backdrop fade show"></div>
     <div
@@ -584,7 +583,7 @@
       aria-describedby="branding-dialog-help"
       (keydown.escape)="pendingAction = null"
     >
-      <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture>
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="modal-content">
           <div class="modal-header">
             <h2 class="modal-title" id="branding-dialog-title">

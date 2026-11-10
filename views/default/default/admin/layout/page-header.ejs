@@ -14,7 +14,7 @@
   <% if (typeof actions !== 'undefined' && actions.length) { %>
     <div class="rb-admin-page-actions">
       <% actions.forEach(function(action) { %>
-        <a class="btn <%= action.primary ? 'btn-primary' : 'btn-outline-secondary' %>" href="<%= action.href %>"<% if (action.download) { %> download="<%= action.download %>"<% } %>><%= TranslationService.t(action.labelKey) %></a>
+        <a class="btn <%= action.primary ? 'btn-primary' : 'btn-outline-secondary' %>" href="<%= action.href %>"<% if (action.download) { %> download="<%= action.download %>"<% } %>><% if (action.icon === 'plus') { %><i class="fa fa-plus" aria-hidden="true"></i> <% } %><%= TranslationService.t(action.labelKey) %></a>
       <% }); %>
     </div>
   <% } %>

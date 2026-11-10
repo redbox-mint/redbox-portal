@@ -1,5 +1,5 @@
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
-import { Component, ElementRef, Inject, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild, inject, afterNextRender, Injector } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { BaseComponent, ConfigService, RecordService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
@@ -28,6 +28,7 @@ type StatusOption = {
   standalone: false
 })
 export class HarvestRunsComponent extends BaseComponent {
+  earlyHeader?: { title: string; description: string; adminLabel: string; breadcrumbLabel: string; section: string; refresh: string; adminUrl: string };
   readonly adminDates = inject(AdminDateService);
   recordTypes: string[] = [];
   dateFrom: Date | string | null = null;
@@ -63,6 +64,8 @@ export class HarvestRunsComponent extends BaseComponent {
   filters: HarvestRunListQuery = this.createEmptyFilters();
   listResponse: ListApiResponse<HarvestRunSummary> = this.emptyListResponse<HarvestRunSummary>();
   eventResponse: ListApiResponse<HarvestRunEvent> = this.emptyListResponse<HarvestRunEvent>();
+  private readonly viewInjector = inject(Injector);
+  @ViewChild('detailHeading') detailHeading?: ElementRef<HTMLElement>;
   selectedRun: HarvestRunDetail | null = null;
   selectedRunId = '';
   loadingRuns = false;
@@ -78,6 +81,7 @@ export class HarvestRunsComponent extends BaseComponent {
   private loadedEventPage = 1;
 
   constructor(
+    @Inject(ElementRef) elementRef: ElementRef,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(RecordService) private recordService: RecordService,
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -85,6 +89,11 @@ export class HarvestRunsComponent extends BaseComponent {
     @Inject(HarvestRunApiService) private harvestRunApiService: HarvestRunApiService
   ) {
     super();
+    const earlyHeader = elementRef.nativeElement.getAttribute('data-admin-header');
+    if (earlyHeader) {
+      this.earlyHeader = JSON.parse(earlyHeader);
+      this.brandingAndPortalUrl = this.earlyHeader!.adminUrl.replace(/\/admin$/, '');
+    }
     this.initDependencies = [this.translationService, this.harvestRunApiService, this.recordService];
   }
 
@@ -94,8 +103,22 @@ export class HarvestRunsComponent extends BaseComponent {
     this.datePickerOpts = ConfigService._getAppConfigProperty(config, 'report', 'datePickerOpts', this.datePickerOpts);
     this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
     this.datePickerPlaceHolder = this.adminDates.placeholder;
-    this.recordTypes = (await this.recordService.getAllTypes()).map((type: { name: string }) => type.name);
-    await this.loadRuns(1);
+    // Filter options and the initial list are independent requests.
+    await Promise.all([
+      Promise.resolve(this.recordService.getAllTypes()).then(types => {
+        this.recordTypes = types.map((type: { name: string }) => type.name);
+      }),
+      this.loadRuns(1)
+    ]);
+  }
+
+  public get hasEventFilters(): boolean {
+    return Object.values(this.eventFilters).some(Boolean) || Object.values(this.appliedEventFilters).some(Boolean);
+  }
+
+  get showStatistics(): boolean {
+    return this.loadingStatistics || this.loadingRuns || this.listResponse.records.length > 0 ||
+      !!(this.statistics && (this.statistics.runsLast7Days || this.statistics.runningNow || this.statistics.failedLast7Days || this.statistics.lastSuccessfulRun));
   }
 
   public get hasFilters(): boolean {
@@ -162,6 +185,8 @@ export class HarvestRunsComponent extends BaseComponent {
         return;
       }
       this.selectedRun = detail;
+      // Move keyboard users to the newly opened detail without moving focus on refresh.
+      if (!force) afterNextRender(() => this.detailHeading?.nativeElement.focus(), { injector: this.viewInjector });
       this.loadedChunkPage = 1;
       this.chunkResponse = {
         summary: { numFound: detail.chunksTotal, page: 1, start: 0 },
@@ -229,7 +254,7 @@ export class HarvestRunsComponent extends BaseComponent {
 
   public async applyEventFilters(event?: Event): Promise<void> {
     event?.preventDefault();
-    if (!this.selectedRun || this.loadingEvents) {
+    if (!this.selectedRun) {
       return;
     }
     const filters = { outcome: this.eventFilters.outcome, harvestId: this.eventFilters.harvestId.trim() };
@@ -412,6 +437,13 @@ export class HarvestRunsComponent extends BaseComponent {
     return [event.errorCode, event.message, event.details].filter(Boolean).join(' ').trim();
   }
 
+  public getEventPreview(event: HarvestRunEvent): string {
+    const message = this.getEventMessage(event);
+    if (event.outcome !== 'failed' && event.status !== false) return message;
+    const firstLine = message.split(/\r?\n/, 1)[0];
+    return firstLine.length > 160 ? firstLine.slice(0, 160) + '…' : firstLine;
+  }
+
   public getRecordUrl(oid?: string): string {
     return `${this.harvestRunApiService.getBrandingAndPortalUrl()}/record/view/${encodeURIComponent(String(oid ?? '').trim())}`;
   }
@@ -516,12 +548,6 @@ export class HarvestRunsComponent extends BaseComponent {
         this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
       }
 
-      if (!this.selectedRunId && this.listResponse.records.length > 0) {
-        const firstRunId = String(this.listResponse.records[0].id ?? '').trim();
-        if (firstRunId) {
-          await this.selectRun(firstRunId);
-        }
-      }
     } catch (error) {
       if (requestId !== this.runRequestId) {
         return;

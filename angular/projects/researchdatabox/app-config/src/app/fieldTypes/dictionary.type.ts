@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { UntypedFormGroup } from '@angular/forms';
 import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
 import { cloneDeep } from 'lodash-es';
@@ -9,7 +9,7 @@ import { dictionarySummary } from '../config-form';
   selector: 'app-config-dictionary', standalone: false,
   templateUrl: './dictionary.type.html'
 })
-export class DictionaryTypeComponent extends FieldType implements OnInit {
+export class DictionaryTypeComponent extends FieldType implements OnInit, OnDestroy {
   constructor(private translationService: TranslationService) { super(); }
 
   adding = false;
@@ -24,7 +24,15 @@ export class DictionaryTypeComponent extends FieldType implements OnInit {
   }
 
   ngOnInit(): void {
-    this.formControl.addValidators(() => this.invalidDraft ? { dictionaryKey: true } : null);
+    this.formControl.addValidators(() => this.pendingDraft ? { dictionaryKey: true } : null);
+  }
+
+  ngOnDestroy(): void { this.options?.formState?.dictionaryKeyDrafts?.delete(this.field); }
+
+  toggleEntry(child: FormlyFieldConfig, event: Event): void {
+    child.props!['entryExpanded'] = (event.target as HTMLDetailsElement).open;
+    // Keep visited editors alive so drafts and control state survive collapsing.
+    if (child.props!['entryExpanded']) child.props!['entryRendered'] = true;
   }
 
   entryKey(child: FormlyFieldConfig): string { return String(Array.isArray(child.key) ? child.key[0] : child.key); }
@@ -41,11 +49,15 @@ export class DictionaryTypeComponent extends FieldType implements OnInit {
     return '';
   }
   get patternHint(): string { return Object.keys(this.props['dictionarySchema'].patternProperties || {}).join(' | '); }
-  get invalidDraft(): boolean {
-    return (this.adding && !!this.error(this.newKey)) || (this.field.fieldGroup || []).some(child =>
-      child.props?.['keyDraft'] !== undefined && !!this.error(child.props['keyDraft'], this.entryKey(child)));
+  get pendingDraft(): boolean {
+    return this.adding || (this.field.fieldGroup || []).some(child =>
+      child.props?.['keyDraft'] !== undefined && child.props['keyDraft'] !== this.entryKey(child));
   }
-  draftChanged(): void { this.formControl.updateValueAndValidity(); }
+  draftChanged(): void {
+    const drafts = this.options?.formState?.dictionaryKeyDrafts;
+    if (this.pendingDraft) drafts?.add(this.field); else drafts?.delete(this.field);
+    this.formControl.updateValueAndValidity();
+  }
   startAdd(source?: FormlyFieldConfig): void {
     this.adding = true; this.newKey = ''; this.duplicateKey = source ? this.entryKey(source) : undefined; this.draftChanged();
   }
@@ -80,7 +92,7 @@ export class DictionaryTypeComponent extends FieldType implements OnInit {
     const replacement = this.props['dictionaryField'](name);
     replacement.props = { ...replacement.props, entryExpanded: true };
     this.field.fieldGroup!.splice(this.field.fieldGroup!.indexOf(child), 1, replacement);
-    this.rebuild();
+    this.draftChanged(); this.rebuild();
   }
   requestRemove(child: FormlyFieldConfig, event: Event): void { this.pendingRemove = child; this.removeTrigger = event.currentTarget as HTMLElement; this.options.detectChanges?.(this.field); }
   cancelRemove(): void { this.pendingRemove = undefined; this.removeTrigger?.focus(); }
@@ -91,7 +103,7 @@ export class DictionaryTypeComponent extends FieldType implements OnInit {
     this.props['dictionaryChange']?.(key);
     (this.formControl as UntypedFormGroup).removeControl(key);
     this.field.fieldGroup!.splice(this.field.fieldGroup!.indexOf(child), 1);
-    this.pendingRemove = undefined; this.rebuild();
+    this.pendingRemove = undefined; this.draftChanged(); this.rebuild();
     queueMicrotask(() => document.getElementById(this.id + '-add-entry')?.focus());
   }
   summary(child: FormlyFieldConfig): string {

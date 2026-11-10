@@ -1,16 +1,23 @@
 :host { display: block; min-width: 0; }
-.tx-languages { min-width: 520px; }
+// Keep the first language row's space while its request is pending. The strings
+// result region likewise keeps pagination from jumping through the viewport.
+.tx-languages-region { min-height: 89px; }
+.tx-entry-results { min-height: 320px; }
+.tx-languages { min-width: 520px; table-layout: fixed; }
+.tx-languages th:first-child { width: 28%; }
+.tx-languages th:nth-child(2) { width: 10%; }
+.tx-languages th:nth-child(3) { width: 22%; }
+.tx-languages th:nth-child(4) { width: 27%; }
 .tx-languages .form-switch { margin: 0; }
 .tx-languages .badge { margin-left: 6px; }
 .tx-data-table { table-layout: fixed; min-width: 700px; }
-.tx-col-cat { width: 17%; }
-.tx-col-key { width: 32%; }
+.tx-col-key { width: 49%; }
 .tx-col-act { width: 122px; }
-.tx-data-table code { overflow-wrap: anywhere; }
+.tx-data-table code { overflow-wrap: anywhere; word-break: normal; }
+.tx-key-tail { display: inline-block; max-width: 100%; }
 .tx-cell-val { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; line-height: 1.45; }
 .tx-sort { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .tx-sort .fa { color: var(--admin-muted); font-size: 11px; }
-.tx-key-help { padding: 0 4px; }
 .tx-pagination-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .tx-pagination-controls label { margin: 0; white-space: nowrap; }
 .modal-title { overflow-wrap: anywhere; }
@@ -37,8 +44,8 @@
       margin: 0 0.25rem;
     }
     .tx-tb-btn {
-      width: 30px;
-      height: 30px;
+      width: 32px;
+      height: 32px;
       display: inline-flex;
       align-items: center;
       justify-content: center;

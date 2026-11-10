@@ -1,8 +1,11 @@
+import { Subject } from 'rxjs';
+import { AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { fakeAsync, flushMicrotasks, TestBed, tick } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import { Pipe, PipeTransform } from '@angular/core';
-import { A11yModule } from '@angular/cdk/a11y';
+import { By } from '@angular/platform-browser';
+import { CdkTrapFocus, A11yModule } from '@angular/cdk/a11y';
 import { NamedQueryEditorComponent } from './named-query-editor.component';
 import { NamedQueryApiService, NamedQueryDefinition } from './named-query-api.service';
 import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
@@ -34,9 +37,12 @@ class NamedQueryApiServiceStub {
 }
 
 class TranslationServiceStub {
+  translationChanges$ = new Subject<void>();
+  isInitializing() { return false; }
   async waitForInit(): Promise<this> { return this; }
-  t(value: string, defaultValue?: string, options?: Record<string, unknown>): string {
-    const template = defaultValue || value;
+  t(value: string, defaultValue?: string | Record<string, unknown>, options?: Record<string, unknown>): string {
+    const template = typeof defaultValue === 'string' ? defaultValue : value;
+    options = typeof defaultValue === 'object' ? defaultValue : options;
     if (!options) {
       return template;
     }
@@ -60,7 +66,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub
       ],
-      imports: [FormsModule, A11yModule],
+      imports: [AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },
@@ -486,7 +492,7 @@ describe('NamedQueryEditorComponent', () => {
     fixture.detectChanges();
     await component.waitForInit();
 
-    component.isEditModalOpen = true;
+    component.newQuery();
     component.closeEditModal();
     expect(component.isEditModalOpen).toBeFalse();
   });
@@ -729,4 +735,72 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.error).toContain('Remove its configured references');
   });
 
+  it('omits an empty named-query table and clears filters including a pending search', fakeAsync(() => {
+    const fixture = TestBed.createComponent(NqListComponent);
+    const list = fixture.componentInstance;
+    list.query = { searchTerm: 'missing', collection: 'record' };
+    list.searchTerm = 'missing';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('thead')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('admin-no-filter-results');
+    const changed = spyOn(list.queryChanged, 'emit');
+    list.onSearchTermChanged('pending');
+    fixture.nativeElement.querySelector('.rb-admin-empty button').click();
+    tick(300);
+    expect(changed).toHaveBeenCalledOnceWith({ searchTerm: '', collection: '' });
+    fixture.destroy();
+  }));
+
+  it('blocks duplicate saves and dismissal while pending, then retains the draft on failure', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    component.newQuery();
+    component.draft = { name: 'pending', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    let reject!: (error: Error) => void;
+    const create = spyOn(TestBed.inject(NamedQueryApiService), 'create').and.returnValue(new Promise((_, fail) => reject = fail));
+    const pending = component.save();
+    expect(component.isSaving).toBeTrue();
+    expect(component.canSave).toBeFalse();
+    component.closeEditModal();
+    await component.save();
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(component.isEditModalOpen).toBeTrue();
+    reject(new Error('Save rejected'));
+    await pending;
+    expect(component.isSaving).toBeFalse();
+    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.draft.name).toBe('pending');
+    expect(component.error).toContain('Save rejected');
+  });
+
+  it('requires confirmation to dismiss a dirty editor and retains edits when keeping it open', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await component.waitForInit();
+    component.newQuery(); component.closeEditModal();
+    expect(component.isEditModalOpen).toBeFalse();
+    await component.openQuery('test'); component.draft.collectionName = 'edited';
+    component.closeEditModal(); fixture.detectChanges(); await fixture.whenStable();
+    expect(component.confirmDiscard).toBeTrue();
+    const confirm = fixture.nativeElement.querySelector('rb-admin-discard-dialog');
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="namedQueryModalTitle"]')?.inert).toBeTrue();
+    confirm.querySelector('[cdkFocusInitial]').click(); fixture.detectChanges();
+    expect(component.isEditModalOpen).toBeTrue();
+    expect(component.draft.collectionName).toBe('edited');
+    expect(traps[0].enabled).toBeTrue();
+    component.closeEditModal(); component.closeEditModal(true);
+    expect(component.isEditModalOpen).toBeFalse();
+    expect(component.confirmDiscard).toBeFalse();
+    fixture.destroy();
+  });
+  it('also protects unparsed JSON input in a new query', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
+    component.newQuery(); component.editorInput = true; component.closeEditModal();
+    expect(component.confirmDiscard).toBeTrue();
+    expect(component.isEditModalOpen).toBeTrue();
+    fixture.destroy();
+  });
 });

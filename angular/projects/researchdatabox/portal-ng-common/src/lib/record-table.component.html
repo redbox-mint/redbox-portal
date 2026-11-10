@@ -1,14 +1,14 @@
 @if (isReady && dataSource) {
   @if (dataSource.getCurrentPage(); as currentPage) {
     <div [class.table-responsive]="adminPresentation" [class.row]="!adminPresentation">
-      @if (columnConfig) {
+      @if (columnConfig && (!adminPresentation || currentPage.records.length)) {
         <table class="table" [class.table-hover]="adminPresentation">
           <thead>
             <tr>
               @if (selectionHeaderTemplate) { <th><ng-container [ngTemplateOutlet]="selectionHeaderTemplate"></ng-container></th> }
               @for (col of columnConfig; track col) {
                 @if (!col.hide) {
-                  <th>
+                  <th scope="col" [attr.aria-sort]="enableSort && col.sortable !== false ? columnSort(col.property) : null">
                     @if (enableSort && col.sortable !== false) {
                       <header-sort
                         [title]="col.label | i18next"
@@ -26,23 +26,23 @@
                 }
               }
               @if (enableActions && showActions && showActions.length > 0) {
-                <th>{{'record-table-results-table-header-actions' | i18next}}</th>
+                <th [class.rb-admin-actions-col]="adminPresentation">{{'record-table-results-table-header-actions' | i18next}}</th>
               }
             </tr>
           </thead>
           <tbody>
-            @for (row of currentPage.records; track row) {
+            @for (row of currentPage.records; track plainTextColumns ? ($any(row).oid ?? $any(row).id ?? row) : row) {
               <tr>
                 @if (selectionTemplate) { <td><ng-container [ngTemplateOutlet]="selectionTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container></td> }
                 @for (col of columnConfig; track col) {
                   @if (!col.hide) {
                     @if (cellTemplates[col.property]; as cellTemplate) {
                       <td><ng-container [ngTemplateOutlet]="cellTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container></td>
-                    } @else { <td [innerHTML]="getColValue(row, col)"></td> } <!-- If getColValue returns unsafe HTML, sanitize it with DomSanitizer in the component -->
+                    } @else if (plainTextColumns && !col.template) { <td>{{ getColValue(row, col) }}</td> } @else { <td [innerHTML]="getColValue(row, col)"></td> } <!-- If getColValue returns unsafe HTML, sanitize it with DomSanitizer in the component -->
                   }
                 }
                 @if (enableActions && showActions && showActions.length > 0) {
-                  <td>
+                  <td [class.rb-admin-actions-col]="adminPresentation">
                     @if (actionTemplate) {
                       <ng-container [ngTemplateOutlet]="actionTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container>
                     } @else {
@@ -64,10 +64,14 @@
     <!-- Pagination -->
     @if (currentPage.total > 0) {
       <div [class.card-footer]="adminPresentation" [class.row]="!adminPresentation">
-        @if (adminPresentation) { <span>{{ 'admin-report-page-count' | i18next: { page: currentPage.pageNum, total: currentPage.total } }}</span> }
-        <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
+        @if (adminPresentation) { <span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: (currentPage.pageNum - 1) * paginationItemsPerPage + 1, end: adminPageEnd, total: currentPage.total } }}</span> }
+        @if (adminPresentation) {
+          <rb-admin-pager [page]="currentPage.pageNum" [totalPages]="adminTotalPages" [disabled]="paginationPending || paginationDisabled" (pageChange)="gotoPage($event)"></rb-admin-pager>
+        } @else {
+        <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="adminPresentation || paginationDirectionLinks" [boundaryLinks]="!adminPresentation && paginationBoundaryLinks"
           [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [ngModel]="currentPage.pageNum"
         (ngModelChange)="gotoPage($event, pageModel)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>
+        }
       </div>
     }
   }

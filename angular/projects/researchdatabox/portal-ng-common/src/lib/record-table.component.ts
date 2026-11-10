@@ -54,6 +54,8 @@ export class RecordTableComponent extends BaseComponent {
   @Input() columnConfig: RecordPropViewMetaDto[] = null as any;
   // the data source
   @Input() dataSource: RecordSource = null as any;
+  // Opt in only for tables whose columns are data, never configured HTML.
+  @Input() plainTextColumns = false;
   // additional binding data for templates
   @Input() optTemplateData: any = {};
   // report name for template key construction (required for Handlebars templates)
@@ -80,6 +82,13 @@ export class RecordTableComponent extends BaseComponent {
   @Input() enableActions: boolean = false;
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
+
+  get adminTotalPages(): number { return Math.max(1, Math.ceil(this.dataSource.getCurrentPage().total / this.paginationItemsPerPage)); }
+
+  get adminPageEnd(): number {
+    const page = this.dataSource.getCurrentPage();
+    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total);
+  }
 
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
@@ -163,7 +172,7 @@ export class RecordTableComponent extends BaseComponent {
     return retVal;
   }
 
-  async gotoPage(page: number, pageModel: NgModel) {
+  async gotoPage(page: number, pageModel?: NgModel) {
     if (this.paginationPending || this.paginationDisabled || page === this.dataSource.getCurrentPage().pageNum) {
       return;
     }
@@ -173,9 +182,14 @@ export class RecordTableComponent extends BaseComponent {
     } finally {
       // Reset both NgModel's cached value and the control, even when the loaded
       // page is unchanged. Keep the guard set while reset emits ngModelChange.
-      pageModel.reset(this.dataSource.getCurrentPage().pageNum);
+      pageModel?.reset(this.dataSource.getCurrentPage().pageNum);
       this.paginationPending = false;
     }
+  }
+
+  columnSort(property: string): string | null {
+    const sort = this.headerSortItems?.find(item => item.variable === property)?.sort;
+    return sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : null;
   }
 
   async headerSortChanged(event: any, data: any) {

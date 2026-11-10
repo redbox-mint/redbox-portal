@@ -64,6 +64,9 @@ export class TranslationService extends HttpClientService implements Service {
     fallbackLng: 'en',
     debug: true,
     returnEmptyString: true,
+    // Angular escapes text and attribute bindings; escaping here would display
+    // HTML entities for interpolated labels, URLs and dates.
+    interpolation: { escapeValue: false },
     // Legacy ReDBox keys often include ":" (e.g. "@dmpt-foaf:fundedBy_foaf:Agent"),
     // so ":" cannot be treated as an i18next namespace separator.
     nsSeparator: false,
@@ -176,6 +179,9 @@ export class TranslationService extends HttpClientService implements Service {
         _set(this.i18NextOpts, 'returnEmptyString', this.i18NextOptsDefault.returnEmptyString);
         if (_isUndefined(_get(this.i18NextOpts, 'nsSeparator'))) {
           _set(this.i18NextOpts, 'nsSeparator', this.i18NextOptsDefault.nsSeparator);
+        }
+        if (_isUndefined(_get(this.i18NextOpts, 'interpolation.escapeValue'))) {
+          _set(this.i18NextOpts, 'interpolation.escapeValue', this.i18NextOptsDefault.interpolation.escapeValue);
         }
       } else {
         this.loggerService.info(`Language service using default config`);

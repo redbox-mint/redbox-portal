@@ -21,6 +21,7 @@ import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './adm
   standalone: false
 })
 export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 
   /** Currently expanded section indices */
   expandedSections: Set<number> = new Set([0]);
@@ -403,19 +404,22 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   
   getResolvedLabel(labelKey: string): string {
     if (!this.resolveTranslations || !labelKey) return labelKey;
-    return String(this.translationService.t(labelKey));
+    const translated = String(this.translationService.t(labelKey));
+    if (translated !== labelKey) return translated;
+    const label = labelKey.replace(/^(admin-nav-|menu-)/, '').replace(/[-_]+/g, ' ');
+    return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   getVisibleSections(): AdminSidebarSection[] {
     // Filter sections based on visibility criteria for preview
     return this.sections.filter(section => 
-      section.requiresAuth !== false && !section.hideWhenAuth
+      !section.hideWhenAuth
     );
   }
 
   getVisibleItems(section: AdminSidebarSection): AdminSidebarItem[] {
     return (section.items || []).filter(item =>
-      item.requiresAuth !== false && !item.hideWhenAuth
+      !item.hideWhenAuth
     );
   }
 

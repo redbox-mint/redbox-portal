@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
 import { Component, Inject, ViewChild, inject } from '@angular/core';
 import { ModalDirective } from 'ngx-bootstrap/modal';
@@ -100,6 +101,20 @@ export class ManageUsersComponent extends BaseComponent {
   sortUsers(): void { this.order = this.order === 'asc' ? 'desc' : 'asc'; void this.onFilterChange(); }
   private usersRequest = 0;
   pendingUserAction: { kind: 'disable' | 'revoke'; user: ManageUser } | null = null;
+  confirmDiscard: 'details' | 'new' | null = null;
+  private detailsSnapshot = '';
+  private newSnapshot = '';
+
+  get detailsDirty(): boolean { return !!this.updateUserForm && JSON.stringify(this.updateUserForm.getRawValue()) !== this.detailsSnapshot; }
+  get newDirty(): boolean { return !!this.newUserForm && JSON.stringify(this.newUserForm.getRawValue()) !== this.newSnapshot; }
+
+  keepEditing(): void { this.confirmDiscard = null; this.detailsDestination = null; }
+  discardEditor(): void {
+    const editor = this.confirmDiscard;
+    this.confirmDiscard = null;
+    if (editor === 'details') this.hideDetailsModal(true);
+    if (editor === 'new') this.hideNewUserModal(true);
+  }
   actionPending = false;
   actionError = '';
   keyPending = false;
@@ -244,6 +259,8 @@ export class ManageUsersComponent extends BaseComponent {
         roles: [this.mapRoles(newRolesControlArray.value), Validators.required]
       });
 
+      this.newSnapshot = JSON.stringify(this.newUserForm.getRawValue());
+
       newRolesControlArray.valueChanges.subscribe((v) => {
         this.newUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
@@ -281,6 +298,8 @@ export class ManageUsersComponent extends BaseComponent {
         allRoles: updateRolesControlArray,
         roles: [this.mapRoles(updateRolesControlArray.value), Validators.required]
       });
+
+      this.detailsSnapshot = JSON.stringify(this.updateUserForm.getRawValue());
 
       updateRolesControlArray.valueChanges.subscribe((v) => {
         this.updateUserForm?.controls['roles'].setValue(this.mapRoles(v));
@@ -349,7 +368,9 @@ export class ManageUsersComponent extends BaseComponent {
     this.userDetailsModal?.show();
   }
 
-  hideDetailsModal(): void {
+  hideDetailsModal(force = false): void {
+    if (this.pendingUserAction || this.confirmDiscard) return;
+    if (!force && this.detailsDirty) { this.confirmDiscard = 'details'; return; }
     if (!_.isUndefined(this.userDetailsModal)) {
       this.userDetailsModal.hide();
     }
@@ -375,7 +396,9 @@ export class ManageUsersComponent extends BaseComponent {
 
   }
 
-  hideNewUserModal(): void {
+  hideNewUserModal(force = false): void {
+    if (this.confirmDiscard) return;
+    if (!force && this.newDirty) { this.confirmDiscard = 'new'; return; }
     if (!_.isUndefined(this.userNewModal)) {
       this.userNewModal.hide();
     }
@@ -449,10 +472,31 @@ export class ManageUsersComponent extends BaseComponent {
     }
   }
 
+  private readonly document = inject(DOCUMENT);
+
+  fieldInvalid(form: FormGroup, path: string): boolean {
+    const control = form.get(path);
+    const shown = this.submitted || control?.touched;
+    if (!shown) return false;
+    if (path === 'passwords.password') return !!(control?.invalid || form.get('passwords')?.hasError('passwordStrength'));
+    if (path === 'passwords.confirmPassword') return !!(control?.invalid || form.get('passwords')?.hasError('mismatched') || form.get('passwords')?.hasError('passwordStrength'));
+    return !!control?.invalid;
+  }
+
+  private focusInvalidUserField(form: FormGroup | null, formId: string): void {
+    if (!form) return;
+    form.markAllAsTouched();
+    const fields = ['username', 'name', 'email', 'passwords.password', 'passwords.confirmPassword', 'roles'];
+    const path = fields.find(field => this.fieldInvalid(form, field));
+    const selector = path === 'roles' ? '[formControlName="checked"]' : `[formControlName="${path?.split('.').pop()}"]`;
+    this.document.querySelector<HTMLElement>(`#${formId} ${selector}`)?.focus();
+  }
+
   async updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid) {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
+      this.focusInvalidUserField(this.updateUserForm, 'detailsform');
       return;
     }
     const details: UserDetailsPayload =
@@ -464,7 +508,7 @@ export class ManageUsersComponent extends BaseComponent {
 
     const saveRes = await this.userService.updateUserDetails(user.userid, details) as unknown as SaveResponse;
     if (saveRes.status) {
-      this.hideDetailsModal();
+      this.hideDetailsModal(true);
       await this.refreshUsers();
       this.setUpdateMessage();
     } else {
@@ -476,6 +520,7 @@ export class ManageUsersComponent extends BaseComponent {
     this.submitted = true;
     if (!isValid) {
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
+      this.focusInvalidUserField(this.newUserForm, 'newform');
       return;
     }
     const details: UserDetailsPayload =
@@ -488,7 +533,7 @@ export class ManageUsersComponent extends BaseComponent {
     this.setNewUserMessage(this.translationService.t('admin-users-saving'), 'info');
     const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
     if (saveRes.status) {
-      this.hideNewUserModal();
+      this.hideNewUserModal(true);
       await this.refreshUsers();
       this.setNewUserMessage();
     } else {
@@ -706,6 +751,7 @@ export class ManageUsersComponent extends BaseComponent {
   async changeSignInFilter() { await this.onFilterChange(); }
 
   async resetFilter() {
+    this.showDisabledUsers = false;
     this.signInFilter = '';
     this.searchFilter.name = '';
     this.roleFilter = '';

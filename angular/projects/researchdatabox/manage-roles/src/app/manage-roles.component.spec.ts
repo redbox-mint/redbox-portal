@@ -1,3 +1,7 @@
+import { createInstance } from 'i18next';
+import { CommonModule } from '@angular/common';
+import { A11yModule } from '@angular/cdk/a11y';
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { TestBed } from '@angular/core/testing';
 import { ManageRolesComponent } from './manage-roles.component';
 import { APP_BASE_HREF } from '@angular/common'; 
@@ -59,7 +63,7 @@ describe('AppComponent', () => {
       declarations: [
         ManageRolesComponent
       ],
-      imports: [
+      imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ModalModule.forRoot(),
         I18NextPipe
@@ -88,6 +92,25 @@ describe('AppComponent', () => {
     
     TestBed.inject(UserService);
     await testModule.compileComponents();
+  });
+
+  it('switches unchanged descriptions and asks before discarding a dirty description', async () => {
+    const fixture = TestBed.createComponent(ManageRolesComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges(); await app.waitForInit();
+    const first = app.selectedRole!;
+    const second = { ...first, id: 'other', name: 'Other', description: 'Saved' };
+    app.startDescriptionEdit(); app.selectRole(second);
+    expect(app.selectedRole).toBe(second);
+    app.startDescriptionEdit(); app.descriptionDraft = 'Changed'; app.selectRole(first);
+    expect(app.selectedRole).toBe(second);
+    expect(app.pendingRole).toBe(first);
+    app.pendingRole = null;
+    expect(app.descriptionDraft).toBe('Changed');
+    app.selectRole(first); app.discardDescription();
+    expect(app.selectedRole).toBe(first);
+    expect(app.editingDescription).toBeFalse();
+    fixture.destroy();
   });
 
   it('shows an initial read error and recovers with retry', async () => {
@@ -119,6 +142,75 @@ describe('AppComponent', () => {
     fixture.componentInstance.users = JSON.parse(JSON.stringify(usersData));
     return { fixture, app: fixture.componentInstance };
   }
+
+  it('requires deliberate candidate selection and clears it whenever search changes', async () => {
+    const { fixture, app } = await createComponent();
+    app.selectedRole = { id: 'r', name: 'Researcher' } as any;
+    app.users[0].id = 'admin';
+    app.memberSearch = 'Local';
+    app.searchMembers();
+    expect(app.selectedCandidateId).toBe('');
+    app.selectedCandidateId = 'admin';
+    app.memberSearch = 'Local Admin';
+    app.searchMembers();
+    expect(app.selectedCandidateId).toBe('');
+    app.memberSearch = 'missing';
+    app.searchMembers();
+    expect(app.selectedCandidateId).toBe('');
+    fixture.destroy();
+  });
+
+  it('references member results only while the search results exist', async () => {
+    const { fixture, app } = await createComponent();
+    fixture.detectChanges();
+    const search = fixture.nativeElement.querySelector('#role-member-search') as HTMLInputElement;
+    expect(search.hasAttribute('aria-controls')).toBeFalse();
+    for (const query of ['Local', '   ', 'no matching member', '']) {
+      app.memberSearch = query;
+      app.searchMembers();
+      fixture.detectChanges();
+      const results = fixture.nativeElement.querySelector('#role-member-results');
+      expect(search.getAttribute('aria-controls')).toBe(results ? results.id : null);
+    }
+    fixture.destroy();
+  });
+
+  it('omits the zero-disabled clause in the header and accessible badge text', async () => {
+    const translator = createInstance();
+    await translator.init({ lng: 'en', resources: { en: { translation: {
+      'admin-roles-member-count_active_one': '{{count}} member',
+      'admin-roles-member-count_active_other': '{{count}} members',
+      'admin-roles-member-count_disabled_one': '{{count}} member, {{disabled}} disabled',
+      'admin-roles-member-count_disabled_other': '{{count}} members, {{disabled}} disabled'
+    } } } });
+    const original = translationService.t.bind(translationService);
+    spyOn(translationService, 't').and.callFake((key: string, options: any) =>
+      key === 'admin-roles-member-count' ? translator.t(key, options) : original(key, options));
+    const { fixture, app } = await createComponent();
+    const badge = fixture.nativeElement.querySelector('.people-role-rail .badge');
+    expect(badge.title).toBe('1 member');
+    expect(badge.querySelector('.visually-hidden').textContent).toBe('1 member');
+    expect(fixture.nativeElement.querySelector('.people-role-heading [role="status"]').textContent).toBe('1 member');
+    app.users.push({ ...app.users[0], id: 'disabled', effectiveLoginDisabled: true });
+    app.roleCounts['Admin'].disabled = 1;
+    fixture.detectChanges(); expect(badge.title).toBe('1 member, 1 disabled');
+    fixture.destroy();
+  });
+
+  it('counts active members separately while retaining disabled users in the member list', async () => {
+    translationService.translationMap['admin-roles-member-count'] = '{{count}} member, {{disabled}} disabled';
+    const { fixture, app } = await createComponent();
+    app.users.push({ ...app.users[0], id: 'disabled', username: 'disabled', effectiveLoginDisabled: true });
+    fixture.detectChanges();
+    app.roleCounts['Admin'].disabled = 1; fixture.detectChanges();
+    expect(app.activeMemberCount()).toBe(1); expect(app.disabledMemberCount()).toBe(1);
+    expect(app.members().length).toBe(2);
+    const badge = fixture.nativeElement.querySelector('.people-role-rail .badge');
+    expect(badge.querySelector('[aria-hidden="true"]').textContent).toBe('1');
+    expect(badge.title).toBe('1 member, 1 disabled');
+    expect(fixture.nativeElement.querySelector('.people-role-heading [role="status"]').textContent).toContain('1 member, 1 disabled');
+    fixture.destroy();
+  });
 
   it('loads members including admin from the user endpoint and displays counts', async () => {
     const read = spyOn(userService, 'getUsers').and.resolveTo(usersData);
@@ -216,6 +308,9 @@ describe('AppComponent', () => {
     app.requestRemoval(user);
     expect(app.pendingRemoval).toBe(user);
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(document.activeElement?.textContent).toBe('manage-users-cancel');
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('admin-roles-replace-confirm');
     const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [guest] });
     await app.removeMember();
@@ -254,6 +349,34 @@ describe('AppComponent', () => {
     fixture.destroy();
   });
 
+  it('disables last-admin removal and links to the single footer explanation', async () => {
+    const { fixture, app } = await createComponent();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('tbody button.btn-outline-danger');
+    expect(app.removeBlockedReason(app.users[0])).toBe('admin-roles-last-admin');
+    expect(button.disabled).toBeTrue();
+    const reason = fixture.nativeElement.querySelector('[id="' + button.getAttribute('aria-describedby') + '"]');
+    expect(reason.textContent.trim()).toBeTruthy();
+    expect(reason.closest('.card-footer')).not.toBeNull();
+    expect(button.getAttribute('aria-describedby')).toBe('role-admin-protection');
+    expect(fixture.nativeElement.querySelector('[id="role-blocked-' + app.users[0].id + '"]')).toBeNull();
+    fixture.destroy();
+  });
+  it('does not assign a role when Enter is pressed in search, even with a selected candidate', async () => {
+    const { fixture, app } = await createComponent();
+    app.selectedRole = { id: 'r', name: 'Researcher' } as any;
+    app.users[0].id = 'admin'; app.memberSearch = 'Local';
+    spyOn(userService, 'getUsers').and.resolveTo(app.users);
+    await app.searchMembers(); app.selectedCandidateId = 'admin';
+    fixture.detectChanges();
+    const save = spyOn(userService, 'updateUserRoles').and.resolveTo({ status: true });
+    const input = fixture.nativeElement.querySelector('#role-member-search');
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    expect(save).not.toHaveBeenCalled();
+    await app.addMember();
+    expect(save).toHaveBeenCalled();
+    fixture.destroy();
+  });
   it('pages members and rejects stale candidate searches after switching roles', async () => {
     const { fixture, app } = await createComponent();
     const result = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: { Researcher: { active: 130, disabled: 10, removableActive: 130 } } };

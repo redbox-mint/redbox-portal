@@ -35,3 +35,23 @@ export * from './lib/portal-ng-common.module';
 export * from './lib/httpClient.service';
 export * from './lib/record-audit/record-audit.module';
 export * from './lib/record-audit/record-audit.component';
+
+export * from './lib/admin-count.pipe';
+
+export * from './lib/admin-tabs.directive';
+
+export * from './lib/admin-auto-filter.directive';
+
+export * from './lib/admin-modal.directive';
+
+export * from './lib/admin-list-footer.component';
+
+export * from './lib/admin-discard-dialog.component';
+
+export * from './lib/admin-overflow.directive';
+
+export * from './lib/admin-pager.component';
+
+export * from './lib/admin-save-shortcut.component';
+
+export * from './lib/formly-field-wrapper.component';

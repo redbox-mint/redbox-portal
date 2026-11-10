@@ -1,52 +1,52 @@
 <div class="nq-detail">
-  <ul class="nav nav-tabs nq-tabs" role="tablist">
+  <ul class="nav nav-tabs nq-tabs" role="tablist" rbAdminTabs [attr.aria-label]="'named-query-list-title' | i18next">
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="activeTab === 'basics'"
-              role="tab" [attr.aria-selected]="activeTab === 'basics'"
+              role="tab" id="nq-tab-basics" aria-controls="nq-panel-basics" [attr.tabindex]="activeTab === 'basics' ? 0 : -1" [attr.aria-selected]="activeTab === 'basics'"
               (click)="setTab('basics')">
         {{ 'named-query-tab-basics' | i18next }}
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="activeTab === 'mongo'"
-              role="tab" [attr.aria-selected]="activeTab === 'mongo'"
+              role="tab" id="nq-tab-mongo" aria-controls="nq-panel-mongo" [attr.tabindex]="activeTab === 'mongo' ? 0 : -1" [attr.aria-selected]="activeTab === 'mongo'"
               (click)="setTab('mongo')">
         {{ 'named-query-tab-mongo' | i18next }}
-        <span *ngIf="mongoKeyCount > 0" class="badge badge-secondary ml-1">{{ mongoKeyCount }}</span>
+        <span *ngIf="mongoKeyCount > 0" class="badge rb-admin-badge-info ms-1">{{ mongoKeyCount }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="activeTab === 'params'"
-              role="tab" [attr.aria-selected]="activeTab === 'params'"
+              role="tab" id="nq-tab-params" aria-controls="nq-panel-params" [attr.tabindex]="activeTab === 'params' ? 0 : -1" [attr.aria-selected]="activeTab === 'params'"
               (click)="setTab('params')">
         {{ 'named-query-tab-params' | i18next }}
-        <span *ngIf="paramCount > 0" class="badge badge-secondary ml-1">{{ paramCount }}</span>
+        <span *ngIf="paramCount > 0" class="badge rb-admin-badge-info ms-1">{{ paramCount }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="activeTab === 'mappings'"
-              role="tab" [attr.aria-selected]="activeTab === 'mappings'"
+              role="tab" id="nq-tab-mappings" aria-controls="nq-panel-mappings" [attr.tabindex]="activeTab === 'mappings' ? 0 : -1" [attr.aria-selected]="activeTab === 'mappings'"
               (click)="setTab('mappings')">
         {{ 'named-query-tab-mappings' | i18next }}
-        <span *ngIf="mappingCount > 0" class="badge badge-secondary ml-1">{{ mappingCount }}</span>
+        <span *ngIf="mappingCount > 0" class="badge rb-admin-badge-info ms-1">{{ mappingCount }}</span>
       </button>
     </li>
     <li class="nav-item" role="presentation">
       <button type="button" class="nav-link" [class.active]="activeTab === 'sort'"
-              role="tab" [attr.aria-selected]="activeTab === 'sort'"
+              role="tab" id="nq-tab-sort" aria-controls="nq-panel-sort" [attr.tabindex]="activeTab === 'sort' ? 0 : -1" [attr.aria-selected]="activeTab === 'sort'"
               (click)="setTab('sort')">
         {{ 'named-query-tab-sort-filters' | i18next }}
-        <span *ngIf="(sortCount + filterCount) > 0" class="badge badge-secondary ml-1">{{ sortCount + filterCount }}</span>
+        <span *ngIf="(sortCount + filterCount) > 0" class="badge rb-admin-badge-info ms-1">{{ sortCount + filterCount }}</span>
       </button>
     </li>
   </ul>
 
   <div class="nq-tab-content rb-admin-form-section" *ngIf="draft">
-    <div *ngIf="activeTab === 'basics'"><div class="rb-admin-form-section-header"><h3>{{ 'named-query-tab-basics' | i18next }}</h3></div><div class="rb-admin-form-section-body">
+    <div id="nq-panel-basics" role="tabpanel" tabindex="0" aria-labelledby="nq-tab-basics" [hidden]="activeTab !== 'basics'"><div class="rb-admin-form-section-header"><h3>{{ 'named-query-tab-basics' | i18next }}</h3></div><div class="rb-admin-form-section-body">
       <div class="rb-admin-form-grid">
         <div class="rb-admin-field">
           <label for="nq-name">{{ 'named-query-name' | i18next }}</label>
-          <input id="nq-name" type="text" class="form-control"
+          <input cdkFocusInitial id="nq-name" type="text" class="form-control"
                  [(ngModel)]="draft.name"
                  [readonly]="!isNew"
                  pattern="[A-Za-z0-9_-]+"
@@ -56,9 +56,9 @@
         </div>
         <div class="rb-admin-field">
           <label for="nq-collection">{{ 'named-query-collection' | i18next }}</label>
-          <select id="nq-collection" class="form-control" [(ngModel)]="draft.collectionName">
+          <select id="nq-collection" class="form-select" [(ngModel)]="draft.collectionName">
             <option value="" disabled>{{ 'named-query-collection-select' | i18next }}</option>
-            <option *ngFor="let collection of collectionOptions" [value]="collection">{{ collection }}</option>
+            <option *ngFor="let collection of collectionOptions" [value]="collection">{{ (collection === 'record' || collection === 'user' ? 'admin-query-collection-' + collection : collection) | i18next }}</option>
           </select>
         </div>
       </div>
@@ -71,22 +71,22 @@
       </div>
     </div></div>
 
-    <div *ngIf="activeTab === 'mongo'" class="rb-admin-form-section-body">
-      <mongo-query-editor [(mongoQuery)]="draft.mongoQuery"></mongo-query-editor>
+    <div id="nq-panel-mongo" role="tabpanel" tabindex="0" aria-labelledby="nq-tab-mongo" [hidden]="activeTab !== 'mongo'" class="rb-admin-form-section-body">
+      <mongo-query-editor *ngIf="activeTab === 'mongo'" [(mongoQuery)]="draft.mongoQuery"></mongo-query-editor>
     </div>
 
-    <div *ngIf="activeTab === 'params'" class="rb-admin-form-section-body">
-      <query-param-editor [(queryParams)]="draft.queryParams"></query-param-editor>
+    <div id="nq-panel-params" role="tabpanel" tabindex="0" aria-labelledby="nq-tab-params" [hidden]="activeTab !== 'params'" class="rb-admin-form-section-body">
+      <query-param-editor *ngIf="activeTab === 'params'" [(queryParams)]="draft.queryParams"></query-param-editor>
     </div>
 
-    <div *ngIf="activeTab === 'mappings'" class="rb-admin-form-section-body">
-      <result-mapping-editor [(resultObjectMapping)]="draft.resultObjectMapping"></result-mapping-editor>
+    <div id="nq-panel-mappings" role="tabpanel" tabindex="0" aria-labelledby="nq-tab-mappings" [hidden]="activeTab !== 'mappings'" class="rb-admin-form-section-body">
+      <result-mapping-editor *ngIf="activeTab === 'mappings'" [(resultObjectMapping)]="draft.resultObjectMapping"></result-mapping-editor>
     </div>
 
-    <div *ngIf="activeTab === 'sort'" class="rb-admin-form-section-body">
-      <sort-editor [(sort)]="draft.sort"></sort-editor>
+    <div id="nq-panel-sort" role="tabpanel" tabindex="0" aria-labelledby="nq-tab-sort" [hidden]="activeTab !== 'sort'" class="rb-admin-form-section-body">
+      <sort-editor *ngIf="activeTab === 'sort'" [(sort)]="draft.sort"></sort-editor>
       <hr class="my-3" />
-      <related-filter-editor [(relatedRecordFilters)]="draft.relatedRecordFilters"></related-filter-editor>
+      <related-filter-editor *ngIf="activeTab === 'sort'" [(relatedRecordFilters)]="draft.relatedRecordFilters"></related-filter-editor>
     </div>
   </div>
 </div>
@@ -97,6 +97,6 @@
     <ul *ngIf="draft.usedBy?.length; else notUsed" class="mb-0">
       <li *ngFor="let consumer of draft.usedBy"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li>
     </ul>
-    <ng-template #notUsed><span class="text-muted">{{ 'named-query-not-used' | i18next }}</span></ng-template>
+    <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
   </div>
 </section>

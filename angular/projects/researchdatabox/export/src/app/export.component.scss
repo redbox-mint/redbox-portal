@@ -1,6 +1,15 @@
 :host { display: block; }
-.ex-layout > .ex-panel:first-child { flex: 1 1 340px; }
-.ex-layout > .ex-panel:last-child { flex: 2 1 460px; }
+.ex-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.ex-layout > .ex-panel { margin-bottom: 0; }
+.ex-jobs { table-layout: fixed; width: 100%; }
+.ex-jobs th:first-child { width: 19%; }
+.ex-jobs th:nth-child(2) { width: 33%; }
+.ex-jobs th:nth-child(3) { width: 22%; }
+.ex-jobs th:last-child { width: 26%; }
+.ex-jobs td { overflow-wrap: anywhere; }
+.ex-jobs td:first-child { white-space: normal !important; }
+.ex-jobs .rb-admin-row-actions { flex-wrap: wrap; }
+.ex-date-range .text-nowrap { white-space: normal !important; }
 .ex-form { display: flex; flex-direction: column; gap: 16px; }
 .ex-field { flex-basis: auto; margin: 0; padding: 0; border: 0; }
 .ex-field > legend { float: none; padding: 0; border: 0; font-size: 13px; font-weight: 700; margin: 0 0 6px; }
@@ -14,9 +23,11 @@
 .ex-format-choice input { flex: 0 0 14px; width: 14px; height: 14px; margin-top: 5px; accent-color: var(--admin-primary); }
 .ex-format-choice-selected { border-color: var(--admin-primary); box-shadow: inset 0 0 0 1px var(--admin-primary); background: color-mix(in srgb, var(--admin-primary) 5%, var(--admin-bg)); }
 .ex-panel__tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.ex-subtext { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--admin-muted); font-size: 13px; font-weight: 400; }
+.ex-subtext { overflow-wrap: anywhere; color: var(--admin-muted); font-size: 13px; font-weight: 400; }
 .ex-error-text { max-width: 240px; color: var(--admin-danger-ink); overflow-wrap: anywhere; }
 .ex-loading { display: flex; justify-content: center; gap: 8px; padding: 32px; }
 .ex-range-sep { margin: 0 4px; }
 .ex-alert { margin: 12px; }
 @media (max-width: 575px) { .ex-range { grid-template-columns: 1fr; } }
+
+:host .ex-form { max-width: 680px; }

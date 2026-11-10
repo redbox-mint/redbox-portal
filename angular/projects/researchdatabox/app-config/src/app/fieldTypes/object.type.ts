@@ -11,11 +11,11 @@ import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
       <div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div>
     } @else {
       <section class="app-config-subsection">
-        <div class="app-config-subsection-header"><h4>{{ props.label || field.key }}</h4>
+        <div class="app-config-subsection-header"><h3>{{ props.label || field.key }}</h3>
           @if (enabledField; as enabled) { <formly-field [field]="enabled"></formly-field> }
         </div>
         @if (props.description) { <p class="rb-admin-hint">{{ props.description }}</p> }
-        <div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div>
+        <div [class.app-config-settings-off]="enabledField?.formControl?.value === false">@if (enabledField?.formControl?.value === false && !options.formState?.pageIsOff?.()) { <p class="rb-admin-hint">{{ 'admin-config-feature-off-help' | i18next: { name: props.label || field.key } }}</p> }<div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div></div>
       </section>
     }
     <ng-template #body>

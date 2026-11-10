@@ -1,32 +1,34 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-mappings-heading' | i18next }}</h6>
+    <h3 class="h6">{{ 'named-query-mappings-heading' | i18next }}</h3>
   </div>
   <p class="text-muted small mb-2">{{ 'named-query-mappings-help' | i18next }}</p>
 
   <div *ngIf="entries.length > 0" class="table-responsive">
     <table class="table table-sm table-bordered mb-0">
-      <thead class="thead-light">
+      <thead class="table-light">
         <tr>
           <th class="nq-mapping-column">{{ 'named-query-mapping-field' | i18next }}</th>
           <th>{{ 'named-query-mapping-template' | i18next }}</th>
-          <th class="nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+          <th class="rb-admin-actions-col nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let entry of entries; trackBy: trackById">
           <td>
-            <input type="text" class="form-control form-control-sm"
+            <label class="visually-hidden" [for]="idPrefix + '-entry-key' + '-' + entry.id">{{ 'named-query-mapping-field' | i18next }}</label>
+            <input [id]="idPrefix + '-entry-key' + '-' + entry.id" type="text" class="form-control form-control-sm"
                    [ngModel]="entry.key"
                    (ngModelChange)="onKeyChange(entry, $event)">
           </td>
           <td>
-            <input type="text" class="form-control form-control-sm font-monospace"
+            <label class="visually-hidden" [for]="idPrefix + '-entry-value' + '-' + entry.id">{{ 'named-query-mapping-template' | i18next }}</label>
+            <input [id]="idPrefix + '-entry-value' + '-' + entry.id" type="text" class="form-control form-control-sm font-monospace"
                    [ngModel]="entry.value"
                    (ngModelChange)="onValueChange(entry, $event)"
                    spellcheck="false">
           </td>
-          <td class="text-center">
+          <td class="rb-admin-actions-col text-center">
             <button class="btn btn-sm btn-outline-danger" type="button"
                     (click)="removeEntry(entry)">
               {{ 'named-query-remove' | i18next }}
@@ -39,9 +41,11 @@
   <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
 
   <div class="d-flex flex-wrap nq-add-row mt-2">
-    <input type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newKey"
+    <label class="visually-hidden" [for]="idPrefix + '-newKey'">{{ 'named-query-mapping-field' | i18next }}</label>
+    <input [id]="idPrefix + '-newKey'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newKey"
            [attr.placeholder]="'named-query-mapping-field-placeholder' | i18next">
-    <input type="text" class="form-control form-control-sm nq-add-grow-wide font-monospace" [(ngModel)]="newValue"
+    <label class="visually-hidden" [for]="idPrefix + '-newValue'">{{ 'named-query-mapping-template' | i18next }}</label>
+    <input [id]="idPrefix + '-newValue'" type="text" class="form-control form-control-sm nq-add-grow-wide font-monospace" [(ngModel)]="newValue"
            [attr.placeholder]="'named-query-mapping-template-placeholder' | i18next"
            spellcheck="false">
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">

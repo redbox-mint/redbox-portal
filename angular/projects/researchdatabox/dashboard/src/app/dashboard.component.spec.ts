@@ -7,6 +7,8 @@ import { DashboardComponent } from './dashboard.component';
 import { FormsModule } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
 import {
+  AdminAutoFilterDirective,
+  AdminCountPipe,
   ConfigService,
   DashboardSettings,
   HandlebarsTemplateService,
@@ -70,6 +72,17 @@ describe('DashboardComponent', () => {
     }
   }
 
+  it('escapes admin party names before the template links them to the record view', () => {
+    const component = create();
+    component.adminParties = true;
+    const rows = [{ title: 'Name', variable: 'metadata.fullName', template: '<a href="/record/view/r1">Name</a>' }];
+    const result = (component as any).renderRow('draft', rows, 'rowConfig', { metadata: { fullName: 'A <B>' } });
+    expect(result['metadata.fullName']).toBe('A &lt;B&gt;');
+    component.adminParties = false;
+    (component as any).renderRow('draft', rows, 'rowConfig', {});
+    expect(templates.compileAndRunTemplate).toHaveBeenCalled();
+  });
+
   it('formats standard admin date columns by their template input and preserves custom and non-admin templates', () => {
     const component = create();
     const rows = [
@@ -106,7 +119,7 @@ describe('DashboardComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [DashboardComponent, SortComponent],
-      imports: [PartyImportComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
+      imports: [AdminAutoFilterDirective, AdminCountPipe, PartyImportComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
@@ -171,6 +184,43 @@ describe('DashboardComponent', () => {
       fixture.destroy();
     });
 
+    it('uses the active portal base for party View links after component initialization', async () => {
+      recordService.brandingAndPortalUrl = 'https://example.test/custom/portal';
+      (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy().and.resolveTo({});
+      const fixture = TestBed.createComponent(DashboardComponent);
+      fixture.componentInstance.adminParties = true;
+      fixture.componentInstance.recordType = 'rdmp';
+      fixture.detectChanges();
+      await fixture.componentInstance.waitForInit();
+      expect(fixture.componentInstance.records.draft.items[0].adminRecordUrl).toBe('https://example.test/custom/portal/record/view/r1');
+      const component = fixture.componentInstance;
+      component.tableConfig['draft'] = [{ variable: 'metadata.fullName', title: 'Name', template: '' }];
+      component.records.draft.items[0]['metadata.fullName'] = 'Party name';
+      fixture.detectChanges();
+      const links = fixture.nativeElement.querySelector('tbody tr').querySelectorAll('a');
+      expect(links.length).toBe(2);
+      expect(links[0].textContent).toBe('Party name');
+      expect(links[0].getAttribute('href')).toBe(links[1].getAttribute('href'));
+      fixture.destroy();
+    });
+
+    it('retains the latest party results when an older search finishes last and supplies record links', async () => {
+      const component = create();
+      component.adminParties = true;
+      (component as any).brandingAndPortalUrl = '/default/rdmp';
+      await init(component);
+      let older: (result: any) => void = () => {};
+      recordService.getRecords.and.returnValues(new Promise(resolve => older = resolve), Promise.resolve({ ...records, items: [{ ...records.items[0], oid: 'new/id' }] }));
+      component.filterSearchString.draft = 'older';
+      const first = component.filterChanged('draft');
+      component.filterSearchString.draft = 'newer';
+      await component.filterChanged('draft');
+      expect(component.records.draft.items[0].adminRecordUrl).toBe('/default/rdmp/record/view/new%2Fid');
+      older(records);
+      await first;
+      expect(component.records.draft.items[0].adminRecordUrl).toContain('new%2Fid');
+    });
+
     it('submits admin party name and email searches through the existing record query', async () => {
       const component = create();
       component.adminParties = true;
@@ -181,7 +231,7 @@ describe('DashboardComponent', () => {
       });
       await init(component);
       expect(component.getFilterFieldPath('draft')).toBe('metadata.fullName,metadata.email');
-      expect(component.getTextFilters('draft').map(field => field.path)).toContain('metadata.title');
+      expect(component.getTextFilters('draft').map(field => field.path)).toEqual(['metadata.fullName,metadata.email', 'metadata.fullName', 'metadata.email']);
       component.filterSearchString['draft'] = 'zoe';
       await component.filterChanged('draft');
       expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.fullName,metadata.email', 'zoe', 'any']);
@@ -438,4 +488,34 @@ describe('DashboardComponent', () => {
     expect(component.workflowSteps).toEqual([]);
     expect(recordService.getRecords).not.toHaveBeenCalled();
   });
+  it('starts admin Parties on Party Name ascending and preserves other dashboards defaults', () => {
+    const component = create();
+    component.tableConfig['draft'] = [
+      { variable: 'metadata.fullName', initialSort: 'desc' },
+      { variable: 'metaMetadata.createdOn', initialSort: 'desc', defaultSort: true }
+    ] as any;
+    const step = { name: 'draft', config: { workflow: { stage: 'draft' } } };
+    component.adminParties = true;
+    (component as any).initSortMap(step);
+    expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('metadata.fullName:1');
+    component.adminParties = false;
+    (component as any).initSortMap(step);
+    expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('metaMetadata.createdOn:-1');
+  });
+
+  it('shows only the active column direction when multiple initial directions are configured', () => {
+    const component = create();
+    const rows = [{ variable: 'title' }, { variable: 'email' }];
+    component.tableConfig['draft'] = rows as any;
+    component.sortMap['draft'] = {
+      title: { sort: 'desc' }, email: { sort: 'asc', defaultSort: true }
+    };
+    const step = { name: 'draft', config: { workflow: { stage: 'draft' } } };
+    expect(component.getSortStateFromSortMap(component.sortMap, step, rows[0])).toBe('');
+    expect(component.sortAria(step, rows[0])).toBeNull();
+    expect(component.getSortStateFromSortMap(component.sortMap, step, rows[1])).toBe('asc');
+    expect(component.sortAria(step, rows[1])).toBe('ascending');
+    expect((component as any).getSortStringFromSortMap(component.sortMap['draft'], 'draft', true)).toBe('email:1');
+  });
+
 });

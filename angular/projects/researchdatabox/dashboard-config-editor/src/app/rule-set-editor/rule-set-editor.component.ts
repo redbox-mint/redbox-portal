@@ -1,4 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.service';
 
 @Component({
@@ -7,15 +8,19 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
     <div class="dc-rule-set-editor">
       <header class="dc-rule-set-editor-header">
         <div>
-          <h5 class="dc-rule-set-editor-title">
-            <i class="fa fa-filter"></i>
-            Row Rule Sets
+          <h4 *ngIf="headingLevel === 4" class="dc-rule-set-editor-title">
+            <i class="fa fa-filter" aria-hidden="true"></i>
+            {{ 'admin-dashboard-rule-sets' | i18next }}
+          </h4>
+          <h5 *ngIf="headingLevel === 5" class="dc-rule-set-editor-title">
+            <i class="fa fa-filter" aria-hidden="true"></i>
+            {{ 'admin-dashboard-rule-sets' | i18next }}
           </h5>
-          <small class="dc-rule-set-editor-subtitle">Each rule set evaluates against a row to decide whether to show or hide it.</small>
+          <small class="dc-rule-set-editor-subtitle">{{ 'admin-dashboard-rule-sets-help' | i18next }}</small>
         </div>
         <button type="button" class="btn btn-primary btn-sm" (click)="addRuleSet()">
-          <i class="fa fa-plus"></i>
-          Add Rule Set
+          <i class="fa fa-plus" aria-hidden="true"></i>
+          {{ 'admin-dashboard-add-rule-set' | i18next }}
         </button>
       </header>
 
@@ -23,17 +28,16 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
         <article *ngFor="let ruleSet of ruleSets; let rsIndex = index" class="dc-rule-set-card">
           <header class="dc-rule-set-card-header">
             <div class="dc-rule-set-name-wrap">
-              <label class="dc-inline-label">Rule Set Name</label>
-              <input type="text" class="form-control" [(ngModel)]="ruleSet.ruleSetName" placeholder="Untitled rule set" />
+              <label class="dc-inline-label" [for]="id + '-name-' + rsIndex">{{ 'admin-dashboard-rule-set-name' | i18next }}</label>
+              <input type="text" [id]="id + '-name-' + rsIndex" class="form-control" [(ngModel)]="ruleSet.ruleSetName" [placeholder]="'admin-dashboard-untitled-rule-set' | i18next" />
             </div>
-            <label class="dc-toggle-label">
-              <input type="checkbox" [(ngModel)]="ruleSet.applyRuleSet" class="dc-toggle-input" />
-              <span class="dc-toggle-switch"></span>
-              <span class="dc-toggle-text">Apply Rule Set</span>
-            </label>
+            <div class="form-check form-switch">
+              <input type="checkbox" role="switch" class="form-check-input" [id]="id + '-apply-' + rsIndex" [(ngModel)]="ruleSet.applyRuleSet" />
+              <label class="form-check-label" [for]="id + '-apply-' + rsIndex">{{ 'admin-dashboard-apply-rule-set' | i18next }}</label>
+            </div>
             <button type="button" class="btn btn-sm dc-btn-remove" (click)="removeRuleSet(rsIndex)">
-              <i class="fa fa-trash"></i>
-              Remove Set
+              <i class="fa fa-trash" aria-hidden="true"></i>
+              {{ 'admin-dashboard-remove-rule-set' | i18next }}
             </button>
           </header>
 
@@ -42,11 +46,12 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
               *ngFor="let rule of ruleSet.rules; let rIndex = index"
               [rule]="rule"
               [index]="rIndex"
+              [headingLevel]="headingLevel + 1"
               (remove)="removeRule(rsIndex, rIndex)"
             ></rule-editor>
-            <button type="button" class="btn btn-default btn-sm dc-add-rule-btn" (click)="addRule(rsIndex)">
-              <i class="fa fa-plus"></i>
-              Add Rule
+            <button type="button" class="btn btn-outline-secondary btn-sm dc-add-rule-btn" (click)="addRule(rsIndex)">
+              <i class="fa fa-plus" aria-hidden="true"></i>
+              {{ 'admin-dashboard-add-rule' | i18next }}
             </button>
           </div>
         </article>
@@ -54,8 +59,8 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
 
       <ng-template #emptyTpl>
         <div class="dc-rule-set-empty">
-          <i class="fa fa-filter"></i>
-          <p>No row rule sets yet. Add a rule set to start filtering or transforming rows.</p>
+          <i class="fa fa-filter" aria-hidden="true"></i>
+          <p>{{ 'admin-dashboard-no-rule-sets' | i18next }}</p>
         </div>
       </ng-template>
     </div>
@@ -63,11 +68,15 @@ import { DashboardRulesConfig, DashboardRowRule } from '../dashboard-config-api.
   standalone: false
 })
 export class RuleSetEditorComponent {
+  constructor(private translation: TranslationService) {}
+  static nextId = 0;
+  readonly id = `dc-rule-set-${++RuleSetEditorComponent.nextId}`;
+  @Input() headingLevel = 4;
   @Input() ruleSets: DashboardRulesConfig[] = [];
   @Output() ruleSetsChange = new EventEmitter<DashboardRulesConfig[]>();
 
   addRuleSet(): void {
-    this.ruleSets = [...this.ruleSets, { ruleSetName: 'New Rule Set', applyRuleSet: true, rules: [] }];
+    this.ruleSets = [...this.ruleSets, { ruleSetName: this.translation.t('admin-dashboard-new-rule-set'), applyRuleSet: true, rules: [] }];
     this.ruleSetsChange.emit(this.ruleSets);
   }
 
@@ -77,7 +86,7 @@ export class RuleSetEditorComponent {
   }
 
   addRule(rsIndex: number): void {
-    const rule: DashboardRowRule = { name: 'New Rule', action: 'show', renderItemTemplate: '' };
+    const rule: DashboardRowRule = { name: this.translation.t('admin-dashboard-new-rule'), action: 'show', renderItemTemplate: '' };
     const updated = [...this.ruleSets];
     updated[rsIndex] = { ...updated[rsIndex], rules: [...updated[rsIndex].rules, rule] };
     this.ruleSets = updated;

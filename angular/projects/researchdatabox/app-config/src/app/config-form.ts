@@ -40,27 +40,41 @@ export function hasEditableFields(field: FormlyFieldConfig): boolean {
   return true;
 }
 
-/** Summarise only visible scalar controls, never passwords or opaque object values. */
-export function sectionSummary(fields: FormlyFieldConfig[], model: any, booleanLabel: (value: boolean) => string): string {
-  const values: string[] = [];
+export interface ConfigSummaryPart { label: string; value: string; mono: boolean; }
+
+/** Summarise visible controls, excluding secrets and flags already shown in headers. */
+export function sectionSummaryParts(fields: FormlyFieldConfig[], model: any, booleanLabel: (value: boolean) => string): ConfigSummaryPart[] {
+  const values: ConfigSummaryPart[] = [];
+  const add = (field: FormlyFieldConfig, value: string, label = String(field.props?.label || field.key)): void => {
+    // Independent value-binding objects often repeat the same "Binding type: path".
+    if (!values.some(part => part.label === label && part.value === value)) {
+      const mono = /(?:^|\s)rb-admin-mono(?:\s|$)/.test(field.className || '') ||
+        /^[a-z][a-z\d+.-]*:\/\//i.test(value) || /^(?:metadata|metaMetadata)\./.test(value);
+      values.push({ label, value, mono });
+    }
+  };
   const walk = (field: FormlyFieldConfig, parent: any): void => {
-    if (field.hide || field.props?.['secret'] || values.length >= 3) return;
+    if (field.hide || field.props?.['secret'] || field.props?.type === 'password' || field.type === 'app-config-secret' || field.props?.['headerEnabled'] || field.props?.['pageEnabled'] || values.length >= 3) return;
     const value = field.key == null ? parent : parent?.[String(field.key)];
     if (field.type === 'app-config-dictionary' && value && typeof value === 'object') {
       const keys = Object.keys(value);
-      values.push(`${keys.length} ${field.props?.label || field.key}: ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '…' : ''}`);
+      add(field, `${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '…' : ''}`, `${keys.length} ${field.props?.label || field.key}`);
     } else if (field.fieldGroup?.length && field.type !== 'array' && field.type !== 'app-config-chips') {
       field.fieldGroup.forEach(child => walk(child, value));
     } else if (value !== undefined && value !== null && value !== '' && typeof value !== 'object') {
       const text = typeof value === 'boolean' ? booleanLabel(value) : String(value);
-      values.push(`${field.props?.label || field.key}: ${text.slice(0, 85)}`);
+      add(field, text.slice(0, 85));
     } else if (Array.isArray(value) && value.length) {
       const text = value.every(item => typeof item !== 'object') ? value.join(', ').slice(0, 85) : String(value.length);
-      values.push(`${field.props?.label || field.key}: ${text}`);
+      add(field, text);
     }
   };
   fields.forEach(field => walk(field, model));
-  return values.join(' · ');
+  return values;
+}
+
+export function sectionSummary(fields: FormlyFieldConfig[], model: any, booleanLabel: (value: boolean) => string): string {
+  return sectionSummaryParts(fields, model, booleanLabel).map(part => `${part.label}: ${part.value}`).join(' · ');
 }
 
 /** Only schema-declared identifying controls are safe to show in a collapsed dictionary row. */

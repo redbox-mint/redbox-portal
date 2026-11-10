@@ -1,3 +1,4 @@
+import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { Directive, Input, Pipe, PipeTransform } from '@angular/core';
@@ -57,7 +58,7 @@ describe('ExportComponent', () => {
       ? `${baseUrl}/export/jobs/${encodeURIComponent(item.id)}/download` : null);
     await TestBed.configureTestingModule({
       declarations: [ExportComponent, MockTranslationPipe, MockDatepickerDirective],
-      imports: [CommonModule, FormsModule, A11yModule, AdminDatePipe],
+      imports: [AdminModalDirective, AdminCountPipe, CommonModule, FormsModule, A11yModule, AdminDatePipe],
       providers: [
         { provide: ConfigService, useValue: configService },
         { provide: RecordService, useValue: records },
@@ -85,11 +86,15 @@ describe('ExportComponent', () => {
     const cancel = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((b) => b.textContent?.trim() === 'export-cancel') as HTMLButtonElement;
     cancel.click(); fixture.detectChanges();
     expect(service.cancel).not.toHaveBeenCalled();
+    const background: HTMLElement = fixture.nativeElement.querySelector('nav.rb-admin-crumbs').parentElement;
+    expect(background.inert).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').closest('[inert]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[role="dialog"]').textContent).toContain('export-cancel-confirm');
     service.list.and.resolveTo([job({ status: 'cancelled' })]);
     fixture.nativeElement.querySelector('.rb-admin-danger-confirm').click(); flushMicrotasks(); tick(0); fixture.detectChanges();
     expect(service.cancel).toHaveBeenCalledOnceWith('export-1');
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    expect(background.inert).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain('export-status-cancelled');
     expect(component.canDelete(component.jobs[0])).toBeTrue();
     expect(component.hasActiveJobs()).toBeFalse(); fixture.destroy();

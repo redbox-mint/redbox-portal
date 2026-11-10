@@ -1,4 +1,4 @@
-import { Component, HostListener, Inject, OnDestroy } from '@angular/core';
+import { Component, HostListener, Inject, Attribute, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   DashboardConfigApiError,
@@ -27,8 +27,24 @@ function emptySelection(): SelectionState {
   standalone: false
 })
 export class DashboardConfigEditorComponent extends BaseComponent implements OnDestroy {
+  saveBar?: ElementRef<HTMLElement>;
+  @ViewChild('saveBar') set saveBarElement(bar: ElementRef<HTMLElement> | undefined) {
+    // Dynamic editors create their bar after the header's initial binding check.
+    queueMicrotask(() => { this.saveBar = bar; this.requestRender(); });
+  }
   readonly copyGroups = COPY_GROUPS;
+  private focusEditor = false;
+  @ViewChild('editorHeading') set editorHeading(heading: ElementRef<HTMLElement> | undefined) {
+    if (heading && this.focusEditor) {
+      this.focusEditor = false;
+      heading.nativeElement.scrollIntoView({ block: 'start' });
+      heading.nativeElement.focus({ preventScroll: true });
+    }
+  }
 
+  // The frame needs translated labels and its target list together. Rendering
+  // empty navigation first moves the editor when those rows arrive on mobile.
+  layoutReady = false;
   targets: DashboardTargetInfo[] = [];
   recordTypes: string[] = [];
   selected: DashboardTargetInfo | null = null;
@@ -86,6 +102,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   };
 
   constructor(
+    @Attribute('loadingLabel') public loadingLabel: string,
     @Inject(LoggerService) private logger: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(DashboardConfigApiService) private api: DashboardConfigApiService
@@ -97,6 +114,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
     await this.reloadTargets();
+    this.layoutReady = true;
     await this.selectFromHash();
   }
 
@@ -136,7 +154,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
   @HostListener('window:hashchange')
   async selectFromHash(): Promise<void> {
     const key = new URLSearchParams(window.location.hash.slice(1)).get('target');
-    const target = this.targets.find((info) => info.key === key);
+    const target = key ? this.targets.find((info) => info.key === key) : this.targets[0];
     if (target) await this.selectTarget(target);
   }
 
@@ -157,14 +175,27 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     return info.target.kind === 'workflow' ? info.target.stage : info.target.step;
   }
 
+  targetId(info: DashboardTargetInfo): string {
+    return info.target.kind === 'workflow' ? info.target.recordType : info.target.view;
+  }
+
+  private humanizeTarget(value: string): string {
+    const words = value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[-_]+/g, ' ').trim().toLowerCase();
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
   targetLabel(info: DashboardTargetInfo | null | undefined): string {
     if (!info) {
       return '';
     }
     const nameKey = `${info.ownerLabel}-name`;
     const name = this.translationService.t(nameKey);
-    const owner = info.target.kind === 'workflow' && name !== nameKey ? name : this.translationService.t(info.ownerLabel);
-    const step = this.translationService.t(info.stepLabel || this.stepName(info));
+    const ownerTranslation = this.translationService.t(info.ownerLabel);
+    const owner = info.target.kind === 'workflow' && name !== nameKey ? name
+      : ownerTranslation !== info.ownerLabel ? ownerTranslation : this.humanizeTarget(this.targetId(info));
+    const stepKey = info.stepLabel || this.stepName(info);
+    const translatedStep = this.translationService.t(stepKey);
+    const step = translatedStep !== stepKey ? translatedStep : this.humanizeTarget(this.stepName(info));
     return owner === step ? owner : `${owner} · ${step}`;
   }
 
@@ -218,7 +249,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     }
   }
 
-  async selectTarget(info: DashboardTargetInfo, force = false): Promise<void> {
+  async selectTarget(info: DashboardTargetInfo, force = false, userInitiated = false): Promise<void> {
     if (this.saving && !force) return;
     if (!force && (this.isSelected(info) || !this.confirmDiscard('open another dashboard'))) {
       if (this.selected) window.history.replaceState(null, '', this.targetHash(this.selected));
@@ -227,6 +258,7 @@ export class DashboardConfigEditorComponent extends BaseComponent implements OnD
     this.closeDialogs();
     this.selected = info;
     window.history.replaceState(null, '', this.targetHash(info));
+    this.focusEditor = userInitiated && window.matchMedia('(max-width: 991.98px)').matches;
     await this.loadSelected();
   }
 

@@ -1,5 +1,6 @@
+import { isEqual } from 'lodash-es';
 import { AdminDateService } from '@researchdatabox/portal-ng-common';
-import { Component, Inject, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, ViewChild, inject } from '@angular/core';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkMapping,
@@ -28,6 +29,9 @@ const MAPPING_PAGE_SIZE = 50;
 export class AdminFigshareVocabularyComponent extends BaseComponent {
   readonly adminDates = inject(AdminDateService);
   public view: FigshareView = 'sources';
+  @ViewChild('subviewHeading') set subviewHeading(heading: ElementRef<HTMLElement> | undefined) {
+    heading?.nativeElement.focus();
+  }
   public message = '';
   public error = '';
 
@@ -43,10 +47,52 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   public sourceSaving = false;
   public sourceEditError = '';
 
+  private originalSourceDraft = { ...this.sourceDraft };
+  pendingSourceAction?: () => void;
+  private allowSourceLeave = false;
+
+  get sourceDirty(): boolean { return !!this.editingSource && !isEqual(this.sourceDraft, this.originalSourceDraft); }
+
+  private canLeaveSource(action: () => void): boolean {
+    if (this.sourceSaving) return false;
+    if (this.sourceDirty) { this.pendingSourceAction = action; return false; }
+    this.editingSource = null;
+    return true;
+  }
+
+  cancelSource(): void {
+    if (!this.canLeaveSource(() => this.cancelSource())) return;
+    this.sourceDraft = { ...this.originalSourceDraft };
+  }
+
+  discardSourceChanges(): void {
+    const action = this.pendingSourceAction;
+    this.pendingSourceAction = undefined;
+    this.sourceDraft = { ...this.originalSourceDraft };
+    this.editingSource = null;
+    action?.();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if ((this.sourceDirty || this.sourceSaving) && !this.allowSourceLeave) { event.preventDefault(); event.returnValue = ''; }
+  }
+
+  @HostListener('document:click', ['$event'])
+  confirmNavigation(event: MouseEvent): void {
+    if (this.allowSourceLeave || (!this.sourceDirty && !this.sourceSaving) || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+    event.preventDefault();
+    this.canLeaveSource(() => { this.allowSourceLeave = true; window.location.assign(anchor.href); });
+  }
+
   editSource(source: FigshareSourceSummary): void {
+    if (!this.canLeaveSource(() => this.editSource(source))) return;
     this.editingSource = source;
     this.sourceEditError = '';
     this.sourceDraft = { expectedRevision: source.settingsRevision ?? 0, displayName: source.displayName, scope: source.scope, archived: source.archived, syncSchedule: source.syncSchedule ?? 'manual' };
+    this.originalSourceDraft = { ...this.sourceDraft };
   }
   async saveSource(): Promise<void> {
     if (!this.editingSource || this.sourceSaving) return;
@@ -125,6 +171,11 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     await Promise.all([this.loadSources(), this.loadCrosswalks(), this.loadSyncRuns()]);
   }
 
+  get showStatistics(): boolean {
+    return !!(this.totalSources || this.approvedCrosswalkCount || this.syncWarningCount ||
+      this.sources.length || this.crosswalks.length || this.syncRuns.length);
+  }
+
   get totalSources(): number {
     return this.sourceTotal;
   }
@@ -140,6 +191,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   // ── Navigation ────────────────────────────────────────────────────
 
   async showTab(view: FigshareView): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.showTab(view); })) return;
     this.view = view;
     this.message = '';
     this.error = '';
@@ -153,6 +205,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async startImport(): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.startImport(); })) return;
     this.wizardError = '';
     this.taxonomies = [];
     this.view = 'import';
@@ -189,6 +242,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async resyncSource(source: FigshareSourceSummary): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.resyncSource(source); })) return;
     this.clearAlerts();
     this.previewError = '';
     this.applying = false;
@@ -205,6 +259,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async cloneSource(source: FigshareSourceSummary): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.cloneSource(source); })) return;
     this.clearAlerts();
     const name = this.t('figshare-vocab-clone-name-suffix', '{{name}} (local copy)', { name: source.displayName });
     this.busySourceId = source.id;
@@ -224,6 +279,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async showHistoryFor(source: FigshareSourceSummary): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.showHistoryFor(source); })) return;
     this.historySourceId = source.id;
     this.view = 'history';
     await this.loadSyncRuns();

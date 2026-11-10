@@ -50,6 +50,13 @@ describe('Navigation config preservation', () => {
       Object.defineProperty(component, 'formControl', { value: control });
       return component;
     }
+    it(`${config.collection}: starts preview closed below 1200px and open on desktop`, () => {
+      const media = spyOn(window, 'matchMedia').and.returnValue({ matches: false } as MediaQueryList);
+      expect(setup().previewInitiallyOpen).toBeFalse();
+      expect(media).toHaveBeenCalledWith('(min-width: 1200px)');
+      media.and.returnValue({ matches: true } as MediaQueryList);
+      expect(setup().previewInitiallyOpen).toBeTrue();
+    });
     it(`${config.collection}: reordering follows the selected item and preserves every property`, () => {
       const component = setup();
       const original = JSON.parse(JSON.stringify(component[config.collection]));
@@ -137,4 +144,17 @@ describe('Navigation row and detail controls', () => {
     fixture.componentInstance.item.id = 'child';
     expect(fixture.componentInstance.valid).toBeTrue();
   });
+  it('gives preset icons translated label keys instead of CSS class names', () => {
+    const fixture = TestBed.createComponent(NavigationFieldsComponent);
+    fixture.componentInstance.kind = 'panel';
+    fixture.detectChanges();
+    const buttons = fixture.nativeElement.querySelectorAll('.rb-navigation-icon-options button') as NodeListOf<HTMLButtonElement>;
+    expect(buttons.length).toBe(10);
+    for (const button of Array.from(buttons)) {
+      expect(button.getAttribute('aria-label')).toMatch(/^admin-navigation-icon-/);
+      expect(button.title).toBe(button.getAttribute('aria-label')!);
+      expect(button.getAttribute('aria-label')).not.toContain('fa ');
+    }
+  });
+
 });

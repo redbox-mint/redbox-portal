@@ -1,6 +1,6 @@
 // Users uses the shared admin kit; keep only account-specific layout here.
 .rb-admin {
-  .people-show-disabled { margin-bottom: 8px; white-space: nowrap; }
+  .people-show-disabled { white-space: nowrap; }
   .people-table { --admin-overflow-space: 176px; }
   .people-table th { white-space: nowrap; }
   .people-table td:first-child { min-width: 180px; max-width: 260px; overflow-wrap: anywhere; }

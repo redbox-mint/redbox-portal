@@ -87,14 +87,17 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.initTracker.resultsReturned = false;
     this.loadError = '';
     try {
-      this.reportResult = await this.reportService.getReportResult(this.reportName, pageNum, this.withSort(params), this.recordsPerPage);
-      this.appliedFilterParams = { ...params };
+      const result = await this.reportService.getReportResult(this.reportName, pageNum, this.withSort(params), this.recordsPerPage);
+      if (!this.pendingFilter) {
+        this.reportResult = result;
+        this.appliedFilterParams = { ...params };
+      }
     } catch (error) {
       // Initial load failures must reach BaseComponent's bootstrap error subject.
       if (!this.isReady) {
         throw error;
       }
-      this.showLoadError(error, () => this.gotoPage(pageNum, params));
+      if (!this.pendingFilter) this.showLoadError(error, () => this.gotoPage(pageNum, params));
     } finally {
       this.pageLoadPending = false;
       this.initTracker.resultsReturned = true;
@@ -276,6 +279,10 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       }
       return { key, label, value: display };
     });
+  }
+
+  get hasFilters(): boolean {
+    return this.activeFilters.length > 0 || Object.values(this.filterParams).some(value => value != null && String(value).trim() !== '');
   }
 
   public async clearFilters(): Promise<void> {

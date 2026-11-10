@@ -19,13 +19,13 @@
 
 import { configLabel, protectConfigLabelTerms } from './config-label';
 import { configSchemaToField } from './dictionary-schema';
-import { Component, ElementRef, HostListener, Inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, ViewChild } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { FormGroup, FormBuilder, FormControl, Validators } from '@angular/forms';
 
 import { BaseComponent, UtilityService, LoggerService, TranslationService, AppConfigService, AuthorizedEmailTestResult, IntegrationConnectionResult } from '@researchdatabox/portal-ng-common';
 import { cloneDeep, isEqual } from 'lodash-es';
-import { ConfigForm, ConfigSection, SECRET_MASK, SECRET_RETAIN_PREFIX, hasEditableFields, sectionSummary, visitSecrets } from './config-form';
+import { ConfigForm, ConfigSection, SECRET_MASK, SECRET_RETAIN_PREFIX, hasEditableFields, sectionSummary, sectionSummaryParts, visitSecrets } from './config-form';
 import { FormlyFormOptions } from '@ngx-formly/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { FormlyJsonschema } from '@ngx-formly/core/json-schema';
@@ -40,6 +40,14 @@ import { JSONSchema7 } from 'json-schema';
     standalone: false
 })
 export class AppConfigComponent extends BaseComponent {
+
+  saveBar?: ElementRef<HTMLElement>;
+  @ViewChild('saveBar') set saveBarElement(bar: ElementRef<HTMLElement> | undefined) {
+    // Dynamic editors create their bar after the header's initial binding check.
+    queueMicrotask(() => { this.saveBar = bar; this.requestRender(); });
+  }
+
+  invalidFields: FormlyFieldConfig[] = [];
 
   addressEmail = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email, Validators.maxLength(254)] });
   addressProvider = new FormControl<'aaf' | 'oidc'>('aaf', { nonNullable: true });
@@ -59,6 +67,9 @@ export class AppConfigComponent extends BaseComponent {
   get supportsConnectionTest(): boolean {
     return ['figsharePublishing', 'doiPublishing', 'raidPublishing', 'oniPublishing'].includes(this.configKey);
   }
+  get connectionNeedsBaseUrl(): boolean {
+    return this.configKey === 'figsharePublishing' && !String(this.model.connection?.baseUrl || '').trim();
+  }
   get connectionResult(): IntegrationConnectionResult | undefined {
     return isEqual(this.connectionCheckedState, this.model) ? this.connectionCheckedResult : undefined;
   }
@@ -70,7 +81,7 @@ export class AppConfigComponent extends BaseComponent {
     return 'admin-config-connection-' + (status === 'ok' && this.connectionReachabilityOnly ? 'reachable' : status);
   }
   async testConnection(): Promise<void> {
-    if (!this.supportsConnectionTest || this.connectionChecking || this.formSaving) return;
+    if (!this.supportsConnectionTest || this.connectionNeedsBaseUrl || this.connectionChecking || this.formSaving) return;
     this.connectionChecking = true;
     this.connectionCheckedResult = undefined;
     this.connectionErrorKey = '';
@@ -93,6 +104,7 @@ export class AppConfigComponent extends BaseComponent {
   window: any;
   form = new FormGroup({});
   model: any = {};
+  earlyHeader?: { title: string; description: string; adminLabel: string; breadcrumbLabel: string; section: string; adminUrl: string };
   title = '';
   descriptionKey = 'admin-config-description';
   sidebarSection = '';
@@ -108,7 +120,7 @@ export class AppConfigComponent extends BaseComponent {
   private resetTrigger?: HTMLElement;
   pendingLeave = '';
   options: FormlyFormOptions = {};
-  private loadedModel: any = {};
+  loadedModel: any = {};
   private currentConfig?: ConfigForm;
   private secretFields: string[] = [];
   private trackingReady = false;
@@ -138,6 +150,13 @@ export class AppConfigComponent extends BaseComponent {
     this.window = this.document.defaultView;
     // set this component's dependencies
     this.configKey = elementRef.nativeElement.getAttribute('configKey');
+    const earlyHeader = elementRef.nativeElement.getAttribute('data-admin-header');
+    if (earlyHeader) {
+      this.earlyHeader = JSON.parse(earlyHeader);
+      this.title = this.earlyHeader!.title;
+      this.sidebarSection = this.earlyHeader!.section;
+      this.brandingAndPortalUrl = this.earlyHeader!.adminUrl.replace(/\/admin$/, '');
+    }
     this.initDependencies = [translationService, appConfigService];
   }
 
@@ -148,8 +167,15 @@ export class AppConfigComponent extends BaseComponent {
   }
 
   private retainedSecrets = new Map<string, string[]>();
+  private readonly dictionaryKeyDrafts = new Set<FormlyFieldConfig>();
+  private readonly chipDrafts = new Set<FormlyFieldConfig>();
+  private readonly invalidJsonDrafts = new Set<FormlyFieldConfig>();
 
   private configureForm(result: ConfigForm): void {
+    this.invalidFields = [];
+    this.invalidJsonDrafts.clear();
+    this.dictionaryKeyDrafts.clear();
+    this.chipDrafts.clear();
     this.hasOverride = result.hasOverride === true;
     const jsonObject = cloneDeep(result.schema) as JSONSchema7;
     // Translate presentation metadata only; property names and stored values stay intact.
@@ -175,9 +201,9 @@ export class AppConfigComponent extends BaseComponent {
       if (Object.prototype.hasOwnProperty.call(originalProperties, field)) jsonObject.properties[field] = originalProperties[field];
     }
     this.title = this.translationService.t(result.title || jsonObject.title || this.configKey);
-    this.descriptionKey = this.navigationEditor ? 'admin-navigation-description' : result.descriptionKey || 'admin-config-description';
+    this.descriptionKey = this.navigationEditor ? 'admin-navigation-' + this.configKey + '-description' : this.configKey === 'authorizedDomainsEmails' ? 'admin-config-description-authorized-account-creation' : result.descriptionKey || 'admin-config-description';
     this.sidebarSection = this.document.querySelector('.rb-admin-sidebar-item[aria-current="page"]')
-      ?.closest('section')?.querySelector('h2')?.textContent || '';
+      ?.closest('section')?.querySelector('.rb-admin-sidebar-heading')?.textContent || '';
     this.brandingAndPortalUrl = this.appConfigService.brandingAndPortalUrl || '';
     this.secretFields = result.secretFields || [];
     this.retainedSecrets.clear();
@@ -185,6 +211,7 @@ export class AppConfigComponent extends BaseComponent {
       if (parent[key] === SECRET_MASK) this.retainedSecrets.set(JSON.stringify(path), path);
     });
     this.model = this.editableModel(result.model || {});
+    this.options.formState = { ...this.options.formState, chipDrafts: this.chipDrafts, invalidJsonDrafts: this.invalidJsonDrafts, dictionaryKeyDrafts: this.dictionaryKeyDrafts, pageIsOff: () => !!this.enabledField && this.model.enabled !== true };
     const root = configSchemaToField(this.formlyJsonschema, jsonObject, ['oniPublishing', 'raidPublishing', 'integrationNotification'].includes(this.configKey));
     this.fields = [root];
     this.applyCheckboxType(this.fields);
@@ -216,17 +243,31 @@ export class AppConfigComponent extends BaseComponent {
     for (const field of fields) {
       const path = field.key == null ? parentPath : [...parentPath, String(field.key)];
       field.props = { ...field.props };
+      if (this.configKey === 'figsharePublishing' && path.join('.') === 'connection.baseUrl') {
+        field.props['connectionNeedsBaseUrl'] = () => this.connectionNeedsBaseUrl;
+      }
       if (this.configKey === 'authorizedDomainsEmails' && ['domainsAaf', 'emailsAaf', 'domainsOidc', 'emailsOidc'].includes(String(field.key))) {
         const domain = String(field.key).startsWith('domains');
         field.props.label = this.translationService.t(domain ? 'admin-config-allowed-domains' : 'admin-config-allowed-emails');
         field.props['normalizeChip'] = (value: string) => domain ? value.trim().toLowerCase().replace(/\.$/, '') : value.trim().toLowerCase();
       }
       if (!field.props.label && field.key != null) field.props.label = configLabel(String(field.key));
+      if (Array.isArray(field.props.options)) {
+        field.props.options = field.props.options.map(option => {
+          // Explicit schema titles have already been translated; retain their wording.
+          if (typeof option.value !== 'string' || option.label !== option.value) return option;
+          const key = 'admin-config-enum-' + option.value;
+          const label = this.translationService.t(key);
+          return { ...option, label: label === key ? configLabel(String(option.label)) : label };
+        });
+      }
       if (this.configKey === 'systemMessage' && field.key === 'style') {
         field.props.options = ['info', 'warning', 'critical'].map(value => ({ value, label: this.translationService.t('admin-config-message-style-' + value) }));
       }
       if (field.key === 'enabled') {
         field.props['switch'] = true;
+        const context = parentPath.length ? configLabel(parentPath.join(' ')) : this.title;
+        field.props['switchLabel'] = this.translationService.t('admin-config-enable-setting', { setting: context });
         // Nested flags are rendered in their object's header.
         if (parentPath.length) field.props['headerEnabled'] = true;
       }
@@ -280,6 +321,11 @@ export class AppConfigComponent extends BaseComponent {
           this.decorateFields([child], path);
           return child;
         };
+      }
+      const required = field.expressions?.['props.required'] ?? field.props.required;
+      if (required !== undefined && (typeof required === 'boolean' || typeof required === 'function')) {
+        field.expressions = { ...field.expressions, 'props.required': current =>
+          !this.settingIsOff(current) && (typeof required === 'function' ? required(current) : required) };
       }
       if (field.fieldGroup) this.decorateFields(field.fieldGroup, path);
       if (typeof arrayFactory === 'function') {
@@ -365,7 +411,8 @@ export class AppConfigComponent extends BaseComponent {
       if (group.fields.length === 1 && ['object', 'app-config-dictionary'].includes(String(group.fields[0].type))) group.fields[0].props = { ...group.fields[0].props, flat: true };
       const section: FormlyFieldConfig = {
         type: 'app-config-section', wrappers: [], fieldGroup: group.fields,
-        props: { label: group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0,
+        props: { label: group.label.trim().toLowerCase() === (this.title || '').trim().toLowerCase() ? this.translationService.t('admin-config-general') : group.label, description: group.fields.length === 1 ? group.fields[0].props?.description : undefined, sectionId: `config-section-${index}`, collapsible: this.longForm, expanded: index === 0 || (this.connectionNeedsBaseUrl && group.fields.some(field => field.key === 'connection')),
+          summaryParts: () => sectionSummaryParts(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off')),
           summary: () => group.fields.some(hasEditableFields)
             ? sectionSummary(group.fields, this.model, value => this.translationService.t(value ? 'admin-config-on' : 'admin-config-off'))
             : this.translationService.t('admin-config-no-editable-settings'),
@@ -374,14 +421,16 @@ export class AppConfigComponent extends BaseComponent {
       return section;
     });
     this.activeSection = 'config-section-0';
-    if (enabled && !this.longForm && this.configKey !== 'authorizedDomainsEmails' && this.sections.length) {
-      this.sections[0].fieldGroup!.unshift(enabled);
-      if (this.configKey === 'systemMessage') {
-        enabled.props!.label = this.translationService.t('admin-config-show-banner');
-        this.sections[0].props!.description = this.translationService.t('admin-config-banner-help');
-      }
+    root.fieldGroup = [...(enabled ? [enabled] : []), ...this.sections, ...children.filter(field => field.hide)];
+  }
+
+  private settingIsOff(field: FormlyFieldConfig): boolean {
+    if (this.model.enabled === false) return true;
+    for (let parent = field.parent; parent; parent = parent.parent) {
+      const enabled = parent.fieldGroup?.find(child => child.key === 'enabled');
+      if (enabled?.formControl?.value === false) return true;
     }
-    root.fieldGroup = [...(enabled && (this.longForm || this.configKey === 'authorizedDomainsEmails') ? [enabled] : []), ...this.sections, ...children.filter(field => field.hide)];
+    return false;
   }
 
   private addressState() {
@@ -423,19 +472,23 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
-  get dirty(): boolean { return this.trackingReady && !isEqual(this.model, this.loadedModel); }
+  get dirty(): boolean { return this.trackingReady && (this.chipDrafts.size > 0 || this.invalidJsonDrafts.size > 0 || this.dictionaryKeyDrafts.size > 0 || !isEqual(this.model, this.loadedModel)); }
   get enabledField(): FormlyFieldConfig | undefined {
     return this.fields[0]?.fieldGroup?.find(field => field.key === 'enabled');
   }
 
   setEnabled(event: Event): void {
     const value = (event.target as HTMLInputElement).checked;
-    this.enabledField?.formControl?.setValue(value);
     this.model.enabled = value;
+    this.enabledField?.formControl?.setValue(value);
+    this.options.checkExpressions?.(this.fields[0]);
   }
 
   discard(): void {
     const model = cloneDeep(this.loadedModel);
+    this.invalidJsonDrafts.clear();
+    this.dictionaryKeyDrafts.clear();
+    this.chipDrafts.clear();
     this.trackingReady = false;
     this.model = model;
     this.fields = [];
@@ -457,6 +510,11 @@ export class AppConfigComponent extends BaseComponent {
     const element = this.document.getElementById(this.activeSection);
     if (element instanceof HTMLDetailsElement) element.open = true;
     element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const heading = element?.querySelector<HTMLElement>('summary, h2, h3');
+    if (heading) {
+      if (heading.tagName !== 'SUMMARY') heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
   }
 
   @HostListener('window:scroll')
@@ -579,15 +637,65 @@ export class AppConfigComponent extends BaseComponent {
     }
   }
 
+  invalidFieldId(field: FormlyFieldConfig): string {
+    return field.id + (field.type === 'app-config-chips' ? '-add' : field.type === 'app-config-dictionary' ? '-dictionary' : '');
+  }
+
+  invalidFieldLabel(field: FormlyFieldConfig): string {
+    const labels: string[] = [];
+    let current: FormlyFieldConfig | undefined = field;
+    while (current?.parent) {
+      if (current.props?.label) labels.unshift(String(current.props.label));
+      current = current.parent;
+    }
+    return labels.join(' / ') || String(field.key || this.title);
+  }
+
+  focusInvalidField(field: FormlyFieldConfig): void {
+    let parent: FormlyFieldConfig | undefined = field;
+    while (parent) {
+      if (parent.props) {
+        if (parent.props['collapsible']) parent.props['expanded'] = true;
+        parent.props['entryExpanded'] = true;
+      }
+      parent = parent.parent;
+    }
+    this.options.detectChanges?.(this.fields[0]);
+    this.requestRender();
+    setTimeout(() => {
+      const element = this.document.getElementById(this.invalidFieldId(field));
+      const control = element?.matches('input, select, textarea, button') ? element :
+        element?.querySelector<HTMLElement>('.is-invalid, input:not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)');
+      // Also reveal native details ancestors before focusing a nested control.
+      for (let ancestor = control?.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
+      }
+      // Native toggle events and Formly validation may replace the input. Resolve it
+      // again after they render, then move focus to the current control.
+      requestAnimationFrame(() => {
+        const current = this.document.getElementById(control?.id || '');
+        current?.scrollIntoView({ block: 'center' });
+        current?.focus();
+      });
+    }, 0);
+  }
+
   async onSubmit(model: any): Promise<void> {
     if (this.formSaving || !this.dirty) return;
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      const invalid = this.sections.find(section => section.fieldGroup?.some(field => !field.hide && field.formControl?.invalid));
-      if (invalid) this.activateSection(invalid);
+      const collect = (fields: FormlyFieldConfig[]): FormlyFieldConfig[] => fields.flatMap(field => {
+        if (field.hide || !field.formControl?.invalid) return [];
+        const children = field.type === 'app-config-chips' ? [] : collect(field.fieldGroup || []);
+        const ownError = field.formControl.errors && (field.key != null || field.type === 'app-config-dictionary');
+        return [...(ownError ? [field] : []), ...children];
+      });
+      this.invalidFields = collect(this.fields);
       this.options.showError = field => !!field.formControl?.invalid;
+      if (this.invalidFields.length) this.focusInvalidField(this.invalidFields[0]);
       return;
     }
+    this.invalidFields = [];
     this.formSaving = true;
     this.formSaveUnsuccessful = this.formSaveSuccessful = false;
     const payload = cloneDeep(model);

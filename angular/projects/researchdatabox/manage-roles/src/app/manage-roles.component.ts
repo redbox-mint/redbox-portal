@@ -55,6 +55,14 @@ export class ManageRolesComponent extends BaseComponent {
 
   editingDescription = false;
   descriptionDraft = '';
+  pendingRole: Role | null = null;
+
+  discardDescription(): void {
+    const role = this.pendingRole;
+    this.pendingRole = null;
+    this.editingDescription = false;
+    if (role) this.selectRole(role);
+  }
   blockedRemoval = '';
 
   get defaultRole(): Role | undefined { return this.roles.find(role => role.isDefault); }
@@ -101,7 +109,12 @@ export class ManageRolesComponent extends BaseComponent {
   members(): User[] { return this.users; }
 
   async selectRole(role: Role) {
-    if (this.saving || this.pendingRemoval || this.editingDescription) return;
+    if (this.saving || this.pendingRemoval || role.id === this.selectedRole?.id) return;
+    if (this.editingDescription && this.descriptionDraft !== (this.selectedRole?.description || '')) {
+      this.pendingRole = role;
+      return;
+    }
+    this.editingDescription = false;
     this.selectedRole = role;
     this.memberSearch = this.memberFilter = '';
     this.candidates = [];

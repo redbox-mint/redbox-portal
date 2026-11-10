@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
 import { DashboardFieldCatalogue, isKnownFieldPath } from '../dashboard-config-api.service';
 
 let nextPickerId = 0;
@@ -11,7 +11,7 @@ let nextPickerId = 0;
 @Component({
   selector: 'dashboard-field-picker',
   template: `
-    <div class="dc-field-input"><input
+    <div class="dc-field-input"><input #input
       type="text"
       class="form-control dc-mono"
       [id]="inputId"
@@ -31,18 +31,19 @@ let nextPickerId = 0;
       autocomplete="off"
     /><button class="btn btn-outline-secondary" type="button" [attr.aria-label]="'admin-dashboard-browse-fields' | i18next" [attr.aria-expanded]="open" (mousedown)="$event.preventDefault()" (click)="open = !open; browseAll = true">…</button></div>
     <div *ngIf="open" class="dc-field-options" [id]="listId" role="listbox" [attr.aria-label]="'admin-dashboard-record-field' | i18next">
-      <button type="button" role="option" *ngFor="let field of visibleSuggestions; let i = index" [id]="listId + '-' + i" [attr.aria-selected]="i === activeIndex" (mousedown)="$event.preventDefault()" (click)="choose(field.path)"><span>{{ field.label }}</span><code>{{ field.path }}</code></button>
+      <button type="button" role="option" *ngFor="let field of visibleSuggestions; let i = index" [id]="listId + '-' + i" [attr.aria-selected]="i === activeIndex" (mousedown)="$event.preventDefault()" (click)="choose(field.path)"><span>{{ field.label }}</span><code [title]="field.path">@for (part of field.path.split('.'); track $index) {@if ($index) {.<wbr>}{{part}}}</code></button>
       <p *ngIf="!visibleSuggestions.length" class="rb-admin-hint">{{ 'admin-dashboard-no-fields' | i18next }}</p>
     </div>
     <small class="dc-field-hint" [id]="hintId" *ngIf="unknown">
       <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
-      Not a field of {{ catalogue?.recordType }}{{ catalogue?.workflowStage ? ' (' + catalogue?.workflowStage + ')' : '' }} in its record schema. Check the spelling.
+      {{ 'admin-dashboard-unknown-field' | i18next: { recordType: catalogue?.recordType, stage: catalogue?.workflowStage ? ' (' + catalogue?.workflowStage + ')' : '' } }}
     </small>
     <small class="dc-field-hint dc-field-hint-info" *ngIf="selected?.description">{{ selected?.description }}</small>
   `,
   standalone: false
 })
 export class FieldPickerComponent {
+  @ViewChild('input') input?: ElementRef<HTMLInputElement>;
   @Input() value = '';
   @Input() catalogue: DashboardFieldCatalogue | null = null;
   @Input() placeholder = 'metadata.title';
@@ -66,6 +67,7 @@ export class FieldPickerComponent {
   choose(path: string): void {
     this.value = path;
     this.valueChange.emit(path);
+    this.input?.nativeElement.focus();
     this.open = false;
     this.activeIndex = -1;
   }

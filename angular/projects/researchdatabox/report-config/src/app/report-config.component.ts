@@ -24,9 +24,13 @@ export class ReportConfigComponent extends BaseComponent {
   sourceFilter: 'all' | 'database' | 'solr' = 'all';
   errorMessage = '';
   isSaving = false;
+  isDeleting = false;
   isPreviewing = false;
   isAdmin = false;
   isNewReport = false;
+  confirmDiscard = false;
+  private initialDraft = '';
+  get editDirty(): boolean { return !!this.selectedReport && JSON.stringify(this.selectedReport) !== this.initialDraft; }
 
   get totalReports(): number {
     return this.reports.length;
@@ -93,24 +97,32 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   createReport(): void {
+    if (this.isSaving || this.isDeleting) return;
     this.modalTrigger = document.activeElement as HTMLElement;
     this.errorMessage = '';
     this.previewResult = null;
     this.previewFilterValues = {};
     this.selectedReport = this.newReport();
     this.isNewReport = true;
+    this.initialDraft = JSON.stringify(this.selectedReport);
   }
 
   editReport(report: ReportConfigDto): void {
-    this.modalTrigger = document.activeElement as HTMLElement;
+    if (this.isSaving || this.isDeleting) return;
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
     this.errorMessage = '';
     this.previewResult = null;
     this.previewFilterValues = {};
     this.selectedReport = JSON.parse(JSON.stringify(report)) as ReportConfigDto;
     this.isNewReport = false;
+    this.initialDraft = JSON.stringify(this.selectedReport);
   }
 
-  cancelEdit(): void {
+  cancelEdit(discard = false): void {
+    if (this.isSaving) return;
+    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
+    this.confirmDiscard = false;
     this.selectedReport = null;
     this.previewResult = null;
     this.previewFilterValues = {};
@@ -120,21 +132,25 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   async saveReport(): Promise<void> {
-    if (!this.selectedReport) {
+    if (!this.selectedReport || this.isSaving || this.isDeleting) {
       return;
     }
+    const report = this.selectedReport;
     this.isSaving = true;
     this.errorMessage = '';
     try {
       if (this.isNewReport) {
-        await this.reportConfigService.create(this.selectedReport);
+        await this.reportConfigService.create(report);
       } else {
-        await this.reportConfigService.update(this.selectedReport);
+        await this.reportConfigService.update(report);
       }
       await this.loadReports();
-      this.cancelEdit();
+      if (this.selectedReport === report) {
+        this.isSaving = false;
+        this.cancelEdit(true);
+      }
     } catch (error: unknown) {
-      this.errorMessage = this.getErrorMessage(error);
+      if (this.selectedReport === report) this.errorMessage = this.getErrorMessage(error);
       this.loggerService.error('Failed to save report config', error);
     } finally {
       this.isSaving = false;
@@ -142,6 +158,7 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   requestDelete(report: ReportConfigDto): void {
+    if (this.isSaving || this.isDeleting) return;
     const trigger = document.activeElement as HTMLElement;
     this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
     this.errorMessage = '';
@@ -149,25 +166,32 @@ export class ReportConfigComponent extends BaseComponent {
   }
 
   cancelDelete(): void {
+    if (this.isDeleting) return;
     this.pendingDelete = null;
     this.errorMessage = '';
     this.restoreModalFocus();
   }
 
   async deleteReport(report: ReportConfigDto): Promise<void> {
-    if (report.readOnly || !report.canDelete || this.pendingDelete !== report) return;
+    if (this.isDeleting || this.isSaving || report.readOnly || !report.canDelete || this.pendingDelete !== report) return;
+    this.isDeleting = true;
     this.errorMessage = '';
     try {
       await this.reportConfigService.delete(report.name);
       await this.loadReports();
-      this.cancelDelete();
+      if (this.pendingDelete === report) {
+        this.isDeleting = false;
+        this.cancelDelete();
+      }
     } catch (error: unknown) {
-      this.errorMessage = this.getErrorMessage(error);
+      if (this.pendingDelete === report) this.errorMessage = this.getErrorMessage(error);
+    } finally {
+      this.isDeleting = false;
     }
   }
 
   async previewReport(): Promise<void> {
-    if (!this.selectedReport) {
+    if (!this.selectedReport || this.isSaving || this.isDeleting) {
       return;
     }
     this.isPreviewing = true;
@@ -188,6 +212,7 @@ export class ReportConfigComponent extends BaseComponent {
 
   removeColumn(index: number): void {
     this.selectedReport?.columns.splice(index, 1);
+    this.focusAfterRemoval('column', index);
   }
 
   addFilter(): void {
@@ -196,6 +221,16 @@ export class ReportConfigComponent extends BaseComponent {
 
   removeFilter(index: number): void {
     this.selectedReport?.filter.splice(index, 1);
+    this.focusAfterRemoval('filter', index);
+  }
+
+  private focusAfterRemoval(kind: 'filter' | 'column', index: number): void {
+    setTimeout(() => {
+      const root: HTMLElement = this.elementRef.nativeElement;
+      const rows = root.querySelectorAll<HTMLElement>(`[data-report-row="${kind}"]`);
+      const row = rows[Math.min(index, rows.length - 1)];
+      (row?.querySelector<HTMLElement>('input, select, textarea, button') ?? root.querySelector<HTMLElement>(`#report-add-${kind}`))?.focus();
+    });
   }
 
   filterTypeChanged(filter: ReportConfigFilterDto): void {

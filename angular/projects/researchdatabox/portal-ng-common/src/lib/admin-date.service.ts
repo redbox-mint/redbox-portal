@@ -9,10 +9,22 @@ export const ADMIN_DATE_TIME_FORMAT = `${ADMIN_DATE_FORMAT} HH:mm`;
 export function formatAdminDate(value: string | number | Date | null | undefined,
   format = ADMIN_DATE_TIME_FORMAT, locale = 'en', zone = 'local'): string {
   if (value == null || value === '') return '';
-  const date = value instanceof Date ? DateTime.fromJSDate(value, { zone })
-    : typeof value === 'number' ? DateTime.fromMillis(value, { zone })
-    : DateTime.fromISO(value, { zone });
-  return date.isValid ? date.setLocale(locale).toFormat(format) : String(value);
+  // The shared admin numeric format needs no locale discovery or Intl formatter.
+  // Keep Luxon for custom formats/zones and ISO values without an explicit offset.
+  if (zone === 'local' && /^en(?:-|$)/i.test(locale) && [ADMIN_DATE_FORMAT, ADMIN_DATE_TIME_FORMAT].includes(format)
+      && (value instanceof Date || typeof value === 'number' || /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(value))) {
+    const nativeDate = new Date(value);
+    if (Number.isFinite(nativeDate.getTime()) && (typeof value !== 'string'
+        || new Date(value.slice(0, 10) + 'T00:00:00Z').toISOString().slice(0, 10) === value.slice(0, 10))) {
+      const pad = (part: number) => String(part).padStart(2, '0');
+      const day = `${pad(nativeDate.getDate())}/${pad(nativeDate.getMonth() + 1)}/${String(nativeDate.getFullYear()).padStart(4, '0')}`;
+      return format === ADMIN_DATE_FORMAT ? day : `${day} ${pad(nativeDate.getHours())}:${pad(nativeDate.getMinutes())}`;
+    }
+  }
+  const date = value instanceof Date ? DateTime.fromMillis(value.getTime(), { zone, locale })
+    : typeof value === 'number' ? DateTime.fromMillis(value, { zone, locale })
+    : DateTime.fromISO(value, { zone, locale });
+  return date.isValid ? date.toFormat(format) : String(value);
 }
 
 @Injectable({ providedIn: 'root' })

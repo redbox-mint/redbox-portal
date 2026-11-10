@@ -1,6 +1,9 @@
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FiltersEditorComponent } from './filters-editor.component';
 import { GroupingEditorComponent } from './grouping-editor.component';
 import { DashboardFormatRules } from '../dashboard-config-api.service';
+
+const translator = { t: (key: string) => key } as TranslationService;
 
 function init<T extends { ngOnChanges: (c: any) => void }>(component: T): T {
   component.ngOnChanges({ formatRules: {} as any, queryFilterKeys: {} as any });
@@ -10,7 +13,7 @@ function init<T extends { ngOnChanges: (c: any) => void }>(component: T): T {
 describe('FiltersEditorComponent', () => {
   it('builds a signed-in-person filter without JSON', () => {
     const rules: DashboardFormatRules = {};
-    const editor = init(Object.assign(new FiltersEditorComponent(), { formatRules: rules }));
+    const editor = init(Object.assign(new FiltersEditorComponent(translator), { formatRules: rules }));
     editor.filterKind = 'user';
     editor.onFilterKindChange();
     editor.filterField = 'metadata.contributor_ci.email';
@@ -23,9 +26,23 @@ describe('FiltersEditorComponent', () => {
     expect(rules.filterBy).toBeUndefined();
   });
 
+  it('translates complete summaries and user-property labels without translating saved values', () => {
+    const t = jasmine.createSpy('t').and.callFake((key: string) => `translated:${key}`);
+    const editor = init(new FiltersEditorComponent({ t } as any));
+    editor.filterKind = 'user';
+    editor.onFilterKindChange();
+    editor.filterField = 'metadata.owner.email';
+    expect(editor.filterSummary).toBe('translated:admin-dashboard-filter-summary-equal');
+    expect(t).toHaveBeenCalledWith('admin-dashboard-filter-user-value', { property: 'translated:admin-dashboard-user-email' });
+    editor.emitFilter();
+    expect((editor.formatRules.filterBy as any).filterBaseFieldOrValue).toBe('user.email');
+    editor.filterMode = 'regex';
+    expect(editor.filterSummary).toBe('translated:admin-dashboard-filter-summary-contains');
+  });
+
   it('reads and writes the overall sort as field and direction', () => {
     const rules: DashboardFormatRules = { sortBy: 'metaMetadata.createdOn:1' };
-    const editor = init(Object.assign(new FiltersEditorComponent(), { formatRules: rules }));
+    const editor = init(Object.assign(new FiltersEditorComponent(translator), { formatRules: rules }));
     expect(editor.sortField).toBe('metaMetadata.createdOn');
     expect(editor.sortDirection).toBe('1');
     editor.sortDirection = '-1';
@@ -39,7 +56,7 @@ describe('FiltersEditorComponent', () => {
   it('edits search fields for the page key and keeps entries it does not manage', () => {
     const other = { filterType: 'date', filterFields: [{ name: 'Created', path: 'metaMetadata.createdOn' }] };
     const rules: DashboardFormatRules = { queryFilters: { rdmp: [{ filterType: 'text', filterFields: [{ name: 'Title', path: 'metadata.title' }] }, other], party: [] } };
-    const editor = init(Object.assign(new FiltersEditorComponent(), { formatRules: rules, queryFilterKeys: ['rdmp'] }));
+    const editor = init(Object.assign(new FiltersEditorComponent(translator), { formatRules: rules, queryFilterKeys: ['rdmp'] }));
     expect(editor.searchGroups.map((g) => [g.key, g.expected])).toEqual([['rdmp', true], ['party', false]]);
     const group = editor.searchGroups[0];
     editor.addField(group);
@@ -54,7 +71,7 @@ describe('FiltersEditorComponent', () => {
 describe('GroupingEditorComponent', () => {
   it('builds relationship levels with record types, links and row levels', () => {
     const rules: DashboardFormatRules = {};
-    const editor = init(Object.assign(new GroupingEditorComponent(), { formatRules: rules, recordTypes: ['dataRecord', 'rdmp'] }));
+    const editor = init(Object.assign(new GroupingEditorComponent(translator), { formatRules: rules, recordTypes: ['dataRecord', 'rdmp'] }));
     editor.groupBy = 'groupedByRelationships';
     editor.onGroupByChange();
     editor.add();
@@ -75,7 +92,7 @@ describe('GroupingEditorComponent', () => {
 
   it('flags incomplete levels and clears grouping cleanly', () => {
     const rules: DashboardFormatRules = { groupBy: 'groupedByRelationships', sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp' }, { rowLevel: 1, compareFieldValue: '' }] };
-    const editor = init(Object.assign(new GroupingEditorComponent(), { formatRules: rules }));
+    const editor = init(Object.assign(new GroupingEditorComponent(translator), { formatRules: rules }));
     expect(editor.levelProblems(editor.levels[1], 1).length).toBe(2);
     editor.groupBy = '';
     editor.levels = [];

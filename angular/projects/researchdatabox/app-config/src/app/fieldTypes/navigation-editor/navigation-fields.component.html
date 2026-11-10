@@ -2,15 +2,15 @@
   <div class="rb-admin-form-grid">
     @for (field of fields; track field) {
       <div class="rb-admin-field"><label [for]="prefix + '-' + field">{{ ('admin-navigation-field-' + field) | i18next }}</label>
-        <input class="form-control rb-navigation-mono" type="text" [id]="prefix + '-' + field" [value]="item[field] || ''" (input)="change(field, $any($event.target).value)">
+        <input [attr.cdkFocusInitial]="prefix === 'navigation-child' && field === fields[0] ? '' : null" class="form-control rb-admin-mono" type="text" [id]="prefix + '-' + field" [value]="item[field] || ''" (input)="change(field, $any($event.target).value)">
         @if (field === 'labelKey' || field === 'titleKey') { <span class="rb-admin-hint">{{ item[field] | i18next }}</span> }
       </div>
     }
   </div>
   @if (kind === 'panel') {
     <div class="rb-navigation-icon-options" role="group" [attr.aria-label]="'admin-navigation-field-iconClass' | i18next">
-      @for (icon of ['icon-checklist icon-3x', 'fa fa-sitemap fa-3x', 'fa fa-laptop fa-3x', 'fa fa-rocket fa-3x', 'fa fa-file fa-3x', 'fa fa-folder fa-3x', 'fa fa-users fa-3x', 'fa fa-cog fa-3x', 'fa fa-search fa-3x', 'fa fa-database fa-3x']; track icon) {
-        <button type="button" class="btn btn-outline-secondary btn-sm" [attr.aria-label]="icon" [attr.aria-pressed]="item.iconClass === icon" (click)="change('iconClass', icon)"><i [class]="icon.replace('3x', 'lg')" aria-hidden="true"></i></button>
+      @for (icon of presetIcons; track icon.css) {
+        <button type="button" class="btn btn-outline-secondary btn-sm" [attr.aria-label]="icon.labelKey | i18next" [title]="icon.labelKey | i18next" [attr.aria-pressed]="item.iconClass === icon.css" (click)="change('iconClass', icon.css)"><i [class]="icon.css.replace('3x', 'lg')" aria-hidden="true"></i></button>
       }
     </div>
   }
@@ -20,14 +20,14 @@
     <div class="rb-admin-segmented mb-3" role="group" [attr.aria-label]="'admin-navigation-visible-to' | i18next">
       @for (value of ['all', 'in', 'out']; track value) { <button type="button" class="btn btn-outline-secondary btn-sm" [attr.aria-pressed]="audienceValue === value" (click)="audience(value)">{{ ('admin-navigation-audience-' + value) | i18next }}</button> }
     </div>
-    <div class="rb-admin-field"><label>{{ 'admin-navigation-roles' | i18next }}</label><div class="rb-navigation-roles" role="group" [attr.aria-label]="'admin-navigation-roles' | i18next">
-      @for (role of roles; track role) { <button type="button" class="rb-admin-chip" [attr.aria-pressed]="item.requiredRoles?.includes(role) || false" (click)="toggleRole(role)">{{ role }}</button> }
+    <div class="rb-admin-field"><span class="rb-admin-filter-label" [id]="prefix + '-roles-label'">{{ 'admin-navigation-roles' | i18next }}</span><div class="rb-navigation-roles" role="group" [attr.aria-labelledby]="prefix + '-roles-label'">
+      @for (role of roles; track role) { <button type="button" class="rb-admin-chip" [attr.aria-pressed]="item.requiredRoles?.includes(role) || false" (click)="toggleRole(role)">@if (item.requiredRoles?.includes(role)) { <i class="fa fa-check" aria-hidden="true"></i> }{{ role }}</button> }
     </div><p class="rb-admin-hint">{{ 'admin-navigation-roles-help' | i18next }}</p>
       <div class="rb-navigation-role-entry"><input class="form-control" [id]="prefix + '-role'" [attr.aria-label]="'admin-navigation-custom-role' | i18next" [placeholder]="'admin-navigation-custom-role' | i18next" [value]="roleDraft" (input)="roleDraft = $any($event.target).value" (keydown.enter)="$event.preventDefault(); addRole()"><button type="button" class="btn btn-outline-secondary btn-sm" (click)="addRole()" [disabled]="!roleDraft.trim()">{{ 'admin-navigation-add-role' | i18next }}</button></div>
     </div>
-    <div class="rb-admin-field mt-3"><label [for]="prefix + '-featureFlag'">{{ 'admin-navigation-field-featureFlag' | i18next }}</label><input class="form-control rb-navigation-mono" [id]="prefix + '-featureFlag'" [value]="item.featureFlag || ''" (input)="change('featureFlag', $any($event.target).value || undefined)"></div>
+    <div class="rb-admin-field mt-3"><label [for]="prefix + '-featureFlag'">{{ 'admin-navigation-field-featureFlag' | i18next }}</label><input class="form-control rb-admin-mono" [id]="prefix + '-featureFlag'" [value]="item.featureFlag || ''" (input)="change('featureFlag', $any($event.target).value || undefined)"></div>
     <div class="rb-navigation-checkboxes">
-      @for (flag of (kind === 'section' ? ['defaultExpanded'] : ['external', 'visibleWhenTranslationExists']); track flag) {
+      @for (flag of (kind === 'section' ? [] : ['external', 'visibleWhenTranslationExists']); track flag) {
         <div class="form-check"><input type="checkbox" class="form-check-input" [id]="prefix + '-' + flag" [checked]="item[flag]" (change)="change(flag, $any($event.target).checked)"><label class="form-check-label" [for]="prefix + '-' + flag">{{ ('admin-navigation-field-' + flag) | i18next }}</label></div>
       }
     </div>

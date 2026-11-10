@@ -18,11 +18,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   selectedQuery: NamedQueryDefinition | null = null;
   draft: NamedQueryDefinition = this.emptyDraft();
   isNew = false;
+  isSaving = false;
 
   message = '';
   error = '';
 
   isEditModalOpen = false;
+  confirmDiscard = false;
+  private initialDraft = '';
+  editorInput = false;
+  get editDirty(): boolean { return this.isEditModalOpen && (this.editorInput || JSON.stringify(this.draft) !== this.initialDraft); }
   isDeleteModalOpen = false;
   pendingDeleteName: string | null = null;
 
@@ -78,7 +83,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   get canSave(): boolean {
-    if (!this.isEditModalOpen) return false;
+    if (!this.isEditModalOpen || this.isSaving) return false;
     if (this.isNew) {
       const trimmed = this.draft.name?.trim();
       if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
@@ -129,6 +134,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.selectedQuery = null;
     this.isNew = true;
     this.draft = this.emptyDraft();
+    this.editorInput = false;
+    this.initialDraft = JSON.stringify(this.draft);
     this.isEditModalOpen = true;
   }
 
@@ -141,6 +148,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       this.selectedQuery = result;
       this.isNew = false;
       this.draft = this.cloneQuery(result);
+      this.editorInput = false;
+      this.initialDraft = JSON.stringify(this.draft);
       this.isEditModalOpen = true;
     } catch (err) {
       this.error = this.t('named-query-error-load-one', 'Failed to load named query: {{error}}', { error: this.asErrorMessage(err) });
@@ -148,12 +157,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     }
   }
 
-  closeEditModal(): void {
+  closeEditModal(discard = false): void {
+    if (this.isSaving) return;
+    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
+    this.confirmDiscard = false;
     this.isEditModalOpen = false;
     this.restoreEditModalTrigger();
   }
 
   async save(): Promise<void> {
+    if (this.isSaving) return;
     if (!this.canSave) {
       if (this.isNew) {
         const trimmed = this.draft.name?.trim();
@@ -172,6 +185,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.error = '';
     this.clearMessage();
     const payload = this.sanitizeQuery(this.draft);
+    this.isSaving = true;
     try {
       if (this.isNew) {
         await this.api.create(payload);
@@ -181,12 +195,15 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
         this.setMessage(this.t('named-query-message-updated', 'Named query "{{name}}" updated', { name: payload.name ?? '' }));
       }
       await this.loadQueries();
-      this.closeEditModal();
+      this.isSaving = false;
+      this.closeEditModal(true);
     } catch (err) {
       const key = this.isNew ? 'named-query-error-create' : 'named-query-error-update';
       const fallback = this.isNew ? 'Failed to create named query: {{error}}' : 'Failed to update named query: {{error}}';
       this.error = this.t(key, fallback, { error: this.asErrorMessage(err) });
       this.logger.error(this.error);
+    } finally {
+      this.isSaving = false;
     }
   }
 
@@ -217,7 +234,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       if (this.selectedQuery?.name === name) {
         this.selectedQuery = null;
         if (this.isEditModalOpen) {
-          this.closeEditModal();
+          this.closeEditModal(true);
         }
       }
       await this.loadQueries();

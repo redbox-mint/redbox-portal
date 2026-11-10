@@ -6,7 +6,7 @@
     </ol></nav>
     <header class="rb-admin-page-header">
       <div><h1>{{ 'named-query-list-title' | i18next }}</h1><p>{{ 'admin-named-query-description' | i18next }}</p></div>
-      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newQuery()"><span aria-hidden="true">+</span> {{ 'named-query-create-button' | i18next }}</button></div>
+      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newQuery()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'admin-add-named-query' | i18next }}</button></div>
     </header>
     <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
     <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
@@ -24,12 +24,12 @@
      aria-labelledby="deleteNamedQueryModalTitle"
      aria-describedby="deleteNamedQueryModalDescription"
      (keydown.escape)="cancelDelete()">
-  <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+  <div class="modal-dialog modal-dialog-centered" role="document" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
-        <span class="modal-title h4-header" id="deleteNamedQueryModalTitle">
+        <h2 class="modal-title h4-header" id="deleteNamedQueryModalTitle">
           {{ 'named-query-confirm-delete-title' | i18next }}
-        </span>
+        </h2>
         <button type="button" class="btn-close"
                 [attr.aria-label]="'named-query-close' | i18next"
                 (click)="cancelDelete()"></button>
@@ -68,31 +68,34 @@
      role="dialog"
      aria-modal="true"
      aria-labelledby="namedQueryModalTitle"
-     (keydown.escape)="closeEditModal()">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+     [attr.inert]="confirmDiscard ? '' : null" (keydown.escape)="!confirmDiscard && closeEditModal()">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" rbAdminModal [cdkTrapFocus]="!confirmDiscard" cdkTrapFocusAutoCapture>
     <div class="modal-content rb-admin">
       <div class="modal-header">
-        <span class="modal-title h4-header" id="namedQueryModalTitle">
+        <h2 class="modal-title h4-header" id="namedQueryModalTitle">
           {{ isNew ? ('named-query-create-title' | i18next) : ('named-query-edit-title' | i18next: { name: draft.name }) }}
-        </span>
+        </h2>
         <button type="button" class="btn-close"
                 [attr.aria-label]="'named-query-close' | i18next"
                 (click)="closeEditModal()"
-                cdkFocusInitial></button>
+                [disabled]="isSaving"></button>
       </div>
       <div class="modal-body">
         <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-        <nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
+        <fieldset [disabled]="isSaving" [attr.aria-busy]="isSaving"><nq-detail (input)="editorInput = true" [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail></fieldset>
+        <p role="status" aria-live="polite" class="mb-0"><ng-container *ngIf="isSaving"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> {{ 'admin-config-saving' | i18next }}</ng-container></p>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving" (click)="closeEditModal()">
+          {{ 'named-query-cancel' | i18next }}
+        </button>
         <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
           {{ 'named-query-save' | i18next }}
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="closeEditModal()">
-          {{ 'named-query-cancel' | i18next }}
         </button>
       </div>
     </div>
   </div>
 </div>
 <div *ngIf="isEditModalOpen" class="modal-backdrop fade show" aria-hidden="true"></div>
+
+@if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="confirmDiscard = false" (discard)="closeEditModal(true)" /> }

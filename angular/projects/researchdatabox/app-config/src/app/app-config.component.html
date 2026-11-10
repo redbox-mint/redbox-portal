@@ -3,37 +3,44 @@
     <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-config-retry' | i18next }}</button>
   </div>
 }
-@if (isReady) {
+@if (isReady || earlyHeader) {
   <div class="app-config-page">
     <div [attr.inert]="showReset || showJson || pendingLeave ? '' : null">
-      <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
-        <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+      <nav class="rb-admin-crumbs" [attr.aria-label]="isReady ? ('admin-breadcrumb-label' | i18next) : earlyHeader?.breadcrumbLabel"><ol>
+        <li><a [href]="brandingAndPortalUrl + '/admin'">{{ isReady ? ('menu-admin' | i18next) : earlyHeader?.adminLabel }}</a></li>
         @if (navigationEditor || sidebarSection) { <li>{{ navigationEditor ? ('admin-nav-site' | i18next) : sidebarSection }}</li> }
         <li><span aria-current="page">{{ title }}</span></li>
       </ol></nav>
       <header class="rb-admin-page-header">
-        <div><h1>{{ title }}</h1><p>{{ descriptionKey | i18next }}</p></div>
-        @if (navigationEditor) {
-          <div class="rb-admin-page-actions"><span [attr.title]="!hasOverride ? ('admin-config-reset-unavailable' | i18next) : null" [attr.tabindex]="!hasOverride ? 0 : null">
-            <button type="button" class="btn btn-outline-secondary" [disabled]="!hasOverride || formSaving" (click)="openReset($event)">{{ 'admin-config-reset' | i18next }}</button>
-          </span></div>
+        <div><div class="rb-admin-title-line"><h1>{{ title }}</h1>
+          @if (navigationEditor && !hasOverride) { <span class="badge">{{ 'admin-config-using-defaults' | i18next }}</span> }
+        </div><p>{{ isReady ? (descriptionKey | i18next) : earlyHeader?.description }}</p></div>
+        @if (navigationEditor && hasOverride) {
+          <div class="rb-admin-page-actions">
+            @if (hasOverride) {
+              <button type="button" class="btn btn-outline-secondary" [disabled]="formSaving" (click)="openReset($event)">{{ 'admin-config-reset' | i18next }}</button>
+            }
+          </div>
         }
-        @if (longForm && !empty) {
+        @if ((longForm || enabledField) && !empty) {
           <div class="rb-admin-page-actions">
             @if (enabledField) {
-              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" for="config-enabled">{{ 'admin-config-enabled' | i18next }}</label></div>
+              <div class="form-check form-switch app-config-page-switch"><input id="config-enabled" type="checkbox" role="switch" [attr.aria-label]="'admin-config-feature-status' | i18next: { name: title }" class="form-check-input" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" id="config-enabled-label" for="config-enabled">{{ 'admin-config-status' | i18next }}</label><span aria-hidden="true">·</span><span class="rb-admin-hint" aria-hidden="true">{{ (loadedModel.enabled ? 'admin-config-on' : 'admin-config-off') | i18next }}</span><span class="rb-admin-hint" role="status" aria-live="polite">@if (!!model.enabled !== !!loadedModel.enabled) { {{ (model.enabled ? 'admin-config-turns-on-save' : 'admin-config-turns-off-save') | i18next }} }</span></div>
             }
             @if (supportsConnectionTest) {
-              <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
+              <button id="test-connection" type="button" class="btn btn-outline-secondary" [disabled]="connectionChecking || formSaving || connectionNeedsBaseUrl" [attr.aria-describedby]="connectionNeedsBaseUrl ? 'connection-base-url-hint' : null" [attr.aria-busy]="connectionChecking" (click)="testConnection()">{{ (connectionChecking ? 'admin-config-connection-testing' : 'admin-config-test-connection') | i18next }}</button>
+              @if (connectionNeedsBaseUrl) { <span class="visually-hidden" id="connection-base-url-hint">{{ 'admin-config-connection-base-url-hint' | i18next }}</span> }
             }
-            <button type="button" class="btn btn-outline-secondary" (click)="openJson()"><i class="fa fa-code" aria-hidden="true"></i> {{ 'admin-config-view-json' | i18next }}</button>
+            @if (longForm) { <button type="button" class="btn btn-outline-secondary" (click)="openJson()"><i class="fa fa-code" aria-hidden="true"></i> {{ 'admin-config-view-json' | i18next }}</button> }
           </div>
         }
       </header>
-      @if (supportsConnectionTest && dirty) {
-        <p class="rb-admin-hint">{{ 'admin-config-connection-unsaved' | i18next }}</p>
-      }
+      @if (isReady) {
+      @if (enabledField && loadedModel.enabled !== true && !empty) { <div class="alert alert-info" role="status">{{ 'admin-config-feature-off-help' | i18next: { name: title } }}</div> }
       <div aria-live="polite" aria-atomic="true">
+        @if (connectionTestedDirty && (connectionResult || connectionError)) {
+          <p class="rb-admin-hint">{{ 'admin-config-connection-unsaved' | i18next }}</p>
+        }
         @if (connectionResult; as result) {
           <div class="alert app-config-connection-result" [class.alert-success]="result.ok" [class.alert-warning]="!result.ok && result.status === 'misconfigured'" [class.alert-danger]="!result.ok && result.status !== 'misconfigured'" [attr.role]="result.ok ? 'status' : 'alert'">
             <strong>{{ connectionDetailKey | i18next }} · {{ 'admin-config-connection-latency' | i18next: { ms: result.latencyMs } }}</strong>
@@ -61,12 +68,15 @@
         @if (formSaveSuccessful) { <div class="alert alert-success" role="status">{{ 'admin-config-save-success' | i18next }}</div> }
         @if (formSaveUnsuccessful) { <div class="alert alert-danger" role="alert">{{ 'admin-config-save-error' | i18next }}</div> }
         <form [formGroup]="form" (ngSubmit)="onSubmit(model)">
-          @if (configKey === 'authorizedDomainsEmails') {
-            <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><div><h3>{{ 'admin-config-restrict' | i18next }}</h3><p>{{ 'admin-config-restrict-help' | i18next }}</p></div>
-              <div class="form-check form-switch"><input id="config-restrict" class="form-check-input" role="switch" type="checkbox" [checked]="model.enabled" [disabled]="formSaving" (change)="setEnabled($event)"><label class="form-check-label" for="config-restrict">{{ 'admin-config-enabled' | i18next }}</label></div>
-            </div></section>
-            <div class="alert alert-info">{{ 'admin-config-domain-matching' | i18next }}</div>
+          @if (invalidFields.length) {
+            <div class="alert alert-danger" role="alert" aria-labelledby="config-errors-title">
+              <h2 id="config-errors-title">{{ 'admin-config-validation-summary' | i18next }}</h2>
+              <ul>@for (field of invalidFields; track field) {
+                <li><a [href]="'#' + invalidFieldId(field)" (click)="$event.preventDefault(); focusInvalidField(field)">{{ invalidFieldLabel(field) }}</a></li>
+              }</ul>
+            </div>
           }
+          <div class="rb-admin-save-content">
           <div class="app-config-layout" [class.app-config-long]="longForm" [class.app-config-with-preview]="configKey === 'systemMessage'">
             @if (longForm) {
               <nav class="rb-admin-section-rail" [attr.aria-label]="'admin-config-sections' | i18next">
@@ -75,8 +85,9 @@
                 }
               </nav>
             }
-            <div class="app-config-form-main">
+            <div class="app-config-form-main" [class.app-config-settings-off]="enabledField && model.enabled !== true">
               <fieldset class="app-config-fields" [disabled]="formSaving">
+                @if (configKey === 'authorizedDomainsEmails') { <p class="rb-admin-hint">{{ 'admin-config-account-creation-matching' | i18next }}</p> }
                 <formly-form [form]="form" [fields]="fields" [model]="model" [options]="options" [class.app-config-providers]="configKey === 'authorizedDomainsEmails'"></formly-form>
               </fieldset>
             </div>
@@ -84,13 +95,12 @@
               <aside class="app-config-preview" [attr.aria-label]="'admin-config-live-preview' | i18next">
                 <h2>{{ 'admin-config-live-preview' | i18next }}</h2>
                 <div class="app-config-banner-preview">
-                  <div class="app-config-preview-brand"></div><div class="app-config-preview-nav"></div>
                   <div class="app-config-preview-body">
                     <div class="alert rb-system-message app-config-preview-message" [class.rb-system-message-info]="messageStyle === 'info'" [class.rb-system-message-warning]="messageStyle === 'warning'" [class.rb-system-message-critical]="messageStyle === 'critical'" [attr.role]="messageStyle === 'critical' ? 'alert' : 'status'" [class.alert-dismissible]="model.dismissalDurationHours > 0">
-                      <div><h4 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h4><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
+                      <div><h3 [innerHTML]="model.title || ('admin-config-preview-title' | i18next)"></h3><div [innerHTML]="model.message || ('admin-config-preview-message' | i18next)"></div></div>
                       @if (model.dismissalDurationHours > 0) { <button type="button" class="btn-close" disabled [attr.aria-label]="'admin-config-dismiss-preview' | i18next"></button> }
                     </div>
-                    <p class="rb-admin-hint">{{ (model.enabled ? 'admin-config-banner-live' : 'admin-config-banner-off') | i18next }}</p>
+                    <p class="rb-admin-hint">{{ (loadedModel.enabled ? 'admin-config-banner-live' : 'admin-config-banner-off') | i18next }}</p>
                   </div>
                 </div>
               </aside>
@@ -98,18 +108,16 @@
           </div>
           @if (configKey === 'authorizedDomainsEmails') {
             <section class="rb-admin-form-section app-config-address-tester" aria-labelledby="address-test-heading">
-              <div class="rb-admin-form-section-header"><div><h3 id="address-test-heading">{{ 'admin-config-address-title' | i18next }}</h3><p>{{ 'admin-config-address-help' | i18next }}</p></div></div>
+              <div class="rb-admin-form-section-header"><div><h3 id="address-test-heading">{{ 'admin-config-address-title' | i18next }}</h3><p id="address-test-help">{{ 'admin-config-address-summary' | i18next }}</p><span role="status" aria-live="polite" aria-atomic="true">@if (dirty) { <span class="badge rb-admin-badge-info">{{ 'admin-config-address-unsaved' | i18next }}</span> }</span></div></div>
               <div class="rb-admin-form-section-body">
-                <p class="rb-admin-hint" id="address-test-help">{{ 'admin-config-address-matching-help' | i18next }}</p>
-                <p class="rb-admin-hint" aria-live="polite">{{ (dirty ? 'admin-config-address-unsaved' : 'admin-config-address-current') | i18next }}</p>
                 <div class="rb-admin-filter-bar app-config-address-check" [attr.aria-busy]="addressChecking">
                   <div class="rb-admin-field rb-admin-field-grow"><label for="address-test-email">{{ 'admin-config-address-email' | i18next }}</label>
-                    <input id="address-test-email" type="email" class="form-control" maxlength="254" autocomplete="off" [formControl]="addressEmail" aria-describedby="address-test-help address-test-invalid" [attr.aria-invalid]="addressEmail.touched && addressEmail.invalid" (keydown.enter)="$event.preventDefault(); checkAddress()">
+                    <input id="address-test-email" [placeholder]="'admin-config-address-placeholder' | i18next" type="email" class="form-control" maxlength="254" autocomplete="off" [formControl]="addressEmail" aria-describedby="address-test-help address-test-invalid" [attr.aria-invalid]="addressEmail.touched && addressEmail.invalid" (keydown.enter)="$event.preventDefault(); checkAddress()">
                   </div>
                   <div class="rb-admin-field"><label for="address-test-provider">{{ 'admin-config-address-provider' | i18next }}</label><select id="address-test-provider" class="form-select" [formControl]="addressProvider">
                     <option value="aaf">{{ 'admin-config-aaf' | i18next }}</option><option value="oidc">{{ 'admin-config-oidc' | i18next }}</option>
                   </select></div>
-                  <button type="button" class="btn btn-outline-secondary" [disabled]="addressChecking || addressEmail.invalid" (click)="checkAddress()">{{ (addressChecking ? 'admin-config-address-checking' : 'admin-config-address-check') | i18next }}</button>
+                  <button type="button" class="btn btn-outline-primary" [disabled]="addressChecking || addressEmail.invalid" (click)="checkAddress()">{{ (addressChecking ? 'admin-config-address-checking' : 'admin-config-address-check') | i18next }}</button>
                 </div>
                 <div id="address-test-invalid" class="rb-admin-hint" [hidden]="!addressEmail.touched || !addressEmail.invalid">{{ 'admin-config-address-invalid' | i18next }}</div>
                 <div role="status" aria-live="polite" aria-atomic="true">
@@ -121,17 +129,22 @@
               </div>
             </section>
           }
-          <div class="rb-admin-save-bar">
+          </div>
+          <rb-admin-save-shortcut [bar]="this.saveBar" [dirty]="dirty" [disabled]="formSaving" (save)="onSubmit(model)"></rb-admin-save-shortcut>
+          <div class="rb-admin-save-bar" #saveBar>
             <span class="rb-admin-save-state" [class.app-config-dirty]="dirty" aria-live="polite"><span class="app-config-state-dot" aria-hidden="true"></span>{{ (formSaving ? 'admin-config-saving' : dirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
             <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="!dirty || formSaving" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="submit" class="btn btn-primary" [disabled]="!dirty || formSaving">{{ 'admin-config-save' | i18next }}</button></div>
           </div>
         </form>
+
+
+      }
       }
     </div>
     @if (showReset) {
       <div class="modal-backdrop fade show"></div>
       <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="config-reset-title" aria-describedby="config-reset-help" [attr.aria-busy]="formSaving" (keydown.escape)="cancelReset()">
-        <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
           <div class="modal-header"><h2 id="config-reset-title" class="modal-title">{{ 'admin-config-reset-title' | i18next }}</h2><button class="btn-close" type="button" [disabled]="formSaving" [attr.aria-label]="'admin-config-close' | i18next" (click)="cancelReset()"></button></div>
           <div class="modal-body"><p id="config-reset-help">{{ 'admin-config-reset-help' | i18next: { name: ('admin-navigation-tab-' + configKey) | i18next } }}</p></div>
           <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial [disabled]="formSaving" (click)="cancelReset()">{{ 'admin-config-reset-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="formSaving" (click)="resetConfig()">{{ (formSaving ? 'admin-config-resetting' : 'admin-config-reset') | i18next }}</button></div>
@@ -141,7 +154,7 @@
     @if (showJson || pendingLeave) {
       <div class="modal-backdrop fade show"></div>
       <div class="modal d-block" [attr.role]="pendingLeave ? 'alertdialog' : 'dialog'" aria-modal="true" aria-labelledby="config-dialog-title" (keydown.escape)="showJson ? closeJson() : cancelLeave()">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" [class.modal-lg]="showJson" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" [class.modal-lg]="showJson" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
           <div class="modal-header"><h2 class="modal-title" id="config-dialog-title">{{ (showJson ? 'admin-config-view-json' : 'admin-config-leave-title') | i18next }}</h2><button class="btn-close" type="button" [attr.aria-label]="'admin-config-close' | i18next" (click)="showJson ? closeJson() : cancelLeave()"></button></div>
           <div class="modal-body">
             @if (showJson) { <p class="rb-admin-hint">{{ 'admin-config-json-help' | i18next }}</p><pre class="app-config-json" tabindex="0">{{ jsonModel }}</pre> }

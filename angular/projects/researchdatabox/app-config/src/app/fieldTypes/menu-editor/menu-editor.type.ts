@@ -20,6 +20,7 @@ import { MenuItem } from './menu-item.interface';
   standalone: false
 })
 export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 
   /** Currently expanded item indices */
   expandedItems: Set<number> = new Set([0]);

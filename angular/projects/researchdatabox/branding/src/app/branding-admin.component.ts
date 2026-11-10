@@ -1,9 +1,9 @@
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Component, Inject } from '@angular/core';
+import { Component, HostListener, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { AdminDatePipe, BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminModalDirective, AdminTabsDirective, AdminDatePipe, BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { BrandingAdminService } from './branding-admin.service';
 import {
   BRANDING_TYPEFACE_SLOTS,
@@ -45,7 +45,7 @@ interface TypefaceSlotCard {
   templateUrl: './branding-admin.component.html',
   styleUrls: ['./branding-admin.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe, AdminDatePipe],
+  imports: [AdminModalDirective, AdminTabsDirective, CommonModule, FormsModule, A11yModule, BrandingPreviewComponent, I18NextPipe, AdminDatePipe],
   providers: [BrandingAdminService],
 })
 export class BrandingAdminComponent extends BaseComponent {
@@ -83,6 +83,7 @@ export class BrandingAdminComponent extends BaseComponent {
   colourGroups: ColourGroup[] = [];
 
   activeTab = 'colours';
+
   selectedGroup = 1;
   pendingAction: 'publish' | 'reset' | null = null;
   readonly tabs = ['colours', 'assets', 'typography', 'history'];
@@ -93,6 +94,14 @@ export class BrandingAdminComponent extends BaseComponent {
     return [...new Set([...Object.keys(saved), ...Object.keys(this.draftConfig)])].filter(
       key => saved[key] !== this.draftConfig[key]
     ).length;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.localChangeCount > 0) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
   }
 
   get draftChangeCount(): number {
@@ -841,6 +850,12 @@ export class BrandingAdminComponent extends BaseComponent {
 
   confirmRestore(versionId: string) {
     this.pendingRestoreId = versionId;
+  }
+
+  async confirmVersionRestore(): Promise<void> {
+    const version = this.versions.find(entry => entry.id === this.pendingRestoreId);
+    this.cancelRestore();
+    if (version) await this.restoreVersion(version);
   }
 
   cancelRestore() {

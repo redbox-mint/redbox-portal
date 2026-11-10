@@ -1,4 +1,5 @@
-import { Component, CSP_NONCE, inject, signal, OnDestroy, OnInit } from '@angular/core';
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { Component, CSP_NONCE, inject, signal, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,7 +35,7 @@ type TranslationEditorMode = 'rich' | 'text' | 'html';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
+  imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminCountPipe, AdminModalDirective, CommonModule, FormsModule, HttpClientModule, A11yModule, I18NextPipe, TiptapEditorDirective],
   templateUrl: './translation.component.html',
   styleUrls: ['./translation.component.scss']
 })
@@ -46,6 +47,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private allowedClasses = getTranslationHtmlClasses();
 
   readWarnings = signal<Partial<Record<ReadKind, string>>>({});
+  initializing = signal(true);
+  translationsReady = signal(false);
   readPending = signal<Partial<Record<ReadKind, boolean>>>({});
   private readRequests: Record<ReadKind, number> = { languages: 0, entries: 0, bundles: 0, displayName: 0 };
   private destroyed = false;
@@ -83,6 +86,41 @@ export class AppComponent implements OnInit, OnDestroy {
   defaultLanguage = 'en';
   displayNameLanguage = '';
   availabilityDirty = signal(false);
+  private savedAvailableLanguages: string[] = [];
+  pendingLeave = '';
+  confirmAvailabilityDiscard = false;
+  private allowLeave = false;
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if (this.availabilityDirty() && !this.allowLeave) { event.preventDefault(); event.returnValue = ''; }
+  }
+
+  @HostListener('document:click', ['$event'])
+  confirmNavigation(event: MouseEvent): void {
+    if (!this.availabilityDirty() || this.allowLeave || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+    event.preventDefault();
+    this.pendingLeave = anchor.href;
+  }
+
+  discardAvailability(): void {
+    if (this.savingLanguages()) return;
+    const destination = this.pendingLeave;
+    this.availableLanguages.set([...this.savedAvailableLanguages]);
+    this.editedAvailability.clear();
+    this.availabilityDirty.set(false);
+    this.saveLanguagesError.set(false);
+    this.confirmAvailabilityDiscard = false;
+    this.pendingLeave = '';
+    if (destination) {
+      this.allowLeave = true;
+      window.location.assign(destination);
+    } else {
+      this.onAvailableLanguagesChange();
+    }
+  }
 
   // Entries loaded from the webservice API (include metadata)
   entries = signal<TranslationEntry[]>([]);
@@ -102,10 +140,6 @@ export class AppComponent implements OnInit, OnDestroy {
   get totalPages(): number { return Math.max(1, Math.ceil(this.viewEntries().length / this.pageSize)); }
   get rangeStart(): number { return this.viewEntries().length ? (this.page - 1) * this.pageSize + 1 : 0; }
   get rangeEnd(): number { return Math.min(this.page * this.pageSize, this.viewEntries().length); }
-  get visiblePages(): number[] {
-    const start = Math.max(1, Math.min(this.page - 2, this.totalPages - 4));
-    return Array.from({ length: Math.min(5, this.totalPages) }, (_, index) => start + index);
-  }
 
   setPage(page: number) {
     this.page = Math.max(1, Math.min(page, this.totalPages));
@@ -113,12 +147,22 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onPageSizeChange() { this.setPage(1); }
+  keySegments(key: string): string[] {
+    return key.split(/(?<=[.-])/);
+  }
+
   trackByKey(_index: number, entry: TranslationEntry): string { return entry.key; }
 
   // Modal state for editing entries
   modalOpen = signal(false);
   editKey = '';
   editValue = '';
+  confirmDiscard = false;
+  private initialDraft = '';
+  get editDirty(): boolean {
+    this.syncValueFromCurrentEditor();
+    return JSON.stringify([this.editValue, this.editContentFormat]) !== this.initialDraft;
+  }
   editDescription: string | undefined;
   richTextEditor: Editor | null = null;
   editorMode: TranslationEditorMode = 'rich';
@@ -165,12 +209,17 @@ export class AppComponent implements OnInit, OnDestroy {
       this.brandingAndPortalUrl = `${config.baseUrl || ''}/${config.branding}/${config.portal}`;
       const fallback = config.i18NextOpts?.fallbackLng;
       this.defaultLanguage = (Array.isArray(fallback) ? fallback[0] : fallback) || 'en';
+      this.translationsReady.set(true);
       await this.loadLanguages();
       if (!this.readWarnings().languages) await this.loadAvailableLanguagesFromBundles();
     } catch (error) {
       console.error('Failed to initialise translation reads', error);
       if (!this.destroyed) this.readWarnings.update(state => ({ ...state,
         languages: 'Languages could not be loaded. The list may be incomplete; retry to load the current configuration.' }));
+    } finally {
+      // Keep recovery controls available if bootstrap itself failed.
+      this.translationsReady.set(true);
+      this.initializing.set(false);
     }
   }
 
@@ -209,6 +258,10 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       }
       return () => {
+        // A failed retry must not turn an unsaved switch choice into the discard baseline.
+        this.savedAvailableLanguages = codes.filter(code => failed.includes(code)
+          ? this.savedAvailableLanguages.includes(code) || !this.bundleContexts.has(JSON.stringify([namespace, code]))
+          : enabled.includes(code));
         this.availableLanguages.set(codes.filter(code => this.editedAvailability.has(code)
           ? this.availableLanguages().includes(code) : enabled.includes(code)));
         for (const code of codes) this.bundleContexts.add(JSON.stringify([namespace, code]));
@@ -441,6 +494,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.plainTextValue = value;
     this.editorMode = this.editContentFormat === 'html' ? 'rich' : 'text';
     this.richTextEditor = this.createRichTextEditor(this.editContentFormat === 'html' ? value : this.escapeHtml(value));
+    this.syncValueFromCurrentEditor();
+    this.initialDraft = JSON.stringify([this.editValue, this.editContentFormat]);
     this.modalOpen.set(true);
   }
 
@@ -530,8 +585,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  closeModal() {
+  closeModal(discard = false) {
     if (this.saving()) return;
+    if (this.editDirty && !discard) { this.confirmDiscard = true; return; }
+    this.confirmDiscard = false;
     this.modalOpen.set(false);
     this.destroyRichTextEditor();
     this.editorMode = 'rich';
@@ -710,6 +767,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
       await Promise.all(updatePromises);
 
+      this.savedAvailableLanguages = [...this.availableLanguages()];
       this.savingLanguages.set(false);
       this.saveLanguagesSuccess.set(true);
       this.editedAvailability.clear();
@@ -762,6 +820,7 @@ export class AppComponent implements OnInit, OnDestroy {
         extensions: this.buildRichTextExtensions(),
         content: content || '',
         editable: true,
+        editorProps: { attributes: { cdkFocusInitial: '', role: 'textbox', 'aria-multiline': 'true', 'aria-labelledby': 'tx-translation-value-label' } },
         injectNonce: this.cspNonce || undefined,
         onUpdate: ({ editor }) => this.onRichTextUpdateFromEditor(editor),
       });

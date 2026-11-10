@@ -6,8 +6,10 @@
     <% const hasLogoHeadingText = logoHeadingText && logoHeadingText !== logoHeadingKey && logoHeadingText.trim(); %>
     <% const adminPath = BrandingService.getBrandAndPortalPath(req) + '/admin'; %>
     <% const adminLogo = req.path === adminPath || req.path.startsWith(adminPath + '/') || (typeof adminParties !== 'undefined' && adminParties); %>
+    <% const logoBrand = BrandingService.getBrand(BrandingService.getBrandNameFromReq(req)); %>
+    <% const defaultLogo = !logoBrand?.logo && sails.config.static_assets.logoName === 'logo.png'; %>
     <<%= adminLogo ? 'div' : 'h1' %><% if (adminLogo || hasLogoHeadingText) { %> class="<%= [adminLogo ? 'rb-admin-site-logo' : '', hasLogoHeadingText ? 'logo-with-heading' : ''].filter(Boolean).join(' ') %>"<% } %>>
-      <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>"/>
+      <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>" <% if (defaultLogo) { %>width="171" height="100"<% } %>/>
       <% if (hasLogoHeadingText) { %>
         <span class="logo-heading-text"><%= logoHeadingText %></span>
       <% } %>

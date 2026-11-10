@@ -13,6 +13,18 @@ describe('Admin date display', () => {
     expect(formatAdminDate('unexpected')).toBe('unexpected');
   });
 
+  it('matches local calendar fields for offset timestamps, epochs and dates without locale discovery', () => {
+    const instant = new Date('2026-10-04T01:30:00+09:30');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const expected = `${pad(instant.getDate())}/${pad(instant.getMonth() + 1)}/${instant.getFullYear()} ${pad(instant.getHours())}:${pad(instant.getMinutes())}`;
+    for (const value of [instant, instant.getTime(), instant.toISOString(), '2026-10-04T01:30:00+09:30']) {
+      expect(formatAdminDate(value)).toBe(expected);
+    }
+    expect(formatAdminDate('2026-10-04')).toBe('04/10/2026 00:00');
+    expect(formatAdminDate('invalid')).toBe('invalid');
+    expect(formatAdminDate('2026-02-30T00:00:00Z')).toBe('2026-02-30T00:00:00Z');
+  });
+
   it('keeps the calendar day in the report filter zone across a DST boundary', () => {
     expect(formatAdminDate('2026-10-04T00:00:00+10:00', 'dd/MM/yyyy', 'en', 'Australia/Sydney')).toBe('04/10/2026');
   });

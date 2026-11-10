@@ -1,3 +1,39 @@
     </div>
   </main>
 </div>
+<script <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+(function () {
+  const admin = document.querySelector('.rb-admin.admin-layout');
+  // Capture before per-component Escape handlers close the details element.
+  admin.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    const menu = event.target.closest('details.rb-admin-overflow[open], details.rb-navigation-actions[open]');
+    if (!menu) return;
+    event.preventDefault();
+    event.stopPropagation();
+    menu.open = false;
+    menu.querySelector('summary').focus();
+  }, true);
+  const observed = new WeakSet();
+  const resize = new ResizeObserver(function (entries) {
+    entries.forEach(function (entry) {
+      const parent = entry.target.parentElement;
+      if (!parent || !entry.target.isConnected) {
+        resize.unobserve(entry.target);
+        return;
+      }
+      const height = Math.ceil(entry.target.getBoundingClientRect().height) + 'px';
+      parent.style.setProperty('--admin-save-height', height);
+      admin.style.setProperty('--admin-save-height', height);
+      document.documentElement.style.setProperty('--admin-save-height', height);
+    });
+  });
+  function observeBars() {
+    admin.querySelectorAll('.rb-admin-save-bar').forEach(function (bar) {
+      if (!observed.has(bar)) { observed.add(bar); resize.observe(bar); }
+    });
+  }
+  new MutationObserver(observeBars).observe(admin, { childList: true, subtree: true });
+  observeBars();
+})();
+</script>

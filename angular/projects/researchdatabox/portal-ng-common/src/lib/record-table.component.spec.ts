@@ -1,3 +1,4 @@
+import { AdminPagerComponent } from './admin-pager.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NgModel, FormsModule } from '@angular/forms';
@@ -28,7 +29,7 @@ describe('RecordTableComponent', () => {
     renderTemplate = jasmine.createSpy('compileAndRunTemplate').and.returnValue('<strong>Rendered title</strong>');
     await TestBed.configureTestingModule({
       declarations: [RecordTableComponent, HeaderSortComponent],
-      imports: [FormsModule, PaginationModule.forRoot(), I18NextPipe],
+      imports: [AdminPagerComponent, FormsModule, PaginationModule.forRoot(), I18NextPipe],
       providers: [
         { provide: LoggerService, useValue: { error: jasmine.createSpy('error') } },
         { provide: UtilityService, useValue: {} },
@@ -53,6 +54,14 @@ describe('RecordTableComponent', () => {
     component.columnConfig = [{ property: 'title', label: 'Title' }] as RecordPropViewMetaDto[];
   });
 
+  it('renders opted-in data columns as literal text while retaining configured HTML templates', async () => {
+    (currentPage.records[0] as any).title = '<img src=x onerror=alert(1)>Hello';
+    component.plainTextColumns = true;
+    await render();
+    expect(fixture.nativeElement.querySelector('tbody td').textContent).toBe((currentPage.records[0] as any).title);
+    expect(fixture.nativeElement.querySelector('tbody img')).toBeNull();
+  });
+
   afterEach(() => fixture.destroy());
 
   async function render() {
@@ -75,6 +84,27 @@ describe('RecordTableComponent', () => {
   function activePage() {
     return fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
   }
+
+  it('uses previous/next links and caps the last admin page range at the result total', async () => {
+    component.adminPresentation = true;
+    component.paginationItemsPerPage = 10;
+    currentPage = { records: [{ title: 'Last' }], total: 21, pageNum: 3 };
+    await render();
+    expect(component.adminPageEnd).toBe(21);
+    expect(fixture.nativeElement.querySelector('rb-admin-pager .page-link').textContent.trim()).toBe('‹');
+    expect(fixture.nativeElement.querySelector('.pagination-first')).toBeNull();
+  });
+
+  it('keeps counts without a pager for one admin page and hides an empty footer', async () => {
+    component.adminPresentation = true;
+    currentPage = { records: [{ title: 'Only row' }], total: 1, pageNum: 1 };
+    await render();
+    expect(fixture.nativeElement.querySelector('.card-footer')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('pagination')).toBeNull();
+    currentPage = { records: [], total: 0, pageNum: 1 };
+    await settle();
+    expect(fixture.nativeElement.querySelector('.card-footer')).toBeNull();
+  });
 
   it('formats the named-query modified-date envelope using the shared admin locale', async () => {
     const timestamp = '2026-11-05T23:06:12.085Z';
@@ -217,13 +247,25 @@ describe('RecordTableComponent', () => {
     fixture.nativeElement.querySelector('.view-record').click();
     expect(source.recordTableAction).toHaveBeenCalledWith(jasmine.anything(), currentPage.records[0], 'view');
     const headers = fixture.nativeElement.querySelectorAll('header-sort button');
+    expect(headers[0].hasAttribute('aria-sort')).toBeFalse();
+    expect(headers[0].querySelector('.fa-sort')).toBeTruthy();
     headers[0].click();
     await settle();
-    expect(headers[0].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th').getAttribute('aria-sort')).toBe('ascending');
     headers[1].click();
     await settle();
-    expect(headers[0].getAttribute('aria-sort')).toBeNull();
-    expect(headers[1].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th').getAttribute('aria-sort')).toBeNull();
+    expect(headers[1].closest('th').getAttribute('aria-sort')).toBe('ascending');
     expect(source.headerSortChanged).toHaveBeenCalledWith(jasmine.objectContaining({ variable: 'tags', sort: 'asc' }), component.columnConfig[1]);
   });
+  it('omits empty admin tables while preserving ordinary portal table headers', async () => {
+    currentPage = { records: [], total: 0, pageNum: 1 };
+    component.adminPresentation = true;
+    await render();
+    expect(fixture.nativeElement.querySelector('thead')).toBeNull();
+    component.adminPresentation = false;
+    await settle();
+    expect(fixture.nativeElement.querySelector('thead')).toBeTruthy();
+  });
+
 });

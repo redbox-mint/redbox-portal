@@ -141,6 +141,31 @@ describe('BrandingAdminComponent typography experience', () => {
     component = fixture.componentInstance;
   });
 
+  it('uses roving tabs and supports wrapping, Home and End with focus following selection', async () => {
+    await initWith(adminState());
+    component.activeTab = 'colours';
+    fixture.detectChanges();
+    const tabs: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]'));
+    expect(tabs.length).toBe(4);
+    expect(tabs.map(tab => tab.tabIndex)).toEqual([0, -1, -1, -1]);
+    tabs[0].focus();
+    tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('history');
+    expect(document.activeElement).toBe(tabs[3]);
+    expect(tabs[3].getAttribute('aria-selected')).toBe('true');
+    tabs[3].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('colours');
+    tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('assets');
+    tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('history');
+    expect(tabs.map(tab => tab.tabIndex)).toEqual([-1, -1, -1, 0]);
+  });
+
   it('saves visible colours before preview and publication using the resulting revision', async () => {
     await initWith(adminState());
     component.draftConfig = { primary: '#0000ff' };
@@ -559,7 +584,10 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.pendingRestoreId).toBe('h1');
     await settled();
     expect(fixture.nativeElement.textContent).toContain('branding-restore-confirm');
-    await component.restoreVersion({ ...version, id: 'h1', version: 1 });
+    const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="alertdialog"]');
+    expect(dialog.querySelector('.rb-admin-danger-confirm')).not.toBeNull();
+    expect(dialog.closest('td')).toBeNull();
+    await component.confirmVersionRestore();
     expect(component.pendingRestoreId).toBeNull();
   });
 
@@ -680,5 +708,24 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(fixture.nativeElement.querySelector('.branding-publish').disabled).toBeTrue();
     expect(fixture.nativeElement.querySelector('.branding-generate').disabled).toBeTrue();
     expect(fixture.nativeElement.querySelector('#primary-hex').getAttribute('aria-invalid')).toBe('true');
+  });
+  it('warns on page unload only for unsaved local colour edits', async () => {
+    await initWith(adminState());
+    const clean = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(clean);
+    expect(clean.defaultPrevented).toBeFalse();
+    component.draftConfig['primary'] = '#123456';
+    const dirty = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(dirty);
+    expect(dirty.defaultPrevented).toBeTrue();
+    spyOn(serviceStub, 'saveColourDraft').and.callFake(async (variables: Record<string, string>) => {
+      const state = adminState();
+      state.draft.variables = variables;
+      return state;
+    });
+    await component.saveDraft();
+    const saved = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(saved);
+    expect(saved.defaultPrevented).toBeFalse();
   });
 });

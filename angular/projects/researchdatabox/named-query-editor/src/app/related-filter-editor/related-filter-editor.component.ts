@@ -12,12 +12,15 @@ interface FilterEntry extends RelatedRecordFilterDefinition {
   mongoQueryJson: string;
 }
 
+let nextEditorId = 0;
+
 @Component({
   selector: 'related-filter-editor',
   templateUrl: './related-filter-editor.component.html',
   standalone: false
 })
 export class RelatedFilterEditorComponent implements OnChanges {
+  readonly idPrefix = 'related-filter-editor-' + nextEditorId++;
   @Input() relatedRecordFilters: RelatedRecordFilterDefinition[] | undefined = [];
   @Output() relatedRecordFiltersChange = new EventEmitter<RelatedRecordFilterDefinition[] | undefined>();
 

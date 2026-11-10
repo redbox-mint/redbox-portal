@@ -21,6 +21,18 @@ test('served ReDoc bundle includes patched DOMPurify and renders untrusted API d
   assert.doesNotMatch(bundle, /version=["']3\.4\.(?:6|13|16)["']/);
   const dom = new JSDOM('<div id="redoc"></div>', { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
   const { window } = dom;
+  const stringCompilation = [];
+  window.Worker = function () { throw new Error('Search should use its main-thread index'); };
+  window.Function = new Proxy(window.Function, {
+    apply(_target, _receiver, args) { stringCompilation.push(args); throw new Error('CSP blocks string compilation'); },
+    construct(_target, args) { stringCompilation.push(args); throw new Error('CSP blocks string compilation'); },
+  });
+  // jsdom has no viewport/layout. Mount lazy sections explicitly in this test.
+  window.IntersectionObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe(target) { this.callback([{ target, isIntersecting: true }], this); }
+    disconnect() {}
+  };
   window.scrollTo = () => {};
   window.performance.getEntriesByType = () => [];
   window.performance.getEntriesByName = () => [];
@@ -65,6 +77,7 @@ test('served ReDoc bundle includes patched DOMPurify and renders untrusted API d
     await waitForRender(mount, /Hydrated documentation/);
     renderer.destroy(mount);
     assert.equal(mount.childNodes.length, 0);
+    assert.deepEqual(stringCompilation, [], 'rendering and search setup must never probe unsafe-eval');
   } finally {
     window.close();
   }
@@ -91,7 +104,7 @@ test('ReDoc wrapper reuses roots and cancels deferred hydration during teardown'
     redoc: { prepareApiDocs: async () => ({}), logoFromSpec: () => undefined },
     'redoc/package.json': { version: '3.0.1' },
   };
-  const sandbox = { exports: {}, require: name => modules[name],
+  const sandbox = { exports: {}, window: {}, require: name => modules[name],
     document: { querySelector: () => null },
     setTimeout(callback) { timers.set(++timerId, callback); return timerId; },
     clearTimeout(id) { timers.delete(id); },
