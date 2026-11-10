@@ -1865,6 +1865,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('booleanMode', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('enabledOptionValues', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
@@ -2002,6 +2003,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('enabledOptionValues', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
@@ -2139,6 +2141,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('enabledOptionValues', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
