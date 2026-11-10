@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { firstValueFrom } from 'rxjs';
+import { EmailTemplateError } from './EmailTemplateService';
 import { Services as services } from '../CoreService';
 import { IntegrationAuditModel, IntegrationAuditStatus } from '../model/storage/IntegrationAuditModel';
 
@@ -63,7 +64,10 @@ export namespace Services {
         let brandConfig: Record<string, unknown>;
 
         try {
-          let resolvedBrandId = brandId ? BrandingService.getBrandById(brandId)?.id : undefined;
+          let resolvedBrandId = brandId !== undefined ? BrandingService.getBrandById(brandId)?.id : undefined;
+          if (brandId !== undefined && !resolvedBrandId) {
+            throw new EmailTemplateError('UNKNOWN_BRAND', `Unknown integration notification brand '${brandId}'.`);
+          }
           if (!resolvedBrandId) {
             resolvedBrandId = BrandingService.getDefault()?.id;
           }
@@ -304,13 +308,11 @@ export class EmailChannel implements IntegrationNotificationChannel {
     const templateName = (ctx.channelConfig?.template as string | undefined)
       ?? (payload.kind === 'failure' ? 'integrationFailure' : 'integrationRecovery');
 
-    const subject = payload.title;
-
     const templateData = { ...payload } as unknown as Record<string, unknown>;
 
     let buildResult: Record<string, unknown>;
     try {
-      buildResult = await firstValueFrom(EmailService.buildFromTemplate(templateName, templateData));
+      buildResult = await firstValueFrom(EmailService.buildFromTemplate(templateName, templateData, { brandId: payload.brandId, defaultSubject: payload.title }));
     } catch (err) {
       sails.log.error(`EmailChannel:: Failed to build template '${templateName}'.`);
       sails.log.error(err);
@@ -324,7 +326,8 @@ export class EmailChannel implements IntegrationNotificationChannel {
 
     const body = buildResult['body'] as string;
     try {
-      const sendResult = await firstValueFrom(EmailService.sendMessage(recipients.join(','), body, subject)) as { success: boolean; msg: string };
+      const sendResult = await firstValueFrom(EmailService.sendMessage(recipients.join(','), body, (buildResult['subject'] as string | undefined) ?? payload.title,
+        undefined, buildResult['format'] as string | undefined)) as { success: boolean; msg: string };
       if (!sendResult.success) {
         sails.log.error(`EmailChannel:: Failed to send email: ${sendResult.msg}`);
         return false;

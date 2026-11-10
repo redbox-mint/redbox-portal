@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { APIActionResponse } from '../model/APIActionResponse';
+import { EmailTemplateError } from '../services/EmailTemplateService';
 import { Services } from '../services/EmailService';
 import { getValidatedApiRequest } from '../api-routes/validation';
 
@@ -87,7 +88,12 @@ export namespace Controllers {
 
             let emailProperties;
             try {
-                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined);
+                // The route policies resolve locals.branding. Never use body.brandId,
+                // body.branding, or data.brandId to choose the template tenant.
+                const brandName = req.options?.locals?.branding ?? req.params?.branding;
+                const brand = typeof brandName === 'string' ? BrandingService.getBrand(brandName) : undefined;
+                if (!brand) throw new EmailTemplateError('UNKNOWN_BRAND', 'No resolved request brand for email notification.');
+                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined, { brandId: brand.id });
             } catch (error) {
                 return this.sendResp(req, res, {
                     status: 500,
@@ -133,9 +139,9 @@ export namespace Controllers {
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
                         buildResult['body'] as string,
-                        subjectRendered,
+                        (buildResult['subject'] as string | undefined) ?? subjectRendered,
                         fromRendered,
-                        formatRendered,
+                        (buildResult['format'] as string | undefined) ?? formatRendered,
                         ccRendered,
                         bccRendered,
                         otherSendOptions,
