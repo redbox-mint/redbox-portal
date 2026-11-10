@@ -1083,4 +1083,148 @@ describe('ValidationSummaryFieldComponent', () => {
       'form-item-id-text-1-event@validator-error-different-values',
     ]);
   });
+
+  it('should include form-level unowned error, form-level owned error, and same component error at same time', async () => {
+    const formConfig: FormConfigFrame = {
+      name: 'testing',
+      debugValue: true,
+      domElementType: 'form',
+      defaultComponentConfig: {
+        defaultComponentCssClasses: 'row',
+      },
+      editCssClasses: 'redbox-form form',
+      validators: [
+        {
+          class: 'jsonata-expression',
+          message: '@validator-error-email',
+          config: {
+            expression: 'false',
+            description: 'testing with target data model',
+            targetField: { dataModel: ['text_2_event'] },
+          },
+        },
+        {
+          class: 'jsonata-expression',
+          message: '@validator-error-url',
+          config: {
+            expression: 'false',
+            description: 'testing unowned error',
+          },
+        },
+      ],
+      componentDefinitions: [
+        {
+          name: 'text_1_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: '' },
+          },
+          component: { class: 'SimpleInputComponent' },
+        },
+        {
+          name: 'text_2_event',
+          model: {
+            class: 'SimpleInputModel',
+            config: { value: '', validators: [{ class: 'required' }] },
+          },
+          component: { class: 'SimpleInputComponent' },
+        },
+        {
+          name: 'validation_summary_1',
+          component: { class: 'ValidationSummaryComponent' },
+        },
+      ],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+
+    // Trigger validation errors by making a change to the form.
+    const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
+    control?.setValue('change value');
+    control?.setValue('');
+    formComponent.form!.markAsDirty();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const summaryComponent = fixture.componentInstance.componentDefArr[2].component as ValidationSummaryFieldComponent;
+
+    const errorData = await summaryComponent.allValidationErrorsDisplay();
+
+    const expectedErrorFormLevelWithTarget = {
+      id: 'form-item-id-text-2-event',
+      message: null,
+      errors: [
+        {
+          class: 'jsonata-expression',
+          message: '@validator-error-email',
+          params: {},
+          targetField: { dataModel: ['text_2_event'] },
+        },
+      ],
+      lineagePaths: {
+        formConfig: ['componentDefinitions', 1],
+        dataModel: ['text_2_event'],
+        angularComponents: ['text_2_event'],
+        layout: ['text_2_event-layout'],
+        angularComponentsJsonPointer: '/text_2_event',
+        layoutJsonPointer: '/text_2_event-layout',
+      },
+    };
+    const expectedErrorFormLevelNoTarget = {
+      id: null,
+      message: null,
+      errors: [
+        {
+          class: 'jsonata-expression',
+          message: '@validator-error-email',
+          params: {},
+        },
+      ],
+      lineagePaths: {
+        formConfig: [],
+        dataModel: [],
+        angularComponents: [],
+        layout: [],
+        angularComponentsJsonPointer: '',
+        layoutJsonPointer: '',
+      },
+    };
+    const expectedErrorComponent = {
+      id: 'form-item-id-text-2-event',
+      message: null,
+      errors: [{ class: 'required', message: '@validator-error-required', params: { required: true, actual: '' } }],
+      lineagePaths: {
+        formConfig: ['componentDefinitions', 1],
+        dataModel: ['text_2_event'],
+        angularComponents: ['text_2_event'],
+        layout: ['text_2_event-layout'],
+        angularComponentsJsonPointer: '/text_2_event',
+        layoutJsonPointer: '/text_2_event-layout',
+      },
+    };
+
+    expect(errorData.filter(i => i.id === expectedErrorComponent.id)).toEqual([expectedErrorComponent]);
+
+    expect(
+      errorData.filter(i => i.lineagePaths?.dataModel === expectedErrorFormLevelWithTarget.lineagePaths.dataModel)
+    ).toEqual([expectedErrorFormLevelWithTarget]);
+
+    expect(
+      errorData.filter(
+        i =>
+          i.lineagePaths?.angularComponentsJsonPointer ===
+          expectedErrorFormLevelNoTarget.lineagePaths.angularComponentsJsonPointer
+      )
+    ).toEqual([expectedErrorFormLevelNoTarget]);
+
+    expect(errorData.length).toEqual(3);
+
+    const nativeEl: HTMLElement = fixture.nativeElement;
+    const summaryItems = nativeEl.querySelectorAll('.validation-summary-item');
+    expect(summaryItems.length).toEqual(3);
+    expect(Array.from(summaryItems).map(l => l.textContent?.trim())).toEqual([
+      'form-item-id-text-2-event@validator-error-required',
+      'TODO',
+      'TODO',
+    ]);
+  });
 });
