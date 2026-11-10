@@ -101,7 +101,13 @@ function typedValue(value: unknown, type: string, indexKind: string): string {
   }
   if (type === 'DATETIME') {
     const text = checkedString(value.dateTime);
-    if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?(?:Z|[+-]\d\d:\d\d)$/.test(text))
+    // Luxon accepts ISO 24:00 and normalizes oversized numeric offsets.
+    // Validate RFC 3339 component ranges before asking it to validate the calendar.
+    const timestamp =
+      /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(
+        text
+      );
+    if (!timestamp || timestamp[0] !== text)
       gridError(
         'INVALID_FILTER_VALUE',
         'Dates require an RFC 3339 timestamp with seconds, timezone, and at most millisecond precision.'
@@ -151,15 +157,11 @@ export function queryPlan(
   params.append('fq', literal('redbox_acl2_brand', brandId));
   params.append('fq', literal('redbox_grid_version', '1'));
   params.append('fq', literal('redbox_grid_type', query.recordType));
-  if (query.workflowStages?.length)
-    params.append(
-      'fq',
-      '(' +
-        query.workflowStages
-          .map(stage => `_query_:${JSON.stringify(literal('redbox_grid_stage', stage))}`)
-          .join(' OR ') +
-        ')'
-    );
+  const stages = [...new Set(snapshot.catalogue.variants.map(variant => variant.workflowStage))].sort();
+  params.append(
+    'fq',
+    '(' + stages.map(stage => `_query_:${JSON.stringify(literal('redbox_grid_stage', stage))}`).join(' OR ') + ')'
+  );
   const fields = new Map(snapshot.catalogue.fields.map(field => [field.id, field]));
   for (const filter of filters) {
     if (!isObject(filter) || typeof filter.field !== 'string')
@@ -249,6 +251,7 @@ export async function readCollection(
   const usesMetadata = [...(query.filters ?? []), ...(query.sort ?? [])].some(item =>
     item.field.startsWith('metadata:')
   );
+  const readableStages = new Set(snapshot.catalogue.variants.map(variant => variant.workflowStage));
   const readableVariants = new Set(
     snapshot.catalogue.variants.map(variant => JSON.stringify([variant.workflowStage, variant.form]))
   );
@@ -301,7 +304,7 @@ export async function readCollection(
       }
       if (
         record.metaMetadata.type !== query.recordType ||
-        (query.workflowStages?.length && !query.workflowStages.includes(record.workflow?.stage)) ||
+        !readableStages.has(record.workflow?.stage) ||
         (usesMetadata && !readableVariants.has(JSON.stringify([record.workflow?.stage, record.metaMetadata.form])))
       )
         continue;

@@ -10,7 +10,7 @@ import {
   type GraphQLOutputType,
 } from 'graphql';
 import type { ContractNode, RecordContract } from '../record-contract/types';
-import { hasWriteOnlyFields } from '../record-contract/read-visibility';
+import { mergeReadNodes } from '../record-contract/read-visibility';
 
 export type ReadShape =
   | { readonly kind: 'string' | 'number' | 'integer' | 'boolean' }
@@ -33,48 +33,27 @@ export function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function merge(left: ReadShape, right: ReadShape): ReadShape {
-  if (left.kind === 'object' && right.kind === 'object') {
-    const properties = { ...left.properties };
-    for (const [key, shape] of Object.entries(right.properties)) {
-      Object.defineProperty(properties, key, {
-        value: Object.hasOwn(properties, key) ? merge(properties[key], shape) : shape,
-        enumerable: true,
-        configurable: true,
-      });
-    }
-    return { kind: 'object', properties };
-  }
-  if (left.kind === 'array' && right.kind === 'array') return { kind: 'array', items: merge(left.items, right.items) };
-  return left.kind === right.kind ? left : { kind: 'json', reason: 'incompatible-conditional-shapes' };
-}
-
 export function fromTree(node: ContractNode): ReadShape {
   if (node.annotations?.writeOnly) return { kind: 'json', reason: 'restricted-shape' };
   switch (node.kind) {
     case 'scalar':
       return { kind: node.scalarType };
-    case 'object':
-      if (Object.keys(node.properties).length === 0) return { kind: 'json', reason: 'empty-object' };
-      if (Object.values(node.properties).every(child => child.annotations?.writeOnly))
-        return { kind: 'json', reason: 'restricted-shape' };
-      return {
-        kind: 'object',
-        properties: Object.fromEntries(
-          Object.entries(node.properties)
-            .filter(([, child]) => !child.annotations?.writeOnly)
-            .map(([key, child]) => [key, fromTree(child)])
-        ),
-      };
+    case 'object': {
+      const properties = Object.fromEntries(
+        Object.entries(node.properties)
+          .map(([key, child]): [string, ReadShape] => [key, fromTree(child)])
+          .filter(([, shape]) => shape.kind !== 'json' || shape.reason !== 'restricted-shape')
+      );
+      return Object.keys(properties).length
+        ? { kind: 'object', properties }
+        : { kind: 'json', reason: Object.keys(node.properties).length ? 'restricted-shape' : 'empty-object' };
+    }
     case 'array':
       return { kind: 'array', items: fromTree(node.items) };
-    case 'conditional': {
-      const then = fromTree(node.thenNode);
-      const combined = node.elseNode ? merge(then, fromTree(node.elseNode)) : then;
-      return combined.kind === 'json' && hasWriteOnlyFields(node)
-        ? { kind: 'json', reason: 'restricted-shape' }
-        : combined;
-    }
+    case 'conditional':
+      // Merge contract declarations before removing private fields, so a public
+      // branch cannot reintroduce a path excluded by another branch.
+      return fromTree(node.elseNode ? mergeReadNodes(node.thenNode, node.elseNode) : node.thenNode);
     case 'any':
       return { kind: 'json', reason: node.reason ?? 'unconstrained' };
   }
