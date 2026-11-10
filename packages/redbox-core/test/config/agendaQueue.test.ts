@@ -40,7 +40,11 @@ describe('Agenda queue branding typeface reconciliation', function () {
 
 describe('Agenda record audit recovery backoff', function () {
   it('stops retries for permanent failures from a separately loaded worker module', function () {
-    const failure = runInNewContext(`new (${PermanentAuditWriteError.toString()})('Invalid audit')`);
+    const original = new PermanentAuditWriteError('Invalid audit');
+    const failure = runInNewContext('Object.assign(new Error(message), { name })', {
+      message: original.message,
+      name: original.name,
+    });
     expect(failure).not.to.be.instanceOf(PermanentAuditWriteError);
     const backoff = agendaQueue.jobs['RecordsService-RecoverRecordAudit'].options!.backoff!;
     expect(backoff({ attempt: 1, error: failure, jobName: '', jobData: {} })).to.equal(null);
