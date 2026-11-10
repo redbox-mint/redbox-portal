@@ -16,6 +16,7 @@ export { i18nLanguages } from './i18nLanguages';
 export { isAuthenticated } from './isAuthenticated';
 export { isWebServiceAuthenticated } from './isWebServiceAuthenticated';
 export { menuResolver } from './menuResolver';
+export { namedQueryMutationCsrf } from './namedQueryMutationCsrf';
 export { noCache } from './noCache';
 export { prepWs } from './prepWs';
 export { sessionAuth } from './sessionAuth';
@@ -34,6 +35,7 @@ import { i18nLanguages } from './i18nLanguages';
 import { isAuthenticated } from './isAuthenticated';
 import { isWebServiceAuthenticated } from './isWebServiceAuthenticated';
 import { menuResolver } from './menuResolver';
+import { namedQueryMutationCsrf } from './namedQueryMutationCsrf';
 import { noCache } from './noCache';
 import { prepWs } from './prepWs';
 import { sessionAuth } from './sessionAuth';
@@ -53,6 +55,7 @@ export const Policies = {
   isAuthenticated,
   isWebServiceAuthenticated,
   menuResolver,
+  namedQueryMutationCsrf,
   noCache,
   prepWs,
   sessionAuth,
