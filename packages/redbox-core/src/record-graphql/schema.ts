@@ -26,6 +26,7 @@ export const QUERY_LIMITS = Object.freeze({
   fields: 200,
   depth: 12,
   recordAliases: 5,
+  selectionSteps: 2_000,
   workUnits: 10_000,
   responseBytes: 262_144,
   timeoutMs: 5_000,
@@ -41,13 +42,17 @@ function boundedQueryRule(): ValidationRule {
       let operations = 0;
       let invalidOperation = false;
       let discovery = false;
+      let steps = 0;
+      let cycle = false;
       for (const definition of document.definitions) {
         if (definition.kind === Kind.FRAGMENT_DEFINITION) fragments.set(definition.name.value, definition);
       }
       const visit = (selection: SelectionSetNode, depth: number, active: ReadonlySet<string>): void => {
+        if (cycle || ++steps > QUERY_LIMITS.selectionSteps) return;
         maxDepth = Math.max(depth, maxDepth);
         if (fields > QUERY_LIMITS.fields || depth > QUERY_LIMITS.depth || aliases > QUERY_LIMITS.recordAliases) return;
         for (const field of selection.selections) {
+          if (cycle || ++steps > QUERY_LIMITS.selectionSteps) return;
           if (fields > QUERY_LIMITS.fields || aliases > QUERY_LIMITS.recordAliases) return;
           if (field.kind === Kind.FIELD) {
             fields += 1;
@@ -56,7 +61,10 @@ function boundedQueryRule(): ValidationRule {
             if (field.selectionSet) visit(field.selectionSet, depth + 1, active);
           } else if (field.kind === Kind.INLINE_FRAGMENT) {
             visit(field.selectionSet, depth, active);
-          } else if (!active.has(field.name.value)) {
+          } else if (active.has(field.name.value)) {
+            cycle = true;
+            return;
+          } else {
             const fragment = fragments.get(field.name.value);
             if (fragment) visit(fragment.selectionSet, depth, new Set([...active, field.name.value]));
           }
@@ -73,6 +81,8 @@ function boundedQueryRule(): ValidationRule {
         operations !== 1 ||
         invalidOperation ||
         discovery ||
+        cycle ||
+        steps > QUERY_LIMITS.selectionSteps ||
         fields > QUERY_LIMITS.fields ||
         maxDepth > QUERY_LIMITS.depth ||
         aliases > QUERY_LIMITS.recordAliases

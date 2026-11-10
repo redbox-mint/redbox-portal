@@ -165,7 +165,9 @@ function checkValue(shape: ReadShape, value: unknown, budget: WorkBudget): unkno
     if (!Array.isArray(value)) return historicalValueError();
     if (value.length > 1_000)
       throw new GraphQLError('Stored list exceeds the item bound.', { extensions: { code: 'QUERY_LIMIT' } });
-    return value.map(item => checkValue(shape.items, item, budget));
+    // GraphQL completes each promise at its list index, preserving nullable
+    // siblings and reporting historical errors at the item rather than the field.
+    return value.map(async item => checkValue(shape.items, item, budget));
   }
   const valid =
     shape.kind === 'integer'

@@ -58,7 +58,7 @@ export interface ContractArrayNode extends ContractNodeBase {
 
 export interface ContractAnyNode extends ContractNodeBase {
   readonly kind: 'any';
-  readonly reason?: 'unsupported-component' | 'unrepresentable-condition';
+  readonly reason?: 'unsupported-component' | 'unrepresentable-condition' | 'incompatible-read-variants';
 }
 
 export type ContractCondition =

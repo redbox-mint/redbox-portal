@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import sinon from 'sinon';
+import type { GroupFormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
+import { reusableRelatedObjectsFormDefinitions } from '../../src/config/reusableRelatedObjectsFormDefinitions.config';
 import { GraphQLObjectType, GraphQLNonNull } from 'graphql';
 import { Services, type RecordGraphqlDependencies } from '../../src/services/RecordGraphqlService';
 import { Services as RecordServices } from '../../src/services/RecordsService';
@@ -211,6 +213,41 @@ describe('RecordGraphqlService', () => {
     });
     assert.equal(h.hasViewAccess.callCount, 1);
     assert.deepEqual(h.record.authorization.edit, []);
+  });
+  it('serves configured edit/view URL variants through the production service', async () => {
+    const h = harness();
+    h.changeForm(reusableRelatedObjectsFormDefinitions['related-objects-field-url']);
+    h.record.metadata.related_url = 'https://example.edu.au/record';
+    const result = await h.query('related_url');
+    assert.equal(result.status, 200);
+    assert.equal(payload(result).errors, undefined);
+    assert.deepEqual(payload(result).data?.record?.metadata, { related_url: 'https://example.edu.au/record' });
+  });
+  it('exposes merged role-specific stored fields to an authorized REST viewer', async () => {
+    const h = harness();
+    const group = (role: string, names: string[]): GroupFormComponentDefinitionFrame => ({
+      name: 'details',
+      constraints: { authorization: { allowRoles: [role] } },
+      component: {
+        class: 'GroupComponent',
+        config: {
+          componentDefinitions: names.map(name => ({
+            name,
+            component: { class: 'SimpleInputComponent' },
+            model: { class: 'SimpleInputModel', config: {} },
+          })),
+        },
+      },
+      model: { class: 'GroupModel', config: {} },
+    });
+    h.changeForm([group('Researcher', ['title']), group('Admin', ['title', 'admin_note'])]);
+    h.record.metadata.details = { title: 'Stored title', admin_note: 'REST-readable note' };
+    const result = await h.query('details { title admin_note }');
+    assert.equal(result.status, 200);
+    assert.equal(payload(result).errors, undefined);
+    assert.deepEqual(payload(result).data?.record?.metadata, {
+      details: { title: 'Stored title', admin_note: 'REST-readable note' },
+    });
   });
   for (const stage of ['draft', 'queued', 'published'])
     it(`resolves the ${stage} workflow/form union member`, async () => {
