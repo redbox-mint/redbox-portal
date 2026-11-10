@@ -1,0 +1,57 @@
+meta {
+  name: Validate Draft Bindings
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config/validate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  X-CSRF-Token: {{reportEditorCsrf}}
+}
+
+body:json {
+  {
+    "name": "unsaved",
+    "title": "Unsaved",
+    "reportSource": "database",
+    "databaseQuery": {
+      "queryName": "listRDMPRecords"
+    },
+    "filter": [
+      {
+        "type": "text",
+        "paramName": "deletedQueryParameter",
+        "property": ""
+      }
+    ],
+    "columns": [
+      {
+        "label": "Missing",
+        "property": "absentEnvelope",
+        "template": "{{#each broken}}"
+      }
+    ]
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "reportEditorCookie" });
+}
+
+tests {
+  test("Returns advisory diagnostics without mutating or saving", () => {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.valid).to.equal(true);
+    for (const code of ["UNKNOWN_QUERY_PARAMETER", "UNKNOWN_OUTPUT_COLUMN", "TEMPLATE_SYNTAX"])
+      expect(data.diagnostics.some(d => d.code === code && d.severity === "warning")).to.equal(true);
+  });
+}

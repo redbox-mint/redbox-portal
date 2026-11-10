@@ -537,9 +537,9 @@ export namespace Services {
       brand: BrandingModel,
       portal: string,
       caller: FormRecordAccessContext,
-      request: NamedQueryPreviewRequest
+      request: NamedQueryPreviewRequest,
+      budget = new NamedQueryExecutionBudget()
     ): Promise<NamedQueryPreview<NamedQueryResponseRecord>> {
-      const budget = new NamedQueryExecutionBudget();
       const validation = await budget.wait(this.inspectDraft(brand, portal, caller, request, budget));
       const diagnostics = [...validation.diagnostics];
       let previewBlocked = validation.previewBlocked;
