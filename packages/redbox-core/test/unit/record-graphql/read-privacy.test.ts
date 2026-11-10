@@ -33,9 +33,16 @@ const object = (properties: Record<string, ContractNode>): ContractObjectNode =>
   unknownProperties: 'allow',
 });
 const array = (items: ContractNode): ContractNode => ({ kind: 'array', items, nullable: false });
+const conditional = (thenNode: ContractNode, elseNode: ContractNode): ContractNode => ({
+  kind: 'conditional',
+  nullable: false,
+  condition: { kind: 'exists', pointer: recordContractPointer('') },
+  thenNode,
+  elseNode,
+});
 
 // Synthetic hook contributions pass through the actual contributor compiler.
-async function harness(left: ContractNode, right: ContractNode, stored: unknown) {
+async function harness(left: ContractNode, right: ContractNode | undefined, stored: unknown) {
   const contributor: RecordContractComponentContributor = {
     kind: 'component',
     key: 'graphql.conditional-privacy-fixture',
@@ -45,13 +52,7 @@ async function harness(left: ContractNode, right: ContractNode, stored: unknown)
     nullability: 'non-null',
     compile: () => ({
       kind: 'node',
-      node: {
-        kind: 'conditional',
-        nullable: false,
-        condition: { kind: 'exists', pointer: recordContractPointer('') },
-        thenNode: left,
-        elseNode: right,
-      },
+      node: right ? conditional(left, right) : left,
     }),
   };
   const compiler = new RecordContractCompiler(
@@ -91,28 +92,38 @@ async function harness(left: ContractNode, right: ContractNode, stored: unknown)
     },
     { getGridEnvironment: async () => environment }
   );
-  const query = async (selection: string) => {
+  const request = async (document: string, variables: object = {}) => {
     reads = 0;
-    const fragment = `... on ${metadataTypeName(result.contract)} { ${selection} }`;
     const response = await yoga.fetch(
       'http://localhost/graphql',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/graphql-response+json' },
-        body: JSON.stringify({
-          query: `{
-        record(oid:"a") { metadata { ${fragment} } }
-        records(recordType:"grid-fixture",first:1) { nodes { metadata { ${fragment} } } }
-        recordFields(recordType:"grid-fixture") { fields { id } }
-      }`,
-        }),
+        body: JSON.stringify({ query: document, variables }),
       },
       { caller: gridCaller }
     );
     const body: GridTestResponse = await response.json();
     return { body, status: response.status, reads };
   };
-  return { query, schema };
+  const query = (selection: string) => {
+    const fragment = `... on ${metadataTypeName(result.contract)} { ${selection} }`;
+    return request(`{
+      record(oid:"a") { metadata { ${fragment} } }
+      records(recordType:"grid-fixture",first:1) { nodes { metadata { ${fragment} } } }
+      recordFields(recordType:"grid-fixture") { fields { id } }
+    }`);
+  };
+  const discover = (ids?: string[]) =>
+    request(
+      `query($ids:[ID!]) {
+    recordFields(recordType:"grid-fixture",ids:$ids) {
+      fields { id label labelKey repeating selectable choices { label value } }
+    }
+  }`,
+      { ids }
+    );
+  return { query, discover, schema };
 }
 
 describe('Conditional hook read privacy', () => {
@@ -180,4 +191,81 @@ describe('Conditional hook read privacy', () => {
       assert.equal((await h.query('payload')).status, 400);
     });
   }
+});
+
+describe('Array item discovery privacy', () => {
+  const privateItem: ContractNode = {
+    kind: 'scalar',
+    scalarType: 'string',
+    nullable: false,
+    annotations: { writeOnly: true, description: 'private-item-description' },
+    enum: ['private-configured-value'],
+  };
+  const publicItem: ContractNode = {
+    kind: 'scalar',
+    scalarType: 'string',
+    nullable: false,
+    annotations: { description: 'Public item' },
+    enum: ['public-configured-value'],
+  };
+  const cases: Array<{ name: string; left: ContractNode; right?: ContractNode }> = [
+    { name: 'direct private scalar', left: array(privateItem) },
+    { name: 'private then item', left: array(conditional(privateItem, publicItem)) },
+    { name: 'private else item', left: array(conditional(publicItem, privateItem)) },
+    { name: 'private then array', left: array(privateItem), right: array(publicItem) },
+    { name: 'private else array', left: array(publicItem), right: array(privateItem) },
+  ];
+  for (const fixture of cases) {
+    it(`excludes hints and identifiers for ${fixture.name} without reading records`, async () => {
+      const h = await harness(fixture.left, fixture.right, ['stored-private-value']);
+      const response = await h.discover();
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      assert.equal(response.reads, 0);
+      const fields = response.body.data?.recordFields?.fields;
+      assert.ok(fields);
+      assert.ok(fields.some(field => field.id === 'metadata:/payload' && field.repeating));
+      assert.ok(!fields.some(field => field.id === 'metadata-list:["payload",null]'));
+      assert.ok(!JSON.stringify(response.body).includes('private-item-description'));
+      assert.ok(!JSON.stringify(response.body).includes('private-configured-value'));
+      const stale = await h.discover(['metadata-list:["payload",null]']);
+      assert.equal(stale.body.errors?.[0].extensions.code, 'UNKNOWN_FIELD');
+      assert.equal(stale.reads, 0);
+      const values = await h.query('payload');
+      assert.equal(values.body.errors, undefined, JSON.stringify(values.body));
+      assert.deepEqual(values.body.data?.record?.metadata, { payload: [null] });
+      assert.deepEqual(values.body.data?.records?.nodes[0].metadata, { payload: [null] });
+    });
+  }
+  it('retains visible array and conditional item labels and choices', async () => {
+    const otherItem: ContractNode = {
+      kind: 'scalar',
+      scalarType: 'string',
+      nullable: false,
+      annotations: { description: 'Another public item' },
+      enum: ['another-public-choice'],
+    };
+    const h = await harness(
+      {
+        kind: 'array',
+        nullable: false,
+        items: conditional(publicItem, otherItem),
+        annotations: { description: 'Public list' },
+      },
+      undefined,
+      ['historical-public-value']
+    );
+    const response = await h.discover();
+    assert.equal(response.body.errors, undefined);
+    assert.equal(response.reads, 0);
+    const fields = response.body.data?.recordFields?.fields;
+    assert.ok(fields);
+    assert.equal(fields.find(field => field.id === 'metadata:/payload')?.label, 'Public list');
+    const item = fields.find(field => field.id === 'metadata-list:["payload",null]');
+    assert.ok(item);
+    assert.equal(item.label, 'Public item');
+    assert.deepEqual(
+      item.choices.map(choice => choice.value),
+      ['public-configured-value', 'another-public-choice']
+    );
+  });
 });

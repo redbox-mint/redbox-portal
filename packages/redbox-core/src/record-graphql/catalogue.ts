@@ -85,21 +85,24 @@ export function metadataFieldId(tokens: readonly (string | null)[]): string {
 }
 function nodeHints(
   node: ContractNode,
+  shape: ReadShape,
   tokens: readonly (string | null)[] = [],
   output = new Map<string, { label?: string; choices: Array<string | number | boolean> }>()
 ) {
+  if (node.annotations?.writeOnly || (shape.kind === 'json' && shape.reason === 'restricted-shape')) return output;
   const id = metadataFieldId(tokens);
   const hint = output.get(id) ?? { choices: [] };
   const label = node.annotations?.extensions?.['x-redbox-label'] ?? node.annotations?.description;
   if (typeof label === 'string' && !hint.label) hint.label = label;
   if (node.kind === 'scalar') hint.choices.push(...(node.enum ?? []));
   output.set(id, hint);
-  if (node.kind === 'object')
-    for (const [key, child] of Object.entries(node.properties)) nodeHints(child, [...tokens, key], output);
-  if (node.kind === 'array') nodeHints(node.items, [...tokens, null], output);
+  if (node.kind === 'object' && shape.kind === 'object')
+    for (const [key, child] of Object.entries(node.properties))
+      if (Object.hasOwn(shape.properties, key)) nodeHints(child, shape.properties[key], [...tokens, key], output);
+  if (node.kind === 'array' && shape.kind === 'array') nodeHints(node.items, shape.items, [...tokens, null], output);
   if (node.kind === 'conditional') {
-    nodeHints(node.thenNode, tokens, output);
-    if (node.elseNode) nodeHints(node.elseNode, tokens, output);
+    nodeHints(node.thenNode, shape, tokens, output);
+    if (node.elseNode) nodeHints(node.elseNode, shape, tokens, output);
   }
   return output;
 }
@@ -214,8 +217,10 @@ export function buildCatalogue(
       unavailableReason: null,
     });
   for (const contract of scoped) {
-    const hints = nodeHints(contract.root);
+    const readShape = fromTree(contract.root);
+    const hints = nodeHints(contract.root, readShape);
     const visit = (shape: ReadShape, tokens: readonly (string | null)[], repeating: boolean): void => {
+      if (shape.kind === 'json' && shape.reason === 'restricted-shape') return;
       repeating ||= shape.kind === 'array';
       if (tokens.length) {
         const id = metadataFieldId(tokens);
@@ -260,7 +265,7 @@ export function buildCatalogue(
         for (const [key, child] of Object.entries(shape.properties)) visit(child, [...tokens, key], repeating);
       if (shape.kind === 'array') visit(shape.items, [...tokens, null], true);
     };
-    visit(fromTree(contract.root), [], false);
+    visit(readShape, [], false);
   }
   const bindings = new Map<string, SolrFieldDefinition>();
   for (const field of fields.values()) {
