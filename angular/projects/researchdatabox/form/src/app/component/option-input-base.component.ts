@@ -6,6 +6,8 @@ type OptionInputConfig<TOption extends { value: string; disabled?: boolean }> = 
     options?: TOption[];
     tooltip?: string;
     placeholder?: string;
+    /** When set, options whose value is not listed are disabled. */
+    enabledOptionValues?: string[] | null;
 };
 
 export abstract class OptionInputBaseComponent<
@@ -62,7 +64,9 @@ export abstract class OptionInputBaseComponent<
     }
 
     public isOptionDisabled(option: TOption): boolean {
-        return this.isDisabled || this.isReadonly || option.disabled === true;
+        const enabled: unknown = _get(this.componentDefinition?.config, 'enabledOptionValues');
+        const notEnabled = Array.isArray(enabled) && !enabled.includes(option.value);
+        return this.isDisabled || this.isReadonly || option.disabled === true || notEnabled;
     }
 
     public getOptionId(opt: TOption): string {

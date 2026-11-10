@@ -12,6 +12,58 @@ describe('CheckboxInputComponent', () => {
     translationService.getCurrentLanguage = jasmine.createSpy('getCurrentLanguage').and.returnValue('en');
   });
 
+  it('applies expression option restrictions without clearing a checked disabled option', async () => {
+    const config: FormConfigFrame = {
+      name: 'option-lock',
+      componentDefinitions: [
+        {
+          name: 'choice',
+          model: { class: 'CheckboxInputModel', config: { value: ['a'] } },
+          component: {
+            class: 'CheckboxInputComponent',
+            config: {
+              multipleValues: true,
+              options: [
+                { label: 'A', value: 'a' },
+                { label: 'B', value: 'b' },
+              ],
+            },
+          },
+          expressions: [
+            {
+              name: 'allowed',
+              config: {
+                target: 'component.enabledOptionValues',
+                template: '["b"]',
+                hasTemplate: true,
+                runOnFormReady: true,
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true }, undefined, {
+      entries: [
+        {
+          urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/',
+          callable: () => ['b'],
+        },
+      ],
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const inputs = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLInputElement>(
+      'input[type="checkbox"]',
+    );
+    expect(inputs[0].disabled).toBeTrue();
+    expect(inputs[0].checked).toBeTrue();
+    expect(inputs[1].disabled).toBeFalse();
+    expect(formComponent.form!.get('choice')!.value).toEqual(['a']);
+    fixture.destroy();
+  });
+
   it('should create component', () => {
     const fixture = TestBed.createComponent(CheckboxInputComponent);
     const component = fixture.componentInstance;
