@@ -1,6 +1,8 @@
+import { By } from '@angular/platform-browser';
 import { Location } from '@angular/common';
 import { RecordActionResult } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
+import { createFormDefinitionReadyEvent } from '../form-state/events/form-component-event.types';
 import { TestBed } from '@angular/core/testing';
 import { FormConfigFrame, jsonataCompile } from '@researchdatabox/sails-ng-common';
 import { FormComponentsMap, FormService } from '../form.service';
@@ -16,6 +18,179 @@ describe('Expression runtime context integration', () => {
   beforeEach(async () => {
     await createTestbedModule({ declarations: { SimpleInputComponent, ContentComponent } });
   });
+
+  for (const editMode of [false, true]) {
+    it(`round3 keeps template-free visibility on readiness in editMode=${editMode} and applies later values`, async () => {
+      const config: FormConfigFrame = { name: 'template-free-ready', componentDefinitions: [
+        { name: 'source', model: { class: 'SimpleInputModel', config: { value: false as never } },
+          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } } },
+        { name: 'answer', component: { class: 'ContentComponent', config: { visible: false, content: 'Conditional answer' } },
+          expressions: [{ name: 'copy-source', config: { condition: '/source::field.value.changed',
+            target: 'component.visible', runInViewMode: true } as never }] },
+      ] };
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode });
+      await new Promise<void>(resolve => setTimeout(resolve, 20));
+      await fixture.whenStable(); fixture.detectChanges();
+      const content = fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent;
+      expect(content.isVisible).toBeFalse();
+      expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Conditional answer');
+      formComponent.form!.get('source')!.setValue(true);
+      await fixture.whenStable(); fixture.detectChanges();
+      expect(content.isVisible).toBeTrue();
+      formComponent.form!.get('source')!.setValue(false);
+      await fixture.whenStable(); fixture.detectChanges();
+      expect(content.isVisible).toBeFalse();
+      fixture.destroy();
+    });
+  }
+
+  for (const scenario of [
+    { editMode: false, runOnFormReady: true, expected: true },
+    { editMode: true, runOnFormReady: true, expected: true },
+    { editMode: false, runOnFormReady: false, expected: false },
+  ]) {
+    it(`copies an initially true retained source with runOnFormReady=${scenario.runOnFormReady} in editMode=${scenario.editMode}`, async () => {
+      const config: FormConfigFrame = { name: 'template-free-initial', componentDefinitions: [
+        { name: 'source', model: { class: 'SimpleInputModel', config: { value: true as never } },
+          component: { class: 'SimpleInputComponent', config: { type: 'hidden' } } },
+        { name: 'answer', component: { class: 'ContentComponent', config: { visible: false, content: 'Conditional answer' } },
+          expressions: [{ name: 'copy-source', config: { condition: '/source::field.value.changed',
+            target: 'component.visible', runInViewMode: true, runOnFormReady: scenario.runOnFormReady } as never }] },
+      ] };
+      const { fixture } = await createFormAndWaitForReady(config, { editMode: scenario.editMode });
+      await new Promise<void>(resolve => setTimeout(resolve, 20));
+      await fixture.whenStable(); fixture.detectChanges();
+      const content = fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent;
+      expect(content.isVisible).toBe(scenario.expected);
+      fixture.destroy();
+    });
+  }
+
+  for (const scenario of [
+    { name: 'flagged view rule', editMode: false, flagged: true, ready: true, expected: 2 },
+    { name: 'unflagged view rule', editMode: false, flagged: false, ready: true, expected: 0 },
+    { name: 'view rule opting out of form ready', editMode: false, flagged: true, ready: false, expected: 0 },
+    { name: 'flagged edit rule with a model-free source', editMode: true, flagged: true, ready: true, expected: 0 },
+    { name: 'flagged edit rule with a modeled source', editMode: true, flagged: true, ready: true, modeled: true, expected: 2 },
+    { name: 'flagged view rule with a retained modeled source', editMode: false, flagged: true, ready: true, modeled: true, expected: 2 },
+  ]) {
+    it(`initializes ${scenario.name}`, async () => {
+      const authority = { record: { type: 'rdmp', metadata: { show: true } } };
+      const service = TestBed.inject(FormService);
+      const createMap = service.createFormComponentsMap.bind(service);
+      spyOn(service, 'createFormComponentsMap').and.callFake((config, paths, meta, mode, concurrency) =>
+        createMap(config, paths, { ...meta, runtimeContext: authority }, mode, concurrency),
+      );
+      const config: FormConfigFrame = {
+        name: 'saved-visibility',
+        componentDefinitions: [
+          ...('modeled' in scenario ? [{ name: 'source', model: { class: 'SimpleInputModel' as const, config: { value: 'yes' } },
+            component: { class: 'SimpleInputComponent' as const, config: { type: 'hidden' as const } } }] : [{
+            name: 'source', component: { class: 'ContentComponent' as const, config: { content: 'Source without a model' } },
+          }]),
+          // Retained inputs still publish their own initial events. They must not
+          // initialize the flagged rule again or substitute for its source.
+          ...['title', 'other'].map(name => ({ name,
+            model: { class: 'SimpleInputModel' as const, config: { value: name } },
+            component: { class: 'SimpleInputComponent' as const, config: { type: 'hidden' as const } },
+          })),
+          { name: 'saved', component: { class: 'ContentComponent', config: { visible: false, content: 'Saved answer' } },
+            expressions: ['first', 'second'].map(name => ({ name, config: {
+              conditionKind: 'jsonpointer' as const, condition: '/source::field.value.changed',
+              target: 'component.visible', runInViewMode: scenario.flagged,
+              runOnFormReady: scenario.ready, hasTemplate: true,
+              template: 'runtimeContext.record.metadata.show',
+            } })),
+          },
+        ],
+      };
+      const calls: string[] = [];
+      let active = 0;
+      let maxActive = 0;
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: scenario.editMode }, undefined, {
+        entries: [{
+          urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/',
+          callable: async (_keyString, key, context) => {
+            calls.push(JSON.stringify(key));
+            maxActive = Math.max(maxActive, ++active);
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
+            active--;
+            return jsonataCompile('runtimeContext.record.metadata.show').evaluate(context);
+          },
+        }],
+      });
+      await new Promise<void>(resolve => setTimeout(resolve, 20));
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const contents = fixture.debugElement.queryAll(By.directive(ContentComponent));
+      const content = contents[contents.length - 1].componentInstance as ContentComponent;
+      expect(config.componentDefinitions![3].component.config!.visible).toBeFalse();
+      expect(formComponent.form!.get('source') !== null).toBe('modeled' in scenario);
+      expect(content.isVisible).toBe(scenario.expected > 0);
+      expect(calls.length).toBe(scenario.expected);
+      if (scenario.expected) {
+        expect(calls[0]).toContain('\"expressions\",0,\"config\",\"template\"');
+        expect(calls[1]).toContain('\"expressions\",1,\"config\",\"template\"');
+        expect(maxActive).toBe(1);
+        expect((fixture.nativeElement as HTMLElement).textContent).toContain('Saved answer');
+      }
+      if (scenario.name === 'flagged view rule') {
+        // A second ready notification for this binding must not initialize it
+        // again. Replacing the form creates new bindings and initializes once.
+        TestBed.inject(FormComponentEventBus).publish(createFormDefinitionReadyEvent({}));
+        await fixture.whenStable();
+        expect(calls.length).toBe(2);
+        await formComponent.downloadAndCreateFormComponents(config);
+        await new Promise<void>(resolve => setTimeout(resolve, 20));
+        await fixture.whenStable();
+        expect(calls.length).toBe(4);
+        expect(maxActive).toBe(1);
+      }
+      fixture.destroy();
+    });
+  }
+
+  for (const scenario of [
+    { kind: 'jsonata' as const, condition: 'false', visible: false },
+    { kind: 'jsonata' as const, condition: 'true', visible: true },
+    { kind: 'jsonata_query' as const, condition: '$exists(querySource.missing)', visible: false },
+    { kind: 'jsonata_query' as const, condition: '$exists(querySource)', visible: true },
+    { kind: 'jsonpointer' as const, condition: undefined, visible: true },
+  ]) {
+    it(`honours the view-ready predicate ${scenario.kind}: ${scenario.condition}`, async () => {
+      const service = TestBed.inject(FormService);
+      const createMap = service.createFormComponentsMap.bind(service);
+      spyOn(service, 'createFormComponentsMap').and.callFake((config, paths, meta, mode, concurrency) =>
+        createMap(config, paths, { ...meta, runtimeContext: { record: { type: 'rdmp' } } }, mode, concurrency));
+      const config: FormConfigFrame = { name: 'ready-predicate', componentDefinitions: [
+        { name: 'answer', component: { class: 'ContentComponent', config: { visible: false, content: 'Answer' } },
+          expressions: [{ name: 'conditional', config: {
+            conditionKind: scenario.kind, condition: scenario.condition,
+            runInViewMode: true, hasTemplate: true, template: 'true', target: 'component.visible',
+          } }] },
+      ] };
+      const evaluations: string[] = [];
+      const { fixture } = await createFormAndWaitForReady(config, { editMode: false }, undefined, { entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/',
+        callable: async (_keyString, key, context) => {
+          const property = String(key[key.length - 1]);
+          evaluations.push(property);
+          return jsonataCompile(property === 'condition' ? scenario.condition! : 'true').evaluate(context);
+        },
+      }] });
+      await new Promise<void>(resolve => setTimeout(resolve, 20));
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const content = fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent;
+      expect(content.isVisible).toBe(scenario.visible);
+      expect(evaluations.filter(property => property === 'template').length).toBe(scenario.visible ? 1 : 0);
+      if (scenario.condition !== undefined) expect(evaluations[0]).toBe('condition');
+      TestBed.inject(FormComponentEventBus).publish(createFormDefinitionReadyEvent({}));
+      await fixture.whenStable();
+      expect(evaluations.filter(property => property === 'template').length).toBe(scenario.visible ? 1 : 0);
+      fixture.destroy();
+    });
+  }
 
   for (const roles of [[], ['Researcher'], ['Admin'], ['Librarians']]) {
     it(`uses server roles ${JSON.stringify(roles)} for initial and later field expressions`, async () => {
