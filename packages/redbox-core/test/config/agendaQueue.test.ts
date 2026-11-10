@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm';
+import { PermanentAuditWriteError } from '../../src/services/record-audit/writer';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { agendaQueue, BRANDING_TYPEFACE_RECONCILE_JOB_NAME } from '../../src/config/agendaQueue.config';
@@ -33,5 +35,16 @@ describe('Agenda queue branding typeface reconciliation', function () {
     );
     expect(source).to.not.contain('setTimeout');
     expect(source).to.not.contain('setInterval');
+  });
+});
+
+describe('Agenda record audit recovery backoff', function () {
+  it('stops retries for permanent failures from a separately loaded worker module', function () {
+    const failure = runInNewContext(`new (${PermanentAuditWriteError.toString()})('Invalid audit')`);
+    expect(failure).not.to.be.instanceOf(PermanentAuditWriteError);
+    const backoff = agendaQueue.jobs['RecordsService-RecoverRecordAudit'].options!.backoff!;
+    expect(backoff({ attempt: 1, error: failure, jobName: '', jobData: {} })).to.equal(null);
+    expect(backoff({ attempt: 1, error: new Error('Mongo unavailable'), jobName: '', jobData: {} })).to.equal(1000);
+    expect(backoff({ attempt: 100, error: new Error('Mongo unavailable'), jobName: '', jobData: {} })).to.equal(300000);
   });
 });
