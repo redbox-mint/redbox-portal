@@ -45,6 +45,30 @@ async function expectRejects(errorFunc: () => Promise<unknown>, message?: string
 }
 
 describe('Construct Visitor', async () => {
+  for (const className of [
+    'CheckboxInputComponent',
+    'RadioInputComponent',
+    'DropdownInputComponent',
+  ] as const) {
+    for (const enabledOptionValues of [['b'], [], null]) {
+      it(`passes enabledOptionValues ${JSON.stringify(enabledOptionValues)} through ${className}`, async () => {
+        const visitor = new ConstructFormConfigVisitor(consoleLogger);
+        const result = await visitor.start({
+          formMode: 'edit',
+          data: {
+            name: 'options',
+            componentDefinitions: [
+              { name: 'choice', component: { class: className, config: { enabledOptionValues } } },
+            ],
+          },
+        });
+        expect(result.componentDefinitions?.[0].component.config)
+          .to.have.property('enabledOptionValues')
+          .that.deep.equals(enabledOptionValues);
+      });
+    }
+  }
+
   describe('basic constructing', async () => {
     const cases: {
       title: string;

@@ -43,6 +43,11 @@ export type FormRequestParamValue = string | string[] | true;
 export type FormRequestParamsMap = Readonly<Record<string, FormRequestParamValue>>;
 
 export interface JSONataQueryRuntimeContext {
+  record?: {
+    type?: string;
+    hasEditAccess?: boolean;
+    metadata?: Record<string, unknown>;
+  };
   requestParams?: FormRequestParamsMap;
   [key: string]: unknown;
 }
