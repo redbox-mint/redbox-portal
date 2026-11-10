@@ -7,6 +7,8 @@ export interface RecordMutationAuditConcurrency {
 }
 
 export class RecordAuditModel {
+    /** Stable Mongo-compatible event identity, shared by direct writes and durable recovery. */
+    auditId?: string;
     occurredAt?: string;
     redboxOid: string;
     action:RecordAuditActionType;
