@@ -1,11 +1,67 @@
-import { nothingLogger } from '@researchdatabox/sails-ng-common';
+import { FormConfigOutline, nothingLogger, QuestionTreeOutcomeInfoKey } from '@researchdatabox/sails-ng-common';
+import { reusableFormDefinitions } from '../../src/config/reusableFormDefinitions.config';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
 
 /** Both controller paths and the service use real construction and authorization. */
-export async function buildNestedViewForm(data, formMode, userRoles, record) {
-  const form = await new ConstructFormConfigVisitor(nothingLogger).start({ data, formMode, record });
+export async function buildNestedViewForm(data, formMode, userRoles, record, beforeClient?: (form: FormConfigOutline) => void) {
+  const form = await new ConstructFormConfigVisitor(nothingLogger).start({ data, formMode, record, reusableFormDefs: reusableFormDefinitions });
+  if (typeof beforeClient === 'function') beforeClient(form);
   return new ClientFormConfigVisitor(nothingLogger).start({ form, formMode, userRoles });
+}
+
+export function questionTreeViewFixture(retainContainers = false) {
+  const tree = () => ({
+    name: 'tree',
+    component: {
+      class: 'QuestionTreeComponent',
+      config: {
+        questions: ['question_1', 'question_2', 'question_3'].map(id => ({
+          id,
+          label: id,
+          answersMin: 1,
+          answersMax: 1,
+          answers: [{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }],
+          rules: { op: 'true' },
+        })),
+      },
+    },
+    model: { class: 'QuestionTreeModel', config: {} },
+  });
+  const answers = () => ({
+    question_1: 'yes', question_2: 'no', question_3: 'yes', unknown: 'secret',
+    [QuestionTreeOutcomeInfoKey]: 'secret',
+  });
+  const data = {
+    name: 'question-tree-authorization',
+    componentDefinitions: [tree(), {
+      name: 'parent',
+      component: { class: 'GroupComponent', config: { componentDefinitions: [tree()] } },
+      model: { class: 'GroupModel', config: {} },
+      ...(retainContainers ? { constraints: { allowModes: ['view', 'edit'] } } : {}),
+    }, {
+      name: 'rows',
+      component: { class: 'RepeatableComponent', config: { elementTemplate: {
+        name: '',
+        component: { class: 'GroupComponent', config: { componentDefinitions: [tree()] } },
+        model: { class: 'GroupModel', config: {} },
+      } } },
+      model: { class: 'RepeatableModel', config: {} },
+      ...(retainContainers ? { constraints: { allowModes: ['view', 'edit'] } } : {}),
+    }],
+  };
+  // The DSL generates the question controls during construction. Apply their
+  // constraints before the real client visitor performs authorization.
+  const beforeClient = form => {
+    for (const node of [form.componentDefinitions[0],
+      form.componentDefinitions[1].component.config.componentDefinitions[0],
+      form.componentDefinitions[2].component.config.elementTemplate.component.config.componentDefinitions[0]]) {
+      const children = node.component.config.componentDefinitions;
+      children.find(child => child.name === 'question_2').constraints = { authorization: { allowRoles: ['Admin'] } };
+      children.find(child => child.name === 'question_3').constraints = { allowModes: ['edit'] };
+    }
+  };
+  return { data, metadata: { tree: answers(), parent: { tree: answers() }, rows: [{ tree: answers() }] }, beforeClient };
 }
 
 export function nestedViewFixture(retainContainers: boolean) {

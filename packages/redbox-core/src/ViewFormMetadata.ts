@@ -19,6 +19,7 @@ export function projectViewMetadata(
     tabs?: ViewNode[];
     panels?: ViewNode[];
     elementTemplate?: ViewNode;
+    questions?: { id: string }[];
     content?: unknown;
   };
   const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -55,6 +56,13 @@ export function projectViewMetadata(
     const source = sourceNode(node);
     if (!isContainer(source)) return source.model ? value : undefined;
     const config = source.component?.config as ViewConfig | undefined;
+    if (source.component?.class === 'QuestionTreeComponent') {
+      // Question displays are label rows, not keyed answer objects. The source
+      // children have already passed role and mode checks before transformation.
+      const questions = (config?.componentDefinitions ?? [])
+        .filter(child => config?.questions?.some(question => question.id === child.name));
+      return isObject(value) ? projectObject(value, questions) : undefined;
+    }
     if (Array.isArray(value)) {
       if (!Array.isArray(content)) return undefined;
       const displayedRows = content.filter(entry => !isDeepEmpty(entry));

@@ -6,7 +6,7 @@ import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
 import { of } from 'rxjs';
 import { dataRecordProjectedMetadata, dataRecordProjectionForm } from '../fixtures/metadata-projection.fixtures';
-import { buildNestedViewForm, nestedViewFixture } from '../fixtures/nested-view-metadata.fixtures';
+import { buildNestedViewForm, nestedViewFixture, questionTreeViewFixture } from '../fixtures/nested-view-metadata.fixtures';
 
 describe('FormRecordConsistencyService', function () {
   let mockSails: any;
@@ -140,6 +140,35 @@ describe('FormRecordConsistencyService', function () {
   });
 
   describe('metadataForViewForm authorization', function () {
+    for (const retain of [true, false]) {
+      for (const roles of [['Researcher'], ['Admin']]) {
+        it(`keeps authorized question tree answers for ${roles}, retained containers=${retain}`, async function () {
+          const { data, metadata, beforeClient } = questionTreeViewFixture(retain);
+          const form = await buildNestedViewForm(data, 'view', roles, metadata, beforeClient);
+          const { viewMetadataSource } = require('@researchdatabox/sails-ng-common');
+          const tree = form.componentDefinitions[0];
+          expect(tree.component.class).to.equal('ContentComponent');
+          expect(tree.component.config.content).to.be.an('array');
+          const authorizedNames = tree[viewMetadataSource].component.config.componentDefinitions.map(child => child.name);
+          expect(authorizedNames).to.include('question_1');
+          expect(authorizedNames.includes('question_2')).to.equal(roles.includes('Admin'));
+          expect(authorizedNames).not.to.include('question_3');
+          const expected = { question_1: 'yes', ...(roles.includes('Admin') ? { question_2: 'no' } : {}) };
+          expect(FormRecordConsistencyService.metadataForViewForm(metadata, form)).to.deep.equal({
+            tree: expected, parent: { tree: expected }, rows: [{ tree: expected }],
+          });
+        });
+      }
+    }
+
+    it('omits malformed question tree values', async function () {
+      const { data, metadata, beforeClient } = questionTreeViewFixture();
+      const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata, beforeClient);
+      for (const tree of ['yes', ['yes'], null, 42, false]) {
+        expect(FormRecordConsistencyService.metadataForViewForm({ tree }, form)).to.deep.equal({});
+      }
+    });
+
     it('round3 filters restricted children before preserving leaves regardless of saved row shape', async function () {
       const { data, metadata } = nestedViewFixture(false);
       const form = await buildNestedViewForm(data, 'view', ['Researcher'], metadata);
