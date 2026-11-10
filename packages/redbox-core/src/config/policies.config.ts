@@ -60,7 +60,9 @@ export function buildContractApiPolicies(
     acc[route.controller] = {
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
-      [route.action]: noCachePlusApiValidationPolicies,
+      [route.action]: route.controller === 'webservice/RecordGraphqlController'
+        ? noCachePlusApiValidationPolicies.map(policy => policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy)
+        : noCachePlusApiValidationPolicies,
     };
     return acc;
   }, {} as PoliciesConfig);

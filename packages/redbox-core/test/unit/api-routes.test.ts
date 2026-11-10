@@ -718,7 +718,7 @@ describe('API routes contract layer', function () {
     });
   });
 
-  it('should keep every non-schema contract API action on the exact no-store validation policy chain', function () {
+  it('should retain the default validation chain outside schema and GraphQL routes', function () {
     const expectedPolicies = [
       'noCache',
       'brandingAndPortal',
@@ -734,7 +734,7 @@ describe('API routes contract layer', function () {
     ];
 
     for (const route of registerCoreApiRoutes()) {
-      if (route.controller === 'webservice/RecordSchemaController') continue;
+      if (['webservice/RecordSchemaController', 'webservice/RecordGraphqlController'].includes(route.controller)) continue;
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
       expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);

@@ -7,6 +7,7 @@
 
 export { brandingAndPortal } from './brandingAndPortal';
 export { checkAuth, checkRecordSchemaAuth } from './checkAuth';
+export { checkRecordGraphqlAuth } from './checkRecordGraphqlAuth';
 export { checkBrandingValid } from './checkBrandingValid';
 export { companionAttachmentUploadAuth } from './companionAttachmentUploadAuth';
 export { contentSecurityPolicy } from './contentSecurityPolicy';
@@ -24,6 +25,7 @@ export { validateApiContractRequest } from './validateApiContractRequest';
 // Re-export as a namespace for convenient access
 import { brandingAndPortal } from './brandingAndPortal';
 import { checkAuth, checkRecordSchemaAuth } from './checkAuth';
+import { checkRecordGraphqlAuth } from './checkRecordGraphqlAuth';
 import { checkBrandingValid } from './checkBrandingValid';
 import { companionAttachmentUploadAuth } from './companionAttachmentUploadAuth';
 import { contentSecurityPolicy } from './contentSecurityPolicy';
@@ -42,6 +44,7 @@ export const Policies = {
   brandingAndPortal,
   checkAuth,
   checkRecordSchemaAuth,
+  checkRecordGraphqlAuth,
   checkBrandingValid,
   companionAttachmentUploadAuth,
   contentSecurityPolicy,

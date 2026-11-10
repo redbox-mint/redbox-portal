@@ -31,7 +31,8 @@
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
     "doc:api": "npm run generate-openapi --",
-    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
+    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080",
+    "test:record-graphql": "tsc --noEmit -p test/tsconfig.record-graphql.json && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts test/services/RecordGraphqlService.test.ts test/unit/record-graphql/**/*.test.ts"
   },
   "author": "",
   "license": "ISC",
@@ -80,6 +81,8 @@
     "genson-js": "0.0.8",
     "glob": "14.0.3",
     "graceful-fs": "4.2.11",
+    "graphql": "16.14.2",
+    "graphql-yoga": "5.24.2",
     "handlebars": "4.7.10",
     "i18next": "26.5.12",
     "js-yaml": "5.5.0",

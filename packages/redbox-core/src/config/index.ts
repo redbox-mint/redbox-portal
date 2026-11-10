@@ -79,6 +79,7 @@ export * from './custom_cache.config';
 export * from './validators.config';
 export * from './recordValidation.config';
 export * from './recordSchema.config';
+export * from './recordGraphql.config';
 export * from './harvestRuns.config';
 
 import type { ApiRouteProvider } from '../api-routes';
@@ -157,6 +158,7 @@ import { custom_cache, CustomCacheConfig } from './custom_cache.config';
 import { validators, ValidatorsConfig } from './validators.config';
 import { recordValidation, RecordValidationConfig } from './recordValidation.config';
 import { recordSchema, RecordSchemaConfig } from './recordSchema.config';
+import { recordGraphql, RecordGraphqlConfig } from './recordGraphql.config';
 import { harvestRuns, HarvestRunsConfig } from './harvestRuns.config';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
 import { WebAnalytics } from '../configmodels/WebAnalytics';
@@ -267,6 +269,7 @@ export interface SailsConfig {
     validators: ValidatorsConfig;
     recordValidation: RecordValidationConfig;
     recordSchema: RecordSchemaConfig;
+    recordGraphql: RecordGraphqlConfig;
     harvestRuns: HarvestRunsConfig;
 
     // Auth-related configs
@@ -363,6 +366,7 @@ export const Config = {
     validators,
     recordValidation,
     recordSchema,
+    recordGraphql,
     harvestRuns,
 } as const;
 

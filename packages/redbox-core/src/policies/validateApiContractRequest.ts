@@ -1,4 +1,5 @@
 import { resolveApiRouteForRequest, validateApiRouteRequest, type ApiRouteDefinition } from '../api-routes';
+import { graphqlFailure } from '../services/RecordGraphqlService';
 import {
   buildRecordSchemaInvalidRequestProblem,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
@@ -100,7 +101,14 @@ export function validateApiContractRequest(req: Sails.Req, res: Sails.Res, next:
 
     const validated = validateApiRouteRequest(req, route);
     if (!validated.valid) {
-      if (isRecordSchemaRoute(route)) {
+      if (route.controller === 'webservice/RecordGraphqlController') {
+        res.set({
+          'Cache-Control': 'private, no-store',
+          Vary: 'Authorization, Cookie, Accept',
+          'Content-Type': 'application/graphql-response+json',
+        });
+        res.status(400).json(graphqlFailure(400, 'INVALID_REQUEST', 'A JSON GraphQL query is required.').data);
+      } else if (isRecordSchemaRoute(route)) {
         sendRecordSchemaInvalidRequest(req, res);
       } else {
         sendPolicyResponse(

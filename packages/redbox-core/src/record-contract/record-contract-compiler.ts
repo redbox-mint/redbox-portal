@@ -48,6 +48,8 @@ export interface RecordContractCompileRequest {
   readonly form: RecordContractEffectiveForm;
   readonly context: RecordContractPublicContext;
   readonly reusableFormDefinitions?: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>;
+  /** Read contracts retain stored fields from every UI mode. Write behavior defaults to edit. */
+  readonly fieldMode?: 'edit' | 'read';
 }
 
 class CompilerFailure extends Error {
@@ -265,6 +267,7 @@ function snapshotCompileRequest(request: RecordContractCompileRequest): RecordCo
     // enumerable data; prototype methods never cross the compiler boundary.
     form: cloneCompilerInput(request.form, '$request.form', true),
     context: snapshotRecordContractPublicContext(request.context),
+    ...(request.fieldMode === 'read' ? { fieldMode: 'read' as const } : {}),
     ...(request.reusableFormDefinitions === undefined
       ? {}
       : {
@@ -512,7 +515,7 @@ export class RecordContractCompiler {
     const properties: Record<string, ContractNode> = {};
     const roleFilteredComponents = new Map<string, FormComponentDefinitionFrame[]>();
     for (const component of components) {
-      if (this.isRoleFilteredDuplicate(component, roleFilteredComponents)) {
+      if (this.isRoleFilteredDuplicate(component, roleFilteredComponents, request.fieldMode)) {
         continue;
       }
       const contributions = await this.compileComponent(component, parent, depth + 1, request, state);
@@ -544,7 +547,7 @@ export class RecordContractCompiler {
     state: CompilerState
   ): Promise<Array<readonly [string, ContractNode]>> {
     this.assertDepth(depth, parent);
-    if (!this.isAvailableInEditMode(component)) {
+    if (request.fieldMode !== 'read' && !this.isAvailableInEditMode(component)) {
       return [];
     }
     const reusableName = component.overrides?.reusableFormName;
@@ -785,9 +788,10 @@ export class RecordContractCompiler {
    */
   private isRoleFilteredDuplicate(
     component: FormComponentDefinitionFrame,
-    roleFilteredComponents: Map<string, FormComponentDefinitionFrame[]>
+    roleFilteredComponents: Map<string, FormComponentDefinitionFrame[]>,
+    fieldMode?: 'edit' | 'read'
   ): boolean {
-    if (!component.model || !this.isAvailableInEditMode(component)) {
+    if (!component.model || (fieldMode !== 'read' && !this.isAvailableInEditMode(component))) {
       return false;
     }
 
