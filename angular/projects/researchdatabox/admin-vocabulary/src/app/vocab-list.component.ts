@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject } from '@angular/core';
 import { VocabularySummary } from './vocabulary-api.service';
 
 type SourceFilter = 'all' | 'local' | 'rva';
@@ -16,6 +17,7 @@ type VocabularyListQueryState = {
   standalone: false
 })
 export class VocabListComponent implements OnChanges, OnDestroy {
+  readonly adminDates = inject(AdminDateService);
   @Input() vocabularies: VocabularySummary[] = [];
   @Input() selectedId: string | null = null;
   @Input() totalCount = 0;
@@ -28,6 +30,8 @@ export class VocabListComponent implements OnChanges, OnDestroy {
   };
 
   @Output() selected = new EventEmitter<string>();
+  @Output() syncRequested = new EventEmitter<string>();
+  @Output() createRequested = new EventEmitter<void>();
   @Output() deleted = new EventEmitter<string>();
   @Output() queryChanged = new EventEmitter<VocabularyListQueryState>();
   @Output() pageChanged = new EventEmitter<number>();
@@ -80,6 +84,10 @@ export class VocabListComponent implements OnChanges, OnDestroy {
 
   get canGoNext(): boolean {
     return this.offset + this.pageSize < this.totalCount;
+  }
+
+  displayName(vocabulary: VocabularySummary): string {
+    return vocabulary.name.replace(/^Australian and New Zealand Standard Research Classification 2020:\s*/, 'ANZSRC 2020: ');
   }
 
   open(id: string): void {

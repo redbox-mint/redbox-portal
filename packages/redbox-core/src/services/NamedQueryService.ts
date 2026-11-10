@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
+import { buildNamedQueryUsage, NamedQueryInUseError, NamedQueryUsage } from './named-query/usage';
 import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery.config';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -135,6 +136,7 @@ export namespace Services {
       "performNamedQueryFromConfigResults",
       "create",
       "list",
+      "getUsage",
       "update",
       "delete",
     ];
@@ -463,6 +465,25 @@ export namespace Services {
       })) as unknown as NamedQueryDefinition[];
     }
 
+    /** Constant number of brand-scoped reads, shared by the whole list. */
+    public async getUsage(brand: BrandingModel): Promise<NamedQueryUsage> {
+      const reports = (await RBReport.find({ branding: brand.id })) as AnyRecord[];
+      const dashboards = await DashboardConfiguration.findOne({ branding: String(brand.id) });
+      const dashboardTypes = (await DashboardType.find({ branding: brand.id })) as AnyRecord[];
+      const recordTypes = (await RecordType.find({ branding: brand.id })) as AnyRecord[];
+      const workflowSteps = recordTypes.length
+        ? (await WorkflowStep.find({ recordType: { in: recordTypes.map(type => String(type.id)) } })) as AnyRecord[] : [];
+      const forms = (await Form.find({ branding: brand.id })) as AnyRecord[];
+      // Use the same effective brand settings as runtime consumers: this includes
+      // defaults and excludes superseded duplicate rows, with secrets masked.
+      const appConfiguration = AppConfigService.getMaskedAppConfigurationForBrand(brand.name);
+      const appConfigs = Object.entries(appConfiguration && typeof appConfiguration === 'object' ? appConfiguration : {})
+        .map(([configKey, configData]) => ({ configKey, configData }));
+      return buildNamedQueryUsage({ reports, dashboards: dashboards?.configData, dashboardTypes,
+        recordTypes, workflowSteps, forms, appConfigs,
+        views: sails.config.dashboardview ?? {}, vocabularies: sails.config.vocab?.queries ?? {} });
+    }
+
     public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
       const existing = await NamedQuery.findOne({ key });
@@ -496,6 +517,8 @@ export namespace Services {
       if (!existing) {
         throw new Error(`Named query '${name}' not found`);
       }
+      const consumers = (await this.getUsage(brand))[name] ?? [];
+      if (consumers.length) throw new NamedQueryInUseError(consumers);
       return firstValueFrom(super.getObservable(NamedQuery.destroyOne({ key })));
     }
 

@@ -1,21 +1,22 @@
 @if (isReady && dataSource) {
   @if (dataSource.getCurrentPage(); as currentPage) {
-    <div class="row">
+    <div [class.table-responsive]="adminPresentation" [class.row]="!adminPresentation">
       @if (columnConfig) {
-        <table class="table">
+        <table class="table" [class.table-hover]="adminPresentation">
           <thead>
             <tr>
+              @if (selectionHeaderTemplate) { <th><ng-container [ngTemplateOutlet]="selectionHeaderTemplate"></ng-container></th> }
               @for (col of columnConfig; track col) {
                 @if (!col.hide) {
                   <th>
-                    @if (enableSort) {
+                    @if (enableSort && col.sortable !== false) {
                       <header-sort
                         [title]="col.label | i18next"
                         [variable]="col.property"
                         (headerSortChanged)="dataSource.headerSortChanged($event, col); headerSortChanged($event, col);">
                       </header-sort>
                     }
-                    @if (!enableSort) {
+                    @if (!enableSort || col.sortable === false) {
                       <span
                         class="record-table-heading-no-sort">
                         {{col.label | i18next}}
@@ -32,18 +33,25 @@
           <tbody>
             @for (row of currentPage.records; track row) {
               <tr>
+                @if (selectionTemplate) { <td><ng-container [ngTemplateOutlet]="selectionTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container></td> }
                 @for (col of columnConfig; track col) {
                   @if (!col.hide) {
-                    <td [innerHTML]="getColValue(row, col)"></td> <!-- If getColValue returns unsafe HTML, sanitize it with DomSanitizer in the component -->
+                    @if (cellTemplates[col.property]; as cellTemplate) {
+                      <td><ng-container [ngTemplateOutlet]="cellTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container></td>
+                    } @else { <td [innerHTML]="getColValue(row, col)"></td> } <!-- If getColValue returns unsafe HTML, sanitize it with DomSanitizer in the component -->
                   }
                 }
                 @if (enableActions && showActions && showActions.length > 0) {
                   <td>
+                    @if (actionTemplate) {
+                      <ng-container [ngTemplateOutlet]="actionTemplate" [ngTemplateOutletContext]="{ $implicit: row }"></ng-container>
+                    } @else {
                     @for (showAction of showActions; track showAction) {
                       <button
                         type="button"
                         class="btn {{showAction.classes}}"
                       (click)="dataSource.recordTableAction($event, row, showAction.name)">{{showAction.label | i18next}}</button>&nbsp;
+                    }
                     }
                   </td>
                 }
@@ -55,7 +63,8 @@
     </div>
     <!-- Pagination -->
     @if (currentPage.total > 0) {
-      <div class="row">
+      <div [class.card-footer]="adminPresentation" [class.row]="!adminPresentation">
+        @if (adminPresentation) { <span>{{ 'admin-report-page-count' | i18next: { page: currentPage.pageNum, total: currentPage.total } }}</span> }
         <pagination #pageModel="ngModel" [disabled]="paginationPending || paginationDisabled" [directionLinks]="paginationDirectionLinks" [boundaryLinks]="paginationBoundaryLinks"
           [totalItems]="currentPage.total" [itemsPerPage]="paginationItemsPerPage" [ngModel]="currentPage.pageNum"
         (ngModelChange)="gotoPage($event, pageModel)" [class]="paginationClass" [maxSize]="paginationMaxSize" [rotate]="paginationRotate"></pagination>

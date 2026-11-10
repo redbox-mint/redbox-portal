@@ -2883,11 +2883,20 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode: string = 'regex',
-      secondarySort = undefined
+      secondarySort = undefined,
+      deletionFilters: { deletedWithin?: string; deletedBy?: string } = {}
     ) {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      if (deletionFilters.deletedWithin && deletionFilters.deletedWithin !== 'any') {
+        if (!['7', '30'].includes(deletionFilters.deletedWithin)) throw new TypeError('Invalid deletion period');
+        query['dateDeleted'] = { $gte: new Date(Date.now() - Number(deletionFilters.deletedWithin) * 86400000).toISOString() };
+      }
+      if (deletionFilters.deletedBy) {
+        query['deletedBy.brandId'] = String(brand.id);
+        query['deletedBy.username'] = deletionFilters.deletedBy;
+      }
       const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
       const sortAliases = new Map([
         ['title', 'deletedRecordMetadata.metadata.title'],
@@ -2984,6 +2993,15 @@ export namespace Services {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
       }
+      // Legacy callers pass a one-element array; never accept query operators as paths.
+      const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
+      if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
+      if (filterFields != null && (!Array.isArray(filterFields) || filterFields.length > 20 ||
+        filterFields.some(field => typeof field !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) ||
+          field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment))))) {
+        throw new Error('Invalid filter fields');
+      }
+      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024)) throw new Error('Invalid filter');
       const query = {
         'metaMetadata.brandId': brand.id,
       };
@@ -3040,14 +3058,13 @@ export namespace Services {
         query['workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
-        const escapedFilterString = this.escapeRegExp(filterString);
-        sails.log.verbose('escapedFilterString ' + escapedFilterString);
-        for (const filterField of filterFields) {
-          if (filterMode == 'equal') {
-            query[filterField] = filterString;
-          } else if (filterMode == 'regex') {
-            query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
-          }
+        const value = mode === 'equal' ? filterString : new RegExp(this.escapeRegExp(filterString), 'i');
+        if (mode === 'any') {
+          // Keep search OR separate from the type and authorization OR clauses.
+          andArray.push({ $or: filterFields.map(field => ({ [field]: value })) });
+        } else {
+          // Field filters must narrow, never replace, brand/type/workflow scope.
+          for (const field of filterFields) andArray.push({ [field]: value });
         }
       }
 
@@ -3082,13 +3099,15 @@ export namespace Services {
       };
     }
 
-    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false) {
+    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false, checkpoint?: () => Promise<void>) {
       let skip = 0;
       const limit = options.limit;
       options.skip = skip;
+      await checkpoint?.();
       let result = await this.recordCol.find(query, options).toArray();
 
       while (result.length > 0) {
+        await checkpoint?.();
         for (const record of result) {
           if (stringifyJSON) {
             yield JSON.stringify(record);
@@ -3098,11 +3117,12 @@ export namespace Services {
         }
         skip = skip + limit;
         options.skip = skip;
+        await checkpoint?.();
         result = await this.recordCol.find(query, options).toArray();
       }
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint?: () => Promise<void>): stream.Readable {
       const andArray = [];
       const query = {
         'metaMetadata.brandId': brand.id,
@@ -3152,7 +3172,7 @@ export namespace Services {
             // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
             // bail out when it is no longer writable.
             const isCancelled = () => passThrough.destroyed;
-            const fields = await this.collectCsvFields(query, options, isCancelled);
+            const fields = await this.collectCsvFields(query, options, isCancelled, checkpoint);
             if (isCancelled()) {
               return;
             }
@@ -3172,7 +3192,10 @@ export namespace Services {
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(
-              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              stream.Readable.from(this.fetchAllRecords(query, { ...options }, false, async () => {
+                if (isCancelled()) throw new Error('Export stream closed.');
+                await checkpoint?.();
+              })),
               sanitize,
               json2csv,
               passThrough
@@ -3193,10 +3216,10 @@ export namespace Services {
     // First export pass: iterate every matching record and accumulate the union of flattened column
     // keys (first-seen order) so the CSV header covers every record. A clone of options is used
     // because fetchAllRecords mutates options.skip while paging.
-    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
+    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false, checkpoint?: () => Promise<void>): Promise<string[]> {
       const flattener = flatten();
       const fields = new Set<string>();
-      for await (const record of this.fetchAllRecords(query, { ...options })) {
+      for await (const record of this.fetchAllRecords(query, { ...options }, false, checkpoint)) {
         // Stop paging Mongo if the consumer has disconnected so cancelled exports don't keep
         // scanning every matching record.
         if (isCancelled()) {

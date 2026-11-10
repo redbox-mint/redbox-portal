@@ -1,7 +1,8 @@
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { APP_BASE_HREF } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, RecordService, getStubConfigService, getStubRecordService, LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService, HarvestRunDetail } from './harvest-run-api.service';
 import { HarvestRunsComponent } from './harvest-runs.component';
 
@@ -12,8 +13,9 @@ describe('HarvestRunsComponent', () => {
   let apiService: jasmine.SpyObj<HarvestRunApiService>;
 
   beforeEach(async () => {
-    apiService = jasmine.createSpyObj<HarvestRunApiService>('HarvestRunApiService', ['waitForInit', 'listRuns', 'getRun', 'listRunEvents', 'listRunChunks', 'getBrandingAndPortalUrl']);
+    apiService = jasmine.createSpyObj<HarvestRunApiService>('HarvestRunApiService', ['waitForInit', 'getStatistics', 'listRuns', 'getRun', 'listRunEvents', 'listRunChunks', 'getBrandingAndPortalUrl']);
     apiService.waitForInit.and.resolveTo(apiService);
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 25, failedLast7Days: 3, runningNow: 2, lastSuccessfulRun: { completedAt: new Date(Date.now() - 2 * 3600000).toISOString(), sourceName: 'Global source' } });
     apiService.getBrandingAndPortalUrl.and.returnValue('base/default/rdmp');
     apiService.listRuns.and.resolveTo({
       summary: { numFound: 1, page: 1, start: 0 },
@@ -36,9 +38,11 @@ describe('HarvestRunsComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [HarvestRunsComponent],
-      imports: [FormsModule, RedboxPortalCoreModule],
+      imports: [FormsModule, RedboxPortalCoreModule, BsDatepickerModule.forRoot()],
       providers: [
         LoggerService,
+        { provide: ConfigService, useValue: getStubConfigService() },
+        { provide: RecordService, useValue: getStubRecordService({ types: [{ name: 'rdmp' }, { name: 'dataRecord' }] }) },
         {
           provide: APP_BASE_HREF,
           useValue: 'base'
@@ -50,6 +54,7 @@ describe('HarvestRunsComponent', () => {
             'harvest-runs-heading': 'Harvest runs',
             'harvest-runs-loading': 'Loading harvest runs',
             'harvest-runs-empty': 'No harvest runs found.',
+            'admin-harvest-empty': 'No harvest runs yet',
             'harvest-runs-filter-apply': 'Apply filters',
             'harvest-runs-filter-clear': 'Clear filters',
             'harvest-runs-detail-summary': 'Summary',
@@ -78,8 +83,94 @@ describe('HarvestRunsComponent', () => {
       ]
     }).compileComponents();
 
+    TestBed.inject(TranslationService).getCurrentLanguage = () => 'en';
     fixture = TestBed.createComponent(HarvestRunsComponent);
     component = fixture.componentInstance;
+  });
+
+  it('renders global statistics above the list, with failed alert styling and relative success time', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    const stats = fixture.nativeElement.querySelector('.hr-global-stats');
+    expect(Array.from(stats.querySelectorAll('.rb-admin-stat b')).map((el: any) => el.textContent.trim()).slice(0, 3)).toEqual(['25', '2', '3']);
+    expect(stats.querySelector('.hr-global-stat--danger')).toBeTruthy();
+    expect(stats.textContent).toContain('Global source');
+    expect(stats.querySelector('time').textContent).toContain('2');
+    expect(stats.querySelector('time').getAttribute('title')).toBeTruthy();
+    expect(stats.nextElementSibling.classList.contains('card')).toBeTrue();
+  });
+
+  it('refreshes global statistics without filters on Refresh, Apply and Clear', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    component.filters.status = 'failed';
+    component.filters.sourceName = 'source-b';
+    await component.applyFilters();
+    await component.refreshRuns();
+    await component.clearFilters();
+    expect(apiService.getStatistics).toHaveBeenCalledTimes(4);
+    expect(apiService.getStatistics.calls.allArgs()).toEqual([[], [], [], []]);
+    expect(component.statistics?.runsLast7Days).toBe(25);
+  });
+
+  it('shows zero counts and a dash without an alert when the brand has no runs', async () => {
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    const stats = fixture.nativeElement.querySelector('.hr-global-stats');
+    expect(Array.from(stats.querySelectorAll('b')).map((el: any) => el.textContent.trim())).toEqual(['0', '0', '0', '—']);
+    expect(stats.querySelector('.hr-global-stat--danger')).toBeNull();
+    expect(stats.querySelector('time')).toBeNull();
+  });
+
+  it('keeps the list usable on summary failure, clears stale statistics, and recovers on Refresh', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    apiService.getStatistics.and.rejectWith(new Error('summary unavailable'));
+    await component.refreshRuns();
+    expect(component.statistics).toBeNull();
+    expect(component.statisticsError).toBeTruthy();
+    expect(component.listResponse.records.length).toBe(1);
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await component.refreshRuns();
+    expect(component.statisticsError).toBe('');
+    expect(component.statistics?.runsLast7Days).toBe(0);
+  });
+
+  it('ignores an older summary response when refreshes overlap', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    let resolveOld!: (value: any) => void;
+    apiService.getStatistics.and.returnValue(new Promise(resolve => { resolveOld = resolve; }));
+    const first = component.refreshRuns();
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 42, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await component.refreshRuns();
+    resolveOld({ runsLast7Days: 7, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await first;
+    expect(component.statistics?.runsLast7Days).toBe(42);
+  });
+
+  it('uses inclusive local date bounds and refuses invalid dates without querying', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    apiService.listRuns.calls.reset();
+    component.dateFrom = new Date(2026, 9, 1);
+    component.dateTo = new Date(2026, 9, 31);
+    await component.applyFilters();
+    const query = apiService.listRuns.calls.mostRecent().args[0]!;
+    expect(query.dateFrom).toBe(new Date(2026, 9, 1, 0, 0, 0, 0).toISOString());
+    expect(query.dateTo).toBe(new Date(2026, 9, 31, 23, 59, 59, 999).toISOString());
+    apiService.listRuns.calls.reset();
+    component.dateFrom = 'invalid';
+    await component.applyFilters();
+    expect(apiService.listRuns).not.toHaveBeenCalled();
+    expect(component.listError).toBeTruthy();
+    await component.clearFilters();
+    expect(component.dateFrom).toBeNull();
+    expect(component.dateTo).toBeNull();
+    expect(apiService.listRuns.calls.mostRecent().args[0]!.dateFrom).toBe('');
   });
 
   it('loads runs and the initial selected run detail on init', async () => {
@@ -130,7 +221,7 @@ describe('HarvestRunsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('No harvest runs found.');
+    expect(fixture.nativeElement.textContent).toContain('No harvest runs yet');
   });
   it('ignores repeated clicks on the selected run, including while it is loading', async () => {
     let resolveDetail!: (value: HarvestRunDetail) => void;

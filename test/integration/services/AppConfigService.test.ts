@@ -177,7 +177,7 @@ describe('appConfigService', function () {
     const appConfigForm = await appConfigService.getAppConfigForm(branding, configForm);
     expect(appConfigForm).to.not.be.null;
     expect(appConfigForm.schema).to.not.be.null;
-    expect(appConfigForm.fieldOrder).to.deep.equal(['enabled', 'title', 'message', 'dismissalDurationHours']);
+    expect(appConfigForm.fieldOrder).to.deep.equal(['enabled', 'title', 'message', 'dismissalDurationHours', 'style']);
   });
 
   it('should get the authorized domains and emails app config form', async () => {

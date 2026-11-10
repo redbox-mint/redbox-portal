@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Site header</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<header style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333">
+  <div class="util"><span>Welcome Local Admin</span><a href="#">Logout</a></div>
+  <div class="band" style="padding: 10px 32px"><img src="./redbox-logo.png" alt="ReDBox — Research Data Box" style="height: 52px"></div>
+  <nav class="mainnav" aria-label="Main">
+    <a href="#">Home</a>
+    <a href="#">Plan ▾</a>
+    <a href="#">Workspaces ▾</a>
+    <a href="#">Manage ▾</a>
+    <a href="#">Publish and share ▾</a>
+    <a href="Main.dc.html" class="on">Admin</a>
+    <form class="search" role="search"><input aria-label="Search keywords" placeholder="keywords"><button type="button">Search</button></form>
+  </nav>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

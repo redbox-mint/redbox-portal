@@ -1,9 +1,44 @@
-<div class="row admin-layout">
-  <div class="col-md-3 col-lg-2">
-    <%- include('layout/sidebar.ejs') %>
-  </div>
-  <div class="col-md-9 col-lg-10 admin-main-content">
-    <h1><i class="fa fa-home" aria-hidden="true"></i> <%= TranslationService.t('admin-welcome-heading') %></h1>
-    <p><%= TranslationService.t('admin-welcome-message') %></p>
-  </div>
+<%- include('layout/start.ejs') %>
+<%- include('layout/page-header.ejs', {
+  breadcrumbs: [{ labelKey: 'menu-admin' }],
+  titleKey: 'admin-home-title', descriptionKey: 'admin-home-description'
+}) %>
+<%
+  const sectionPresentation = {
+    'records': { icon: 'fa fa-bar-chart', description: 'admin-section-records-description' },
+    'people': { icon: 'fa fa-users', description: 'admin-section-people-description' },
+    'site': { icon: 'fa fa-window-maximize', description: 'admin-section-site-description' },
+    'lookups': { icon: 'fa fa-list', description: 'admin-section-lookups-description' },
+    'integrations': { icon: 'fa fa-link', description: 'admin-section-integrations-description' },
+    'developer': { icon: 'fa fa-code', description: 'admin-section-developer-description' },
+  };
+  const homeSidebar = typeof adminSidebar !== 'undefined' && adminSidebar ? adminSidebar : { sections: [], footerLinks: [] };
+%>
+<div class="rb-admin-tile-grid">
+  <% (homeSidebar.sections || []).forEach(function(section, index) {
+    const presentation = sectionPresentation[section.id] || { icon: 'fa fa-cog' };
+  %>
+    <section class="rb-admin-tile" aria-labelledby="admin-tile-<%= index %>">
+      <div class="rb-admin-tile-header">
+        <span class="rb-admin-tile-icon"><i class="<%= presentation.icon %>" aria-hidden="true"></i></span>
+        <div>
+          <h2 id="admin-tile-<%= index %>"><%= section.title %></h2>
+          <% if (presentation.description) { %><p><%= TranslationService.t(presentation.description) %></p><% } %>
+        </div>
+      </div>
+      <ul>
+        <% section.items.forEach(function(item) { %>
+          <li><a href="<%= item.href %>" <% if (item.external) { %>target="<%= item.target || '_blank' %>" rel="noopener noreferrer"<% } %>><%= item.label %></a></li>
+        <% }); %>
+      </ul>
+    </section>
+  <% }); %>
 </div>
+<% if ((homeSidebar.footerLinks || []).length) { %>
+  <nav class="rb-admin-page-actions mt-3">
+    <% homeSidebar.footerLinks.forEach(function(item) { %>
+      <a class="btn btn-outline-secondary" href="<%= item.href %>" <% if (item.external) { %>target="<%= item.target || '_blank' %>" rel="noopener noreferrer"<% } %>><%= item.label %></a>
+    <% }); %>
+  </nav>
+<% } %>
+<%- include('layout/end.ejs') %>

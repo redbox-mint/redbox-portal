@@ -10,6 +10,7 @@ export type NqDetailTab = 'basics' | 'mongo' | 'params' | 'mappings' | 'sort';
   standalone: false
 })
 export class NqDetailComponent {
+  @Input() brandingAndPortalUrl = '';
   @Input() draft!: NamedQueryDefinition;
   @Input() isNew = false;
   @Input() collections: string[] = [];

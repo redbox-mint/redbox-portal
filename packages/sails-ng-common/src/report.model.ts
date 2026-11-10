@@ -10,13 +10,14 @@ export interface ReportFilterDto {
 export class ReportDto {
   title: string;
   name: string;
-  solrQuery: string;
+  reportSource?: 'database' | 'solr';
+  databaseQuery?: { queryName: string } | null;
   filter: ReportFilterDto[];
   columns: RecordPropViewMetaDto[];
   constructor() {
     this.title = "";
     this.name = "";
-    this.solrQuery = "";
+
     this.filter = [];
     this.columns = [];
   }

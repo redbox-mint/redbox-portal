@@ -1,42 +1,24 @@
 @if (isReady) {
   <div
-    class="container-fluid py-3"
+    class="rb-vocabulary-manager"
     [attr.aria-hidden]="isDeleteVocabularyModalOpen || isEditModalOpen || isImportModalOpen ? 'true' : null"
     [attr.inert]="isDeleteVocabularyModalOpen || isEditModalOpen || isImportModalOpen ? '' : null"
   >
-    <div class="row align-items-end mb-3">
-      <div class="col-md-8"></div>
-      <div class="col-md-4 mt-3 mt-md-0">
-        <div class="d-flex justify-content-md-end flex-wrap">
-          <span class="badge badge-light mr-2 mb-2 p-2">{{
-            'admin-vocabulary-count-total' | i18next: { count: totalVocabularies }
-          }}</span>
-          <span class="badge badge-light mr-2 mb-2 p-2">{{
-            'admin-vocabulary-count-local' | i18next: { count: localVocabularies }
-          }}</span>
-          <span class="badge badge-light mb-2 p-2">{{
-            'admin-vocabulary-count-rva' | i18next: { count: rvaVocabularies }
-          }}</span>
-        </div>
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+      <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+      <li>{{ 'admin-nav-lookups' | i18next }}</li><li><span aria-current="page">{{ 'admin-vocabulary-list-title' | i18next }}</span></li>
+    </ol></nav>
+    <header class="rb-admin-page-header">
+      <div><h1>{{ 'admin-vocabulary-list-title' | i18next }}</h1><p>{{ 'admin-vocabulary-page-description' | i18next }}</p></div>
+      <div class="rb-admin-page-actions">
+        <button class="btn btn-outline-secondary" type="button" (click)="showImport()">{{ 'admin-vocabulary-import-from-rva-button' | i18next }}</button>
+        <button class="btn btn-primary" type="button" (click)="newVocabulary()"><span aria-hidden="true">+</span> {{ 'admin-vocabulary-create-action' | i18next }}</button>
       </div>
-    </div>
-
-    <div class="card mb-3">
-      <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
-        <div
-          class="d-flex flex-wrap mb-2 mb-md-0 vocab-action-group"
-          role="group"
-          [attr.aria-label]="'admin-vocabulary-actions-aria-label' | i18next"
-        >
-          <button class="btn btn-primary vocab-action-button" type="button" (click)="newVocabulary()">
-            {{ 'admin-vocabulary-create-button' | i18next }}
-          </button>
-          <button class="btn btn-info vocab-action-button" type="button" (click)="showImport()">
-            {{ 'admin-vocabulary-import-from-rva-button' | i18next }}
-          </button>
-        </div>
-        <small class="text-muted">{{ 'admin-vocabulary-row-help' | i18next }}</small>
-      </div>
+    </header>
+    <div class="rb-admin-stats">
+      <div class="rb-admin-stat"><b>{{ totalVocabularies }}</b><span>{{ 'admin-vocabulary-list-title' | i18next }}</span></div>
+      <div class="rb-admin-stat"><b>{{ localVocabularies }}</b><span>{{ 'admin-vocabulary-source-local' | i18next }}</span></div>
+      <div class="rb-admin-stat"><b>{{ rvaVocabularies }}</b><span>{{ 'admin-vocabulary-from-rva' | i18next }}</span></div>
     </div>
 
     @if (message) {
@@ -58,6 +40,8 @@
       (pageChanged)="onListPageChanged($event)"
       (selected)="openVocabulary($event)"
       (deleted)="requestDeleteVocabulary($event)"
+      (syncRequested)="openForSync($event)"
+      (createRequested)="newVocabulary()"
     ></vocab-list>
   </div>
 }
@@ -73,7 +57,7 @@
     (keydown.escape)="cancelDeleteVocabulary()"
   >
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-      <div class="modal-content">
+      <div class="modal-content rb-admin">
         <div class="modal-header">
           <span class="modal-title h4-header" id="deleteVocabularyModalTitle">{{
             'admin-vocabulary-confirm-delete-title' | i18next
@@ -97,7 +81,7 @@
           <button type="button" class="btn btn-secondary" (click)="cancelDeleteVocabulary()" cdkFocusInitial>
             {{ 'admin-vocabulary-cancel' | i18next }}
           </button>
-          <button type="button" class="btn btn-danger" (click)="confirmDeleteVocabulary()">
+          <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmDeleteVocabulary()">
             {{ 'admin-vocabulary-delete' | i18next }}
           </button>
         </div>
@@ -117,14 +101,14 @@
     (keydown.escape)="!isSyncInProgress && closeEditModal()"
   >
     <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-      <div class="modal-content">
+      <div class="modal-content rb-admin">
         <div class="modal-header">
           <span class="modal-title h4-header" id="vocabModalTitle">{{
             isSelectedReadOnly
               ? ('admin-vocabulary-view-title' | i18next)
               : selectedVocabulary?.id
-                ? ('admin-vocabulary-edit-title' | i18next)
-                : ('admin-vocabulary-create-title' | i18next)
+                ? ('admin-vocabulary-edit-heading' | i18next)
+                : ('admin-vocabulary-create-heading' | i18next)
           }}</span>
           <button
             type="button"
@@ -139,6 +123,7 @@
           @if (isSelectedReadOnly) {
             <div class="alert alert-info" role="status">{{ 'admin-vocabulary-read-only-notice' | i18next }}</div>
           }
+          <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
           <vocab-detail [draft]="draft" [selectedVocabularyId]="selectedVocabulary?.id || null"></vocab-detail>
         </div>
         <div class="modal-footer">
@@ -168,7 +153,7 @@
                     </button>
                     <button
                       type="button"
-                      class="btn btn-warning"
+                      class="btn btn-outline-secondary"
                       (click)="confirmSyncSelected()"
                       [disabled]="isSyncInProgress"
                     >
@@ -187,12 +172,12 @@
             </div>
           }
           @if (!isSelectedReadOnly) {
-            <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave || isSyncInProgress">
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave || isSyncInProgress">
               {{ 'admin-vocabulary-save' | i18next }}
             </button>
           }
-          @if (!isSyncConfirmationOpen) {
-            <button type="button" class="btn btn-warning" (click)="syncSelected()" [disabled]="!canSyncSelected">
+          @if (draft.source === 'rva' && !isSyncConfirmationOpen) {
+            <button type="button" class="btn btn-outline-secondary" (click)="syncSelected()" [disabled]="!canSyncSelected">
               {{ 'admin-vocabulary-sync-rva' | i18next }}
             </button>
           }
@@ -216,7 +201,7 @@
     (keydown.escape)="!isImportInProgress && closeImportModal()"
   >
     <div class="modal-dialog modal-lg" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-      <div class="modal-content">
+      <div class="modal-content rb-admin">
         <div class="modal-header">
           <span class="modal-title h4-header" id="importModalTitle">{{
             'admin-vocabulary-import-from-rva-title' | i18next

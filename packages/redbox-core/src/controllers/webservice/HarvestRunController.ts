@@ -11,7 +11,7 @@ declare const HarvestRunService: HarvestRunServiceContract;
 
 export namespace Controllers {
   export class HarvestRun extends controllers.Core.Controller {
-    protected override _exportedMethods: string[] = ['listRuns', 'getRun', 'listRunEvents', 'listRunChunks'];
+    protected override _exportedMethods: string[] = ['getStatistics', 'listRuns', 'getRun', 'listRunEvents', 'listRunChunks'];
 
     private parsePageSize(value: unknown): number {
       return Math.min(this.parsePositiveInt(value, 'pageSize') ?? 20, 100);
@@ -37,6 +37,20 @@ export namespace Controllers {
         throw new APIErrorResponse(`Invalid ${fieldName} parameter.`);
       }
       return parsed;
+    }
+
+    public async getStatistics(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
+        const data = await HarvestRunService.getStatistics(brand);
+        return this.sendResp(req, res, { data, status: 200, headers: this.getNoCacheHeaders() });
+      } catch {
+        return this.sendResp(req, res, {
+          status: 500,
+          displayErrors: [{ detail: 'Unable to load harvest run statistics.' }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
     }
 
     public async listRuns(req: Sails.Req, res: Sails.Res) {

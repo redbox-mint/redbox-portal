@@ -1,3 +1,4 @@
+import { PartyImportComponent } from './party-import.component';
 import { SortComponent } from './sort/sort.component';
 import { CommonModule } from '@angular/common';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
@@ -69,6 +70,23 @@ describe('DashboardComponent', () => {
     }
   }
 
+  it('formats standard admin date columns by their template input and preserves custom and non-admin templates', () => {
+    const component = create();
+    const rows = [
+      { title: 'Created', variable: 'metaMetadata.createdOn', template: '{{formatDateLocale dateCreated "DATETIME_MED"}}' },
+      { title: 'Custom', variable: 'custom', template: 'Created: {{formatDateLocale dateCreated "DATETIME_MED"}}' }
+    ];
+    const imports = { dateCreated: '2026-11-05T18:36:00' };
+    templates.compileAndRunTemplate.and.returnValue('Configured template');
+    component.adminParties = true;
+    const admin = (component as any).renderRow('draft', rows, 'rowConfig', imports);
+    expect(admin['metaMetadata.createdOn']).toBe('05/11/2026 18:36');
+    expect(admin.custom).toBe('Configured template');
+    component.adminParties = false;
+    const ordinary = (component as any).renderRow('draft', rows, 'rowConfig', imports);
+    expect(ordinary['metaMetadata.createdOn']).toBe('Configured template');
+  });
+
   beforeEach(async () => {
     attributes = { recordType: 'rdmp', dashboardType: 'standard' };
     recordService = jasmine.createSpyObj('RecordService', ['getDashboardType', 'getDashboardSettings', 'getWorkflowSteps', 'getRecords', 'getRelatedRecords', 'getDashboardView', 'getConfig', 'waitForInit', 'isInitializing']);
@@ -88,7 +106,7 @@ describe('DashboardComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [DashboardComponent, SortComponent],
-      imports: [CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
+      imports: [PartyImportComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule.forRoot()],
       providers: [
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
@@ -111,6 +129,68 @@ describe('DashboardComponent', () => {
           review: { settings: settings('Review title', {}, { searchable: false, showStageTitle: false }), fingerprint: 'fp-review' },
         },
       });
+    });
+
+    it('uses independent page sizes on initial load, page changes and search, defaulting legacy stages to 10', async () => {
+      const snapshot = await recordService.getDashboardSettings();
+      snapshot.targets.draft.settings.rowsPerPage = 25;
+      const component = create();
+      await init(component);
+      expect(recordService.getRecords.calls.argsFor(0)[9]).toBe(25);
+      expect(recordService.getRecords.calls.argsFor(1)[9]).toBe(10);
+      expect(component.getRowsPerPage('draft')).toBe(25);
+      expect(component.getRowsPerPage('review')).toBe(10);
+      await component.pageChanged({ page: 2, itemsPerPage: 25 }, 'draft');
+      expect(recordService.getRecords.calls.mostRecent().args[2]).toBe(2);
+      expect(recordService.getRecords.calls.mostRecent().args[9]).toBe(25);
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args[2]).toBe(1);
+      expect(recordService.getRecords.calls.mostRecent().args[9]).toBe(25);
+      component.records.draft = { totalItems: 60, currentPage: 2, items: Array(25) };
+      expect(component.partyPageStart('draft')).toBe(26);
+      expect(component.partyPageEnd('draft')).toBe(50);
+    });
+
+    it('binds each real paginator to its target page size', async () => {
+      const snapshot = await recordService.getDashboardSettings();
+      snapshot.targets.draft.settings.rowsPerPage = 25;
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const component = fixture.componentInstance;
+      component.recordType = 'rdmp';
+      component.dashboardTypeSelected = 'standard';
+      (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy().and.resolveTo({});
+      recordService.getRecords.and.resolveTo({ ...records, totalItems: 60 });
+      fixture.detectChanges();
+      await component.waitForInit();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const pages = fixture.nativeElement.querySelectorAll('pagination');
+      expect(pages[0].querySelectorAll('.pagination-page').length).toBe(3);
+      expect(pages[1].querySelectorAll('.pagination-page').length).toBe(6);
+      fixture.destroy();
+    });
+
+    it('submits admin party name and email searches through the existing record query', async () => {
+      const component = create();
+      component.adminParties = true;
+      recordService.getWorkflowSteps.and.resolveTo([{ name: 'draft', config: { workflow: { stage: 'draft', stageLabel: 'Draft' }, displayIndex: 1 } }]);
+      recordService.getDashboardSettings.and.resolveTo({
+        revision: 7,
+        targets: { draft: { settings: settings('Party', { formatRules: { queryFilters: { rdmp: [{ filterType: 'text', filterFields: [{ name: 'Title', path: 'metadata.title' }] }] } } }), fingerprint: 'fp-party' } },
+      });
+      await init(component);
+      expect(component.getFilterFieldPath('draft')).toBe('metadata.fullName,metadata.email');
+      expect(component.getTextFilters('draft').map(field => field.path)).toContain('metadata.title');
+      component.filterSearchString['draft'] = 'zoe';
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.fullName,metadata.email', 'zoe', 'any']);
+      component.selectAdminFilter('draft', 'metadata.email');
+      component.filterSearchString['draft'] = 'zoe@example.edu';
+      await component.filterChanged('draft');
+      expect(recordService.getRecords.calls.mostRecent().args.slice(5, 8)).toEqual(['metadata.email', 'zoe@example.edu', '']);
+      await component.resetFilterAndSearch('draft', { preventDefault() {} });
+      expect(component.getFilterFieldPath('draft')).toBe('metadata.fullName,metadata.email');
     });
 
     it('retains its stage snapshot and resets the actual paginator after a failed page then retries', async () => {
@@ -328,7 +408,7 @@ describe('DashboardComponent', () => {
           settings: settings('Title', {
             groupRowConfig: [{ title: 'Group', variable: 'g', template: 'group' }],
             formatRules: { groupBy: 'groupedByRecordType', sortGroupBy: [{ rowLevel: 0, compareFieldValue: 'rdmp', compareField: '', relatedTo: '' }] },
-          }, { searchable: false }),
+          }, { searchable: false, rowsPerPage: 50 }),
           fingerprint: 'v',
         },
       },
@@ -337,6 +417,7 @@ describe('DashboardComponent', () => {
     await init(component);
     expect(recordService.getDashboardSettings).toHaveBeenCalledWith('view', 'consolidated');
     expect(templates.loadDashboardTargetTemplates).toHaveBeenCalledWith('default', 'rdmp', { kind: 'view', view: 'consolidated', step: 'main' }, 'v');
+    expect(recordService.getRecords.calls.allArgs().every((args: any[]) => args[9] === 50)).toBeTrue();
     // One record row plus one group row.
     expect(component.records['main'].items.length).toBe(2);
     expect(component.records['main'].items[1]['g']).toContain('default|view|consolidated|main|v|groupRowConfig|0|g');

@@ -28,7 +28,8 @@ export interface RoutesConfig {
 
 export const routes: RoutesConfig = {
   // CSRF Token
-  'GET /csrfToken': { action: 'security/grant-csrf-token' },
+  // Sails only initializes route-scoped CSRF on methodless token routes.
+  '/csrfToken': { action: 'security/grant-csrf-token', csrf: true },
 
   // Home routes (demo hook overrides to /default/rdmp/home)
   '/:branding/:portal/home': {
@@ -255,7 +256,6 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/app/branding/favicon': { controller: 'BrandingAppController', action: 'favicon' },
 
   // Admin user management routes
-  'get /:branding/:portal/admin/users/get': 'AdminController.getUsers',
   'post /:branding/:portal/admin/users/update': 'AdminController.updateUserDetails',
   'post /:branding/:portal/admin/users/genKey': 'AdminController.generateUserKey',
   'post /:branding/:portal/admin/users/revokeKey': 'AdminController.revokeUserKey',
@@ -266,8 +266,6 @@ export const routes: RoutesConfig = {
   'post /:branding/:portal/admin/users/link': 'AdminController.linkAccounts',
   'post /:branding/:portal/admin/users/:id/disable': 'AdminController.disableUser',
   'post /:branding/:portal/admin/users/:id/enable': 'AdminController.enableUser',
-  'get /:branding/:portal/admin/roles/get': 'AdminController.getBrandRoles',
-  'post /:branding/:portal/admin/roles/user': 'AdminController.updateUserRoles',
 
   // Record routes
   'get /:branding/:portal/record/default/:name': 'RecordController.getMetaDefault',
@@ -329,10 +327,9 @@ export const routes: RoutesConfig = {
   'put /:branding/:portal/recordmeta/:oid': 'RecordController.update',
   'post /:branding/:portal/record/workflow/step/:targetStep/:oid': 'RecordController.stepTo',
   'get /:branding/:portal/dashboard/consolidated': 'RecordController.redirectLegacyConsolidatedDashboard',
+  'get /:branding/:portal/admin/parties': 'RecordController.renderParties',
   'get /:branding/:portal/dashboard/:recordType': 'RecordController.render',
   'get /:branding/:portal/dashboard-view/:dashboardView': 'RecordController.renderDashboardView',
-  'get /:branding/:portal/listRecords': 'RecordController.getRecordList',
-  'get /:branding/:portal/listDeletedRecords': 'RecordController.getDeletedRecordList',
 
   // Vocab routes
   'get /:branding/:portal/vocab/:vocabIdOrSlug': {
@@ -385,9 +382,6 @@ export const routes: RoutesConfig = {
   // Report routes
   'get /:branding/:portal/admin/reports': 'ReportsController.render',
   'get /:branding/:portal/admin/report/:name': 'ReportController.render',
-  'get /:branding/:portal/admin/getReport': 'ReportController.get',
-  'get /:branding/:portal/admin/getReportResults': 'ReportController.getResults',
-  'get /:branding/:portal/admin/downloadReportCSV': 'ReportController.downloadCSV',
   'get /:branding/:portal/admin/report-config': 'ReportController.listConfigs',
   'post /:branding/:portal/admin/report-config/preview': 'ReportController.previewConfig',
   'get /:branding/:portal/admin/report-config/:name': 'ReportController.getConfig',
@@ -402,7 +396,12 @@ export const routes: RoutesConfig = {
   'get /:branding/:portal/admin/api-docs': {
     controller: 'RenderViewController',
     action: 'render',
-    locals: { view: 'admin/api-docs', layout: false },
+    locals: { view: 'admin/api-docs' },
+  },
+  'get /:branding/:portal/admin/api-docs/reference': {
+    controller: 'RenderViewController',
+    action: 'render',
+    locals: { view: 'admin/api-docs-reference', layout: false },
   },
   'get /:branding/:portal/admin/api-docs/openapi.json': 'BrandingController.renderSwaggerJSON',
 

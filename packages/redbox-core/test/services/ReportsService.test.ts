@@ -5,6 +5,8 @@ import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { DateTime } from 'luxon';
 import { Readable } from 'node:stream';
 import csvParser = require('csv-parser');
@@ -129,6 +131,40 @@ describe('ReportsService', function () {
 
       expect(createStub.called).to.be.false;
     });
+
+    it('repairs an unchanged stock RDMP report through bootstrap, guarded against concurrent edits', async function () {
+      const definition = JSON.parse(readFileSync(resolve(__dirname, '../../../../bootstrap-data/reports/rdmpRecords.json'), 'utf8'));
+      stubFileOps({ readdir: sinon.stub().resolves([{ name: 'rdmpRecords.json', isFile: () => true }]),
+        readFile: sinon.stub().resolves(JSON.stringify(definition)) });
+      const existing = { ...definition, name: 'rdmpRecords', key: 'brand-1_rdmpRecords', updatedAt: new Date('2026-01-01'),
+        columns: definition.columns.map(column => column.property === 'lastSaveDate' ? { ...column, property: 'dateModified' } : column) };
+      mockReport.findOne.resolves(existing);
+      await ReportsService.bootstrapData({ id: 'brand-1' });
+      sinon.assert.calledOnceWithExactly(mockReport.updateOne, { key: existing.key, updatedAt: existing.updatedAt });
+      sinon.assert.calledOnceWithExactly(mockReport.updateOne.firstCall.returnValue.set, { columns: definition.columns });
+      expect(existing.columns.find(column => column.label === 'Date Modified').property).to.equal('dateModified');
+      mockReport.updateOne.resetHistory();
+      mockReport.findOne.resolves({ ...existing, columns: definition.columns });
+      await ReportsService.bootstrapData({ id: 'brand-1' });
+      sinon.assert.notCalled(mockReport.updateOne);
+    });
+
+    for (const customisation of ['title', 'column', 'filter', 'query']) {
+      it(`preserves a customized stock RDMP report (${customisation})`, async function () {
+        const definition = JSON.parse(readFileSync(resolve(__dirname, '../../../../bootstrap-data/reports/rdmpRecords.json'), 'utf8'));
+        stubFileOps({ readdir: sinon.stub().resolves([{ name: 'rdmpRecords.json', isFile: () => true }]),
+          readFile: sinon.stub().resolves(JSON.stringify(definition)) });
+        const existing = { ...definition, name: 'rdmpRecords', key: 'brand-1_rdmpRecords', updatedAt: new Date(),
+          columns: definition.columns.map(column => column.property === 'lastSaveDate' ? { ...column, property: 'dateModified' } : column) };
+        if (customisation === 'title') existing.title = 'Custom report';
+        if (customisation === 'column') existing.columns[0].label = 'Custom column';
+        if (customisation === 'filter') existing.filter = [];
+        if (customisation === 'query') existing.databaseQuery = { queryName: 'customQuery' };
+        mockReport.findOne.resolves(existing);
+        await ReportsService.bootstrapData({ id: 'brand-1' });
+        sinon.assert.notCalled(mockReport.updateOne);
+      });
+    }
 
     it('should be a no-op when the bootstrap data directory is missing', async function () {
       const defBrand = { id: 'brand-1' };

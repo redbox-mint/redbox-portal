@@ -23,7 +23,7 @@ export class I18NextPipe implements PipeTransform {
 
     const translationKey = String(key);
     if (this.translationService.isInitializing()) {
-      return translationKey;
+      return typeof options?.['defaultValue'] === 'string' ? options['defaultValue'] : translationKey;
     }
 
     const translated = options === undefined

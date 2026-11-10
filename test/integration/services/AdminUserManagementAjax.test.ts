@@ -83,6 +83,25 @@ describe("Admin user management AJAX routes", function () {
     await User.destroy({ id: [primaryUserId, secondaryUserId] });
   });
 
+  it("keeps legacy arrays and paginates filtered memberships without exposing credentials", async function () {
+    const legacy = await agent.get("/default/rdmp/admin/users/get").set("X-Source", "jsclient").expect(200);
+    expect(legacy.body).to.be.an("array");
+    const first = await agent.get("/default/rdmp/admin/users/get").set("X-Source", "jsclient")
+      .query({ page: 1, pageSize: 1, role: "Researcher", query: "AJAX", sort: "username", order: "asc", includeDisabled: "true" }).expect(200);
+    const second = await agent.get("/default/rdmp/admin/users/get").set("X-Source", "jsclient")
+      .query({ page: 2, pageSize: 1, role: "Researcher", query: "AJAX", sort: "username", order: "asc", includeDisabled: "true" }).expect(200);
+    expect(first.body.summary.numFound).to.equal(2);
+    expect(first.body.records).to.have.length(1);
+    expect(second.body.records).to.have.length(1);
+    expect(first.body.records[0].id).not.to.equal(second.body.records[0].id);
+    for (const user of [...first.body.records, ...second.body.records]) expect(user).not.to.have.property("password");
+    expect(first.body.roleCounts.Researcher.active).to.be.at.least(2);
+    await agent.get("/default/rdmp/admin/users/get").set("X-Source", "jsclient").query({ pageSize: 101 }).expect(400);
+    await supertest((sails as any).hooks.http.app).get("/default/rdmp/admin/users/get").query({ page: 1 }).expect(res => {
+      expect([302, 401, 403]).to.include(res.status);
+    });
+  });
+
   it("supports candidate search, linking, disable/enable, and audit retrieval", async function () {
     const candidateResponse = await agent
       .get("/default/rdmp/admin/users/link/candidates")

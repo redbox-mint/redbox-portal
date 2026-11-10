@@ -5,6 +5,9 @@ import path from 'path';
 import { z } from 'zod';
 import {
   ApiRouteDefinition,
+  cancelExportJobRoute,
+  bulkDeletedRecordsRoute,
+  deletedRecordSessionListRoute,
   buildApiBlueprint,
   buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
@@ -170,6 +173,20 @@ function responseStatuses(route: { responses?: Record<number, unknown> }): numbe
 
 describe('API routes contract layer', function () {
   this.timeout(10_000);
+  it('registers cancellation as an Admin-scoped CSRF-protected session contract', async function () {
+    expect(cancelExportJobRoute.csrf).to.equal(true);
+    expect(cancelExportJobRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(buildCoreApiRouteConfig()['post /:branding/:portal/export/jobs/:id/cancel']).to.deep.equal({
+      controller: 'ExportController', action: 'cancelJob', csrf: true,
+    });
+    expect(cancelExportJobRoute.request?.params?.safeParse({ id: 'not-a-uuid' }).success).to.equal(false);
+    const document = buildCoreApiOpenApiDocument();
+    const operation = document.paths['/{branding}/{portal}/export/jobs/{id}/cancel'].post;
+    expect(operation).to.have.property('responses');
+    expect(JSON.stringify(operation)).to.include('cancelled');
+    await SwaggerParser.validate(document as never);
+  });
+
   it('routes datastream filenames with extensions to the protected download action', function () {
     const routes = buildSailsRouteConfig([getDataStreamRoute]);
     expect(routes['get /:branding/:portal/api/records/datastreams/:oid/:datastreamId']).to.include({
@@ -739,6 +756,13 @@ describe('API routes contract layer', function () {
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
       expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
     }
+  });
+
+  it('should retain Companion attachment authorization when record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    expect(recordPolicies.doAttachment).to.include('companionAttachmentUploadAuth');
+    expect(recordPolicies.doAttachment.indexOf('companionAttachmentUploadAuth')).to.be.lessThan(recordPolicies.doAttachment.indexOf('checkAuth'));
+    expect(recordPolicies.bulkDeletedRecords).to.include('validateApiContractRequest');
   });
 
   it('should build and merge contract validation policies for hook API routes', function () {
@@ -1552,6 +1576,11 @@ describe('API routes contract layer', function () {
     expect(asOpenApiSchema(legacyVariant?.items).properties).to.have.property('harvestId');
     expect(trackedVariant?.properties).to.have.property('run');
 
+    const statisticsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/summary']?.get);
+    expect((statisticsRoute as Record<string, unknown>)['x-redbox-roles']).to.deep.equal(['Admin']);
+    const statisticsSchema = asOpenApiSchema(statisticsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(statisticsSchema.properties).to.have.keys('runsLast7Days', 'failedLast7Days', 'runningNow', 'lastSuccessfulRun');
+
     const harvestRunsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs']?.get);
     const harvestRunsSchema = asOpenApiSchema(
       harvestRunsRoute.responses?.['200']?.content?.['application/json']?.schema
@@ -1850,6 +1879,16 @@ describe('API routes contract layer', function () {
         meta: { outcome: 'not-saved' },
       }).success
     ).to.equal(false);
+  });
+
+  it('keeps deleted-record bulk actions on session Admin/CSRF contracts with bounded item input', () => {
+    expect(bulkDeletedRecordsRoute.csrf).to.equal(true);
+    expect(bulkDeletedRecordsRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(deletedRecordSessionListRoute.csrf).to.equal(true);
+    const request: any = { params: {}, query: {}, headers: { 'content-type': 'application/json' }, body: { action: 'restore', items: [] } };
+    expect(validateApiRouteRequest(request, bulkDeletedRecordsRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: ['7', '30'] } }, deletedRecordSessionListRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: '7', deletedBy: 'alice', start: '0', rows: '10' } }, deletedRecordSessionListRoute).valid).to.equal(true);
   });
 
   it('should document vocabulary creation as a 201 response', function () {

@@ -40,6 +40,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
     await Promise.all([this.loadQueries(), this.loadCollections()]);
   }
 
@@ -64,6 +65,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return this.queries.length;
   }
 
+  get presentCollections(): string[] {
+    return [...new Set(this.queries.map(query => query.collectionName).filter(Boolean))].sort();
+  }
+
   get uniqueCollections(): number {
     const set = new Set<string>();
     for (const q of this.queries) {
@@ -86,6 +91,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return this.pendingDeleteName ?? '';
   }
 
+  get pendingDeleteConsumers() {
+    return this.queries.find(query => query.name === this.pendingDeleteName)?.usedBy ?? [];
+  }
+
   async loadQueries(): Promise<void> {
     this.error = '';
     try {
@@ -98,20 +107,18 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   onListQueryChanged(query: NamedQueryListQueryState): void {
-    this.listQuery = { searchTerm: String(query.searchTerm ?? '') };
+    this.listQuery = { searchTerm: String(query.searchTerm ?? ''), collection: query.collection || '' };
     this.applyFilter();
   }
 
   private applyFilter(): void {
     const term = this.listQuery.searchTerm.trim().toLowerCase();
-    if (!term) {
-      this.filteredQueries = [...this.queries];
-      return;
-    }
+
     this.filteredQueries = this.queries.filter(q => {
       const name = (q.name || '').toLowerCase();
       const collection = (q.collectionName || '').toLowerCase();
-      return name.includes(term) || collection.includes(term);
+      return (!this.listQuery.collection || q.collectionName === this.listQuery.collection) &&
+        (name.includes(term) || collection.includes(term));
     });
   }
 
@@ -195,6 +202,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   async confirmDelete(): Promise<void> {
+    if (this.pendingDeleteConsumers.length) return;
     if (!this.pendingDeleteName) {
       this.closeDeleteModal();
       return;
@@ -291,7 +299,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   private rememberDeleteModalTrigger(): void {
     const el = document.activeElement;
-    this.deleteModalTrigger = el instanceof HTMLElement ? el : null;
+    this.deleteModalTrigger = el instanceof HTMLElement ? el.closest('details')?.querySelector('summary') ?? el : null;
   }
 
   private restoreEditModalTrigger(): void {
@@ -313,7 +321,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   private asErrorMessage(err: unknown): string {
     if (err instanceof Error) return err.message;
     if (typeof err === 'object' && err !== null) {
-      const maybe = err as { message?: string; error?: { message?: string } };
+      const maybe = err as { message?: string; error?: { message?: string; errors?: { detail?: string }[] } };
+      if (maybe.error?.errors?.[0]?.detail) return maybe.error.errors[0].detail;
       if (typeof maybe.message === 'string' && maybe.message) return maybe.message;
       if (maybe.error && typeof maybe.error.message === 'string') return maybe.error.message;
     }

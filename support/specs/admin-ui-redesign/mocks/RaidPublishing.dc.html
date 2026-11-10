@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RAiD publishing</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="raid" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Integrations</span><span>/</span><span>RAiD publishing</span></nav>
+      <header class="ph">
+        <div><h1>RAiD publishing</h1><p>Mint and update Research Activity Identifiers (RAiDs) for projects through your RAiD service point.</p></div>
+        <div class="ph-actions"><label class="switch on" style="align-self: center; margin-right: 8px"><i></i>Enabled</label><button class="btn btn-secondary" type="button">Test connection</button><button class="btn btn-secondary" type="button">View JSON</button></div>
+      </header>
+
+      <div class="split">
+        <nav class="split-nav" aria-label="Settings sections" style="position: sticky; top: 16px">
+          <div class="grp">Setup</div>
+          <a href="#" class="on"><span>Connection</span></a>
+          <a href="#"><span>OAuth</span></a>
+          <div class="grp">Reliability</div>
+          <a href="#"><span>Retries</span></a>
+          <a href="#"><span>Durable retry job</span></a>
+          <div class="grp">Mapping</div>
+          <a href="#"><span>Record storage</span></a>
+          <a href="#"><span>Types &amp; field mapping</span></a>
+        </nav>
+        <div class="split-main">
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>Connection</h3><p>RAiD API endpoint and the token ReDBox uses.</p></div></div>
+            <div class="fsec-b" style="display: flex; flex-direction: column; gap: 16px">
+              <div class="fgrid">
+                <div class="field"><label for="rp-b">API base URL <span style="color: #b02a37">*</span></label><input id="rp-b" class="inp mono" placeholder="https://api.raid.example"></div>
+                <div class="field"><label for="rp-to">Request timeout (ms)</label><input id="rp-to" class="inp" type="number" value="30000"></div>
+              </div>
+              <div class="field"><label for="rp-k">API token</label><input id="rp-k" class="inp" type="password" placeholder="Not set"><span class="hint">Stored as a secret. Leave blank to keep the current value, or use OAuth below.</span></div>
+            </div>
+          </div>
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>OAuth</h3><p>Used to fetch tokens when no static token is set.</p></div></div>
+            <div class="fsec-b"><div class="fgrid">
+              <div class="field"><label for="rp-ou">Token URL</label><input id="rp-ou" class="inp mono" placeholder="https://auth.raid.example/token"></div>
+              <div class="field"><label for="rp-oc">Client ID</label><input id="rp-oc" class="inp mono"></div>
+              <div class="field"><label for="rp-on">Username</label><input id="rp-on" class="inp"></div>
+              <div class="field"><label for="rp-op">Password</label><input id="rp-op" class="inp" type="password" placeholder="Not set"><span class="hint">Stored as a secret.</span></div>
+            </div></div>
+          </div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Retries</h3><p>3 attempts · 500 ms–10 s backoff with jitter · retry on 408, 425, 429, 5xx</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Durable retry job</h3><p>Background job that re-attempts failed mints · [schedule] · [max attempts]</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Record storage</h3><p>RAiD field name, save request body in record meta, ORCID base URL</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Types &amp; field mapping</h3><p>Which record fields become the RAiD title, dates, contributors and organisations</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="savebar"><span class="state" style="color: #5f6670"><span class="dot" style="color: #198754"></span>No unsaved changes</span><div class="row"><button class="btn btn-ghost" type="button" disabled>Discard</button><button class="btn btn-primary" type="button" disabled>Save changes</button></div></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top: 20px">Since round 1 the real form renders its fields (they had been dropped because of an empty field order), but it’s still a raw schema form and isn’t in the sidebar. This mock applies the long-config layout. Sections come from the RAiD publishing defaults: connection, OAuth, retry, durable retry, record storage, types and mapping. Collapsed summaries show default values where the code defines them; [placeholders] mark values that depend on environment config. If no values are saved, the page shows the “Integration not set up” state from the pattern kit.</div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

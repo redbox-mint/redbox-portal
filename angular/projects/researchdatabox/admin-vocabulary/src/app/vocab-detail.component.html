@@ -1,10 +1,11 @@
 <div
-  class="container-fluid px-0"
+  class="rb-vocabulary-detail"
   [attr.aria-hidden]="isRemoveEntryModalOpen ? 'true' : null"
   [attr.inert]="isRemoveEntryModalOpen ? '' : null"
 >
-  <div class="form-row">
-    <div class="form-group col-md-6">
+  <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h3>{{ 'admin-vocabulary-details-heading' | i18next }}</h3></div><div class="rb-admin-form-section-body">
+  <div class="rb-admin-form-grid">
+    <div class="rb-admin-field">
       <label for="vocab-name">{{ 'admin-vocabulary-name' | i18next }}</label>
       <input
         id="vocab-name"
@@ -13,7 +14,7 @@
         [attr.placeholder]="'admin-vocabulary-name-placeholder' | i18next"
       />
     </div>
-    <div class="form-group col-md-6">
+    <div class="rb-admin-field">
       <label for="vocab-slug">{{ 'admin-vocabulary-slug' | i18next }}</label>
       <input
         id="vocab-slug"
@@ -24,24 +25,24 @@
     </div>
   </div>
 
-  <div class="form-row">
-    <div class="form-group col-md-6">
-      <label for="vocab-type">{{ 'admin-vocabulary-type' | i18next }}</label>
-      <select id="vocab-type" class="form-control" [(ngModel)]="draft.type">
+  <div class="rb-admin-form-grid">
+    <div class="rb-admin-field">
+      <label for="vocab-type">{{ 'admin-vocabulary-structure' | i18next }}</label>
+      <select id="vocab-type" class="form-select" [(ngModel)]="draft.type">
         <option value="flat">{{ 'admin-vocabulary-type-flat-list' | i18next }}</option>
         <option value="tree">{{ 'admin-vocabulary-type-tree' | i18next }}</option>
       </select>
     </div>
-    <div class="form-group col-md-6">
+    <div class="rb-admin-field">
       <label for="vocab-source">{{ 'admin-vocabulary-source' | i18next }}</label>
-      <select id="vocab-source" class="form-control" [(ngModel)]="draft.source">
+      <select id="vocab-source" class="form-select" [(ngModel)]="draft.source">
         <option value="local">{{ 'admin-vocabulary-source-local' | i18next }}</option>
         <option value="rva">{{ 'admin-vocabulary-source-rva' | i18next }}</option>
       </select>
     </div>
   </div>
 
-  <div class="form-group">
+  <div class="rb-admin-field mb-3">
     <label for="vocab-description">{{ 'admin-vocabulary-description' | i18next }}</label>
     <textarea
       id="vocab-description"
@@ -52,9 +53,10 @@
     ></textarea>
   </div>
 
+  </div></section>
   @if (draft.type === 'tree' && hasEntries) {
     <div class="mb-3">
-      <button class="btn btn-sm btn-outline-info" type="button" (click)="toggleTreePreview()">
+      <button class="btn btn-sm btn-outline-secondary" type="button" (click)="toggleTreePreview()">
         {{
           isTreePreviewVisible
             ? ('admin-vocabulary-hide-tree-preview' | i18next)
@@ -85,7 +87,7 @@
     </div>
   }
 
-  <hr />
+  <section class="rb-admin-form-section"><div class="rb-admin-form-section-body">
 
   <div class="d-flex justify-content-between align-items-center mb-2">
     <h6 class="mb-0">{{ 'admin-vocabulary-entries' | i18next }}</h6>
@@ -96,15 +98,15 @@
 
   @if (hasEntries) {
     <div class="table-responsive">
-      <table class="table table-sm table-bordered mb-0">
+      <table class="table table-hover mb-0">
         <thead class="thead-light">
           <tr>
-            <th style="width: 50px">#</th>
+            <th class="vocab-entry-index">#</th>
             <th>{{ 'admin-vocabulary-label' | i18next }}</th>
             <th>{{ 'admin-vocabulary-value' | i18next }}</th>
             <th>{{ 'admin-vocabulary-historical' | i18next }}</th>
             <th>{{ 'admin-vocabulary-parent' | i18next }}</th>
-            <th style="width: 220px">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+            <th class="vocab-entry-actions">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
@@ -113,6 +115,7 @@
             <td>
               <input
                 class="form-control form-control-sm"
+                [attr.aria-label]="'admin-vocabulary-label' | i18next"
                 [(ngModel)]="entry.label"
                 (ngModelChange)="onEntryEdited()"
                 [attr.placeholder]="'admin-vocabulary-entry-label-placeholder' | i18next"
@@ -121,6 +124,7 @@
             <td>
               <input
                 class="form-control form-control-sm"
+                [attr.aria-label]="'admin-vocabulary-value' | i18next"
                 [(ngModel)]="entry.value"
                 (ngModelChange)="onEntryEdited()"
                 [attr.placeholder]="'admin-vocabulary-entry-value-placeholder' | i18next"
@@ -140,13 +144,14 @@
                   <div class="d-flex">
                     <select
                       class="form-control form-control-sm mr-2"
+                      [attr.aria-label]="'admin-vocabulary-parent' | i18next"
                       [ngModel]="entry.parent || ''"
                       (ngModelChange)="onParentChanged(entry, $event)"
                     >
                       <option value="">{{ 'admin-vocabulary-parent-root' | i18next }}</option>
-                      <option *ngFor="let option of getParentOptions(entry)" [value]="option.id">
-                        {{ option.label }}
-                      </option>
+                      @for (option of getParentOptions(entry); track option.id) {
+                        <option [value]="option.id">{{ option.label }}</option>
+                      }
                     </select>
                     <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closeParentEditor()">
                       {{ 'admin-vocabulary-done' | i18next }}
@@ -201,6 +206,7 @@
   } @else {
     <p class="text-muted mb-0">{{ 'admin-vocabulary-empty-entries' | i18next }}</p>
   }
+  </div></section>
 </div>
 
 @if (isRemoveEntryModalOpen) {
@@ -214,7 +220,7 @@
     (keydown.escape)="cancelRemoveEntry()"
   >
     <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-      <div class="modal-content">
+      <div class="modal-content rb-admin">
         <div class="modal-header">
           <span class="modal-title h4-header" id="removeEntryModalTitle">{{
             'admin-vocabulary-confirm-remove-entry-title' | i18next
@@ -238,7 +244,7 @@
           <button type="button" class="btn btn-secondary" (click)="cancelRemoveEntry()" cdkFocusInitial>
             {{ 'admin-vocabulary-cancel' | i18next }}
           </button>
-          <button type="button" class="btn btn-danger" (click)="confirmRemoveEntry()">
+          <button type="button" class="btn rb-admin-danger-confirm" (click)="confirmRemoveEntry()">
             {{ 'admin-vocabulary-remove' | i18next }}
           </button>
         </div>
@@ -252,7 +258,7 @@
   <li *ngFor="let node of nodes; trackBy: trackByPreviewNode">
     <div class="tree-preview-node">
       @if (hasPreviewChildren(node)) {
-        <button class="btn btn-sm btn-link tree-preview-toggle" type="button" (click)="togglePreviewNode(node)">
+        <button class="btn btn-sm btn-link tree-preview-toggle" type="button" (click)="togglePreviewNode(node)" [attr.aria-expanded]="!isPreviewNodeCollapsed(node)" [attr.aria-label]="node.display">
           {{ isPreviewNodeCollapsed(node) ? '+' : '−' }}
         </button>
       } @else {

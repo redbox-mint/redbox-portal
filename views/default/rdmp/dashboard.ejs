@@ -3,12 +3,22 @@
 <link href='https://fonts.googleapis.com/css?family=Open+Sans:400italic,600' rel='stylesheet' type='text/css'>
 <% } %>
 <% let appName='dashboard' ; %>
-<% if (typeof showAdminSideBar !== 'undefined' && showAdminSideBar) { %>
-<div class="row admin-layout">
-  <div class="col-md-3 col-lg-2">
-    <%- include('../default/admin/layout/sidebar.ejs') %>
-  </div>
-  <div class="col-md-9 col-lg-10 admin-main-content">
+<% if (typeof adminParties !== 'undefined' && adminParties) { %>
+<%- include('../default/admin/layout/start.ejs') %>
+<%- include('../default/admin/layout/page-header.ejs', {
+  breadcrumbs: [{ labelKey: 'menu-admin', href: BrandingService.getBrandAndPortalPath(req) + '/admin' }, { labelKey: 'admin-nav-lookups' }, { labelKey: 'admin-nav-party' }],
+  titleKey: req.query.import === 'csv' ? 'admin-parties-import-title' : 'admin-nav-party', descriptionKey: 'admin-parties-description',
+  actions: req.query.import === 'csv' ? [{ labelKey: 'admin-parties-back', href: BrandingService.getBrandAndPortalPath(req) + '/admin/parties' }] : [
+    { labelKey: 'admin-parties-import-title', href: BrandingService.getBrandAndPortalPath(req) + '/admin/parties?import=csv' },
+    { labelKey: 'admin-parties-add', href: BrandingService.getBrandAndPortalPath(req) + '/record/party/edit?returnTo=parties', primary: true }
+  ]
+}) %>
+<dashboard recordType="party" packageType="party" dashboardType="standard" adminParties="true" adminPartyImport="<%= req.query.import === 'csv' %>" <% if (typeof contentSecurityPolicyNonce !== 'undefined' && contentSecurityPolicyNonce) { %>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+  <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
+</dashboard>
+<%- include('../default/admin/layout/end.ejs') %>
+<% } else if (typeof showAdminSideBar !== 'undefined' && showAdminSideBar) { %>
+<%- include('../default/admin/layout/start.ejs') %>
     <div class="default-page">
       <div class="header">
         <h1 id="main-title" class="container">
@@ -29,8 +39,7 @@
         </dashboard>
       </div>
     </div>
-  </div>
-</div>
+<%- include('../default/admin/layout/end.ejs') %>
 <% } else { %>
   <div class="default-page">
     <div class="header">

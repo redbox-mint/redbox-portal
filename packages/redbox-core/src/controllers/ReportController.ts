@@ -49,7 +49,7 @@ export namespace Controllers {
       this.updateChronicle(req, {reportName: name});
 
       const report = await ReportsService.get(brand, name) as unknown as ReportModel;
-      return this.sendResp(req, res, {data: ReportsService.getReportDto(report), headers: this.getNoCacheHeaders()});
+      return this.sendResp(req, res, {data: await ReportsService.getReportDto(report, brand), headers: this.getNoCacheHeaders()});
     }
 
     public getResults(req: Sails.Req, res: Sails.Res) {

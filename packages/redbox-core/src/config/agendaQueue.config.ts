@@ -225,6 +225,11 @@ export const agendaQueue: AgendaQueueConfig = {
                 intervalOrSchedule: '5 minutes'
             }
         },
+        'Figshare-Vocabulary-Schedules': {
+            fnName: 'figsharevocabularyservice.scheduledSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '5 minutes', opts: { skipImmediate: true } },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 30 * 60 * 1000 }
+        },
         'Figshare-SyncRecord': {
             fnName: 'figshareservice.syncRecordJob',
             options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
@@ -249,6 +254,12 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLimit: 1,
                 concurrency: 1
             }
+        },
+        'Branding-Images-Reconcile': {
+            fnName: 'brandinglogoservice.reconcileAssets',
+            backend: 'mongodb',
+            options: { lockLifetime: 10 * 60 * 1000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '1 day', opts: { skipImmediate: true } }
         },
         [BRANDING_TYPEFACE_RECONCILE_JOB_NAME]: {
             fnName: 'brandingtypefaceservice.reconcileAssets',

@@ -126,17 +126,20 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.sections[0].titleKey).toBe('new-title');
   });
 
-  it('toggles section expansion', () => {
+  it('keeps one section selected when selecting the same row again', () => {
     const { component } = setup({ header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' } });
     
     // Initially 0 is expanded by default in component
     expect(component.isSectionExpanded(0)).toBeTrue();
     
-    component.toggleSection(0);
+    component.selectParent(1);
     expect(component.isSectionExpanded(0)).toBeFalse();
+    expect(component.isSectionExpanded(1)).toBeTrue();
     
-    component.toggleSection(0);
+    component.selectParent(0);
+    component.selectParent(0);
     expect(component.isSectionExpanded(0)).toBeTrue();
+    expect(component.isSectionExpanded(1)).toBeFalse();
   });
 
   it('adds section items via the editor', () => {

@@ -1,26 +1,48 @@
-@if (!isReady) {
+@if (loadError) { <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button></div> }
+@if (!isReady && !loadError) {
   <div class="hr-loading hr-loading--page" role="status">
     <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
     <span>{{ 'harvest-runs-loading' | i18next }}</span>
   </div>
-} @else {
-  <div class="container-fluid py-3 harvest-runs-app">
+}
+@if (isReady) {
+  <div class="harvest-runs-app">
 
+<nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+  <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+  <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'harvest-runs-heading' | i18next }}</span></li>
+</ol></nav>
+<header class="rb-admin-page-header"><div><h1>{{ 'harvest-runs-heading' | i18next }}</h1><p>{{ 'admin-harvest-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="loadingRuns" (click)="refreshRuns()">{{ 'export-refresh' | i18next }}</button></div></header>
+    @if (statisticsError) { <div class="alert alert-danger" role="alert">{{ statisticsError }}</div> }
+    <div class="rb-admin-stats hr-global-stats" [attr.aria-busy]="loadingStatistics">
+      <div class="rb-admin-stat"><b>{{ loadingStatistics ? '—' : (statistics?.runsLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-runs' | i18next }}</span></div>
+      <div class="rb-admin-stat"><b>{{ loadingStatistics ? '—' : (statistics?.runningNow ?? '—') }}</b><span>{{ 'harvest-runs-stats-running' | i18next }}</span></div>
+      <div class="rb-admin-stat" [class.hr-global-stat--danger]="!loadingStatistics && (statistics?.failedLast7Days ?? 0) > 0"><b>{{ loadingStatistics ? '—' : (statistics?.failedLast7Days ?? '—') }}</b><span>{{ 'harvest-runs-stats-failed' | i18next }}</span></div>
+      <div class="rb-admin-stat hr-global-stat--success">
+        @if (!loadingStatistics && statistics?.lastSuccessfulRun; as last) {
+          <b><time [attr.datetime]="last.completedAt" [attr.title]="formatDate(last.completedAt)">{{ getLastSuccessRelativeTime() }}</time></b>
+          <span>{{ 'harvest-runs-stats-last-success' | i18next }}</span>
+          <small class="hr-global-stat__source">{{ last.sourceName }}</small>
+        } @else {
+          <b>—</b><span>{{ 'harvest-runs-stats-last-success' | i18next }}</span>
+        }
+      </div>
+    </div>
     <!-- Runs list -->
-    <section class="panel panel-default hr-panel hr-section">
-      <div class="panel-heading hr-panel__heading">
-        <strong>{{ 'harvest-runs-heading' | i18next }}</strong>
+    <section class="card hr-panel hr-section">
+      <div class="card-header">
+        <h2>{{ 'admin-harvest-runs' | i18next }}</h2>
         @if (!loadingRuns) {
           <small>{{ 'harvest-runs-count' | i18next: { count: listResponse.summary.numFound } }}</small>
         }
       </div>
-      <div class="panel-body">
+      <div>
         @if (listError) {
           <div class="alert alert-danger" role="alert">{{ listError }}</div>
         }
 
-        <form class="hr-filters" (ngSubmit)="applyFilters($event)">
-          <div class="hr-filter">
+        <form class="rb-admin-filter-bar harvest-runs-filters" (ngSubmit)="applyFilters($event)">
+          <div class="rb-admin-field">
             <label for="harvest-runs-status">{{ 'harvest-runs-filter-status' | i18next }}</label>
             <select id="harvest-runs-status" class="form-select" [(ngModel)]="filters.status" name="status">
               @for (option of statusOptions; track option.value) {
@@ -28,29 +50,32 @@
               }
             </select>
           </div>
-          <div class="hr-filter">
+          <div class="rb-admin-field">
             <label for="harvest-runs-record-type">{{ 'harvest-runs-filter-record-type' | i18next }}</label>
-            <input id="harvest-runs-record-type" type="text" class="form-control" [(ngModel)]="filters.recordType" name="recordType">
+            <select id="harvest-runs-record-type" class="form-select" [(ngModel)]="filters.recordType" name="recordType">
+              <option value="">{{ 'admin-any-record-type' | i18next }}</option>
+              @for (type of recordTypes; track type) { <option [value]="type">{{ type + '-title' | i18next }}</option> }
+            </select>
           </div>
-          <div class="hr-filter">
+          <div class="rb-admin-field">
             <label for="harvest-runs-source-name">{{ 'harvest-runs-filter-source' | i18next }}</label>
-            <input id="harvest-runs-source-name" type="text" class="form-control" [(ngModel)]="filters.sourceName" name="sourceName">
+            <input id="harvest-runs-source-name" type="text" class="form-control" [(ngModel)]="filters.sourceName" name="sourceName" [placeholder]="'admin-harvest-source-placeholder' | i18next">
           </div>
-          <div class="hr-filter">
+          <div class="rb-admin-field">
             <label for="harvest-runs-date-from">{{ 'harvest-runs-filter-date-from' | i18next }}</label>
-            <input id="harvest-runs-date-from" type="date" class="form-control" [(ngModel)]="filters.dateFrom" name="dateFrom">
+            <input id="harvest-runs-date-from" type="text" class="form-control" autocomplete="off" bsDatepicker [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="dateFrom" name="dateFrom">
           </div>
-          <div class="hr-filter">
+          <div class="rb-admin-field">
             <label for="harvest-runs-date-to">{{ 'harvest-runs-filter-date-to' | i18next }}</label>
-            <input id="harvest-runs-date-to" type="date" class="form-control" [(ngModel)]="filters.dateTo" name="dateTo">
+            <input id="harvest-runs-date-to" type="text" class="form-control" autocomplete="off" bsDatepicker [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="dateTo" name="dateTo">
           </div>
-          <div class="hr-filter-actions">
-            <button type="submit" class="btn btn-primary btn-sm" [disabled]="loadingRuns">
+          <div class="rb-admin-page-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="loadingRuns">
               <i class="fa fa-filter" aria-hidden="true"></i>
-              {{ 'harvest-runs-filter-apply' | i18next }}
+              {{ 'admin-report-apply' | i18next }}
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearFilters()" [disabled]="loadingRuns">
-              {{ 'harvest-runs-filter-clear' | i18next }}
+            <button type="button" class="btn rb-admin-ghost" (click)="clearFilters()" [disabled]="loadingRuns">
+              {{ 'admin-report-clear' | i18next }}
             </button>
           </div>
         </form>
@@ -60,17 +85,16 @@
             <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
             <span>{{ 'harvest-runs-loading' | i18next }}</span>
           </div>
-        } @else if (listResponse.records.length === 0) {
-          <p class="hr-empty text-muted">{{ 'harvest-runs-empty' | i18next }}</p>
         } @else {
-          <div class="hr-table-wrap">
-            <table class="hr-table hr-table--runs">
+          <div class="table-responsive">
+            <table class="table table-hover hr-table--runs">
               <thead>
                 <tr>
                   <th>{{ 'harvest-runs-col-started' | i18next }}</th>
-                  <th>{{ 'harvest-runs-col-status' | i18next }}</th>
                   <th>{{ 'harvest-runs-col-source' | i18next }}</th>
                   <th>{{ 'harvest-runs-col-record-type' | i18next }}</th>
+                  <th>{{ 'harvest-runs-col-status' | i18next }}</th>
+                  <th class="hr-num">{{ 'harvest-runs-col-created' | i18next }}</th><th class="hr-num">{{ 'harvest-runs-col-updated' | i18next }}</th>
                   <th class="hr-num">{{ 'harvest-runs-col-processed' | i18next }}</th>
                   <th class="hr-num">{{ 'harvest-runs-col-failed' | i18next }}</th>
                 </tr>
@@ -83,12 +107,13 @@
                       (click)="selectRun(run.id ?? '')"
                       (keydown.enter)="selectRun(run.id ?? '')">
                     <td class="text-nowrap">{{ formatDate(run.startedAt) || '—' }}</td>
-                    <td><span [class]="getStatusBadgeClass(run.status)">{{ getStatusLabel(run.status) }}</span></td>
                     <td>
                       <div>{{ run.sourceName }}</div>
                       <div class="hr-subtext" [title]="run.sourceRunId">{{ run.sourceRunId }}</div>
                     </td>
-                    <td><code>{{ run.recordType }}</code></td>
+                    <td>{{ run.recordType + '-title' | i18next }}</td>
+                    <td><span [class]="getStatusBadgeClass(run.status)">{{ getStatusLabel(run.status) }}</span></td>
+                    <td class="hr-num">{{ run.created }}</td><td class="hr-num">{{ run.updated }}</td>
                     <td class="hr-num">{{ run.totalProcessed }}</td>
                     <td class="hr-num" [class.hr-failed]="run.failed > 0">{{ run.failed }}</td>
                   </tr>
@@ -97,7 +122,11 @@
             </table>
           </div>
 
-          <div class="hr-pager">
+          @if (listResponse.records.length === 0 && !listError) {
+            <div class="rb-admin-empty"><i class="fa fa-2x fa-arrows-rotate" aria-hidden="true"></i><h3>{{ (hasFilters ? 'harvest-runs-empty' : 'admin-harvest-empty') | i18next }}</h3>
+              <p>{{ 'admin-harvest-empty-help' | i18next }}</p><a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/api-docs'">{{ 'admin-harvest-api' | i18next }}</a></div>
+          }
+          <div class="card-footer hr-pager" [hidden]="listResponse.summary.numFound === 0">
             <small class="text-muted">{{ getRangeLabel(listResponse, runPageSize) }}</small>
             @if (listResponse.summary.numFound > runPageSize) {
               <pagination
@@ -119,14 +148,14 @@
 
     <!-- Run detail -->
     @if (selectedRunId || loadingDetail || detailError) {
-      <section class="panel panel-default hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
-        <div class="panel-heading hr-panel__heading">
-          <strong>{{ 'harvest-runs-detail-summary' | i18next }}</strong>
+      <section class="card hr-panel hr-detail" [attr.aria-busy]="loadingDetail">
+        <div class="card-header">
+          <h2>{{ 'harvest-runs-detail-summary' | i18next }}</h2>
           @if (selectedRun) {
             <span [class]="getStatusBadgeClass(selectedRun.run.status)">{{ getStatusLabel(selectedRun.run.status) }}</span>
           }
         </div>
-        <div class="panel-body">
+        <div class="card-body">
           @if (detailError) {
             <div class="alert alert-danger" role="alert">{{ detailError }}</div>
           }
@@ -210,8 +239,8 @@
                 </div>
               }
 
-              <form class="hr-filters hr-filters--compact" (ngSubmit)="applyEventFilters($event)">
-                <div class="hr-filter">
+              <form class="rb-admin-filter-bar" (ngSubmit)="applyEventFilters($event)">
+                <div class="rb-admin-field">
                   <label for="harvest-events-outcome">{{ 'harvest-runs-col-outcome' | i18next }}</label>
                   <select id="harvest-events-outcome" class="form-select" [(ngModel)]="eventFilters.outcome" name="eventOutcome" [disabled]="loadingEvents">
                     @for (outcome of eventOutcomes; track outcome) {
@@ -223,12 +252,12 @@
                   <label for="harvest-events-id">{{ 'harvest-runs-filter-harvest-id' | i18next }}</label>
                   <input id="harvest-events-id" type="text" class="form-control" [(ngModel)]="eventFilters.harvestId" name="eventHarvestId" [disabled]="loadingEvents">
                 </div>
-                <div class="hr-filter-actions">
-                  <button type="submit" class="btn btn-primary btn-sm" [disabled]="loadingEvents">
+                <div class="rb-admin-page-actions">
+                  <button type="submit" class="btn btn-primary" [disabled]="loadingEvents">
                     <i class="fa fa-filter" aria-hidden="true"></i>
-                    {{ 'harvest-runs-filter-apply' | i18next }}
+                    {{ 'admin-report-apply' | i18next }}
                   </button>
-                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'harvest-runs-filter-clear' | i18next }}</button>
+                  <button type="button" class="btn rb-admin-ghost" (click)="clearEventFilters()" [disabled]="loadingEvents">{{ 'admin-report-clear' | i18next }}</button>
                 </div>
               </form>
 
@@ -240,8 +269,8 @@
               } @else if (eventResponse.records.length === 0) {
                 <p class="hr-empty text-muted">{{ 'harvest-runs-no-matching-events' | i18next }}</p>
               } @else {
-                <div class="hr-table-wrap">
-                  <table class="hr-table">
+                <div class="table-responsive">
+                  <table class="table table-hover">
                     <thead>
                       <tr>
                         <th>{{ 'harvest-runs-col-created-at' | i18next }}</th>
@@ -311,8 +340,8 @@
               } @else if (chunkResponse.records.length === 0) {
                 <p class="hr-empty text-muted">{{ 'harvest-runs-no-chunks' | i18next }}</p>
               } @else {
-                <div class="hr-table-wrap">
-                  <table class="hr-table">
+                <div class="table-responsive">
+                  <table class="table table-hover">
                     <thead>
                       <tr>
                         <th class="hr-num">{{ 'harvest-runs-col-chunk-index' | i18next }}</th>

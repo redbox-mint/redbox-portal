@@ -51,16 +51,16 @@ export class AuthorizedDomainsEmails extends AppConfig {
 
 export const AUTHORIZED_DOMAINS_EMAILS_SCHEMA = {
     type: 'object',
-    title: 'Authorized Domains and Emails',
+    title: 'admin-config-label-authorized-domains-and-emails',
     properties: {
         enabled: {
             type: 'boolean',
-            title: 'Enabled',
+            title: 'admin-config-label-enabled',
             default: false
         },
         domainsAaf: {
             type: 'array',
-            title: 'Authorized Domains for AAF',
+            title: 'admin-config-label-authorized-domains-for-aaf',
             items: {
                 type: 'string',
                 default: ''
@@ -69,7 +69,7 @@ export const AUTHORIZED_DOMAINS_EMAILS_SCHEMA = {
         },
         emailsAaf: {
             type: 'array',
-            title: 'Authorized Emails for AAF',
+            title: 'admin-config-label-authorized-emails-for-aaf',
             items: {
                 type: 'string',
                 default: ''
@@ -78,7 +78,7 @@ export const AUTHORIZED_DOMAINS_EMAILS_SCHEMA = {
         },
         domainsOidc: {
             type: 'array',
-            title: 'Authorized Domains for OIDC',
+            title: 'admin-config-label-authorized-domains-for-oidc',
             items: {
                 type: 'string',
                 default: ''
@@ -87,7 +87,7 @@ export const AUTHORIZED_DOMAINS_EMAILS_SCHEMA = {
         },
         emailsOidc: {
             type: 'array',
-            title: 'Authorized Emails for OIDC',
+            title: 'admin-config-label-authorized-emails-for-oidc',
             items: {
                 type: 'string',
                 default: ''

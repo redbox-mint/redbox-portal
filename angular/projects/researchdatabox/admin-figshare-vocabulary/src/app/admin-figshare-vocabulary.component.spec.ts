@@ -1,4 +1,4 @@
-import { LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminDateService, formatAdminDate, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { AdminFigshareVocabularyComponent } from './admin-figshare-vocabulary.component';
 import { FigshareVocabularyApiService } from './services/figshare-vocabulary-api.service';
@@ -10,6 +10,7 @@ describe('AdminFigshareVocabularyComponent', () => {
   beforeEach(() => {
     const injector = Injector.create({
       providers: [
+        { provide: AdminDateService, useValue: { format: formatAdminDate } },
         { provide: ChangeDetectorRef, useValue: jasmine.createSpyObj<ChangeDetectorRef>('ChangeDetectorRef', ['detectChanges']) },
         { provide: NgZone, useValue: jasmine.createSpyObj<NgZone>('NgZone', ['run']) },
         { provide: ApplicationRef, useValue: jasmine.createSpyObj<ApplicationRef>('ApplicationRef', ['tick']) }
@@ -30,12 +31,25 @@ describe('AdminFigshareVocabularyComponent', () => {
       'listCrosswalks',
       'listSyncRuns',
       'listLocalVocabularies',
-      'discoverTaxonomies'
+      'discoverTaxonomies',
+      'updateSource'
     ]);
     component = runInInjectionContext(
       injector,
       () => new AdminFigshareVocabularyComponent(logger, translations, api)
     );
+  });
+
+  it('edits a detached draft and submits revision-checked metadata and schedule', async () => {
+    const source: any = { id: 's1', displayName: 'Old', scope: 'public', archived: false, settingsRevision: 3, syncSchedule: 'manual' };
+    component.editSource(source);
+    component.sourceDraft.displayName = 'New'; component.sourceDraft.syncSchedule = 'weekly';
+    expect(source.displayName).toBe('Old');
+    api.updateSource.and.resolveTo({ ...source, displayName: 'New', settingsRevision: 4, syncSchedule: 'weekly' });
+    api.listSources.and.resolveTo({ records: [], total: 0 });
+    await component.saveSource();
+    expect(api.updateSource).toHaveBeenCalledWith('s1', { expectedRevision: 3, displayName: 'New', scope: 'public', archived: false, syncSchedule: 'weekly' });
+    expect(component.editingSource).toBeNull(); expect(component.sourceSaving).toBeFalse();
   });
 
   it('summarises sources, approved crosswalks, and historical warnings', () => {
@@ -93,6 +107,21 @@ describe('AdminFigshareVocabularyComponent', () => {
     expect(component.totalSources).toBe(3);
     expect(component.approvedCrosswalkCount).toBe(1);
     expect(component.syncWarningCount).toBe(2);
+  });
+
+  it('reads every source page so filtering does not change catalogue statistics', async () => {
+    const first = { id: 's1', scope: 'public', historicalCount: 2 } as any;
+    const second = { id: 's2', scope: 'account', historicalCount: 1 } as any;
+    api.listSources.and.returnValues(
+      Promise.resolve({ records: [first], total: 2 }),
+      Promise.resolve({ records: [second], total: 2 })
+    );
+    await component.showTab('sources');
+    expect(api.listSources).toHaveBeenCalledWith(undefined, { limit: 100, offset: 1 });
+    expect(component.sources).toEqual([first, second]);
+    await component.onScopeFilterChanged('public');
+    expect(component.totalSources).toBe(2);
+    expect(component.syncWarningCount).toBe(3);
   });
 
   it('starts an import after loading editable local vocabularies', async () => {
@@ -196,7 +225,7 @@ describe('AdminFigshareVocabularyComponent', () => {
       busyDuringCall = component.busySourceId;
       return { localVocabularyId: 'local-1', crosswalkId: 'crosswalk-1', entries: 12 };
     });
-    api.listCrosswalks.and.resolveTo({ data: [], total: 0 } as any);
+    api.listCrosswalks.and.resolveTo({ records: [], total: 0 });
     component.error = 'a previous failure';
 
     await component.cloneSource(source);

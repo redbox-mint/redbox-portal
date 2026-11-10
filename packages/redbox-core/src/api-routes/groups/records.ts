@@ -1,3 +1,4 @@
+import { deletedRecordListQuery } from './deleted-records';
 import { apiRoute } from '../route-factory';
 import { defineApiRoute } from '../define';
 import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
@@ -311,7 +312,7 @@ export const listDeletedRecordsRoute = apiRoute(
   'webservice/RecordController',
   'listDeletedRecords',
   {
-    query: recordListQuery,
+    query: deletedRecordListQuery,
     legacyParamFallbacks: recordListLegacyFallbacks,
   },
   {

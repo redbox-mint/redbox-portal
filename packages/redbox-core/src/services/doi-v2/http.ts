@@ -1,3 +1,4 @@
+import { doiConnectionOptions } from './connection';
 import axios, { AxiosError } from 'axios';
 import * as Context from 'effect/Context';
 import * as Layer from 'effect/Layer';
@@ -46,11 +47,7 @@ async function requestWithRetry(
       const response = await axios({
         method,
         url: `${config.connection.baseUrl.replace(/\/+$/, '')}${path}`,
-        timeout: config.connection.timeoutMs,
-        headers: {
-          Authorization: `Basic ${Buffer.from(`${config.connection.username}:${config.connection.password}`).toString('base64')}`,
-          'Content-Type': 'application/vnd.api+json'
-        },
+        ...doiConnectionOptions(config.connection),
         data: payload
       });
       return { statusCode: response.status, data: response.data as Record<string, unknown> };

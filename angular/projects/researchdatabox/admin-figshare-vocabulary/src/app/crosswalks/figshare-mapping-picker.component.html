@@ -2,7 +2,7 @@
   aria-labelledby="figshareMappingPickerTitle" (keydown.escape)="cancelled.emit()">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document" cdkTrapFocus
     cdkTrapFocusAutoCapture>
-    <div class="modal-content">
+    <div class="modal-content rb-admin">
       <div class="modal-header">
         <span class="modal-title h5" id="figshareMappingPickerTitle">{{
           (localTerm ? 'figshare-vocab-add-target-title' : 'figshare-vocab-add-mapping-title') | i18next
@@ -33,7 +33,7 @@
           <p class="small text-muted mb-0 mt-1">
             {{ 'figshare-vocab-picker-current-targets' | i18next }}
             @for (target of currentTargets; track target.id) {
-            <span class="figshare-badge ms-1">{{ target.label }}</span>
+            <span class="badge rb-admin-badge-primary ms-1">{{ target.label }}</span>
             }
           </p>
           } @else {
@@ -46,9 +46,9 @@
                 'figshare-vocab-picker-local-search' | i18next
               }}</label>
               <input id="figshare-picker-local-search" class="form-control" type="search"
-                [formControl]="localSearchControl" />
+                [formControl]="localSearchControl" [placeholder]="'admin-filter-search-placeholder' | i18next" />
             </div>
-            <div class="col-md-4">
+            <div class="rb-admin-field">
               <div class="form-check">
                 <input id="figshare-picker-unmapped" class="form-check-input" type="checkbox" [checked]="unmappedOnly"
                   (change)="toggleUnmappedOnly($any($event.target).checked)" />
@@ -71,7 +71,7 @@
               </span>
               <span class="text-nowrap">
                 @if (entry.targetCount > 0) {
-                <span class="figshare-badge me-2">{{
+                <span class="badge rb-admin-badge-primary me-2">{{
                   'figshare-vocab-picker-target-count' | i18next: { count: entry.targetCount }
                 }}</span>
                 }
@@ -102,9 +102,9 @@
                 'figshare-vocab-picker-target-search' | i18next
               }}</label>
               <input id="figshare-picker-target-search" class="form-control" type="search"
-                [formControl]="targetSearchControl" />
+                [formControl]="targetSearchControl" [placeholder]="'admin-filter-search-placeholder' | i18next" />
             </div>
-            <div class="col-md-4">
+            <div class="rb-admin-field">
               <div class="form-check">
                 <input id="figshare-picker-historical" class="form-check-input" type="checkbox"
                   [checked]="includeHistorical" (change)="toggleIncludeHistorical($any($event.target).checked)" />
@@ -128,12 +128,12 @@
               </span>
               <span class="text-nowrap">
                 @if (category.historical) {
-                <span class="figshare-badge figshare-badge--historical me-2">{{
+                <span class="badge rb-admin-badge-warning me-2">{{
                   'figshare-vocab-historical' | i18next
                 }}</span>
                 }
                 @if (isAlreadyMapped(category)) {
-                <span class="figshare-badge me-2">{{ 'figshare-vocab-picker-already-mapped' | i18next }}</span>
+                <span class="badge rb-admin-badge-primary me-2">{{ 'figshare-vocab-picker-already-mapped' | i18next }}</span>
                 } @else {
                 <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectCategory(category)">
                   {{
@@ -157,7 +157,7 @@
         </fieldset>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="cancelled.emit()" cdkFocusInitial>
+        <button type="button" class="btn btn-outline-secondary" (click)="cancelled.emit()" cdkFocusInitial>
           {{ 'figshare-vocab-cancel' | i18next }}
         </button>
         <button type="button" class="btn btn-primary" [disabled]="!canConfirm" (click)="confirm()">

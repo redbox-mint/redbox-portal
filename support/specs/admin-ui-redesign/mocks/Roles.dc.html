@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Roles</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="roles" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>People &amp; access</span><span>/</span><span>Roles</span></nav>
+      <header class="ph">
+        <div><h1>Roles</h1><p>Roles control what users can see and do. Pick a role to see and change its members.</p></div>
+        <div class="ph-actions"><a class="btn btn-secondary" href="Users.dc.html">Manage users</a></div>
+      </header>
+
+      <div class="split">
+        <nav class="split-nav" aria-label="Roles">
+          <div class="grp">Brand roles</div>
+          <a href="#" class="on"><span>Admin</span><span class="badge">1</span></a>
+          <a href="#"><span>Librarians</span><span class="badge">1</span></a>
+          <a href="#"><span>Researcher</span><span class="badge">1</span></a>
+          <a href="#"><span>Guest</span><span class="badge">1</span></a>
+          <div class="grp">Default for new users</div>
+          <p class="small muted" style="margin: 0; padding: 0 14px 8px">Guest (set in auth config)</p>
+        </nav>
+
+        <div class="split-main">
+          <div class="card">
+            <div class="card-h"><h2>Admin</h2><span class="meta">1 member</span></div>
+            <div class="card-b" style="border-bottom: 1px solid #ececec">
+              <p class="small" style="margin: 0 0 12px">Full access to the admin area, every record and all configuration.</p>
+              <div class="row">
+                <div class="field grow" style="flex: 1 1 320px"><label for="ro-add">Add a member</label><input id="ro-add" class="inp" placeholder="Search users by name or email"></div>
+                <button class="btn btn-primary" type="button" style="align-self: flex-end">Add</button>
+              </div>
+            </div>
+            <div class="tbl-wrap"><table class="tbl">
+              <thead><tr><th>Member</th><th>Sign-in</th><th>Other roles</th><th class="act"><span style="position: absolute; left: -9999px">Actions</span></th></tr></thead>
+              <tbody>
+                <tr><td><b>Local Admin</b><span class="sub">admin@redboxresearchdata.com.au</span></td><td><span class="badge">Local</span></td><td><div class="legend"><span class="badge">Librarians</span><span class="badge">Researcher</span><span class="badge">Guest</span></div></td><td class="act"><button class="btn btn-danger btn-sm" type="button" disabled title="You can’t remove the last Admin">Remove</button></td></tr>
+              </tbody>
+            </table></div>
+            <div class="card-f"><span>Remove is disabled for the last Admin, so the portal can’t be locked out</span></div>
+          </div>
+          <div class="note">Today’s Roles page repeats the Users table with a role radio filter, and the table showed no rows. This version organises the page around roles. Detailed per-user editing stays on Users.</div>
+        </div>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

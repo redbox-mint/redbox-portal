@@ -1,45 +1,18 @@
 <ng-container *ngIf="isReady">
-  <div class="container-fluid py-3"
-       [attr.aria-hidden]="isEditModalOpen || isDeleteModalOpen ? 'true' : null"
-       [attr.inert]="isEditModalOpen || isDeleteModalOpen ? '' : null">
-    <div class="row align-items-end mb-3">
-      <div class="col-md-8"></div>
-      <div class="col-md-4 mt-3 mt-md-0">
-        <div class="d-flex justify-content-md-end flex-wrap">
-          <span class="badge badge-light mr-2 mb-2 p-2">
-            {{ 'named-query-count-total' | i18next: { count: totalQueries } }}
-          </span>
-          <span class="badge badge-light mb-2 p-2">
-            {{ 'named-query-count-collections' | i18next: { count: uniqueCollections } }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card mb-3">
-      <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
-        <div class="d-flex flex-wrap mb-2 mb-md-0 nq-action-group"
-             role="group"
-             [attr.aria-label]="'named-query-actions-aria-label' | i18next">
-          <button class="btn btn-primary nq-action-button" type="button" (click)="newQuery()">
-            {{ 'named-query-create-button' | i18next }}
-          </button>
-        </div>
-        <small class="text-muted">{{ 'named-query-row-help' | i18next }}</small>
-      </div>
-    </div>
-
+  <div [attr.aria-hidden]="isEditModalOpen || isDeleteModalOpen ? 'true' : null" [attr.inert]="isEditModalOpen || isDeleteModalOpen ? '' : null">
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+      <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li><li>{{ 'admin-nav-records' | i18next }}</li>
+      <li><span aria-current="page">{{ 'named-query-list-title' | i18next }}</span></li>
+    </ol></nav>
+    <header class="rb-admin-page-header">
+      <div><h1>{{ 'named-query-list-title' | i18next }}</h1><p>{{ 'admin-named-query-description' | i18next }}</p></div>
+      <div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newQuery()"><span aria-hidden="true">+</span> {{ 'named-query-create-button' | i18next }}</button></div>
+    </header>
     <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
     <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
-
-    <nq-list
-      [queries]="filteredQueries"
-      [selectedName]="selectedQuery?.name || null"
-      [query]="listQuery"
-      (queryChanged)="onListQueryChanged($event)"
-      (selected)="openQuery($event)"
-      (deleted)="requestDelete($event)">
-    </nq-list>
+    <nq-list [brandingAndPortalUrl]="brandingAndPortalUrl" [queries]="filteredQueries" [total]="totalQueries" [collections]="presentCollections"
+      [selectedName]="selectedQuery?.name || null" [query]="listQuery"
+      (queryChanged)="onListQueryChanged($event)" (selected)="openQuery($event)" (deleted)="requestDelete($event)"></nq-list>
   </div>
 </ng-container>
 
@@ -52,7 +25,7 @@
      aria-describedby="deleteNamedQueryModalDescription"
      (keydown.escape)="cancelDelete()">
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-    <div class="modal-content">
+    <div class="modal-content rb-admin">
       <div class="modal-header">
         <span class="modal-title h4-header" id="deleteNamedQueryModalTitle">
           {{ 'named-query-confirm-delete-title' | i18next }}
@@ -68,12 +41,19 @@
         <p *ngIf="pendingDeleteDisplayName" class="mb-0 text-muted">
           {{ 'named-query-confirm-delete-detail' | i18next: { name: pendingDeleteDisplayName } }}
         </p>
+        <p *ngIf="!pendingDeleteConsumers.length" class="text-muted mt-3 mb-0" data-testid="untracked-callers-note">
+          {{ 'named-query-untracked-callers-note' | i18next }}
+        </p>
+        <div *ngIf="pendingDeleteConsumers.length" class="alert alert-warning mt-3 mb-0" role="alert">
+          <p>{{ 'named-query-in-use-warning' | i18next }}</p>
+          <ul class="mb-0"><li *ngFor="let consumer of pendingDeleteConsumers"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li></ul>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="cancelDelete()" cdkFocusInitial>
           {{ 'named-query-cancel' | i18next }}
         </button>
-        <button type="button" class="btn btn-danger" (click)="confirmDelete()">
+        <button type="button" class="btn rb-admin-danger-confirm" [disabled]="pendingDeleteConsumers.length > 0" (click)="confirmDelete()">
           {{ 'named-query-delete' | i18next }}
         </button>
       </div>
@@ -90,7 +70,7 @@
      aria-labelledby="namedQueryModalTitle"
      (keydown.escape)="closeEditModal()">
   <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
-    <div class="modal-content">
+    <div class="modal-content rb-admin">
       <div class="modal-header">
         <span class="modal-title h4-header" id="namedQueryModalTitle">
           {{ isNew ? ('named-query-create-title' | i18next) : ('named-query-edit-title' | i18next: { name: draft.name }) }}
@@ -101,10 +81,11 @@
                 cdkFocusInitial></button>
       </div>
       <div class="modal-body">
-        <nq-detail [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
+        <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+        <nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl" [draft]="draft" [isNew]="isNew" [collections]="collections"></nq-detail>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-success" (click)="save()" [disabled]="!canSave">
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
           {{ 'named-query-save' | i18next }}
         </button>
         <button type="button" class="btn btn-secondary" (click)="closeEditModal()">

@@ -7618,5 +7618,10 @@
     "category": "export",
     "description": "Help text under the export modification date range",
     "contentFormat": "plain"
+  },
+  "admin-api-docs-loading": {
+    "category": "admin",
+    "description": "Loading message for the API reference",
+    "contentFormat": "plain"
   }
 }

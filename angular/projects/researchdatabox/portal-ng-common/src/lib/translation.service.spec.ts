@@ -60,6 +60,18 @@ describe('TranslationService testing', () => {
     translationService = TestBed.inject(TranslationService);
   });
 
+  it('renames a language with a metadata-only POST and no bundle read', async () => {
+    await translationService.waitForInit();
+    const result = translationService.updateLanguageDisplayName('en', 'translation', 'New English');
+    await Promise.resolve();
+    const request = httpTestingController.expectOne(r => r.url.endsWith('/admin/translation/en/translation/display-name'));
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ displayName: 'New English' });
+    request.flush({ locale: 'en', namespace: 'translation', displayName: 'New English' });
+    await result;
+    httpTestingController.verify();
+  });
+
   it('can initialize after a rejected config dependency is recovered', async () => {
     const dependency = spyOn(configService, 'waitForInit').and.rejectWith({ status: 403 });
     await expectAsync(translationService.waitForInit()).toBeRejected();

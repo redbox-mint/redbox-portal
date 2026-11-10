@@ -17,6 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { dashboardRecordFilters } from '../api-routes/groups/dashboard-records';
+import { bulkDeletedRecordsBody, deletionFiltersSchema } from '../api-routes/groups/deleted-records';
+import { deletedRecordSummary } from '../DeletedRecordSummary';
 import { pipeline } from 'node:stream/promises';
 import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, map } from 'rxjs/operators';
@@ -156,6 +159,7 @@ export namespace Controllers {
       'delete',
       'getRelatedRecords',
       'render',
+      'renderParties',
       'getRecordList',
       'listWorkspaces',
       'getAllDashboardTypes',
@@ -169,6 +173,7 @@ export namespace Controllers {
       'getDeletedRecord',
       'restoreRecord',
       'destroyDeletedRecord',
+      'bulkDeletedRecords',
       'renderDashboardView',
     ];
 
@@ -1512,6 +1517,40 @@ export namespace Controllers {
       }
     }
 
+    public async bulkDeletedRecords(req: Sails.Req, res: Sails.Res) {
+      const parsed = bulkDeletedRecordsBody.safeParse(req.body);
+      if (!parsed.success) return this.sendResp(req, res, { status: 400 });
+      const brand = this.getReqBrand(req);
+      const user = req.user ?? {};
+      const results: { oid: string; status: string; reason: string }[] = [];
+      for (const item of parsed.data.items) {
+        try {
+          const deleted = await this.recordsService.getDeletedRecordMeta(item.oid, brand);
+          if (!deleted || !(await firstValueFrom(this.hasEditAccess(brand, user, deleted)))) {
+            results.push({ oid: item.oid, status: 'failed', reason: 'not-found-or-forbidden' });
+            continue;
+          }
+          const precondition = parsePublicRecordConcurrencyRequest({ 'if-match': item.entityTag }, item.oid, { formBacked: false });
+          if (!precondition.valid) {
+            results.push({ oid: item.oid, status: 'failed', reason: 'invalid-precondition' });
+            continue;
+          }
+          const context = await this.saveContext(req, parsed.data.action === 'restore' ? 'restore' : 'purge', undefined, undefined, precondition.context);
+          const result = parsed.data.action === 'restore'
+            ? await this.recordsService.restoreRecord(item.oid, user, brand, context)
+            : await this.recordsService.destroyDeletedRecord(item.oid, user, brand, context);
+          const unknown = result.outcome === 'unknown';
+          const succeeded = !unknown && result.wasPersisted();
+          results.push({ oid: item.oid, status: unknown ? 'unknown' : succeeded ? 'succeeded' : 'failed',
+            reason: unknown ? 'outcome-unknown' : succeeded ? 'completed' : result.problems?.some(problem => problem.kind === 'conflict') ? 'record-changed' : 'unsuccessful' });
+        } catch {
+          // A service can throw after committing; do not advertise a safe retry.
+          results.push({ oid: item.oid, status: 'unknown', reason: 'outcome-unknown' });
+        }
+      }
+      return this.sendResp(req, res, { data: { results }, v1: { results } });
+    }
+
     public update(req: Sails.Req, res: Sails.Res) {
       void this.updateInternal(req, res).catch(error => {
         this.sendUnexpectedSaveFailure(req, res, 'update', error);
@@ -2625,8 +2664,27 @@ export namespace Controllers {
       return res.redirect(url);
     }
 
+    /** The admin page uses the ordinary party dashboard and its existing data APIs. */
+    public renderParties(req: Sails.Req, res: Sails.Res) {
+      const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
+      const titleLabel = this.translate('admin-nav-party', locals);
+      return this.sendView(req, res, 'dashboard', {
+        recordType: 'party', packageType: 'party', dashboardType: 'standard', dashboardView: '',
+        adminParties: true, showAdminSideBar: true, titleLabel,
+        title: this.formatDocumentTitle(titleLabel, locals),
+      });
+    }
+
     public async render(req: Sails.Req, res: Sails.Res) {
       const recordType = req.param('recordType') ? req.param('recordType') : '';
+      // Keep old bookmarks in the admin shell for admins; other dashboard users
+      // retain the existing page and its permissions.
+      if (recordType === 'party' && req.user) {
+        const adminRole = RolesService.getRoleByName(this.getReqBrand(req), 'Admin');
+        if (adminRole && UsersService.hasRole(req.user, adminRole)) {
+          return this.renderParties(req, res);
+        }
+      }
       let packageType = req.param('packageType') ? req.param('packageType') : '';
       let dashboardType = req.param('dashboardType') ? req.param('dashboardType') : 'standard';
       const locals = req.options?.locals as globalThis.Record<string, unknown> | undefined;
@@ -2700,6 +2758,7 @@ export namespace Controllers {
     }
 
     public async getRecordList(req: Sails.Req, res: Sails.Res) {
+      if (!dashboardRecordFilters.safeParse(req.query).success) return this.sendResp(req, res, { status: 400 });
       const brand: BrandingModel = this.getReqBrand(req);
 
       const editAccessOnly = req.query.editOnly;
@@ -2786,6 +2845,8 @@ export namespace Controllers {
     }
 
     public async getDeletedRecordList(req: Sails.Req, res: Sails.Res) {
+      const deletionFilters = deletionFiltersSchema.safeParse(req.query);
+      if (!deletionFilters.success) return this.sendResp(req, res, { status: 400 });
       const brand: BrandingModel = this.getReqBrand(req);
       const editAccessOnly = req.query.editOnly;
 
@@ -2847,7 +2908,8 @@ export namespace Controllers {
           sort,
           filterFields,
           filterString,
-          filterMode
+          filterMode,
+          deletionFilters.data
         );
         if (response) {
           this.sendResp(req, res, { data: response });
@@ -2969,7 +3031,8 @@ export namespace Controllers {
       sort: unknown = undefined,
       filterFields: unknown = undefined,
       filterString: unknown = undefined,
-      filterMode: unknown = undefined
+      filterMode: unknown = undefined,
+      deletionFilters?: { deletedWithin?: string; deletedBy?: string }
     ) {
       const username = user['username'] as string;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -2991,7 +3054,8 @@ export namespace Controllers {
         sort,
         filterFields,
         filterString,
-        filterMode
+        filterMode,
+        deletionFilters
       );
       if (!results.isSuccessful()) {
         sails.log.verbose(`Failed to retrieve deleted records!`);
@@ -2999,8 +3063,8 @@ export namespace Controllers {
       }
 
       const totalItems = results.totalItems;
-      const startIndex = start as number;
-      const noItems = rows as number;
+      const startIndex = Number(start ?? 0);
+      const noItems = Number(rows ?? 10);
       const pageNumber = startIndex / noItems + 1;
 
       const response: { [key: string]: unknown } = {};
@@ -3015,6 +3079,7 @@ export namespace Controllers {
         const doc = docs[i] as globalThis.Record<string, unknown>;
         const item: { [key: string]: unknown } = {};
         const delRecordMeta = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
+        Object.assign(item, deletedRecordSummary(doc, brand.id, key => TranslationService.t(key)));
         item['oid'] = doc['redboxOid'];
         item['revision'] = recordRepresentationRevision(doc);
         item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';

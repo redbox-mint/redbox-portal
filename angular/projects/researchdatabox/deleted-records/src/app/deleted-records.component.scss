@@ -1,0 +1,13 @@
+:host { display: block; }
+.deleted-loading { padding: 16px; color: var(--admin-muted); }
+
+.rb-admin-bulk-bar {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+  .btn-outline-secondary, .btn-outline-danger { background: transparent; }
+  .btn-outline-secondary { color: var(--admin-bg); border-color: currentColor; }
+  .btn-outline-secondary:hover { background: var(--admin-bg); color: var(--admin-ink); }
+  .btn-outline-danger { color: color-mix(in srgb, var(--admin-danger) 30%, var(--admin-bg)); border-color: currentColor; }
+  .btn-outline-danger:hover { background: color-mix(in srgb, var(--admin-danger) 20%, var(--admin-ink)); }
+  strong { margin-right: auto; }
+}

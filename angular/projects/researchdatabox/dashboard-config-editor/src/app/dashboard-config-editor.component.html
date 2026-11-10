@@ -1,302 +1,222 @@
-<div class="col-xs-12 dashboard-config-editor">
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <span class="panel-title">
-        <i class="fa fa-th-large"></i>
-        Dashboard Configuration
-      </span>
+<div class="dashboard-config-editor">
+  <div [attr.inert]="copyFrom.open || copyTo.open || pendingLeave ? '' : null">
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+      <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+      <li>{{ 'admin-nav-site' | i18next }}</li>
+      <li><span aria-current="page">{{ 'admin-nav-dashboard-config' | i18next }}</span></li>
+    </ol></nav>
+    <header class="rb-admin-page-header">
+      <div><h1>{{ 'admin-nav-dashboard-config' | i18next }}</h1><p>{{ 'admin-dashboard-description' | i18next }}</p></div>
+      <div class="rb-admin-page-actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="openCopyFrom()" [disabled]="!draft || loading || saving">{{ 'admin-dashboard-copy-settings' | i18next }}</button>
+      </div>
+    </header>
+
+    <div *ngIf="loadError" class="alert alert-danger dc-alert" role="alert"><span>{{ loadError }}</span><button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-config-retry' | i18next }}</button></div>
+    <div *ngIf="message" class="alert alert-success dc-alert" role="status"><span>{{ message }}</span><button type="button" class="btn-close" [attr.aria-label]="'admin-config-close' | i18next" (click)="message = ''"></button></div>
+    <div *ngIf="targetsError || loadFailed" class="alert alert-danger dc-load-error" role="alert">
+      <div><strong>{{ (targetsError ? 'admin-dashboard-targets-error' : 'admin-dashboard-settings-error') | i18next }}</strong>
+        <p>{{ 'admin-dashboard-load-help' | i18next }}</p>
+        <details><summary>{{ 'admin-dashboard-error-details' | i18next }}</summary><p>{{ targetsError || error }}</p></details>
+      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="retry()" [disabled]="loading || targetsLoading">{{ 'admin-config-retry' | i18next }}</button>
     </div>
-    <div class="panel-body">
-      <div *ngIf="message" class="alert alert-success dc-alert" role="status">
-        <i class="fa fa-check-circle"></i>
-        <span>{{ message }}</span>
-        <button type="button" class="close" aria-label="Dismiss" (click)="message = ''">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div *ngIf="error" class="alert alert-danger dc-alert" role="alert">
-        <i class="fa fa-exclamation-triangle"></i>
-        <span>{{ error }}</span>
-        <button *ngIf="staleConflict" type="button" class="btn btn-default btn-sm" (click)="reloadDiscardingDraft()">Reload saved settings</button>
-        <button type="button" class="close" aria-label="Dismiss" (click)="error = ''">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
+    <div *ngIf="error && !loadFailed" class="alert alert-danger dc-alert" role="alert">
+      <span>{{ error }}</span>
+      <button *ngIf="staleConflict" type="button" class="btn btn-outline-secondary btn-sm" (click)="reloadDiscardingDraft()">{{ 'admin-dashboard-reload' | i18next }}</button>
+    </div>
 
-      <div class="dc-layout">
-        <aside class="dc-nav-pane" aria-label="Dashboards">
-          <div class="dc-nav-search">
-            <i class="fa fa-search dc-nav-search-icon"></i>
-            <input type="text" class="form-control dc-nav-search-input" placeholder="Filter…" [(ngModel)]="navFilter" aria-label="Filter dashboards" />
-            <button type="button" class="dc-nav-search-clear" *ngIf="navFilter" (click)="navFilter = ''" aria-label="Clear filter">
-              <i class="fa fa-times-circle"></i>
-            </button>
-          </div>
-
-          <section class="dc-nav-section">
-            <header class="dc-nav-section-header dc-nav-section-header-static">
-              <span class="dc-nav-section-title"><i class="fa fa-file-text-o"></i> Workflow stages</span>
-            </header>
-            <div *ngFor="let group of workflowGroups" class="dc-nav-group">
-              <button type="button" class="dc-nav-group-title dc-nav-group-toggle" (click)="toggleGroup(group)" [attr.aria-expanded]="!isGroupCollapsed(group)">
-                <i class="fa" [class.fa-chevron-down]="!isGroupCollapsed(group)" [class.fa-chevron-right]="isGroupCollapsed(group)"></i>
-                {{ group.label }}
-              </button>
-              <ul class="dc-nav-list" *ngIf="!isGroupCollapsed(group)">
-                <li *ngFor="let info of group.targets">
-                  <button type="button" class="dc-nav-item" [class.active]="isSelected(info)" (click)="selectTarget(info)" [attr.title]="targetLabel(info)">
-                    <span class="dc-nav-item-label">
-                      <span class="dc-nav-item-name">{{ info.stepLabel }}</span>
-                      <small class="dc-nav-item-sub" *ngIf="info.stepLabel !== stepName(info)">{{ stepName(info) }}</small>
-                    </span>
-                    <span class="dc-badge dc-badge-hidden" *ngIf="info.hidden" title="Hidden stage: not shown on ordinary dashboards">hidden</span>
-                    <span class="dc-badge dc-badge-dirty" *ngIf="isSelected(info) && isDirty" title="Unsaved changes">unsaved</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div *ngIf="workflowGroups.length === 0" class="dc-nav-empty">No matching workflow stages.</div>
-          </section>
-
-          <section class="dc-nav-section">
-            <header class="dc-nav-section-header dc-nav-section-header-static">
-              <span class="dc-nav-section-title"><i class="fa fa-eye"></i> Custom views</span>
-            </header>
-            <div *ngFor="let group of viewGroups" class="dc-nav-group">
-              <button type="button" class="dc-nav-group-title dc-nav-group-toggle" (click)="toggleGroup(group)" [attr.aria-expanded]="!isGroupCollapsed(group)">
-                <i class="fa" [class.fa-chevron-down]="!isGroupCollapsed(group)" [class.fa-chevron-right]="isGroupCollapsed(group)"></i>
-                {{ group.label }}
-              </button>
-              <ul class="dc-nav-list" *ngIf="!isGroupCollapsed(group)">
-                <li *ngFor="let info of group.targets">
-                  <button type="button" class="dc-nav-item" [class.active]="isSelected(info)" (click)="selectTarget(info)" [attr.title]="targetLabel(info)">
-                    <span class="dc-nav-item-label"><span class="dc-nav-item-name">{{ info.stepLabel }}</span></span>
-                    <span class="dc-badge dc-badge-dirty" *ngIf="isSelected(info) && isDirty" title="Unsaved changes">unsaved</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
-            <div *ngIf="viewGroups.length === 0" class="dc-nav-empty">No matching views.</div>
-          </section>
-        </aside>
-
-        <main class="dc-editor-pane">
-          <div *ngIf="loading" class="dc-loading-state">
-            <i class="fa fa-spinner fa-spin"></i>
-            Loading…
-          </div>
-
-          <div *ngIf="!loading && selected && draft" class="dc-editor-section">
-            <header class="dc-section-header">
-              <div class="dc-section-header-title">
-                <span class="dc-context-kicker">
-                  <i class="fa" [class.fa-file-text-o]="selected.target.kind === 'workflow'" [class.fa-eye]="selected.target.kind === 'view'"></i>
-                  {{ selected.target.kind === 'workflow' ? 'Workflow stage' : 'Custom view step' }}
-                  <span class="dc-badge dc-badge-hidden" *ngIf="selected.hidden">hidden stage</span>
-                  <span class="dc-badge dc-badge-dirty" *ngIf="isDirty">unsaved changes</span>
-                </span>
-                <h3 class="dc-section-heading">{{ targetLabel(selected) }}</h3>
-                <p class="dc-section-subtitle">
-                  These settings belong to this {{ selected.target.kind === 'workflow' ? 'stage' : 'view step' }} only. Nothing is inherited from, or shared with, other dashboards.
-                  <ng-container *ngIf="selected.hidden"> Hidden stages are not shown on ordinary dashboards.</ng-container>
-                </p>
-              </div>
-              <div class="dc-section-actions">
-                <button type="button" class="btn btn-default btn-sm" (click)="openCopyFrom()" [disabled]="saving">
-                  <i class="fa fa-download"></i>
-                  Copy from…
-                </button>
-                <button type="button" class="btn btn-default btn-sm" (click)="openCopyTo()" [disabled]="saving || isDirty" [attr.title]="isDirty ? 'Save your changes first: only saved settings can be copied' : 'Copy these saved settings to other dashboards'">
-                  <i class="fa fa-upload"></i>
-                  Copy to…
-                </button>
-                <button type="button" class="btn btn-default btn-sm" (click)="reloadDiscardingDraft()" [disabled]="saving || !isDirty">
-                  <i class="fa fa-undo"></i>
-                  Discard changes
-                </button>
-                <button type="button" class="btn btn-primary btn-sm dc-section-save" (click)="save()" [disabled]="saving || !isDirty || (warnings.length > 0 && !allWarningsAcknowledged)">
-                  <i class="fa" [class.fa-spinner]="saving" [class.fa-spin]="saving" [class.fa-save]="!saving"></i>
-                  {{ saving ? 'Saving…' : 'Save' }}
-                </button>
-              </div>
-            </header>
-
-            <div class="dc-card dc-findings" *ngIf="errors.length || warnings.length">
-              <div class="dc-card-body">
-                <div *ngFor="let finding of errors" class="dc-finding dc-finding-error">
-                  <i class="fa fa-times-circle"></i>
-                  <div><strong>{{ finding.path || 'Settings' }}</strong>: {{ finding.message }}</div>
-                </div>
-                <label *ngFor="let finding of warnings" class="dc-finding dc-finding-warning">
-                  <input type="checkbox" [checked]="acknowledgedWarnings.has(finding.id)" (change)="toggleWarning(finding, acknowledgedWarnings)" />
-                  <div><strong>{{ finding.path || 'Settings' }}</strong>: {{ finding.message }} <small>(tick to acknowledge)</small></div>
-                </label>
-              </div>
-            </div>
-
-            <div class="dc-card">
-              <div class="dc-card-header">
-                <h4><i class="fa fa-desktop"></i> Display</h4>
-              </div>
-              <div class="dc-card-body">
-                <div class="dc-form-grid">
-                  <div class="dc-form-group dc-form-group-toggle">
-                    <label class="dc-toggle-label" [class.dc-toggle-label-disabled]="selected.target.kind === 'view'">
-                      <input type="checkbox" class="dc-toggle-input" [(ngModel)]="draft.searchable" (ngModelChange)="onDraftChanged()" [disabled]="selected.target.kind === 'view' && !draft.searchable" />
-                      <span class="dc-toggle-switch"></span>
-                      <span class="dc-toggle-text">Show search box</span>
-                    </label>
-                    <small class="dc-form-help" *ngIf="selected.target.kind === 'workflow'">Lets users search this stage using the search filter fields below.</small>
-                    <small class="dc-form-help" *ngIf="selected.target.kind === 'view'">Custom views do not show a search box.</small>
-                  </div>
-                  <div class="dc-form-group dc-form-group-toggle">
-                    <label class="dc-toggle-label">
-                      <input type="checkbox" class="dc-toggle-input" [(ngModel)]="draft.showStageTitle" (ngModelChange)="onDraftChanged()" />
-                      <span class="dc-toggle-switch"></span>
-                      <span class="dc-toggle-text">Show stage title</span>
-                    </label>
-                    <small class="dc-form-help">Shows the heading above this {{ selected.target.kind === 'workflow' ? 'stage' : 'step' }}'s table. The workspace page never shows stage titles.</small>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dc-card">
-              <div class="dc-card-header">
-                <h4><i class="fa fa-table"></i> Table</h4>
-                <small class="dc-card-subtitle">Columns, filtering, sorting, row actions and grouping. Empty values stay empty.</small>
-              </div>
-              <div class="dc-card-body">
+    <div class="rb-admin-split dc-layout">
+      <nav class="rb-admin-section-rail dc-nav-pane" [attr.aria-label]="'admin-nav-dashboard-config' | i18next">
+        <div class="dc-nav-search">
+          <label class="visually-hidden" for="dc-nav-filter">{{ 'admin-dashboard-filter' | i18next }}</label>
+          <input id="dc-nav-filter" type="search" class="form-control" [placeholder]="'admin-dashboard-filter' | i18next" [(ngModel)]="navFilter" />
+        </div>
+        <section class="dc-nav-section">
+          <h2>{{ 'admin-dashboard-workflows' | i18next }}</h2>
+          <ng-container *ngFor="let info of workflowTargets; trackBy: trackTarget"><ng-container *ngTemplateOutlet="targetLink; context: { $implicit: info }"></ng-container></ng-container>
+          <p class="dc-nav-empty" *ngIf="!workflowTargets.length && !targetsLoading">{{ 'admin-dashboard-no-workflows' | i18next }}</p>
+        </section>
+        <section class="dc-nav-section">
+          <h2>{{ 'admin-dashboard-views' | i18next }}</h2>
+          <ng-container *ngFor="let info of viewTargets; trackBy: trackTarget"><ng-container *ngTemplateOutlet="targetLink; context: { $implicit: info }"></ng-container></ng-container>
+          <p class="dc-nav-empty" *ngIf="!viewTargets.length && !targetsLoading">{{ 'admin-dashboard-no-views' | i18next }}</p>
+        </section>
+      </nav>
+      <div class="rb-admin-split-main dc-editor-pane" [attr.aria-busy]="loading || targetsLoading">
+        <div *ngIf="loading || targetsLoading || loadPending" class="rb-admin-empty rb-admin-form-section" role="status"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i><p>{{ 'admin-dashboard-loading' | i18next }}</p></div>
+        <section *ngIf="!loading && !targetsLoading && !loadPending && !loadError && !selected && !targetsError" class="rb-admin-empty rb-admin-form-section">
+          <i class="fa fa-columns" aria-hidden="true"></i><h3>{{ 'admin-dashboard-pick' | i18next }}</h3><p>{{ 'admin-dashboard-pick-help' | i18next }}</p>
+        </section>
+        <ng-container *ngIf="!loading && selected && draft">
+          <section class="card dc-target-card">
+            <header class="card-header"><h2>{{ targetLabel(selected) }}</h2><span class="dc-location">{{ 'admin-dashboard-shown-at' | i18next: { location: selectedLocation, interpolation: { escapeValue: false } } }}</span></header>
+            <div class="card-body">
+              <p class="rb-admin-hint">{{ 'admin-dashboard-independent-help' | i18next }} <span *ngIf="selected.hidden">{{ 'admin-dashboard-hidden-help' | i18next }}</span></p>
+              <div *ngFor="let finding of errors" class="alert alert-danger" role="alert"><strong>{{ finding.path || ('admin-dashboard-settings' | i18next) }}</strong>: {{ finding.message }}</div>
+              <label *ngFor="let finding of warnings" class="alert alert-warning dc-choice"><input type="checkbox" [checked]="acknowledgedWarnings.has(finding.id)" (change)="toggleWarning(finding, acknowledgedWarnings)" /><span><strong>{{ finding.path || ('admin-dashboard-settings' | i18next) }}</strong>: {{ finding.message }} <small>{{ 'admin-dashboard-acknowledge' | i18next }}</small></span></label>
+              <fieldset [disabled]="saving">
                 <table-config-editor [config]="draft.tableConfig" [targetKind]="selected.target.kind" [queryFilterKeys]="selected.queryFilterKeys" [recordTypes]="recordTypes" [catalogue]="fieldCatalogue" (configChange)="onTableConfigChange($event)"></table-config-editor>
-              </div>
+                <section class="rb-admin-form-section dc-display">
+                  <header class="rb-admin-form-section-header"><h3>{{ 'admin-dashboard-display' | i18next }}</h3></header>
+                  <div class="rb-admin-form-section-body rb-admin-form-grid">
+                    <div><div class="form-check form-switch"><input id="dc-searchable" type="checkbox" class="form-check-input" role="switch" [(ngModel)]="draft.searchable" (ngModelChange)="onDraftChanged()" [disabled]="selected.target.kind === 'view' && !draft.searchable" /><label for="dc-searchable" class="form-check-label">{{ 'admin-dashboard-search-box' | i18next }}</label></div><p class="rb-admin-hint">{{ (selected.target.kind === 'view' ? 'admin-dashboard-view-search-help' : 'admin-dashboard-search-help') | i18next }}</p></div>
+                    <div>
+                      <label for="dc-rows-per-page" class="form-label">{{ 'admin-dashboard-rows-per-page' | i18next }}</label>
+                      <select id="dc-rows-per-page" class="form-select" [ngModel]="draft.rowsPerPage ?? 10" (ngModelChange)="draft.rowsPerPage = $event; onDraftChanged()" aria-describedby="dc-rows-per-page-help">
+                        <option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option>
+                      </select>
+                      <p id="dc-rows-per-page-help" class="rb-admin-hint">{{ 'admin-dashboard-rows-per-page-help' | i18next }}</p>
+                    </div>
+                    <div><div class="form-check form-switch"><input id="dc-stage-title" type="checkbox" class="form-check-input" role="switch" [(ngModel)]="draft.showStageTitle" (ngModelChange)="onDraftChanged()" /><label for="dc-stage-title" class="form-check-label">{{ 'admin-dashboard-stage-title' | i18next }}</label></div><p class="rb-admin-hint">{{ 'admin-dashboard-stage-title-help' | i18next }}</p></div>
+                  </div>
+                </section>
+              </fieldset>
             </div>
+          </section>
+          <div class="rb-admin-save-bar">
+            <span class="rb-admin-save-state" [class.dc-dirty]="isDirty" aria-live="polite"><span class="dc-state-dot" aria-hidden="true"></span>{{ (saving ? 'admin-config-saving' : isDirty ? 'admin-config-unsaved' : 'admin-config-pristine') | i18next }}</span>
+            <div class="rb-admin-page-actions"><button type="button" class="btn btn-outline-secondary" [disabled]="saving || !isDirty" (click)="discard()">{{ 'admin-config-discard' | i18next }}</button><button type="button" class="btn btn-primary" [disabled]="saving || !isDirty || (warnings.length > 0 && !allWarningsAcknowledged)" (click)="save()">{{ 'admin-dashboard-save' | i18next }}</button></div>
           </div>
-
-          <div *ngIf="!loading && !selected" class="dc-empty-state">
-            <i class="fa fa-arrow-left"></i>
-            <p>Select a workflow stage or custom view step to edit its dashboard.</p>
-          </div>
-        </main>
+        </ng-container>
       </div>
     </div>
   </div>
-
+  <ng-template #targetLink let-info>
+    <a [href]="targetHash(info)" (click)="$event.preventDefault(); selectTarget(info)" [attr.aria-current]="isSelected(info) ? 'true' : null" [attr.aria-disabled]="saving" class="dc-nav-item">
+      <span>{{ targetLabel(info) }}<small *ngIf="info.hidden">{{ 'admin-dashboard-hidden' | i18next }}</small></span>
+      <span *ngIf="(isSelected(info) && draft ? draft.tableConfig.rowConfig.length : columnCounts.get(info.key)) != null" class="badge rb-admin-badge-info">{{ 'admin-dashboard-column-count' | i18next: { count: isSelected(info) && draft ? draft.tableConfig.rowConfig.length : columnCounts.get(info.key) } }}</span>
+    </a>
+  </ng-template>
   <!-- Copy from: load saved settings into the draft -->
-  <div class="dc-modal-backdrop" *ngIf="copyFrom.open" (click)="copyFrom.open = false"></div>
-  <div class="dc-modal" *ngIf="copyFrom.open && selected" role="dialog" aria-modal="true" aria-labelledby="dc-copy-from-title">
+  <div class="dc-modal-backdrop" *ngIf="copyFrom.open || copyTo.open || pendingLeave"></div>
+  <div class="dc-modal" *ngIf="copyFrom.open && selected && !copyConfirmation" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closeDialogs()" role="dialog" aria-modal="true" aria-labelledby="dc-copy-from-title">
     <header class="dc-modal-header">
-      <h4 id="dc-copy-from-title"><i class="fa fa-download"></i> Copy settings into {{ targetLabel(selected) }}</h4>
-      <button type="button" class="close" aria-label="Close" (click)="copyFrom.open = false"><span aria-hidden="true">&times;</span></button>
+      <h2 id="dc-copy-from-title">{{ 'admin-dashboard-copy-into' | i18next: { target: targetLabel(selected) } }}</h2>
+      <button type="button" class="btn-close" [attr.aria-label]="'admin-config-close' | i18next" (click)="closeDialogs()"></button>
     </header>
+    <nav class="dc-copy-tabs" [attr.aria-label]="'admin-dashboard-copy-direction' | i18next"><div class="rb-admin-segmented"><button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="copyFrom.open" (click)="openCopyFrom()">{{ 'admin-dashboard-copy-from' | i18next }}</button><button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="copyTo.open" (click)="openCopyTo()" [disabled]="isDirty || copyTo.loading">{{ 'admin-dashboard-copy-to' | i18next }}</button></div><p *ngIf="isDirty" class="rb-admin-hint">{{ 'admin-dashboard-copy-saved-help' | i18next }}</p></nav>
     <div class="dc-modal-body">
-      <p class="dc-form-help">Loads saved settings from another dashboard into your draft. Selected groups replace the draft's values completely; other groups keep their current values. Nothing is saved until you press Save.</p>
+      <p class="dc-form-help">{{ 'admin-dashboard-copy-from-help' | i18next }}</p>
       <div class="dc-form-group">
-        <label class="dc-form-label" for="dc-copy-from-source">Copy from</label>
+        <label class="dc-form-label" for="dc-copy-from-source">{{ 'admin-dashboard-copy-from-label' | i18next }}</label>
         <select id="dc-copy-from-source" class="form-control" [(ngModel)]="copyFrom.sourceKey" (ngModelChange)="resetCopyFromPreview()">
-          <option value="" disabled>Choose a dashboard…</option>
+          <option value="" disabled>{{ 'admin-dashboard-choose-dashboard' | i18next }}</option>
           <option *ngFor="let info of copySources" [value]="info.key">{{ targetLabel(info) }}</option>
         </select>
       </div>
       <fieldset class="dc-group-choices">
-        <legend class="dc-form-label">Settings to copy</legend>
-        <label class="dc-choice"><input type="checkbox" [(ngModel)]="copyFrom.selection.all" (ngModelChange)="onSelectAll(copyFrom.selection); resetCopyFromPreview()" /> <strong>All settings</strong></label>
+        <legend class="dc-form-label">{{ 'admin-dashboard-copy-groups' | i18next }}</legend>
+        <label class="dc-choice"><input type="checkbox" [(ngModel)]="copyFrom.selection.all" (ngModelChange)="onSelectAll(copyFrom.selection); resetCopyFromPreview()" /> <strong>{{ 'admin-dashboard-all-settings' | i18next }}</strong></label>
         <label class="dc-choice" *ngFor="let group of copyGroups">
           <input type="checkbox" [(ngModel)]="copyFrom.selection[group.id]" (ngModelChange)="onSelectGroup(copyFrom.selection); resetCopyFromPreview()" />
-          <span><strong>{{ group.label }}</strong> <small class="dc-form-help">{{ group.description }}</small></span>
+          <span><strong>{{ group.label | i18next }}</strong> <small class="dc-form-help">{{ group.description | i18next }}</small></span>
         </label>
       </fieldset>
       <div *ngIf="copyFrom.error" class="alert alert-danger">{{ copyFrom.error }}</div>
       <ng-container *ngIf="copyFrom.candidate">
         <ng-container *ngTemplateOutlet="changesTable; context: { $implicit: copyFrom.changes }"></ng-container>
-        <div *ngFor="let finding of copyFrom.errors" class="dc-finding dc-finding-error"><i class="fa fa-times-circle"></i><div>{{ finding.path }}: {{ finding.message }}</div></div>
-        <div *ngFor="let finding of copyFrom.warnings" class="dc-finding dc-finding-warning"><i class="fa fa-exclamation-triangle"></i><div>{{ finding.path }}: {{ finding.message }}</div></div>
-        <p class="dc-form-help" *ngIf="isDirty">Your draft already has unsaved changes; values in the selected groups will be replaced.</p>
+        <div *ngFor="let finding of copyFrom.errors" class="alert alert-danger dc-finding" role="alert"><i class="fa fa-times-circle" aria-hidden="true"></i><div>{{ finding.path }}: {{ finding.message }}</div></div>
+        <div *ngFor="let finding of copyFrom.warnings" class="alert alert-warning dc-finding"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i><div>{{ finding.path }}: {{ finding.message }}</div></div>
+        <p class="dc-form-help" *ngIf="isDirty">{{ 'admin-dashboard-copy-draft-dirty' | i18next }}</p>
       </ng-container>
     </div>
     <footer class="dc-modal-footer">
-      <button type="button" class="btn btn-default" (click)="copyFrom.open = false">Cancel</button>
-      <button type="button" class="btn btn-default" (click)="previewCopyFrom()" [disabled]="copyFrom.loading || !copyFrom.sourceKey">
-        <i class="fa" [class.fa-spinner]="copyFrom.loading" [class.fa-spin]="copyFrom.loading" [class.fa-search]="!copyFrom.loading"></i> Preview
+      <button type="button" class="btn btn-outline-secondary" (click)="closeDialogs()">{{ 'admin-dashboard-cancel' | i18next }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="previewCopyFrom()" [disabled]="copyFrom.loading || !copyFrom.sourceKey">
+        <i class="fa" aria-hidden="true" [class.fa-spinner]="copyFrom.loading" [class.fa-spin]="copyFrom.loading" [class.fa-search]="!copyFrom.loading"></i> {{ 'admin-dashboard-preview' | i18next }}
       </button>
-      <button type="button" class="btn btn-primary" (click)="applyCopyFrom()" [disabled]="!copyFrom.candidate">Apply to draft</button>
+      <button type="button" class="btn btn-primary" (click)="copyConfirmation = 'from'" [disabled]="!copyFrom.candidate">{{ 'admin-dashboard-apply-draft' | i18next }}</button>
     </footer>
   </div>
 
   <!-- Copy to: bulk copy the saved settings -->
-  <div class="dc-modal-backdrop" *ngIf="copyTo.open" (click)="copyTo.open = false"></div>
-  <div class="dc-modal dc-modal-wide" *ngIf="copyTo.open && selected" role="dialog" aria-modal="true" aria-labelledby="dc-copy-to-title">
+
+  <div class="dc-modal dc-modal-wide" *ngIf="copyTo.open && selected && !copyConfirmation" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="closeDialogs()" role="dialog" aria-modal="true" aria-labelledby="dc-copy-to-title">
     <header class="dc-modal-header">
-      <h4 id="dc-copy-to-title"><i class="fa fa-upload"></i> Copy saved settings from {{ targetLabel(selected) }}</h4>
-      <button type="button" class="close" aria-label="Close" (click)="copyTo.open = false"><span aria-hidden="true">&times;</span></button>
+      <h2 id="dc-copy-to-title">{{ 'admin-dashboard-copy-saved-from' | i18next: { target: targetLabel(selected) } }}</h2>
+      <button type="button" class="btn-close" [disabled]="copyTo.loading" [attr.aria-label]="'admin-config-close' | i18next" (click)="closeDialogs()"></button>
     </header>
+    <nav class="dc-copy-tabs" [attr.aria-label]="'admin-dashboard-copy-direction' | i18next"><div class="rb-admin-segmented"><button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="copyFrom.open" [disabled]="copyTo.loading" (click)="openCopyFrom()">{{ 'admin-dashboard-copy-from' | i18next }}</button><button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="copyTo.open" (click)="openCopyTo()" [disabled]="isDirty || copyTo.loading">{{ 'admin-dashboard-copy-to' | i18next }}</button></div><p *ngIf="isDirty" class="rb-admin-hint">{{ 'admin-dashboard-copy-saved-help' | i18next }}</p></nav>
     <div class="dc-modal-body">
-      <p class="dc-form-help">Each destination gets its own copy. Later changes to this dashboard will not affect them. Selected groups replace each destination's values completely, including clearing values this dashboard does not have.</p>
+      <p class="dc-form-help">{{ 'admin-dashboard-copy-to-help' | i18next }}</p>
       <div class="dc-copy-to-grid">
         <div>
-          <label class="dc-form-label" for="dc-copy-to-filter">Destinations ({{ copyTo.destinations.size }} selected)</label>
-          <input id="dc-copy-to-filter" type="text" class="form-control input-sm" placeholder="Filter…" [(ngModel)]="copyTo.filter" />
+          <label class="dc-form-label" for="dc-copy-to-filter">{{ 'admin-dashboard-copy-destinations' | i18next: { count: copyTo.destinations.size } }}</label>
+          <input [disabled]="copyTo.loading" id="dc-copy-to-filter" type="text" class="form-control" [placeholder]="'admin-dashboard-filter' | i18next" [(ngModel)]="copyTo.filter" />
           <ul class="dc-destination-list">
             <li *ngFor="let info of copyDestinations">
               <label class="dc-choice">
-                <input type="checkbox" [checked]="copyTo.destinations.has(info.key)" (change)="toggleDestination(info)" />
+                <input [disabled]="copyTo.loading" type="checkbox" [checked]="copyTo.destinations.has(info.key)" (change)="toggleDestination(info)" />
                 <span>{{ targetLabel(info) }}</span>
               </label>
             </li>
           </ul>
         </div>
         <fieldset class="dc-group-choices">
-          <legend class="dc-form-label">Settings to copy</legend>
-          <label class="dc-choice"><input type="checkbox" [(ngModel)]="copyTo.selection.all" (ngModelChange)="onSelectAll(copyTo.selection); copyTo.preview = null" /> <strong>All settings</strong></label>
+          <legend class="dc-form-label">{{ 'admin-dashboard-copy-groups' | i18next }}</legend>
+          <label class="dc-choice"><input [disabled]="copyTo.loading" type="checkbox" [(ngModel)]="copyTo.selection.all" (ngModelChange)="onSelectAll(copyTo.selection); copyTo.preview = null" /> <strong>{{ 'admin-dashboard-all-settings' | i18next }}</strong></label>
           <label class="dc-choice" *ngFor="let group of copyGroups">
-            <input type="checkbox" [(ngModel)]="copyTo.selection[group.id]" (ngModelChange)="onSelectGroup(copyTo.selection); copyTo.preview = null" />
-            <span><strong>{{ group.label }}</strong> <small class="dc-form-help">{{ group.description }}</small></span>
+            <input [disabled]="copyTo.loading" type="checkbox" [(ngModel)]="copyTo.selection[group.id]" (ngModelChange)="onSelectGroup(copyTo.selection); copyTo.preview = null" />
+            <span><strong>{{ group.label | i18next }}</strong> <small class="dc-form-help">{{ group.description | i18next }}</small></span>
           </label>
         </fieldset>
       </div>
       <div *ngIf="copyTo.error" class="alert alert-danger">{{ copyTo.error }}</div>
       <ng-container *ngIf="copyTo.preview as preview">
-        <h5 class="dc-preview-title">Preview</h5>
+        <h5 class="dc-preview-title">{{ 'admin-dashboard-preview' | i18next }}</h5>
         <div *ngFor="let change of preview.changes" class="dc-destination-preview">
-          <h6>{{ change.label }} <span class="dc-badge dc-badge-hidden" *ngIf="change.hidden">hidden stage</span></h6>
+          <h6>{{ change.label }} <span class="dc-badge dc-badge-hidden" *ngIf="change.hidden">{{ 'admin-dashboard-hidden' | i18next }}</span></h6>
           <ng-container *ngTemplateOutlet="changesTable; context: { $implicit: change.groups }"></ng-container>
         </div>
-        <div *ngFor="let finding of preview.errors" class="dc-finding dc-finding-error">
-          <i class="fa fa-times-circle"></i>
+        <div *ngFor="let finding of preview.errors" class="alert alert-danger dc-finding" role="alert">
+          <i class="fa fa-times-circle" aria-hidden="true"></i>
           <div><strong>{{ findingTargetLabel(finding) }}</strong> {{ finding.path }}: {{ finding.message }}</div>
         </div>
-        <label *ngFor="let finding of preview.warnings" class="dc-finding dc-finding-warning">
-          <input type="checkbox" [checked]="copyTo.acknowledged.has(finding.id)" (change)="toggleWarning(finding, copyTo.acknowledged)" />
-          <div><strong>{{ findingTargetLabel(finding) }}</strong> {{ finding.path }}: {{ finding.message }} <small>(tick to acknowledge)</small></div>
+        <label *ngFor="let finding of preview.warnings" class="alert alert-warning dc-finding">
+          <input [disabled]="copyTo.loading" type="checkbox" [checked]="copyTo.acknowledged.has(finding.id)" (change)="toggleWarning(finding, copyTo.acknowledged)" />
+          <div><strong>{{ findingTargetLabel(finding) }}</strong> {{ finding.path }}: {{ finding.message }} <small>{{ 'admin-dashboard-acknowledge' | i18next }}</small></div>
         </label>
-        <p class="dc-form-help" *ngIf="preview.errors.length">Remove the affected destinations or fix the source, then preview again. Nothing will be copied while errors remain.</p>
+        <p class="dc-form-help" *ngIf="preview.errors.length">{{ 'admin-dashboard-copy-errors-help' | i18next }}</p>
       </ng-container>
     </div>
     <footer class="dc-modal-footer">
-      <button type="button" class="btn btn-default" (click)="copyTo.open = false">Cancel</button>
-      <button type="button" class="btn btn-default" (click)="previewCopyTo()" [disabled]="copyTo.loading">
-        <i class="fa" [class.fa-spinner]="copyTo.loading" [class.fa-spin]="copyTo.loading" [class.fa-search]="!copyTo.loading"></i> Preview
+      <button type="button" class="btn btn-outline-secondary" (click)="closeDialogs()">{{ 'admin-dashboard-cancel' | i18next }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="previewCopyTo()" [disabled]="copyTo.loading">
+        <i class="fa" aria-hidden="true" [class.fa-spinner]="copyTo.loading" [class.fa-spin]="copyTo.loading" [class.fa-search]="!copyTo.loading"></i> {{ 'admin-dashboard-preview' | i18next }}
       </button>
-      <button type="button" class="btn btn-primary" (click)="applyCopyTo()" [disabled]="!canApplyCopyTo">
-        Copy to {{ copyTo.preview?.destinations?.length || 0 }} dashboard{{ copyTo.preview?.destinations?.length === 1 ? '' : 's' }}
+      <button type="button" class="btn btn-primary" (click)="copyConfirmation = 'to'" [disabled]="!canApplyCopyTo">
+        {{ 'admin-dashboard-copy-apply' | i18next: { count: copyTo.preview?.destinations?.length || 0 } }}
       </button>
     </footer>
   </div>
 
   <ng-template #changesTable let-groups>
-    <table class="table table-condensed dc-changes-table">
+    <div class="table-responsive"><table class="table table-hover dc-changes-table">
       <thead>
-        <tr><th>Setting</th><th>Current</th><th>After copy</th></tr>
+        <tr><th>{{ 'admin-dashboard-setting' | i18next }}</th><th>{{ 'admin-dashboard-current' | i18next }}</th><th>{{ 'admin-dashboard-after-copy' | i18next }}</th></tr>
       </thead>
       <tbody>
         <ng-container *ngFor="let group of groups">
-          <tr class="dc-changes-group"><th colspan="3">{{ group.label }} <small *ngIf="!group.changed">(no change)</small></th></tr>
+          <tr class="dc-changes-group"><th colspan="3">{{ group.label | i18next }} <small *ngIf="!group.changed">{{ 'admin-dashboard-no-change' | i18next }}</small></th></tr>
           <tr *ngFor="let item of group.items" [class.dc-change-cleared]="item.cleared" [class.dc-change-same]="item.before === item.after">
-            <td>{{ item.label }}</td>
+            <td>{{ item.label | i18next }}</td>
             <td class="dc-change-value">{{ item.before }}</td>
-            <td class="dc-change-value">{{ item.after }}<span *ngIf="item.cleared" class="dc-badge dc-badge-cleared">cleared</span></td>
+            <td class="dc-change-value">{{ item.after }}<span *ngIf="item.cleared" class="dc-badge dc-badge-cleared">{{ 'admin-dashboard-cleared' | i18next }}</span></td>
           </tr>
         </ng-container>
       </tbody>
-    </table>
+    </table></div>
   </ng-template>
+
+  <div *ngIf="copyConfirmation" class="dc-modal" role="alertdialog" aria-modal="true" aria-labelledby="dc-copy-confirm-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="copyConfirmation = null">
+    <header class="dc-modal-header"><h2 id="dc-copy-confirm-title">{{ 'admin-dashboard-confirm-copy' | i18next }}</h2></header>
+    <div class="dc-modal-body"><p>{{ (copyConfirmation === 'from' ? 'admin-dashboard-confirm-copy-draft' : 'admin-dashboard-confirm-copy-saved') | i18next }}</p></div>
+    <footer class="dc-modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="copyConfirmation = null">{{ 'admin-dashboard-back-preview' | i18next }}</button><button type="button" class="btn btn-primary" (click)="confirmCopy()">{{ 'admin-dashboard-confirm-copy' | i18next }}</button></footer>
+  </div>
+  <div *ngIf="pendingLeave" class="dc-modal" role="alertdialog" aria-modal="true" aria-labelledby="dc-leave-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (keydown.escape)="cancelLeave()">
+    <header class="dc-modal-header"><h2 id="dc-leave-title">{{ 'admin-config-leave-title' | i18next }}</h2></header>
+    <div class="dc-modal-body"><p>{{ 'admin-config-leave-help' | i18next }}</p></div>
+    <footer class="dc-modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelLeave()">{{ 'admin-config-stay' | i18next }}</button><button type="button" class="btn btn-outline-danger" (click)="leavePage()">{{ 'admin-config-leave' | i18next }}</button></footer>
+  </div>
 </div>

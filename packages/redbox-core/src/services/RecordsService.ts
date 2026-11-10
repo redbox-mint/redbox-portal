@@ -6899,6 +6899,11 @@ export namespace Services {
         lifecycleOperation: operation,
         deletedRecordMetadata: this.lifecycleSnapshot(authoritative) as unknown as RecordModel,
         dateDeleted: new Date().toISOString(),
+        deletedBy: {
+          brandId: String(authority.brand.id),
+          ...(userObj.id ? { id: String(userObj.id) } : {}),
+          ...(typeof userObj.username === 'string' ? { username: userObj.username } : {}),
+        },
       };
 
       const intentResponse = await this.dispatchLifecycleMutation(oid, tracker.context, () =>
@@ -7172,9 +7177,10 @@ export namespace Services {
       format: unknown,
       modBefore: unknown,
       modAfter: unknown,
-      recType: unknown
+      recType: unknown,
+      checkpoint?: () => Promise<void>
     ): Readable {
-      return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType);
+      return this.storageService.exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint);
     }
 
     // Gets attachments for this record, will use the `sails.config.record.datastreamService` if set, otherwise will use this service
@@ -8494,7 +8500,8 @@ export namespace Services {
       sort: unknown,
       fieldNames?: unknown,
       filterString?: unknown,
-      filterMode?: unknown
+      filterMode?: unknown,
+      deletionFilters?: { deletedWithin?: string; deletedBy?: string }
     ): Promise<StorageServiceResponse> {
       return await this.storageService.getDeletedRecords(
         workflowState,
@@ -8509,7 +8516,9 @@ export namespace Services {
         sort,
         fieldNames,
         filterString,
-        filterMode
+        filterMode,
+        undefined,
+        deletionFilters
       );
     }
 

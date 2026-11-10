@@ -572,7 +572,12 @@ export namespace Services {
       const resolved: ResolvedAdminSidebarItem = {
         label: visibilityResult.resolvedLabel,
         href,
-        external
+        external,
+        active: !external && (this.isActive(href, context.currentPath) ||
+          ([context.brandPortalPath + '/admin/parties', context.brandPortalPath + '/dashboard/party'].includes(href) &&
+           [context.brandPortalPath + '/admin/parties', context.brandPortalPath + '/dashboard/party'].includes(context.currentPath)) ||
+          (href === context.brandPortalPath + '/admin/reports' &&
+           context.currentPath.startsWith(context.brandPortalPath + '/admin/report/')))
       };
 
       if (external) {

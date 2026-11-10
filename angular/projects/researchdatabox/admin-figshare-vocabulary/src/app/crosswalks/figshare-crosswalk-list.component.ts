@@ -12,6 +12,13 @@ export class FigshareCrosswalkListComponent {
   @Input() statusFilter = '';
   @Input() loading = false;
 
+  search = '';
+  @Output() addRequested = new EventEmitter<void>();
+  get filteredItems() {
+    const q = this.search.trim().toLowerCase();
+    return this.crosswalks.filter(item => (!this.statusFilter || item.status === this.statusFilter) && `${item.name} ${item.localVocabularyName} ${item.figshareSourceName}`.toLowerCase().includes(q));
+  }
+
   @Output() statusFilterChanged = new EventEmitter<string>();
   @Output() editRequested = new EventEmitter<FigshareCrosswalkSummary>();
   @Output() deleteRequested = new EventEmitter<FigshareCrosswalkSummary>();

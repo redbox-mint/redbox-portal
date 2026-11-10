@@ -1,5 +1,6 @@
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
 import { NgModel } from '@angular/forms';
-import { Component, Inject, ElementRef } from '@angular/core';
+import { Component, Inject, ElementRef, inject } from '@angular/core';
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
 import {
   BaseComponent,
@@ -45,6 +46,14 @@ interface StepState {
   standalone: false
 })
 export class DashboardComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
+  adminParties = false;
+  adminPartyImport = false;
+  readonly partyLookupFilters: FilterField[] = [
+    { name: 'admin-parties-name-or-email', path: 'metadata.fullName,metadata.email' },
+    { name: 'admin-parties-name', path: 'metadata.fullName' },
+    { name: 'admin-parties-email', path: 'metadata.email' }
+  ];
   config: any = {};
   branding: string = '';
   portal: string = '';
@@ -99,6 +108,8 @@ export class DashboardComponent extends BaseComponent {
     elementRef: ElementRef
   ) {
     super();
+    this.adminPartyImport = elementRef.nativeElement.getAttribute('adminPartyImport') === 'true';
+    this.adminParties = elementRef.nativeElement.getAttribute('adminParties') === 'true';
     this.recordType = _trim(elementRef.nativeElement.getAttribute('recordType'));
     this.packageType = _trim(elementRef.nativeElement.getAttribute('packageType'));
     this.dashboardView = _trim(elementRef.nativeElement.getAttribute('dashboardView'));
@@ -117,6 +128,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
+    if (this.adminPartyImport) return;
     if (_indexOf(this.dashboardTypeOptions, this.dashboardTypeSelected) >= 0) {
       this.config = this.recordService.getConfig();
       this.baseUrl = _get(this.config, 'baseUrl');
@@ -326,17 +338,21 @@ export class DashboardComponent extends BaseComponent {
       return {
         filterFields: this.getFilterFieldPath(stepKey),
         filterString: this.submittedSearch[stepKey],
-        filterMode: ''
+        filterMode: this.adminParties && this.getFilterFieldPath(stepKey) === this.partyLookupFilters[0].path ? 'any' : ''
       };
     }
     return this.getStepFilter(stepKey);
+  }
+
+  public getRowsPerPage(stepKey: string): number {
+    return this.stepState[stepKey]?.settings.rowsPerPage ?? 10;
   }
 
   public async initStep(stepName: string, stepKey: string, recordType: string, packageType: string, startIndex: number) {
     const { filterFields, filterString, filterMode } = this.getActiveFilter(stepKey);
     const sortByString = this.getSortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
     const secondarySortString = this.getSecondarySortStringFromSortMap(this.sortMap[stepKey], stepKey, true);
-    const stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, secondarySortString);
+    const stagedRecords = await this.recordService.getRecords(recordType, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, secondarySortString, this.getRowsPerPage(stepKey));
 
     let planTable: PlanTable;
     const formatRules = this.getFormatRules(stepKey);
@@ -349,7 +365,7 @@ export class DashboardComponent extends BaseComponent {
       if (groupBy == 'groupedByRelationships' && !_isEmpty(sortGroupBy)) {
         allItemsByGroup = await this.getAllItemsGroupedByRelationships(_get(stagedRecords, 'items'), sortGroupBy as SortGroupBy[]);
       } else if (groupBy == 'groupedByRecordType' && !_isEmpty(sortGroupBy)) {
-        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy as SortGroupBy[], stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
+        allItemsByGroup = await this.getAllItemsGroupedByRecordType(sortGroupBy as SortGroupBy[], stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, this.getRowsPerPage(stepKey));
       }
       const groupedRecords: any = {
         totalItems: _get(stagedRecords, 'totalItems'),
@@ -367,12 +383,12 @@ export class DashboardComponent extends BaseComponent {
     this.records[stepKey] = planTable;
   }
 
-  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any) {
+  private async getAllItemsGroupedByRecordType(sortGroupBy: SortGroupBy[], stepName: string, startIndex: number, packageType: string, sortByString: string, filterFields: any, filterString: any, filterMode: any, rowsPerPage: number) {
     const allItemsByGroup: any[] = [];
     for (let i = 0; i < sortGroupBy.length; i++) {
       const rule = _find(sortGroupBy, (o) => _get(o, 'rowLevel') == i);
       const compareFieldValue = _get(rule, 'compareFieldValue', '');
-      const itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode);
+      const itemsGroupRelated: any = await this.recordService.getRecords(compareFieldValue, stepName, startIndex, packageType, sortByString, filterFields, filterString, filterMode, '', rowsPerPage);
       allItemsByGroup.push(itemsGroupRelated);
     }
     return allItemsByGroup;
@@ -449,7 +465,12 @@ export class DashboardComponent extends BaseComponent {
     const record: any = {};
     for (let i = 0; i < rows.length; i++) {
       const columnConfig = rows[i];
-      record[columnConfig.variable] = this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
+      // Standard dashboard templates refer to mapped imports (dateCreated),
+      // while their output column can be a nested path (metaMetadata.createdOn).
+      const dateTemplate = columnConfig.template?.match(/^\{\{\s*formatDateLocale\s+(dateCreated|dateModified|dateDeleted)\s+["']DATETIME_\w+["']\s*\}\}$/);
+      record[columnConfig.variable] = this.adminParties && dateTemplate
+        ? this.adminDates.format(imports[dateTemplate[1]])
+        : this.handlebarsTemplateService.compileAndRunTemplate(columnConfig.template, imports, this.templateKey(stepKey, kind, i.toString(), columnConfig.variable));
     }
     return record;
   }
@@ -703,6 +724,7 @@ export class DashboardComponent extends BaseComponent {
   }
 
   private getFirstTextFilter(step: string): FilterField {
+    if (this.adminParties) return this.partyLookupFilters[0];
     for (const queryFilter of this.getQueryFilters(step)) {
       if (queryFilter.filterType == 'text' && !_isEmpty(queryFilter.filterFields)) {
         return queryFilter.filterFields[0];
@@ -718,6 +740,9 @@ export class DashboardComponent extends BaseComponent {
         filterFields.push(...(queryFilter.filterFields ?? []));
       }
     }
+    if (this.adminParties) {
+      return [...this.partyLookupFilters, ...filterFields.filter(field => !this.partyLookupFilters.some(item => item.path === field.path))];
+    }
     return filterFields;
   }
 
@@ -725,7 +750,7 @@ export class DashboardComponent extends BaseComponent {
     return this.stepState[step]?.filterField?.name ?? this.defaultFilterField.name;
   }
 
-  private getFilterFieldPath(step: string): string {
+  public getFilterFieldPath(step: string): string {
     return this.stepState[step]?.filterField?.path ?? this.defaultFilterField.path;
   }
 
@@ -809,6 +834,20 @@ export class DashboardComponent extends BaseComponent {
     } finally {
       this.isSearching[step] = '';
     }
+  }
+
+  public selectAdminFilter(step: string, path: string): void {
+    const field = this.getTextFilters(step).find(item => item.path === path);
+    if (field) this.setFilterField(step, field, null);
+  }
+
+  public partyPageStart(step: string): number {
+    const page = this.records[step];
+    return page?.totalItems ? ((page.currentPage || 1) - 1) * this.getRowsPerPage(step) + 1 : 0;
+  }
+
+  public partyPageEnd(step: string): number {
+    return this.records[step]?.totalItems ? this.partyPageStart(step) + this.records[step].items.length - 1 : 0;
   }
 
   public setFilterField(step: string, filterField: FilterField, e: any) {

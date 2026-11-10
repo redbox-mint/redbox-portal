@@ -1,121 +1,96 @@
 @if (isReady) {
   <div class="report-config-app">
-    <div class="page-header">
-      <h1>{{ 'reports-heading' | i18next }}</h1>
-      <p>{{ (isAdmin ? 'reports-description-admin' : 'reports-description-librarian') | i18next }}</p>
+    <div [attr.inert]="selectedReport || pendingDelete ? '' : null">
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+      <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+      <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'reports-heading' | i18next }}</span></li>
+    </ol></nav>
+    <header class="rb-admin-page-header">
+      <div><h1>{{ 'reports-heading' | i18next }}</h1><p>{{ 'admin-reports-description' | i18next }}</p></div>
+      <div class="rb-admin-page-actions">
+        <a class="btn btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query'">{{ 'admin-nav-named-query' | i18next }}</a>
+        <button class="btn btn-primary" type="button" (click)="createReport()"><span aria-hidden="true">+</span> {{ 'report-create' | i18next }}</button>
+      </div>
+    </header>
+    @if (errorMessage && !selectedReport && !pendingDelete) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }
+    <div class="rb-admin-stats">
+      <div class="rb-admin-stat"><b>{{ totalReports }}</b><span>{{ 'report-stat-total' | i18next }}</span></div>
+      <div class="rb-admin-stat"><b>{{ databaseReports }}</b><span>{{ 'report-source-database' | i18next }}</span></div>
+      <div class="rb-admin-stat"><b>{{ solrReports }}</b><span>{{ 'report-source-solr' | i18next }}</span></div>
     </div>
-
-    @if (errorMessage) {
-      <div class="alert alert-danger">{{ errorMessage }}</div>
+    <section class="card">
+      <div class="card-header"><h2>{{ 'report-configured-reports' | i18next }}</h2><span>{{ filteredReports.length }} / {{ totalReports }}</span></div>
+      <div class="rb-admin-filter-bar">
+        <div class="rb-admin-field rb-admin-field-grow"><label for="report-search">{{ 'named-query-search' | i18next }}</label>
+          <input id="report-search" class="form-control" type="search" [placeholder]="'report-search-placeholder' | i18next" [(ngModel)]="searchText" (ngModelChange)="applyFilter()"></div>
+        <div class="rb-admin-field rb-admin-segmented-field"><label id="report-source-label">{{ 'report-col-source' | i18next }}</label>
+          <div class="rb-admin-segmented" role="group" aria-labelledby="report-source-label">
+            @for (source of sources; track source) { <button class="btn btn-outline-secondary" type="button" [attr.aria-pressed]="sourceFilter === source" (click)="setSourceFilter(source)">{{ ('report-source-' + source) | i18next }}</button> }
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive"><table class="table table-hover">
+        <thead><tr><th>{{ 'admin-report-column' | i18next }}</th><th>{{ 'report-col-source' | i18next }}</th>
+          @if (hasNamedQueries) { <th>{{ 'report-field-named-query' | i18next }}</th> }
+          <th class="text-end">{{ 'report-col-filters' | i18next }}</th><th class="text-end">{{ 'report-col-columns' | i18next }}</th><th class="text-end">{{ 'report-col-actions' | i18next }}</th></tr></thead>
+        <tbody>
+          @for (report of filteredReports; track report.name) {
+            <tr><td><a [href]="openReport(report)"><b>{{ report.title }}</b></a><code class="rb-admin-sub">{{ report.name }}</code></td>
+              <td><span class="badge rb-admin-badge-primary">{{ report.reportSource }}</span> @if (report.readOnly) { <span class="rb-admin-sub">{{ 'report-state-readonly' | i18next }}</span> }</td>
+              @if (hasNamedQueries) { <td><a [href]="brandingAndPortalUrl + '/admin/named-query'"><code>{{ report.databaseQuery?.queryName || '—' }}</code></a></td> }
+              <td class="text-end">{{ report.filter.length }}</td><td class="text-end">{{ report.columns.length }}</td>
+              <td><div class="rb-admin-row-actions">
+                <a class="btn btn-sm btn-outline-secondary" [href]="openReport(report)">{{ 'admin-report-run' | i18next }}</a>
+                <button class="btn btn-sm rb-admin-ghost" type="button" [disabled]="report.readOnly || !report.canEdit" (click)="editReport(report)">{{ 'report-action-edit' | i18next }}</button>
+                <details class="rb-admin-overflow" #actions (keydown.escape)="actions.open = false"><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: report.title }">⋯</summary>
+                  <div><button class="btn btn-sm btn-outline-danger" type="button" [disabled]="report.readOnly || !report.canDelete" (click)="requestDelete(report); actions.open = false">{{ 'report-action-delete' | i18next }}</button></div>
+                </details>
+              </div></td></tr>
+          }
+        </tbody>
+      </table></div>
+      @if (filteredReports.length === 0) { <div class="rb-admin-empty"><i class="fa fa-search" aria-hidden="true"></i><h3>{{ 'report-none-found' | i18next }}</h3></div> }
+      <div class="card-footer">{{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}</div>
+    </section>
+    </div>
+    @if (pendingDelete) {
+      <div class="modal-backdrop fade show"></div>
+      <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="report-delete-title" aria-describedby="report-delete-description" (keydown.escape)="cancelDelete()">
+        <div class="modal-dialog modal-dialog-centered" cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+          <div class="modal-header"><h2 class="modal-title" id="report-delete-title">{{ 'admin-report-delete-title' | i18next }}</h2><button class="btn-close" type="button" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelDelete()"></button></div>
+          <div class="modal-body"><p id="report-delete-description">{{ 'admin-report-delete-confirm' | i18next: { name: pendingDelete.title } }}</p>@if (errorMessage) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }</div>
+          <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial (click)="cancelDelete()">{{ 'report-cancel' | i18next }}</button><button class="btn rb-admin-danger-confirm" type="button" (click)="deleteReport(pendingDelete)">{{ 'report-action-delete' | i18next }}</button></div>
+        </div></div>
+      </div>
     }
-
-    <div class="report-toolbar">
-      <button class="btn btn-primary" type="button" (click)="createReport()"><i class="fa fa-plus"></i> {{ 'report-create' | i18next }}</button>
-      <a class="btn btn-info" [href]="brandingAndPortalUrl + '/admin/named-query'"><i class="fa fa-list"></i> {{ 'report-manage-named-queries' | i18next }}</a>
-    </div>
-
-    <div class="report-stats">
-      <div class="report-stat-card">
-        <div class="report-stat-value">{{ totalReports }}</div>
-        <div class="report-stat-label">{{ 'report-stat-total' | i18next }}</div>
-      </div>
-      <div class="report-stat-card">
-        <div class="report-stat-value">{{ databaseReports }}</div>
-        <div class="report-stat-label">{{ 'report-stat-database' | i18next }}</div>
-      </div>
-      <div class="report-stat-card">
-        <div class="report-stat-value">{{ solrReports }}</div>
-        <div class="report-stat-label">{{ 'report-stat-solr' | i18next }}</div>
-      </div>
-    </div>
-
-    <div class="panel panel-default">
-      <div class="panel-heading clearfix">
-        <span class="panel-title pull-left">{{ 'report-configured-reports' | i18next }}</span>
-        <div class="btn-group pull-right report-source-filter" role="group">
-          <button class="btn btn-xs" type="button" [class.btn-primary]="sourceFilter === 'all'" [class.btn-default]="sourceFilter !== 'all'" (click)="setSourceFilter('all')">{{ 'report-source-all' | i18next }}</button>
-          <button class="btn btn-xs" type="button" [class.btn-primary]="sourceFilter === 'database'" [class.btn-default]="sourceFilter !== 'database'" (click)="setSourceFilter('database')">{{ 'report-source-database' | i18next }}</button>
-          <button class="btn btn-xs" type="button" [class.btn-primary]="sourceFilter === 'solr'" [class.btn-default]="sourceFilter !== 'solr'" (click)="setSourceFilter('solr')">{{ 'report-source-solr' | i18next }}</button>
-        </div>
-      </div>
-      <div class="panel-body report-search-bar">
-        <div class="report-search-input">
-          <i class="fa fa-search"></i>
-          <input class="form-control" type="search" [placeholder]="'report-search-placeholder' | i18next" [(ngModel)]="searchText" (ngModelChange)="applyFilter()">
-        </div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-striped table-hover">
-          <thead>
-            <tr>
-              <th>{{ 'report-col-title' | i18next }}</th>
-              <th>{{ 'report-col-name' | i18next }}</th>
-              <th>{{ 'report-col-source' | i18next }}</th>
-              <th class="text-center">{{ 'report-col-filters' | i18next }}</th>
-              <th class="text-center">{{ 'report-col-columns' | i18next }}</th>
-              <th class="text-right">{{ 'report-col-actions' | i18next }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (report of filteredReports; track report.name) {
-              <tr>
-                <td><a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next">{{ report.title }}</a></td>
-                <td><a [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"><code>{{ report.name }}</code></a></td>
-                <td>
-                  {{ report.reportSource }}
-                  @if (report.readOnly) {
-                    <span class="label label-default">{{ 'report-state-readonly' | i18next }}</span>
-                  }
-                </td>
-                <td class="text-center">{{ report.filter.length }}</td>
-                <td class="text-center">{{ report.columns.length }}</td>
-                <td class="text-right report-actions">
-                  <button class="btn btn-xs btn-default" type="button" [disabled]="report.readOnly" (click)="editReport(report)" [attr.title]="'report-action-edit' | i18next"><i class="fa fa-pencil"></i> {{ 'report-action-edit' | i18next }}</button>
-                  <a class="btn btn-xs btn-default" [href]="openReport(report)" [attr.title]="'report-action-view' | i18next"><i class="fa fa-eye"></i> {{ 'report-action-view' | i18next }}</a>
-                  <button class="btn btn-xs btn-danger" type="button" [disabled]="report.readOnly" (click)="deleteReport(report)" [attr.title]="'report-action-delete' | i18next"><i class="fa fa-trash"></i> {{ 'report-action-delete' | i18next }}</button>
-                </td>
-              </tr>
-            }
-            @if (filteredReports.length === 0) {
-              <tr>
-                <td colspan="6" class="text-center text-muted">{{ 'report-none-found' | i18next }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      <div class="panel-footer report-pagination">
-        {{ 'report-showing' | i18next: { count: filteredReports.length, total: totalReports } }}
-      </div>
-    </div>
-
     @if (selectedReport) {
-      <div class="modal-backdrop in"></div>
-      <div class="modal report-config-modal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-backdrop fade show"></div>
+      <div class="modal report-config-modal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="report-editor-title" (keydown.escape)="cancelEdit()">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
           <div class="modal-content">
             <div class="modal-header">
-              <button type="button" class="close" aria-label="Close" (click)="cancelEdit()"><span aria-hidden="true">&times;</span></button>
-              <h4 class="modal-title">{{ (selectedReport.name ? 'report-edit-title' : 'report-create-title') | i18next }}</h4>
+              <button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelEdit()"></button>
+              <h2 class="modal-title" id="report-editor-title">{{ (!isNewReport ? 'report-edit-title' : 'report-create-title') | i18next }}</h2>
             </div>
             <div class="modal-body">
-              <div class="row report-detail-grid">
-                <div class="form-group col-sm-3">
+              @if (errorMessage) { <div class="alert alert-danger" role="alert">{{ errorMessage }}</div> }
+              <section class="rb-admin-form-section"><div class="rb-admin-form-section-header"><h3>{{ 'admin-report-details' | i18next }}</h3></div><div class="rb-admin-form-section-body rb-admin-form-grid">
+                <div class="rb-admin-field">
                   <label class="required" for="report-name">{{ 'report-field-key' | i18next }}</label>
                   <input id="report-name" class="form-control" type="text" [(ngModel)]="selectedReport.name" [disabled]="isExistingReport()">
                 </div>
-                <div class="form-group col-sm-3">
+                <div class="rb-admin-field">
                   <label class="required" for="report-title">{{ 'report-field-title' | i18next }}</label>
                   <input id="report-title" class="form-control" type="text" [(ngModel)]="selectedReport.title">
                 </div>
-                <div class="form-group col-sm-3">
+                <div class="rb-admin-field">
                   <label class="required" for="report-source">{{ 'report-field-source' | i18next }}</label>
                   <select id="report-source" class="form-control" [(ngModel)]="selectedReport.reportSource" disabled>
                     <option value="database">{{ 'report-source-database' | i18next }}</option>
                     <option value="solr">{{ 'report-source-solr' | i18next }}</option>
                   </select>
                 </div>
-                <div class="form-group col-sm-3">
+                <div class="rb-admin-field">
                   <label class="required" for="report-named-query">{{ 'report-field-named-query' | i18next }}</label>
                   <select id="report-named-query" class="form-control" [(ngModel)]="selectedReport.databaseQuery!.queryName">
                     <option value="">{{ 'report-named-query-placeholder' | i18next }}</option>
@@ -124,10 +99,10 @@
                     }
                   </select>
                 </div>
-              </div>
+              </div></section>
 
-              <fieldset>
-                <legend>{{ 'report-section-filters' | i18next }}</legend>
+              <fieldset class="rb-admin-form-section">
+                <legend class="rb-admin-form-section-header">{{ 'report-section-filters' | i18next }}</legend>
                 <div class="table-responsive">
                   <table class="table report-editor-table">
                     <thead>
@@ -143,23 +118,23 @@
                       @for (filter of selectedReport.filter; track trackByIndex($index)) {
                         <tr>
                           <td>
-                            <select class="form-control" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
+                            <select class="form-control" [attr.aria-label]="'report-filter-type' | i18next" [(ngModel)]="filter.type" (ngModelChange)="filterTypeChanged(filter)">
                               <option value="text">{{ 'report-filter-type-text' | i18next }}</option>
                               <option value="date-range">{{ 'report-filter-type-date-range' | i18next }}</option>
                             </select>
                           </td>
-                          <td><input class="form-control" type="text" [(ngModel)]="filter.paramName"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'report-filter-parameter' | i18next" [(ngModel)]="filter.paramName"></td>
                           <td>
                             @if (filter.type === 'date-range' && filter.database) {
-                              <input class="form-control report-editor-stacked" type="text" [placeholder]="'report-filter-from-property' | i18next" [(ngModel)]="filter.database.fromProperty">
-                              <input class="form-control" type="text" [placeholder]="'report-filter-to-property' | i18next" [(ngModel)]="filter.database.toProperty">
+                              <input class="form-control report-editor-stacked" type="text" [placeholder]="'report-filter-from-property' | i18next" [attr.aria-label]="'report-filter-from-property' | i18next" [(ngModel)]="filter.database.fromProperty">
+                              <input class="form-control" type="text" [placeholder]="'report-filter-to-property' | i18next" [attr.aria-label]="'report-filter-to-property' | i18next" [(ngModel)]="filter.database.toProperty">
                             } @else {
-                              <input class="form-control" type="text" [(ngModel)]="filter.property">
+                              <input class="form-control" type="text" [attr.aria-label]="'report-filter-property' | i18next" [(ngModel)]="filter.property">
                             }
                           </td>
-                          <td><input class="form-control" type="text" [(ngModel)]="filter.message"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'report-filter-label' | i18next" [(ngModel)]="filter.message"></td>
                           <td class="text-center">
-                            <button class="btn btn-xs btn-danger" type="button" (click)="removeFilter($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeFilter($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
                           </td>
                         </tr>
                       }
@@ -169,11 +144,11 @@
                     </tbody>
                   </table>
                 </div>
-                <button class="btn btn-default btn-sm" type="button" (click)="addFilter()"><i class="fa fa-plus"></i> {{ 'report-add-filter' | i18next }}</button>
+                <button class="btn btn-default btn-sm" type="button" (click)="addFilter()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-filter' | i18next }}</button>
               </fieldset>
 
-              <fieldset>
-                <legend>{{ 'report-section-columns' | i18next }}</legend>
+              <fieldset class="rb-admin-form-section">
+                <legend class="rb-admin-form-section-header">{{ 'report-section-columns' | i18next }}</legend>
                 <div class="table-responsive">
                   <table class="table report-editor-table">
                     <thead>
@@ -188,12 +163,12 @@
                     <tbody>
                       @for (column of selectedReport.columns; track trackByIndex($index)) {
                         <tr>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.label"></td>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.property"></td>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.template"></td>
-                          <td><input class="form-control" type="text" [(ngModel)]="column.exportTemplate"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-label' | i18next" [(ngModel)]="column.label"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-property' | i18next" [(ngModel)]="column.property"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-display-template' | i18next" [(ngModel)]="column.template"></td>
+                          <td><input class="form-control" type="text" [attr.aria-label]="'report-column-export-template' | i18next" [(ngModel)]="column.exportTemplate"></td>
                           <td class="text-center">
-                            <button class="btn btn-xs btn-danger" type="button" (click)="removeColumn($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeColumn($index)" [attr.aria-label]="'report-action-remove' | i18next"><i class="fa fa-times" aria-hidden="true"></i></button>
                           </td>
                         </tr>
                       }
@@ -203,27 +178,27 @@
                     </tbody>
                   </table>
                 </div>
-                <button class="btn btn-default btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus"></i> {{ 'report-add-column' | i18next }}</button>
+                <button class="btn btn-default btn-sm" type="button" (click)="addColumn()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'report-add-column' | i18next }}</button>
               </fieldset>
 
               @if (selectedReport.filter.length > 0) {
-                <fieldset>
-                  <legend>{{ 'report-preview-filters' | i18next }}</legend>
+                <fieldset class="rb-admin-form-section">
+                  <legend class="rb-admin-form-section-header">{{ 'report-preview-filters' | i18next }}</legend>
                   <div class="row">
                     @for (filter of selectedReport.filter; track trackByIndex($index)) {
                       @if (filter.type === 'date-range') {
                         <div class="form-group col-sm-6">
-                          <label>{{ filter.message || filter.paramName }} {{ 'report-filter-date-from' | i18next }}</label>
-                          <input class="form-control" type="date" [(ngModel)]="previewFilterValues[filter.paramName + '_fromDate']">
+                          <label [attr.for]="'preview-' + filter.paramName + '_fromDate'">{{ filter.message || filter.paramName }} {{ 'report-filter-date-from' | i18next }}</label>
+                          <input class="form-control" type="date" [id]="'preview-' + filter.paramName + '_fromDate'" [(ngModel)]="previewFilterValues[filter.paramName + '_fromDate']">
                         </div>
                         <div class="form-group col-sm-6">
-                          <label>{{ filter.message || filter.paramName }} {{ 'report-filter-date-to' | i18next }}</label>
-                          <input class="form-control" type="date" [(ngModel)]="previewFilterValues[filter.paramName + '_toDate']">
+                          <label [attr.for]="'preview-' + filter.paramName + '_toDate'">{{ filter.message || filter.paramName }} {{ 'report-filter-date-to' | i18next }}</label>
+                          <input class="form-control" type="date" [id]="'preview-' + filter.paramName + '_toDate'" [(ngModel)]="previewFilterValues[filter.paramName + '_toDate']">
                         </div>
                       } @else {
                         <div class="form-group col-sm-6">
-                          <label>{{ filter.message || filter.paramName }}</label>
-                          <input class="form-control" type="text" [(ngModel)]="previewFilterValues[filter.paramName]">
+                          <label [attr.for]="'preview-' + filter.paramName">{{ filter.message || filter.paramName }}</label>
+                          <input class="form-control" type="text" [id]="'preview-' + filter.paramName" [(ngModel)]="previewFilterValues[filter.paramName]">
                         </div>
                       }
                     }
@@ -237,7 +212,7 @@
             </div>
             <div class="modal-footer">
               <button class="btn btn-default" type="button" (click)="cancelEdit()">{{ 'report-cancel' | i18next }}</button>
-              <button class="btn btn-default" type="button" [disabled]="isPreviewing" (click)="previewReport()"><i class="fa fa-eye"></i> {{ 'report-preview' | i18next }}</button>
+              <button class="btn btn-default" type="button" [disabled]="isPreviewing" (click)="previewReport()"><i class="fa fa-eye" aria-hidden="true"></i> {{ 'report-preview' | i18next }}</button>
               <button class="btn btn-primary" type="button" [disabled]="isSaving" (click)="saveReport()">{{ 'report-save' | i18next }}</button>
             </div>
           </div>

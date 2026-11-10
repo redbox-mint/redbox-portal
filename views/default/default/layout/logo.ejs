@@ -4,11 +4,13 @@
     <% const logoHeadingText = TranslationService.t(logoHeadingKey); %>
     <%# t() falls back to the key name when the bundle has no translation, so treat that as "unset" %>
     <% const hasLogoHeadingText = logoHeadingText && logoHeadingText !== logoHeadingKey && logoHeadingText.trim(); %>
-    <h1<% if (hasLogoHeadingText) { %> class="logo-with-heading"<% } %>>
+    <% const adminPath = BrandingService.getBrandAndPortalPath(req) + '/admin'; %>
+    <% const adminLogo = req.path === adminPath || req.path.startsWith(adminPath + '/') || (typeof adminParties !== 'undefined' && adminParties); %>
+    <<%= adminLogo ? 'div' : 'h1' %><% if (adminLogo || hasLogoHeadingText) { %> class="<%= [adminLogo ? 'rb-admin-site-logo' : '', hasLogoHeadingText ? 'logo-with-heading' : ''].filter(Boolean).join(' ') %>"<% } %>>
       <img src="<%= BrandingService.getBrandAndPortalPath(req) %>/images/logo" alt="<%= TranslationService.t('logo-alt-text') %>"/>
       <% if (hasLogoHeadingText) { %>
         <span class="logo-heading-text"><%= logoHeadingText %></span>
       <% } %>
-    </h1>
+    </<%= adminLogo ? 'div' : 'h1' %>>
   </div>
 </div>

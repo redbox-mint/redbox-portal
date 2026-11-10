@@ -1,0 +1,171 @@
+:host { display: block; min-width: 0; }
+.tx-languages { min-width: 520px; }
+.tx-languages .form-switch { margin: 0; }
+.tx-languages .badge { margin-left: 6px; }
+.tx-data-table { table-layout: fixed; min-width: 700px; }
+.tx-col-cat { width: 17%; }
+.tx-col-key { width: 32%; }
+.tx-col-act { width: 122px; }
+.tx-data-table code { overflow-wrap: anywhere; }
+.tx-cell-val { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; line-height: 1.45; }
+.tx-sort { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.tx-sort .fa { color: var(--admin-muted); font-size: 11px; }
+.tx-key-help { padding: 0 4px; }
+.tx-pagination-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tx-pagination-controls label { margin: 0; white-space: nowrap; }
+.modal-title { overflow-wrap: anywhere; }
+.tx-modal-key { font-family: monospace; font-size: .85em; background: var(--admin-surface); color: var(--admin-ink); padding: 2px 6px; }
+.tx-modal-desc { padding: 10px 12px; border-left: 3px solid var(--admin-brand); background: var(--admin-surface); }
+.tx-editor-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.modal-body .form-group + .form-group { margin-top: 16px; }
+    .tx-toolbar-rich {
+      display: flex;
+      align-items: center;
+      gap: 0.15rem;
+      padding: 0.4rem 0.5rem;
+      background: var(--admin-surface);
+      border: 1px solid var(--admin-line);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      flex-wrap: wrap;
+    }
+    .tx-toolbar-rich--off { opacity: 0.5; pointer-events: none; }
+    .tx-toolbar-rich__divider {
+      width: 1px;
+      height: 18px;
+      background: var(--admin-line);
+      margin: 0 0.25rem;
+    }
+    .tx-tb-btn {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--admin-ink);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+    }
+    .tx-tb-btn:hover:not(:disabled) {
+      background: var(--admin-bg);
+      border-color: var(--admin-line);
+      color: var(--admin-brand);
+    }
+    .tx-tb-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .tx-tb-btn:focus-visible {
+      outline: 2px solid var(--admin-brand);
+      outline-offset: 1px;
+    }
+    .tx-rich {
+      border: 1px solid var(--admin-line);
+      border-radius: 0 0 4px 4px;
+      background: var(--admin-bg);
+    }
+    :host ::ng-deep .tx-rich .ProseMirror {
+      min-height: 220px;
+      max-height: 50vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 0.85rem 1rem;
+      outline: none;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--admin-ink);
+    }
+    :host ::ng-deep .tx-rich .ProseMirror > *:first-child { margin-top: 0; }
+    :host ::ng-deep .tx-rich .ProseMirror > *:last-child { margin-bottom: 0; }
+    :host ::ng-deep .tx-rich .ProseMirror p { margin: 0 0 0.55rem; }
+    :host ::ng-deep .tx-rich .ProseMirror h1,
+    :host ::ng-deep .tx-rich .ProseMirror h2,
+    :host ::ng-deep .tx-rich .ProseMirror h3 {
+      font-weight: 700;
+      margin: 0.85rem 0 0.45rem;
+      color: var(--admin-heading);
+    }
+    :host ::ng-deep .tx-rich .ProseMirror h2 { font-size: 20px; }
+    :host ::ng-deep .tx-rich .ProseMirror ul,
+    :host ::ng-deep .tx-rich .ProseMirror ol {
+      padding-left: 1.4rem;
+      margin: 0 0 0.55rem;
+    }
+    :host ::ng-deep .tx-rich .ProseMirror li { margin: 0.1rem 0; }
+    :host ::ng-deep .tx-rich .ProseMirror table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin: 0.6rem 0;
+    }
+    :host ::ng-deep .tx-rich .ProseMirror th,
+    :host ::ng-deep .tx-rich .ProseMirror td {
+      border: 1px solid var(--admin-line);
+      padding: 0.45rem 0.55rem;
+      vertical-align: top;
+    }
+    :host ::ng-deep .tx-rich .ProseMirror th:not([class]) {
+      background: var(--admin-surface);
+      font-weight: 600;
+      text-align: left;
+    }
+    :host ::ng-deep .tx-rich .ProseMirror a {
+      color: var(--admin-brand);
+      text-decoration: underline;
+    }
+    :host ::ng-deep .tx-rich .ProseMirror blockquote {
+      margin: 0.6rem 0;
+      padding-left: 0.85rem;
+      border-left: 3px solid var(--admin-line);
+      color: var(--admin-muted);
+    }
+    :host ::ng-deep .tx-rich .ProseMirror code {
+      background: var(--admin-surface);
+      padding: 0.05rem 0.3rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+      font-family: 'Consolas', 'Menlo', monospace;
+    }
+    .tx-input-source {
+      width: 100%;
+      min-height: 220px;
+      padding: 0.65rem 0.85rem;
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--admin-ink);
+      border: 1px solid var(--admin-line);
+      border-radius: 0 0 4px 4px;
+      border-top: none;
+      resize: vertical;
+    }
+    .tx-input-source--plain {
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .tx-input-source:focus {
+      outline: none;
+      border-color: var(--admin-brand);
+      box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--admin-brand) 18%, transparent);
+    }
+
+.tx-input-source--plain { border-top: 1px solid var(--admin-line); border-radius: var(--admin-radius); }
+
+.tx-languages .form-switch { display: flex; align-items: center; gap: 8px; padding-left: 0; }
+.tx-languages .form-check-input { float: none; margin: 0; width: 2.4em; height: 1.3em; }
+.tx-languages .form-check-input:checked { background-color: var(--admin-success); border-color: var(--admin-success); }
+.tx-languages .form-check-label { margin: 0; }
+
+// The legacy theme sets pagination to inline-block. Keep the shared pager horizontal.
+.tx-pagination-controls .pagination { display: flex; padding: 0; margin: 0; }
+.tx-pagination-controls .page-link { min-width: 32px; padding: 5px 8px; }
+
+.tx-row-missing { background: var(--admin-surface); }
+.tx-translated { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.tx-import-counts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 991px) { .tx-import-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 575px) { .tx-import-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tx-import-diff { table-layout: fixed; min-width: 560px; }
+.tx-import-diff td { overflow-wrap: anywhere; white-space: pre-wrap; }

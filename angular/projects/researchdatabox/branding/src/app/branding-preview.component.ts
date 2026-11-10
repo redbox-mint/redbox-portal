@@ -36,6 +36,8 @@ declare global {
       }
     `,
     `
+      .preview-sample-bold, .preview-sample-bold-italic { font-weight: 700; }
+      .preview-sample-italic, .preview-sample-bold-italic { font-style: italic; }
       .mainmenu-area ul.navbar-nav li a,
       .mainmenu-area ul.navbar-nav li a:hover {
         text-decoration: none !important;
@@ -55,6 +57,7 @@ declare global {
 export class BrandingPreviewComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() baseCssHref?: string | null;
   @Input() cssHref?: string | null;
+  @Input() faviconSrc?: string | null;
   @Input() logoSrc?: string | null;
   /** Unsaved local sample text from the admin component; never sent to the server. */
   @Input() sampleText?: string | null;

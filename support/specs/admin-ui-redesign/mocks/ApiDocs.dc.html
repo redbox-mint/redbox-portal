@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>API docs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="api" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Developer</span><span>/</span><span>API docs</span></nav>
+      <header class="ph">
+        <div><h1>API docs</h1><p>REST API reference for this brand and portal. Requests need an API key; manage keys per user.</p></div>
+        <div class="ph-actions"><a class="btn btn-secondary" href="#">openapi.json</a><a class="btn btn-secondary" href="#">YAML</a><a class="btn btn-primary" href="Users.dc.html">Get an API key</a></div>
+      </header>
+
+      <div class="split">
+        <nav class="split-nav" aria-label="API sections">
+          <div style="padding: 6px 12px 10px"><label for="api-f" style="position: absolute; left: -9999px">Filter endpoints</label><input id="api-f" class="inp" placeholder="Filter endpoints…"></div>
+          <div class="grp">Endpoints</div>
+          <a href="#" class="on"><span>Records</span></a><a href="#"><span>Search</span></a><a href="#"><span>Users</span></a><a href="#"><span>Reports</span></a><a href="#"><span>Vocabularies</span></a><a href="#"><span>Harvest</span></a><a href="#"><span>Forms</span></a>
+        </nav>
+        <div class="split-main">
+          <div class="card">
+            <div class="card-h"><h2>Records</h2><span class="meta">Base path /default/rdmp/api</span></div>
+            <div class="tbl-wrap"><table class="tbl">
+              <tbody>
+                <tr><td style="width: 72px"><span class="badge info">GET</span></td><td class="mono">/records/metadata/{oid}</td><td class="small muted">[summary from OpenAPI]</td></tr>
+                <tr><td><span class="badge ok">POST</span></td><td class="mono">/records/metadata/{recordType}</td><td class="small muted">[summary from OpenAPI]</td></tr>
+                <tr><td><span class="badge warn">PUT</span></td><td class="mono">/records/metadata/{oid}</td><td class="small muted">[summary from OpenAPI]</td></tr>
+                <tr><td><span class="badge err">DELETE</span></td><td class="mono">/records/metadata/{oid}</td><td class="small muted">[summary from OpenAPI]</td></tr>
+              </tbody>
+            </table></div>
+            <div class="card-f"><span>The reference viewer renders here, embedded in the admin layout</span></div>
+          </div>
+          <div class="note">Since the rebuild, <span class="mono">/admin/api-docs</span> renders the reference, but it still uses <span class="mono">layout: false</span>: no header, no sidebar and no way back. Embedding it in the shell, and linking it from the sidebar under Developer, makes it findable and keeps navigation consistent. Endpoint rows above are placeholders.</div>
+        </div>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe, AdminDatePipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
@@ -102,6 +102,7 @@ describe('ManageUsersComponent', () => {
     auditRecords = cloneTestData(baseAuditRecords);
     configService = getStubConfigService();
     translationService = getStubTranslationService({
+      'admin-retry': 'Retry',
       'manage-users-audit-event-login': 'User logged in',
       'manage-users-audit-event-logout': 'User logged out',
       'manage-users-audit-event-disable': 'Admin disabled this account',
@@ -139,6 +140,7 @@ describe('ManageUsersComponent', () => {
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
+        AdminDatePipe,
         ModalModule.forRoot()
       ],
       providers: [
@@ -294,7 +296,7 @@ describe('ManageUsersComponent', () => {
     app.allUsers = usersData as any;
     app.filteredUsers = usersData as any;
     app.searchFilter.name = 'Local Admin';
-    app.onFilterChange();
+    await app.onFilterChange();
     expect(app.filteredUsers.length).toBeGreaterThan(0);
     expect(app.filteredUsers[0].name).toBe('Local Admin');
   });
@@ -707,9 +709,145 @@ describe('ManageUsersComponent', () => {
       { value: 'Local Admin', label: 'Local Admin', checked: true }
     ];
 
-    app.resetFilter();
+    await app.resetFilter();
 
     expect(app.filteredUsers.length).toBe(usersData.length);
-    expect(app.searchFilter.users[0].checked).toBeTrue();
+    expect(app.searchFilter.name).toBe('');
+    expect(app.roleFilter).toBe('');
   });
+  it('combines role and email filters and retains them after refreshing users', async () => {
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.roleFilter = 'Admin';
+    app.searchFilter.name = 'alias@example.com';
+    await app.onFilterChange();
+    expect(app.filteredUsers.length).toBe(0);
+    app.roleFilter = '';
+    await app.refreshUsers();
+    expect(app.filteredUsers.map(user => user.username)).toEqual(['alias']);
+    app.searchFilter.name = 'ADMIN';
+    await app.onFilterChange();
+    expect(app.filteredUsers.map(user => user.username)).toEqual(['admin']);
+  });
+
+  it('requires confirmation before disabling and keeps failures available for retry', async () => {
+    const app = createBareComponent();
+    const disable = spyOn(userService, 'disableUser').and.resolveTo({ status: false, message: 'Try again' });
+    app.requestUserAction('disable', usersData[0] as any);
+    expect(disable).not.toHaveBeenCalled();
+    await app.confirmUserAction();
+    expect(app.actionError).toBe('Try again');
+    expect(app.pendingUserAction).not.toBeNull();
+    expect(app.actionPending).toBeFalse();
+    disable.and.resolveTo({ status: true, message: '' });
+    await app.confirmUserAction();
+    expect(disable).toHaveBeenCalledWith('ABC123');
+  });
+
+  it('revokes the selected user key without changing another open user', async () => {
+    const app = createBareComponent();
+    const revoke = spyOn(userService, 'revokeKey').and.resolveTo({ status: true, message: '' });
+    const user = { ...usersData[0], token: 'issued-key' };
+    app.currentUser = { ...usersData[1], token: 'other-key' } as any;
+    app.requestUserAction('revoke', user as any);
+    expect(revoke).not.toHaveBeenCalled();
+    await app.confirmUserAction();
+    expect(user.token).toBe('');
+    expect(app.currentUser?.token).toBe('other-key');
+  });
+
+  it('keeps a delayed generated key associated with its requested user', async () => {
+    const app = createBareComponent();
+    app.currentUser = { ...usersData[0] } as any;
+    let finish: (result: any) => void = () => {};
+    spyOn(userService, 'genKey').and.returnValue(new Promise(resolve => finish = resolve));
+    const pending = app.genKey(usersData[0].id);
+    app.currentUser = { ...usersData[1], token: 'other-key' } as any;
+    finish({ status: true, message: 'generated-secret' });
+    await pending;
+    expect(app.currentUser?.token).toBe('other-key');
+    expect(app.showToken).toBeFalse();
+    expect(app.keyPending).toBeFalse();
+  });
+
+  it('reports a key generation failure and permits another request', async () => {
+    const app = createBareComponent();
+    app.currentUser = usersData[0] as any;
+    const generate = spyOn(userService, 'genKey').and.rejectWith(new Error('Generation failed'));
+    await app.genKey(usersData[0].id);
+    expect(app.updateDetailsMsg).toBe('Generation failed');
+    expect(app.keyPending).toBeFalse();
+    generate.and.resolveTo({ status: true, message: 'generated-secret' });
+    await app.genKey(usersData[0].id);
+    expect(app.currentUser?.token).toBe('generated-secret');
+    expect(app.showToken).toBeTrue();
+  });
+
+  it('uses the brand and portal path for the Admin breadcrumb', async () => {
+    userService.brandingAndPortalUrl = '/default/rdmp';
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    fixtures.push(fixture);
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-crumbs a').getAttribute('href')).toBe('/default/rdmp/admin');
+  });
+
+  it('waits for the detail modal to close before opening linked accounts or audit', () => {
+    const app = createBareComponent();
+    app.currentUser = usersData[0] as any;
+    const links = spyOn(app, 'manageLinks').and.resolveTo();
+    const audit = spyOn(app, 'viewAudit').and.resolveTo();
+    app.navigateFromDetails('links');
+    expect(links).not.toHaveBeenCalled();
+    app.onDetailsModalHidden();
+    expect(links).toHaveBeenCalledWith(usersData[0].username);
+    expect(app.detailsDestination).toBeNull();
+    app.navigateFromDetails('audit');
+    expect(audit).not.toHaveBeenCalled();
+    app.onDetailsModalHidden();
+    expect(audit).toHaveBeenCalledWith(app.currentUser!);
+  });
+
+  it('loads enabled methods and sends the sign-in filter to the server', async () => {
+    const { fixture, app } = await createComponent();
+    const read = spyOn(userService, 'getUsers').and.resolveTo(baseUsersData);
+    app.signInFilter = 'local';
+    await app.changeSignInFilter();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: false, signIn: 'local' });
+    expect(app.signInMethods).toEqual(['local', 'aaf', 'oidc']);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#manage-users-sign-in')).toBeTruthy();
+    await app.resetFilter();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: false });
+  });
+
+  it('renders last login in the table and account dialog, with Never when empty', async () => {
+    const { fixture, app } = await createComponent();
+    app.allUsers[0].lastLogin = '2026-11-06T01:02:03Z';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('06/11/2026');
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
+    app.editUser('admin'); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
+  });
+
+  it('uses server totals, filters and sort before paging, and discards older responses', async () => {
+    const { fixture, app } = await createComponent();
+    const result = { records: baseUsersData, summary: { numFound: 150, page: 2, start: 25 }, roleCounts: {} };
+    const read = spyOn(userService, 'getUserPage').and.resolveTo(result);
+    await app.changePage(2);
+    expect(app.totalPages).toBe(6); expect(app.pageStart).toBe(26);
+    app.roleFilter = 'Researcher'; app.searchFilter.name = 'test';
+    await app.onFilterChange();
+    expect(read).toHaveBeenCalledWith(jasmine.objectContaining({ page: 1, role: 'Researcher', query: 'test' }));
+    let resolve!: (value: any) => void;
+    read.and.returnValue(new Promise(done => resolve = done));
+    const pending = app.refreshUsers(1);
+    read.and.resolveTo({ ...result, summary: { numFound: 1, page: 1, start: 0 } });
+    await app.refreshUsers(1);
+    resolve(result); await pending;
+    expect(app.totalUsers).toBe(1);
+  });
+
 });

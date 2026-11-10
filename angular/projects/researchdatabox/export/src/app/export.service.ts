@@ -52,6 +52,16 @@ export class ExportService extends HttpClientService {
     return response.data;
   }
 
+  public async cancel(id: string): Promise<ExportJobDto> {
+    const response = await firstValueFrom(
+      this.http.post<{ data: ExportJobDto }>(`${this.brandingAndPortalUrl}/export/jobs/${encodeURIComponent(id)}/cancel`, {}, {
+        context: this.httpContext,
+        headers: { 'X-ReDBox-Api-Version': '2.0' }
+      })
+    );
+    return response.data;
+  }
+
   public async remove(id: string): Promise<void> {
     await firstValueFrom(
       this.http.delete<void>(`${this.brandingAndPortalUrl}/export/jobs/${encodeURIComponent(id)}`, {

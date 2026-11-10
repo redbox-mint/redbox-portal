@@ -12,6 +12,7 @@ export {
   HarvestRunEventsResult,
   HarvestRunListQuery,
   HarvestRunListResult,
+  HarvestRunStatistics,
   HarvestRunModel,
   HarvestRunStatus,
 } from './HarvestRunModel';
