@@ -10,6 +10,7 @@ import {
   type GraphQLOutputType,
 } from 'graphql';
 import type { ContractNode, RecordContract } from '../record-contract/types';
+import { hasWriteOnlyFields } from '../record-contract/read-visibility';
 
 export type ReadShape =
   | { readonly kind: 'string' | 'number' | 'integer' | 'boolean' }
@@ -49,20 +50,30 @@ function merge(left: ReadShape, right: ReadShape): ReadShape {
 }
 
 export function fromTree(node: ContractNode): ReadShape {
+  if (node.annotations?.writeOnly) return { kind: 'json', reason: 'restricted-shape' };
   switch (node.kind) {
     case 'scalar':
       return { kind: node.scalarType };
     case 'object':
       if (Object.keys(node.properties).length === 0) return { kind: 'json', reason: 'empty-object' };
+      if (Object.values(node.properties).every(child => child.annotations?.writeOnly))
+        return { kind: 'json', reason: 'restricted-shape' };
       return {
         kind: 'object',
-        properties: Object.fromEntries(Object.entries(node.properties).map(([key, child]) => [key, fromTree(child)])),
+        properties: Object.fromEntries(
+          Object.entries(node.properties)
+            .filter(([, child]) => !child.annotations?.writeOnly)
+            .map(([key, child]) => [key, fromTree(child)])
+        ),
       };
     case 'array':
       return { kind: 'array', items: fromTree(node.items) };
     case 'conditional': {
       const then = fromTree(node.thenNode);
-      return node.elseNode ? merge(then, fromTree(node.elseNode)) : then;
+      const combined = node.elseNode ? merge(then, fromTree(node.elseNode)) : then;
+      return combined.kind === 'json' && hasWriteOnlyFields(node)
+        ? { kind: 'json', reason: 'restricted-shape' }
+        : combined;
     }
     case 'any':
       return { kind: 'json', reason: node.reason ?? 'unconstrained' };
@@ -113,6 +124,8 @@ const IntegerScalar = new GraphQLScalarType({
 export interface WorkBudget {
   readonly consumeUnits: (count: number) => void;
   readonly consumeBytes: (count: number) => void;
+  /** Request-local sources whose opaque regions must not expose undeclared children. */
+  readonly declaredOnlySources?: WeakSet<object>;
 }
 
 /** Validate opaque regions before Yoga serializes them, with the same request budget. */
@@ -154,20 +167,31 @@ function boundedJson(value: unknown, budget: WorkBudget, ancestors = new Set<obj
   }
 }
 
-function checkValue(shape: ReadShape, value: unknown, budget: WorkBudget): unknown {
+function checkValue(shape: ReadShape, value: unknown, budget: WorkBudget, declaredOnly = false): unknown {
   budget.consumeUnits(1);
   if (value === undefined || value === null) return null;
   if (shape.kind === 'json') {
+    if (shape.reason === 'restricted-shape') return null;
+    if (declaredOnly)
+      throw new GraphQLError('Collection columns require declared metadata fields.', {
+        extensions: { code: 'UNDECLARED_METADATA' },
+      });
     return boundedJson(value, budget);
   }
-  if (shape.kind === 'object') return isObject(value) ? value : historicalValueError();
+  if (shape.kind === 'object') {
+    if (!isObject(value)) return historicalValueError();
+    if (!declaredOnly) return value;
+    const source = { ...value };
+    budget.declaredOnlySources?.add(source);
+    return source;
+  }
   if (shape.kind === 'array') {
     if (!Array.isArray(value)) return historicalValueError();
     if (value.length > 1_000)
       throw new GraphQLError('Stored list exceeds the item bound.', { extensions: { code: 'QUERY_LIMIT' } });
     // GraphQL completes each promise at its list index, preserving nullable
     // siblings and reporting historical errors at the item rather than the field.
-    return value.map(async item => checkValue(shape.items, item, budget));
+    return value.map(async item => checkValue(shape.items, item, budget, declaredOnly));
   }
   const valid =
     shape.kind === 'integer'
@@ -228,7 +252,12 @@ export function renderMetadata(shape: ReadShape, name: string): RenderedMetadata
                     // keys containing control characters or lone surrogates.
                     description: `Stored metadata pointer (JSON string): ${JSON.stringify(childPointer)}`,
                     resolve: (source: unknown, _args, context: WorkBudget) =>
-                      checkValue(child, isObject(source) && Object.hasOwn(source, key) ? source[key] : null, context),
+                      checkValue(
+                        child,
+                        isObject(source) && Object.hasOwn(source, key) ? source[key] : null,
+                        context,
+                        isObject(source) && context.declaredOnlySources?.has(source)
+                      ),
                   },
                 ];
               })
@@ -246,7 +275,8 @@ export function renderMetadata(shape: ReadShape, name: string): RenderedMetadata
           value: {
             type: JsonScalar,
             description: 'Opaque metadata for a form with no declared fields.',
-            resolve: (source: unknown, _args, context: WorkBudget) => boundedJson(source, context),
+            resolve: (source: unknown, _args, context: WorkBudget) =>
+              shape.kind === 'json' && shape.reason === 'restricted-shape' ? null : boundedJson(source, context),
           },
         },
       }),

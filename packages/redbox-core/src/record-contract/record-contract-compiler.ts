@@ -9,6 +9,7 @@ import type {
 } from '@researchdatabox/sails-ng-common';
 import { FormOverride, nothingLogger } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
+import { hasWriteOnlyFields } from './read-visibility';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
@@ -103,6 +104,8 @@ function forkCompilerState(state: CompilerState): CompilerState {
 
 /** Read contracts describe the union of stored shapes across UI variants. */
 function mergeReadNodes(left: ContractNode, right: ContractNode): ContractNode {
+  if (left.annotations?.writeOnly || right.annotations?.writeOnly)
+    return { ...left, annotations: { ...left.annotations, writeOnly: true } };
   if (left.kind === 'conditional') {
     return mergeReadNodes(left.elseNode ? mergeReadNodes(left.thenNode, left.elseNode) : left.thenNode, right);
   }
@@ -133,9 +136,20 @@ function mergeReadNodes(left: ContractNode, right: ContractNode): ContractNode {
   if (left.kind === 'array' && right.kind === 'array')
     return { kind: 'array', nullable, items: mergeReadNodes(left.items, right.items) };
   if (left.kind === 'scalar' && right.kind === 'scalar' && left.scalarType === right.scalarType) {
-    return { kind: 'scalar', nullable, scalarType: left.scalarType };
+    return {
+      kind: 'scalar',
+      nullable,
+      scalarType: left.scalarType,
+      annotations: left.annotations ?? right.annotations,
+      ...(left.enum && right.enum ? { enum: [...new Set([...left.enum, ...right.enum])] } : {}),
+    };
   }
-  return { kind: 'any', nullable: true, reason: 'incompatible-read-variants' };
+  return {
+    kind: 'any',
+    nullable: true,
+    reason: 'incompatible-read-variants',
+    ...(hasWriteOnlyFields(left) || hasWriteOnlyFields(right) ? { annotations: { writeOnly: true } } : {}),
+  };
 }
 
 function replaceRecord<T>(target: Record<string, T>, source: Readonly<Record<string, T>>): void {
@@ -745,7 +759,18 @@ export class RecordContractCompiler {
       contributionState.partial = true;
     }
     commitCompilerState(state, contributionState);
-    return [[fieldName, contribution.node]];
+    const label = asRecord(component.layout?.config).label ?? asRecord(component.component?.config).label;
+    const node =
+      request.fieldMode === 'read' && typeof label === 'string'
+        ? {
+            ...contribution.node,
+            annotations: {
+              ...contribution.node.annotations,
+              extensions: { ...contribution.node.annotations?.extensions, 'x-redbox-label': label },
+            },
+          }
+        : contribution.node;
+    return [[fieldName, node]];
   }
 
   private async compileReusable(

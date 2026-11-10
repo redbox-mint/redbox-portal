@@ -2,6 +2,10 @@
 
 This implementation promotes the shared-tree investigation into the core portal for authenticated external integrations. The [investigation](design.md), prototype, SDL and fixture evidence remain available. GraphQL was selected to support validated queries and typed clients; the investigation's REST projection comparison remains useful and does not establish a storage-read advantage. REST projection is outside this implementation.
 
+## Grid extension
+
+The endpoint now also provides bounded `records(...)` and authenticated `recordFields(...)` for a future visual query builder. The current contract, index migration prerequisites, workflow selections, cursor semantics and saved-grid IDs are documented in the wiki [Record GraphQL Grids](../../wiki/Record-GraphQL-Grids.md). This extension adds no UI or persistence and retains this investigation and its historical evidence. Collection execution uses live indexed capabilities and bounded candidate hydration through runtime record authorization; it returns no counts.
+
 ## Enablement and access
 
 The loader registers `RecordGraphqlService`, `webservice/RecordGraphqlController`, the `recordGraphql` configuration and a single `POST /:branding/:portal/api/graphql` action. Set the following in a deployment's local configuration or hook configuration:
@@ -121,3 +125,13 @@ The core build, strict GraphQL test type-check, **33 GraphQL tests**, and **159 
 ### Review round 1 corrections (2026-11-10)
 
 The first independent Codex Hub review identified four issues: field-free cyclic fragments could expand without consuming a bound; read contracts rejected legitimate edit/view duplicates; role-specific shapes retained only the first variant; and historical list-item errors discarded valid siblings. The fixes count all selection traversal steps and stop cycles, merge compatible read variants while keeping write compilation unchanged, use opaque nodes for incompatible variants, and complete list items independently. Regression coverage includes the checked-in related URL reusable definition, nested and repeatable role variants, indexed scalar/object/nested-list failures, and adversarial fragment graphs in an externally timed worker. Strict GraphQL type-check and all **41 GraphQL tests passed** after these fixes.
+
+## Grid extension validation — 2026-11-11
+
+The collection/catalogue extension passed **72 GraphQL tests** (including strict GraphQL source/test type-check), **223 targeted Solr/compiler/JSON Schema/route/policy regressions**, the record-schema test type-check, the core build, scoped Oxlint (zero warnings/errors), Prettier and `git diff --check`.
+
+The standard Docker mount harness passed **18 HTTP integration tests**, combining `test/integration/services/RecordGraphqlService.test.ts` and `test/integration/services/RecordGraphqlGrid.test.ts`. These use real Sails controller/policies, persisted bearer credentials/path rules, MongoDB record authorization and Solr schema/index/cursor queries. Coverage includes equal-value sorting, inaccessible intervening hits, exact/contains/IN/numeric/date/boolean/missing filters, executable catalogue selections, route denials, invalid requests and disabled behavior. Grid scalar additions to publication forms are synthetic; the original checked-in publication forms remain title-only stubs.
+
+The local dependency tree needed repair of existing pinned ReDoc peer and asset dependencies before the HTTP harness could run. No dependency manifests or lockfiles were changed for this extension. One discarded run overlapped a clean core build and could not load its temporarily absent compiled entry point; the successful run used a completed, stable build. No HTTP authorization or search layers were skipped in the successful run.
+
+The grid contract intentionally requires a shared cursor secret, protected index fields plus reindexing, and explicit verified metadata index mappings. Fields available in only some scoped variants remain columns but require narrower workflow scope for filtering/sorting. Metadata-index queries recheck the current stored form's registered read shape before page boundaries. Candidate scans are capped at 200 and fail rather than returning misleading pages. See the wiki contract for freshness, non-snapshot cursors, missing values, resource limits and saved-grid examples.
