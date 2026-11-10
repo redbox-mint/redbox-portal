@@ -2204,13 +2204,13 @@ describe('HarvestRunService', function () {
         expect(rewritten.harvestSource).to.equal(null);
         expect(runtime.storageService.updateMeta.firstCall.args[2].harvestSource).to.equal(null);
 
-        const auditCount = runtime.realRecordsService.queueService.now.callCount;
+        const auditCount = runtime.storageService.createRecordAudit.callCount;
         for (const replaySource of [source, restored.metadata]) {
           expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
           expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(restored);
         }
         expect(runtime.storageService.updateMeta.callCount).to.equal(2);
-        expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+        expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
         expect(runtime.persistedRecords.get(foreign[0].oid)).to.deep.equal(foreignBefore);
       });
 
@@ -2226,11 +2226,11 @@ describe('HarvestRunService', function () {
           applicationState: 'not-applied',
           nonApplicationReason: 'lifecycle-conflict',
         });
-        const auditCount = runtime.realRecordsService.queueService.now.callCount;
+        const auditCount = runtime.storageService.createRecordAudit.callCount;
 
         expect(await runtime.rewrite({ title: 'B', status: 'Draft', sourceMetadata: 'changed-source' })).to.equal(false);
         expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
-        expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+        expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
         for (const replaySource of [source, before.metadata]) {
           expect((await runtime.submit(replaySource))[0].message).to.include('skip update');
         }
@@ -2378,7 +2378,7 @@ describe('HarvestRunService', function () {
     expect(before.metadata.normalised_status).to.equal('approved');
     expect(before.harvestSource).to.include({ algorithm: 'redbox-legacy-harvest-source-v1', mode: 'replace' });
     expect(before.harvestSource.metadataHash).to.match(/^[a-f0-9]{64}$/);
-    const auditCount = runtime.realRecordsService.queueService.now.callCount;
+    const auditCount = runtime.storageService.createRecordAudit.callCount;
     expect(auditCount).to.be.greaterThan(0);
 
     clock.tick(60_000);
@@ -2399,7 +2399,7 @@ describe('HarvestRunService', function () {
     expect(runtime.storageService.create.calledOnce).to.equal(true);
     expect(runtime.storageService.updateMeta.notCalled).to.equal(true);
     expect(runtime.normalize.calledOnce).to.equal(true);
-    expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+    expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
   });
 
   it('persists legacy value, removal and array changes and skips each subsequent raw replay', async function () {
@@ -2432,10 +2432,10 @@ describe('HarvestRunService', function () {
         ...source,
         normalised_status: source.status === 'Completed' ? 'approved' : 'edit',
       });
-      const auditCount = runtime.realRecordsService.queueService.now.callCount;
+      const auditCount = runtime.storageService.createRecordAudit.callCount;
       expect((await runtime.submit(source))[0].message).to.include('skip update');
       expect(runtime.storageService.updateMeta.callCount).to.equal(index + 1);
-      expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+      expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
       expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(committed);
       previous = committed;
     }
@@ -2473,7 +2473,7 @@ describe('HarvestRunService', function () {
     expect(created[0].status).to.equal(true);
     const before = structuredClone(runtime.persistedRecords.get(created[0].oid));
     const changed = { ...source, status: 'Completed' };
-    const auditCount = runtime.realRecordsService.queueService.now.callCount;
+    const auditCount = runtime.storageService.createRecordAudit.callCount;
     runtime.storageService.updateMeta.onFirstCall().resolves({
       success: false,
       applicationState: 'not-applied',
@@ -2482,7 +2482,7 @@ describe('HarvestRunService', function () {
 
     expect((await runtime.submit(changed))[0].status).to.equal(false);
     expect(runtime.persistedRecords.get(created[0].oid)).to.deep.equal(before);
-    expect(runtime.realRecordsService.queueService.now.callCount).to.equal(auditCount);
+    expect(runtime.storageService.createRecordAudit.callCount).to.equal(auditCount);
     expect((await runtime.submit(changed))[0].status).to.equal(true);
     expect(runtime.storageService.updateMeta.callCount).to.equal(2);
     const committed = structuredClone(runtime.persistedRecords.get(created[0].oid));
