@@ -1,0 +1,29 @@
+meta {
+  name: Named queries - Non-record fields
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/editor/fields?collectionName=user&recordType={{queryEditorType}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Never attaches record metadata to user queries", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.fields).to.deep.equal([]);
+  });
+}

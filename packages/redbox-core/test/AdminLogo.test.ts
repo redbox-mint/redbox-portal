@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { static_assets } from '../src/config/static_assets.config';
 const ejs = require('ejs');
 let expect: Chai.ExpectStatic;
 
@@ -10,19 +11,33 @@ describe('Portal logo heading scope', () => {
   const render = (route: string, heading = '', adminParties = false, portalPath = '/default/rdmp',
     image: { logo?: object; logoName?: string } = {}) => ejs.render(template, {
     req: { path: portalPath + route }, adminParties,
-    sails: { config: { static_assets: { logoName: image.logoName || 'logo.png' } } },
+    sails: { config: { static_assets: { logoName: image.logoName || static_assets.logoName } } },
     BrandingService: { getBrandAndPortalPath: () => portalPath,
       getBrandNameFromReq: () => 'default', getBrand: () => ({ logo: image.logo }) },
     TranslationService: { t: (key: string) => key === 'logo-heading-text' ? heading : 'ReDBox Logo' }
   });
 
   it('reserves the default artwork ratio without imposing it on uploaded or replacement logos', () => {
-    expect(render('/admin')).to.contain('width="171" height="100"');
+    for (const route of ['/admin', '/researcher/home']) {
+      expect(render(route)).to.contain('width="171" height="100"');
+      expect(render(route, '', false, '/default/rdmp', { logoName: 'logo.png' }))
+        .to.contain('width="171" height="100"');
+    }
     for (const image of [{ logo: { storageKey: 'uploaded.svg' } }, { logoName: 'institution.png' }]) {
       const html = render('/admin', '', false, '/default/rdmp', image);
       expect(html).to.contain('src="/default/rdmp/images/logo"');
       expect(html).not.to.contain('width="171"');
     }
+  });
+
+  it('ships outlined default artwork while keeping the legacy PNG available', () => {
+    expect(static_assets.logoName).to.equal('logo.svg');
+    expect(static_assets.imageType).to.equal('image/svg+xml');
+    const svg = fs.readFileSync(path.resolve(__dirname, '../../../assets/images', static_assets.logoName), 'utf8');
+    expect(svg).to.contain('width="171" height="100"').and.contain('viewBox="0 0 614 359"');
+    expect(svg).to.contain('<path');
+    expect(svg).not.to.match(/<(?:image|text|script|foreignObject)\b|(?:href|url\()\s*["']?(?:https?:|data:)/i);
+    expect(fs.existsSync(path.resolve(__dirname, '../../../assets/images/logo.png'))).to.equal(true);
   });
 
   it('leaves the single page H1 to admin content and legacy admin Parties', () => {

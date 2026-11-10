@@ -1,0 +1,52 @@
+meta {
+  name: Named queries - Preview CSRF required
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "record",
+      "mongoQuery": {},
+      "queryParams": {
+        "createdAfter": {
+          "type": "date",
+          "path": "dateCreated",
+          "queryType": ">=",
+          "whenUndefined": "ignore"
+        }
+      },
+      "resultObjectMapping": {
+        "projectTitle": "record.metadata.title"
+      }
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  // The token setup stores an empty string only after a successful /csrfToken
+  // response without a token, as returned by the CSRF-disabled CI harness.
+  if (bru.getVar("queryEditorCsrf") === "") {
+    console.warn("Skipping CSRF rejection assertion: the test server has CSRF disabled.");
+  } else {
+    test("Rejects preview without CSRF", () => expect(res.getStatus()).to.equal(403));
+  }
+}

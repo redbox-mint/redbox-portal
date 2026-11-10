@@ -1,0 +1,32 @@
+meta {
+  name: Email templates - Context schema
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/context-schema?recordType={{emailSchemaType}}&stage={{emailSchemaStage}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Returns curated context with explicit precision", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(["record-schema", "form-config", "none"]).to.include(res.getBody().precision);
+    expect(res.getBody().schema.$schema).to.equal("https://json-schema.org/draft/2020-12/schema");
+    expect(res.getBody().contextKind).to.equal("record");
+    expect(res.getBody().schema.properties.record.properties).to.have.property("metadata");
+    expect(res.getBody().schema.properties.record.properties.redboxOid.description).to.equal("Legacy alias of record.oid");
+    expect(res.getBody().schema.properties.record.properties).not.to.have.property("authorization");
+  });
+}

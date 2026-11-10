@@ -1,0 +1,24 @@
+meta {
+  name: Email templates - Unknown schema stage
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/context-schema?recordType={{emailSchemaType}}&stage=unknown-stage
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Unknown stages return typed 400", () => { expect(res.getStatus()).to.equal(400); expect(res.getBody().error.code).to.equal("INVALID_SCHEMA_TARGET"); });
+}

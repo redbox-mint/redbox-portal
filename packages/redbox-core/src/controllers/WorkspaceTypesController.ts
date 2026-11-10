@@ -153,7 +153,8 @@ export namespace Controllers {
             primaryDisk.getBytes(logo),
             primaryDisk.getMetaData(logo).catch(() => null),
           ]);
-          res.contentType(metadata?.contentType || sails.config.static_assets.imageType);
+          // Preserve the legacy uploaded PNG fallback independently of the static SVG.
+          res.contentType(metadata?.contentType || 'image/png');
           return res.send(Buffer.from(bytes));
         } catch (_error) {
           sails.log.warn(

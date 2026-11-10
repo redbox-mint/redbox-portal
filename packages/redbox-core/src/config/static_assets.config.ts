@@ -11,8 +11,9 @@ export interface StaticAssetsConfig {
 }
 
 export const static_assets: StaticAssetsConfig = {
-    logoName: 'logo.png',
-    imageType: 'image/png',
+    // Outlined vector artwork from RedBox_Logo_Text.eps; retain logo.png for existing URLs.
+    logoName: 'logo.svg',
+    imageType: 'image/svg+xml',
     faviconName: 'favicon-32x32.png',
     faviconType: 'image/png'
 };

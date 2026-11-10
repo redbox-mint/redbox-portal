@@ -1,0 +1,21 @@
+meta {
+  name: Email templates - Preview frame anonymous denied
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{host}}{{emailFrameUrl}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+}
+
+
+tests {
+  test("Frame requires authenticated brand Admin", () => { expect(res.getStatus()).to.equal(403); });
+}
