@@ -37,6 +37,8 @@ export class StorageServiceResponse<TData = unknown> implements ActionResult {
   oid: string = '';
   message: string = '';
   data?: TData;
+  /** False when retrying the same payload cannot succeed. */
+  retryable?: boolean;
   metadata: Record<string, unknown> | null = null;
   details?: Record<string, unknown> | string;
   totalItems: number = 0;
