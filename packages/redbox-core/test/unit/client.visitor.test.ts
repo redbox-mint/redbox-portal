@@ -26,6 +26,68 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 
 describe('Client Visitor', async () => {
+  it('keeps opted-in view visibility rules through construction and client processing', async () => {
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+      formMode: 'view',
+      data: {
+        name: 'saved-visibility',
+        componentDefinitions: [
+          {
+            name: 'answer',
+            component: { class: 'SimpleInputComponent', config: {} },
+            model: { class: 'SimpleInputModel', config: {} },
+            expressions: [
+              { name: 'legacy', config: { target: 'component.visible', template: 'formData.answer' } },
+              {
+                name: 'saved',
+                config: {
+                  target: 'component.visible',
+                  template: 'runtimeContext.record.metadata.answer',
+                  runInViewMode: true,
+                  runOnFormReady: true,
+                },
+              },
+              { name: 'write', config: { target: 'model.value', template: '42', runInViewMode: true } },
+            ],
+          },
+        ],
+      },
+    });
+    const result = await new ClientFormConfigVisitor(consoleLogger).start({
+      form: constructed,
+      formMode: 'view',
+      userRoles: ['Researcher'],
+    });
+    expect(result.componentDefinitions[0].component.class).to.equal('ContentComponent');
+    expect(result.componentDefinitions[0].expressions).to.have.length(1);
+    expect(result.componentDefinitions[0].expressions?.[0]).to.deep.equal({
+      name: 'saved',
+      config: { target: 'component.visible', template: 'runtimeContext.record.metadata.answer', hasTemplate: true, runInViewMode: true, runOnFormReady: true },
+    });
+  });
+
+  for (const nested of [false, true]) {
+    for (const value of ['malformed-role-secret', [{ public: 'visible', restricted: 'malformed-role-secret' }], 42, null]) {
+      for (const mode of ['view', 'edit']) {
+        it(`round2 fails closed for malformed retained group nested=${nested}, mode=${mode}, value=${JSON.stringify(value)}`, async () => {
+          const { buildNestedViewForm, nestedViewFixture } = require('../fixtures/nested-view-metadata.fixtures');
+          const { data, metadata } = nestedViewFixture(true);
+          if (nested) metadata.parent.nested = value;
+          else metadata.parent = value;
+          const form = await buildNestedViewForm(data, mode, ['Researcher'], metadata);
+          const parent = form.componentDefinitions[0];
+          const group = nested ? parent.component.config.componentDefinitions.find(field => field.name === 'nested') : parent;
+          if (mode === 'view') {
+            expect(group.model.config).not.to.have.property('value');
+            expect(JSON.stringify(form)).not.to.contain('malformed-role-secret');
+          } else {
+            expect(group.model.config.value).to.deep.equal(value);
+          }
+        });
+      }
+    }
+  }
+
   it('omits server-only validation operation policy from client form payloads', async function () {
     const constructVisitor = new ConstructFormConfigVisitor(consoleLogger);
     const constructed = await constructVisitor.start({
