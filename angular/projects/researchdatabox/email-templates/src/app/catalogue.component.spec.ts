@@ -54,7 +54,7 @@ describe('CatalogueComponent', () => {
   });
 
   it('offers Customise for untouched defaults and Edit otherwise', () => {
-    expect(row('publicationStaged').querySelector('button')!.textContent).toContain('email-templates-action-customise');
+    expect(row('publicationStaged').querySelector('[data-template-action="open"]')!.textContent).toContain('email-templates-action-customise');
     expect(row('publicationReview').querySelector('td:last-child button')!.textContent).toContain(
       'email-templates-action-edit'
     );
@@ -86,7 +86,7 @@ describe('CatalogueComponent', () => {
   it('opens the editor from the action button and the Default updated badge', () => {
     const opened: string[] = [];
     component.openTemplate.subscribe((id: string) => opened.push(id));
-    (row('publicationStaged').querySelector('button') as HTMLButtonElement).click();
+    (row('publicationStaged').querySelector('[data-template-action="open"]') as HTMLButtonElement).click();
     (row('publicationPublished').querySelector('.et-badge-button') as HTMLButtonElement).click();
     expect(opened).toEqual(['publicationStaged', 'publicationPublished']);
   });
@@ -154,4 +154,27 @@ describe('CatalogueComponent', () => {
       'email-templates-legend-attention'
     );
   });
+  it('opens a template from its name and records that control for return focus', () => {
+    const opened = jasmine.createSpy('opened');
+    component.openTemplate.subscribe(opened);
+    const name = row('publicationStaged').querySelector('.rb-admin-list-name') as HTMLButtonElement;
+    expect(name.type).toBe('button');
+    name.click();
+    expect(opened).toHaveBeenCalledWith('publicationStaged');
+    expect(component.openingAction).toBe('name');
+  });
+
+  it('clears combined filters from the empty state and returns focus to search', () => {
+    component.query = 'nothing matches';
+    component.filter = 'drafts';
+    fixture.detectChanges();
+    expect(rows().length).toBe(0);
+    (fixture.nativeElement.querySelector('.rb-admin-empty button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(component.query).toBe('');
+    expect(component.filter).toBe('all');
+    expect(rows().length).toBe(4);
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#et-catalogue-filter'));
+  });
+
 });

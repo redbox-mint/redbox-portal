@@ -1,4 +1,4 @@
-import { afterNextRender, Component, ElementRef, EventEmitter, Inject, Injector, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { afterNextRender, Component, ElementRef, EventEmitter, Inject, Injector, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe, LoggerService } from '@researchdatabox/portal-ng-common';
 import { EmailTemplateAdminService } from './email-template-admin.service';
@@ -27,6 +27,7 @@ const FILTERS: Record<CatalogueFilter, (entry: EmailAdminCatalogueEntry) => bool
 })
 export class CatalogueComponent implements OnInit, OnDestroy {
   @Input() returnFocus: { templateId: string; action: string } | null = null;
+  @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
   openingAction = 'open';
   private destroyed = false;
   @Output() openTemplate = new EventEmitter<string>();
@@ -71,6 +72,12 @@ export class CatalogueComponent implements OnInit, OnDestroy {
           actions.find(button => button.dataset['templateAction'] === 'open'))?.focus();
       }, { injector: this.injector });
     }
+  }
+
+  clearFilters(): void {
+    this.query = '';
+    this.filter = 'all';
+    this.searchInput?.nativeElement.focus();
   }
 
   count(filter: CatalogueFilter): number {

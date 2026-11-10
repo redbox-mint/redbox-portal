@@ -138,7 +138,7 @@ export {
   RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
   getMissingRecordSchemaStorageCapabilities,
 } from './StorageService';
-export type { RecordSchemaStorageCapabilityMethod } from './StorageService';
+export type { RecordQueryOptions, RecordSchemaStorageCapabilityMethod } from './StorageService';
 export { RecordAuditParams } from './RecordAuditParams';
 export { IntegrationAuditParams } from './IntegrationAuditParams';
 export type {

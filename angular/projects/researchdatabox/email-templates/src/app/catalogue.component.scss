@@ -1,18 +1,3 @@
-.et-filters {
-  margin-bottom: 16px;
-}
-
-// Same height as the search box beside it.
-.et-quick-filters .btn {
-  padding: 6px 12px;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.et-quick-filters .btn-light {
-  border-color: #ced4da;
-}
-
 .et-count {
   display: inline-block;
   min-width: 20px;
@@ -24,7 +9,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.active .et-count {
+[aria-pressed='true'] .et-count {
   background: rgba(255, 255, 255, 0.3);
 }
 
@@ -35,13 +20,14 @@
 }
 
 .et-cell-template {
-  max-width: 448px;
+  min-width: 240px;
+  max-width: 420px;
 }
 
 // Purpose first, then the supplied subject as a quieter reference line.
 .et-description {
   margin-top: 4px;
-  color: var(--bs-body-color);
+  color: var(--admin-ink);
   font-size: 13px;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -53,7 +39,7 @@
   align-items: baseline;
   min-width: 0;
   margin-top: 2px;
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-size: 12px;
 
   &.et-subject-only {
@@ -64,7 +50,7 @@
 
 .et-subject-label {
   flex: 0 0 auto;
-  color: var(--bs-tertiary-color);
+  color: var(--admin-muted);
 }
 
 .et-subject-text {
@@ -75,7 +61,7 @@
 }
 
 .et-live-default {
-  color: var(--bs-secondary-color);
+  color: var(--admin-muted);
   font-family: var(--bs-body-font-family);
   font-size: 13px;
   cursor: help;
@@ -90,8 +76,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 24px;
-  margin: 12px 0 0;
-  color: var(--bs-secondary-color);
+  margin: -4px 0 20px;
+  color: var(--admin-muted);
   font-size: 12px;
 }
 
@@ -103,7 +89,7 @@
   dt {
     flex: 0 0 auto;
     font-weight: 600;
-    color: var(--bs-emphasis-color);
+    color: var(--admin-heading);
   }
 
   dd {
@@ -113,4 +99,10 @@
 
 .et-legend-wide {
   flex-basis: 100%;
+}
+
+// Let complete labels wrap at narrow widths without overflowing the filter bar.
+.et-quick-filters .btn {
+  height: auto;
+  min-height: 36px;
 }

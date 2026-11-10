@@ -50,38 +50,39 @@ let nextDialogId = 0;
       /* Bootstrap's modal variables are declared on .modal and in rem; the portal
          uses a 10px root, so define the surface here in px. */
       .et-dialog {
-        --bs-modal-padding: 20px;
-        --bs-modal-header-padding: 16px 20px;
-        --bs-modal-color: var(--bs-body-color);
-        --bs-modal-bg: var(--bs-body-bg);
-        --bs-modal-border-color: var(--bs-border-color-translucent);
+        --bs-modal-padding: 16px;
+        --bs-modal-header-padding: 16px;
+        --bs-modal-color: var(--admin-ink);
+        --bs-modal-bg: var(--admin-bg);
+        --bs-modal-border-color: var(--admin-line);
         --bs-modal-border-width: 1px;
-        --bs-modal-border-radius: 8px;
-        --bs-modal-inner-border-radius: 7px;
-        --bs-modal-header-border-color: var(--bs-border-color);
+        --bs-modal-border-radius: var(--admin-radius);
+        --bs-modal-inner-border-radius: calc(var(--admin-radius) - 1px);
+        --bs-modal-header-border-color: var(--admin-line);
         --bs-modal-header-border-width: 1px;
         --bs-modal-title-line-height: 1.4;
         --bs-modal-footer-gap: 8px;
-        --bs-modal-footer-border-color: var(--bs-border-color);
+        --bs-modal-footer-border-color: var(--admin-line);
         --bs-modal-footer-border-width: 1px;
         border: 0;
         padding: 0;
         width: min(560px, calc(100vw - 32px));
-        max-height: calc(100vh - 48px);
+        max-height: calc(100dvh - 32px);
         background: transparent;
-        color: var(--bs-body-color);
+        color: var(--admin-ink);
         font-size: 15px;
         line-height: 1.5;
-        overflow: visible;
+        overflow: auto;
       }
       .et-dialog.et-dialog-wide {
         width: min(880px, calc(100vw - 32px));
       }
       .et-dialog::backdrop {
-        background: rgba(15, 23, 42, 0.5);
+        background: color-mix(in srgb, var(--admin-heading) 45%, transparent);
       }
       .et-dialog .modal-content {
-        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+        max-height: calc(100dvh - 32px);
+        box-shadow: 0 24px 64px color-mix(in srgb, var(--admin-ink) 28%, transparent);
       }
       .et-dialog .modal-title {
         font-size: 18px;
@@ -95,22 +96,19 @@ let nextDialogId = 0;
         background-size: 12px;
       }
       .et-dialog .modal-body {
-        max-height: calc(100vh - 200px);
+        min-height: 0;
         overflow: auto;
       }
       .et-dialog .modal-footer {
         gap: 8px;
-        padding: 12px 20px;
-        background: var(--bs-tertiary-bg);
+        padding: 12px 16px;
+        flex-shrink: 0;
+        background: var(--admin-surface);
         border-bottom-left-radius: var(--bs-modal-inner-border-radius);
         border-bottom-right-radius: var(--bs-modal-inner-border-radius);
       }
       .et-dialog .modal-footer > * {
         margin: 0;
-      }
-      .et-dialog .modal-footer .btn {
-        font-size: 14px;
-        padding: 6px 14px;
       }
     `,
   ],

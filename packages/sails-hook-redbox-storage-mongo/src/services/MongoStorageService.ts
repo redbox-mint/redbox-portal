@@ -27,6 +27,7 @@ import {
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
   StorageService,
+  type RecordQueryOptions,
   StorageServiceResponse,
   StorageMutationResponse,
   RBValidationError,
@@ -2988,7 +2989,8 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode = undefined,
-      secondarySort = undefined
+      secondarySort = undefined,
+      queryOptions?: RecordQueryOptions
     ) {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
@@ -2996,22 +2998,68 @@ export namespace Services {
       // Legacy callers pass a one-element array; never accept query operators as paths.
       const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
       if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
-      if (filterFields != null && (!Array.isArray(filterFields) || filterFields.length > 20 ||
-        filterFields.some(field => typeof field !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) ||
-          field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment))))) {
+      const validField = (field: unknown): field is string =>
+        typeof field === 'string' &&
+        /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
+        !field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment));
+      if (
+        filterFields != null &&
+        (!Array.isArray(filterFields) || filterFields.length > 20 || filterFields.some(field => !validField(field)))
+      ) {
         throw new Error('Invalid filter fields');
       }
-      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024)) throw new Error('Invalid filter');
+      if (
+        queryOptions !== undefined &&
+        (!queryOptions ||
+          typeof queryOptions !== 'object' ||
+          Array.isArray(queryOptions) ||
+          Object.keys(queryOptions).some(key => !['anyOf', 'afterOid', 'count', 'authorization'].includes(key)) ||
+          (queryOptions.count !== undefined && typeof queryOptions.count !== 'boolean') ||
+          (queryOptions.authorization !== undefined && queryOptions.authorization !== 'record-view') ||
+          (queryOptions.afterOid !== undefined &&
+            queryOptions.afterOid !== null &&
+            (typeof queryOptions.afterOid !== 'string' || queryOptions.afterOid.length > 1024)) ||
+          (queryOptions.anyOf !== undefined &&
+            (!Array.isArray(queryOptions.anyOf) ||
+              queryOptions.anyOf.length > 20 ||
+              queryOptions.anyOf.some(
+                term =>
+                  !term ||
+                  typeof term !== 'object' ||
+                  Object.keys(term).some(key => !['field', 'value', 'match'].includes(key)) ||
+                  !validField(term.field) ||
+                  !['contains', 'exact'].includes(term.match) ||
+                  typeof term.value !== 'string' ||
+                  term.value.length > 1024
+              ))))
+      )
+        throw new Error('Invalid record query options');
+      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024))
+        throw new Error('Invalid filter');
       const query = {
         'metaMetadata.brandId': brand.id,
       };
-      const options = {
+      const options: FindOptions = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
         sort: this.getRecordSort(sort, secondarySort),
       };
 
-      const roleNames = this.getRoleNames(roles, brand);
+      const cursorBatch = queryOptions?.afterOid !== undefined;
+      if (cursorBatch) {
+        if (!Number.isSafeInteger(rows) || rows < 1 || rows > 100 || start !== 0) {
+          throw new Error('OID cursor batches require zero offset and 1 to 100 rows');
+        }
+        query['redboxOid'] = { $type: 'string', $gt: queryOptions.afterOid ?? '' };
+        options.sort = { redboxOid: 1 };
+        options.collation = { locale: 'simple' };
+        options.projection = { _id: 0 };
+        options.maxTimeMS = 5000;
+      }
+      const roleNames =
+        queryOptions?.authorization === 'record-view'
+          ? (brand.roles ?? []).filter(role => roles.some(held => held.id === role.id)).map(role => role.name)
+          : this.getRoleNames(roles, brand);
       const andArray = [];
       const permissions = {
         $or: [
@@ -3021,7 +3069,23 @@ export namespace Services {
           { 'authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (queryOptions?.authorization === 'record-view') {
+        // The legacy flat representation applies only without nested authorization.
+        andArray.push({
+          $or: [
+            permissions,
+            {
+              authorization: null,
+              $or: [
+                { authorization_view: username },
+                { authorization_edit: username },
+                { authorization_editRoles: { $in: roleNames } },
+                { authorization_viewRoles: { $in: roleNames } },
+              ],
+            },
+          ],
+        });
+      } else andArray.push(permissions);
       if (_.isArray(recordType)) {
         if (recordType.length > 1) {
           const typeArray = [];
@@ -3068,12 +3132,22 @@ export namespace Services {
         }
       }
 
+      if (queryOptions?.anyOf?.length) {
+        andArray.push({
+          $or: queryOptions.anyOf.map(term => ({
+            [term.field]: term.match === 'exact' ? term.value : new RegExp(this.escapeRegExp(term.value), 'i'),
+          })),
+        });
+      }
       query['$and'] = andArray;
 
       sails.log.verbose(query);
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
-      const { items, totalItems } = await this.runRecordQuery(Record.tableName, query, options);
+      const { items, totalItems } =
+        queryOptions?.count === false
+          ? await this.runRecordQuery(Record.tableName, query, options, false)
+          : await this.runRecordQuery(Record.tableName, query, options);
       const response = new StorageServiceResponse();
       response.success = true;
       response.items = items;
@@ -3085,10 +3159,10 @@ export namespace Services {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    protected async runRecordQuery(colName, query, options) {
+    protected async runRecordQuery(colName, query, options, includeCount = true) {
       return {
         items: await this.recordCol.find(query, options).toArray(),
-        totalItems: await this.recordCol.count(query),
+        totalItems: includeCount ? await this.recordCol.count(query) : 0,
       };
     }
 

@@ -1,5 +1,4 @@
 import type { BackoffStrategy } from 'agenda';
-import { PermanentAuditWriteError } from '../services/record-audit/writer';
 
 /**
  * Agenda Queue Config Interface
@@ -180,8 +179,9 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLifetime: 30 * 1000,
                 lockLimit: 1,
                 concurrency: 1,
+                // Sails may reload the worker module, so constructor identity is not stable here.
                 // Permanent failures are paused by the worker; transient failures keep retrying.
-                backoff: ({ attempt, error }) => error instanceof PermanentAuditWriteError ? null
+                backoff: ({ attempt, error }) => error.name === 'PermanentAuditWriteError' ? null
                     : Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
             }
         },

@@ -1,5 +1,5 @@
 import { Component, ElementRef, HostListener, Inject, ViewChild } from '@angular/core';
-import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { BaseComponent, I18NextPipe, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import { CatalogueComponent } from './catalogue.component';
 import { EditorComponent } from './editor.component';
 import { EmailTemplateAdminService } from './email-template-admin.service';
@@ -15,11 +15,21 @@ const TEMPLATE_HASH = /^#\/templates\/(.+)$/;
 @Component({
   selector: 'email-templates-root',
   standalone: true,
-  imports: [CatalogueComponent, EditorComponent],
+  imports: [CatalogueComponent, EditorComponent, I18NextPipe],
   providers: [EmailTemplateAdminService],
   template: `
     @if (ready) {
       <div class="et-app">
+        <nav class="rb-admin-crumbs" [attr.aria-label]="'email-templates-breadcrumb-label' | i18next"><ol>
+          <li><a [href]="adminUrl">{{ 'menu-admin' | i18next }}</a></li>
+          <li>{{ 'admin-nav-site' | i18next }}</li>
+          @if (templateId) {
+            <li><button type="button" class="et-crumb" (click)="openCatalogue()">{{ 'email-templates-heading' | i18next }}</button></li>
+            <li><span aria-current="page" class="rb-admin-code-wrap">{{ templateId }}</span></li>
+          } @else {
+            <li><span aria-current="page">{{ 'email-templates-heading' | i18next }}</span></li>
+          }
+        </ol></nav>
         @if (templateId) {
           @for (id of [templateId]; track id) {
           <email-templates-editor
@@ -41,16 +51,16 @@ const TEMPLATE_HASH = /^#\/templates\/(.+)$/;
   `,
   styles: [
     `
-      .et-app {
-        /* The portal uses a 10px root, so sizes in this app are in px. */
-        padding: 0 15px 16px;
-      }
+      :host { display: block; min-width: 0; }
+      .et-crumb { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; }
+      .et-crumb:hover { text-decoration: underline; }
     `,
   ],
 })
 export class EmailTemplatesComponent extends BaseComponent {
   templateId: string | null = null;
   brandName = '';
+  adminUrl = '';
   previewRecord: EmailPreviewRecord | null = null;
   ready = false;
   @ViewChild(EditorComponent) editor?: EditorComponent;
@@ -71,6 +81,7 @@ export class EmailTemplatesComponent extends BaseComponent {
 
   protected async initComponent(): Promise<void> {
     this.brandName = this.host.nativeElement.getAttribute('data-brand') || this.api.brandName;
+    this.adminUrl = `${this.api.brandingAndPortalUrl}/admin`;
     await this.readHash();
     this.ready = true;
     this.logger.debug('Email templates app initialised');

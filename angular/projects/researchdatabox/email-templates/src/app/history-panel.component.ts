@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { AdminOverflowDirective, I18NextPipe } from '@researchdatabox/portal-ng-common';
 import type { EmailAdminHistory } from './email-templates.model';
 import { WhenPipe } from './when.pipe';
 
@@ -7,10 +7,10 @@ import { WhenPipe } from './when.pipe';
 @Component({
   selector: 'email-templates-history',
   standalone: true,
-  imports: [I18NextPipe, WhenPipe],
+  imports: [I18NextPipe, WhenPipe, AdminOverflowDirective],
   template: `
     @if (loading) {
-      <div class="et-empty" role="status">
+      <div class="rb-admin-empty" role="status">
         <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span
         >{{ 'email-templates-loading' | i18next }}
       </div>
@@ -19,7 +19,7 @@ import { WhenPipe } from './when.pipe';
     } @else {
       <p class="et-sub mb-3">{{ 'email-templates-history-intro' | i18next }}</p>
       <div class="table-responsive et-table-wrap">
-        <table class="table et-table align-middle mb-0">
+        <table class="table table-hover align-middle">
           <caption class="visually-hidden">
             {{
               'email-templates-history-caption' | i18next
@@ -31,9 +31,7 @@ import { WhenPipe } from './when.pipe';
               <th scope="col">{{ 'email-templates-col-event' | i18next }}</th>
               <th scope="col">{{ 'email-templates-col-by' | i18next }}</th>
               <th scope="col">{{ 'email-templates-col-when' | i18next }}</th>
-              <th scope="col">
-                <span class="visually-hidden">{{ 'email-templates-col-actions' | i18next }}</span>
-              </th>
+              <th scope="col" class="rb-admin-actions-col text-end">{{ 'email-templates-col-actions' | i18next }}</th>
             </tr>
           </thead>
           <tbody>
@@ -42,10 +40,10 @@ import { WhenPipe } from './when.pipe';
                 <td class="text-nowrap">
                   <span class="et-version fw-semibold">v{{ entry.version }}</span>
                   @if (entry.live) {
-                    <span class="et-badge et-badge-live ms-1">{{ 'email-templates-badge-live' | i18next }}</span>
+                    <span class="badge rb-admin-badge-success et-badge et-badge-live ms-1">{{ 'email-templates-badge-live' | i18next }}</span>
                   }
                   @if (!entry.applied) {
-                    <span class="et-badge et-badge-invalid ms-1">{{
+                    <span class="badge rb-admin-badge-danger et-badge et-badge-invalid ms-1">{{
                       'email-templates-badge-not-applied' | i18next
                     }}</span>
                   }
@@ -65,27 +63,30 @@ import { WhenPipe } from './when.pipe';
                 </td>
                 <td>{{ entry.actorDisplayName || ('email-templates-unknown-actor' | i18next) }}</td>
                 <td class="text-nowrap">{{ entry.createdAt | emailWhen }}</td>
-                <td class="text-end text-nowrap">
+                <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
                   <button type="button" class="btn btn-sm btn-outline-secondary" (click)="view.emit(entry)">
                     {{ 'email-templates-action-view' | i18next }}
                     <span class="visually-hidden">v{{ entry.version }}</span>
                   </button>
                   @if (entry.event !== 'reset') {
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-primary ms-1"
-                      [disabled]="!entry.applied || busy"
-                      (click)="restore.emit(entry)"
-                    >
-                      {{ 'email-templates-action-restore' | i18next }}
-                      <span class="visually-hidden">v{{ entry.version }}</span>
-                    </button>
+                    <details rbAdminOverflow class="rb-admin-overflow">
+                      <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: 'v' + entry.version }">⋯</summary>
+                      <div><button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        [disabled]="!entry.applied || busy"
+                        (click)="restore.emit(entry)"
+                      >
+                        {{ 'email-templates-action-restore' | i18next }}
+                        <span class="visually-hidden">v{{ entry.version }}</span>
+                      </button></div>
+                    </details>
                   }
-                </td>
+                </div></td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="5" class="et-empty">{{ 'email-templates-history-empty' | i18next }}</td>
+                <td colspan="5" class="rb-admin-empty">{{ 'email-templates-history-empty' | i18next }}</td>
               </tr>
             }
           </tbody>

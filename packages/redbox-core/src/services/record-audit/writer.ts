@@ -1,4 +1,7 @@
-import { Cause, Effect, Schedule, Semaphore } from 'effect';
+import * as Cause from 'effect/Cause';
+import * as Effect from 'effect/Effect';
+import * as Schedule from 'effect/Schedule';
+import * as Semaphore from 'effect/Semaphore';
 
 export interface AuditWritePolicy {
   writeTimeoutMs?: number;
@@ -18,7 +21,9 @@ export class AuditWriteTimeout extends Error {
 }
 
 /** A retained payload needs operator correction before another delivery can succeed. */
-export class PermanentAuditWriteError extends Error {}
+export class PermanentAuditWriteError extends Error {
+  override name = 'PermanentAuditWriteError';
+}
 
 /** Caller deadlines retain permits until storage settles; Mongo datastores also need finite driver timeouts. */
 export class AuditWriter {

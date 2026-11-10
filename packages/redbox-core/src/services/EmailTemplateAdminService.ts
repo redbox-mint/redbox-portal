@@ -23,9 +23,9 @@ import {
   hardenEmailSubject,
   validateEmailLength,
 } from './EmailTemplateService';
-import type { SearchService } from '../SearchService';
+import type { StorageService, RecordQueryOptions } from '../StorageService';
 import type { EmailTemplateAsts } from './EmailTemplateService';
-import type { UserModel, BrandingModel, RoleModel } from '../model';
+import type { UserModel, BrandingModel, RoleModel, RecordModel } from '../model';
 import { emailTemplateContextKind, integrationEmailTemplateIds } from '../utilities/EmailTemplateContextKind';
 import { integrationEmailContextSchema } from '../utilities/EmailContextSchema';
 import { curateEmailRecordData, renderEmailAdminPreview } from './EmailService';
@@ -502,23 +502,30 @@ export namespace Services {
       );
     }
 
-    private async accessibleRecord(brandId: string, oid: string, user: UserModel) {
-      const brand = BrandingService.getBrandById(brandId);
+    private canViewRecord(brand: BrandingModel, brandId: string, record: RecordModel, user: UserModel): boolean {
       try {
-        const record = await RecordsService.getMeta(oid);
-        if (
-          !record ||
-          record.metaMetadata?.brandId !== brandId ||
-          !brand ||
-          !RecordsService.hasViewAccess(
+        return Boolean(
+          record &&
+          record.metaMetadata?.brandId === brandId &&
+          brand &&
+          RecordsService.hasViewAccess(
             brand,
             user,
             (user.roles ?? []) as object[],
             record as unknown as Record<string, unknown>
           )
-        ) {
-          throw new Error('denied');
-        }
+        );
+      } catch {
+        // Preserve the unavailable-record behavior if a permission hook fails.
+        return false;
+      }
+    }
+
+    private async accessibleRecord(brandId: string, oid: string, user: UserModel) {
+      const brand = BrandingService.getBrandById(brandId);
+      try {
+        const record = await RecordsService.getMeta(oid);
+        if (!this.canViewRecord(brand, brandId, record, user)) throw new Error('denied');
         return record;
       } catch {
         throw new EmailTemplateError('FORBIDDEN', 'Preview record is unavailable.');
@@ -628,53 +635,69 @@ export namespace Services {
         );
       }
       const brand = BrandingService.getBrandById(brandId) as BrandingModel;
+      const storage = sails.services[sails.config.storage.serviceName] as unknown as StorageService;
       const records: Array<{ oid: string; title: string }> = [];
-      if (page === 1 && /^[A-Za-z0-9][A-Za-z0-9_.:-]{2,199}$/.test(query.trim())) {
-        try {
-          const oid = query.trim();
-          const exact = await this.accessibleRecord(brandId, oid, user);
-          const title = (exact.metadata as Record<string, unknown>)?.title;
-          records.push({ oid, title: typeof title === 'string' ? title : oid });
-        } catch (error) {
-          if (!(error instanceof EmailTemplateError) || error.code !== 'FORBIDDEN') throw error;
-        }
-      }
-      // Existing configured search adapter; no new storage-query surface. Quote input to prevent query injection.
-      const search = sails.services[sails.config.search.serviceName.toLowerCase()] as unknown as SearchService;
-      const escaped = query.trim().replace(/[+\-!(){}[\]^"~*?:\\/|&]/g, '\\$&');
-      const result = await this.persist(() =>
-        search.searchFuzzy(
-          'default',
-          '*',
-          '',
-          escaped ? `"${escaped}"` : '*',
-          [],
-          [],
-          brand,
-          user,
-          (user.roles ?? []) as RoleModel[],
-          ['storage_id', 'metadata_title'],
-          (page - 1) * 10,
-          11
-        )
-      );
-      for (const candidate of ((result.records ?? []) as Array<{ storage_id?: string }>).slice(0, 10)) {
-        if (
-          typeof candidate.storage_id !== 'string' ||
-          records.some(record => record.oid === candidate.storage_id) ||
-          records.length === 10
-        )
-          continue;
-        try {
-          const record = await this.accessibleRecord(brandId, candidate.storage_id, user);
+      const offset = (page - 1) * 10;
+      let visible = 0;
+      let afterOid: string | null = null;
+      const batchSize = 100;
+      // Count only records that pass the authoritative view check, including
+      // hook overrides. Keyset batches avoid raw offsets skipping visible rows.
+      // Stop after one visible lookahead; no pre-filter count/existence escapes.
+      while (records.length <= 10) {
+        const candidates = await this.persist(async () => {
+          const text = query.trim();
+          const options: RecordQueryOptions = {
+            afterOid,
+            count: false,
+            authorization: 'record-view',
+            ...(text
+              ? {
+                  anyOf: [
+                    { field: 'metadata.title', value: text, match: 'contains' as const },
+                    { field: 'redboxOid', value: text, match: 'exact' as const },
+                  ],
+                }
+              : {}),
+          };
+          const result = await storage.getRecords(
+            '',
+            undefined,
+            0,
+            batchSize,
+            String(user.username ?? ''),
+            (user.roles ?? []) as RoleModel[],
+            brand,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            options
+          );
+          if (!result.success || !Array.isArray(result.items)) throw new Error('Record storage query failed.');
+          return result.items as unknown as RecordModel[];
+        });
+        for (const record of candidates) {
+          if (
+            typeof record.redboxOid !== 'string' ||
+            !record.redboxOid ||
+            (afterOid !== null && Buffer.compare(Buffer.from(record.redboxOid), Buffer.from(afterOid)) <= 0)
+          ) {
+            throw new EmailTemplateError('PERSISTENCE', 'Invalid email preview storage cursor.');
+          }
+          afterOid = record.redboxOid;
+          if (!this.canViewRecord(brand, brandId, record, user)) continue;
+          if (visible++ < offset) continue;
           const title = (record.metadata as Record<string, unknown>)?.title;
-          records.push({ oid: candidate.storage_id, title: typeof title === 'string' ? title : candidate.storage_id });
-        } catch (error) {
-          if (!(error instanceof EmailTemplateError) || error.code !== 'FORBIDDEN') throw error;
+          records.push({ oid: record.redboxOid, title: typeof title === 'string' ? title : record.redboxOid });
+          if (records.length === 11) break;
         }
+        if (records.length === 11 || candidates.length < batchSize) break;
       }
-      // Never disclose Solr's pre-filter total or metadata for inaccessible records.
-      return { records, page, hasMore: records.length === 10 && ((result.records as unknown[])?.length ?? 0) > 10 };
+      return { records: records.slice(0, 10), page, hasMore: records.length > 10 };
     }
   }
 }
