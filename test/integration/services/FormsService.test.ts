@@ -883,8 +883,8 @@ describe('The FormsService', function () {
       // ensure the formConfig has not been modified
       expect(JSON.stringify(formConfig)).to.eql(original);
 
-      // confirm the client form config looks as expected
-      expect(result).to.eql(expected);
+      // confirm the client form config looks as expected, as serialised for the client
+      expect(JSON.parse(JSON.stringify(result))).to.eql(expected);
     });
     it('should remove the components nested in repeatable and group components when the constraints are not met', async function () {
       const formConfig: FormConfigFrame = {

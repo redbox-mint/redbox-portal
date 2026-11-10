@@ -1,4 +1,5 @@
 import { cloneDeep as _cloneDeep } from 'lodash';
+import { projectViewMetadata } from '../ViewFormMetadata';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
   SimpleInputFieldComponentDefinitionOutline,
@@ -271,6 +272,35 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(
       this.clientFormConfig.componentDefinitions
     );
+    this.clientFormConfig.componentDefinitions.forEach(item => this.pruneRetainedViewGroupValues(item));
+  }
+
+  private pruneRetainedViewGroupValues(item: AvailableFormComponentDefinitionOutlines): void {
+    const config = item.component?.config as {
+      componentDefinitions?: AvailableFormComponentDefinitionOutlines[];
+      tabs?: AvailableFormComponentDefinitionOutlines[];
+      panels?: AvailableFormComponentDefinitionOutlines[];
+      elementTemplate?: AvailableFormComponentDefinitionOutlines;
+    } | undefined;
+    if (item.component?.class === GroupFieldComponentName) {
+      const group = item as GroupFormComponentDefinitionOutline;
+      const value = group.model?.config?.value;
+      if (group.model?.config) {
+        if (!value || typeof value !== 'object' || Array.isArray(value) ||
+          ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
+          delete group.model.config.value;
+        } else {
+          // Retained groups also deliver a model. Filter it through the final view
+          // definitions, including children that have become ContentComponents.
+          group.model.config.value = projectViewMetadata(value, {
+            componentDefinitions: config?.componentDefinitions ?? [],
+          });
+        }
+      }
+    }
+    [...(config?.componentDefinitions ?? []), ...(config?.tabs ?? []), ...(config?.panels ?? [])]
+      .forEach(child => this.pruneRetainedViewGroupValues(child));
+    if (config?.elementTemplate) this.pruneRetainedViewGroupValues(config.elementTemplate);
   }
 
   protected applyPostPruningTransforms(
