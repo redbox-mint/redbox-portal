@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { AutocompleteComponent, TranslationService } from '@researchdatabox/portal-ng-common';
 import { of } from 'rxjs';
-import { QueryAssistanceModule, QueryTypedValueComponent } from './query-assistance.module';
+import { QueryAssistanceModule, QueryPathInputComponent, QueryTypedValueComponent } from './query-assistance.module';
 
 describe('Named query typed parameter inputs', () => {
   let fixture: ComponentFixture<QueryTypedValueComponent>;
@@ -104,4 +104,47 @@ describe('Named query typed parameter inputs', () => {
     expect(component.jsonValue).toBe('');
     expect(component.error).toBeFalse();
   });
+});
+
+describe('Named query direct mapping path completion', () => {
+  for (const [literal, prefix] of [
+    ['literal.alias', ''],
+    ['dc:title', '[dc:'],
+  ]) {
+    it(`matches and inserts the literal ${literal} key in lodash syntax`, async () => {
+      await TestBed.configureTestingModule({
+        imports: [QueryAssistanceModule],
+        providers: [
+          {
+            provide: TranslationService,
+            useValue: { t: (key: string) => key, isInitializing: () => false, translationChanges$: of(undefined) },
+          },
+        ],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(QueryPathInputComponent);
+      fixture.componentRef.setInput('kind', 'mapping');
+      fixture.componentRef.setInput('fields', [
+        {
+          path: `record.metadata.[${literal}]`,
+          type: 'string',
+          required: false,
+          isArray: false,
+        },
+      ]);
+      fixture.componentRef.setInput('value', 'record.metadata.' + prefix);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+      input.setSelectionRange(input.value.length, input.value.length);
+      const autocomplete = fixture.debugElement.query(By.directive(AutocompleteComponent))
+        .componentInstance as AutocompleteComponent;
+      const emitted = spyOn(fixture.componentInstance.valueChange, 'emit');
+      autocomplete.update(true);
+      expect(autocomplete.items.length).toBe(1);
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+      expect(input.value).toBe(`record.metadata["${literal}"]`);
+      expect(emitted).toHaveBeenCalledWith(`record.metadata["${literal}"]`);
+      fixture.destroy();
+    });
+  }
 });
