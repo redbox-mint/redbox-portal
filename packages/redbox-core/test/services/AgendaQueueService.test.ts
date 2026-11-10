@@ -324,7 +324,7 @@ describe('AgendaQueueService', function () {
       const service = new Services.AgendaQueue();
       const completedJob = { _id: 'job-id', name: 'completed-job', nextRunAt: null, lockedAt: null, lastFinishedAt: new Date('2026-07-16T10:00:00Z') };
       const jobsCollection = {
-        find: sinon.stub().withArgs({ nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } }).returns({
+        find: sinon.stub().withArgs({ nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: { $type: 'date' } }).returns({
           toArray: sinon.stub().resolves([completedJob])
         }),
         deleteOne: sinon.stub().resolves(undefined)
@@ -349,8 +349,8 @@ describe('AgendaQueueService', function () {
       await service.moveCompletedJobsToHistory({} as any);
 
       expect(historyCollection.replaceOne.calledOnceWithExactly({ _id: 'job-id' }, completedJob, { upsert: true })).to.equal(true);
-      expect(jobsCollection.find.calledOnceWithExactly({ nextRunAt: null, lockedAt: null, lastFinishedAt: { $type: 'date' } })).to.equal(true);
-      expect(jobsCollection.deleteOne.calledOnceWithExactly({ _id: 'job-id', nextRunAt: null, lockedAt: null, lastFinishedAt: completedJob.lastFinishedAt })).to.equal(true);
+      expect(jobsCollection.find.calledOnceWithExactly({ nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: { $type: 'date' } })).to.equal(true);
+      expect(jobsCollection.deleteOne.calledOnceWithExactly({ _id: 'job-id', nextRunAt: null, lockedAt: null, disabled: { $ne: true }, lastFinishedAt: completedJob.lastFinishedAt })).to.equal(true);
       expect(historyCollection.deleteMany.calledOnceWithExactly({
         lastFinishedAt: { $lt: new Date('2026-07-15T00:00:00.000Z') }
       })).to.equal(true);
@@ -670,6 +670,17 @@ describe('AgendaQueueService', function () {
   });
 
   describe('startup configuration', function () {
+    it('allows startup index builds to outlast the ordinary Mongo socket timeout', async function () {
+      const service = new Services.AgendaQueue();
+      const createIndex = sinon.stub().resolves();
+      const manager = { collection: sinon.stub().withArgs('agendaJobs').returns({ createIndex }) };
+
+      await (service as any).createMongoIndexes(manager, { collection: 'agendaJobs' });
+
+      expect(createIndex.callCount).to.equal(2);
+      expect(createIndex.getCalls().every(call => call.args[1].socketTimeoutMS === 0 && call.args[1].maxTimeMS === 0)).to.equal(true);
+    });
+
     it('applies the default backend and per-job overrides', async function () {
       const mockSails = createMockSails({
         config: {
