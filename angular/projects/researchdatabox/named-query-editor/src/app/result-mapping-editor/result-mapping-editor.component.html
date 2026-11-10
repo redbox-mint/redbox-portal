@@ -16,21 +16,28 @@
       <tbody>
         <tr *ngFor="let entry of entries; trackBy: trackById">
           <td>
-            <label class="visually-hidden" [for]="idPrefix + '-entry-key' + '-' + entry.id">{{ 'named-query-mapping-field' | i18next }}</label>
-            <input [id]="idPrefix + '-entry-key' + '-' + entry.id" type="text" class="form-control form-control-sm"
-                   [ngModel]="entry.key"
-                   (ngModelChange)="onKeyChange(entry, $event)">
+            <label class="visually-hidden" [for]="idPrefix + '-control-1' + '-' + entry.id">{{ 'named-query-name' | i18next }}</label>
+<input [id]="idPrefix + '-control-1' + '-' + entry.id"
+              type="text"
+              class="form-control form-control-sm"
+              [ngModel]="entry.key"
+              (ngModelChange)="onKeyChange(entry, $event)"
+            />
           </td>
           <td>
-            <label class="visually-hidden" [for]="idPrefix + '-entry-value' + '-' + entry.id">{{ 'named-query-mapping-template' | i18next }}</label>
-            <input [id]="idPrefix + '-entry-value' + '-' + entry.id" type="text" class="form-control form-control-sm font-monospace"
-                   [ngModel]="entry.value"
-                   (ngModelChange)="onValueChange(entry, $event)"
-                   spellcheck="false">
+            <nq-diagnostics
+              [diagnostics]="diagnostics"
+              [location]="'resultObjectMapping.' + entry.key"
+            ></nq-diagnostics>
+            <nq-mapping-value
+              [label]="('named-query-mapping-source' | i18next) + ': ' + entry.key"
+              [value]="entry.value"
+              [fields]="fields"
+              (valueChange)="onValueChange(entry, $event)"
+            ></nq-mapping-value>
           </td>
-          <td class="rb-admin-actions-col text-center">
-            <button class="btn btn-sm btn-outline-danger" type="button"
-                    (click)="removeEntry(entry)">
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeEntry(entry)">
               {{ 'named-query-remove' | i18next }}
             </button>
           </td>
@@ -41,13 +48,16 @@
   <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
 
   <div class="d-flex flex-wrap nq-add-row mt-2">
-    <label class="visually-hidden" [for]="idPrefix + '-newKey'">{{ 'named-query-mapping-field' | i18next }}</label>
-    <input [id]="idPrefix + '-newKey'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newKey"
-           [attr.placeholder]="'named-query-mapping-field-placeholder' | i18next">
-    <label class="visually-hidden" [for]="idPrefix + '-newValue'">{{ 'named-query-mapping-template' | i18next }}</label>
-    <input [id]="idPrefix + '-newValue'" type="text" class="form-control form-control-sm nq-add-grow-wide font-monospace" [(ngModel)]="newValue"
-           [attr.placeholder]="'named-query-mapping-template-placeholder' | i18next"
-           spellcheck="false">
+    <input
+      type="text"
+      class="form-control form-control-sm nq-add-grow"
+      [(ngModel)]="newKey"
+      [attr.placeholder]="'named-query-mapping-field-placeholder' | i18next"
+    />
+    <nq-mapping-value
+      [label]="('named-query-mapping-source' | i18next) + ': ' + newKey"
+      [value]="newValue" [fields]="fields" (valueChange)="newValue = $event"
+    ></nq-mapping-value>
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
       {{ 'named-query-add' | i18next }}
     </button>

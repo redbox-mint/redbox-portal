@@ -1,4 +1,5 @@
 <div class="nq-subeditor">
+  <nq-diagnostics [diagnostics]="diagnostics" location="sort"></nq-diagnostics>
   <div class="nq-section-header">
     <h3 class="h6">{{ 'named-query-sort-heading' | i18next }}</h3>
   </div>
@@ -14,16 +15,19 @@
       <tbody>
         <tr *ngFor="let entry of entries; trackBy: trackById">
           <td>
-            <label class="visually-hidden" [for]="idPrefix + '-field-' + entry.id">{{ 'named-query-sort-field' | i18next }}</label>
-            <input [id]="idPrefix + '-field-' + entry.id" type="text" class="form-control form-control-sm"
-                   [ngModel]="entry.field"
-                   (ngModelChange)="onFieldChange(entry, $event)">
+            <nq-path-input
+              [value]="entry.field"
+              [label]="'named-query-param-path' | i18next"
+              [fields]="fields"
+              (valueChange)="onFieldChange(entry, $event)"
+            ></nq-path-input>
           </td>
           <td>
-            <label class="visually-hidden" [for]="idPrefix + '-direction-' + entry.id">{{ 'named-query-sort-direction' | i18next }}</label>
-            <select [id]="idPrefix + '-direction-' + entry.id" class="form-select form-select-sm"
-                    [ngModel]="entry.direction"
-                    (ngModelChange)="onDirectionChange(entry, $event)">
+            <select
+              class="form-control form-control-sm"
+              [ngModel]="entry.direction"
+              (ngModelChange)="onDirectionChange(entry, $event)"
+            >
               <option value="ASC">ASC</option>
               <option value="DESC">DESC</option>
             </select>
@@ -41,11 +45,13 @@
   <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-sort-empty' | i18next }}</p>
 
   <div class="d-flex flex-wrap nq-add-row mt-2">
-    <label class="visually-hidden" [for]="idPrefix + '-new-field'">{{ 'named-query-sort-field' | i18next }}</label>
-    <input [id]="idPrefix + '-new-field'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newField"
-           [attr.placeholder]="'named-query-sort-field-placeholder' | i18next">
-    <label class="visually-hidden" [for]="idPrefix + '-new-direction'">{{ 'named-query-sort-direction' | i18next }}</label>
-    <select [id]="idPrefix + '-new-direction'" class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newDirection">
+    <nq-path-input
+      [value]="newField"
+      [label]="'named-query-param-path' | i18next"
+      [fields]="fields"
+      (valueChange)="newField = $event"
+    ></nq-path-input>
+    <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newDirection">
       <option value="ASC">ASC</option>
       <option value="DESC">DESC</option>
     </select>

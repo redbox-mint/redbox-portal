@@ -14,14 +14,22 @@
     <div class="card-body">
       <div class="row g-2">
         <div class="form-group col-md-6">
-          <label [for]="idPrefix + '-key'">{{ 'named-query-param-key' | i18next }}</label>
-          <input [id]="idPrefix + '-key'" type="text" class="form-control form-control-sm" [(ngModel)]="newParam.key"
-                 [attr.placeholder]="'named-query-param-key-placeholder' | i18next">
+          <label>{{ 'named-query-param-key' | i18next }}</label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            [(ngModel)]="newParam.key"
+            [attr.placeholder]="'named-query-param-key-placeholder' | i18next"
+          />
         </div>
         <div class="form-group col-md-6">
-          <label [for]="idPrefix + '-path'">{{ 'named-query-param-path' | i18next }}</label>
-          <input [id]="idPrefix + '-path'" type="text" class="form-control form-control-sm" [(ngModel)]="newParam.path"
-                 [attr.placeholder]="'named-query-param-path-placeholder' | i18next">
+          <label>{{ 'named-query-param-path' | i18next }}</label>
+          <nq-path-input
+            [value]="newParam.path"
+            [label]="'named-query-param-path' | i18next"
+            [fields]="fields"
+            (valueChange)="newParam.path = $event"
+          ></nq-path-input>
         </div>
       </div>
       <div class="row g-2">
@@ -52,17 +60,32 @@
           </select>
         </div>
         <div class="form-group col-md-6" *ngIf="newParam.whenUndefined === 'defaultValue'">
-          <label [for]="idPrefix + '-defaultValue'">{{ 'named-query-param-default' | i18next }}</label>
-          <input [id]="idPrefix + '-defaultValue'" type="text" class="form-control form-control-sm" [(ngModel)]="newParam.defaultValue">
+          <label>{{ 'named-query-param-default' | i18next }}</label>
+          <nq-typed-value
+            [label]="('named-query-param-default' | i18next) + ': ' + newParam.key"
+            unsetLabel="named-query-unset-default"
+            [value]="newParam.defaultValue"
+            [type]="newParam.type"
+            [format]="newParam.format"
+            [queryType]="newParam.queryType"
+            [template]="newParam.template"
+            (valueChange)="newParam.defaultValue = $event"
+            (validityChange)="defaultValidity(0, $event)"
+          ></nq-typed-value>
         </div>
       </div>
       <div class="row g-2">
         <div class="form-group col-12">
-          <label [for]="idPrefix + '-template'">{{ 'named-query-param-template' | i18next }}</label>
-          <textarea [id]="idPrefix + '-template'" class="form-control form-control-sm font-monospace" rows="2"
-                    [(ngModel)]="newParam.template"
-                    [attr.placeholder]="'named-query-param-template-placeholder' | i18next"
-                    spellcheck="false"></textarea>
+          <label [for]="inputId + '-template-new'">{{ 'named-query-param-template' | i18next }}: {{ newParam.key }}</label>
+          <textarea
+            [id]="inputId + '-template-new'"
+            class="form-control form-control-sm font-monospace"
+            rows="2"
+            [(ngModel)]="newParam.template"
+            (ngModelChange)="defaultValidity(0, true)"
+            [attr.placeholder]="'named-query-param-template-placeholder' | i18next"
+            spellcheck="false"
+          ></textarea>
         </div>
       </div>
       <div class="d-flex nq-control-group">
@@ -80,27 +103,35 @@
     {{ 'named-query-param-empty' | i18next }}
   </p>
 
-  <div *ngFor="let param of entries; trackBy: trackById" class="card rb-admin-card-secondary mb-2 nq-inline-card">
+  <div *ngFor="let param of entries; trackBy: trackById" class="card mb-2 nq-inline-card">
     <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center nq-card-header-clickable">
-      <button type="button" class="btn rb-admin-disclosure nq-param-summary text-start flex-grow-1" (click)="toggleExpand(param.key)" [attr.aria-expanded]="expandedParam === param.key" [attr.aria-controls]="idPrefix + '-panel-' + param.id">
-        <strong>{{ param.key }}</strong>
+      <div class="nq-param-summary">
+        <button type="button" class="btn btn-link p-0" (click)="toggleExpand(param.key)">{{ param.key }}</button>
         <span class="text-muted nq-param-meta">
           <span>{{ param.type }}</span>
           <span *ngIf="param.path"> · {{ param.path }}</span>
           <span *ngIf="param.queryType"> · {{ param.queryType }}</span>
         </span>
-      </button>
-      <button class="btn btn-sm btn-outline-danger" type="button"
-              (click)="removeParam(param); $event.stopPropagation()">
+      </div>
+      <button
+        class="btn btn-sm btn-outline-danger"
+        type="button"
+        (click)="removeParam(param); $event.stopPropagation()"
+      >
         {{ 'named-query-remove' | i18next }}
       </button>
     </div>
-    <div class="card-body" [id]="idPrefix + '-panel-' + param.id" [hidden]="!(expandedParam === param.key)">
+    <nq-diagnostics [diagnostics]="diagnostics" [location]="'queryParams.' + param.key"></nq-diagnostics>
+    <div class="card-body" [hidden]="expandedParam !== param.key">
       <div class="row g-2">
         <div class="form-group col-12">
-          <label [for]="idPrefix + '-path' + '-' + param.id">{{ 'named-query-param-path' | i18next }}</label>
-          <input [id]="idPrefix + '-path' + '-' + param.id" type="text" class="form-control form-control-sm" [ngModel]="param.path"
-                 (ngModelChange)="onFieldChange(param, 'path', $event)">
+          <label>{{ 'named-query-param-path' | i18next }}</label>
+          <nq-path-input
+            [value]="param.path"
+            [label]="'named-query-param-path' | i18next"
+            [fields]="fields"
+            (valueChange)="onFieldChange(param, 'path', $event)"
+          ></nq-path-input>
         </div>
       </div>
       <div class="row g-2">
@@ -135,19 +166,32 @@
           </select>
         </div>
         <div class="form-group col-md-6" *ngIf="param.whenUndefined === 'defaultValue'">
-          <label [for]="idPrefix + '-defaultValue' + '-' + param.id">{{ 'named-query-param-default' | i18next }}</label>
-          <input [id]="idPrefix + '-defaultValue' + '-' + param.id" type="text" class="form-control form-control-sm" [ngModel]="param.defaultValue"
-                 (ngModelChange)="onFieldChange(param, 'defaultValue', $event)">
+          <label>{{ 'named-query-param-default' | i18next }}</label>
+          <nq-typed-value
+            [label]="('named-query-param-default' | i18next) + ': ' + param.key"
+            unsetLabel="named-query-unset-default"
+            [value]="param.defaultValue"
+            [type]="param.type"
+            [format]="param.format"
+            [queryType]="param.queryType"
+            [template]="param.template"
+            (valueChange)="onFieldChange(param, 'defaultValue', $event)"
+            (validityChange)="defaultValidity(param.id, $event)"
+          ></nq-typed-value>
         </div>
       </div>
       <div class="row g-2">
         <div class="form-group col-12 mb-0">
-          <label [for]="idPrefix + '-template' + '-' + param.id">{{ 'named-query-param-template' | i18next }}</label>
-          <textarea [id]="idPrefix + '-template' + '-' + param.id" class="form-control form-control-sm font-monospace" rows="2"
-                    [ngModel]="param.template"
-                    (ngModelChange)="onFieldChange(param, 'template', $event)"
-                    [attr.placeholder]="'named-query-param-template-placeholder' | i18next"
-                    spellcheck="false"></textarea>
+          <label [for]="inputId + '-template-' + param.id">{{ 'named-query-param-template' | i18next }}: {{ param.key }}</label>
+          <textarea
+            [id]="inputId + '-template-' + param.id"
+            class="form-control form-control-sm font-monospace"
+            rows="2"
+            [ngModel]="param.template"
+            (ngModelChange)="onFieldChange(param, 'template', $event)"
+            [attr.placeholder]="'named-query-param-template-placeholder' | i18next"
+            spellcheck="false"
+          ></textarea>
         </div>
       </div>
     </div>

@@ -11,13 +11,20 @@
   </div>
   <p class="text-muted small mb-2">{{ 'named-query-mongo-help' | i18next }}</p>
 
+  <nq-diagnostics *ngIf="useRawJson" [diagnostics]="diagnostics" location="mongoQuery"></nq-diagnostics>
+  <div *ngIf="jsonError && !useRawJson" class="text-danger">{{ jsonError | i18next }}</div>
   <div *ngIf="useRawJson">
-    <div *ngIf="jsonError" class="alert alert-danger py-2 px-3 mb-2" role="alert">{{ jsonError }}</div>
-    <label class="visually-hidden" [for]="idPrefix + '-rawJsonText'">{{ 'named-query-mongo-raw-json' | i18next }}</label>
-    <textarea [id]="idPrefix + '-rawJsonText'" class="form-control nq-code-editor"
-              rows="10"
-              [(ngModel)]="rawJsonText"
-              spellcheck="false"></textarea>
+    <div *ngIf="jsonError" class="alert alert-danger py-2 px-3 mb-2" role="alert">{{ jsonError | i18next }}</div>
+    <label class="visually-hidden" [for]="idPrefix + '-control-1'">
+        {{ 'named-query-mongo-raw-json' | i18next }}
+      </label>
+<textarea [id]="idPrefix + '-control-1'"
+      class="form-control nq-code-editor"
+      rows="10"
+      [(ngModel)]="rawJsonText"
+      (ngModelChange)="rawChanged()"
+      spellcheck="false"
+    ></textarea>
     <div class="mt-2">
       <button class="btn btn-sm btn-outline-primary" type="button" (click)="applyRawJson()">
         {{ 'named-query-mongo-apply-json' | i18next }}
@@ -39,16 +46,20 @@
         <tbody>
           <tr *ngFor="let entry of entries; trackBy: trackById">
             <td>
-              <label class="visually-hidden" [for]="idPrefix + '-entry-path' + '-' + entry.id">{{ 'named-query-mongo-path' | i18next }}</label>
-              <input [id]="idPrefix + '-entry-path' + '-' + entry.id" type="text" class="form-control form-control-sm"
-                     [ngModel]="entry.path"
-                     (ngModelChange)="onPathChange(entry, $event)">
+              <nq-diagnostics [diagnostics]="diagnostics" [location]="'mongoQuery.' + entry.path"></nq-diagnostics>
+              <nq-path-input
+                [value]="entry.path"
+                [label]="'named-query-mongo-path' | i18next"
+                [fields]="fields"
+                (valueChange)="onPathChange(entry, $event)"
+              ></nq-path-input>
             </td>
             <td>
-              <label class="visually-hidden" [for]="idPrefix + '-entry-type' + '-' + entry.id">{{ 'named-query-mongo-type' | i18next }}</label>
-              <select [id]="idPrefix + '-entry-type' + '-' + entry.id" class="form-select form-select-sm"
-                      [ngModel]="entry.type"
-                      (ngModelChange)="onTypeChange(entry, $event)">
+              <select
+                class="form-control form-control-sm"
+                [ngModel]="entry.type"
+                (ngModelChange)="onTypeChange(entry, $event)"
+              >
                 <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
               </select>
             </td>
@@ -77,16 +88,21 @@
     <p *ngIf="entries.length === 0" class="text-muted mb-2">{{ 'named-query-mongo-empty' | i18next }}</p>
 
     <div class="d-flex flex-wrap nq-add-row mt-2">
-      <label class="visually-hidden" [for]="idPrefix + '-newPath'">{{ 'named-query-mongo-path' | i18next }}</label>
-      <input [id]="idPrefix + '-newPath'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newPath"
-             [attr.placeholder]="'named-query-mongo-path-placeholder' | i18next">
-      <label class="visually-hidden" [for]="idPrefix + '-newType'">{{ 'named-query-mongo-type' | i18next }}</label>
-      <select [id]="idPrefix + '-newType'" class="form-select form-select-sm nq-add-fixed" [(ngModel)]="newType">
+      <nq-path-input
+        [value]="newPath"
+        [label]="'named-query-mongo-path' | i18next"
+        [fields]="fields"
+        (valueChange)="newPath = $event"
+      ></nq-path-input>
+      <select class="form-control form-control-sm nq-add-fixed" [(ngModel)]="newType">
         <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
       </select>
-      <label class="visually-hidden" [for]="idPrefix + '-newValue'">{{ 'named-query-mongo-value' | i18next }}</label>
-      <input [id]="idPrefix + '-newValue'" type="text" class="form-control form-control-sm nq-add-grow" [(ngModel)]="newValue"
-             [attr.placeholder]="'named-query-mongo-value-placeholder' | i18next">
+      <input
+        type="text"
+        class="form-control form-control-sm nq-add-grow"
+        [(ngModel)]="newValue"
+        [attr.placeholder]="'named-query-mongo-value-placeholder' | i18next"
+      />
       <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
         {{ 'named-query-add' | i18next }}
       </button>
