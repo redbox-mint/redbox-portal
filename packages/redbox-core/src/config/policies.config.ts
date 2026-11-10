@@ -65,7 +65,9 @@ export function buildContractApiPolicies(
     acc[route.controller] = {
       '*': noCachePlusDefaultPolicies,
       ...(controllerPolicies ?? {}),
-      [route.action]:
+      [route.action]: route.controller === 'webservice/RecordGraphqlController'
+        ? noCachePlusApiValidationPolicies.map(policy => policy === 'checkAuth' ? 'checkRecordGraphqlAuth' : policy)
+        :
         route.controller === 'webservice/NamedQueryController' &&
         ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)
           ? namedQueryMutationPolicies

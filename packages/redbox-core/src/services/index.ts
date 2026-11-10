@@ -45,6 +45,7 @@ import * as RDMPServiceModule from './RDMPService';
 import * as RecordsServiceModule from './RecordsService';
 import * as RecordTypesServiceModule from './RecordTypesService';
 import * as RecordSchemaServiceModule from './RecordSchemaService';
+import * as RecordGraphqlServiceModule from './RecordGraphqlService';
 import * as RecordValidationServiceModule from './RecordValidationService';
 import * as ReportsServiceModule from './ReportsService';
 import * as RolesServiceModule from './RolesService';
@@ -107,6 +108,7 @@ export { RDMPServiceModule as RDMPService };
 export { RecordsServiceModule as RecordsService };
 export { RecordTypesServiceModule as RecordTypesService };
 export { RecordSchemaServiceModule as RecordSchemaService };
+export { RecordGraphqlServiceModule as RecordGraphqlService };
 export { RecordValidationServiceModule as RecordValidationService };
 export { ReportsServiceModule as ReportsService };
 export { RolesServiceModule as RolesService };
@@ -333,6 +335,11 @@ export const ServiceExports = {
   get FieldDescriptionsService() {
     return getOrCreateService('FieldDescriptionsService', () =>
       new FieldDescriptionsServiceModule.Services.FieldDescriptions().exports()
+    );
+  },
+  get RecordGraphqlService() {
+    return getOrCreateService('RecordGraphqlService', () =>
+      new RecordGraphqlServiceModule.Services.RecordGraphql(recordSchemaContributorDependencies).exports()
     );
   },
   get RecordSchemaService() {
