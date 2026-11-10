@@ -175,6 +175,7 @@ export interface StorageService {
 
   /**
    * Persist an audit synchronously and report whether it was durably applied.
+   * Writes carrying auditId must be idempotent; retryable=false denotes permanent payload failures.
    * Legacy/out-of-tree storage hooks may omit this method; operations requiring
    * durable validation audit then fail closed before record storage.
    */

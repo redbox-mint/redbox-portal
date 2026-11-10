@@ -90,6 +90,8 @@ import {
 
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
+// Index builds can legitimately be silent for minutes. Mongo drivers 6/7 pass this command override to the socket.
+const indexBuildOptions = { socketTimeoutMS: 0, maxTimeMS: 0 };
 
 const CSV_DANGEROUS_PREFIX = /^[=+\-@\t\r\n]/;
 function sanitizeCsvCell(value: unknown): unknown {
@@ -970,18 +972,22 @@ export namespace Services {
         await Record.create(initRec);
         await Record.destroyOne({ redboxOid: uuid });
       }
+      const recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      await recordCol.createIndex(
+        {
+          'figshareSyncIntent.pending': 1,
+          'figshareSyncIntent.readiness': 1,
+          'figshareSyncIntent.requestedAt': 1,
+        },
+        indexBuildOptions
+      );
+      await this.createIndices(this.db);
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
-      this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
-      await this.recordCol.createIndex({
-        'figshareSyncIntent.pending': 1,
-        'figshareSyncIntent.readiness': 1,
-        'figshareSyncIntent.requestedAt': 1,
-      });
+      this.recordCol = recordCol;
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
       this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
       this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
-      await this.createIndices(this.db);
       await this.createRecordSchemaIndices();
       this._requiredIndicesReady = true;
       sails.emit('hook:redbox:storage:ready');
@@ -1002,10 +1008,10 @@ export namespace Services {
       };
       const indices = storageConfig.mongodb?.indices ?? [];
       if (_.size(indices) > 0) {
-        await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
+        await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices, indexBuildOptions);
       }
       try {
-        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 });
+        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 }, indexBuildOptions);
       } catch (err) {
         sails.log.error(`Failed to create record audit index:`);
         sails.log.error(JSON.stringify(err));
@@ -3517,9 +3523,10 @@ export namespace Services {
       return summary;
     }
 
-    private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
-      const payload: RecordAuditModel = {
+    private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel & { id?: string } {
+      const payload: RecordAuditModel & { id?: string } = {
         redboxOid: recordAudit.redboxOid,
+        ...(recordAudit.auditId ? { id: recordAudit.auditId } : {}),
         action: recordAudit.action,
         ...(recordAudit.occurredAt ? { occurredAt: recordAudit.occurredAt } : {}),
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
@@ -3601,14 +3608,59 @@ export namespace Services {
 
     public async createRecordAudit(recordAudit: RecordAuditModel): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
+      const auditId = recordAudit.auditId;
       const payload = this.sanitizeRecordAudit(recordAudit);
       try {
+        if (payload.id && !/^[a-f0-9]{24}$/.test(payload.id)) {
+          response.retryable = false;
+          throw new Error('Invalid record audit ID');
+        }
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        const savedRecordAudit = await RecordAudit.create(payload);
-        response.oid = String(savedRecordAudit._id ?? '');
+        // Waterline renames id to the physical primary key in place. Keep verification data intact.
+        const savedRecordAudit = await RecordAudit.create({ ...payload });
+        response.oid = String(savedRecordAudit.id ?? savedRecordAudit._id ?? '');
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record Audit created...`);
       } catch (err) {
+        // These payload failures cannot be repaired by waiting for Mongo to recover.
+        // Waterline wraps unrecognised Mongo failures in AdapterError.raw.
+        const raw = err != null && typeof err === 'object' && 'raw' in err ? err.raw : undefined;
+        for (const failure of [err, raw]) {
+          if (failure == null || typeof failure !== 'object') continue;
+          const code = 'code' in failure ? failure.code : undefined;
+          const name = 'name' in failure ? failure.name : undefined;
+          if (
+            code === 121 ||
+            code === 10334 ||
+            code === 17419 ||
+            code === 'E_VALIDATION' ||
+            code === 'E_INVALID_NEW_RECORD' ||
+            name === 'BSONError' ||
+            name === 'BSONVersionError'
+          )
+            response.retryable = false;
+        }
+        // Mongo's existing unique primary key makes retries atomic across processes and late inserts.
+        const duplicate =
+          err != null && typeof err === 'object' && 'code' in err && (err.code === 'E_UNIQUE' || err.code === 11000);
+        if (auditId && duplicate) {
+          try {
+            const existing = await RecordAudit.findOne({ id: auditId });
+            if (
+              existing?.redboxOid === payload.redboxOid &&
+              existing.action === payload.action &&
+              existing.occurredAt === payload.occurredAt
+            ) {
+              response.oid = auditId;
+              response.success = true;
+              return response;
+            }
+            if (existing) response.retryable = false;
+          } catch (lookupError) {
+            response.message = this.getErrorMessage(lookupError);
+            return response;
+          }
+        }
         sails.log.error(`${this.logHeader} Failed to create Record Audit:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;
