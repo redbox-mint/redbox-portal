@@ -141,6 +141,37 @@ describe('RelatedObjectDataComponent', () => {
     }));
   }
 
+  for (const editMode of [false, true]) {
+    it(`${editMode ? 'rejects' : 'keeps'} the server result when only a nested reference parent control survives in ${editMode ? 'edit' : 'view'} mode`, fakeAsync(() => {
+      const initialResult: RelatedMetadataEntry = { status: 'resolved', issues: [], records: [{
+        redboxOid: 'A', metadata: { title: 'Current title' }, metaMetadata: { type: 'activity', brandId: 'default' },
+      }] };
+      const config: FormConfigFrame = { name: 'nested-related-reference', relatedRecords: {
+        displayTargets: [], relations: [{ relationId: 'activity', referenceTokens: ['project', 'activityOid'] }],
+        sources: [{ componentPointer: '/source', relationId: 'activity', referenceTokens: ['project', 'activityOid'],
+          required: true, referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }), initialResult }],
+      }, componentDefinitions: [
+        { name: 'project', model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: {
+          componentDefinitions: [{ name: 'activityOid', component: { class: 'ContentComponent', config: { content: 'A' } } }],
+        } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+      ] };
+      const events: FieldValueChangedEvent[] = [];
+      const subscription = TestBed.inject(FormComponentEventBus).select$(FormComponentEventType.FIELD_VALUE_CHANGED)
+        .subscribe(event => { if (event.fieldId === '/source') events.push(event); });
+      let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+      void createFormAndWaitForReady(config, { editMode }).then(value => { result = value; });
+      flushMicrotasks(); tick(); result.fixture.detectChanges();
+      expect(result.formComponent.form?.get('project')).toBeTruthy();
+      expect(result.formComponent.form?.get(['project', 'activityOid']) ?? null).toBeNull();
+      expect(events.at(-1)?.value).toEqual(editMode ? { status: 'empty', records: [], issues: [] } : initialResult);
+      expect(result.formComponent.relatedState).toBe(editMode ? 'error' : 'ready');
+      expect(recordService.resolveRelatedMetadata).not.toHaveBeenCalled();
+      subscription.unsubscribe();
+      result.fixture.destroy();
+    }));
+  }
+
   for (const delayedWork of ['expressions', 'repeatable setter']) {
   it(`ignores delayed loading ${delayedWork} after targets receive resolved data`, fakeAsync(() => {
     let releaseLoading!: () => void;
@@ -422,7 +453,7 @@ describe('RelatedObjectDataComponent', () => {
         },
       }] };
       let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
-      void createFormAndWaitForReady(config, undefined, undefined, assets).then(value => { result = value; });
+      void createFormAndWaitForReady(config, { editMode: true }, undefined, assets).then(value => { result = value; });
       flushMicrotasks(); tick();
       expect(rendered[0]).toEqual([]);
       expect(rendered.flat()).not.toContain('UNVALIDATED snapshot');

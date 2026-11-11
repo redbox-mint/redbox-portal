@@ -229,6 +229,31 @@ describe('validation operation related context', () => {
     assert.ok(result.diagnostics.some(item => item.code === 'record-validation-timeout'));
   });
 
+  it('marks only pre-save creates as unpersisted related roots using server write context', async () => {
+    const service = new RecordServices.Records() as any;
+    const f = fixture();
+    service.normalizeCandidateDisplay = async () => undefined;
+    service.normalizeAuthoritativeCandidateContext = () => true;
+    service.hasPublicEditAuthorization = () => true;
+    const contexts: RelatedRecordReadContext[] = [];
+    service.resolveRecordValidationService = () => ({ resolve: async (request: RecordValidationRequest) => {
+      contexts.push(request.relatedReadContext!);
+      return buildResolvedRecordValidationResult(request);
+    } });
+    const candidate = { ...f.request.candidate, redboxOid: 'preallocated-create-oid',
+      metadata: { ...f.request.candidate.metadata, rootOperation: 'create' } };
+    const options = { candidate, original: cloneDeep(candidate), user: f.context.user, brand: f.context.brand,
+      recordType: {}, context: { routeFamily: 'api', validationOperation: 'submit',
+        validationRequestParameters: { rootOperation: 'create' }, validationRuntimeContext: { rootOperation: 'create' } } };
+    for (const [writeKind, phase] of [['create', 'pre-save'], ['create', 'post-save'], ['update', 'pre-save'],
+      ['transition', 'pre-save']] as const) {
+      const result = await service.validateCandidate({ ...options, writeKind, phase });
+      assert.equal(result.allowed, true);
+    }
+    assert.deepEqual(contexts.map(context => context.rootOperation), ['create', undefined, undefined, undefined]);
+    assert.ok(contexts.every(context => context.user === f.context.user && context.brand === f.context.brand));
+  });
+
   it('passes the actual save principal and re-normalizes display targets after validator transformations', async () => {
     const service = new RecordServices.Records() as any;
     const f = fixture();

@@ -96,11 +96,11 @@ export class RelatedObjectDataComponent extends ContentComponent {
         if (!request.isCurrent()) return;
         await this.refreshContent();
       };
-      // View fields are flattened to content after server hydration, so their
-      // reference controls are absent. The authorized server result is final
-      // for this immutable view; edit mode still checks the live reference.
+      // View fields are flattened to content after server hydration. A surviving
+      // ancestor control need not contain the reference, so the authorized server
+      // result is final for this immutable view; edit mode checks the live reference.
       if (initial && descriptor.initialResult &&
-          ((this.formComponent.editMode?.() === false && !referenceControl) || fingerprint === descriptor.referenceFingerprint)) {
+          (this.formComponent.editMode?.() === false || fingerprint === descriptor.referenceFingerprint)) {
         await publish(descriptor.initialResult);
         return;
       }

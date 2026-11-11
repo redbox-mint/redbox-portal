@@ -5496,6 +5496,89 @@ describe('RecordsService', function () {
       return { commit };
     };
 
+    for (const permitted of [true, false]) {
+      it(`${permitted ? 'saves an authorized' : 'blocks an unauthorized'} create with a preallocated OID and related-metadata validation`, async function () {
+        const researcherRole = authorizeCreateFromStartingStep();
+        installAuthoritativeStorage();
+        const source = {
+          redboxOid: 'related-activity-1',
+          metaMetadata: { type: 'activity', brandId: 'brand-1', form: '' },
+          metadata: { title: 'Authorized activity', privateValue: 'Not projected' },
+          authorization: { view: ['user-1'], edit: [], viewRoles: [], editRoles: [] },
+        };
+        mockStorageService.getMeta.withArgs(source.redboxOid).callsFake(async () => structuredClone(source));
+        const recordType = {
+          name: 'rdmp', hooks: {}, searchable: false,
+          relatedTo: [{
+            id: 'activity', recordType: 'activity', localField: 'metadata.activityOid',
+            foreignField: 'redboxOid', cardinality: 'one', direction: 'outbound',
+            resolution: { metadataFields: ['/title'] },
+          }],
+        };
+        (global as any).RecordTypesService.get.returns(of(recordType));
+        const form: FormConfigFrame = {
+          name: 'default-form', type: 'rdmp',
+          validationOperations: {
+            submit: { enabledValidationGroups: [], relatedMetadata: { relations: [{ relationId: 'activity', required: true }] } },
+          },
+          componentDefinitions: [{
+            name: 'title', component: { class: 'SimpleInputComponent' },
+            model: { class: 'SimpleInputModel', config: { validators: [{
+              class: 'jsonata-expression',
+              config: { expression: '$relatedMetadata.activity.records[0].metadata.title = "Authorized activity"' },
+            }] } },
+          }],
+        };
+        mockSails.config.recordValidation = { mode: 'enforce', timeoutMs: 5_000 };
+        mockSails.config.validators = { definitions: formValidatorsSharedDefinitions };
+        mockSails.config.reusableFormDefinitions = {};
+        const formRecord = { name: form.name, branding: 'brand-1', configuration: form } as FormAttributes;
+        mockFormsService.getForm.resolves(formRecord);
+        mockFormsService.getFormByName.returns(of(formRecord));
+        const validationService = new RecordValidationServices.RecordValidation({
+          loadRecordType: async () => recordType,
+          loadStartingWorkflowStep: async () => ({ name: 'draft', starting: true, config: { form: 'default-form' } }),
+          loadWorkflowSteps: async () => [],
+          loadForm: async () => formRecord,
+          resolveRelatedMetadata: (candidate, context, request) => RecordsService.resolveRelatedMetadata(candidate, context, request),
+        });
+        const validation = sinon.spy(validationService, 'resolve');
+        const createAccess = sinon.spy(RecordsService, 'hasCreateAccess');
+        mockSails.services.recordvalidationservice = validationService;
+        const result = await RecordsService.create(
+          { id: 'brand-1' },
+          { metadata: { title: 'Related create', activityOid: source.redboxOid } },
+          recordType,
+          { username: 'user-1', roles: permitted ? [researcherRole] : [] },
+          false, false, undefined,
+          createRecordSaveContext({ validationOperation: 'submit' })
+        );
+        expect(validation.calledOnce).to.equal(true);
+        const candidate = validation.firstCall.args[0].candidate;
+        expect(candidate.redboxOid).to.match(/^[a-f0-9]{32}$/);
+        expect(result.outcome, JSON.stringify({ result, validation: await validation.firstCall.returnValue })).to.equal(permitted ? 'saved' : 'not-saved');
+        expect(createAccess.calledOnce).to.equal(true);
+        expect(await createAccess.firstCall.returnValue).to.equal(permitted);
+        const storedRootReads = mockStorageService.getMeta.getCalls().filter(call => call.args[0] === candidate.redboxOid);
+        for (const read of storedRootReads) {
+          expect(permitted && read.calledAfter(mockStorageService.create.firstCall)).to.equal(true);
+        }
+        expect(mockStorageService.getMeta.calledWith(source.redboxOid)).to.equal(permitted);
+        expect(mockStorageService.create.calledOnce).to.equal(permitted);
+        if (permitted) {
+          expect(result.oid).to.equal(candidate.redboxOid);
+          const persisted = mockStorageService.create.firstCall.args[1];
+          expect(persisted.metadata).to.deep.equal({ title: 'Related create', activityOid: source.redboxOid });
+          expect(persisted).not.to.have.property('relatedMetadata');
+          const validationResult = await validation.firstCall.returnValue;
+          expect(validationResult.status).to.equal('resolved');
+          if (validationResult.status === 'resolved') {
+            expect(validationResult.resolved.expressionContext!.relatedMetadata!.activity.records[0].metadata).to.deep.equal({ title: 'Authorized activity' });
+          }
+        }
+      });
+    }
+
     const resolvedAllowResult = (
       candidate: RecordValidationCandidate,
       overrides: Partial<Omit<ResolvedRecordValidationResult, 'status' | 'transformedCandidate'>> = {}

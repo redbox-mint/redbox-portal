@@ -241,6 +241,12 @@ real effective principal under existing source-read rules. An internal write
 `authorization: 'service'` option does not authorize an unrelated source read.
 HTTP callers cannot supply a service identity or permission-bypass flag.
 
+Pre-save create validation sets server-owned `rootOperation: 'create'` in this
+context, so an already allocated OID still uses existing create authorization.
+Derive this intent from the lifecycle operation, never candidate metadata or HTTP
+parameters. Updates and post-save validation use authoritative stored-root checks;
+the stored-record overload always checks its loaded root, regardless of this flag.
+
 The supplied-record overload preserves in-flight local changes and references.
 The stored-record overload loads the root once. Enrichment clones the supplied
 record; it never mutates the caller's candidate. Never trust an existing

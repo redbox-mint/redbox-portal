@@ -10,6 +10,8 @@ export interface RelatedRelationResolutionConfig {
 export type RelatedRecordReadContext = {
   readonly brand: BrandingModel;
   readonly user: UserModel;
+  /** Server-owned pre-save create intent; an allocated OID does not imply persistence. */
+  readonly rootOperation?: 'create';
 } & (
   | { readonly audience: 'browser' | 'api'; readonly serviceId?: never }
   | { readonly audience: 'service'; readonly serviceId: string }

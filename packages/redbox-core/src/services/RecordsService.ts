@@ -544,7 +544,9 @@ export namespace Services {
         storage: this.storageService,
         relations: async type => (await firstValueFrom(RecordTypesService.get(context.brand, type)))?.relatedTo ?? [],
         authorizeRoot: async candidate => {
-          if (!candidate.redboxOid)
+          // Create validation runs after OID allocation, before persistence.
+          // Stored-read entry points always authorize their loaded root.
+          if (!loadedRoot && (context.rootOperation === 'create' || !candidate.redboxOid))
             return this.hasCreateAccess(
               context.brand,
               context.user as unknown as AnyRecord,
@@ -2815,6 +2817,7 @@ export namespace Services {
           relatedReadContext: {
             brand: brand as BrandingModel,
             user: user as unknown as RelatedRecordReadContext['user'],
+            ...(writeKind === 'create' && phase === 'pre-save' ? { rootOperation: 'create' as const } : {}),
             ...(context.routeFamily === 'browser' || context.routeFamily === 'api'
               ? { audience: context.routeFamily }
               : { audience: 'service' as const, serviceId: 'record-validation' }),

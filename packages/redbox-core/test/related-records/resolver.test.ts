@@ -602,6 +602,44 @@ describe('related source projection and RecordsService integration', () => {
     create.resolves(false);
     await assert.rejects(service.resolveRelatedMetadata(asRecord(candidate), context, request), /Record unavailable/);
   });
+  it('authorizes a preallocated create OID only with explicit server-owned create context', async () => {
+    const create = sinon.stub(service, 'hasCreateAccess').resolves(true);
+    const candidate = { ...fixture.root, redboxOid: 'preallocated-create-oid' };
+    const createContext = { ...context, rootOperation: 'create' as const };
+    const result = await service.resolveRelatedMetadata(asRecord(candidate), createContext, request);
+    assert.equal(result['primary-activity'].records[0].redboxOid, fixture.ids.activityA);
+    assert.equal(create.callCount, 1);
+    assert.equal(getMeta.getCalls().some(call => call.args[0] === candidate.redboxOid), false);
+
+    getMeta.resetHistory();
+    create.resolves(false);
+    await assert.rejects(service.resolveRelatedMetadata(asRecord(candidate), createContext, request), /Record unavailable/);
+    assert.equal(getMeta.callCount, 0);
+
+    create.resolves(true);
+    await assert.rejects(service.resolveRelatedMetadata(asRecord(candidate), context, request), /Record unavailable/);
+    assert.equal(getMeta.calledOnceWithExactly(candidate.redboxOid), true);
+    assert.equal(create.callCount, 2);
+    create.restore();
+  });
+  it('retains source ACL checks for preallocated creates', async () => {
+    const create = sinon.stub(service, 'hasCreateAccess').resolves(true);
+    const candidate = { ...fixture.root, redboxOid: 'preallocated-create-oid',
+      metadata: { primaryActivity: fixture.ids.denied } };
+    const result = await service.resolveRelatedMetadata(asRecord(candidate), { ...context, rootOperation: 'create' }, request);
+    assert.equal(result['primary-activity'].status, 'unavailable');
+    assert.deepEqual(result['primary-activity'].records, []);
+    create.restore();
+  });
+  it('always checks stored-root access for stored read operations, even with create context', async () => {
+    const create = sinon.stub(service, 'hasCreateAccess').resolves(true);
+    fixture.root.authorization = { view: [], edit: [], viewRoles: [], editRoles: [] };
+    await assert.rejects(service.getMetaWithRelatedMetadata(fixture.ids.root, { ...context, rootOperation: 'create' }, request),
+      /Record unavailable/);
+    assert.equal(create.callCount, 0);
+    assert.equal(getMeta.callCount, 1);
+    create.restore();
+  });
   it('rebuilds stale runtime enrichment on a detached record, preserving all local state and audit fields', async () => {
     const candidate = Object.assign(cloneDeep(fixture.root), { relatedMetadata: { old: {} } });
     const before = cloneDeep(candidate);
