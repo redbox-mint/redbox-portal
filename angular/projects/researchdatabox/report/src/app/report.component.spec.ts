@@ -1,3 +1,4 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { By } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
@@ -77,6 +78,7 @@ describe('ReportComponent', () => {
         ReportComponent
       ],
       imports: [
+        RedboxPortalAdminModule,
         HttpClientTestingModule,
         FormsModule,
         BsDatepickerModule,

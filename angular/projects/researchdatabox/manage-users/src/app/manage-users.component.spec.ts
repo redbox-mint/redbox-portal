@@ -145,7 +145,7 @@ describe('ManageUsersComponent', () => {
         ReactiveFormsModule,
         I18NextPipe,
         AdminDatePipe,
-        ModalModule.forRoot()
+        ModalModule
       ],
       providers: [
         FormBuilder,
@@ -320,15 +320,16 @@ describe('ManageUsersComponent', () => {
     expect(generate).toHaveBeenCalledOnceWith('ABC123');
     expect(app.showToken).toBeTrue();
     expect(app.currentUser?.token).toBe('generated-token');
-    expect(app.updateDetailsMsg).toBe('Token generated.');
+    expect(app.updateDetailsMsg).toBe('admin-users-key-generated');
     expect(document.body.querySelector('.mu-token-display')?.textContent).toContain('generated-token');
 
-    await app.revokeKey('ABC123');
+    app.requestUserAction('revoke', app.currentUser!);
+    await app.confirmUserAction();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(revoke).toHaveBeenCalledOnceWith('ABC123');
     expect(app.currentUser?.token).toBe('');
-    expect(app.updateDetailsMsg).toBe('Token revoked.');
+    expect(app.updateDetailsMsg).toBe('admin-users-key-revoked');
     expect(document.body.querySelector('.mu-token-display')).toBeNull();
   });
 
@@ -345,11 +346,12 @@ describe('ManageUsersComponent', () => {
     expect(app.updateDetailsMsg).toBe('Generation denied');
     expect(app.updateDetailsMsgType).toBe('danger');
 
-    await app.revokeKey('ABC123');
+    app.requestUserAction('revoke', app.currentUser!);
+    await app.confirmUserAction();
     await fixture.whenStable();
     expect(app.currentUser?.token).toBe('existing-token');
-    expect(app.updateDetailsMsg).toBe('Revocation denied');
-    expect(app.updateDetailsMsgType).toBe('danger');
+    expect(app.actionError).toBe('Revocation denied');
+    expect(app.actionPending).toBeFalse();
   });
 
   it('should open the audit modal, fetch records, and render them', async () => {
@@ -534,21 +536,21 @@ describe('ManageUsersComponent', () => {
         }
       }
     }
-    app.newUser(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
-    app.submitted = false; app.newUserForm!.markAsUntouched(); fixture.detectChanges();
+    app.newUser(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    app.submitted = false; app.newUserForm!.markAsUntouched(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('#newform-username').getAttribute('aria-describedby')).toBeNull();
     checkReferences();
-    app.newUserForm!.get('passwords.password')!.markAsTouched(); fixture.detectChanges();
+    app.newUserForm!.get('passwords.password')!.markAsTouched(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('#newform-password').getAttribute('aria-describedby')).toBe('newform-password-error');
     checkReferences();
-    app.newUserForm!.get('passwords.confirmPassword')!.markAsTouched(); fixture.detectChanges(); checkReferences();
-    app.hideNewUserModal(); fixture.detectChanges(); await fixture.whenStable();
-    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
-    app.submitted = false; app.updateUserForm!.markAsUntouched(); fixture.detectChanges();
+    app.newUserForm!.get('passwords.confirmPassword')!.markAsTouched(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); checkReferences();
+    app.hideNewUserModal(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    app.submitted = false; app.updateUserForm!.markAsUntouched(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('#detailsform-name').getAttribute('aria-describedby')).toBeNull();
     checkReferences();
-    app.updateUserForm!.get('name')!.markAsTouched(); fixture.detectChanges(); checkReferences();
-    app.submitted = true; fixture.detectChanges(); checkReferences();
+    app.updateUserForm!.get('name')!.markAsTouched(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); checkReferences();
+    app.submitted = true; fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); checkReferences();
   });
 
   it('links invalid fields to their errors and focuses the first invalid field in both user forms', async () => {
@@ -927,9 +929,9 @@ describe('ManageUsersComponent', () => {
 
   it('keeps dirty editor drafts until discard is explicit, including new users', async () => {
     const { fixture, app } = await createComponent();
-    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable();
     app.updateUserForm!.get('name')!.setValue('Unsaved name');
-    app.hideDetailsModal(); fixture.detectChanges();
+    app.hideDetailsModal(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.confirmDiscard).toBe('details');
     expect(app.isDetailsModalShown).toBeTrue();
     app.keepEditing();
@@ -937,11 +939,11 @@ describe('ManageUsersComponent', () => {
     app.hideDetailsModal();
     const detailsHidden = new Promise<void>(resolve => app.userDetailsModal!.onHidden.subscribe(() => resolve()));
     app.discardEditor(); await detailsHidden;
-    await fixture.whenStable(); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.isDetailsModalShown).toBeFalse();
-    app.newUser(); fixture.detectChanges(); await fixture.whenStable();
+    app.newUser(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable();
     app.newUserForm!.get('name')!.setValue('New unsaved name');
-    app.hideNewUserModal(); fixture.detectChanges();
+    app.hideNewUserModal(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.confirmDiscard).toBe('new');
     app.keepEditing();
     app.newUserForm!.get('name')!.setValue('');
@@ -993,11 +995,11 @@ describe('ManageUsersComponent', () => {
   it('renders last login in the table and account dialog, with Never when empty', async () => {
     const { fixture, app } = await createComponent();
     app.allUsers[0].lastLogin = '2026-11-06T01:02:03Z';
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('06/11/2026');
     expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
-    app.editUser('admin'); fixture.detectChanges();
-    await fixture.whenStable(); fixture.detectChanges();
+    app.editUser('admin'); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    await fixture.whenStable(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(document.activeElement?.id).toBe('detailsform-name');
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
   });

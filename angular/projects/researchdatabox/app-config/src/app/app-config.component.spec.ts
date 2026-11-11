@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { Pipe, PipeTransform, provideZonelessChangeDetection } from '@angular/core';
 import { FormlyFieldWrapperComponent } from '@researchdatabox/portal-ng-common';
 import { AdminSaveShortcutComponent } from '@researchdatabox/portal-ng-common';
@@ -480,7 +481,7 @@ describe('AppConfigComponent', () => {
     app.model = { "enabled": true, "title": "Test Title", "message": "Test Message" };
     await app.onSubmit(app.model);
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('.alert-success')?.textContent).toContain('Configuration saved successfully');
+    expect(fixture.nativeElement.querySelector('.alert-success')?.textContent).toContain('admin-config-save-success');
     expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
   });
   it('Check form submission failure', async () => {
@@ -495,7 +496,7 @@ describe('AppConfigComponent', () => {
     app.model = { "enabled": true, "title": "Test Title", "message": "Test Message" };
     await app.onSubmit(app.model);
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('.alert-danger')?.textContent).toContain('Configuration failed to save');
+    expect(fixture.nativeElement.querySelector('.alert-danger')?.textContent).toContain('admin-config-save-error');
     expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
   });
 
@@ -859,7 +860,7 @@ describe('AppConfigComponent', () => {
     expect(tester.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(tester.querySelector('.rb-admin-form-section-header p').hasAttribute('aria-live')).toBeFalse();
     expect(tester.querySelector('.rb-admin-form-section-header .badge')).toBeNull();
-    fixture.componentInstance.model.domainsAaf.push('new.example'); fixture.detectChanges();
+    fixture.componentInstance.model.domainsAaf.push('new.example'); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable();
     expect(tester.querySelector('.rb-admin-form-section-header [role="status"] .badge').textContent).toContain('admin-config-address-unsaved');
     fixture.destroy();
   });
@@ -895,7 +896,7 @@ describe('AppConfigComponent', () => {
     // Focus is intentionally deferred to the next paint after Formly/native
     // details toggles settle. Await that paint instead of an unbounded event
     // promise (focus can already be on the target without another focusin).
-    const nextPaint = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    const nextPaint = () => new Promise<void>(resolve => setTimeout(() => requestAnimationFrame(() => resolve()), 20));
     await app.onSubmit(app.model); fixture.detectChanges(); await fixture.whenStable();
     await nextPaint();
     expect(app.invalidFields.length).toBe(2);
@@ -1160,7 +1161,7 @@ describe('AppConfigComponent', () => {
       expect(fixture.nativeElement.querySelector('.app-config-connection-result').classList).toContain('alert-success');
       expect(fixture.nativeElement.textContent).toContain('admin-config-connection-draft');
       expect(appConfigService.lastSavedModel).toBeUndefined();
-      component.model.connection.baseUrl = 'http://new-draft.example'; fixture.detectChanges();
+      component.model.connection.baseUrl = 'http://new-draft.example'; fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck(); await fixture.whenStable(); fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.app-config-connection-result')).toBeNull();
       expect(fixture.nativeElement.textContent).not.toContain('admin-config-connection-unsaved');
       fixture.destroy();
@@ -1393,8 +1394,9 @@ describe('AppConfigComponent', () => {
     input.value = 'Changed'; input.dispatchEvent(new Event('input')); fixture.detectChanges();
     await fixture.whenStable();
     expect(component.dirty).toBeTrue();
-    component.discard(); fixture.detectChanges();
-    await fixture.whenStable(); fixture.detectChanges();
+    component.discard(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    await fixture.whenStable(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    await fixture.whenStable();
     expect(component.model.title).toBe('Default');
     expect(component.dirty).toBeFalse();
     const restoredInput: HTMLInputElement = fixture.nativeElement.querySelector('input');
@@ -1516,11 +1518,11 @@ describe('AppConfigComponent', () => {
   it('keeps removal focus on the next chip, then previous chip, then add input', async () => {
     const fixture = await renderConfig({ schema: { type: 'object', properties: { values: { type: 'array', items: { type: 'string' } } } }, model: { values: ['One', 'Two', 'Three'] } });
     const buttons = () => Array.from(fixture.nativeElement.querySelectorAll('.rb-admin-chip button')) as HTMLButtonElement[];
-    buttons()[1].focus(); buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    buttons()[1].focus(); buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable(); await new Promise(resolve => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(buttons()[1]);
-    buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable(); await new Promise(resolve => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(buttons()[0]);
-    buttons()[0].click(); fixture.detectChanges(); await fixture.whenStable();
+    buttons()[0].click(); fixture.detectChanges(); await fixture.whenStable(); await new Promise(resolve => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('app-config-chips input'));
     fixture.destroy();
   });
@@ -1528,11 +1530,11 @@ describe('AppConfigComponent', () => {
   it('keeps array removal focus on adjacent rows and falls back to Add item', async () => {
     const fixture = await renderConfig({ schema: { type: 'object', properties: { rows: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' } } } } } }, model: { rows: [{ name: 'One' }, { name: 'Two' }, { name: 'Three' }] } });
     const buttons = () => Array.from(fixture.nativeElement.querySelectorAll('.app-config-array-item > .text-end button')) as HTMLButtonElement[];
-    buttons()[1].focus(); buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    buttons()[1].focus(); buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable(); await new Promise(resolve => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(buttons()[1]);
-    buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable();
+    buttons()[1].click(); fixture.detectChanges(); await fixture.whenStable(); await new Promise(resolve => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(buttons()[0]);
-    buttons()[0].click(); fixture.detectChanges(); await fixture.whenStable();
+    buttons()[0].click(); fixture.detectChanges(); await fixture.whenStable(); await new Promise(resolve => setTimeout(resolve, 20));
     expect(document.activeElement).toBe(fixture.nativeElement.querySelector('formly-array-type > div > .row button'));
     fixture.destroy();
   });

@@ -106,7 +106,7 @@ describe('DeletedRecordsComponent', () => {
         BsDatepickerModule,
         PaginationModule,
         A11yModule,
-        RedboxPortalCoreModule
+        RedboxPortalCoreServicesModule, RedboxPortalRecordTableModule, RedboxPortalRecordsModule
       ],
       providers: [
         provideZonelessChangeDetection(),

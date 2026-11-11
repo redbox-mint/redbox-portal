@@ -34,7 +34,7 @@ describe('AdminSidebarConfig', function() {
   });
 
   it('should expose SIEM in the effective branding sidebar after the sidebar editor', function() {
-    const navigation = brandingConfigurationDefaults.adminSidebar.sections.find(section => section.id === 'navigation');
+    const navigation = brandingConfigurationDefaults.adminSidebar.sections.find(section => section.id === 'site');
     const sidebarEditorIndex = navigation.items.findIndex(item => item.id === 'adminsidebar');
     const contractSiem = DEFAULT_ADMIN_SIDEBAR_CONFIG.sections
       .flatMap(section => section.items)

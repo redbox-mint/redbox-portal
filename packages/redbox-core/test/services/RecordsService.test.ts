@@ -2311,7 +2311,7 @@ describe('RecordsService', function () {
     };
 
     for (const operation of ['soft-delete', 'permanent-delete', 'destroy-deleted'] as const) {
-      it(`captures ${operation} ownership through the production worker after record removal`, async function () {
+      it(`captures ${operation} ownership through direct audit persistence after record removal`, async function () {
         setMode('observe');
         sinon.stub(RecordsService, 'hasEditAccess').returns(true);
         mockSails.config.environment = 'production';
@@ -2375,10 +2375,9 @@ describe('RecordsService', function () {
           mockStorageService.getMeta.resolves(null);
           mockRecord.findOne.returns(createQueryObject(null));
           if (operation !== 'soft-delete') expect(await mockStorageService.getTombstone()).to.equal(null);
-          expect(mockQueueService.now.calledOnce).to.equal(true);
-          const audit = mockQueueService.now.firstCall.args[1];
+          expect(mockQueueService.now.called).to.equal(false);
+          const audit = mockStorageService.createRecordAudit.firstCall.args[0];
           expect(audit.record.metaMetadata).to.deep.equal({ brandId: 'brand-1' });
-          await RecordsService.storeRecordAudit({ attrs: { data: audit } });
           await new Promise<void>(resolve => setImmediate(resolve));
           expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
           expect(emitted.map(row => row.event.eventType)).to.deep.equal(
@@ -2393,7 +2392,7 @@ describe('RecordsService', function () {
       });
     }
 
-    it('captures restore ownership through the production worker after record removal', async function () {
+    it('captures restore ownership through direct audit persistence after record removal', async function () {
       setMode('observe');
       sinon.stub(RecordsService, 'hasEditAccess').returns(true);
       sinon.stub(RecordsService, 'hasViewAccess').returns(true);
@@ -2429,17 +2428,16 @@ describe('RecordsService', function () {
         expect(result.outcome).to.equal('saved');
         expect(mockStorageService.createActiveRecordFromTombstone.calledOnce).to.equal(true);
         expect(mockStorageService.removeTombstone.calledOnce).to.equal(true);
-        expect(mockQueueService.now.calledOnce).to.equal(true);
-        const audit = mockQueueService.now.firstCall.args[1];
+        expect(mockQueueService.now.called).to.equal(false);
+        const audit = mockStorageService.createRecordAudit.firstCall.args[0];
         expect(audit.record).to.deep.equal({
           metaMetadata: { brandId: 'brand-1' }, revision: 10, resolution: result.concurrency.resolution,
         });
 
-        // A subsequent delete removes the active record before the queued restore audit runs.
+        // A subsequent delete cannot change the already persisted restore audit.
         mockStorageService.getMeta.resolves(null);
         mockRecord.findOne.returns(createQueryObject(null));
         expect(await mockStorageService.getTombstone()).to.equal(null);
-        await RecordsService.storeRecordAudit({ attrs: { data: audit } });
         await new Promise<void>(resolve => setImmediate(resolve));
         expect(mockStorageService.createRecordAudit.calledOnce).to.equal(true);
         expect(mockStorageService.createRecordAudit.firstCall.args[0]).to.deep.equal({ ...audit });

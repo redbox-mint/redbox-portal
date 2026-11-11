@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, NgZone, OnChanges, OnDestroy, Output } from '@angular/core';
+import { signal, Component, ElementRef, EventEmitter, HostListener, Input, NgZone, OnChanges, OnDestroy, Output } from '@angular/core';
 import { I18NextPipe } from './i18next.pipe';
 
 /** Keep the existing save action within reach before a long editor's save bar enters view. */
@@ -18,7 +18,9 @@ export class AdminSaveShortcutComponent implements OnChanges, OnDestroy {
   @Input() dirty = false;
   @Input() disabled = false;
   @Output() save = new EventEmitter<void>();
-  offscreen = false;
+  private readonly offscreenState = signal(false);
+  get offscreen(): boolean { return this.offscreenState(); }
+  set offscreen(value: boolean) { this.offscreenState.set(value); }
   private observer?: IntersectionObserver;
   private observed?: HTMLElement;
   private focusFrame = 0;

@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { createInstance } from 'i18next';
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -65,7 +66,7 @@ describe('AppComponent', () => {
       ],
       imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
-        ModalModule.forRoot(),
+        ModalModule,
         I18NextPipe
       ],
       providers: [
@@ -192,8 +193,8 @@ describe('AppComponent', () => {
     expect(badge.querySelector('.visually-hidden').textContent).toBe('1 member');
     expect(fixture.nativeElement.querySelector('.people-role-heading [role="status"]').textContent).toBe('1 member');
     app.users.push({ ...app.users[0], id: 'disabled', effectiveLoginDisabled: true });
-    app.roleCounts['Admin'].disabled = 1;
-    fixture.detectChanges(); expect(badge.title).toBe('1 member, 1 disabled');
+    app.roleCounts['Admin'].disabled = 1; fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); expect(badge.title).toBe('1 member, 1 disabled');
     fixture.destroy();
   });
 
@@ -201,8 +202,8 @@ describe('AppComponent', () => {
     translationService.translationMap['admin-roles-member-count'] = '{{count}} member, {{disabled}} disabled';
     const { fixture, app } = await createComponent();
     app.users.push({ ...app.users[0], id: 'disabled', username: 'disabled', effectiveLoginDisabled: true });
-    fixture.detectChanges();
-    app.roleCounts['Admin'].disabled = 1; fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    app.roleCounts['Admin'].disabled = 1; fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.activeMemberCount()).toBe(1); expect(app.disabledMemberCount()).toBe(1);
     expect(app.members().length).toBe(2);
     const badge = fixture.nativeElement.querySelector('.people-role-rail .badge');
@@ -310,7 +311,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(document.activeElement?.textContent).toBe('manage-users-cancel');
+    expect(document.activeElement?.textContent?.trim()).toBe('manage-users-cancel');
     expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('admin-roles-replace-confirm');
     const remove = spyOn(userService, 'removeRoleMember').and.resolveTo({ status: true, roles: [guest] });
     await app.removeMember();
