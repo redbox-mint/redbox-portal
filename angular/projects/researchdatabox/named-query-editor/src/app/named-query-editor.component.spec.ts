@@ -124,6 +124,12 @@ describe('NamedQueryEditorComponent', () => {
     }).compileComponents();
   });
 
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+    return { promise, resolve, reject };
+  }
   function graphqlDraft(name = 'gql') {
     return { name, source: 'graphql' as const, graphql: { document: 'query Q($search: String = "rdmp") { records(recordType: $search) { nodes { oid } } }',
       variables: { search: { ownership: 'consumer' as const, parameter: 'search', inputType: 'String', required: false } }, resultPath: ['records', 'nodes'] } };
@@ -153,6 +159,30 @@ describe('NamedQueryEditorComponent', () => {
     input.value = '["unfinished"'; input.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
     expect(component.pendingInput).toBeTrue(); component.changeSource('database'); fixture.detectChanges(); expect(component.pendingInput).toBeFalse();
     component.changeSource('graphql'); fixture.detectChanges(); expect(input.value).toBe('["unfinished"'); expect(component.pendingInput).toBeTrue(); expect(component.canSave).toBeFalse();
+  });
+  for (const [variable, label] of [
+    ['resultPath', 'named-query-graphql-result-path'],
+    ['mapping', 'named-query-graphql-mapping-title'],
+    ['lookup', 'named-query-graphql-collectionPath'],
+  ]) it(`keeps invalid ${variable} path text blocking Save after a same-named variable ownership change`, async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.draft.name = 'collisions';
+    component.changeSource('graphql'); Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql);
+    component.activeGraphqlBuffer.graphql.document = `query Q($${variable}: String) { records(recordType: "rdmp") { nodes { oid } } }`;
+    component.activeGraphqlBuffer.graphql.variables = {}; fixture.detectChanges();
+    const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
+    editor.classify(variable, 'consumer'); editor.toggleLookup(true); editor.tab = 'mappings'; fixture.detectChanges(); await fixture.whenStable();
+    const json = fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
+      .map(node => node.componentInstance as GraphqlJsonInputComponent).find(control => control.label === label)!;
+    const textarea = fixture.nativeElement.querySelector('#' + json.id) as HTMLTextAreaElement;
+    textarea.value = '["unfinished"'; textarea.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    expect(json.invalid).toBeTrue(); expect(component.pendingInput).toBeTrue();
+    editor.tab = 'variables'; fixture.detectChanges(); await fixture.whenStable();
+    const ownership = fixture.nativeElement.querySelector('#nq-owner-' + variable) as HTMLSelectElement;
+    ownership.value = 'omitted'; ownership.dispatchEvent(new Event('change', { bubbles: true })); fixture.detectChanges();
+    expect(json.invalid).toBeTrue(); expect(textarea.value).toBe('["unfinished"');
+    expect(component.pendingInput).toBeTrue(); expect(component.canSave).toBeFalse();
+    expect((fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement).disabled).toBeTrue();
   });
   it('retains pending database JSON while editing the independent GraphQL buffer', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
@@ -188,6 +218,53 @@ describe('NamedQueryEditorComponent', () => {
     expect(fixture.nativeElement.querySelector('.nq-workspace').hasAttribute('inert')).toBeTrue();
     dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
     expect(component.pendingReview).toBeNull(); expect(update).not.toHaveBeenCalled(); expect(component.isEditing).toBeTrue(); expect(document.activeElement).toBe(save);
+  });
+  it('captures Save focus before deferred validation/review and restores it after cancellation or a failed confirmed save', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing'); fixture.detectChanges(); await fixture.whenStable();
+    const validation = deferred<Awaited<ReturnType<NamedQueryApiService['validate']>>>();
+    const reviewed = deferred<Awaited<ReturnType<NamedQueryApiService['reviewUpdate']>>>();
+    spyOn(api, 'validate').and.returnValue(validation.promise);
+    spyOn(api, 'reviewUpdate').and.returnValue(reviewed.promise);
+    const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+    save.focus(); const saving = component.save(); fixture.detectChanges(); expect(save.disabled).toBeTrue();
+    const oldTabindex = document.body.getAttribute('tabindex'); document.body.setAttribute('tabindex', '-1'); document.body.focus();
+    validation.resolve({ valid: true, diagnostics: [] }); await new Promise(resolve => setTimeout(resolve, 0));
+    reviewed.resolve({ required: true, changes: ['document'], usedBy: [], usageComplete: false, confirmation: 'bound' });
+    await saving; fixture.detectChanges(); await fixture.whenStable();
+    component.cancelSaveReview(); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
+    expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save);
+    await component.save(); fixture.detectChanges(); await fixture.whenStable();
+    const update = deferred<{ name: string }>(); spyOn(api, 'update').and.returnValue(update.promise);
+    const confirming = component.confirmSaveReview(); fixture.detectChanges(); expect(save.disabled).toBeTrue(); document.body.focus();
+    await new Promise(resolve => setTimeout(resolve, 0)); expect(document.activeElement).not.toBe(save);
+    update.reject(new Error('Save rejected')); await confirming; fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
+    expect(component.error).toContain('Save rejected'); expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save);
+    if (oldTabindex === null) document.body.removeAttribute('tabindex'); else document.body.setAttribute('tabindex', oldTabindex);
+  });
+  it('ignores a database schema-target failure after successful GraphQL assistance', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    const targets = deferred<Awaited<ReturnType<NamedQueryApiService['schemaTargets']>>>();
+    spyOn(api, 'schemaTargets').and.returnValue(targets.promise);
+    fixture.detectChanges(); await component.waitForInit(); component.newQuery();
+    component.assistanceError = 'Old database warning'; component.error = 'Old database error';
+    component.changeSource('graphql'); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
+    expect(component.graphqlSdl).toContain('type Query'); expect(component.assistanceError).toBe(''); expect(component.error).toBe('');
+    targets.reject(new Error('Delayed database failure')); await new Promise(resolve => setTimeout(resolve, 0)); fixture.detectChanges();
+    expect(component.graphqlSdl).toContain('type Query'); expect(component.assistanceError).toBe(''); expect(component.schemaError).toBe('');
+    expect(fixture.nativeElement.textContent).not.toContain('Guidance unavailable');
+  });
+  it('ignores GraphQL schema errors after switching back to database assistance', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    const schema = deferred<Awaited<ReturnType<NamedQueryApiService['graphqlSchema']>>>();
+    spyOn(api, 'graphqlSchema').and.returnValue(schema.promise);
+    fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.changeSource('graphql');
+    component.schemaError = 'Old GraphQL error'; component.changeSource('database');
+    schema.reject(new Error('Delayed GraphQL failure')); await new Promise(resolve => setTimeout(resolve, 0)); fixture.detectChanges();
+    expect(component.schemaLoading).toBeFalse(); expect(component.schemaError).toBe(''); expect(component.assistanceError).toBe('');
   });
   it('requires review again when a draft changes, and uses only the acknowledgement for the accepted draft', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance; const api = TestBed.inject(NamedQueryApiService);

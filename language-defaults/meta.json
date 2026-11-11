@@ -10700,6 +10700,10 @@
     "category": "Named queries",
     "description": "Consumer parameter names, types, required values or defaults change."
   },
+  "named-query-breaking-document": {
+    "category": "Named queries",
+    "description": "Conservative confirmation reason for a changed GraphQL document or selected operation."
+  },
   "named-query-breaking-mappings": {
     "category": "Named queries",
     "description": "Result paths or existing output mappings change."

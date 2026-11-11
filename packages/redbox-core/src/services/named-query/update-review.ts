@@ -67,6 +67,13 @@ export function namedQueryBreakingChanges(
   )
     changes.push('parameters');
   if (previous.source === 'graphql' && next.source === 'graphql') {
+    // Selections, aliases, fragments and directives can change effective mapped
+    // output without changing the stored paths. Review any document/operation edit.
+    if (
+      previous.graphql?.document !== next.graphql.document ||
+      previous.graphql?.operationName !== next.graphql.operationName
+    )
+      changes.push('document');
     if (
       !equal(previous.graphql?.resultPath, next.graphql.resultPath) ||
       !equal(previous.graphql?.mappings, next.graphql.mappings)

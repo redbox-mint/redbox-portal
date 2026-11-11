@@ -177,6 +177,66 @@ describe('named query administration save review', function () {
     assert.equal(described.parameters[0].omissionSatisfied, true);
     await session.post(`${prefix}/editor/preview`).set(editorAuth()).send({ definition: changed }).expect(422);
   });
+  it('requires exact confirmation for document-only loss of effective lookup mappings', async () => {
+    const lookup = structuredClone(graphql);
+    lookup.graphql.document = lookup.graphql.document.replace(
+      'recordType: $search',
+      'recordType: "rdmp", filters: [{field: "title", contains: $search}]'
+    );
+    const baseline = (
+      await session.post(`${prefix}/editor/describe`).set(editorAuth()).send({ definition: lookup }).expect(200)
+    ).body.data;
+    assert.equal(baseline.valid, true);
+    assert.equal(baseline.capabilities.lookup, true);
+    const replaced = await review(lookup);
+    await request()
+      .put(`${prefix}/${name}`)
+      .set(auth())
+      .set('X-ReDBox-Named-Query-Confirmation', replaced.confirmation)
+      .send(lookup)
+      .expect(200);
+    const changed = structuredClone(lookup);
+    changed.graphql.document = changed.graphql.document.replace('oid workflowStep', 'oid workflowStep @skip(if: true)');
+    const description = (
+      await session.post(`${prefix}/editor/describe`).set(editorAuth()).send({ definition: changed }).expect(200)
+    ).body.data;
+    assert.equal(description.valid, true);
+    assert.equal(description.capabilities.lookup, false);
+    assert.ok(
+      description.capabilities.diagnostics.some((diagnostic: { code: string }) => diagnostic.code === 'LOOKUP_MAPPING')
+    );
+    for (const version of ['1.0', '2.0']) {
+      const refused = await request()
+        .put(`${prefix}/${name}`)
+        .set({ ...auth(), 'X-ReDBox-Api-Version': version })
+        .send(changed)
+        .expect(409);
+      assert.equal(
+        version === '1.0' ? refused.body.message : refused.body.errors[0].code,
+        'NAMED_QUERY_CONFIRMATION_REQUIRED'
+      );
+    }
+    assert.equal(JSON.parse((await NamedQuery.findOne({ name }))!.graphql!).document, lookup.graphql.document);
+    const reviewed = await review(changed);
+    assert.equal(reviewed.required, true);
+    assert.deepEqual(reviewed.changes, ['document']);
+    assert.equal(reviewed.usageComplete, false);
+    const changedAgain = structuredClone(changed);
+    changedAgain.graphql.document = changedAgain.graphql.document.replace('if: true', 'if: false');
+    await request()
+      .put(`${prefix}/${name}`)
+      .set(auth())
+      .set('X-ReDBox-Named-Query-Confirmation', reviewed.confirmation)
+      .send(changedAgain)
+      .expect(409);
+    await request()
+      .put(`${prefix}/${name}`)
+      .set(auth())
+      .set('X-ReDBox-Named-Query-Confirmation', reviewed.confirmation)
+      .send(changed)
+      .expect(200);
+    assert.equal(JSON.parse((await NamedQuery.findOne({ name }))!.graphql!).document, changed.graphql.document);
+  });
   it('applies ordinary saved database edits immediately and preserves name uniqueness/deletion', async () => {
     await request().post(prefix).set(auth()).send(database).expect(409);
     const before = (await request().get('/default/rdmp/api/report/namedQuery').set(auth()).query({ queryName: name }))

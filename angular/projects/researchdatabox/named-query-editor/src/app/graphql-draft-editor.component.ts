@@ -88,6 +88,11 @@ export class GraphqlDraftEditorComponent implements OnChanges {
     if ([this.operation.lookup?.firstVariable, this.operation.lookup?.afterVariable].includes(name)) return 'server';
     return this.operation.variables[name]?.ownership ?? '';
   }
+  setOperationName(value: string): void {
+    if (value.trim()) this.operation.operationName = value.trim();
+    else delete this.operation.operationName;
+    this.draftChange.emit();
+  }
   classify(name: string, ownership: string): void {
     if (!['fixed', 'consumer', 'omitted'].includes(ownership)) return;
     const variable = this.variables.find(variable => variable.name === name);
@@ -132,7 +137,8 @@ export class GraphqlDraftEditorComponent implements OnChanges {
     this.validityChange.emit(!this.invalid.size);
   }
   private clearValidity(name: string): void {
-    for (const key of this.invalid) if (key === name || key.startsWith(name + ':')) this.invalid.delete(key);
+    this.invalid.delete('variable:' + name + ':fixed');
+    this.invalid.delete('variable:' + name + ':default');
     this.validityChange.emit(!this.invalid.size);
   }
   setResultPath(value: NamedQueryJson | undefined): void {

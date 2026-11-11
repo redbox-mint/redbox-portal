@@ -60,8 +60,8 @@
     id="nq-graphql-operation"
     class="form-control"
     list="nq-graphql-operations"
-    [(ngModel)]="operation.operationName"
-    (ngModelChange)="draftChange.emit()"
+    [ngModel]="operation.operationName"
+    (ngModelChange)="setOperationName($event)"
   />
   <datalist id="nq-graphql-operations"><option *ngFor="let name of operationNames" [value]="name"></option></datalist>
   <p class="rb-ws-lede mt-2">{{ 'named-query-graphql-query-only' | i18next }}</p>
@@ -103,7 +103,7 @@
       [label]="'named-query-graphql-fixed-value' | i18next"
       [value]="fixed(variable.name)"
       (valueChange)="setFixed(variable.name, $event)"
-      (validityChange)="validity(variable.name + ':fixed', $event)"
+      (validityChange)="validity('variable:' + variable.name + ':fixed', $event)"
     ></nq-graphql-json>
     <ng-container *ngIf="binding(variable.name) as binding">
       <label class="rb-ws-label" [for]="'nq-parameter-' + variable.name">{{
@@ -140,7 +140,7 @@
         [optional]="true"
         [value]="binding.defaultValue"
         (valueChange)="setDefault(variable.name, $event)"
-        (validityChange)="validity(variable.name + ':default', $event)"
+        (validityChange)="validity('variable:' + variable.name + ':default', $event)"
       ></nq-graphql-json>
       <p class="rb-ws-lede mt-2">{{ 'named-query-graphql-default-help' | i18next }}</p>
     </ng-container>

@@ -4334,6 +4334,7 @@
   "named-query-review-description": "This update takes effect immediately. Review the affected settings and known consumers before confirming.",
   "named-query-breaking-source": "The saved execution source and its previous configuration will be replaced.",
   "named-query-breaking-parameters": "Consumer parameter names, types, required values or defaults change.",
+  "named-query-breaking-document": "The GraphQL document or selected operation changes and may alter consumer results or lookup capability.",
   "named-query-breaking-mappings": "Result paths or existing output mappings change.",
   "named-query-breaking-lookup": "The lookup paging or search contract changes.",
   "named-query-confirm-immediate-save": "Confirm and save changes",

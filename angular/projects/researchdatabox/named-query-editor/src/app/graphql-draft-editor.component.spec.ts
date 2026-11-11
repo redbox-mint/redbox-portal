@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
+import { parse, getOperationAST } from 'graphql';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
 import { GraphqlJsonInputComponent } from './graphql-json-input.component';
@@ -74,6 +75,23 @@ describe('detached GraphQL named-query editor', () => {
     editor.classify('search', 'fixed');
     fixture.detectChanges();
     expect(editor.fixed('search')).toBeNull();
+  });
+  it('removes an optional operation name when the rendered input is cleared for an unnamed query', async () => {
+    editor.operation.operationName = 'Q';
+    editor.tab = 'document';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const input = fixture.nativeElement.querySelector('#nq-graphql-operation') as HTMLInputElement;
+    editor.operation.document = 'query { records(recordType: "rdmp") { nodes { oid } } }';
+    fixture.detectChanges();
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(Object.hasOwn(editor.operation, 'operationName')).toBeFalse();
+    expect(Object.hasOwn(JSON.parse(JSON.stringify(editor.draft)).graphql, 'operationName')).toBeFalse();
+    expect(getOperationAST(parse(editor.operation.document), editor.operation.operationName)?.name).toBeUndefined();
+    expect(editor.variables.length).toBe(0);
   });
   it('makes adapter ownership exclusive only after explicit page selection', () => {
     editor.classify('first', 'consumer');

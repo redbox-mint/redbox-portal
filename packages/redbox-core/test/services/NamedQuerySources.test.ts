@@ -139,7 +139,7 @@ describe('named query source persistence boundaries', () => {
     assert.deepEqual(reloaded.graphql, graphql.graphql);
     reloaded.graphql.document = reloaded.graphql.document.replace('query Lookup', 'query Changed');
     reloaded.graphql.operationName = 'Changed';
-    await service.update(brand, 'graphql', reloaded, caller);
+    await service.update(brand, 'graphql', reloaded, caller, (await service.reviewUpdate(brand, 'graphql', reloaded, caller)).confirmation);
     assert.equal(scope.called, false);
     assert.equal((await service.getNamedQueryConfig(brand, 'graphql'))?.source, 'graphql');
     assert.equal(JSON.parse(store.get('brand-1_graphql')!.graphql!).document, reloaded.graphql.document);

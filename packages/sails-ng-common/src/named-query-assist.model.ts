@@ -92,7 +92,7 @@ export interface NamedQueryConsumer {
   name: string;
   path: string;
 }
-export type NamedQueryBreakingChange = 'source' | 'parameters' | 'mappings' | 'lookup';
+export type NamedQueryBreakingChange = 'source' | 'parameters' | 'document' | 'mappings' | 'lookup';
 export interface NamedQueryUpdateReview {
   required: boolean;
   changes: NamedQueryBreakingChange[];

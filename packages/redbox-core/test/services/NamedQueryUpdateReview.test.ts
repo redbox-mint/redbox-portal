@@ -237,6 +237,47 @@ describe('named query update review', () => {
       assert.equal(review.required, true);
       await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
     });
+  it('reviews document-only conditional removal of a required mapped selection before saving', async () => {
+    const lookup = structuredClone(graphql);
+    lookup.graphql.document = lookup.graphql.document.replace(
+      'recordType: $search',
+      'recordType: "rdmp", filters: [{field: "title", contains: $search}]'
+    );
+    row.graphql = JSON.stringify(lookup.graphql);
+    const editor = new EditorServices.NamedQueryEditor();
+    const context = { brand, user: caller.user };
+    const before = await editor.describeDraft(brand, caller.portal, context, { definition: lookup });
+    assert.equal(before.valid, true);
+    assert.equal(before.capabilities?.lookup, true);
+    const next = structuredClone(lookup);
+    next.graphql.document = next.graphql.document.replace('oid workflowStep', 'oid workflowStep @skip(if: true)');
+    const after = await editor.describeDraft(brand, caller.portal, context, { definition: next });
+    assert.equal(after.valid, true);
+    assert.equal(after.capabilities?.lookup, false);
+    assert.ok(after.capabilities?.diagnostics.some(diagnostic => diagnostic.code === 'LOOKUP_MAPPING'));
+    const reviewed = await service.reviewUpdate(brand, 'review', next, caller);
+    assert.deepEqual(reviewed.changes, ['document']);
+    assert.equal(reviewed.required, true);
+    assert.equal(reviewed.usedBy[0].name, 'Known form');
+    await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
+    assert.equal(update.called, false);
+    assert.deepEqual(JSON.parse(row.graphql!), lookup.graphql);
+    const changedAgain = structuredClone(next);
+    changedAgain.graphql.document = changedAgain.graphql.document.replace('if: true', 'if: false');
+    await assert.rejects(
+      service.update(brand, 'review', changedAgain, caller, reviewed.confirmation),
+      NamedQueryUpdateConfirmationError
+    );
+    await service.update(brand, 'review', next, caller, reviewed.confirmation);
+    assert.deepEqual(JSON.parse(row.graphql!), next.graphql);
+  });
+  it('also reviews a selected-operation edit when document text and paths stay unchanged', async () => {
+    const next = structuredClone(graphql);
+    next.graphql.operationName = 'Q';
+    const review = await service.reviewUpdate(brand, 'review', next, caller);
+    assert.deepEqual(review.changes, ['document']);
+    await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
+  });
   it('keeps unchanged database/source saves and nonbreaking GraphQL edits usable without acknowledgement', async () => {
     const next = { ...structuredClone(graphql), description: 'New description' };
     assert.equal((await service.reviewUpdate(brand, 'review', next, caller)).required, false);

@@ -174,19 +174,11 @@ describe('named query source Mongo persistence', function () {
     const legacy = await service.getNamedQueryConfig(brand, 'legacy');
     assert.ok(legacy?.source !== 'graphql');
     assert.equal(legacy?.source, undefined);
-    await service.update(
-      brand,
-      'graphql',
-      {
-        ...graphql,
-        graphql: {
-          ...graphql.graphql,
-          operationName: 'Changed',
-          document: graphql.graphql.document.replace('query Lookup', 'query Changed'),
-        },
-      },
-      caller
-    );
+    const renamed = { ...graphql, graphql: { ...graphql.graphql,
+      operationName: 'Changed', document: graphql.graphql.document.replace('query Lookup', 'query Changed'),
+    } };
+    await service.update(brand, 'graphql', renamed, caller,
+      (await service.reviewUpdate(brand, 'graphql', renamed, caller)).confirmation);
     await service.update(brand, 'explicit', graphql, caller, (await service.reviewUpdate(brand, 'explicit', graphql, caller)).confirmation);
     await service.update(brand, 'explicit', database, undefined, (await service.reviewUpdate(brand, 'explicit', database)).confirmation);
     assert.equal((await NamedQuery.findOne({ key: `${brand.id}_explicit` }))?.graphql, null);

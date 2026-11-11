@@ -62,6 +62,12 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.invalidTestParameters.clear();
     this.testParameters = {};
     this.guidance = source === 'database' ? this.inferGuidance() : null;
+    this.targetRequests.invalidate();
+    this.schemaRequests.invalidate();
+    this.schemaLoading = false;
+    this.assistanceError = '';
+    this.schemaError = '';
+    this.error = '';
     this.invalidateAssistance();
     this.draftChanged();
     if (source === 'graphql') void this.loadGraphqlSchema();
@@ -79,23 +85,34 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.sourceValidity[source] = valid;
     if (this.source === source) this.validityChanged(valid);
   }
+  private restoreReviewFocus(trigger: HTMLElement | null): void {
+    setTimeout(() => {
+      if (this.saving || !this.isEditing || this.pendingReview) return;
+      const target = trigger?.isConnected ? trigger : document.getElementById('named-query-save');
+      (target && !target.matches(':disabled') ? target : document.getElementById('named-query-workspace-title'))?.focus();
+    }, 0);
+  }
   cancelSaveReview(): void {
     this.pendingReview = null;
     const trigger = this.reviewTrigger;
     this.reviewTrigger = null;
-    setTimeout(() => (trigger?.isConnected ? trigger : document.getElementById('named-query-save'))?.focus(), 0);
+    this.restoreReviewFocus(trigger);
   }
   async confirmSaveReview(): Promise<void> {
     const pending = this.pendingReview;
     if (!pending) return;
-    this.cancelSaveReview();
+    const trigger = this.reviewTrigger;
+    this.pendingReview = null;
+    this.reviewTrigger = null;
     if (this.pendingInput || this.draftVersion !== pending.version || JSON.stringify(this.draft) !== pending.snapshot) {
-      this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.'); return;
+      this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
+      this.restoreReviewFocus(trigger);
+      return;
     }
     this.saving = true;
     try { await this.persist(pending.payload, pending.snapshot, pending.review.confirmation); }
     catch (error) { this.saveError(error); }
-    finally { this.saving = false; }
+    finally { this.saving = false; this.restoreReviewFocus(trigger); }
   }
 
 
@@ -656,6 +673,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.clearMessage();
     const draftAtSave = JSON.stringify(this.draft);
     const payload = this.sanitizeQuery(JSON.parse(draftAtSave));
+    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement : document.getElementById('named-query-save');
     this.saving = true;
     try {
       await this.validateDraft();
@@ -664,7 +683,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
         const review = await this.api.reviewUpdate(payload.name as string, payload);
         if (JSON.stringify(this.draft) !== draftAtSave || this.pendingInput) return;
         if (review.required) {
-          this.reviewTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          this.reviewTrigger = trigger;
           this.pendingReview = { review, payload, snapshot: draftAtSave, version: this.draftVersion };
           return;
         }
