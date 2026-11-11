@@ -242,6 +242,77 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.equal(await db.collection('agendaJobs').countDocuments({ name: 'Figshare-SyncRecord' }), 1);
     assert.equal((await store.get('record-1')).work.sync.processed, 0);
   });
+  it('advances a delayed save delivery when the dispatcher finds durable work due', async () => {
+    const agenda = await useMongoQueue();
+    config.processing!.coalesceMs = 900000;
+    await service.wakeFigshareRecord('record-1');
+    const before = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(before); assert.ok(before.nextRunAt.getTime() > Date.now() + 890000);
+    await dispatchFigshare();
+    const after = await db.collection('agendaJobs').findOne({ _id: before._id });
+    assert.ok(after); assert.ok(after.nextRunAt.getTime() <= Date.now());
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 1);
+  });
+  it('advances only the time of a locked pending delivery and never postpones it', async () => {
+    const agenda = await useMongoQueue();
+    await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+    await pendingDelivery(agenda);
+    const before = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(before);
+    const earlier = new Date(Date.now() + 30000);
+    await AgendaQueueService.scheduleUnique('Figshare-SyncRecord', earlier, { oid: 'replacement', brandId: 'other' }, before.data.deliveryKey);
+    await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+    const after = await db.collection('agendaJobs').findOne({ _id: before._id });
+    assert.ok(after);
+    assert.equal(after.nextRunAt.getTime(), earlier.getTime());
+    assert.equal(after.lockedAt.getTime(), before.lockedAt.getTime());
+    assert.deepEqual(after.data, before.data);
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
+  for (const lifecycle of ['running', 'completed']) {
+    it(`does not revive a delivery that becomes ${lifecycle} between enqueue and advancement`, async () => {
+      const agenda = await useMongoQueue();
+      await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+      const saveJob = agenda.db.saveJob.bind(agenda.db);
+      const now = new Date();
+      agenda.db.saveJob = async (...args) => {
+        const saved = await saveJob(...args);
+        await db.collection('agendaJobs').updateOne({ 'data.oid': 'record-1' }, {
+          $set: { nextRunAt: null, lastRunAt: now, lockedAt: lifecycle === 'running' ? now : null,
+            ...(lifecycle === 'completed' ? { lastFinishedAt: now } : {}) }
+        });
+        return saved;
+      };
+      try { await scheduleFigshareDelivery('record-1', 'brand-1'); }
+      finally { agenda.db.saveJob = saveJob; }
+      const after = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+      assert.ok(after); assert.equal(after.nextRunAt, null);
+      assert.equal(after.lockedAt?.getTime() ?? null, lifecycle === 'running' ? now.getTime() : null);
+      assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+    });
+  }
+  it('advances the competing pending delivery after a duplicate-key enqueue race', async () => {
+    const agenda = await useMongoQueue();
+    await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+    const saveJob = agenda.db.saveJob.bind(agenda.db);
+    agenda.db.saveJob = async () => { throw Object.assign(new Error('E11000 duplicate key: agenda_pending_delivery'), { code: 11000 }); };
+    try { await scheduleFigshareDelivery('record-1', 'brand-1'); }
+    finally { agenda.db.saveJob = saveJob; }
+    const after = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(after); assert.ok(after.nextRunAt.getTime() <= Date.now());
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
+  it('retains the earliest requested time across concurrent pending wake-ups', async () => {
+    await useMongoQueue();
+    const now = Date.now();
+    const times = [900000, 60000, 30000, 120000].map(delay => new Date(now + delay));
+    await Promise.all(times.map(time => scheduleFigshareDelivery('record-1', 'brand-1', time)));
+    const after = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(after); assert.equal(after.nextRunAt.getTime(), now + 30000);
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
   it('coalesces concurrent dispatch and save wake-ups without modifying a locked pending job', async () => {
     const agenda = await useMongoQueue();
     await dispatchFigshare();

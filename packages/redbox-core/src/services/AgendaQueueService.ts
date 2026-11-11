@@ -386,18 +386,20 @@ export namespace Services {
             options: { socketTimeoutMS: 30000, waitQueueTimeoutMS: 30000, ...options.mongoOptions }
           })
           : new MongoBackend({ mongo: dbManager as Db, collection: options.collection });
+        const repository = mongoBackend.repository;
+        if (!(repository instanceof MongoJobRepository)) {
+          throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: Pending delivery uniqueness requires MongoJobRepository.');
+        }
         // Use the queue's actual connection, which may differ from the records datastore.
         // Legacy jobs have no deliveryKey, so an existing backlog does not prevent this index.
         agendaOptions.backend = mongoBackend;
         const mongoAgenda = new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
         await mongoAgenda.ready;
-        if (mongoBackend.repository instanceof MongoJobRepository) {
-          await mongoBackend.repository.collection.createIndex({ name: 1, 'data.deliveryKey': 1 }, {
-            name: 'agenda_pending_delivery', unique: true,
-            timeoutMS: 0, maxTimeMS: 0,
-            partialFilterExpression: { 'data.deliveryKey': { $type: 'string' }, nextRunAt: { $type: 'date' } }
-          });
-        }
+        await repository.collection.createIndex({ name: 1, 'data.deliveryKey': 1 }, {
+          name: 'agenda_pending_delivery', unique: true,
+          timeoutMS: 0, maxTimeMS: 0,
+          partialFilterExpression: { 'data.deliveryKey': { $type: 'string' }, nextRunAt: { $type: 'date' } }
+        });
         return mongoAgenda;
       }
 
@@ -558,25 +560,41 @@ export namespace Services {
       return this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
     }
 
-    /** Keep one pending delivery per key, allowing a successor once execution starts. */
+    /** Keep one pending delivery per key at the earliest requested time, allowing a successor once execution starts. */
     public async scheduleUnique(jobName: string, schedule: string | Date, data: Record<string, unknown>, deliveryKey: string): Promise<unknown> {
       await this.ensureQueueInitialized();
       if (this.getBackendForJobName(jobName) !== 'mongodb') {
         throw new AgendaQueueUnsupportedFeatureError(`AgendaQueue:: scheduleUnique() requires a MongoDB-backed job: '${jobName}'.`);
       }
-      const job = this.getAgendaForJobName(jobName).create(jobName, this.toSerializableJobData({ ...data, deliveryKey }))
+      const agenda = this.getAgendaForJobName(jobName);
+      const { MongoJobRepository } = await import('@agendajs/mongo-backend');
+      const repository = agenda.db;
+      if (!(repository instanceof MongoJobRepository)) {
+        throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: Pending delivery uniqueness requires MongoJobRepository.');
+      }
+      const job = agenda.create(jobName, this.toSerializableJobData({ ...data, deliveryKey }))
         .schedule(schedule)
         // One-time Agenda jobs set nextRunAt=null when they start. Matching only pending
         // jobs avoids completed history suppressing future work, or a finishing worker
         // overwriting a reschedule. Never modify the existing pending job's lock or data.
         .unique({ 'data.deliveryKey': deliveryKey, nextRunAt: { $type: 'date' } }, { insertOnly: true });
-      try { return await job.save(); }
+      // save() replaces nextRunAt with the existing delivery's date, so capture the request first.
+      const nextRunAt = job.attrs.nextRunAt;
+      let saved: Job | undefined;
+      try { saved = await job.save(); }
       catch (error) {
-        // Concurrent upserts can race on the partial unique index. The winning delivery
-        // carries the same durable record intent; a later dispatch recovers any lost delivery.
-        if (error instanceof Error && 'code' in error && error.code === 11000 && error.message.includes('agenda_pending_delivery')) return;
-        throw error;
+        // Concurrent upserts can race on the partial unique index. Also advance the winner
+        // when this request needs an earlier delivery than the competing enqueue.
+        if (!(error instanceof Error && 'code' in error && error.code === 11000 && error.message.includes('agenda_pending_delivery'))) throw error;
       }
+      if (nextRunAt) {
+        // This update cannot postpone work or revive a job that started between save and update.
+        // Matching the key also handles an insert race without rewriting the winner's payload or lock.
+        await repository.collection.updateOne({ name: jobName, 'data.deliveryKey': deliveryKey, nextRunAt: { $type: 'date', $gt: nextRunAt } }, {
+          $min: { nextRunAt }
+        });
+      }
+      return saved;
     }
 
     public async now(jobName: string, data: unknown = undefined) {

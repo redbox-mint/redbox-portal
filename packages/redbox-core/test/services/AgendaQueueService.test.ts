@@ -135,6 +135,21 @@ describe('AgendaQueueService', function () {
   });
 
   describe('pending delivery scheduling', function () {
+    it('fails startup when the Mongo repository cannot enforce pending uniqueness', async function () {
+      const { MongoBackend } = await import('@agendajs/mongo-backend');
+      sinon.stub(MongoBackend.prototype, 'repository').get(() => ({}));
+      const createIndex = sinon.stub().resolves();
+      const manager = { collection: () => ({ createIndex }) };
+      const service = new Services.AgendaQueue();
+      try {
+        await Reflect.get(service, 'createAgendaForBackend').call(service, 'mongodb', {}, manager);
+        throw new Error('Expected unsupported repository rejection');
+      } catch (error) {
+        expect(error).to.be.instanceOf(AgendaQueueUnsupportedFeatureError);
+        expect((error as Error).message).to.include('MongoJobRepository');
+      }
+    });
+
     it('routes Figshare to Mongo alongside ordinary SQS jobs with an SQS default', async function () {
       setupGlobals(createMockSails({
         config: { agendaQueue: {
@@ -147,8 +162,11 @@ describe('AgendaQueueService', function () {
         services: { figshareservice: { syncRecordJob: sinon.stub().resolves() }, testservice: { process: sinon.stub().resolves() } }
       }));
       const service = new Services.AgendaQueue();
-      const pending = { schedule: sinon.stub().returnsThis(), unique: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
-      const mongoAgenda = createAgendaStub({ create: sinon.stub().returns(pending) });
+      const pending = { attrs: { nextRunAt: new Date() }, schedule: sinon.stub().returnsThis(), unique: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      const { MongoJobRepository } = await import('@agendajs/mongo-backend');
+      const repository = new MongoJobRepository({ db: { address: 'mongodb://unused' } });
+      Reflect.set(repository, 'collection', { updateOne: sinon.stub().resolves() });
+      const mongoAgenda = createAgendaStub({ create: sinon.stub().returns(pending), db: repository });
       const sqsAgenda = createAgendaStub();
       Reflect.set(service, 'createAgendaForBackend', async (backend: string) => backend === 'mongodb' ? mongoAgenda : sqsAgenda);
       await Reflect.get(service, 'handleReady').call(service);
