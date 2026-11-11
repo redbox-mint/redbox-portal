@@ -14,6 +14,7 @@ import {
 import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 import { Controllers as controllers } from '../../CoreController';
 import { NamedQueryDefinitionError } from '../../services/named-query/definition';
+import { GraphqlNamedQueryExecutionError } from '../../services/named-query/graphql-execution';
 import { GraphqlNamedQueryInputError } from '../../services/named-query/graphql-input';
 import { GraphqlNamedQueryValidationError, graphqlDiagnostic } from '../../services/named-query/graphql-validation';
 import type { ReadCaller } from '../../record-graphql/read-record';
@@ -61,13 +62,14 @@ export namespace Controllers {
       } catch (error) {
         const code =
           error instanceof NamedQueryAssistanceError ||
+          error instanceof GraphqlNamedQueryExecutionError ||
           error instanceof FieldDescriptionError ||
           error instanceof GraphqlNamedQueryInputError ||
           error instanceof GraphqlNamedQueryValidationError
             ? error.code
             : 'ASSISTANCE_UNAVAILABLE';
         const status =
-          error instanceof NamedQueryAssistanceError
+          error instanceof NamedQueryAssistanceError || error instanceof GraphqlNamedQueryExecutionError
             ? error.status
             : error instanceof GraphqlNamedQueryValidationError
               ? 422

@@ -134,7 +134,9 @@ function harness() {
   let config = { ...recordGraphql, enabled: true };
   const deps: RecordGraphqlDependencies = {
     getConfig: () => config,
-    getGridEnvironment: async () => { throw new Error('Grid search not configured in the single-record fixture.'); },
+    getGridEnvironment: async () => {
+      throw new Error('Grid search not configured in the single-record fixture.');
+    },
     getCandidates: async () => candidates,
     getReusableDefinitions: () => reusable,
     getContributorRegistry: () => currentRegistry,
@@ -367,6 +369,15 @@ describe('RecordGraphqlService', () => {
     const service = new Services.RecordGraphql({ ...h.deps, getRecord: () => new Promise(() => {}) });
     const result = service.execute(caller, { query: '{ record(oid:"record") { oid } }' });
     await clock.tickAsync(5_001);
+    assert.equal((await result).status, 503);
+    assert.equal(payload(await result).errors?.[0].extensions.code, 'QUERY_TIMEOUT');
+  });
+  it('honors a shorter enclosing execution deadline without extending the engine limit', async () => {
+    const h = harness();
+    const clock = sinon.useFakeTimers();
+    const service = new Services.RecordGraphql({ ...h.deps, getRecord: () => new Promise(() => {}) });
+    const result = service.execute(caller, { query: '{ record(oid:"record") { oid } }' }, Date.now() + 40);
+    await clock.tickAsync(41);
     assert.equal((await result).status, 503);
     assert.equal(payload(await result).errors?.[0].extensions.code, 'QUERY_TIMEOUT');
   });

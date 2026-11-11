@@ -171,13 +171,16 @@ export const namedQueryEditorRoutes = [
         tags: ['NamedQuery'],
         summary: `${operation} an unsaved named query`,
         description:
-          'Accepts {definition, guidance?, parameters?}; guidance is ephemeral and parameters are used only by explicit preview. Requires named-query permission and CSRF. Validation/description do not execute or persist. Completed validation and preview refusals return 200 with valid:false and diagnostics. Preview executes real data, forcibly brand-scoped, with server-owned limits: 131072 input bytes, depth 24, 4000 nodes, 1024 mapping aliases, 256 template expressions, 100 sample rows, 1000 scan rows, 524288 response bytes and 5000 ms query/render budget. Mongo count/find receive remaining maxTimeMS. Inspect truncated/truncationReasons (rows/bytes). User/custom collections, related filters and relation expansion refuse draft preview with PREVIEW_DEADLINE_UNSUPPORTED; editing/saving remains supported. API v1 returns DTOs; v2 wraps data/meta. Responses are no-store.',
+          'Accepts {definition, guidance?, parameters?}; guidance is ephemeral and parameters are used only by explicit preview. Requires named-query permission and CSRF. Validation/description do not execute or persist. Completed validation and preview refusals return 200 with valid:false and diagnostics. Preview executes real data, forcibly brand-scoped, with server-owned limits: 131072 input bytes, depth 24, 4000 nodes, 1024 mapping aliases, 256 template expressions, 100 sample rows, 1000 scan rows, 524288 response bytes and 5000 ms query/render budget. Mongo count/find receive remaining maxTimeMS. Inspect truncated/truncationReasons (rows/bytes). User/custom collections, related filters and relation expansion refuse draft preview with PREVIEW_DEADLINE_UNSUPPORTED; editing/saving remains supported. GraphQL preview uses the actual authenticated caller, first-page lookup-compatible definitions only, at most 25 rows, unknown total, 65536 request bytes, 262144 response bytes, depth 12, 200 scanned candidates and the existing 5000 ms GraphQL deadline. GraphQL invalid definitions or unsupported capabilities return 422, invalid parameters 400, missing context 401, byte overflow 413 and timeout 503; errors or partial data never produce a successful sample. API v1 returns DTOs; v2 wraps data/meta. Responses are no-store.',
         responses: {
           200: namedQueryResponse,
           400: namedQueryResponse,
+          401: namedQueryResponse,
           403: namedQueryResponse,
           408: namedQueryResponse,
           413: namedQueryResponse,
+          422: namedQueryResponse,
+          503: namedQueryResponse,
         },
       }
     ),

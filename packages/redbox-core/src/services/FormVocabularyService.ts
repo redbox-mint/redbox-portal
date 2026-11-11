@@ -29,6 +29,8 @@ import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import axios from 'axios';
+import type { ReadCaller } from '../record-graphql/read-record';
+import { GraphqlNamedQueryExecutionError, GRAPHQL_NAMED_QUERY_ROWS } from './named-query/graphql-execution';
 
 export namespace Services {
   type FormVocabularyUserContext = Record<string, unknown>;
@@ -62,7 +64,7 @@ export namespace Services {
       'getResultObjectMappings'
     ];
 
-    public async findRecords(sourceType: string, brand: BrandingModel, searchString: string, start: number, rows: number, user: FormVocabularyUserContext): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
+    public async findRecords(sourceType: string, brand: BrandingModel, searchString: string, start: number, rows: number, user: FormVocabularyUserContext, caller?: ReadCaller): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
       const normalizedSourceType = String(sourceType ?? '').trim();
       const queryConfig = sails.config.vocab.queries?.[normalizedSourceType] as VocabQueryConfig | undefined;
       if (!this.isPlainObject(queryConfig)) {
@@ -88,12 +90,23 @@ export namespace Services {
             `Query vocabulary '${normalizedSourceType}' references unknown named query '${queryName}'.`
           );
         }
+        if (namedQueryConfig.source === 'graphql' && Object.keys(queryConfig.resultObjectMapping ?? {}).length)
+          throw new GraphqlNamedQueryExecutionError('GRAPHQL_VOCAB_MAPPING_UNSUPPORTED');
         const paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
-        const dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows, user);
+        // The legacy HTTP adapter represents omitted paging as NaN. Normalize
+        // that sentinel only for GraphQL; database calls retain the original values.
+        const graphql = namedQueryConfig.source === 'graphql';
+        const dbResults = await NamedQueryService.performNamedQueryFromConfig(
+          namedQueryConfig, paramMap, brand,
+          graphql && Number.isNaN(start) ? 0 : start,
+          graphql && Number.isNaN(rows) ? GRAPHQL_NAMED_QUERY_ROWS : rows,
+          user, undefined, caller
+        );
+        if (dbResults.source === 'graphql') return { ...dbResults };
         if (queryConfig.resultObjectMapping) {
-          return this.getResultObjectMappings(dbResults as unknown as Record<string, unknown>, queryConfig);
+          return this.getResultObjectMappings({ ...dbResults }, queryConfig);
         } else {
-          return dbResults as unknown as Record<string, unknown>;
+          return { ...dbResults };
         }
       } else if (queryConfig.querySource == 'solr') {
         const searchCore = String(queryConfig.searchQuery?.searchCore ?? '').trim();

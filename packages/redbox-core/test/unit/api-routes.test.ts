@@ -1804,7 +1804,7 @@ describe('API routes contract layer', function () {
     expect(responseStatuses(getFormRoute)).to.deep.equal([200, 400, 404, 500]);
     expect(responseStatuses(listFormsRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(sendNotificationRoute)).to.deep.equal([200, 400, 500]);
-    expect(responseStatuses(executeNamedQueryRoute)).to.deep.equal([200, 400, 500]);
+    expect(responseStatuses(executeNamedQueryRoute)).to.deep.equal([200, 400, 401, 413, 422, 500, 503]);
     expect(responseStatuses(downloadRecsRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(getRecordTypeRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(listRecordTypesRoute)).to.deep.equal([200, 400, 500]);

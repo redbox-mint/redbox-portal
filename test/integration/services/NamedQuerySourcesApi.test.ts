@@ -125,7 +125,7 @@ describe('named query source CRUD API', function () {
     );
     await request().delete(`${prefix}/${name}`).set(auth()).expect(200);
   });
-  it('describes a valid non-lookup definition without executing it, and blocks GraphQL execution until T05', async () => {
+  it('describes valid non-lookup definitions and refuses incompatible first-page execution', async () => {
     const response = await editorSession
       .post(`${prefix}/editor/describe`)
       .set(editorAuth())
@@ -135,7 +135,7 @@ describe('named query source CRUD API', function () {
     assert.equal(response.body.data.capabilities.lookup, false);
     await editorSession.post(`${prefix}/editor/preview`).set(editorAuth()).send({ definition: graphql }).expect(422);
     await request().post(prefix).set(auth()).send(graphql).expect(201);
-    await request().get('/default/rdmp/api/report/namedQuery').set(auth()).query({ queryName: name }).expect(500);
+    await request().get('/default/rdmp/api/report/namedQuery').set(auth()).query({ queryName: name }).expect(422);
     await request().delete(`${prefix}/${name}`).set(auth()).expect(200);
   });
   it('returns a field-specific preview parameter diagnostic without reflecting the supplied value', async () => {

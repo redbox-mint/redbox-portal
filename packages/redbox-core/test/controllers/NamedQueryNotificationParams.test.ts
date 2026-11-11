@@ -57,7 +57,7 @@ describe('Named query and notification request parameters', function () {
     });
     const controller = new TestReport();
     await controller.executeNamedQuery(req, {} as Sails.Res);
-    expect(perform.calledOnceWithExactly(config, query, brand, 0, 100, req.user)).to.equal(true);
+    expect(perform.calledOnceWithExactly(config, query, brand, 0, 100, req.user, undefined, undefined)).to.equal(true);
     expect(controller.sendResp.firstCall.args[2].status).to.equal(200);
   });
 

@@ -16,11 +16,15 @@ import {
   type NamedQueryFieldDescription,
   type NamedQueryGuidance,
   type NamedQueryPreview,
+  type NamedQuerySourcePreview,
   type NamedQueryPreviewRequest,
   type NamedQueryValidation,
 } from '@researchdatabox/sails-ng-common';
 import { assertNamedQueryDefinition, requireDatabaseNamedQuery } from './named-query/definition';
-import { inspectGraphqlNamedQuery, bindGraphqlNamedQuery, GraphqlNamedQueryValidationError } from './named-query/graphql-validation';
+import { inspectGraphqlNamedQuery } from './named-query/graphql-validation';
+import { executeGraphqlNamedQuery, GRAPHQL_NAMED_QUERY_ROWS, type GraphqlNamedQueryRecord } from './named-query/graphql-execution';
+import { QUERY_LIMITS } from '../record-graphql/schema';
+import { GRID_LIMITS } from '../record-graphql/grid-types';
 import type { ReadCaller } from '../record-graphql/read-record';
 import { Services as CoreServices } from '../CoreService';
 import type { BrandingModel } from '../model';
@@ -279,8 +283,9 @@ export namespace Services {
         throw new NamedQueryAssistanceError('FORBIDDEN', 403);
     }
 
-    private graphqlCaller(brand: BrandingModel, portal: string, caller: FormRecordAccessContext): ReadCaller {
-      return { brand, portal, user: caller.user, roles: caller.user?.roles ?? [] };
+    private graphqlCaller(brand: BrandingModel, portal: string, caller: FormRecordAccessContext): ReadCaller | undefined {
+      if (!Array.isArray(caller.user?.roles)) return;
+      return { brand, portal, user: caller.user, roles: caller.user.roles };
     }
 
     public async schemaTargets(brand: BrandingModel, caller: FormRecordAccessContext) {
@@ -575,17 +580,24 @@ export namespace Services {
       caller: FormRecordAccessContext,
       request: NamedQueryPreviewRequest,
       budget = new NamedQueryExecutionBudget()
-    ): Promise<NamedQueryPreview<NamedQueryResponseRecord>> {
-      const validation = await budget.wait(this.inspectDraft(brand, portal, caller, request, budget));
+    ): Promise<NamedQuerySourcePreview<NamedQueryResponseRecord | GraphqlNamedQueryRecord>> {
       if (object(request.definition) && request.definition.source === 'graphql') {
-        const inspected = await budget.wait(inspectGraphqlNamedQuery(
-          request.definition, this.graphqlCaller(brand, portal, caller), String(brand.id)
-        ));
-        if (!inspected.prepared) throw new GraphqlNamedQueryValidationError(inspected.validation.diagnostics);
-        bindGraphqlNamedQuery(inspected.prepared, request.parameters ?? {}, false);
-        // T05 replaces this refusal with authenticated in-process execution.
-        throw new NamedQueryAssistanceError('GRAPHQL_EXECUTION_UNAVAILABLE', 422);
+        this.caller(brand, caller);
+        checkDraftBudget(request);
+        const result = await executeGraphqlNamedQuery(
+          request.definition, request.parameters ?? {}, brand, 0, GRAPHQL_NAMED_QUERY_ROWS,
+          this.graphqlCaller(brand, portal, caller), budget, false
+        );
+        return {
+          ...result, valid: true, diagnostics: [],
+          truncated: result.pagination.hasNextPage,
+          truncationReasons: result.pagination.hasNextPage ? ['rows'] : [],
+          limits: { ...NAMED_QUERY_PREVIEW_LIMITS, inputBytes: QUERY_LIMITS.bytes,
+            depth: QUERY_LIMITS.depth, rows: GRAPHQL_NAMED_QUERY_ROWS,
+            responseBytes: QUERY_LIMITS.responseBytes, scanRows: GRID_LIMITS.candidates },
+        };
       }
+      const validation = await budget.wait(this.inspectDraft(brand, portal, caller, request, budget));
       const diagnostics = [...validation.diagnostics];
       let previewBlocked = validation.previewBlocked;
       const definition = object(request.definition) ? request.definition : {};
@@ -692,6 +704,7 @@ export namespace Services {
           budget
         )
       );
+      if (result.source === 'graphql') throw new NamedQueryAssistanceError('UNSUPPORTED_QUERY_SOURCE', 422);
       response.summary = { numFound: result.summary.numFound, start: 0, page: 1 };
       if (result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows) response.truncationReasons.push('rows');
       if (budget.outputTruncated) response.truncationReasons.push('bytes');

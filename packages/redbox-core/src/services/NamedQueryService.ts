@@ -33,11 +33,12 @@ import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError, previewDeadlineIssue } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
-import type { GraphqlNamedQueryOperation, InvalidNamedQueryCatalogueEntry } from '@researchdatabox/sails-ng-common';
+import type { GraphqlNamedQueryOperation, InvalidNamedQueryCatalogueEntry, DatabaseNamedQueryResult, GraphqlNamedQueryResult } from '@researchdatabox/sails-ng-common';
 import { assertNamedQueryDefinition, NamedQueryDefinitionError, namedQuerySource, requireDatabaseNamedQuery } from './named-query/definition';
 import type { GraphQLSchema } from 'graphql';
 import type { ReadCaller } from '../record-graphql/read-record';
 import { inspectGraphqlNamedQuery, validateGraphqlNamedQuery, graphqlDiagnostic, GraphqlNamedQueryValidationError } from './named-query/graphql-validation';
+import { executeGraphqlNamedQuery, type GraphqlNamedQueryRecord } from './named-query/graphql-execution';
 import { NamedQueryPreviewOutputLimitError, renderNamedQueryPreviewTemplate } from '../utilities/NamedQueryPreviewTemplate';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
@@ -1203,14 +1204,9 @@ export namespace Services {
       return _.get(templateVars, templateOrPath);
     }
 
-    public async performNamedQueryFromConfig(config: unknown, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget) {
+    public async performNamedQueryFromConfig(config: unknown, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget, caller?: ReadCaller): Promise<DatabaseNamedQueryResult<NamedQueryResponseRecord> | GraphqlNamedQueryResult<GraphqlNamedQueryRecord>> {
       if (namedQuerySource(config) === 'graphql') {
-        // T05 supplies execution context and dispatch. Until then validate shape and
-        // fail closed before any database executor or GraphQL resolver can run.
-        assertNamedQueryDefinition(config);
-        throw new GraphqlNamedQueryValidationError([
-          graphqlDiagnostic('GRAPHQL_EXECUTION_UNAVAILABLE', 'definition', 'GraphQL named query execution is not available.'),
-        ]);
+        return executeGraphqlNamedQuery(config, paramMap, brand, start, rows, caller, budget);
       }
       requireDatabaseNamedQuery(config);
       this.updateChronicle({ namedQueryBrandId: brand.id, namedQueryParameterCount: _.size(paramMap) });
@@ -1234,6 +1230,7 @@ export namespace Services {
         // Keep going while there are more results.
 
         const response = await this.performNamedQueryFromConfig(config, paramMap, brand, start, rows, user);
+        if (response?.source === 'graphql') throw new Error('GraphQL named queries do not support offset accumulation');
         requestCount += 1;
 
         if (!response) {

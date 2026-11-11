@@ -447,6 +447,8 @@ export namespace Services {
               },
               budget
             );
+      if (('source' in sample && sample.source === 'graphql') || sample.summary.numFound === null)
+        throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
       // Legacy Waterline/hook execution has no enforceable DB deadline. Start the
       // bounded rendering window after it returns, without claiming to cancel it.
       if (!deadlineEnforced) budget = new NamedQueryExecutionBudget();
@@ -537,6 +539,7 @@ export namespace Services {
         // Relation filters authorize declared related-record reads as the caller.
         user
       );
+      if (result.source === 'graphql') throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
       const truncationReasons: Array<'rows' | 'bytes'> =
         result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows ? ['rows'] : [];
       return {

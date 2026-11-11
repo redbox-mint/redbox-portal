@@ -46,6 +46,11 @@ interface CacheEntry {
   pending: boolean;
 }
 
+export class RecordGraphqlDisabledError extends Error {
+  readonly code = 'GRAPHQL_DISABLED';
+  constructor() { super('Record GraphQL is disabled.'); }
+}
+
 export interface RecordGraphqlResponse {
   readonly status: number;
   readonly data: ContractJsonObject;
@@ -126,7 +131,7 @@ export namespace Services {
       return (await this.resolveReadSchema({ brand, portal, user: {}, roles: [] }, true)).schema;
     }
 
-    public async execute(caller: ReadCaller, body: unknown): Promise<RecordGraphqlResponse> {
+    public async execute(caller: ReadCaller, body: unknown, until?: number): Promise<RecordGraphqlResponse> {
       if (!isObject(caller.user) || typeof caller.user.username !== 'string') {
         return graphqlFailure(401, 'UNAUTHENTICATED', 'Authentication is required.');
       }
@@ -143,7 +148,7 @@ export namespace Services {
         return graphqlFailure(413, 'QUERY_LIMIT', 'Request exceeds the byte bound.');
       }
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const deadline = Date.now() + QUERY_LIMITS.timeoutMs;
+      const deadline = Math.min(Date.now() + QUERY_LIMITS.timeoutMs, until ?? Infinity);
       try {
         const work = async (): Promise<RecordGraphqlResponse> => {
           const { yoga } = await this.resolveReadSchema(caller);
@@ -170,7 +175,7 @@ export namespace Services {
           new Promise<RecordGraphqlResponse>(resolve => {
             timer = setTimeout(
               () => resolve(graphqlFailure(503, 'QUERY_TIMEOUT', 'Read query timed out.')),
-              QUERY_LIMITS.timeoutMs
+              Math.max(0, deadline - Date.now())
             );
           }),
         ]);
@@ -186,7 +191,7 @@ export namespace Services {
       validateRecordGraphqlConfig(config);
       if (!config.enabled && !schemaOnly) {
         this.cache.clear();
-        throw new Error('Record GraphQL is disabled.');
+        throw new RecordGraphqlDisabledError();
       }
       while (this.cache.size > config.cacheEntries) {
         const evict = [...this.cache].find(([, entry]) => !entry.pending);

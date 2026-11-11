@@ -48,12 +48,16 @@ export const executeNamedQueryRoute = apiRoute(
   },
   {
     tags: ['Reports'],
-    summary: 'Execute named query report',
+    summary: 'Execute a saved named query',
     description:
-      'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
+      'Supply additional query parameters using the names configured in the named query queryParams or GraphQL consumer bindings. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected. GraphQL requires authenticated caller context and a lookup-compatible first-page adapter: start must be zero, rows are capped at 25, exact total is null and pagination.hasNextPage is authoritative. Partial data, GraphQL errors and scan/time/size failures are errors. This endpoint does not enable GraphQL reports or CSV.',
     responses: {
       200: responseField(namedQueryExecutionResultSchema, 'Source-specific named query results; GraphQL exact totals are unknown'),
       400: badRequestResponse,
+      401: responseField(apiErrorResponseSchema, 'Authenticated GraphQL execution context required'),
+      413: responseField(apiErrorResponseSchema, 'GraphQL byte bound exceeded'),
+      422: responseField(apiErrorResponseSchema, 'Invalid or unsupported GraphQL execution/result'),
+      503: responseField(apiErrorResponseSchema, 'GraphQL deadline exceeded'),
       500: internalServerErrorResponse,
     },
   }

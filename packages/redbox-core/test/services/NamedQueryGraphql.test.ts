@@ -856,7 +856,7 @@ describe('GraphQL named query server boundaries', () => {
     await assert.rejects(query.update(brand, 'stale', stale, caller), GraphqlNamedQueryValidationError);
     await assert.rejects(query.performNamedQueryFromConfig(stale, {}, brand, 0, 25));
   });
-  it('protects editor validation/preview and remains fail-closed pending T05', async () => {
+  it('protects editor validation/preview and fails contextless execution closed', async () => {
     const validation = await editor.validateDraft(brand, 'rdmp', editorCaller, { definition: definition() });
     assert.equal(validation.valid, true);
     assert.equal(validation.capabilities?.lookup, true);
@@ -867,10 +867,13 @@ describe('GraphQL named query server boundaries', () => {
       }),
       GraphqlNamedQueryInputError
     );
-    await assert.rejects(
-      editor.previewDraft(brand, 'rdmp', editorCaller, { definition: definition() }),
-      /GRAPHQL_EXECUTION_UNAVAILABLE/
-    );
+    Object.assign(Reflect.get(globalThis, 'RecordGraphqlService'), { execute: sinon.stub().resolves({
+      status: 200, data: { data: { matches: { items: [], more: false, cursor: null } } },
+    }) });
+    const sample = await editor.previewDraft(brand, 'rdmp', editorCaller, { definition: definition() });
+    assert.equal(sample.source, 'graphql');
+    assert.equal(sample.summary.numFound, null);
+    assert.deepEqual(sample.records, []);
     const db = sinon.spy(query, 'performNamedQuery');
     await assert.rejects(query.performNamedQueryFromConfig(definition(), {}, brand, 0, 25));
     assert.equal(db.called, false);
