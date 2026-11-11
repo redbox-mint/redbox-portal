@@ -88,6 +88,7 @@ export namespace Services {
           const schema = await search.getRecordQuerySchema(coreId, deadline);
           return {
             coreId,
+            recordTypeLabel: sails.config.recordtype?.[recordType]?.labels?.name || recordType,
             config,
             schema,
             search: (params, until) => search.searchRecordPage(coreId, params, until),

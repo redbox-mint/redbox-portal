@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { firstValueFrom } from 'rxjs';
 import supertest from 'supertest';
 import type { Db } from 'mongodb';
+import { recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
+import axios from 'axios';
 
 /** Run in the lifted Docker Mocha suite with the GraphQL parent enabled and Solr ready.
  * Can also be loaded by Mocha inside an existing isolated runtime (no bootstrap/drop).
@@ -19,6 +21,7 @@ describe('Saved-grid HTTP and Mongo integration', function () {
   const base = `/default/${portal}/app/data-grids`;
   const otherBase = `/default/${otherPortal}/app/data-grids`;
   let fixture = 0;
+  let originalGraphql: typeof sails.config.recordGraphql;
   const definition = () => ({
     version: 1,
     name: `${prefix}${++fixture}`,
@@ -61,11 +64,18 @@ describe('Saved-grid HTTP and Mongo integration', function () {
   };
 
   before(async function () {
-    if (typeof RecordGraphqlService === 'undefined' || !sails.config.recordGraphql?.enabled) {
+    if (typeof RecordGraphqlService === 'undefined') {
       this.skip(); // The admin-design base alone intentionally has no GraphQL implementation.
     }
+    originalGraphql = sails.config.recordGraphql;
+    sails.config.recordGraphql = { ...recordGraphql, ...originalGraphql, enabled: true, cursorSecret: 'saved-grid-http-secret-0123456789abcdef' };
     assert.ok(sails.config.security.csrf, 'Run with RBPORTAL_TEST_CSRF=true / security.csrf=true');
     assert.ok(SavedGrid && SavedGridService, 'Regenerate shims and build core before running');
+    const options = sails.config.solr.cores.default.options;
+    const solrUrl = `${options.https ? 'https' : 'http'}://${options.host}:${options.port}/solr/${options.core}`;
+    const live: { fields: Array<{ name: string }> } = (await axios.get(`${solrUrl}/schema`)).data.schema;
+    const missing = SOLR_RECORD_GRID_FIELDS.filter(field => !live.fields.some(found => found.name === field.name));
+    if (missing.length) await axios.post(`${solrUrl}/schema`, { 'add-field': missing });
     const app = sails.hooks.http.app;
     admin = supertest.agent(app);
     anonymous = supertest.agent(app);
@@ -78,9 +88,11 @@ describe('Saved-grid HTTP and Mongo integration', function () {
     const brand = BrandingService.getDefault();
     brandId = String(brand.id);
     const username = `${prefix}researcher`;
-    const user = await firstValueFrom(
+    await firstValueFrom(
       UsersService.addLocalUser(username, 'Saved grid HTTP researcher', `${username}@example.invalid`, 'GridTest123!')
     );
+    const user = await User.findOne({ username });
+    assert.ok(user);
     researcherId = String(user.id);
     await firstValueFrom(UsersService.updateUserRoles(user.id, RolesService.getRoleIds(brand.roles, ['Researcher'])));
     researcherToken = await login(researcher, username, 'GridTest123!');
@@ -90,9 +102,10 @@ describe('Saved-grid HTTP and Mongo integration', function () {
     const role = await Role.create({ name: 'Admin', branding: foreignBrandId }).fetch();
     foreignRoleId = String(role.id);
     await BrandingConfig.addToCollection(foreignBrandId, 'roles').members([foreignRoleId]);
-    await firstValueFrom(BrandingService.bootstrap());
+    await firstValueFrom(BrandingService.loadAvailableBrands(undefined));
   });
   after(async function () {
+    if (originalGraphql) sails.config.recordGraphql = originalGraphql;
     if (typeof SavedGrid !== 'undefined')
       await db()
         .collection(SavedGrid.tableName)
@@ -101,7 +114,7 @@ describe('Saved-grid HTTP and Mongo integration', function () {
     if (foreignRoleId) await Role.destroy({ id: foreignRoleId });
     if (foreignBrandId) {
       await BrandingConfig.destroy({ id: foreignBrandId });
-      await firstValueFrom(BrandingService.bootstrap());
+      await firstValueFrom(BrandingService.loadAvailableBrands(undefined));
     }
   });
 
@@ -145,7 +158,9 @@ describe('Saved-grid HTTP and Mongo integration', function () {
     assert.equal(executed.body.errors, undefined);
     assert.ok(Array.isArray(executed.body.data.records.nodes));
     assert.deepEqual((await request(admin, 'get', `${base}/${saved.id}`).expect(200)).body.data, saved);
-    assert.deepEqual((await SavedGrid.findOne({ id: saved.id })).definition.variables, raw.variables);
+    const stored = await SavedGrid.findOne({ id: saved.id });
+    assert.ok(stored && stored.definition.mode === 'graphql');
+    assert.deepEqual(stored.definition.variables, raw.variables);
     await request(admin, 'get', `${otherBase}/${saved.id}`).expect(404);
     const listed = (await request(admin, 'get', base).expect(200)).body.data.grids;
     assert.ok(listed.some((row: { id: string; mode?: string }) => row.id === saved.id && row.mode === 'graphql'));

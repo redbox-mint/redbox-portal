@@ -4419,5 +4419,7 @@
   "data-grids-promotion-disabled": "Record GraphQL is disabled. Your exploration is retained; ask an administrator to enable it before trying again.",
   "data-grids-promotion-timeout": "Preparing the named query timed out. Your exploration is retained; try again.",
   "data-grids-promotion-unavailable": "Record GraphQL is temporarily unavailable. Your exploration is retained; try again later.",
-  "data-grids-promotion-schema-changed": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again."
+  "data-grids-promotion-schema-changed": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again.",
+  "data-grids-field-group-record": "Record",
+  "data-grids-field-group-metadata": "Metadata"
 }

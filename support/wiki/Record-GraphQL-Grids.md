@@ -250,3 +250,34 @@ Core regression tests: `npm --prefix packages/redbox-core run test:record-graphq
 See [Configuring Solr](Configuring-Solr), [Record Schema Contract Contributors](Record-Schema-Contract-Contributors), [Solr cursor pagination](https://solr.apache.org/guide/solr/latest/query-guide/pagination-of-results.html), [Solr query parsers](https://solr.apache.org/guide/solr/latest/query-guide/other-parsers.html) and [Solr field properties](https://solr.apache.org/guide/solr/latest/indexing-guide/field-type-definitions-and-properties.html).
 
 GraphQL-backed reusable definitions and detached explorer promotion are documented in [Configuring Named Queries](Configuring-Named-Queries#graphql-source). Form lookups expose only the first25 suggestions with unknown totals; this does not add GraphQL reports or CSV export.
+
+
+### Explorer presentation metadata
+
+`recordFields` adds nullable `recordTypeLabel` and `recordTypeLabelKey`. The label
+uses configured `recordtype[type].labels.name`, falling back to the type ID. A
+translation reference is returned separately as the key.
+
+Each field adds nullable `displayLabel`, `displayLabelKey`, `group`, `groupKey`,
+`groupPath: [String!]`, `repeatingSubfield`, and `repeatingGroupId`. Existing `label`,
+`labelKey`, IDs, paths and execution capabilities retain their meanings. Request
+these additions explicitly in GraphQL selections; old clients remain valid.
+
+- Display label uses an explicit `shortLabel` annotation/config where present,
+  otherwise a short existing label/translation reference, then a readable field
+  name when the configured label contains a long question or markup. Full question
+  text remains in `label`. Treat labels as text, never HTML.
+- Group paths retain labelled form tabs (`layout.config.buttonLabel`), accordion
+  sections and stored groups. `group` is the nearest heading; `groupPath` contains
+  the outer-to-inner path. Translation references start with `@`; companion key
+  fields identify translated leaf headings. Fields without form hierarchy fall
+  back to translated Metadata; system fields to translated Record.
+- A selectable repeating group retains `repeatingSubfield:false`. Its descendants
+  have `repeatingSubfield:true` and `repeatingGroupId` pointing to the outer group,
+  allowing a UI to hide disabled children behind one note. These hints grant no
+  new selection/filter/sort capabilities. Private fields remain excluded.
+
+Presentation hierarchy is attached to read contracts only. Write validation and
+stored record paths do not change. The default admin sidebar places Record explorer
+and Named queries together; persisted institution sidebar customizations are not
+rewritten.

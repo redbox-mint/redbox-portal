@@ -1,4 +1,5 @@
 import type { Db, ObjectId as MongoObjectId } from 'mongodb';
+import type { ExplorerQueryAuthor } from '@researchdatabox/sails-ng-common';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
 import { Kind, parse, visit } from 'graphql';
@@ -98,6 +99,35 @@ export interface SavedGridRow extends Sails.WaterlineAttributes {
   definition: SavedGridDefinition;
   revision: number;
 }
+export interface SavedGridDocument {
+  _id: MongoObjectId;
+  brandId: string;
+  portal: string;
+  definition: SavedGridDefinition;
+  revision: number;
+  updatedAt?: string;
+  updatedBy?: ExplorerQueryAuthor;
+}
+export const savedGridListOptions = z.strictObject({
+  q: z.string().trim().max(120).optional(),
+  mode: z.enum(['visual', 'graphql']).optional(),
+});
+export type SavedGridListOptions = z.infer<typeof savedGridListOptions>;
+export function savedGridStore() {
+  const datastore = SavedGrid.getDatastore() as
+    | { manager?: Db; driver?: { mongodb?: { ObjectId?: typeof MongoObjectId } } }
+    | undefined;
+  const db = datastore?.manager,
+    ObjectId = datastore?.driver?.mongodb?.ObjectId;
+  if (!db || !ObjectId) throw new SavedGridError(503, 'persistence-failed');
+  return { collection: db.collection<SavedGridDocument>(SavedGrid.tableName), ObjectId };
+}
+function author(caller: SavedGridCaller): ExplorerQueryAuthor | undefined {
+  const user = caller?.user;
+  return typeof user?.username === 'string'
+    ? { username: user.username, displayName: String(user.displayName || user.name || user.username) }
+    : undefined;
+}
 export type SavedGridCaller = Parameters<typeof RecordGraphqlService.execute>[0];
 const discovery = z.object({
   data: z.object({
@@ -125,16 +155,43 @@ const discoveryQuery = `query SavedGridFields($type: String!, $stages: [String!]
 export namespace Services {
   export class SavedGrids extends services.Core.Service {
     protected override _exportedMethods = ['list', 'read', 'create', 'update', 'remove', 'stages', 'schema'];
-    private present(row: { _id: MongoObjectId; definition: SavedGridDefinition; revision: number }) {
+    private present(row: Pick<SavedGridDocument, '_id' | 'definition' | 'revision' | 'updatedAt' | 'updatedBy'>) {
       const parsed = savedGridDefinition.safeParse(row.definition);
       if (!parsed.success || !savedGridRevision.safeParse(row.revision).success)
         throw new SavedGridError(503, 'persistence-failed');
-      return { ...parsed.data, id: String(row._id), revision: row.revision };
+      return {
+        ...parsed.data,
+        id: String(row._id),
+        revision: row.revision,
+        updatedAt: row.updatedAt ?? null,
+        updatedBy: row.updatedBy ?? null,
+      };
     }
-    public async list(scope: SavedGridScope, after?: string) {
+    public async list(scope: SavedGridScope, after?: string, options: SavedGridListOptions = {}) {
+      const parsed = savedGridListOptions.safeParse(options);
+      if (!parsed.success || (after !== undefined && !savedGridId.safeParse(after).success))
+        throw new SavedGridError(400, 'invalid-definition');
+      const { q, mode } = parsed.data;
+      const escaped = q?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const { collection, ObjectId } = this.native();
       const rows = await collection
-        .find({ ...scope, ...(after ? { _id: { $gt: new ObjectId(after) } } : {}) })
+        .find({
+          ...scope,
+          ...(after ? { _id: { $gt: new ObjectId(after) } } : {}),
+          ...(mode
+            ? mode === 'visual'
+              ? { 'definition.mode': { $ne: 'graphql' } }
+              : { 'definition.mode': 'graphql' }
+            : {}),
+          ...(escaped
+            ? {
+                $or: [
+                  { 'definition.name': { $regex: escaped, $options: 'i' } },
+                  { 'definition.recordType': { $regex: escaped, $options: 'i' } },
+                ],
+              }
+            : {}),
+        })
         .sort({ _id: 1 })
         .limit(101)
         .toArray();
@@ -321,42 +378,34 @@ export namespace Services {
         _id: new ObjectId(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        ...(author(caller) ? { updatedBy: author(caller) } : {}),
       };
       await collection.insertOne(row);
       return this.present(row);
     }
     private native() {
-      const datastore = SavedGrid.getDatastore() as
-        | { manager?: Db; driver?: { mongodb?: { ObjectId?: typeof MongoObjectId } } }
-        | undefined;
-      const db = datastore?.manager,
-        ObjectId = datastore?.driver?.mongodb?.ObjectId;
-      if (!db || !ObjectId) throw new SavedGridError(503, 'persistence-failed');
-      return {
-        collection: db.collection<{
-          _id: MongoObjectId;
-          brandId: string;
-          portal: string;
-          definition: SavedGridDefinition;
-          revision: number;
-          updatedAt?: string;
-        }>(SavedGrid.tableName),
-        ObjectId,
-      };
+      return savedGridStore();
     }
     public async update(scope: SavedGridScope, id: string, revision: number, input: unknown, caller: SavedGridCaller) {
       const definition = await this.validate(input, caller);
       const { collection, ObjectId } = this.native();
       const row = await collection.findOneAndUpdate(
         { ...scope, _id: new ObjectId(id), revision },
-        { $set: { definition, revision: revision + 1, updatedAt: new Date().toISOString() } },
+        {
+          $set: {
+            definition,
+            revision: revision + 1,
+            updatedAt: new Date().toISOString(),
+            ...(author(caller) ? { updatedBy: author(caller) } : {}),
+          },
+        },
         { returnDocument: 'after', includeResultMetadata: false }
       );
       if (!row) {
         await this.read(scope, id);
         throw new SavedGridError(409, 'revision-conflict');
       }
-      return { ...row.definition, id: String(row._id), revision: row.revision };
+      return this.present(row);
     }
     public async remove(scope: SavedGridScope, id: string, revision: number) {
       const { collection, ObjectId } = this.native();

@@ -312,6 +312,64 @@ Disabled execution returns `GRAPHQL_DISABLED`/503; service unavailability can re
 `UNAVAILABLE`/503 and timeouts 503. Other validation/bound failures retain safe codes;
 engine messages and document values are not echoed.
 
+### Saved explorer query sources
+
+GraphQL named queries can retain a link to a saved explorer query. The persisted
+`graphql.provenance` contains `explorerId` (24-character ObjectId),
+`explorerRevision` (revision at publication), and `explorerPortal`. Execution
+continues to use the named query's own document and bindings. Editing or deleting
+its source never updates or deletes the published definition.
+
+All paths below are relative to `/:branding/:portal/api/named-query`. Responses
+use the existing versioned envelope (`data` in API v2), with no-store caching.
+
+| Method and path | Input | Data |
+| --- | --- | --- |
+| `GET /editor/saved-queries` | Optional `q` (literal case-insensitive name or visual record-type search, max 120), `mode=visual\|graphql`, `after` (ObjectId) | `{grids: SavedQuerySummary[], next: string\|null}` |
+| `POST /editor/from-saved-query` | `{id: string, revision: number}` | `{definition: GraphqlNamedQueryDefinition, variableValues: object}` |
+| `POST /editor/from-explorer` | Existing `{exploration}` draft | Same promotion result; saved origins now include the portal in provenance |
+
+`SavedQuerySummary` contains `id`, `revision`, `name`, `mode` (always explicit),
+`recordType`, `recordTypeLabel`, `updatedAt`, `updatedBy`, and `publishedAs`.
+Raw GraphQL record type is inferred only for an unambiguous `records(recordType:)`
+selection, including saved variables/defaults; otherwise it is null. Author is
+`{username, displayName}`; old saved rows without author/timestamp return null.
+The list uses the saved-grid catalogue's ascending ObjectId cursor, 100 rows,
+and nullable `next`, after applying filters. It returns summaries without query
+text or variable values. Search treats regex characters literally.
+
+`publishedAs` is an array of `{name, publishedRevision, changedSincePublished}`,
+sorted by name, supporting several publications of one saved source. The existing
+saved-grid **list, read, create and update** responses also include this array and
+author/timestamp. These are response-only fields: retain the existing strict editable saved definition for
+writes. The current explorer parser strips the new response metadata accordingly.
+
+Named-query list/get add `sourceSavedQuery` for valid GraphQL definitions. It is
+null for hand-written queries, legacy informational provenance without a portal,
+or links outside the requested portal. A resolved source has
+`{id, publishedRevision, revision, name, recordType, recordTypeLabel, mode,
+updatedAt, updatedBy, missing:false, changedSincePublished}`. Drift compares current
+and published revision. A deleted/unreadable stored source retains `id` and
+`publishedRevision`, sets `missing:true`, and returns null for current metadata,
+revision and drift. A missing source does not invalidate the named query. Invalid
+stored named definitions retain the existing repairable catalogue behavior.
+
+Both new endpoints require a browser Admin session for the route brand; bearer
+identity alone is insufficient. Draft preparation also requires CSRF and independent
+named-query CREATE permission. It reads the exact saved brand/portal/revision,
+returns 404 for a missing/out-of-scope source and 409 `revision-conflict` for drift.
+It does not persist anything or execute raw GraphQL. Both entry points reuse
+`NamedQueryEditorService.preparePromotion` and the existing shared visual builder;
+no Angular-only generation was added. Candidate variable values remain unclassified
+until the editor chooses ownership.
+
+Creating/replacing a source link rechecks its scope and exact current revision.
+An unchanged link remains editable after source drift/deletion and from another
+portal in the same brand, without resolving source metadata there. Retaining the
+exact link also preserves existing authorized bearer/server update behavior. Existing named
+update review/confirmation and concurrency rules still apply. No legacy link or
+saved-row author backfill is performed.
+
 ### Deployment and rollback
 
 1. Deploy above the current GraphQL and explorer layers. Build shared contracts before

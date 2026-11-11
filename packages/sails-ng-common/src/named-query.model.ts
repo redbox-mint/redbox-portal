@@ -93,7 +93,7 @@ export interface GraphqlNamedQueryOperation {
   mappings?: GraphqlNamedQueryMappings;
   lookup?: GraphqlNamedQueryLookupPage;
   /** Informational only. Execution never loads or follows this reference. */
-  provenance?: { explorerId?: string; explorerRevision?: number };
+  provenance?: { explorerId?: string; explorerRevision?: number; explorerPortal?: string };
 }
 
 export interface GraphqlNamedQueryDefinition {
@@ -101,6 +101,8 @@ export interface GraphqlNamedQueryDefinition {
   name?: string;
   description?: string;
   graphql: GraphqlNamedQueryOperation;
+  /** Read-only admin metadata. Never used to execute a named query. */
+  sourceSavedQuery?: NamedQueryExplorerSource | null;
   collectionName?: never;
   brandIdFieldPath?: never;
   resultObjectMapping?: never;
@@ -111,6 +113,47 @@ export interface GraphqlNamedQueryDefinition {
   queryParams?: never;
 }
 export type NamedQueryDefinition = DatabaseNamedQueryDefinition | GraphqlNamedQueryDefinition;
+
+export interface ExplorerQueryAuthor {
+  username: string;
+  displayName: string;
+}
+export interface PublishedExplorerQuery {
+  name: string;
+  publishedRevision: number;
+  changedSincePublished: boolean;
+}
+/** Response-only catalogue for the named-query saved-source picker. */
+export interface SavedExplorerQuerySummary {
+  id: string;
+  revision: number;
+  name: string;
+  mode: 'visual' | 'graphql';
+  recordType: string | null;
+  recordTypeLabel: string | null;
+  updatedAt: string | null;
+  updatedBy: ExplorerQueryAuthor | null;
+  publishedAs: PublishedExplorerQuery[];
+}
+export interface SavedExplorerQueryPage {
+  grids: SavedExplorerQuerySummary[];
+  next: string | null;
+}
+/** Null current details mean that the source was deleted. A reference from another
+ * portal is never resolved or returned. Unlinked/legacy definitions return null. */
+export interface NamedQueryExplorerSource {
+  id: string;
+  publishedRevision: number;
+  revision: number | null;
+  name: string | null;
+  recordType: string | null;
+  recordTypeLabel: string | null;
+  mode: 'visual' | 'graphql' | null;
+  updatedAt: string | null;
+  updatedBy: ExplorerQueryAuthor | null;
+  missing: boolean;
+  changedSincePublished: boolean | null;
+}
 
 /** Read-only catalogue recovery entry, never an executable definition. The raw
  * stored source is intentionally unknown rather than defaulted to database.

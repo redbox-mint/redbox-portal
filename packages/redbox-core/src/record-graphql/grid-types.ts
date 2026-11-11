@@ -61,6 +61,14 @@ export interface GridField {
   path: string;
   label: string;
   labelKey: string | null;
+  /** Additive presentation hints; existing label/path/selection semantics remain. */
+  displayLabel?: string;
+  displayLabelKey?: string | null;
+  group?: string;
+  groupKey?: string | null;
+  groupPath?: string[];
+  repeatingSubfield?: boolean;
+  repeatingGroupId?: string | null;
   scalarType: GridScalar;
   selectable: boolean;
   availableInAllVariants: boolean;
@@ -81,6 +89,8 @@ export interface GridVariant {
 }
 export interface GridCatalogue {
   recordType: string;
+  recordTypeLabel?: string;
+  recordTypeLabelKey?: string | null;
   revision: string;
   fields: GridField[];
   variants: GridVariant[];
@@ -98,6 +108,7 @@ export interface GridIndexPage {
   exhausted: boolean;
 }
 export interface GridEnvironment {
+  recordTypeLabel?: string;
   coreId: string;
   config: SolrCoreConfig;
   schema: GridIndexSchema;

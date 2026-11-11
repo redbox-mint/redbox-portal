@@ -11070,5 +11070,15 @@
     "category": "data-grids",
     "description": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again.",
     "contentFormat": "plain"
+  },
+  "data-grids-field-group-record": {
+    "category": "data-grids",
+    "description": "Fallback group heading for record system fields in the explorer catalogue",
+    "contentFormat": "plain"
+  },
+  "data-grids-field-group-metadata": {
+    "category": "data-grids",
+    "description": "Fallback group heading for metadata without a labelled form container",
+    "contentFormat": "plain"
   }
 }

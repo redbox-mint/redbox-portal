@@ -359,8 +359,9 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
 }
 
 export function parseSavedQuery(value: unknown): SavedQuery {
-  const grid = object(value);
-  if (grid['mode'] !== 'graphql') return parseSavedDefinition(value);
+  // Read-only catalogue metadata must not enter editable/persisted definitions.
+  const { updatedAt: _updatedAt, updatedBy: _updatedBy, publishedAs: _publishedAs, ...grid } = object(value);
+  if (grid['mode'] !== 'graphql') return parseSavedDefinition(grid);
   if (
     Object.keys(grid).some(
       key => !['version', 'mode', 'id', 'revision', 'name', 'document', 'variables', 'resultPath'].includes(key)

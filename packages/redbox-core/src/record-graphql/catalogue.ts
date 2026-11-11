@@ -88,22 +88,50 @@ function nodeHints(
   node: ContractNode,
   shape: ReadShape,
   tokens: readonly (string | null)[] = [],
-  output = new Map<string, { label?: string; choices: Array<string | number | boolean> }>()
+  output = new Map<
+    string,
+    { label?: string; shortLabel?: string; groups?: string[]; choices: Array<string | number | boolean> }
+  >(),
+  groups: string[] = []
 ) {
   if (node.annotations?.writeOnly || (shape.kind === 'json' && shape.reason === 'restricted-shape')) return output;
   const id = metadataFieldId(tokens);
   const hint = output.get(id) ?? { choices: [] };
+  const configuredGroups = node.annotations?.extensions?.['x-redbox-group-path'];
+  const currentGroups = [
+    ...groups,
+    ...(Array.isArray(configuredGroups)
+      ? configuredGroups.filter((group): group is string => typeof group === 'string')
+      : []),
+  ];
+  hint.groups ??= [...new Set(currentGroups)];
+  const shortLabel = node.annotations?.extensions?.['x-redbox-short-label'];
+  if (typeof shortLabel === 'string') hint.shortLabel ??= shortLabel;
   const label = node.annotations?.extensions?.['x-redbox-label'] ?? node.annotations?.description;
   if (typeof label === 'string' && !hint.label) hint.label = label;
   if (node.kind === 'scalar') hint.choices.push(...(node.enum ?? []));
   output.set(id, hint);
   if (node.kind === 'object' && shape.kind === 'object')
     for (const [key, child] of Object.entries(node.properties))
-      if (Object.hasOwn(shape.properties, key)) nodeHints(child, shape.properties[key], [...tokens, key], output);
-  if (node.kind === 'array' && shape.kind === 'array') nodeHints(node.items, shape.items, [...tokens, null], output);
+      if (Object.hasOwn(shape.properties, key))
+        nodeHints(
+          child,
+          shape.properties[key],
+          [...tokens, key],
+          output,
+          typeof label === 'string' && tokens.length ? [...currentGroups, label] : currentGroups
+        );
+  if (node.kind === 'array' && shape.kind === 'array')
+    nodeHints(
+      node.items,
+      shape.items,
+      [...tokens, null],
+      output,
+      typeof label === 'string' ? [...currentGroups, label] : currentGroups
+    );
   if (node.kind === 'conditional') {
-    nodeHints(node.thenNode, shape, tokens, output);
-    if (node.elseNode) nodeHints(node.elseNode, shape, tokens, output);
+    nodeHints(node.thenNode, shape, tokens, output, groups);
+    if (node.elseNode) nodeHints(node.elseNode, shape, tokens, output, groups);
   }
   return output;
 }
@@ -217,6 +245,13 @@ export function buildCatalogue(
       path: name,
       label,
       labelKey: null,
+      displayLabel: label,
+      displayLabelKey: null,
+      group: 'Record',
+      groupKey: '@data-grids-field-group-record',
+      groupPath: ['@data-grids-field-group-record'],
+      repeatingSubfield: false,
+      repeatingGroupId: null,
       scalarType: type,
       selectable: true,
       availableInAllVariants: true,
@@ -246,6 +281,25 @@ export function buildCatalogue(
             : String(tokens.at(-1) ?? tokens.at(-2))
                 .replace(/[_-]/g, ' ')
                 .replace(/([a-z])([A-Z])/g, '$1 $2');
+        const fallbackLabel = String(tokens.at(-1) ?? tokens.at(-2))
+          .split(':')
+          .at(-1)!
+          .replace(/[_-]/g, ' ')
+          .replace(/([a-z])([A-Z])/g, '$1 $2');
+        const short =
+          hint?.shortLabel ??
+          (rawLabel?.startsWith('@') || (rawLabel && rawLabel.length <= 80 && !/[?\n<>]/.test(rawLabel))
+            ? rawLabel
+            : undefined);
+        const displayLabel =
+          short && !short.startsWith('@') ? short : fallbackLabel.charAt(0).toUpperCase() + fallbackLabel.slice(1);
+        const groupPath = hint?.groups?.length ? hint.groups : ['@data-grids-field-group-metadata'];
+        const rawGroup = groupPath.at(-1)!;
+        const group = rawGroup.startsWith('@')
+          ? rawGroup === '@data-grids-field-group-metadata'
+            ? 'Metadata'
+            : rawGroup.slice(1)
+          : rawGroup;
         const type = scalarType(shape);
         const existing = fields.get(id);
         if (existing) {
@@ -263,6 +317,13 @@ export function buildCatalogue(
             id,
             path: pointer(tokens),
             label,
+            displayLabel,
+            displayLabelKey: short?.startsWith('@') ? short : null,
+            group,
+            groupKey: rawGroup.startsWith('@') ? rawGroup : null,
+            groupPath,
+            repeatingSubfield: tokens.includes(null),
+            repeatingGroupId: tokens.includes(null) ? metadataFieldId(tokens.slice(0, tokens.indexOf(null))) : null,
             labelKey: rawLabel?.startsWith('@') ? rawLabel : null,
             scalarType: type,
             availableInAllVariants: false,
@@ -359,6 +420,10 @@ export function buildCatalogue(
   }
   const catalogue: GridCatalogue = {
     recordType,
+    recordTypeLabel: environment.recordTypeLabel?.startsWith('@')
+      ? recordType
+      : environment.recordTypeLabel || recordType,
+    recordTypeLabelKey: environment.recordTypeLabel?.startsWith('@') ? environment.recordTypeLabel : null,
     fields: [...fields.values()].sort((a, b) => a.id.localeCompare(b.id)),
     variants: scoped.map(contract => ({
       typeName: metadataTypeName(contract),

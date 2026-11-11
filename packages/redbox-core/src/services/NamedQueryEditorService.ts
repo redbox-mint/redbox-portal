@@ -1,3 +1,6 @@
+import type { SavedExplorerQueryPage } from '@researchdatabox/sails-ng-common';
+import { savedGridId, savedGridRevision, SavedGridError, type SavedGridListOptions } from './SavedGridService';
+import { explorerRecordType, explorerRecordTypeLabel, publishedExplorations } from './named-query/explorer-links';
 import { prepareExplorerNamedQuery } from './named-query/explorer-promotion';
 import { printSchema } from 'graphql';
 import * as Handlebars from 'handlebars';
@@ -267,6 +270,8 @@ export namespace Services {
     protected override _exportedMethods = [
       'canCreate',
       'preparePromotion',
+      'savedExplorations',
+      'prepareSavedExploration',
       'schemaTargets',
       'graphqlSchema',
       'describeFields',
@@ -288,6 +293,31 @@ export namespace Services {
       if (!this.canCreate(caller?.brand, caller?.portal, caller?.user))
         throw new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403);
       return prepareExplorerNamedQuery(input, caller);
+    }
+
+    public async savedExplorations(caller: ReadCaller, after?: string, options: SavedGridListOptions = {}): Promise<SavedExplorerQueryPage> {
+      const scope = { brandId: String(caller.brand.id), portal: caller.portal };
+      const page = await SavedGridService.list(scope, after, options);
+      const grids = await publishedExplorations(scope, page.grids);
+      return { grids: grids.map(grid => {
+        const recordType = explorerRecordType(grid);
+        return { id: grid.id, revision: grid.revision, name: grid.name, mode: grid.mode ?? 'visual',
+          recordType, recordTypeLabel: explorerRecordTypeLabel(recordType),
+          updatedAt: grid.updatedAt, updatedBy: grid.updatedBy, publishedAs: grid.publishedAs };
+      }), next: page.next };
+    }
+
+    public async prepareSavedExploration(input: unknown, caller: ReadCaller) {
+      if (!this.canCreate(caller?.brand, caller?.portal, caller?.user))
+        throw new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403);
+      if (!input || typeof input !== 'object' || Array.isArray(input) ||
+        Object.keys(input).some(key => !['id', 'revision'].includes(key))) throw new SavedGridError(400, 'invalid-definition');
+      const id = Reflect.get(input, 'id'), revision = Reflect.get(input, 'revision');
+      if (!savedGridId.safeParse(id).success || !savedGridRevision.safeParse(revision).success)
+        throw new SavedGridError(400, 'invalid-definition');
+      const grid = await SavedGridService.read({ brandId: String(caller.brand.id), portal: caller.portal }, String(id));
+      if (grid.revision !== revision) throw new SavedGridError(409, 'revision-conflict');
+      return this.preparePromotion(grid, caller);
     }
 
     private fieldService(): FieldServices.FieldDescriptions {
