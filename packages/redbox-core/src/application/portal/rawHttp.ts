@@ -4,11 +4,14 @@ import type { PortalApplicationContext } from './application';
 import { StreamingMultipart } from '../../http/express/multipart';
 import { ProgressSockets, type ProgressCredential } from '../../http/express/progressSockets';
 import type { AuthenticatedActor } from '../../http/express/identity';
+import { CompanionUploads, companionOptions } from '../../http/integrations/companion/uploads';
 
 /** Selected raw transports borrow the production domains and the host's one server. */
 export class PortalRawHttp implements ApplicationModule {
   multipart!: StreamingMultipart;
   sockets!: ProgressSockets;
+  companion?: CompanionUploads;
+  private isReady = () => false;
   private authenticate?: (credential: ProgressCredential) => Promise<AuthenticatedActor | false>;
   constructor(
     private readonly portal: PortalApplicationContext,
@@ -36,6 +39,14 @@ export class PortalRawHttp implements ApplicationModule {
           return this.authenticate(credential);
         },
       });
+    if (config.companion.enabled)
+      this.companion = new CompanionUploads({
+        owner,
+        path: config.companion.route,
+        origins: [new URL(config.server.publicUrl).origin],
+        isReady: () => this.isReady(),
+        options: companionOptions(config.companion, config.server.rootContext),
+      });
   }
   uploadInput() {
     if (!this.upload || !this.multipart)
@@ -50,19 +61,22 @@ export class PortalRawHttp implements ApplicationModule {
   bindAuthentication(authenticate: NonNullable<PortalRawHttp['authenticate']>): void {
     this.authenticate = authenticate;
   }
-  prepare(server: Server): void {
+  async prepare(server: Server, isReady: () => boolean): Promise<void> {
+    this.isReady = isReady;
     if (this.progress) this.sockets.attach(server, { borrowedServer: true });
+    await this.companion?.initialize(server, { borrowedLifecycle: true });
   }
   quiesce(): void {
     this.multipart?.quiesce();
     this.sockets?.quiesce();
+    this.companion?.quiesce();
   }
-  async drain(): Promise<void> {
-    await this.multipart?.drain();
-    await this.sockets?.drain();
+  async drain(options: { deadline?: number } = {}): Promise<void> {
+    await Promise.all([this.multipart?.drain(), this.sockets?.drain(), this.companion?.drain(options)]);
   }
   async close(): Promise<void> {
     await this.multipart?.close();
     await this.sockets?.close();
+    await this.companion?.close();
   }
 }

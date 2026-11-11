@@ -37,7 +37,13 @@ export interface CompanionConfig {
   providerOptions: CompanionProviderOptions;
   uploadHeaders?: Record<string, string>;
   corsOrigins?: true | string[];
-  metrics?: boolean;
+  metrics: boolean;
+  /** Optional URL-import settings passed to the pinned Companion provider. */
+  enableUrlEndpoint?: boolean;
+  allowLocalUrls?: boolean;
+  streamingUpload?: boolean;
+  chunkSize?: number;
+  clientSocketConnectTimeout?: number;
   debug?: boolean;
   i18n?: Record<string, unknown>;
 }
@@ -76,6 +82,7 @@ export function resolveCompanionConfiguration(
   }
 
   return {
+    metrics: false,
     enabled: isCompanionEnabledWithValidCredentials(),
     route: '/companion',
     secret: environment.UPPY_COMPANION_SECRET || '',

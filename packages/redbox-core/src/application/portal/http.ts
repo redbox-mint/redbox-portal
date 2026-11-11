@@ -1,3 +1,4 @@
+import { companionOptions } from '../../http/integrations/companion/uploads';
 import path from 'node:path';
 import express from 'express';
 import type { Router, Request } from 'express';
@@ -146,16 +147,7 @@ export class PortalHttp implements ApplicationModule {
           path: companion.route,
           origins: [this.origin],
           isReady: () => this.portal.application.status().ready,
-          options: {
-            secret: companion.secret,
-            filePath: companion.filePath,
-            server: { ...companion.server, implicitPath: config.server.rootContext },
-            providerOptions: { drive: companion.providerOptions.drive, onedrive: companion.providerOptions.onedrive },
-            uploadUrls: companion.uploadUrls,
-            tusDeferredUploadLength: companion.tusDeferredUploadLength,
-            uploadHeaders: companion.uploadHeaders,
-            metrics: companion.metrics ?? false,
-          },
+          options: companionOptions(companion, config.server.rootContext),
         })
       );
     }
@@ -559,7 +551,7 @@ export class PortalHttp implements ApplicationModule {
     http.mountResumableUploadRoutes(router, { ...shared, uploads: this.uploads });
     this.sockets.attach(server);
     if (this.companion) {
-      await this.companion.initialize(server);
+      await this.companion.initialize(server, { borrowedLifecycle: true });
       http.mountCompanionRoutes(router, {
         ...shared,
         uploads: this.companion,

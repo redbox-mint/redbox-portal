@@ -26,6 +26,7 @@ import type {
 import { ExpressHost } from '../../http/express/ExpressHost';
 import { createPortalApplication, type PortalApplicationOptions } from './application';
 import { PortalHttp, type PortalHttpOptions } from './http';
+import { prepareCompanionRoutes } from '../../http/integrations/companion/fastify';
 
 /** One production runtime, listener and signal boundary. Construction performs no acquisition. */
 export async function createPortalHost(options: PortalApplicationOptions & PortalHttpOptions) {
@@ -54,7 +55,9 @@ export async function createPortalFastifyHost(
     readonly installation: import('./installation').ResolvedPortalInstallation;
     readonly application: Application;
     readonly owner: PersistenceOwner;
+    readonly data: { readonly users: import('./application').PortalApplicationContext['data']['users'] };
     readonly config: {
+      readonly companion: import('../../config/companionDefaults').CompanionConfig;
       readonly server: import('../../configuration/deployment').DeploymentConfiguration['server'];
       readonly redboxSession: NativeSessionConfiguration;
       readonly auth: Pick<
@@ -116,7 +119,7 @@ export async function createPortalFastifyHost(
     rawUploadRoutes: resolved.httpOwners.uploads,
     rawUploadInput: resolved.httpOwners.uploads.length ? () => resolved.raw!.uploadInput() : undefined,
     prepareIntegrations: async server => {
-      resolved.raw?.prepare(server);
+      await resolved.raw?.prepare(server, () => application.status().ready);
     },
     routes: resolved.routeRegistrations,
     hooks: resolved.hookRegistrations,
@@ -133,7 +136,10 @@ export async function createPortalFastifyHost(
       observers: { observe: undefined, log: undefined },
       // Selected policies resolve brand/actor; this pilot has no raw mounts.
       resolveContext: undefined,
-      parsers: { parserExclusions: [] },
+      parsers: {
+        parserExclusions: [],
+        flatFormPrefixes: resolved.raw?.companion ? [rootContext + portal.config.companion.route] : [],
+      },
       prepare: async (app: FastifyPreparation) => {
         await input.prepare?.();
         const sessions = await prepareNativeSessions(app, owner, settings.session);
@@ -176,6 +182,20 @@ export async function createPortalFastifyHost(
           },
           csrf: csrf.protect,
         } satisfies ProductionAuthenticationRoutesInput);
+        if (resolved.raw?.companion)
+          prepareCompanionRoutes(app, {
+            uploads: resolved.raw.companion,
+            rootContext,
+            path: portal.config.companion.route,
+            appUrl: portal.config.server.publicUrl,
+            trustProxy: typeof trustProxy === 'number' ? (_address, hop) => hop < trustProxy : trustProxy,
+            defaultBrand: portal.config.auth.defaultBrand,
+            defaultPortal: portal.config.auth.defaultPortal,
+            policies,
+            policyConfiguration: resolved.policyConfiguration,
+            csrf,
+            audit: (actor, action, context) => portal.data.users.get().addUserAuditEvent(actor, action, context),
+          });
       },
     },
   } satisfies ProductionControllerHostOptions);

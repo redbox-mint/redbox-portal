@@ -26,13 +26,20 @@ export class NativeParserError extends HttpFailure {
 export interface NativeParserOptions {
   /** Complete root-aware, segment-bounded prefixes owned by raw integrations. */
   readonly parserExclusions?: readonly string[];
+  /** Companion's retained mount uses Express's flat form parser. */
+  readonly flatFormPrefixes?: readonly string[];
 }
 
 /** Exact core plugin, handed native parser streams only by the sealed adapter.
  * The returned async operation owns decoding, cancellation and cleanup. */
 export async function nativeBodyParserPlugin(app: Pick<FastifyInstance, 'addHook'>, options: NativeParserOptions) {
   const exclusions = options.parserExclusions?.map(path => path.toLowerCase());
-  if (exclusions?.some(path => !path.startsWith('/') || path.endsWith('/') || /[?#]/.test(path)))
+  const flatForms = options.flatFormPrefixes?.map(path => path.toLowerCase());
+  if (
+    [...(exclusions ?? []), ...(flatForms ?? [])].some(
+      path => !path.startsWith('/') || path.endsWith('/') || /[?#]/.test(path)
+    )
+  )
     throw new TypeError('Parser exclusions require complete segment-bounded prefixes.');
   const parse = async (request: FastifyRequest, payload: Readable): Promise<unknown> => {
     // Match type-is.hasBody: absent framing skips charset/encoding checks too.
@@ -94,7 +101,7 @@ export async function nativeBodyParserPlugin(app: Pick<FastifyInstance, 'addHook
         body = qs.parse(text, {
           allowPrototypes: true,
           arrayLimit: Math.max(100, count),
-          depth: 32,
+          depth: flatForms?.some(prefix => path === prefix || path?.startsWith(prefix + '/')) ? 0 : 32,
           parameterLimit: 1000,
           strictDepth: true,
           charset: charset as 'utf-8' | 'iso-8859-1',

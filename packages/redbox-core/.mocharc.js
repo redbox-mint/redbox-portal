@@ -8,6 +8,7 @@ module.exports = {
   ignore: [
     'test/http/fastify/securityMongo.test.ts',
     'test/http/fastify/rawSocketMongo.test.ts',
+    'test/http/fastify/companionMongo.test.ts',
     'test/http/fastify/rawRouteReplacementsMongo.test.ts',
     'test/http/fastify/PilotMongo.test.ts',
     'test/http/fastify/MetadataDifferentialMongo.test.ts',

@@ -248,33 +248,32 @@ describe('FM-002 source-derived routes and identities', () => {
     // Exercise the actual admission function without starting process-lifetime
     // provider resources. The bridge records forwarding, not provider acceptance.
     const bridge = new EventEmitter();
-    Reflect.set(uploads, 'dedicated', bridge);
+    Reflect.set(uploads, 'bridge', bridge);
     const transfers = Reflect.get(uploads, 'transfers');
     const events = [];
-    for (const name of ['connection', 'upgrade']) bridge.on(name, (...args) => events.push([name, ...args]));
+    bridge.on('upgrade', (...args) => events.push(['upgrade', ...args]));
     const attempt = (relative, origin = 'http://portal.invalid') => {
       events.length = 0;
       let denied;
       let destroyed = false;
-      const socket = {
-        end: (message, done) => {
+      const socket = Object.assign(new EventEmitter(), {
+        writable: true,
+        write: message => {
           denied = message;
-          done();
         },
         destroy: () => {
           destroyed = true;
+          socket.emit('close');
         },
-      };
+      });
       const request = { url: '/portal/companion' + relative, headers: origin === null ? {} : { origin } };
       const head = Buffer.alloc(0);
       Reflect.get(uploads, 'upgrade')(request, socket, head);
       if (events.length) {
-        assert.deepEqual(events, [
-          ['connection', socket],
-          ['upgrade', request, socket, head],
-        ]);
+        assert.deepEqual(events, [['upgrade', request, socket, head]]);
         assert.equal(denied, undefined);
         assert.equal(destroyed, false);
+        socket.destroy();
         return true;
       }
       assert.match(denied, /^HTTP\/1\.1 403 Forbidden/);

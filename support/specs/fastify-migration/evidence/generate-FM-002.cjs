@@ -224,6 +224,12 @@ function collectInventory() {
     http + 'ExpressHost.ts',
     http + 'progressSockets.ts',
     http + 'companion.ts',
+    prefix + 'http/integrations/companion/uploads.ts',
+    prefix + 'http/integrations/companion/actions.ts',
+    prefix + 'http/integrations/companion/fastify.ts',
+    prefix + 'http/integrations/companion/companionLogging.ts',
+    prefix + 'http/integrations/companion/companionSendToken.ts',
+    prefix + 'http/policyConfiguration.ts',
     http + 'middleware.ts',
     http + 'responses.ts',
     'packages/sails-ng-common/src/siem.model.ts',
@@ -525,7 +531,7 @@ function collectInventory() {
     surface(
       'core-companion-upgrade',
       'conditional-upgrade',
-      http + 'companion.ts',
+      prefix + 'http/integrations/companion/uploads.ts',
       'CompanionUploads',
       'upgrade',
       [
@@ -556,7 +562,7 @@ function collectInventory() {
         validation: 'api token must belong to a tracked transfer; auth-callback token uses [A-Za-z0-9_-]{16,256}',
         responses: 'pinned Companion WebSocket protocol or denial',
         head: 'not applicable',
-        replacement: 'single owned server with unlistened dedicated bridge',
+        replacement: 'single owned server with event-only provider bridge',
         testReferences: [
           { file: test('http/CompanionUploadsMongo.test.ts'), scope: 'real provider tracked upload integration' },
           {

@@ -200,7 +200,7 @@ export function sealPreparation(
               : plugin === rawMultipartParserPlugin
                 ? ['bindings']
                 : plugin === nativeBodyParserPlugin
-                  ? ['parserExclusions']
+                  ? ['parserExclusions', 'flatFormPrefixes']
                   : plugin === sessionPlugin
                     ? [
                         'secret',

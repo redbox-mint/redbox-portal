@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 /** Process-owned cron and the strict singleton require a separate process. No internal timer cleanup. */
 describe('Companion 7.1.1 supported public API process ownership', function () {
   this.timeout(15000);
-  it('constructs during initialize, attaches once, refuses a second app and closes its isolated server', () => {
+  it('constructs during initialize, attaches once, refuses a second app and detaches its event bridge', () => {
     const result = spawnSync(process.execPath, ['test/http/fixtures/companion-process.cjs'], {
       cwd: resolve(__dirname, '../..'),
       env: { ...process.env, NODE_ENV: 'production' },

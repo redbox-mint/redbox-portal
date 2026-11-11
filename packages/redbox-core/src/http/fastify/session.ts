@@ -324,6 +324,7 @@ export function nativeSessionRequest(
   ) => void
 ) {
   return function (request: FastifyRequest, reply: FastifyReply, done: (error?: Error) => void) {
+    rawHandoffs.set(request, () => nativeSessionSend(options, trust)(request, reply, undefined));
     const bound = new WeakSet<Session>();
     const configured = {
       ...options.cookie,
@@ -444,6 +445,14 @@ export function nativeSessionRequest(
       }
     });
   };
+}
+
+const rawHandoffs = new WeakMap<FastifyRequest, () => Promise<unknown>>();
+/** Identified Companion handoff only; commit cookies/store work before raw headers. */
+export async function commitNativeSessionForCompanion(request: FastifyRequest): Promise<void> {
+  const commit = rawHandoffs.get(request);
+  if (!commit) throw new TypeError('Companion requires prepared native sessions.');
+  await commit();
 }
 
 /** Qualified replacement for the pinned plugin's incompatible default onSend.

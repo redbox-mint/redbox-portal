@@ -138,7 +138,7 @@
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
     "packages/redbox-core/src/application/migrations.ts": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
-    "packages/redbox-core/src/application/portal/http.ts": "2e52a53cb156b67757e90860c2eb4eb5e2dda6dd58e5eb570a31c78bf090c155",
+    "packages/redbox-core/src/application/portal/http.ts": "2df9b0d2640d56821e9fa3bb93615d2ca6ad1a6a8061388d76ddbb44dbd3efdd",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/authentication/Accounts.ts": "2d4259e1851fb2d1f319ab9c04530a287db2edc882073e63a900fb7eedb4a86c",
@@ -149,7 +149,7 @@
     "packages/redbox-core/src/config/auth.config.ts": "caf8663cd99dcc42448fc69a0fe553b85eda06935e0b8787236a6da8f5a314be",
     "packages/redbox-core/src/config/brandingConfigurationDefaults.config.ts": "543649e0b4b9d292bb48a66956e7782fa438a1b87680030090cd6c9f34e9b439",
     "packages/redbox-core/src/config/companion.config.ts": "a9190458873c9c9256a706678b33299f305155363c568c42f3adf0c4044327ba",
-    "packages/redbox-core/src/config/companionDefaults.ts": "35169d289c13cf3ec6457593fd937437c70165b643316f80de198b98667812f0",
+    "packages/redbox-core/src/config/companionDefaults.ts": "829ac3c0122374c724abd33b402e6832a1c90d829eae99b683b36dfc22ebd41a",
     "packages/redbox-core/src/config/raid.config.ts": "912a5b50a9a79c42f220cfb2b43c2868a2737121027364eee0963d67dabf1893",
     "packages/redbox-core/src/config/record.config.ts": "b14c7d901afa819156deec13a62e3d1ad11f13154e7f76c4f7c4929e20358404",
     "packages/redbox-core/src/config/recordSchema.config.ts": "a5b4550fa3a40989048e8d1f76fb69ef100e67be7118d642c66f378e009b6b25",
@@ -192,6 +192,7 @@
     "packages/redbox-core/src/http/actions/recordMetadata.ts": "56d43c596c0d88e8a0d0e83aa7833f3eda89b2971c0faa39b4e8c16aaae27c4d",
     "packages/redbox-core/src/http/actors.ts": "f3bbf8f73707e116e27f53038f52c6b42f68f4d19ba64e5a8d534107264092ed",
     "packages/redbox-core/src/http/apiResponses.ts": "1ac0e609b96da940e3e9da7cbea724bff54075cb2410c36f79d6d8ed80c4c7aa",
+    "packages/redbox-core/src/http/context.ts": "f0b15b9456a8ebb91b238ddb4354b6265549b91ba564b0ab61a7c43a3e5b37af",
     "packages/redbox-core/src/http/express/ExpressHost.ts": "bd9849007fddc3fa4638e229f8e4506f844f452e90f3ebbbc9c1e6f85f3b052d",
     "packages/redbox-core/src/http/express/actors.ts": "258d3615f34c30d6c631898dd96def35e8f54633574cc49cee317ca0dba7c52c",
     "packages/redbox-core/src/http/express/adminOperations.ts": "07385a448eef8315656c47f9e5fa089ba2c798de928fd7e5c8c25c80649f6d99",
@@ -200,9 +201,8 @@
     "packages/redbox-core/src/http/express/brandingDelivery.ts": "2c560ecd516fbeb3569ef92a2806bf7292f40504aa8774bdbf76e4afffbbddc1",
     "packages/redbox-core/src/http/express/brandingOperations.ts": "31c251db85310cb49b6596d098be8ccf75eed7484a5a965565c5b676c61ab339",
     "packages/redbox-core/src/http/express/brandingUploads.ts": "c0358ac0275bdf7c5b53582316e01ceac5f8421c78f40140f9cdd633dd628e09",
-    "packages/redbox-core/src/http/express/companion.ts": "582225f79ed273685cec04620e61ac4dcc4e650b74749b8f4c96f4493cefb84c",
-    "packages/redbox-core/src/http/express/companionLogging.ts": "7fa7f64f7217c75b56c047f760c91c86921bbfbcc37b6dccd6d2e2130ba05c8b",
-    "packages/redbox-core/src/http/express/companionSendToken.ts": "b5c45e3ccae28a18b62fec00cd951543f84c36540c8456252afcd6dfd73bc9bb",
+    "packages/redbox-core/src/http/express/companion.ts": "c1e04c361ce9dd7ddff8155ca01f2a4337f65c884bcca8257cae494f6f3e0b5e",
+    "packages/redbox-core/src/http/express/companionSendToken.ts": "ee64b109fc115ca938880ebaf2258c396831e1975461ce73bf76a8019d42090a",
     "packages/redbox-core/src/http/express/configuration.ts": "2c6ab9c044426e3780b4ed82d7f4377956b84128e88ebd14087b9b9ab12d6138",
     "packages/redbox-core/src/http/express/configurationWrites.ts": "f953de2f0b0a0243f8e8fb3f5b57e9c53f906c1c82d80e6451046c73cd969230",
     "packages/redbox-core/src/http/express/configuredActions.ts": "2724e91bb5e3d7b032be9d4cba2fecb5d716d8792da7f07434cd2bedebda87f3",
@@ -228,7 +228,7 @@
     "packages/redbox-core/src/http/express/pageAssets.ts": "e67fb1178b8b726aa6565b37dfc9752a32adc06d2bd66f68fd741943592ed5c7",
     "packages/redbox-core/src/http/express/pageHeaders.ts": "5b991c38ab58802c882300d5f8025b7ce0d43d99de3ebb135a99b05709d48888",
     "packages/redbox-core/src/http/express/pages.ts": "b48a4c42444896e5c17619d9b1066c46dd666b8cec2ebfde4a9578793532d41c",
-    "packages/redbox-core/src/http/express/policies.ts": "0e334597c2054abd2f513c66028e0c2e5385806bbe786899956a9e956ba37ffb",
+    "packages/redbox-core/src/http/express/policies.ts": "7b526b8d03bf7cba4883cdd184166391a305c58bd04c7e165f5e05a9b10d22c5",
     "packages/redbox-core/src/http/express/progressOperations.ts": "8cba7261d11bf655a47dba8a1d786e8654fb4ac2c5c93b385d28b434614d05d8",
     "packages/redbox-core/src/http/express/progressSockets.ts": "d77bb8ddfac931ad3dd26bd5f98fc1de11aa6e26ff684f2d8af3dff485acae3a",
     "packages/redbox-core/src/http/express/queryReads.ts": "91d82fd29e3ade6491a38cbcd34a80d8e7067ae44ca2c700f3ff704b996c9492",
@@ -244,11 +244,21 @@
     "packages/redbox-core/src/http/express/siemWrites.ts": "5f45ac793d47b5ffedea2e93a76a5b39d856a142b3cef88755b2b418da7fc9d2",
     "packages/redbox-core/src/http/express/vocabularyAdministration.ts": "2254f7ab8c0b8388d64cc00c90c1fa3d803b7baae2999bc5e6942c2df24ec9bf",
     "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "71771a50abfee67fc2670b47c9eafd126f920d9cd7bbac92cd4fe3dc9689b996",
-    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "ed2b9e397845b9a170db9b5836cbd78e8760d5dc5ab06bd4a5992862f8a6c4b4",
+    "packages/redbox-core/src/http/fastify/actionReply.ts": "49fd0f32e55a234a38dc6aae6d2b908e21989de747186a93e3616b3d5f47df2e",
+    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "fdcae8ba322e90b8a3f7ea85f321cbb8475c4772ae541f461a6379e9f6f2f74d",
+    "packages/redbox-core/src/http/fastify/logging.ts": "7715b5d0a6223b045d47aebacb41d9c8d3a34cb4a7f1b52f4d4997e65e851b9b",
+    "packages/redbox-core/src/http/fastify/router.ts": "b716b5eac0b18f79fda8954b8631ce59f942e024074d425c4dc007cf09bc50f2",
+    "packages/redbox-core/src/http/fastify/session.ts": "eb24c918a9dfb5ed0e9c84166d3c1d0b258e2bb1adb712e83597ea035c868055",
+    "packages/redbox-core/src/http/integrations/companion/actions.ts": "ba833386dd007739ce75a4f95ef4b68148ce938c4bfe4a4b216d08242540a303",
+    "packages/redbox-core/src/http/integrations/companion/companionLogging.ts": "7fa7f64f7217c75b56c047f760c91c86921bbfbcc37b6dccd6d2e2130ba05c8b",
+    "packages/redbox-core/src/http/integrations/companion/companionSendToken.ts": "b5c45e3ccae28a18b62fec00cd951543f84c36540c8456252afcd6dfd73bc9bb",
+    "packages/redbox-core/src/http/integrations/companion/fastify.ts": "077d9d8777570ac90420703cdcf3380dbbd18a092dcd928f5e82c23588dba0e9",
+    "packages/redbox-core/src/http/integrations/companion/uploads.ts": "a9427161069dac85c1a8ecf02b69a8638e7196d65934ca6f40f539fcda6fe8c4",
+    "packages/redbox-core/src/http/policyConfiguration.ts": "a4d9223d24f2c2e978f1d984f4120eed3866766f0722b6a90a19e2cec3662c54",
     "packages/redbox-core/src/http/requestValues.ts": "852282c8423c4391d3873e633aa12851042e918a404e7d9cbe8046d7f57999a2",
     "packages/redbox-core/src/identity/Users.ts": "81108aa8780214d85b6443bc748f857a453f355fbb9a07578ad63ad8f959a261",
     "packages/redbox-core/src/integrations/SiemDestinationTests.ts": "9487164ebb69f0b0ba4af436d5ff98c74a1cd494ef5d593ce5b462ce26e1f2e6",
-    "packages/redbox-core/src/middleware/requestLifetime.ts": "7dbf3686707d2cd7f8cfd3275ea79a632eac33846d6648ae43b33962e1d01e29",
+    "packages/redbox-core/src/middleware/requestLifetime.ts": "60e28bb797988cea440fe6efdccc278c2230903bdadf0f41bec75f5a17ffaed6",
     "packages/redbox-core/src/model/APIActionResponse.ts": "ef914af1c222b9d434d8fba2a7daed7bdceb73c409701999cfbdce9f480654d9",
     "packages/redbox-core/src/model/APIErrorResponse.ts": "9cea1c4b553c75423552afae0f020532bd8ddcd00871b5f95cdcaf4d2dc790a0",
     "packages/redbox-core/src/model/APIHarvestResponse.ts": "0f376922a1b14582b48615740b2d9ad1373276a2541bfdf552693aa2d98a0a06",
@@ -358,6 +368,7 @@
     "packages/redbox-core/src/services/siem/SiemConfigSecrets.ts": "24beac1b681442ef928cc5eba62b7ea70cf5b3d5f4498890bd4c42a7b6698724",
     "packages/redbox-core/src/storage/TusStorageManagerDataStore.ts": "3d2aeb8a4ea2ba41967411eba3cf2cc466b1746cb9e56e946786e2501d7fabf6",
     "packages/redbox-core/src/storage/ownGridFSDownload.ts": "ffd8ae91a917af3bc6980e75cb45f887860fd55b4c3e095384acd64516b894c1",
+    "packages/redbox-core/src/utilities/PinoLoggerUtils.ts": "b9aa85f8893191a26cceb66e53e9aac3dd0fd511bdbbdde07bbf4c55807c7e62",
     "packages/redbox-core/src/utilities/RedactionUtils.ts": "349d4d137a94b956689b3fd5229108051ecf12bc600acc2b9c317d9ee918cf6b",
     "packages/redbox-core/src/utilities/RequestChronicle.ts": "c1775e2fa2dc473c441d34d35d9f07ece58d0202b4ea1e4db0d914147bd2e358",
     "packages/redbox-core/src/utilities/RequestChronicleContext.ts": "95008d0193d3f8fa3b545887109d75d20a28dbbc64a91dd25cb4434eec9b560e",
@@ -441,7 +452,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "f107bf01710a46ed4b23a4020e88f9f51d781fc1554365f1b862f24bd6f36dfd"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "079a519c208d0375375dd7d9c3b346c5c382059d122fb67667377274ad08c947"
   },
   "counts": {
     "routes": 335,
@@ -43820,7 +43831,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/companion.ts",
         "export": "mountCompanionRoutes",
-        "line": 252
+        "line": 12
       },
       "method": "all",
       "path": "${companion.route}",
@@ -43866,7 +43877,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/companion.ts",
         "export": "mountCompanionRoutes",
-        "line": 252
+        "line": 12
       },
       "method": "all",
       "path": "${companion.route}/{*companionPath}",
@@ -43910,9 +43921,9 @@
       "kind": "conditional-upgrade",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/companion.ts",
+        "file": "packages/redbox-core/src/http/integrations/companion/uploads.ts",
         "export": "CompanionUploads",
-        "line": 33
+        "line": 50
       },
       "method": "upgrade",
       "path": [
@@ -43958,7 +43969,7 @@
       "validation": "api token must belong to a tracked transfer; auth-callback token uses [A-Za-z0-9_-]{16,256}",
       "responses": "pinned Companion WebSocket protocol or denial",
       "head": "not applicable",
-      "replacement": "single owned server with unlistened dedicated bridge"
+      "replacement": "single owned server with event-only provider bridge"
     },
     {
       "name": "core-authentication-providers",

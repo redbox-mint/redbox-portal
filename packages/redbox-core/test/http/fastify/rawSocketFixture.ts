@@ -23,7 +23,13 @@ export const deferred = () => Promise.withResolvers<void>();
  * Both transports assemble the actual production application and host. */
 export async function rawSocketFixture(
   native: boolean,
-  options: { retainExpress?: boolean; uploadRequest?: ApiRequestDefinition } = {}
+  options: {
+    retainExpress?: boolean;
+    uploadRequest?: ApiRequestDefinition;
+    companion?: import('./productionRawPortal').RawPortalOptions['companion'];
+    policyConfiguration?: import('./productionRawPortal').RawPortalOptions['policyConfiguration'];
+    beforeActivate?: import('./productionRawPortal').RawPortalOptions['beforeActivate'];
+  } = {}
 ) {
   const appPath = await mkdtemp(path.join(tmpdir(), 'fm020-installed-'));
   for (const folder of ['views', 'assets', '.tmp/public']) await mkdir(path.join(appPath, folder), { recursive: true });
@@ -138,6 +144,8 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
   };
   try {
     const f = await productionRawPortal(native, appPath, {
+      companion: options.companion,
+      policyConfiguration: options.policyConfiguration,
       beforeActivate: async host => {
         const base = 'http://127.0.0.1:' + host.address()!.port;
         for (const path of [socketPath + '/socket.io.js', socketPath + '/?EIO=4&transport=polling']) {
@@ -145,6 +153,7 @@ exports.registerRedboxExtension = () => ({ ...storage.registerRedboxExtension(),
           assert.equal(response.status, 503);
           await response.text();
         }
+        await options.beforeActivate?.(host);
       },
       prepare: async portal => {
         const raw = portal.installation.raw!;

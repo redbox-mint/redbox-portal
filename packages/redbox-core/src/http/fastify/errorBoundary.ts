@@ -82,6 +82,11 @@ const publicHeaders = new Set([
   'vary',
   'x-content-type-options',
   'content-security-policy',
+  'cross-origin-opener-policy',
+  // Companion's public provider responses retain their canonical CORS contract.
+  'access-control-allow-origin',
+  'access-control-allow-credentials',
+  'x-powered-by',
 ]);
 type ResponseTarget =
   | {
@@ -116,6 +121,7 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
   const { request, reply } = target;
   const reset = (preserve: boolean) => {
     const close = reply.getHeader('connection') === 'close';
+    const opener = reply.getHeader('cross-origin-opener-policy') === 'same-origin-allow-popups';
     const headers = reply.getHeaders();
     for (const name of Object.keys(headers)) {
       // A public denial may retain only documented representation/security
@@ -128,6 +134,7 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
     }
     // Reconstruct only the fixed drain instruction, never a buffered value.
     if (close) reply.header('Connection', 'close');
+    if (opener) reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     reply.raw.statusMessage = STATUS_CODES[status] ?? 'Internal Server Error';
     reply.code(status);
   };
@@ -192,6 +199,9 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
       Expires: '0',
       'Content-Type': 'application/json; charset=utf-8',
       'Content-Length': Buffer.byteLength(body),
+      ...(reply.getHeader('cross-origin-opener-policy') === 'same-origin-allow-popups'
+        ? { 'Cross-Origin-Opener-Policy': 'same-origin-allow-popups' }
+        : {}),
       ...(reply.getHeader('connection') === 'close' ? { Connection: 'close' } : {}),
     });
     reply.raw.end(body);

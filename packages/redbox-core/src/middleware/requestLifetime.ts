@@ -50,6 +50,15 @@ type RequestOwner = { [key]?: RequestLifetime };
 function lifetime(request: unknown): RequestLifetime | undefined {
   return request && typeof request === 'object' ? (request as RequestOwner)[key] : undefined;
 }
+
+/** Core integration alias: the provider borrows the same accepted request lease. */
+export function linkHttpRequestLifetime(request: object, alias: object): void {
+  const state = lifetime(request);
+  if (!state || state.completed) throw new Error('Integration requires an active HTTP lifetime.');
+  const existing = lifetime(alias);
+  if (existing && existing !== state) throw new Error('HTTP lifetime belongs to a different request.');
+  if (!existing) Object.defineProperty(alias, key, { value: state });
+}
 function promiseLike(value: unknown): value is PromiseLike<unknown> {
   return (
     value !== null &&

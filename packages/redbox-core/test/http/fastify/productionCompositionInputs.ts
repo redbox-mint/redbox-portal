@@ -328,7 +328,7 @@ export function productionCompositionInputCases() {
           parsers: same(parsers.firstCall.args[1]),
           prepare: callable,
         });
-        inputs<NativeParserOptions>(security.parsers, { parserExclusions: equal([]) });
+        inputs<NativeParserOptions>(security.parsers, { parserExclusions: equal([]), flatFormPrefixes: equal([]) });
         inputs<SafeHttpObservers>(security.observers, { observe: same(undefined), log: same(undefined) });
         inputs<NativePolicyInput>(policies.firstCall.args[0], {
           branding: same(f.branding),

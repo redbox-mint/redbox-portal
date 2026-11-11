@@ -23,6 +23,8 @@ import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
 import type { ApiRouteDefinition } from '../../../src/api-routes/types';
 
 export interface RawPortalOptions {
+  readonly companion?: Partial<import('../../../src/config/companionDefaults').CompanionConfig>;
+  readonly policyConfiguration?: import('../../../src/config/policies.config').PoliciesConfig;
   readonly declarations?: readonly ApiRouteDefinition[];
   readonly progress?: boolean;
   beforeActivate?(host: Awaited<ReturnType<typeof createPortalFastifyHost>>['host']): Promise<void>;
@@ -66,7 +68,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
         },
         datastores: { mongodb: { url: uri.href, maxPoolSize: 4 }, redboxStorage: { url: uri.href, maxPoolSize: 4 } },
         redboxSession: session,
-        companion: { enabled: false },
+        companion: { enabled: false, ...options.companion },
         storage: {
           disks: {
             staging: { driver: 'fs', config: { root: path.join(directory, 'staging') } },
@@ -79,6 +81,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
           rules: [
             { path: '/:branding/:portal/api(/*)', role: 'Admin', can_update: true },
             { path: '/:branding/:portal/asynch(/*)', role: 'Admin', can_update: true },
+            { path: '/imports(/*)', role: 'Admin', can_update: true },
           ],
         },
         brandingConfigurationDefaults: {
@@ -133,7 +136,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
           http: {
             declarations: options.declarations ?? [getMetaRoute, updateMetaRoute, addDataStreamsRoute],
             progress: options.progress ?? true,
-            policyConfiguration: {
+            policyConfiguration: options.policyConfiguration ?? {
               '*': ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
             },
             bindings: context => require(path.join(appPath, 'node_modules/fm020-storage')).bindings(context),
@@ -141,7 +144,7 @@ export async function productionRawPortal(nativeHost: boolean, appPath: string, 
         })
       : await createPortalHost({
           ...common,
-          policyConfiguration: {
+          policyConfiguration: options.policyConfiguration ?? {
             '*': ['nocache', 'brandingandportal', 'iswebserviceauthenticated', 'brandactor', 'checkauth'],
           },
         });

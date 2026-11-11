@@ -1,4 +1,5 @@
 import { bindMultipartRequestView } from './rawMultipart';
+import { bindCompanionRequestView } from '../integrations/companion/fastify';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
@@ -397,6 +398,7 @@ export function requestOwnership(owner: PersistenceOwner) {
   const capture = (request: FastifyRequest, reply: FastifyReply, done: () => void) => {
     replies.set(request, reply);
     bindMultipartRequestView(request, publicView(request, 'request'));
+    bindCompanionRequestView(request, reply, publicView(request, 'request'));
     publicView(reply, 'reply');
     for (const transport of [request.raw, reply.raw, request.raw.socket]) publicView(transport, 'raw');
     contexts.set(request, bindAcceptedPersistenceContext(owner));

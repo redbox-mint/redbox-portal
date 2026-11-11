@@ -50,7 +50,7 @@ export async function resolvePortalInstallation(
   // Bind the module offline, but select its resources only after route replacement.
   let raw: PortalRawHttp | undefined;
   const rawDeclaration =
-    upload || input.progress
+    upload || input.progress || context.config.companion.enabled
       ? {
           name: 'portal-raw-http',
           requires: [
@@ -58,6 +58,7 @@ export async function resolvePortalInstallation(
             context.data.disks.declaration.name,
             context.data.datastream.declaration.name,
             context.data.progress.declaration.name,
+            context.data.users.declaration.name,
           ],
           create: () => raw!,
         }

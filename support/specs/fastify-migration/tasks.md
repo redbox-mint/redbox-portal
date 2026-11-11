@@ -183,7 +183,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: no pre-consumed body, second listener or abandoned accepted work;
     prepare succeeds before listening and real-network backpressure/drain works.
 
-- [ ] **FM-021 — Prove isolated Companion adapter.**
+- [x] **FM-021 — Prove isolated Companion adapter.**
   - Dependencies: FM-016, FM-012.
   - Work: attach Companion to the single owned server, adapting only its required
     Express boundary; preserve tracked authorization, upgrades and retained transfers.
