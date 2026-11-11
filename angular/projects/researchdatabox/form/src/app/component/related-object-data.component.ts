@@ -104,7 +104,12 @@ export class RelatedObjectDataComponent extends ContentComponent {
         await publish(descriptor.initialResult);
         return;
       }
-      if (!identity.values.length && !identity.invalidIndices.length) {
+      if (identity.invalidIndices.length) {
+        await publish({ status: 'invalid', records: [],
+          issues: identity.invalidIndices.map(referenceIndex => ({ code: 'invalid-reference', referenceIndex })) });
+        return;
+      }
+      if (!identity.values.length) {
         await publish({ status: 'empty', records: [], issues: [] });
         return;
       }

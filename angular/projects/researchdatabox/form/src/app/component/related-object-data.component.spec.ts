@@ -613,6 +613,56 @@ describe('RelatedObjectDataComponent request lifecycle', () => {
     expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(1);
   }));
 
+  for (const malformed of [
+    { name: 'non-string reference', value: 42, oidTokens: undefined, invalidIndices: [0] },
+    { name: 'object missing its configured nested OID', value: { project: { label: 'Missing OID' } },
+      oidTokens: ['project', 'oid'], invalidIndices: [0] },
+    { name: 'mixed valid and malformed references', value: ['B', { project: {} }, false],
+      oidTokens: ['project', 'oid'], invalidIndices: [1, 2] },
+  ]) {
+    it(`classifies an edited ${malformed.name} locally and clears resolved data`, async () => {
+      Object.assign((component as any).descriptor, { required: true, oidTokens: malformed.oidTokens });
+      service.resolveRelatedMetadata.and.resolveTo({ activities: resolved('A') });
+      await component.refreshRelatedData();
+      expect(lastValue().value.records[0].redboxOid).toBe('A');
+      expect(TestBed.inject(RelatedDataStateService).state).toBe('ready');
+      service.resolveRelatedMetadata.calls.reset();
+      service.resolveRelatedMetadata.and.rejectWith(Object.assign(new Error('Bad reference'), { status: 400 }));
+      bus.publish.calls.reset();
+      form.get('canonical/reference')!.setValue(malformed.value);
+      await component.refreshRelatedData();
+      expect(lastValue().value).toEqual({ status: 'invalid', records: [],
+        issues: malformed.invalidIndices.map(referenceIndex => ({ code: 'invalid-reference', referenceIndex })) });
+      expect(service.resolveRelatedMetadata).not.toHaveBeenCalled();
+      expect(bus.publish).toHaveBeenCalledTimes(1);
+      expect(TestBed.inject(RelatedDataStateService).state).toBe('error');
+    });
+  }
+
+  it('keeps a malformed edit current over an earlier fetch and recovers after a valid selection', fakeAsync(() => {
+    Object.assign((component as any).descriptor, { required: true, oidTokens: ['oid'] });
+    const a = pending(); service.resolveRelatedMetadata.and.returnValue(a.promise);
+    void component.refreshRelatedData(); flushMicrotasks();
+    expect(TestBed.inject(RelatedDataStateService).state).toBe('pending');
+    form.get('canonical/reference')!.setValue({ label: 'Missing OID' });
+    void component.refreshRelatedData(); flushMicrotasks();
+    const invalid: RelatedMetadataEntry = { status: 'invalid', records: [], issues: [{ code: 'invalid-reference', referenceIndex: 0 }] };
+    expect(lastValue().value).toEqual(invalid);
+    expect(TestBed.inject(RelatedDataStateService).state).toBe('error');
+    expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(1);
+    const published = bus.publish.calls.count();
+    a.resolve({ activities: resolved('A') }); flushMicrotasks();
+    expect(bus.publish.calls.count()).toBe(published);
+    expect(lastValue().value).toEqual(invalid);
+    expect(TestBed.inject(RelatedDataStateService).state).toBe('error');
+    service.resolveRelatedMetadata.and.resolveTo({ activities: resolved('B') });
+    form.get('canonical/reference')!.setValue({ oid: 'B' });
+    void component.refreshRelatedData(); flushMicrotasks();
+    expect(lastValue().value.records[0].redboxOid).toBe('B');
+    expect(TestBed.inject(RelatedDataStateService).state).toBe('ready');
+    expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(2);
+  }));
+
   it('keeps template rendering pending after fetch completion and records required failures', fakeAsync(() => {
     const response = pending();
     service.resolveRelatedMetadata.and.returnValue(response.promise);

@@ -417,8 +417,10 @@ references remain intact for persistence projection and fingerprinting.
 5. On completion, update both template context and result event only if the
    generation is still current. Abort/dispose where possible; retain identity
    checks after every await. Explicit refresh/page reload may fetch the same OID.
-6. Unlinking publishes `empty` without a source read. Failure publishes a safe
-   current error/unavailable result, not the previous source's values.
+6. Unlinking publishes `empty` without a source read. Malformed references publish
+   `invalid` locally, with an `invalid-reference` issue for each invalid reference
+   index and no refresh request. Genuine source-read/network failures remain
+   `failed`/`source-read-failed`. These results clear the previous source's values.
 7. Destroy subscriptions and invalidate requests on form destruction/reload.
 
 Use existing `field.value.changed` events, with the source component's actual
