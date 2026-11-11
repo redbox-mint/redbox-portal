@@ -5,10 +5,29 @@ import type {
   NamedQuerySource,
 } from '@researchdatabox/sails-ng-common';
 
+/** Keep complete safe segments only; structural paths must retain key boundaries
+ * until here so an invalid key containing a dot cannot invent a valid path.
+ */
+export function safeNamedQueryDiagnosticField(field: string | readonly PropertyKey[]): string {
+  const segments = typeof field === 'string' ? field.split('.') : field;
+  const prefix: string[] = [];
+  let length = 0;
+  for (const segment of segments) {
+    if (typeof segment !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(segment)) break;
+    length += segment.length + (prefix.length ? 1 : 0);
+    if (length > 256) break;
+    prefix.push(segment);
+  }
+  return prefix.join('.') || 'definition';
+}
+
 export class NamedQueryDefinitionError extends Error {
   readonly code = 'INVALID_NAMED_QUERY_DEFINITION';
-  constructor(readonly field: string) {
-    super(`Invalid named query definition at ${field}`);
+  readonly field: string;
+  constructor(field: string | readonly PropertyKey[]) {
+    const safeField = safeNamedQueryDiagnosticField(field);
+    super(`Invalid named query definition at ${safeField}`);
+    this.field = safeField;
   }
 }
 
@@ -118,7 +137,7 @@ export function assertNamedQueryDefinition(value: unknown): asserts value is Nam
   if (source === 'graphql') {
     const result = graphqlNamedQueryOperationSchema.safeParse(value.graphql);
     if (!result.success)
-      throw new NamedQueryDefinitionError(`graphql.${result.error.issues[0]?.path.join('.') || 'definition'}`);
+      throw new NamedQueryDefinitionError(['graphql', ...(result.error.issues[0]?.path ?? ['definition'])]);
   }
   // Preserve the established database validation/coercion rules and bootstrap array shapes.
 }

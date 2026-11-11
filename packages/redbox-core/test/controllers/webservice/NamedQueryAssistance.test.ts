@@ -371,7 +371,7 @@ describe('Named query assistance HTTP boundary', () => {
     await controller.previewDraft(request() as unknown as Sails.Req, res as unknown as Sails.Res);
     const response = res.json.lastCall.args[0];
     assert.equal(res.status.lastCall.args[0], 422);
-    assert.match(response.details, /^graphql\./);
+    assert.match(response.details, /^graphql:/);
     assert.ok(response.details.length <= 770);
   });
   it('maps guidance denial, missing saved query, size and timeout failures', async () => {

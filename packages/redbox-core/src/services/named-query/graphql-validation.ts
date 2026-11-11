@@ -38,7 +38,7 @@ import type {
 import type { ReadCaller } from '../../record-graphql/read-record';
 import { boundedQueryRule, QUERY_LIMITS } from '../../record-graphql/schema';
 import { checkDraftBudget, boundedJsonBytes } from '../../utilities/NamedQueryPreview';
-import { assertNamedQueryDefinition, NamedQueryDefinitionError } from './definition';
+import { assertNamedQueryDefinition, NamedQueryDefinitionError, safeNamedQueryDiagnosticField } from './definition';
 import { consumerInput, convertGraphqlInput, GraphqlNamedQueryInputError, safeSegment } from './graphql-input';
 
 export function graphqlDiagnostic(code: string, field: string, reason: string, lookup = false): EditorDiagnostic {
@@ -47,7 +47,7 @@ export function graphqlDiagnostic(code: string, field: string, reason: string, l
     capability: lookup ? 'lookup' : 'definition',
     code,
     severity: lookup ? 'warning' : 'error',
-    field: field.slice(0, 256),
+    field: safeNamedQueryDiagnosticField(field),
     reason,
     line: 0,
     column: 0,
@@ -196,10 +196,10 @@ function staticArgument(
     return valueFromAST(declaration.defaultValue, inputType);
 }
 
-/** Check every selected collection, including fragments and collections outside
- * the mapped result path. Consumer-controlled record types are checked at runtime.
+/** Check every selected collection/discovery scope, including fragments and fields
+ * outside the result path. Consumer-controlled scopes are checked at runtime.
  */
-function unknownCollectionTypes(
+function staticScopeDiagnostics(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
@@ -207,28 +207,47 @@ function unknownCollectionTypes(
 ): EditorDiagnostic[] {
   const variants: unknown = schema.extensions.recordReadVariants;
   if (!Array.isArray(variants)) return [];
-  const known = new Set(
-    variants.flatMap(variant =>
-      variant && typeof variant === 'object' && typeof variant.recordType === 'string' ? [variant.recordType] : []
-    )
-  );
+  const stagesByType = new Map<string, Set<string>>();
+  for (const variant of variants) {
+    if (!variant || typeof variant !== 'object' || typeof variant.recordType !== 'string') continue;
+    const stages = stagesByType.get(variant.recordType) ?? new Set<string>();
+    if (typeof variant.workflowStep === 'string') stages.add(variant.workflowStep);
+    stagesByType.set(variant.recordType, stages);
+  }
   const diagnostics: EditorDiagnostic[] = [];
   const info = new TypeInfo(schema);
   visit(
     document,
     visitWithTypeInfo(info, {
       Field(node) {
-        if (info.getParentType() !== schema.getQueryType() || node.name.value !== 'records') return;
+        if (info.getParentType() !== schema.getQueryType() || !['records', 'recordFields'].includes(node.name.value))
+          return;
         const type = staticArgument(schema, operation, definition, node, 'recordType');
-        if (typeof type !== 'string' || known.has(type)) return;
-        const value = node.arguments?.find(arg => arg.name.value === 'recordType')?.value;
-        diagnostics.push(
-          graphqlDiagnostic(
-            'UNKNOWN_RECORD_TYPE',
-            value?.kind === Kind.VARIABLE ? `graphql.variables.${value.name.value}` : 'graphql.document',
-            'Choose a record type available in the current read schema.'
-          )
-        );
+        if (typeof type !== 'string') return;
+        const location = (name: string) => {
+          const value = node.arguments?.find(arg => arg.name.value === name)?.value;
+          return value?.kind === Kind.VARIABLE ? `graphql.variables.${value.name.value}` : 'graphql.document';
+        };
+        const knownStages = stagesByType.get(type);
+        if (!knownStages) {
+          diagnostics.push(
+            graphqlDiagnostic(
+              'UNKNOWN_RECORD_TYPE',
+              location('recordType'),
+              'Choose a record type available in the current read schema.'
+            )
+          );
+          return;
+        }
+        const stages = staticArgument(schema, operation, definition, node, 'workflowStages');
+        if (Array.isArray(stages) && stages.some(stage => !knownStages.has(stage)))
+          diagnostics.push(
+            graphqlDiagnostic(
+              'UNKNOWN_WORKFLOW_STAGE',
+              location('workflowStages'),
+              'Choose workflow stages available for the record type in the current read schema.'
+            )
+          );
       },
     })
   );
@@ -452,9 +471,9 @@ export function validateGraphqlNamedQuery(
       issue('PAGE_VARIABLE', 'graphql.lookup', 'Declare both server-owned paging variables in the selected operation.');
 
   const root = schema.getQueryType();
-  const unknownTypes = unknownCollectionTypes(schema, document, operation, input);
-  if (unknownTypes.length) {
-    diagnostics.push(...unknownTypes);
+  const scopeDiagnostics = staticScopeDiagnostics(schema, document, operation, input);
+  if (scopeDiagnostics.length) {
+    diagnostics.push(...scopeDiagnostics);
     return result();
   }
   const metadataTypes = collectionMetadataTypes(schema, document, operation, input);
