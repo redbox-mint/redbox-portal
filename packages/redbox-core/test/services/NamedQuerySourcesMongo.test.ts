@@ -1,3 +1,4 @@
+import { createRecordYoga } from '../../src/record-graphql/schema';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
@@ -40,7 +41,8 @@ describe('named query source Mongo persistence', function () {
     source: 'graphql',
     description: 'Stale schema remains editable',
     graphql: {
-      document: 'query Lookup($search: String) { removedCollection(search: $search) { nodes { oid } } }',
+      document:
+        'query Lookup($search: String = "rdmp") { records(recordType: $search) { nodes { oid workflowStep } } }',
       operationName: 'Lookup',
       variables: {
         search: {
@@ -51,10 +53,12 @@ describe('named query source Mongo persistence', function () {
           defaultValue: null,
         },
       },
-      resultPath: ['removedCollection', 'nodes'],
-      mappings: { oid: ['oid'], title: ['metadata', 'dc:title'] },
+      resultPath: ['records', 'nodes'],
+      mappings: { oid: ['oid'], title: ['workflowStep'] },
     },
   };
+  const caller = { brand, portal: 'rdmp', user: { username: 'author' }, roles: [] };
+  const schema = createRecordYoga([], { getRecord: async () => null, hasViewAccess: () => false }).schema;
   let orm: Orm | undefined;
   let initialized = false;
   let service: Services.NamedQueryService;
@@ -114,6 +118,10 @@ describe('named query source Mongo persistence', function () {
     parsed.pathname = `/${databaseName}`;
     url = parsed.toString();
     setupServiceTestGlobals(mockSails);
+    Reflect.set(globalThis, 'RecordGraphqlService', {
+      getReadSchema: async () => schema,
+      getBootstrapReadSchema: async () => schema,
+    });
     client = await new MongoClient(url).connect();
     await start();
   });
@@ -126,12 +134,13 @@ describe('named query source Mongo persistence', function () {
     if (bootstrapRoot) await fs.rm(bootstrapRoot, { recursive: true, force: true });
     cleanupServiceTestGlobals();
     Reflect.deleteProperty(globalThis, 'NamedQuery');
+    Reflect.deleteProperty(globalThis, 'RecordGraphqlService');
   });
 
   it('persists both sources, preserves legacy bytes, reloads after ORM restart and clears replaced source fields', async () => {
     await service.create(brand, 'legacy', database);
     await service.create(brand, 'explicit', { ...database, source: 'database' });
-    await service.create(brand, 'graphql', graphql);
+    await service.create(brand, 'graphql', graphql, caller);
     const before = await NamedQuery.findOne({ key: `${brand.id}_legacy` });
     assert.ok(before);
     assert.equal(before.source, null);
@@ -160,11 +169,20 @@ describe('named query source Mongo persistence', function () {
     const legacy = await service.getNamedQueryConfig(brand, 'legacy');
     assert.ok(legacy?.source !== 'graphql');
     assert.equal(legacy?.source, undefined);
-    await service.update(brand, 'graphql', {
-      ...graphql,
-      graphql: { ...graphql.graphql, document: 'query Changed { stale }' },
-    });
-    await service.update(brand, 'explicit', graphql);
+    await service.update(
+      brand,
+      'graphql',
+      {
+        ...graphql,
+        graphql: {
+          ...graphql.graphql,
+          operationName: 'Changed',
+          document: graphql.graphql.document.replace('query Lookup', 'query Changed'),
+        },
+      },
+      caller
+    );
+    await service.update(brand, 'explicit', graphql, caller);
     await service.update(brand, 'explicit', database);
     assert.equal((await NamedQuery.findOne({ key: `${brand.id}_explicit` }))?.graphql, null);
     assert.equal((await service.getNamedQueryConfig(brand, 'explicit'))?.source, undefined);

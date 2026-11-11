@@ -35,6 +35,9 @@ import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssist
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
 import type { GraphqlNamedQueryOperation } from '@researchdatabox/sails-ng-common';
 import { assertNamedQueryDefinition, NamedQueryDefinitionError, namedQuerySource, requireDatabaseNamedQuery } from './named-query/definition';
+import type { GraphQLSchema } from 'graphql';
+import type { ReadCaller } from '../record-graphql/read-record';
+import { inspectGraphqlNamedQuery, validateGraphqlNamedQuery, graphqlDiagnostic, GraphqlNamedQueryValidationError } from './named-query/graphql-validation';
 import { NamedQueryPreviewOutputLimitError, renderNamedQueryPreviewTemplate } from '../utilities/NamedQueryPreviewTemplate';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
@@ -202,10 +205,29 @@ export namespace Services {
             continue;
           }
 
-          await this.create(defBrand, name, definition);
+          if (definition.source === 'graphql') {
+            // Trusted files are imported without an execution identity. HTTP create
+            // remains caller-aware and cannot opt into this private persistence path.
+            let schema: GraphQLSchema;
+            try {
+              schema = await RecordGraphqlService.getBootstrapReadSchema(defBrand, sails.config.auth.defaultPortal);
+            } catch {
+              throw new GraphqlNamedQueryValidationError([
+                graphqlDiagnostic('GRAPHQL_SCHEMA_UNAVAILABLE', 'graphql.document', 'The configured read schema is unavailable for import.'),
+              ]);
+            }
+            const { validation } = validateGraphqlNamedQuery(definition, schema);
+            if (!validation.valid) throw new GraphqlNamedQueryValidationError(validation.diagnostics);
+            await this.persistNewDefinition(defBrand, name, definition);
+          } else await this.create(defBrand, name, definition);
           sails.log.verbose(`Bootstrapped named query: ${name}`);
         } catch (error) {
-          sails.log.error(`Failed to bootstrap named query from file: ${fileName}`, error);
+          if (error instanceof GraphqlNamedQueryValidationError) {
+            // Emit actionable safe locations, never documents, defaults or values.
+            const details = error.diagnostics.slice(0, 10)
+              .map(item => `${item.code} at ${item.field} (${item.line}:${item.column})`).join('; ');
+            sails.log.error(`Failed to bootstrap named query from file: ${fileName}`, details);
+          } else sails.log.error(`Failed to bootstrap named query from file: ${fileName}`, error);
         }
       }
 
@@ -507,8 +529,16 @@ export namespace Services {
       };
     }
 
-    public async create(brand: BrandingModel, name: string, input: unknown) {
+    public async create(brand: BrandingModel, name: string, input: unknown, validationCaller?: ReadCaller) {
       assertNamedQueryDefinition(input);
+      if (input.source === 'graphql') {
+        const { validation } = await inspectGraphqlNamedQuery(input, validationCaller, String(brand.id));
+        if (!validation.valid) throw new GraphqlNamedQueryValidationError(validation.diagnostics);
+      }
+      return this.persistNewDefinition(brand, name, input);
+    }
+
+    private async persistNewDefinition(brand: BrandingModel, name: string, input: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
       const existing = await NamedQuery.findOne({ key });
       if (existing) throw new Error(`Named query '${name}' already exists`);
@@ -560,8 +590,12 @@ export namespace Services {
         views: sails.config.dashboardview ?? {}, vocabularies: sails.config.vocab?.queries ?? {} });
     }
 
-    public async update(brand: BrandingModel, name: string, input: unknown) {
+    public async update(brand: BrandingModel, name: string, input: unknown, validationCaller?: ReadCaller) {
       assertNamedQueryDefinition(input);
+      if (input.source === 'graphql') {
+        const { validation } = await inspectGraphqlNamedQuery(input, validationCaller, String(brand.id));
+        if (!validation.valid) throw new GraphqlNamedQueryValidationError(validation.diagnostics);
+      }
       const key = `${brand.id}_${name}`;
       const existing = await NamedQuery.findOne({ key });
       if (!existing) throw new Error(`Named query '${name}' not found`);
@@ -1155,6 +1189,14 @@ export namespace Services {
     }
 
     public async performNamedQueryFromConfig(config: unknown, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget) {
+      if (namedQuerySource(config) === 'graphql') {
+        // T05 supplies execution context and dispatch. Until then validate shape and
+        // fail closed before any database executor or GraphQL resolver can run.
+        assertNamedQueryDefinition(config);
+        throw new GraphqlNamedQueryValidationError([
+          graphqlDiagnostic('GRAPHQL_EXECUTION_UNAVAILABLE', 'definition', 'GraphQL named query execution is not available.'),
+        ]);
+      }
       requireDatabaseNamedQuery(config);
       this.updateChronicle({ namedQueryBrandId: brand.id, namedQueryParameterCount: _.size(paramMap) });
       const collectionName = _.get(config, 'collectionName', '') ?? '';

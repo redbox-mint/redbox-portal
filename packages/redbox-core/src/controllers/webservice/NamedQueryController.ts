@@ -13,6 +13,9 @@ import {
 import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 import { Controllers as controllers } from '../../CoreController';
 import { NamedQueryDefinitionError } from '../../services/named-query/definition';
+import { GraphqlNamedQueryInputError } from '../../services/named-query/graphql-input';
+import { GraphqlNamedQueryValidationError } from '../../services/named-query/graphql-validation';
+import type { ReadCaller } from '../../record-graphql/read-record';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
 export namespace Controllers {
@@ -56,20 +59,28 @@ export namespace Controllers {
         });
       } catch (error) {
         const code =
-          error instanceof NamedQueryAssistanceError || error instanceof FieldDescriptionError
+          error instanceof NamedQueryAssistanceError ||
+          error instanceof FieldDescriptionError ||
+          error instanceof GraphqlNamedQueryInputError ||
+          error instanceof GraphqlNamedQueryValidationError
             ? error.code
             : 'ASSISTANCE_UNAVAILABLE';
         const status =
           error instanceof NamedQueryAssistanceError
             ? error.status
-            : error instanceof FieldDescriptionError
-              ? error.code === 'FORBIDDEN'
-                ? 403
-                : 400
-              : 500;
+            : error instanceof GraphqlNamedQueryValidationError
+              ? 422
+              : error instanceof GraphqlNamedQueryInputError
+                ? 400
+                : error instanceof FieldDescriptionError
+                  ? error.code === 'FORBIDDEN'
+                    ? 403
+                    : 400
+                  : 500;
         return this.sendResp(req, res, {
           status,
           displayErrors: [{ code, status: String(status) }],
+          ...(error instanceof GraphqlNamedQueryValidationError ? { meta: { diagnostics: error.diagnostics } } : {}),
           headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' },
         });
       }
@@ -127,7 +138,7 @@ export namespace Controllers {
 
     private statusForError(error: unknown): number {
       if (error instanceof NamedQueryInUseError) return 409;
-      if (error instanceof NamedQueryDefinitionError) return 400;
+      if (error instanceof NamedQueryDefinitionError || error instanceof GraphqlNamedQueryValidationError) return 400;
       const message = this.asError(error).message;
       if (/Named query .*not found/i.test(message)) {
         return 404;
@@ -141,7 +152,27 @@ export namespace Controllers {
       return 500;
     }
 
+    private validationCaller(req: Sails.Req, brand: BrandingModel): ReadCaller | undefined {
+      if (!req.isAuthenticated?.() || !req.user?.username) return undefined;
+      return {
+        brand,
+        portal: String(req.param('portal') ?? ''),
+        user: req.user,
+        roles: Array.isArray(req.user.roles)
+          ? req.user.roles.filter((role): role is object => role !== null && typeof role === 'object')
+          : [],
+      };
+    }
+
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      if (error instanceof GraphqlNamedQueryValidationError) {
+        return this.sendResp(req, res, {
+          status: 400,
+          meta: { diagnostics: error.diagnostics },
+          displayErrors: [{ code: error.code, detail: error.message, status: '400' }],
+          headers: this.getNoCacheHeaders(),
+        });
+      }
       if (error instanceof NamedQueryInUseError) {
         return this.sendResp(req, res, { status: 409, meta: { usedBy: error.consumers },
           displayErrors: [{ detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
@@ -218,7 +249,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.create(brand, name, body);
+        await NamedQueryService.create(brand, name, body, this.validationCaller(req, brand));
         return this.sendResp(req, res, { status: 201, data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
@@ -244,7 +275,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.update(brand, name, body);
+        await NamedQueryService.update(brand, name, body, this.validationCaller(req, brand));
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);

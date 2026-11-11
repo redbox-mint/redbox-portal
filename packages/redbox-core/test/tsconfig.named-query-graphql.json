@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["./services/NamedQueryGraphql.test.ts", "./setup.ts"],
+  "exclude": []
+}

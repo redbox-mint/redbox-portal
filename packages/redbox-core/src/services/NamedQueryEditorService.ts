@@ -10,7 +10,8 @@ import {
   type ContextSchemaField,
   type EditorDiagnostic,
   type FieldDescription,
-  type NamedQueryDescription,
+  type NamedQuerySourceDescription,
+  type GraphqlNamedQueryBinding,
   type NamedQueryDraftRequest,
   type NamedQueryFieldDescription,
   type NamedQueryGuidance,
@@ -18,7 +19,9 @@ import {
   type NamedQueryPreviewRequest,
   type NamedQueryValidation,
 } from '@researchdatabox/sails-ng-common';
-import { requireDatabaseNamedQuery } from './named-query/definition';
+import { assertNamedQueryDefinition, requireDatabaseNamedQuery } from './named-query/definition';
+import { inspectGraphqlNamedQuery, bindGraphqlNamedQuery, GraphqlNamedQueryValidationError } from './named-query/graphql-validation';
+import type { ReadCaller } from '../record-graphql/read-record';
 import { Services as CoreServices } from '../CoreService';
 import type { BrandingModel } from '../model';
 import type { FormRecordAccessContext } from './FormsService';
@@ -276,6 +279,10 @@ export namespace Services {
         throw new NamedQueryAssistanceError('FORBIDDEN', 403);
     }
 
+    private graphqlCaller(brand: BrandingModel, portal: string, caller: FormRecordAccessContext): ReadCaller {
+      return { brand, portal, user: caller.user, roles: caller.user?.roles ?? [] };
+    }
+
     public async schemaTargets(brand: BrandingModel, caller: FormRecordAccessContext) {
       this.caller(brand, caller);
       return this.fieldService().schemaTargets(brand, caller);
@@ -334,8 +341,8 @@ export namespace Services {
       caller: FormRecordAccessContext,
       request: NamedQueryDraftRequest
     ): Promise<NamedQueryValidation> {
-      const { valid, diagnostics } = await this.inspectDraft(brand, portal, caller, request);
-      return { valid, diagnostics };
+      const { previewBlocked: _blocked, ...validation } = await this.inspectDraft(brand, portal, caller, request);
+      return validation;
     }
 
     private async inspectDraft(
@@ -357,6 +364,12 @@ export namespace Services {
             diagnostic('INVALID_DEFINITION', 'definition', 'A query definition object is required.', 'error'),
           ],
         };
+      if (definition.source === 'graphql') {
+        const { validation } = await inspectGraphqlNamedQuery(
+          definition, this.graphqlCaller(brand, portal, caller), String(brand.id)
+        );
+        return { ...validation, previewBlocked: !validation.valid };
+      }
       requireDatabaseNamedQuery(definition);
       const collection = definition.collectionName;
       try {
@@ -473,9 +486,30 @@ export namespace Services {
       portal: string,
       caller: FormRecordAccessContext,
       request: NamedQueryDraftRequest
-    ): Promise<NamedQueryDescription> {
+    ): Promise<NamedQuerySourceDescription> {
       const validation = await this.validateDraft(brand, portal, caller, request);
       const definition = object(request.definition) ? request.definition : {};
+      if (definition.source === 'graphql') {
+        let parameters: Array<GraphqlNamedQueryBinding & { variable: string }> = [];
+        let operationName: string | undefined;
+        try {
+          assertNamedQueryDefinition(definition);
+          if (definition.source === 'graphql') {
+            parameters = Object.entries(definition.graphql.variables).flatMap(([variable, binding]) =>
+              binding.ownership === 'consumer' ? [{ ...binding, variable }] : []
+            );
+            operationName = definition.graphql.operationName;
+          }
+        } catch {
+          // Malformed/stale stored records remain describable and editable.
+        }
+        return {
+          ...validation,
+          source: 'graphql',
+          ...(typeof definition.name === 'string' ? { name: definition.name } : {}),
+          operationName, parameters, result: unavailable(),
+        };
+      }
       const collectionName = typeof definition.collectionName === 'string' ? definition.collectionName : '';
       const source = await this.guidance(
         brand,
@@ -528,7 +562,7 @@ export namespace Services {
       caller: FormRecordAccessContext,
       name: string,
       guidance?: NamedQueryDraftRequest['guidance']
-    ): Promise<NamedQueryDescription> {
+    ): Promise<NamedQuerySourceDescription> {
       this.caller(brand, caller);
       const definition = await NamedQueryService.getNamedQueryConfig(brand, name);
       if (!definition) throw new NamedQueryAssistanceError('QUERY_NOT_FOUND', 404);
@@ -543,6 +577,15 @@ export namespace Services {
       budget = new NamedQueryExecutionBudget()
     ): Promise<NamedQueryPreview<NamedQueryResponseRecord>> {
       const validation = await budget.wait(this.inspectDraft(brand, portal, caller, request, budget));
+      if (object(request.definition) && request.definition.source === 'graphql') {
+        const inspected = await budget.wait(inspectGraphqlNamedQuery(
+          request.definition, this.graphqlCaller(brand, portal, caller), String(brand.id)
+        ));
+        if (!inspected.prepared) throw new GraphqlNamedQueryValidationError(inspected.validation.diagnostics);
+        bindGraphqlNamedQuery(inspected.prepared, request.parameters ?? {}, false);
+        // T05 replaces this refusal with authenticated in-process execution.
+        throw new NamedQueryAssistanceError('GRAPHQL_EXECUTION_UNAVAILABLE', 422);
+      }
       const diagnostics = [...validation.diagnostics];
       let previewBlocked = validation.previewBlocked;
       const definition = object(request.definition) ? request.definition : {};

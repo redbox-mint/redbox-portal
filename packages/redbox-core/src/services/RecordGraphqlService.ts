@@ -1,4 +1,4 @@
-import { printSchema, GraphQLError } from 'graphql';
+import { printSchema, GraphQLError, type GraphQLSchema } from 'graphql';
 import { firstValueFrom } from 'rxjs';
 import type { GridPorts, GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
 import { Services as services } from '../CoreService';
@@ -15,6 +15,7 @@ import {
 import { configuredReadContracts, type ReadContractCandidate } from '../record-graphql/read-contract';
 import { createRecordYoga, QUERY_LIMITS } from '../record-graphql/schema';
 import { isObject } from '../record-graphql/renderer';
+import type { BrandingModel } from '../model/storage/BrandingModel';
 import type { ReadCaller, ReadPorts } from '../record-graphql/read-record';
 
 export interface RecordGraphqlDependencies extends ReadPorts, GridPorts {
@@ -56,7 +57,7 @@ export function graphqlFailure(status: number, code: string, message: string): R
 
 export namespace Services {
   export class RecordGraphql extends services.Core.Service {
-    protected _exportedMethods = ['init', 'execute', 'describeReadSchema'];
+    protected _exportedMethods = ['init', 'execute', 'describeReadSchema', 'getReadSchema', 'getBootstrapReadSchema'];
     private readonly cache = new Map<string, CacheEntry>();
     private readonly dependencies: RecordGraphqlDependencies;
 
@@ -102,6 +103,27 @@ export namespace Services {
     /** Private service tooling for integration owners; no HTTP schema-discovery route. */
     public async describeReadSchema(caller: ReadCaller): Promise<string> {
       return printSchema((await this.resolveReadSchema(caller)).schema);
+    }
+
+    /** Static named-query validation reuses the deployed schema and scalar contracts.
+     * This never executes resolvers or reads records. Callers supply trusted scope.
+     */
+    public async getReadSchema(caller: ReadCaller): Promise<GraphQLSchema> {
+      if (
+        !caller?.brand?.id || !caller.brand.name || !caller.portal ||
+        !isObject(caller.user) || typeof caller.user.username !== 'string' || !caller.user.username ||
+        !Array.isArray(caller.roles)
+      ) throw new Error('GraphQL validation requires authenticated context.');
+      return (await this.resolveReadSchema(caller)).schema;
+    }
+
+    /** Trusted configuration import only: build schema without authenticating or
+     * granting any execution permission. No record resolvers are invoked. Schema
+     * validation is useful even while the public GraphQL feature is disabled.
+     */
+    public async getBootstrapReadSchema(brand: BrandingModel, portal: string): Promise<GraphQLSchema> {
+      if (!brand?.id || !brand.name || !portal) throw new Error('Read schema scope is required.');
+      return (await this.resolveReadSchema({ brand, portal, user: {}, roles: [] }, true)).schema;
     }
 
     public async execute(caller: ReadCaller, body: unknown): Promise<RecordGraphqlResponse> {
@@ -159,10 +181,10 @@ export namespace Services {
       }
     }
 
-    private async resolveReadSchema(caller: ReadCaller): Promise<ReadSchema> {
+    private async resolveReadSchema(caller: ReadCaller, schemaOnly = false): Promise<ReadSchema> {
       const config = this.dependencies.getConfig();
       validateRecordGraphqlConfig(config);
-      if (!config.enabled) {
+      if (!config.enabled && !schemaOnly) {
         this.cache.clear();
         throw new Error('Record GraphQL is disabled.');
       }

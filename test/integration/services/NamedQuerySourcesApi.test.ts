@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import supertest from 'supertest';
 import { firstValueFrom } from 'rxjs';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { recordGraphql } from '@researchdatabox/redbox-core';
 
-/** Actual HTTP/policy/Waterline coverage; no live GraphQL schema is needed for T03. */
+/** Actual HTTP/policy/Waterline coverage with the deployed read schema. */
 describe('named query source CRUD API', function () {
   const prefix = `/default/rdmp/api/named-query`;
   const name = `sources_${randomUUID().replace(/-/g, '')}`;
@@ -13,19 +16,40 @@ describe('named query source CRUD API', function () {
     name,
     source: 'graphql',
     graphql: {
-      document: 'query { removedCollection { nodes { oid } } }',
+      document: 'query { records(recordType: "rdmp") { nodes { oid workflowStep } } }',
       variables: {},
-      resultPath: ['removedCollection', 'nodes'],
-      mappings: { oid: ['oid'], title: ['metadata', 'dc:title'] },
+      resultPath: ['records', 'nodes'],
+      mappings: { oid: ['oid'], title: ['workflowStep'] },
     },
   };
+  let originalConfig: typeof sails.config.recordGraphql;
+  let editorSession: supertest.Agent;
+  let csrf: string;
+  let securityBefore: typeof sails.config.security.csrf;
   let adminId: string | undefined;
   let previousToken: string | null | undefined;
   let brand: ReturnType<typeof BrandingService.getBrand>;
   const request = () => supertest(sails.hooks.http.app);
+  const editorAuth = () => ({ ...auth(), 'X-CSRF-Token': csrf });
   const auth = () => ({ Authorization: `Bearer ${token}`, 'X-ReDBox-Api-Version': '2.0' });
   before(async () => {
+    originalConfig = sails.config.recordGraphql;
+    sails.config.recordGraphql = { ...recordGraphql, enabled: true };
     brand = BrandingService.getBrand('default');
+    securityBefore = sails.config.security.csrf;
+    sails.config.security.csrf = true;
+    editorSession = supertest.agent(sails.hooks.http.app);
+    const loginToken = (await editorSession.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
+    await editorSession
+      .post('/user/login_local')
+      .set('X-Source', 'jsclient')
+      .set('X-CSRF-Token', loginToken ?? '')
+      .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
+      .expect(200);
+    csrf = (await editorSession.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
+    // Restore the harness setting: explicit editor routes still require this token,
+    // while sessionless bearer CRUD keeps its established CSRF exemption.
+    sails.config.security.csrf = securityBefore;
     const admin = await User.findOne({ username: 'admin' });
     assert.ok(admin);
     adminId = admin.id;
@@ -33,6 +57,8 @@ describe('named query source CRUD API', function () {
     await firstValueFrom(UsersService.setUserKey(adminId, token));
   });
   after(async () => {
+    sails.config.recordGraphql = originalConfig;
+    sails.config.security.csrf = securityBefore;
     if (brand) await NamedQuery.destroy({ key: `${brand.id}_${name}` });
     if (adminId) await User.update({ id: adminId }, { token: previousToken });
   });
@@ -67,5 +93,77 @@ describe('named query source CRUD API', function () {
       await request().post(prefix).set(auth()).send(invalid).expect(400);
     }
     assert.equal(await NamedQuery.findOne({ key: `${brand.id}_${name}` }), undefined);
+  });
+  it('blocks invalid definitions at CRUD and preview, keeps schema-drifted definitions readable and deletable', async () => {
+    const invalid = { ...graphql, graphql: { ...graphql.graphql, document: '{ removedPrivateField }' } };
+    const rejected = await request().post(prefix).set(auth()).send(invalid).expect(400);
+    assert.ok(rejected.body.meta.diagnostics.some((d: { code: string }) => d.code === 'GRAPHQL_SCHEMA'));
+    assert.equal(await NamedQuery.findOne({ key: `${brand.id}_${name}` }), undefined);
+    const validation = (
+      await editorSession.post(`${prefix}/editor/validate`).set(editorAuth()).send({ definition: invalid }).expect(200)
+    ).body.data;
+    assert.equal(validation.valid, false);
+    assert.equal(validation.source, 'graphql');
+    await request().post(prefix).set(auth()).send(graphql).expect(201);
+    await request().put(`${prefix}/${name}`).set(auth()).send(invalid).expect(400);
+    // Simulate schema drift without using the guarded authoring API.
+    await NamedQuery.updateOne({ key: `${brand.id}_${name}` }).set({ graphql: JSON.stringify(invalid.graphql) });
+    await request().get(`${prefix}/${name}`).set(auth()).expect(200);
+    await request().get(prefix).set(auth()).expect(200);
+    const description = (await request().get(`${prefix}/${name}/description`).set(auth()).expect(200)).body.data;
+    assert.equal(description.valid, false);
+    assert.ok(description.diagnostics.some((d: { code: string }) => d.code === 'GRAPHQL_SCHEMA'));
+    const preview = await editorSession
+      .post(`${prefix}/editor/preview`)
+      .set(editorAuth())
+      .send({ definition: invalid })
+      .expect(422);
+    assert.ok(
+      preview.body.meta.diagnostics.some(
+        (d: { code: string; line: number }) => d.code === 'GRAPHQL_SCHEMA' && d.line > 0
+      )
+    );
+    await request().delete(`${prefix}/${name}`).set(auth()).expect(200);
+  });
+  it('describes a valid non-lookup definition without executing it, and blocks GraphQL execution until T05', async () => {
+    const response = await editorSession
+      .post(`${prefix}/editor/describe`)
+      .set(editorAuth())
+      .send({ definition: graphql })
+      .expect(200);
+    assert.equal(response.body.data.valid, true);
+    assert.equal(response.body.data.capabilities.lookup, false);
+    await editorSession.post(`${prefix}/editor/preview`).set(editorAuth()).send({ definition: graphql }).expect(422);
+    await request().post(prefix).set(auth()).send(graphql).expect(201);
+    await request().get('/default/rdmp/api/report/namedQuery').set(auth()).query({ queryName: name }).expect(500);
+    await request().delete(`${prefix}/${name}`).set(auth()).expect(200);
+  });
+  it('imports trusted startup files without caller or enabled endpoint, skips invalid neighbours and grants no execution', async () => {
+    const root = await fs.mkdtemp(path.resolve('.tmp/t04-http-bootstrap-'));
+    const bootstrapBefore = sails.config.bootstrap.bootstrapDataPath;
+    const configBefore = sails.config.recordGraphql;
+    try {
+      await fs.mkdir(path.join(root, 'namedqueries'));
+      await fs.writeFile(path.join(root, 'namedqueries', `${name}.json`), JSON.stringify(graphql));
+      await fs.writeFile(
+        path.join(root, 'namedqueries', `${name}_invalid.json`),
+        JSON.stringify({ ...graphql, graphql: { ...graphql.graphql, document: '{ removedPrivateField }' } })
+      );
+      sails.config.bootstrap.bootstrapDataPath = root;
+      sails.config.recordGraphql = { ...recordGraphql, enabled: false };
+      await NamedQueryService.bootstrapData(brand);
+      const imported = await NamedQueryService.getNamedQueryConfig(brand, name);
+      assert.equal(imported?.source, 'graphql');
+      assert.equal(await NamedQueryService.getNamedQueryConfig(brand, `${name}_invalid`), null);
+      await assert.rejects(NamedQueryService.performNamedQueryFromConfig(imported, {}, brand, 0, 25));
+      await fs.access(path.join(root, 'namedqueries', `${name}_invalid.json`));
+      await NamedQueryService.bootstrapData(brand);
+      assert.equal((await NamedQueryService.getNamedQueryConfig(brand, name))?.source, 'graphql');
+    } finally {
+      sails.config.bootstrap.bootstrapDataPath = bootstrapBefore;
+      sails.config.recordGraphql = configBefore;
+      await NamedQuery.destroy({ key: `${brand.id}_${name}` });
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 });

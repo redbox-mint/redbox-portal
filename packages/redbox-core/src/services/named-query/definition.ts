@@ -45,7 +45,7 @@ export function assertNamedQuerySourceFields(value: unknown): NamedQuerySource {
 }
 
 const variableName = z.string().regex(/^[_A-Za-z][_0-9A-Za-z]*$/);
-// Safe property resolution and schema/type compatibility belong to T04.
+// Schema-aware validation and safe path resolution live in graphql-validation.ts.
 const path = z.array(z.string().min(1));
 // The API generator cannot serialize recursive z.json() component graphs. Keep
 // OpenAPI's JSON value unconstrained while validating its actual contents here.
@@ -123,7 +123,7 @@ export function assertNamedQueryDefinition(value: unknown): asserts value is Nam
   // Preserve the established database validation/coercion rules and bootstrap array shapes.
 }
 
-/** Temporary until T04/T05 add schema-aware validation and authenticated execution. */
+/** Database-only adapters remain closed to GraphQL; T05 owns authenticated dispatch. */
 export function requireDatabaseNamedQuery(value: unknown): void {
   if (assertNamedQuerySourceFields(value) === 'graphql') {
     throw new Error(

@@ -1,3 +1,4 @@
+import { createRecordYoga } from '../../src/record-graphql/schema';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -14,15 +15,15 @@ const graphql: GraphqlNamedQueryDefinition = {
   description: 'Detached lookup',
   graphql: {
     document:
-      'query Lookup($search: String, $first: Int, $after: String) { matches: records(first: $first, after: $after) { nodes { oid } hasNextPage } }',
+      'query Lookup($search: String = "rdmp", $fixed: [RecordFilterInput!], $omitted: [RecordSortInput!], $first: Int, $after: String) { matches: records(recordType: $search, filters: $fixed, sort: $omitted, first: $first, after: $after) { nodes { oid workflowStep } hasNextPage } }',
     operationName: 'Lookup',
     variables: {
       search: { ownership: 'consumer', parameter: 'search', inputType: 'String', required: false, defaultValue: '' },
-      fixed: { ownership: 'fixed', value: { nested: [null, false, 0, ''] } },
+      fixed: { ownership: 'fixed', value: [{ field: 'title', eq: { text: '' }, exists: false }] },
       omitted: { ownership: 'omitted' },
     },
     resultPath: ['matches', 'nodes'],
-    mappings: { oid: ['oid'], title: ['metadata', 'dc:title'], metadata: [] },
+    mappings: { oid: ['oid'], title: ['workflowStep'], metadata: [] },
     lookup: {
       mode: 'firstPage',
       collectionPath: ['matches'],
@@ -34,8 +35,11 @@ const graphql: GraphqlNamedQueryDefinition = {
     provenance: { explorerId: 'detached-grid', explorerRevision: 2 },
   },
 };
+const schema = createRecordYoga([], { getRecord: async () => null, hasViewAccess: () => false }).schema;
 const database = { collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
 const brand = { id: 'brand-1', name: 'brand-1', css: '', roles: [] };
+
+const caller = { brand, portal: 'rdmp', user: { username: 'author' }, roles: [] };
 
 describe('named query source persistence boundaries', () => {
   let service: Services.NamedQueryService;
@@ -70,11 +74,16 @@ describe('named query source persistence boundaries', () => {
       })),
     };
     Reflect.set(globalThis, 'NamedQuery', model);
+    Reflect.set(globalThis, 'RecordGraphqlService', {
+      getReadSchema: async () => schema,
+      getBootstrapReadSchema: async () => schema,
+    });
     service = new Services.NamedQueryService();
   });
   afterEach(() => {
     cleanupServiceTestGlobals();
     Reflect.deleteProperty(globalThis, 'NamedQuery');
+    Reflect.deleteProperty(globalThis, 'RecordGraphqlService');
     sinon.restore();
   });
 
@@ -117,7 +126,7 @@ describe('named query source persistence boundaries', () => {
 
   it('creates, lists, reloads and updates GraphQL without resolving a database collection', async () => {
     const scope = sinon.spy(service, 'resolveBrandScope');
-    await service.create(brand, 'graphql', graphql);
+    await service.create(brand, 'graphql', graphql, caller);
     assert.equal(scope.called, false);
     assert.equal(store.get('brand-1_graphql')?.branding, brand.id);
     const [listed] = await service.list(brand);
@@ -126,8 +135,9 @@ describe('named query source persistence boundaries', () => {
     const reloaded = await new Services.NamedQueryService().getNamedQueryConfig(brand, 'graphql');
     assert.ok(reloaded && reloaded.source === 'graphql');
     assert.deepEqual(reloaded.graphql, graphql.graphql);
-    reloaded.graphql.document = 'query Changed { record(oid: "gone") { oid } }';
-    await service.update(brand, 'graphql', reloaded);
+    reloaded.graphql.document = reloaded.graphql.document.replace('query Lookup', 'query Changed');
+    reloaded.graphql.operationName = 'Changed';
+    await service.update(brand, 'graphql', reloaded, caller);
     assert.equal(scope.called, false);
     assert.equal((await service.getNamedQueryConfig(brand, 'graphql'))?.source, 'graphql');
     assert.equal(JSON.parse(store.get('brand-1_graphql')!.graphql!).document, reloaded.graphql.document);
@@ -136,7 +146,7 @@ describe('named query source persistence boundaries', () => {
 
   it('clears inactive execution fields when either source is replaced', async () => {
     await service.create(brand, 'switch', database);
-    await service.update(brand, 'switch', graphql);
+    await service.update(brand, 'switch', graphql, caller);
     assert.equal(store.get('brand-1_switch')?.mongoQuery, null);
     const gql = await service.getNamedQueryConfig(brand, 'switch');
     assert.ok(gql && !Object.hasOwn(gql, 'mongoQuery'));
@@ -177,6 +187,7 @@ describe('named query source persistence boundaries', () => {
       graphql,
       unknown: { source: 'remote' },
       malformed: { source: 'graphql', graphql: {} },
+      schemaInvalid: { ...graphql, graphql: { ...graphql.graphql, document: '{ removedField }' } },
       contradictory: { ...graphql, mongoQuery: {} },
     };
     try {
@@ -185,9 +196,14 @@ describe('named query source persistence boundaries', () => {
       mockSails.config.bootstrap = { ...mockSails.config.bootstrap, bootstrapDataPath: root };
       await service.bootstrapData(brand);
       assert.deepEqual([...store.keys()].sort(), ['brand-1_database', 'brand-1_graphql']);
-      assert.equal(mockSails.log.error.callCount, 3);
-      for (const name of ['unknown', 'malformed', 'contradictory'])
+      assert.equal(mockSails.log.error.callCount, 4);
+      for (const name of ['unknown', 'malformed', 'contradictory', 'schemaInvalid'])
         assert.ok(mockSails.log.error.calledWithMatch(`Failed to bootstrap named query from file: ${name}.json`));
+      const schemaFailure = mockSails.log.error
+        .getCalls()
+        .find((call: sinon.SinonSpyCall) => String(call.args[0]).includes('schemaInvalid.json'));
+      assert.match(String(schemaFailure?.args[1]), /GRAPHQL_SCHEMA at graphql.document/);
+      assert.ok(!String(schemaFailure?.args[1]).includes('removedField'));
       const restarted = new Services.NamedQueryService();
       assert.deepEqual((await restarted.getNamedQueryConfig(brand, 'graphql'))?.source, 'graphql');
       const original = store.get('brand-1_graphql');

@@ -144,9 +144,8 @@ describe('NamedQueryEditorService', () => {
     });
   });
 
-  it('refuses GraphQL, unknown sources and mixed definitions before database inspection or preview', async () => {
+  it('refuses unknown sources and mixed definitions before database inspection or preview', async () => {
     for (const definition of [
-      { source: 'graphql', graphql: { document: 'query { records }', variables: {}, resultPath: [] } },
       draft({ source: 'unknown' }),
       draft({ graphql: { document: 'query { records }' } }),
     ]) {
@@ -346,6 +345,7 @@ describe('NamedQueryEditorService', () => {
     assert.equal(type('metadata.rendered'), 'string');
     assert.equal(type('metadata.custom'), 'unknown');
     assert.equal(result.result.fields.find(field => field.path === 'metadata.issued')?.format, 'date');
+    assert.ok(result.source !== 'graphql');
     assert.equal(result.parameters[0].key, 'createdAfter');
     assert.equal(result.parameters[0].path, 'dateCreated');
     assert.equal(result.parameters[0].required, true);

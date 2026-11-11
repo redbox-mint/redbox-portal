@@ -344,6 +344,7 @@ export namespace Services {
     ): Promise<ReportNamedQueryDescription> {
       checkDraftBudget({ name, property, multivalue, guidance });
       const description = await NamedQueryEditorService.describeSaved(brand, portal, caller, name, guidance);
+      if (description.source === 'graphql') throw new Error('GraphQL named queries do not support reports.');
       return {
         ...description,
         templateContexts: {
@@ -386,6 +387,7 @@ export namespace Services {
         };
       if (saved.source === 'graphql') return { valid: false, diagnostics: [reportDiagnostic('UNSUPPORTED_QUERY_SOURCE', 'databaseQuery.queryName', 'GraphQL named queries do not support reports or CSV exports.', 'error')] };
       const description = await NamedQueryEditorService.describeSaved(brand, portal, caller, queryName);
+      if (description.source === 'graphql') throw new Error('GraphQL named queries do not support reports.');
       diagnostics.push(
         ...reportBindingAdvice(normalized, description, Object.keys(saved.resultObjectMapping ?? {}).length > 0)
       );
