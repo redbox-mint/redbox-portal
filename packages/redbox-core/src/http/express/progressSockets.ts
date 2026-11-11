@@ -1,5 +1,6 @@
 import { Server as SocketServer, type Socket } from 'socket.io';
-import type { Server } from 'node:http';
+import type { Server, IncomingMessage, RequestListener } from 'node:http';
+import type { Socket as NetworkSocket } from 'node:net';
 import { randomBytes } from 'node:crypto';
 import type { AuthenticatedActor } from './identity';
 import type { RecordsService } from '../../RecordsService';
@@ -7,6 +8,7 @@ import type { Services as Progress } from '../../progress/Asynchs';
 import { authorizeProgressRoom } from '../../progress/authorization';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { hasActivePersistenceWork, runAcceptedPersistenceWork } from '../../persistence/runtime';
+import { HttpFailure, writeHttpError } from '../fastify/errorBoundary';
 export interface ProgressCredential {
   sessionId?: string;
   authorization?: string;
@@ -26,6 +28,15 @@ interface Subscription {
   pending: number;
 }
 const attachments = new WeakSet<Server>();
+// Retired forwarding nodes can remain reachable inside a later integration's
+// opaque wrapper. Keep them inert; never register a predecessor a second time.
+const retiredRequests = new WeakMap<RequestListener, readonly RequestListener[]>();
+function liveRequests(listeners: readonly RequestListener[]): RequestListener[] {
+  return listeners.flatMap(listener => {
+    const previous = retiredRequests.get(listener);
+    return previous ? liveRequests(previous) : [listener];
+  });
+}
 /** The portal owns this namespace; Companion attaches its own distinct socket path. */
 export class ProgressSockets {
   private readonly grants = new Map<string, Grant>();
@@ -33,6 +44,8 @@ export class ProgressSockets {
   private readonly pending = new Set<Promise<unknown>>();
   private closing = false;
   private closed = false;
+  private borrowedServer = false;
+  private readonly upgraded = new Set<Promise<void>>();
   private io?: SocketServer;
   private detachUpgrade?: () => void;
   constructor(
@@ -45,24 +58,82 @@ export class ProgressSockets {
       authenticate(credential: ProgressCredential): Promise<AuthenticatedActor | false>;
     }
   ) {}
-  attach(server: Server): void {
+  attach(server: Server, options: { borrowedServer?: boolean; isReady?: () => boolean } = {}): void {
     if (this.io || attachments.has(server)) throw new Error('Portal sockets already attached');
     attachments.add(server);
     const upgrades = new Set(server.listeners('upgrade'));
+    const before = new Map(['request', 'upgrade', 'close', 'listening'].map(event => [event, server.listeners(event)]));
     const io = (this.io = new SocketServer(server, {
       path: this.input.path,
       serveClient: true,
       maxHttpBufferSize: 16384,
       allowRequest: (req, callback) => {
         const origin = req.headers.origin;
-        callback(null, !this.closing && typeof origin === 'string' && this.input.origins.includes(origin));
+        callback(
+          null,
+          !this.closing &&
+            typeof origin === 'string' &&
+            this.input.origins.includes(origin) &&
+            (options.isReady?.() ?? true)
+        );
       },
     }));
+    // allowRequest runs only for the initial handshake. Existing polling sids
+    // and polling-to-WebSocket upgrades must pass the same origin check before
+    // Engine.IO can dispatch bytes to an authenticated namespace.
+    io.engine.use((request: IncomingMessage, _response: unknown, next: () => void) => {
+      const origin = request.headers.origin;
+      if (typeof origin !== 'string' || !this.input.origins.includes(origin)) {
+        writeHttpError(new HttpFailure(403), { socket: request.socket });
+        return;
+      }
+      next();
+    });
     // Engine.IO closes transports but leaves its HTTP upgrade listener installed.
     // Retain only this attachment's listeners so Companion/other owners survive.
     const attached = server.listeners('upgrade').filter(listener => !upgrades.has(listener));
     this.detachUpgrade = () =>
       attached.forEach(listener => server.off('upgrade', listener as (...args: unknown[]) => void));
+    if (options.borrowedServer) {
+      this.borrowedServer = true;
+      const previous = before.get('request') as RequestListener[];
+      let requestHandlers: readonly RequestListener[] | undefined = server.listeners('request') as RequestListener[];
+      for (const listener of requestHandlers) server.off('request', listener);
+      const dispatch: RequestListener = (request, response) => {
+        const handlers =
+          requestHandlers && (request.url ?? '').startsWith(this.input.path.replace(/\/$/, '') + '/')
+            ? requestHandlers
+            : liveRequests(previous);
+        for (const handler of handlers) handler.call(server, request, response);
+      };
+      server.on('request', dispatch);
+      // Engine.IO's client registry clears before the WebSocket's underlying TCP
+      // transport actually closes. Retain accepted upgrades through that close,
+      // including failed handshakes and disconnects during namespace auth.
+      server.prependListener('upgrade', (request: IncomingMessage, socket: NetworkSocket) => {
+        if (!(request.url ?? '').startsWith(this.input.path.replace(/\/$/, '') + '/')) return;
+        const closed = new Promise<void>(resolve => socket.once('close', () => resolve()));
+        this.upgraded.add(closed);
+        void closed.then(() => this.upgraded.delete(closed));
+      });
+      const added = new Map(
+        [...before].map(([event, prior]) => [event, server.listeners(event).filter(fn => !prior.includes(fn))])
+      );
+      this.detachUpgrade = () => {
+        requestHandlers = undefined;
+        retiredRequests.set(dispatch, previous);
+        const directlyInstalled = server.listeners('request').includes(dispatch);
+        for (const [event, listeners] of added) {
+          if (event === 'request') continue;
+          for (const listener of listeners) server.off(event, listener as (...args: unknown[]) => void);
+        }
+        if (directlyInstalled) {
+          server.off('request', dispatch);
+          for (const listener of liveRequests(previous).reverse()) server.prependListener('request', listener);
+        }
+        attachments.delete(server);
+      };
+    }
     const authenticated = new WeakMap<Socket, Grant>();
     io.use((socket, next) => {
       const token = socket.handshake.auth.token;
@@ -219,7 +290,14 @@ export class ProgressSockets {
     await this.drain();
     this.closed = true;
     if (this.io) {
-      await new Promise<void>(resolve => this.io!.close(() => resolve()));
+      if (this.borrowedServer) {
+        // Only the root namespace exists in this owner. Use public disposal
+        // operations; Socket.IO.close() also closes the borrowed HTTP server.
+        this.io.disconnectSockets(true);
+        await this.io.of('/').adapter.close();
+        this.io.engine.close();
+        while (this.upgraded.size) await Promise.all(this.upgraded);
+      } else await new Promise<void>(resolve => this.io!.close(() => resolve()));
       this.detachUpgrade?.();
       this.detachUpgrade = undefined;
       this.io = undefined;

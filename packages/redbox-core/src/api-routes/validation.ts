@@ -180,7 +180,7 @@ export type ValidatedApiRouteRequest = Omit<ValidatedApiRequest, 'valid'>;
 
 export function validateApiRouteRequest(
   req: ApiRequestInput,
-  route: ApiRouteDefinition,
+  route: Pick<ApiRouteDefinition, 'request'>,
   options: ApiRouteValidationOptions = {}
 ): ApiRouteRequestResult {
   const validation = validateApiRequest(req, route.request, options);
@@ -199,7 +199,7 @@ export function validateApiRouteRequest(
 }
 
 export function validateApiRouteFiles(
-  route: ApiRouteDefinition,
+  route: Pick<ApiRouteDefinition, 'request'>,
   files: Record<string, unknown[]>,
   options: { maxBytesOverrides?: Record<string, number> } = {}
 ): ApiValidationResult {

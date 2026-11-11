@@ -145,6 +145,7 @@ export async function productionPilotFixture(
       },
       http: {
         declarations: [getMetaRoute, updateMetaRoute],
+        progress: false,
         policyConfiguration: options.policyConfiguration,
         portals: options.portals,
         bindings: context => [

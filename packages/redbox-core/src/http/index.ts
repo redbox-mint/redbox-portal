@@ -26,3 +26,10 @@ export {
   recordController,
   type RecordControllerInput,
 } from './controllers/webservice/RecordController';
+export {
+  DatastreamController,
+  datastreamController,
+  type DatastreamControllerInput,
+} from './controllers/webservice/DatastreamController';
+export { ProgressController, progressController } from './controllers/ProgressController';
+export type { ProgressGrantInput } from './actions/progressGrant';

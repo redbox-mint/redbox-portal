@@ -483,7 +483,12 @@ export interface RouteComposition {
   readonly bindings: readonly RouteBinding[];
   readonly overlaps: readonly RouteOverlap[];
   /** Guards own policy/CSRF/validation ordering; called even for implicit/denied HEAD. */
-  install(app: RouteInstaller, controllers: Pick<ControllerInstances, 'action'>, guards: RouteGuards): void;
+  install(
+    app: RouteInstaller,
+    controllers: Pick<ControllerInstances, 'action'>,
+    guards: RouteGuards,
+    select?: (binding: RouteBinding) => boolean
+  ): void;
 }
 export type RouteGuards = (binding: RouteBinding, request: FastifyRequest, reply: FastifyReply) => Promise<unknown>;
 
@@ -903,7 +908,7 @@ export async function composeRoutes(
     routes,
     bindings,
     overlaps,
-    install(app, controllers, guards) {
+    install(app, controllers, guards, select = () => true) {
       assertPortalRouter(app);
       configureMethods(app);
       // Express decodes a matching layer's captures before checking its method.
@@ -914,7 +919,7 @@ export async function composeRoutes(
       });
       // HEAD first also protects installation on an instance whose global
       // exposeHeadRoutes was left enabled. Every GET disables it individually.
-      const ordered = [...bindings].sort((a, b) => Number(b.method === 'HEAD') - Number(a.method === 'HEAD'));
+      const ordered = bindings.filter(select).sort((a, b) => Number(b.method === 'HEAD') - Number(a.method === 'HEAD'));
       const handlers = new Map(
         bindings
           .filter(b => b.kind !== 'automatic-options' && b.kind !== 'denied-head')

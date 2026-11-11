@@ -123,6 +123,7 @@ export function productionCompositionInputCases() {
         const prepared = productionHost.firstCall.args[1];
         inputs<PortalFastifySelection>(selected.http, {
           declarations: same(selected.http.declarations),
+          progress: same(false),
           policyConfiguration: same(resolved.policyConfiguration),
           portals: equal(resolved.portals),
           bindings: callable,
@@ -140,6 +141,17 @@ export function productionCompositionInputCases() {
         );
         assert.strictEqual(resolve.firstCall.args[0][1], (await load.firstCall.returnValue).providers[0]);
         inputs<ResolvedPortalInstallation>(resolved, {
+          raw: same(undefined),
+          rawDeclaration: same(undefined),
+          httpOwners: equal({
+            uploads: [],
+            progress: [],
+            metadataUpdates: resolved.routePlan.routes.filter(
+              route =>
+                route.declaration.controller === 'webservice/RecordController' &&
+                route.declaration.action === 'updateMeta'
+            ),
+          }),
           providers: same(resolution.providers),
           modules: same(resolution.modules),
           moduleNames: same(resolution.moduleNames),
@@ -183,10 +195,15 @@ export function productionCompositionInputCases() {
           namespaceConfiguration: same(resolved.namespaceConfiguration),
         });
         inputs<NonNullable<Parameters<typeof apiRouteRegistrations>[0]>>(api.firstCall.args[0], {
-          declarations: same(selected.http.declarations),
+          declarations: equal(selected.http.declarations),
           configuration: same(selected.http.policyConfiguration),
           provider: same('@researchdatabox/redbox-core'),
         });
+        // Appending a selected integration route may create a new array; every
+        // canonical API declaration itself still has exactly the selected identity.
+        selected.http.declarations.forEach((declaration: object, index: number) =>
+          assert.strictEqual(api.firstCall.args[0].declarations[index], declaration)
+        );
         // Every installed API must use the same selected configuration as core.
         for (const call of api.getCalls().slice(1)) {
           inputs<NonNullable<Parameters<typeof apiRouteRegistrations>[0]>>(call.args[0], {
@@ -277,6 +294,9 @@ export function productionCompositionInputCases() {
           owner: same(f.owner),
           routeRegistry: same(resolved.registry),
           logger: same(transport.firstCall.args[1].logger),
+          rawUploadRoutes: same(resolved.httpOwners.uploads),
+          rawUploadInput: same(undefined),
+          prepareIntegrations: callable,
           composition: same(resolved),
           controllers: same(resolved.controllerRegistrations),
           bindings: same(resolved.bindings),

@@ -6,6 +6,11 @@ import { recordController } from '../../http/controllers/webservice/RecordContro
 import { apiRouteRegistrations } from '../../http/fastify/routes';
 import { coreRoutePrecedence } from '../../http/fastify/precedence';
 import { nativePolicyNames } from '../../http/fastify/policies';
+import { PortalRawHttp } from './rawHttp';
+import { datastreamController } from '../../http/controllers/webservice/DatastreamController';
+import { progressController } from '../../http/controllers/ProgressController';
+import { progressSocketGrantRoute } from '../../http/express/progressOperations';
+import { addDataStreamsRoute } from '../../api-routes/groups/records';
 import { updateMetaRoute } from '../../api-routes/groups/records';
 import type { ExtensionFactory } from '../../extensions';
 import type { PortalApplicationContext } from './application';
@@ -21,6 +26,8 @@ import type {
 
 export interface PortalFastifySelection {
   readonly declarations: readonly ApiRouteDefinition[];
+  /** Select the owned Socket.IO progress channel and its grant endpoint. */
+  readonly progress?: boolean;
   readonly policyConfiguration?: PoliciesConfig;
   readonly portals?: readonly string[];
   /** Bind concrete inputs offline; getters borrow initialized domain instances later. */
@@ -37,20 +44,78 @@ export async function resolvePortalInstallation(
     throw new TypeError('Native portal assembly requires an explicit nonempty conversion scope.');
   const plan = portalHttpPlan(context, input);
   const settings = portalHttpSettings(context.config, input);
+  const upload = input.declarations.some(
+    route => route.controller === addDataStreamsRoute.controller && route.action === addDataStreamsRoute.action
+  );
+  // Bind the module offline, but select its resources only after route replacement.
+  let raw: PortalRawHttp | undefined;
+  const rawDeclaration =
+    upload || input.progress
+      ? {
+          name: 'portal-raw-http',
+          requires: [
+            context.data.records.declaration.name,
+            context.data.disks.declaration.name,
+            context.data.datastream.declaration.name,
+            context.data.progress.declaration.name,
+          ],
+          create: () => raw!,
+        }
+      : undefined;
+  const recordFactory = upload ? datastreamController : recordController;
   const coreRoutes = apiRouteRegistrations({
-    declarations: input.declarations,
+    declarations: [...input.declarations, ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : [])],
     configuration: plan.policyConfiguration,
     provider: '@researchdatabox/redbox-core',
   } satisfies ProductionApiRouteOptions).map(route => ({
     ...route,
     effectiveCsrf:
-      route.declaration.api?.controller === updateMetaRoute.controller &&
-      route.declaration.api?.action === updateMetaRoute.action
+      (route.declaration.api?.controller === updateMetaRoute.controller &&
+        [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
+      (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
         ? 'apiProtect'
         : 'none',
   }));
   const bindings = Object.freeze([
-    bindControllerFactory(recordController, plan.metadata),
+    ...(upload
+      ? [
+          bindControllerFactory(datastreamController, {
+            log: context.log,
+            rootContext: context.config.server.rootContext,
+            get records() {
+              return context.data.records.get();
+            },
+            get storage() {
+              return context.data.storage();
+            },
+            get recordTypes() {
+              return context.data.reference.types.get();
+            },
+            get workflows() {
+              return context.data.reference.workflows.get();
+            },
+            get schemas() {
+              return context.data.reference.schema.get();
+            },
+            get datastream() {
+              return context.data.datastream.get();
+            },
+            get multipart() {
+              return raw!.multipart;
+            },
+          }),
+        ]
+      : [bindControllerFactory(recordController, plan.metadata)]),
+    ...(input.progress
+      ? [
+          bindControllerFactory(progressController, {
+            get sockets() {
+              return raw!.sockets;
+            },
+            log: context.log,
+          }),
+        ]
+      : []),
     ...(input.bindings?.(context) ?? []),
   ]);
   const selected = new Set(coreRoutes.map(route => route.declaration.name));
@@ -77,8 +142,8 @@ export async function resolvePortalInstallation(
         root: appPath,
         declaration: {
           apiVersion: 2,
-          modules: context.plans.map(plan => plan.declaration),
-          controllers: [recordController],
+          modules: [...context.plans.map(plan => plan.declaration), ...(rawDeclaration ? [rawDeclaration] : [])],
+          controllers: [recordFactory, ...(input.progress ? [progressController] : [])],
         },
       },
       ...installed.providers,
@@ -93,6 +158,24 @@ export async function resolvePortalInstallation(
       namespaceConfiguration,
     } satisfies ProductionExtensionResolutionOptions
   );
+  // API metadata can be deliberately removed by a complete route replacement.
+  // Transport/prelude ownership follows the final executable action target,
+  // including inherited actions on a selected controller subclass.
+  const routesFor = (target: { readonly controller: string; readonly action: string }) =>
+    Object.freeze(
+      resolved.routePlan.routes.filter(
+        route =>
+          !route.effectivePolicies.includes(false) &&
+          route.declaration.controller === target.controller &&
+          route.declaration.action === target.action
+      )
+    );
+  const httpOwners = Object.freeze({
+    uploads: routesFor(addDataStreamsRoute),
+    progress: routesFor(progressSocketGrantRoute),
+    metadataUpdates: routesFor(updateMetaRoute),
+  });
+  if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
   // Seal declaration/plan data in place to retain exact factory identities.
   // Class instances (Zod schemas and the request registry) own their runtime state;
   // bindings close over borrowed inputs, which are never traversed or frozen.
@@ -116,6 +199,9 @@ export async function resolvePortalInstallation(
   seal(namespaceConfiguration);
   return Object.freeze({
     ...resolved,
+    raw,
+    rawDeclaration,
+    httpOwners,
     bindings,
     routing,
     policyConfiguration: plan.policyConfiguration,

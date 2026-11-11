@@ -1,4 +1,4 @@
-import type { Server } from 'node:http';
+import type { Server, IncomingMessage } from 'node:http';
 import { lookup } from 'node:dns';
 import type { AddressInfo } from 'node:net';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
@@ -11,7 +11,7 @@ import { createPortalRouter, requestPathname } from './router';
 import { requestOwnership } from './requestOwnership';
 import { sealPreparation, type FastifyPreparation } from './preparation';
 import { HttpRouteRegistry } from './registry';
-import { normalizeHttpError } from './errorBoundary';
+import { normalizeHttpError, HttpFailure, writeHttpError } from './errorBoundary';
 import { drainHttpLogger, httpLogStats, ownerHttpLogger, type HttpLogTarget } from './logging';
 
 export interface FastifyHostOptions {
@@ -94,11 +94,42 @@ export class FastifyHost {
       options.logger ?? ownerHttpLogger(this.owner),
       this.owner
     );
+    // Integrations may replace Node request listeners (including static scripts).
+    // Admission belongs to the owned server, before that entire dispatcher chain.
+    const server = this.fastify.server;
+    const originalRequest = server.listeners('request')[0];
+    const emit = server.emit;
+    const admissionFailures = new WeakMap<IncomingMessage, Error>();
+    server.emit = (event: string | symbol, ...args: unknown[]) => {
+      if (event === 'request' || event === 'upgrade') {
+        let ready = false;
+        try {
+          ready = this.status().ready;
+        } catch (error) {
+          if (event === 'upgrade') {
+            writeHttpError(normalizeHttpError(error), { socket: args[1] as import('node:net').Socket });
+            return true;
+          }
+          // Preserve the ordinary root error writer even if readiness throws
+          // only once. Third-party dispatch must still remain behind admission.
+          admissionFailures.set(args[0] as IncomingMessage, normalizeHttpError(error));
+        }
+        if (!ready) {
+          if (event === 'request') Reflect.apply(originalRequest, server, args);
+          else writeHttpError(new HttpFailure(503), { socket: args[1] as import('node:net').Socket });
+          return true;
+        }
+      }
+      return Reflect.apply(emit, server, [event, ...args]);
+    };
     // Root hooks precede every prepared plugin, parser, action and fallback. Do not
     // register health routes: native case/slash matching and implicit HEAD differ
     // from the existing exact global GET probe contract.
     this.fastify.addHook('onRequest', async (request, reply) => {
       try {
+        const admissionFailure = admissionFailures.get(request.raw);
+        admissionFailures.delete(request.raw);
+        if (admissionFailure) throw admissionFailure;
         const ready = this.status().ready;
         const path = requestPathname(request.raw.url ?? '/');
         if (request.method === 'GET' && path === this.routeRegistry.probe('healthz')) {

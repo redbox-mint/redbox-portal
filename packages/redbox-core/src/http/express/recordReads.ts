@@ -145,13 +145,17 @@ export function mountRecordReadRoutes(router: Router, input: RecordReadHttpInput
       httpAction(async (req, res) => {
         try {
           if (route.controller === 'webservice/RecordController' && route.action === 'getMeta') {
-            const result = await readRecordMetadata(input, {
-              params: req.params,
-              query: req.query,
-              headers: req.headers,
-              body: req.body,
-              context: requestContext(req),
-            });
+            const result = await readRecordMetadata(
+              input,
+              {
+                params: req.params,
+                query: req.query,
+                headers: req.headers,
+                body: req.body,
+                context: requestContext(req),
+              },
+              route as ApiRouteDefinition
+            );
             res.set(result.headers).status(result.status).json(result.body);
             return;
           }

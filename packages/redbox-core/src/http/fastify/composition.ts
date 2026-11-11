@@ -1,10 +1,15 @@
+import {
+  prepareDatastreamUploads,
+  createDatastreamUploadBoundary,
+  type DatastreamUploadBoundaryInput,
+} from './datastreamUploads';
 import type { Application } from '../../application';
 import type { ResolvedRegistration } from '../../extensions/resolution';
 import type { HttpHookContribution, HttpFallbackContribution, ControllerRegistration } from '../contracts';
 import type { BoundControllerFactory } from '../controllers';
 import { FastifyHost, type FastifyHostOptions } from './FastifyHost';
 import { composeControllers } from './registration';
-import { composeRoutes, type RouteGuards, type RouteRegistration } from './routes';
+import { composeRoutes, type ResolvedHttpRoute, type RouteGuards, type RouteRegistration } from './routes';
 import { bindNativeRouteSecurity, type NativePolicy } from './policies';
 import type { createNativeCsrf } from './csrf';
 import { installSafeHttpErrors, type SafeHttpObservers } from './responses';
@@ -19,6 +24,10 @@ import { HttpRouteRegistry, type CoreNamespaceConfiguration } from './registry';
 /** Internal prototype inputs, not an extension loader or production host selector. */
 export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare'> {
   /** An already validated installation; no second selection/composition occurs. */
+  readonly rawUploadRoutes?: readonly ResolvedHttpRoute[];
+  /** Canonical production ports; controller replacement cannot replace the host guard. */
+  rawUploadInput?(): DatastreamUploadBoundaryInput;
+  prepareIntegrations?(server: import('node:http').Server): Promise<void>;
   readonly composition?: Pick<
     Awaited<ReturnType<typeof import('../../extensions/v2').resolveExtensionsV2>>,
     'routePlan' | 'controllerPlan' | 'hookPlan' | 'fallbackPlan' | 'registry'
@@ -55,6 +64,9 @@ export async function createControllerHost(
 ): Promise<FastifyHost> {
   const {
     composition,
+    rawUploadRoutes = [],
+    rawUploadInput,
+    prepareIntegrations,
     controllers,
     bindings,
     moduleNames,
@@ -69,6 +81,9 @@ export async function createControllerHost(
     ...hostOptions
   } = options;
   const routePlan = composition?.routePlan ?? (await composeRoutes(routes, routing));
+  const uploads = new Set(rawUploadRoutes);
+  if (uploads.size && !rawUploadInput) throw new TypeError('Raw uploads require host-owned production inputs.');
+  const uploadBoundary = rawUploadInput && createDatastreamUploadBoundary(rawUploadInput);
   const registry =
     composition?.registry ??
     new HttpRouteRegistry(routing.rootContext, fallbackReservedPrefixes, namespaceConfiguration, routePlan.targets);
@@ -97,7 +112,8 @@ export async function createControllerHost(
   return new FastifyHost(application, {
     ...hostOptions,
     routeRegistry: registry,
-    prepare: async root => {
+    prepare: async (root, server) => {
+      await prepareIntegrations?.(server);
       // An explicit encapsulation prefix gives this composition its own 404 owner.
       // The root host retains its safe default for requests outside this owner.
       root.register(
@@ -106,6 +122,7 @@ export async function createControllerHost(
           installSafeHttpErrors(app, security?.observers);
           prepareNativeParsers(app, security?.parsers);
           const instances = controllerPlan.instantiate();
+          if (uploadBoundary) app.addHook('onSend', uploadBoundary.onSend);
           const names = new WeakMap<object, string>();
           const unmatched = new WeakSet<object>();
           const selections = new WeakMap<object, ReturnType<typeof fallbackPlan.select>>();
@@ -136,8 +153,14 @@ export async function createControllerHost(
             await guards?.(binding, request, reply);
             if (httpReplySubmitted(reply)) return reply;
             const declaration = binding.route.declaration;
-            if (declaration.api || declaration.validation) {
-              await validateRouteRequest(request, reply, declaration.api ?? { request: declaration.validation });
+            if (uploads.has(binding.route)) {
+              await uploadBoundary!.prelude(request, reply);
+              if (httpReplySubmitted(reply)) return reply;
+            } else if (declaration.api || declaration.validation) {
+              const contract = declaration.api?.request ?? declaration.validation;
+              await validateRouteRequest(request, reply, {
+                request: contract,
+              });
               if (httpReplySubmitted(reply)) return reply;
             }
           };
@@ -146,8 +169,16 @@ export async function createControllerHost(
             request: Parameters<RouteGuards>[1],
             reply: Parameters<RouteGuards>[2]
           ) => {
-            await hookPlan.run('beforeAction', name, request, reply);
-            if (httpReplySubmitted(reply)) return reply;
+            try {
+              await hookPlan.run('beforeAction', name, request, reply);
+            } catch (error) {
+              await uploadBoundary?.finish(request, reply);
+              throw error;
+            }
+            if (httpReplySubmitted(reply)) {
+              await uploadBoundary?.finish(request, reply);
+              return reply;
+            }
           };
           const prepareUnmatched = async (request: Parameters<RouteGuards>[1], reply: Parameters<RouteGuards>[2]) => {
             if (names.has(request) || unmatched.has(request)) return;
@@ -166,7 +197,19 @@ export async function createControllerHost(
             beforeAction: (route, request, reply) => beforeAction(route.name, request, reply),
           });
           await security?.prepare?.(app);
-          routePlan.install(app, instances, guard);
+          prepareDatastreamUploads(app, {
+            plan: routePlan,
+            routes: rawUploadRoutes,
+            controllers: {
+              action: route => {
+                const action = instances.action(route);
+                return uploadBoundary && rawUploadRoutes.some(owner => owner.declaration === route)
+                  ? uploadBoundary.wrap(action)
+                  : action;
+              },
+            },
+            guards: guard,
+          });
           app.setNotFoundHandler(async (request, reply) => {
             // A route/fallback may callNotFound; never re-enter accepted portal dispatch.
             await prepareUnmatched(request, reply);

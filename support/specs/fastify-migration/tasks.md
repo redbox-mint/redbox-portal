@@ -176,7 +176,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: production composition, native sessions and all required policy/
     validation paths work; public types compile without consumer-side erasure casts.
 
-- [ ] **FM-020 — Prove raw upload and socket upgrade.**
+- [x] **FM-020 — Prove raw upload and socket upgrade.**
   - Dependencies: FM-016, FM-012.
   - Work: register scoped raw parsers and one real upload/socket path on the owned
     server; exercise success, origin/auth denial, cancellation and shutdown.

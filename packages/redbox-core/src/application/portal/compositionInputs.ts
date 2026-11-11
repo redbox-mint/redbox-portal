@@ -24,7 +24,10 @@ export type ProductionExtensionResolutionOptions = Required<ExtensionResolutionV
   readonly routing: ProductionRoutingOptions;
   readonly namespaceConfiguration: ProductionNamespaceConfiguration;
 };
-export type ProductionControllerHostOptions = Required<Omit<ControllerHostOptions, 'security' | 'routing'>> & {
+export type ProductionControllerHostOptions = Required<
+  Omit<ControllerHostOptions, 'security' | 'routing' | 'rawUploadInput'>
+> & {
+  readonly rawUploadInput: ControllerHostOptions['rawUploadInput'];
   readonly routing: ProductionRoutingOptions;
   readonly namespaceConfiguration: ProductionNamespaceConfiguration;
   readonly security: ExplicitSelection<NonNullable<ControllerHostOptions['security']>> & {

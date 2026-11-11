@@ -1,7 +1,7 @@
 import Busboy from '@fastify/busboy';
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
-import { Transform, type Readable } from 'node:stream';
+import { Transform, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { Services as Disks } from '../../storage/StorageManager';
 export interface MultipartFile {
@@ -100,6 +100,7 @@ export class StreamingMultipart {
       parser.on('fieldsLimit', () => fail(new MultipartError(413, 'Too many fields')));
       parser.on('partsLimit', () => fail(new MultipartError(413, 'Too many parts')));
       parser.on('field', (name, value, nameTruncated, valueTruncated) => {
+        if (failure) return;
         if (nameTruncated || valueTruncated) {
           fail(new MultipartError(413, 'Multipart field limit exceeded'));
           return;
@@ -111,6 +112,10 @@ export class StreamingMultipart {
         Object.defineProperty(result.fields, name, { value, enumerable: true });
       });
       parser.on('file', (field, stream, filename, _encoding, mimeType) => {
+        if (failure) {
+          stream.resume();
+          return;
+        }
         const file = { key: randomUUID(), field, filename, mimeType, size: 0 };
         result.files.push(file);
         keys.push(file.key);
@@ -123,10 +128,31 @@ export class StreamingMultipart {
           },
         });
         streams.add(counter);
+        // A provider may reject before consuming the counter, or after the copy
+        // pipeline has already settled. Cancellation errors still belong to this
+        // parser owner even when no provider listener remains on that readable.
+        counter.on('error', () => {});
         stream.once('limit', () => fail(new MultipartError(413, 'File size limit exceeded')));
         const copying = pipeline(stream, counter);
+        // Flydrive FS putStream rejects on a source error before its internal
+        // writeFile settles. Present cancellation as EOF to the provider; the
+        // copying/parser owner still reports failure, and cleanup can now join
+        // the completed partial write instead of racing a late file creation.
+        const providerInput = Readable.from(
+          (async function* () {
+            try {
+              for await (const chunk of counter) yield chunk;
+            } catch {
+              // The copying promise owns this stream failure.
+            }
+          })()
+        );
         const storing = (async () => {
-          await this.disk.putStream(file.key, counter);
+          try {
+            await this.disk.putStream(file.key, providerInput);
+          } finally {
+            providerInput.destroy();
+          }
         })();
         // A failed parser pipeline can settle before the provider finishes its
         // write/abort cleanup. Retain both actual operations until cleanup/drain.

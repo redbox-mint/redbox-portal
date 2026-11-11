@@ -7,7 +7,7 @@ import sessionPlugin, { type FastifySessionOptions, type SessionStore } from '@f
 import type { FastifyRequest, FastifyReply, Session } from 'fastify';
 import type { Collection, Db } from 'mongodb';
 import type { PersistenceOwner } from '../../persistence/owner';
-import { mongoSessionDatabase, registerPersistenceResource } from '../../persistence/runtime';
+import { mongoSessionDatabase, registerPersistenceResource, hasActivePersistenceWork } from '../../persistence/runtime';
 import { prepareSessionIndexes } from '../../persistence/sessions/indexes';
 import { hasActiveHttpRequest, retainHttpRequestFollowup } from '../../middleware/requestLifetime';
 import type { FastifyPreparation } from './preparation';
@@ -178,22 +178,33 @@ export class NativeMongoSessionStore implements SessionStore {
   }
 
   public get(id: string, callback: Completion<Session | null>): void {
-    this.dispatch(async () => {
-      const document = await this.collection.findOne({
-        _id: nativeSessionNamespace + id,
-        version,
-        expires: { $gt: new Date() },
-      });
-      if (!document) return null;
-      const session = JSON.parse(document.session) as Session;
-      const loading = this.loading.getStore();
-      if (loading) loading.cookie = { ...session.cookie };
-      // touch() deliberately leaves the serialized payload unchanged. The document
-      // expiry is authoritative for admission, including past the original maxAge.
-      if (session.cookie.expires) session.cookie.expires = document.expires;
-      if (this.touchAfter > 0 && document.lastModified) Reflect.set(session, 'lastModified', document.lastModified);
-      return session;
-    }, callback);
+    this.dispatch(() => this.read(id), callback);
+  }
+
+  /** Socket operations already admitted by their owner may borrow the same store. */
+  public readAccepted(id: string): Promise<Session | null> {
+    if (this.closed || !hasActivePersistenceWork(this.owner))
+      return Promise.reject(new Error('Session lookup requires accepted work.'));
+    const work = this.read(id);
+    this.pending.add(work);
+    const settled = () => this.pending.delete(work);
+    void work.then(settled, settled);
+    return work;
+  }
+
+  private async read(id: string): Promise<Session | null> {
+    const document = await this.collection.findOne({
+      _id: nativeSessionNamespace + id,
+      version,
+      expires: { $gt: new Date() },
+    });
+    if (!document) return null;
+    const session = JSON.parse(document.session) as Session;
+    const loading = this.loading.getStore();
+    if (loading) loading.cookie = { ...session.cookie };
+    if (session.cookie.expires) session.cookie.expires = document.expires;
+    if (this.touchAfter > 0 && document.lastModified) Reflect.set(session, 'lastModified', document.lastModified);
+    return session;
   }
 
   private async insert(id: string, session: Session): Promise<void> {
@@ -509,7 +520,7 @@ export async function prepareNativeSessions(
   app: FastifyPreparation,
   owner: PersistenceOwner,
   config: NativeSessionConfiguration
-): Promise<void> {
+): Promise<Pick<NativeMongoSessionStore, 'readAccepted'>> {
   if (config.adapter !== 'mongo') throw new TypeError('Native sessions require the application-owned Mongo datastore.');
   const secrets = typeof config.secret === 'string' ? [config.secret] : [...config.secret];
   if (!secrets.length || secrets.some(secret => typeof secret !== 'string' || secret.length < 32))
@@ -543,4 +554,5 @@ export async function prepareNativeSessions(
     resave: config.resave ?? false,
     proxy: config.proxy,
   });
+  return store;
 }

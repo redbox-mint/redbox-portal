@@ -7,6 +7,15 @@ import {
 } from '../../api-routes/validation';
 import { sendApiValidationErrors } from './responses';
 import { extractApiRequest } from '../../api-routes/request-extraction';
+import type { RouteBinding } from './routes';
+
+/** The registered binding is the sole native action contract, including when
+ * an extension replaces/removes the original API source. Never default to core. */
+export function resolvedRequestContract(request: FastifyRequest): Pick<ApiRouteDefinition, 'request'> {
+  const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
+  if (!binding) throw new TypeError('Action requires a resolved route binding.');
+  return { request: binding.route.declaration.api?.request ?? binding.route.declaration.validation };
+}
 
 /** Invoke at the action's FM-004 validation position, after any required domain
  * prelude. The parsed result is action-local; it never mutates request inputs. */

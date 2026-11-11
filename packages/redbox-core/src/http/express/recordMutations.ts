@@ -154,13 +154,17 @@ export function mountRecordMutationRoutes(router: Router, input: RecordMutationH
       httpAction(async (req, res) => {
         try {
           if (!browser && action === 'updateMeta') {
-            const result = await updateRecordMetadata(input, {
-              params: req.params,
-              query: req.query,
-              headers: req.headers,
-              body: req.body,
-              context: requestContext(req),
-            });
+            const result = await updateRecordMetadata(
+              input,
+              {
+                params: req.params,
+                query: req.query,
+                headers: req.headers,
+                body: req.body,
+                context: requestContext(req),
+              },
+              route as ApiRouteDefinition
+            );
             res.set(result.headers).status(result.status).json(result.body);
             return;
           }

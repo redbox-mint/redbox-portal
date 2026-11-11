@@ -48,10 +48,10 @@ export interface PortalApplicationContext {
   readonly providers: ReturnType<typeof portalProviderPlan>;
   readonly log: ILogger;
 }
-type LifecycleResolution = Pick<
-  import('../../extensions').ResolvedExtensions,
-  'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'
-> &
+type LifecycleResolution = {
+  readonly raw?: import('./rawHttp').PortalRawHttp;
+  readonly rawDeclaration?: ExtensionFactory;
+} & Pick<import('../../extensions').ResolvedExtensions, 'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'> &
   Partial<Pick<import('../../extensions').ResolvedExtensions, 'handlers' | 'integrations' | 'routes' | 'middleware'>>;
 type InstalledContributions = {
   readonly providers: readonly {
@@ -323,7 +323,11 @@ async function buildPortalApplication<R extends LifecycleResolution>(
     const plan = byName.get(registration.declaration.name);
     let create: () => ApplicationModule;
     if (plan) create = plan.bind(registration);
-    else if (registration.declaration.name === 'storage') create = data.bindStorage(registration);
+    else if (registration.declaration.name === 'portal-raw-http' && resolved.raw) {
+      if (registration.declaration !== resolved.rawDeclaration)
+        throw new Error('The qualified raw HTTP owner cannot be replaced.');
+      create = () => resolved.raw!;
+    } else if (registration.declaration.name === 'storage') create = data.bindStorage(registration);
     else if (registration.declaration.name === 'pdf')
       create = () => {
         const construct = registration.declaration.create as (input: PortalPdfInput) => PortalPdfModule;

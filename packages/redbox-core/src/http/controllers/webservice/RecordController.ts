@@ -9,6 +9,7 @@ import {
   type RecordActionResponse,
 } from '../../actions/recordMetadata';
 import { sendApiErrors } from '../../fastify/responses';
+import { resolvedRequestContract } from '../../fastify/validation';
 
 /** Selected production domain ports. Constructors borrow; they acquire nothing. */
 export interface RecordControllerInput extends RecordMetadataInput {}
@@ -20,8 +21,8 @@ const fresh: (request: Record<string, unknown>, response: Record<string, unknown
 function send(request: MetadataRequest, reply: FastifyReply, result: RecordActionResponse) {
   reply.headers(result.headers).code(result.status);
   // Express serializes before freshness and HEAD handling, within its action guard.
-  // Keep native object sending (and its hooks/producer guard) after this check.
-  JSON.stringify(result.body);
+  // Send those exact bytes so a stateful toJSON is never evaluated a second time.
+  const json = JSON.stringify(result.body);
   if (
     (request.method === 'GET' || request.method === 'HEAD') &&
     result.status >= 200 &&
@@ -34,7 +35,7 @@ function send(request: MetadataRequest, reply: FastifyReply, result: RecordActio
     reply.removeHeader('Content-Type').removeHeader('Content-Length').removeHeader('Transfer-Encoding');
     return reply.code(304).send();
   }
-  return reply.send(result.body);
+  return reply.type('application/json; charset=utf-8').send(json === undefined ? undefined : Buffer.from(json));
 }
 /** Existing validation position: policies and CSRF precede the envelope check. */
 export function recordMetadataBodyPrelude(request: FastifyRequest, reply: FastifyReply) {
@@ -57,13 +58,17 @@ export class RecordController {
       return send(
         request,
         reply,
-        await action(this.input, {
-          params: request.params,
-          query: request.query,
-          body: request.body,
-          headers: request.headers,
-          context: requestContext(request),
-        })
+        await action(
+          this.input,
+          {
+            params: request.params,
+            query: request.query,
+            body: request.body,
+            headers: request.headers,
+            context: requestContext(request),
+          },
+          resolvedRequestContract(request)
+        )
       );
     } catch {
       this.input.log.error(mutation ? 'Record mutation failed' : 'Record read failed');

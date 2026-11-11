@@ -133,7 +133,7 @@
     "packages/redbox-core/src/api-routes/schemas/common.ts": "2423667eac407758f89f055618411eb1895578aa33051fdb86f9209cdf47971f",
     "packages/redbox-core/src/api-routes/schemas/responses.ts": "a2fecc15095811a23d4b686b8d8dbc39b861dd1197b5ac517fa6474b1379177a",
     "packages/redbox-core/src/api-routes/types.ts": "8fe999eb0439ed4780d68252a7c6bdd0b53b5f0b9bb5f322e39ec3acab854ae6",
-    "packages/redbox-core/src/api-routes/validation.ts": "e00a8676d64207092d84f8692c03d9f146544da1fba0126918c5c43f09de324f",
+    "packages/redbox-core/src/api-routes/validation.ts": "6a4e83dced255e7641dc86bf03b33809c6d3a46f1a67b84eaa724ae5d5919346",
     "packages/redbox-core/src/api-routes/zod-openapi.ts": "3845710357431cec23ccacab48bae4ed6b8fffeea7245a4dae01e1d653858b1e",
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
@@ -186,7 +186,10 @@
     "packages/redbox-core/src/forms/FormDelivery.ts": "09e0ccbc91a8c3cd85e7f0ff43675121e6d93aa6987931df6f678cdc1a402c59",
     "packages/redbox-core/src/forms/FormPayloadPrehydrate.ts": "7ac40cefdf4b6d15033b51aff9794f14ee6de676952d92081d7eeee5a2cae8e2",
     "packages/redbox-core/src/forms/FormProjection.ts": "3780605b0978db28a5b1f795916a1ff18be6ee0350aec66bb62d390e172096cf",
-    "packages/redbox-core/src/http/actions/recordMetadata.ts": "7fafbdd0abd1a1fe691ff5625a25e697a26048bd16f99efdf841753548852dc0",
+    "packages/redbox-core/src/http/actions/actionReply.ts": "9510da7400f9d830e77fa0f2dc8005adf6c2e299382ebfb5c854a51b9942d212",
+    "packages/redbox-core/src/http/actions/datastreamUpload.ts": "9549c3cf4b09d1d461eedde22dcfc915ca1b8f981b60415b54261ccfba90ccf9",
+    "packages/redbox-core/src/http/actions/progressGrant.ts": "84016e801361bee902d869a29855b869e8bfde38f984eb10906d101200ec0397",
+    "packages/redbox-core/src/http/actions/recordMetadata.ts": "56d43c596c0d88e8a0d0e83aa7833f3eda89b2971c0faa39b4e8c16aaae27c4d",
     "packages/redbox-core/src/http/actors.ts": "f3bbf8f73707e116e27f53038f52c6b42f68f4d19ba64e5a8d534107264092ed",
     "packages/redbox-core/src/http/apiResponses.ts": "1ac0e609b96da940e3e9da7cbea724bff54075cb2410c36f79d6d8ed80c4c7aa",
     "packages/redbox-core/src/http/express/ExpressHost.ts": "bd9849007fddc3fa4638e229f8e4506f844f452e90f3ebbbc9c1e6f85f3b052d",
@@ -206,7 +209,7 @@
     "packages/redbox-core/src/http/express/csrf.ts": "aaf2780ae2231a8018ac6969b41f09777016f7cdae01da6fd737f1a27e9c3423",
     "packages/redbox-core/src/http/express/dashboardResponses.ts": "56514b6baec8135bd440817e936cfac14691a50718c80b6958918d2d748e18af",
     "packages/redbox-core/src/http/express/datastreamReads.ts": "3d12507cb1e4b91d3159ab8a12d77fd9d820484cdede45726a753e117fdc148c",
-    "packages/redbox-core/src/http/express/datastreamWrites.ts": "594544833d48ae760f8423491f5319f65d7606dd42a1f7e67a42a6727e29c97f",
+    "packages/redbox-core/src/http/express/datastreamWrites.ts": "02ad25e7e6ba0ee26ffc92a7aa7f307e29f3f731964a0618234f091af866d3fb",
     "packages/redbox-core/src/http/express/figshareAdministration.ts": "f650dd330f8bfa318770bbf435311b9e4ebdb05fd08583e6337923782ec0a4ff",
     "packages/redbox-core/src/http/express/formDelivery.ts": "3a4abe84a687c7cb34ef0d42876472035fa077dd216b4b1f3412048b3ed0bdd5",
     "packages/redbox-core/src/http/express/formVocabulary.ts": "5ab740e0a152d1c92c41be4f33373e6a88803f9c7ce665cf48e9637dc2998e55",
@@ -220,18 +223,18 @@
     "packages/redbox-core/src/http/express/login.ts": "25300a9855ed98323040630bb42bb48cc4c7fa8a55e3bb205a35e8da5389ebc5",
     "packages/redbox-core/src/http/express/metadata.ts": "034b4c3fe0327ed0c84c3d268577af296cf93c9ff2e6ca4f5f364b1a75e22b3f",
     "packages/redbox-core/src/http/express/middleware.ts": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
-    "packages/redbox-core/src/http/express/multipart.ts": "4b203ea5a6890108a9716f096134683dcbaacb9f23d100dcc0129f32a9778a2c",
+    "packages/redbox-core/src/http/express/multipart.ts": "78afe9a4d39e919923bbcde10527c65b666b94dcb78963bb996af64b803c5d39",
     "packages/redbox-core/src/http/express/ownedRoutes.ts": "884f929ee19bf48743f4bcb61f1f1cb26271aa2cc972add47df82903c515d16a",
     "packages/redbox-core/src/http/express/pageAssets.ts": "e67fb1178b8b726aa6565b37dfc9752a32adc06d2bd66f68fd741943592ed5c7",
     "packages/redbox-core/src/http/express/pageHeaders.ts": "5b991c38ab58802c882300d5f8025b7ce0d43d99de3ebb135a99b05709d48888",
     "packages/redbox-core/src/http/express/pages.ts": "b48a4c42444896e5c17619d9b1066c46dd666b8cec2ebfde4a9578793532d41c",
     "packages/redbox-core/src/http/express/policies.ts": "0e334597c2054abd2f513c66028e0c2e5385806bbe786899956a9e956ba37ffb",
-    "packages/redbox-core/src/http/express/progressOperations.ts": "c0d8656ce73ba70fe4b961be3f92c5d81b0ec3395217ed46ce70698aeb7f032d",
-    "packages/redbox-core/src/http/express/progressSockets.ts": "a468b7582e937ec28e9d36c1748cf435b7b145c12fcb3dec295c7fd0d6466c35",
+    "packages/redbox-core/src/http/express/progressOperations.ts": "8cba7261d11bf655a47dba8a1d786e8654fb4ac2c5c93b385d28b434614d05d8",
+    "packages/redbox-core/src/http/express/progressSockets.ts": "d77bb8ddfac931ad3dd26bd5f98fc1de11aa6e26ff684f2d8af3dff485acae3a",
     "packages/redbox-core/src/http/express/queryReads.ts": "91d82fd29e3ade6491a38cbcd34a80d8e7067ae44ca2c700f3ff704b996c9492",
     "packages/redbox-core/src/http/express/queryWrites.ts": "6c553ed7385185d1b2305a2852f8b131f830eeb49f913d921efd0c8dc9bc2612",
-    "packages/redbox-core/src/http/express/recordMutations.ts": "49e2dd3304b1dfadd9dd79f5e0f9b40e3902ae3870d3de4aedb4cd2ca94d496b",
-    "packages/redbox-core/src/http/express/recordReads.ts": "1c9c4053229a3b6e230bff231509e830e4f15d7fb2e758d52a7cdb84d2465804",
+    "packages/redbox-core/src/http/express/recordMutations.ts": "86db330d6cbe6f2a24b795eb740231ad5eb9f57e38d5c8a64ddf3369f6dd7948",
+    "packages/redbox-core/src/http/express/recordReads.ts": "f9fb8ccd4e94afbe00c937833085498b1132027982a17b447b4de228700e53da",
     "packages/redbox-core/src/http/express/recordSchemaReads.ts": "dc19e77ff9213695f490a0604a9cc24cd844a0ff9e531d0111d8d86415de3ecf",
     "packages/redbox-core/src/http/express/recordTypes.ts": "2b947b0e623309600b5107fad0dc12c2f5be77b323fa0ed95051c753998dcff2",
     "packages/redbox-core/src/http/express/responses.ts": "08e9e26ad6f618995badb423395a7eac65acedf7d94dee786bce0260856e85b4",
@@ -241,6 +244,8 @@
     "packages/redbox-core/src/http/express/siemWrites.ts": "5f45ac793d47b5ffedea2e93a76a5b39d856a142b3cef88755b2b418da7fc9d2",
     "packages/redbox-core/src/http/express/vocabularyAdministration.ts": "2254f7ab8c0b8388d64cc00c90c1fa3d803b7baae2999bc5e6942c2df24ec9bf",
     "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "71771a50abfee67fc2670b47c9eafd126f920d9cd7bbac92cd4fe3dc9689b996",
+    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "ed2b9e397845b9a170db9b5836cbd78e8760d5dc5ab06bd4a5992862f8a6c4b4",
+    "packages/redbox-core/src/http/requestValues.ts": "852282c8423c4391d3873e633aa12851042e918a404e7d9cbe8046d7f57999a2",
     "packages/redbox-core/src/identity/Users.ts": "81108aa8780214d85b6443bc748f857a453f355fbb9a07578ad63ad8f959a261",
     "packages/redbox-core/src/integrations/SiemDestinationTests.ts": "9487164ebb69f0b0ba4af436d5ff98c74a1cd494ef5d593ce5b462ce26e1f2e6",
     "packages/redbox-core/src/middleware/requestLifetime.ts": "7dbf3686707d2cd7f8cfd3275ea79a632eac33846d6648ae43b33962e1d01e29",
@@ -35853,7 +35858,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/datastreamWrites.ts",
         "export": "datastreamWriteRoutes",
-        "line": 29,
+        "line": 9,
         "index": 0
       },
       "apiDeclaration": {
@@ -41675,7 +41680,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressOperationRoutes",
-        "line": 12,
+        "line": 13,
         "index": 0
       },
       "apiDeclaration": null,
@@ -41716,7 +41721,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressOperationRoutes",
-          "line": 12
+          "line": 13
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41759,7 +41764,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressOperationRoutes",
-        "line": 12,
+        "line": 13,
         "index": 1
       },
       "apiDeclaration": null,
@@ -41800,7 +41805,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressOperationRoutes",
-          "line": 12
+          "line": 13
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41843,7 +41848,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressOperationRoutes",
-        "line": 12,
+        "line": 13,
         "index": 2
       },
       "apiDeclaration": null,
@@ -41884,7 +41889,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressOperationRoutes",
-          "line": 12
+          "line": 13
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41927,7 +41932,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressOperationRoutes",
-        "line": 12,
+        "line": 13,
         "index": 3
       },
       "apiDeclaration": null,
@@ -41968,7 +41973,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressOperationRoutes",
-          "line": 12
+          "line": 13
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42015,7 +42020,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressOperationRoutes",
-        "line": 12,
+        "line": 13,
         "index": 4
       },
       "apiDeclaration": null,
@@ -42056,7 +42061,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressOperationRoutes",
-          "line": 12
+          "line": 13
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42103,7 +42108,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressOperationRoutes",
-        "line": 12,
+        "line": 13,
         "index": 5
       },
       "apiDeclaration": null,
@@ -42144,7 +42149,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressOperationRoutes",
-          "line": 12
+          "line": 13
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42187,7 +42192,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressOperations.ts",
         "export": "progressSocketGrantRoute",
-        "line": 32
+        "line": 33
       },
       "apiDeclaration": null,
       "original": {
@@ -42227,7 +42232,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/progressOperations.ts",
           "export": "progressSocketGrantRoute",
-          "line": 32
+          "line": 33
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -43778,7 +43783,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/progressSockets.ts",
         "export": "ProgressSockets",
-        "line": 30
+        "line": 41
       },
       "method": "provider HTTP + upgrade",
       "path": "${rootContext}/portal-socket.io",

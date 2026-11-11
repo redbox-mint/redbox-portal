@@ -2,7 +2,6 @@ import type { Application } from '../Application';
 import { portalHostSettings, portalHttpSettings, type PortalMetadataContext } from './httpPlan';
 import type { PersistenceOwner } from '../../persistence/owner';
 import { recordMetadataBodyPrelude } from '../../http/controllers/webservice/RecordController';
-import { updateMetaRoute } from '../../api-routes/groups/records';
 import { createControllerHost } from '../../http/fastify/composition';
 import { createNativePolicies, type NativePolicyInput } from '../../http/fastify/policies';
 import { createNativeCsrf } from '../../http/fastify/csrf';
@@ -114,6 +113,11 @@ export async function createPortalFastifyHost(
     bindings: resolved.bindings,
     moduleNames: resolved.moduleNames,
     composition: resolved,
+    rawUploadRoutes: resolved.httpOwners.uploads,
+    rawUploadInput: resolved.httpOwners.uploads.length ? () => resolved.raw!.uploadInput() : undefined,
+    prepareIntegrations: async server => {
+      resolved.raw?.prepare(server);
+    },
     routes: resolved.routeRegistrations,
     hooks: resolved.hookRegistrations,
     fallbacks: resolved.fallbackRegistrations,
@@ -121,11 +125,7 @@ export async function createPortalFastifyHost(
     namespaceConfiguration: resolved.namespaceConfiguration,
     routing: resolved.routing,
     guards: async (binding, request, reply) => {
-      if (
-        binding.route.declaration.api?.controller === updateMetaRoute.controller &&
-        binding.route.declaration.api?.action === updateMetaRoute.action
-      )
-        return recordMetadataBodyPrelude(request, reply);
+      if (resolved.httpOwners.metadataUpdates.includes(binding.route)) return recordMetadataBodyPrelude(request, reply);
     },
     security: {
       policies,
@@ -136,7 +136,28 @@ export async function createPortalFastifyHost(
       parsers: { parserExclusions: [] },
       prepare: async (app: FastifyPreparation) => {
         await input.prepare?.();
-        await prepareNativeSessions(app, owner, settings.session);
+        const sessions = await prepareNativeSessions(app, owner, settings.session);
+        resolved.raw?.bindAuthentication(async credential => {
+          const identity = input.authentication().identity;
+          if (credential.authorization !== undefined) {
+            const match = /^Bearer (.+)$/i.exec(credential.authorization);
+            return match ? identity.bearer(match[1]!) : false;
+          }
+          if (!credential.sessionId) return false;
+          const saved = await sessions.readAccepted(credential.sessionId);
+          if (
+            !saved ||
+            !Object.hasOwn(saved, 'authenticationVersion') ||
+            Reflect.get(saved, 'authenticationVersion') !== 6
+          )
+            return false;
+          const passport = Object.hasOwn(saved, 'passport') ? Reflect.get(saved, 'passport') : undefined;
+          const id =
+            passport && typeof passport === 'object' && Object.hasOwn(passport, 'user')
+              ? Reflect.get(passport, 'user')
+              : undefined;
+          return typeof id === 'string' ? identity.session(id) : false;
+        });
         authentication = await prepareNativeAuthentication(app, input.authentication());
         app.get(rootContext + '/csrfToken', csrf.token);
         installNativeAuthenticationRoutes(app, authentication, {

@@ -1,9 +1,8 @@
 import _ from 'lodash';
 import { lastValueFrom, single } from 'rxjs';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
-import type { ApiRequestInput } from '../../api-routes/types';
+import type { ApiRequestInput, ApiRouteDefinition } from '../../api-routes/types';
 import { validateApiRouteRequest } from '../../api-routes/validation';
-import { getMetaRoute, updateMetaRoute } from '../../api-routes/groups/records';
 import { recordSchemaDescribedByLink, recordSchemaImmutableUrl } from '../../api-routes/record-schema-response';
 import type { RecordsService } from '../../RecordsService';
 import type { StorageService } from '../../StorageService';
@@ -109,10 +108,11 @@ function scalar(value: unknown, fallback = ''): string {
 /** Shared action, extracted from the production Express metadata read. No host or response object. */
 export async function readRecordMetadata(
   input: Pick<RecordMetadataInput, 'storage' | 'schemas' | 'rootContext' | 'log'>,
-  request: RecordActionRequest
+  request: RecordActionRequest,
+  route: Pick<ApiRouteDefinition, 'request'>
 ): Promise<RecordActionResponse> {
   try {
-    const valid = validateApiRouteRequest(request, getMetaRoute);
+    const valid = validateApiRouteRequest(request, route);
     if (!valid.valid) return invalid(request, valid.issues);
     const query = valid.query;
     const text = (name: string, fallback = '') => {
@@ -193,7 +193,8 @@ export function recordMetadataActorPrelude(request: RecordActionRequest): Record
 /** Shared production API update action; domain writes, projection and envelopes have one owner. */
 export async function updateRecordMetadata(
   input: Omit<RecordMetadataInput, 'storage' | 'schemas'>,
-  request: RecordActionRequest
+  request: RecordActionRequest,
+  route: Pick<ApiRouteDefinition, 'request'>
 ): Promise<RecordActionResponse> {
   try {
     const { brand: snapshot, actor, portal } = request.context;
@@ -202,7 +203,7 @@ export async function updateRecordMetadata(
     const brand = Object.assign(new BrandingModel(), snapshot),
       user = userFromActor(actor!);
     let body = object(request.body ?? {});
-    const valid = validateApiRouteRequest(request, updateMetaRoute);
+    const valid = validateApiRouteRequest(request, route);
     if (!valid.valid) return invalid(request, valid.issues);
     if (valid.body !== undefined) body = object(valid.body);
     const query = valid.query,

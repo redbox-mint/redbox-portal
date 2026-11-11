@@ -1,3 +1,4 @@
+import { executeProgressGrant } from '../actions/progressGrant';
 import type { Router, RequestHandler } from 'express';
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { Services as Progress } from '../../progress/Asynchs';
@@ -58,6 +59,18 @@ export function mountProgressOperationRoutes(
       ...policies,
       ...(route.method === 'get' ? [] : [input.csrf.apiProtect]),
       httpAction(async (req, res) => {
+        if (route === progressSocketGrantRoute)
+          return executeProgressGrant(
+            input,
+            {
+              params: req.params,
+              query: req.query,
+              headers: req.headers,
+              context: () => requestContext(req),
+              sessionId: req.sessionID,
+            },
+            res
+          );
         try {
           const { actor, brand } = requestContext(req);
           if (!actor) {
@@ -66,19 +79,6 @@ export function mountProgressOperationRoutes(
           }
           if (!actor.roles.some(r => r.brandId === brand.id)) {
             sendApiErrors(req, res, 403, [{ detail: 'Access Denied' }]);
-            return;
-          }
-          if (route === progressSocketGrantRoute) {
-            sendApiData(req, res, {
-              token: input.sockets.issue(
-                {
-                  sessionId: req.sessionID,
-                  ...(req.headers.authorization ? { authorization: req.headers.authorization } : {}),
-                },
-                brand,
-                actor
-              ),
-            });
             return;
           }
           if (route.action === 'subscribe' || route.action === 'unsubscribe') {

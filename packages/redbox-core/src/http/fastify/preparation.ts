@@ -25,6 +25,8 @@ import { HttpRouteRegistry } from './registry';
 import { requestStageHook } from './hooks';
 import { nativeBodyParserPlugin, type NativeParserOptions } from './parsers';
 
+import { rawMultipartParserPlugin, type RawMultipartParserOptions } from './rawMultipart';
+
 type RequestHook = (typeof requestHooks)[number];
 type OwnedHook = RequestHook | 'onReady' | 'preClose' | 'onClose';
 type BoundHook<T> = T extends (...args: infer A) => infer R
@@ -58,6 +60,7 @@ export interface FastifyPreparation {
   register(plugin: typeof cookiePlugin, options?: FastifyCookieOptions): FastifyPreparation;
   register(plugin: typeof sessionPlugin, options: NativeSessionOptions): FastifyPreparation;
   register(plugin: typeof nativeBodyParserPlugin, options: NativeParserOptions): FastifyPreparation;
+  register(plugin: typeof rawMultipartParserPlugin, options: RawMultipartParserOptions): FastifyPreparation;
   addHook<K extends OwnedHook>(name: K, hook: BoundHook<HookLookup<K>>): FastifyPreparation;
   route(
     options: Omit<
@@ -174,47 +177,59 @@ export function sealPreparation(
         routerOptions: Object.freeze({ ...instance.initialConfig.routerOptions }),
       }),
       register(
-        plugin: CorePlugin | typeof cookiePlugin | typeof sessionPlugin | typeof nativeBodyParserPlugin,
+        plugin:
+          | CorePlugin
+          | typeof cookiePlugin
+          | typeof sessionPlugin
+          | typeof nativeBodyParserPlugin
+          | typeof rawMultipartParserPlugin,
         options: Record<string, unknown> = {}
       ) {
         if (typeof plugin !== 'function') denied('register(non-function)');
         if (!options || typeof options !== 'object') denied('register options');
-        const native = plugin === cookiePlugin || plugin === sessionPlugin || plugin === nativeBodyParserPlugin;
+        const native =
+          plugin === cookiePlugin ||
+          plugin === sessionPlugin ||
+          plugin === nativeBodyParserPlugin ||
+          plugin === rawMultipartParserPlugin;
         keys(
           options,
           new Set(
             plugin === cookiePlugin
               ? ['secret', 'parseOptions', 'hook', 'algorithm']
-              : plugin === nativeBodyParserPlugin
-                ? ['parserExclusions']
-                : plugin === sessionPlugin
-                  ? [
-                      'secret',
-                      'cookieName',
-                      'cookiePrefix',
-                      'cookie',
-                      'store',
-                      'saveUninitialized',
-                      'rolling',
-                      'resave',
-                      'proxy',
-                    ]
-                  : ['prefix']
+              : plugin === rawMultipartParserPlugin
+                ? ['bindings']
+                : plugin === nativeBodyParserPlugin
+                  ? ['parserExclusions']
+                  : plugin === sessionPlugin
+                    ? [
+                        'secret',
+                        'cookieName',
+                        'cookiePrefix',
+                        'cookie',
+                        'store',
+                        'saveUninitialized',
+                        'rolling',
+                        'resave',
+                        'proxy',
+                      ]
+                    : ['prefix']
           ),
           'register options'
         );
         if (plugin === sessionPlugin && !(options.store instanceof NativeMongoSessionStore)) denied('session store');
         const wrapped = new Proxy(plugin, {
           apply(fn, _this, args) {
-            if (plugin === nativeBodyParserPlugin) {
+            if (plugin === nativeBodyParserPlugin || plugin === rawMultipartParserPlugin) {
               const child = args[0] as FastifyInstance;
               // This exact parser may consume the incoming stream. No native
               // instance, decoration or registration capability reaches callers.
               return Reflect.apply(fn, undefined, [
                 {
                   addHook(name: string, hook: unknown) {
-                    if (name !== 'preParsing') denied(`native parser addHook(${name})`);
-                    child.addHook('preParsing', ownership.nativeHook('preParsing', hook) as never);
+                    if (name !== 'preParsing' && !(plugin === rawMultipartParserPlugin && name === 'onRequest'))
+                      denied(`native parser addHook(${name})`);
+                    child.addHook(name as 'preParsing' | 'onRequest', ownership.nativeHook(name, hook) as never);
                   },
                 },
                 args[1],
