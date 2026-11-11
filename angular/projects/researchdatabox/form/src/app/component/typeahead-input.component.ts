@@ -50,7 +50,6 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [title]="tooltip | i18next"
         [readonly]="isReadonly || readOnlyAfterSelectLocked"
         [attr.role]="'combobox'"
-        [attr.aria-expanded]="isOpen"
         [attr.aria-autocomplete]="'list'"
         [attr.aria-busy]="searchState === 'loading'"
         [attr.aria-describedby]="statusElementId"
@@ -332,7 +331,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         this.searchState = 'idle';
         this.statusMessage = '';
       }
-      this.isOpen = this.sourceType !== 'namedQuery' && this.minChars === 0;
+      this.isOpen = false;
       this.setModelValue(null);
       return;
     }

@@ -7,6 +7,7 @@ import {
   EditorDiagnostic,
   FormConfigFrame,
   NamedQueryLookupResult,
+  TypeaheadInputFieldComponentConfig,
   TypeaheadOption,
   TypeaheadSourceType,
 } from '@researchdatabox/sails-ng-common';
@@ -36,7 +37,8 @@ describe('bounded lookup input integration', () => {
     minChars?: number,
     maxResults = 25,
     lookupDiagnostics?: EditorDiagnostic[],
-    sourceType: TypeaheadSourceType = 'namedQuery'
+    sourceType: TypeaheadSourceType = 'namedQuery',
+    sourceOverrides: Partial<TypeaheadInputFieldComponentConfig> = {}
   ) {
     const source =
       sourceType === 'namedQuery'
@@ -57,6 +59,7 @@ describe('bounded lookup input integration', () => {
             class: 'TypeaheadInputComponent',
             config: {
               ...source,
+              ...sourceOverrides,
               ...(minChars === undefined ? {} : { minChars }),
               maxResults,
               debounceMs: 0,
@@ -131,6 +134,7 @@ describe('bounded lookup input integration', () => {
       expect(search).toHaveBeenCalled();
       expect(search.calls.mostRecent().args[source === 'static' ? 0 : 1]).toBe('');
       expect(view.directive.isOpen).toBeTrue();
+      expect(view.input.getAttribute('aria-expanded')).toBe('true');
       expect(view.fixture.nativeElement.querySelector('typeahead-container')?.textContent).toContain('Default choice');
       await view.type('match');
       const callsBeforeClearing = search.calls.count();
@@ -138,10 +142,53 @@ describe('bounded lookup input integration', () => {
       expect(search.calls.count()).toBeGreaterThan(callsBeforeClearing);
       expect(search.calls.mostRecent().args[source === 'static' ? 0 : 1]).toBe('');
       expect(view.directive.isOpen).toBeTrue();
+      expect(view.input.getAttribute('aria-expanded')).toBe('true');
       expect(view.fixture.nativeElement.querySelector('typeahead-container')?.textContent).toContain('Default choice');
       expect(view.component.hasNextPage).toBeFalse();
     });
+    it(`keeps ${source} aria-expanded false for empty results with minChars zero`, async () => {
+      const methods = {
+        static: 'searchStatic',
+        vocabulary: 'searchVocabularyEntries',
+        service: 'searchService',
+        external: 'searchExternal',
+      } as const;
+      const search = spyOn(TestBed.inject(TypeaheadDataService), methods[source]).and.resolveTo([]);
+      const view = await render(0, 25, undefined, source);
+      view.input.dispatchEvent(new Event('focus'));
+      await settle();
+      view.fixture.detectChanges();
+      expect(search).toHaveBeenCalled();
+      expect(view.directive.isOpen).toBeFalse();
+      expect(view.input.getAttribute('aria-expanded')).toBe('false');
+      search.and.resolveTo([{ label: 'Default choice', value: 'default' }]);
+      await view.type('match');
+      expect(view.directive.isOpen).toBeTrue();
+      expect(view.input.getAttribute('aria-expanded')).toBe('true');
+      search.and.resolveTo([]);
+      await view.type('');
+      expect(view.component.searchState).toBe('no-results');
+      expect(view.component.isOpen).toBeFalse();
+      expect(view.directive.isOpen).toBeFalse();
+      expect(view.input.getAttribute('aria-expanded')).toBe('false');
+      expect(view.fixture.nativeElement.querySelector('typeahead-container')).toBeNull();
+    });
   }
+  it('keeps a missing vocabulary reference collapsed when minChars is zero and input is cleared', async () => {
+    const search = spyOn(TestBed.inject(TypeaheadDataService), 'searchVocabularyEntries');
+    const view = await render(0, 25, undefined, 'vocabulary', { vocabRef: '' });
+    view.input.dispatchEvent(new Event('focus'));
+    await settle();
+    view.fixture.detectChanges();
+    await view.type('match');
+    await view.type('');
+    expect(search).not.toHaveBeenCalled();
+    expect(view.component.searchState).toBe('misconfigured');
+    expect(view.component.isOpen).toBeFalse();
+    expect(view.directive.isOpen).toBeFalse();
+    expect(view.input.getAttribute('aria-expanded')).toBe('false');
+    expect(view.fixture.nativeElement.querySelector('typeahead-container')).toBeNull();
+  });
   for (const [configured, effective] of [
     [100, 25],
     [3, 3],

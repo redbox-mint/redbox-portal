@@ -85,13 +85,28 @@ describe('form-config commands', () => {
         ['migrate-form-config', '--input', input, '--output', serverOutput],
         ['client-form-config', '--input', serverOutput, '--output', clientOutput],
       ]) {
-        // A fresh process has no Sails/service globals. ts-node handles the TS
-        // config consumed by client-form-config, as in the existing command tests.
-        const result = spawnSync(process.execPath, [
-          '--no-experimental-strip-types', '--require', 'ts-node/register', path.join(packageRoot, 'bin', 'cli.js'), ...args,
-        ], { cwd: packageRoot, encoding: 'utf8', timeout: 25000,
-          env: { ...process.env, TS_NODE_PROJECT: path.join(testRoot, 'tsconfig.json') },
-        });
+        // A fresh process has no Sails/service globals. Run the TS entry directly,
+        // as in cli.test.ts: CI does not build this package's ignored dist output.
+        const result = spawnSync(
+          process.execPath,
+          [
+            '--no-experimental-strip-types',
+            '--require',
+            require.resolve('ts-node/register'),
+            path.join(packageRoot, 'src', 'cli.ts'),
+            ...args,
+          ],
+          {
+            cwd: packageRoot,
+            encoding: 'utf8',
+            timeout: 25000,
+            env: {
+              ...process.env,
+              TS_NODE_PROJECT: path.join(packageRoot, 'tsconfig.json'),
+              TS_NODE_TRANSPILE_ONLY: 'true',
+            },
+          }
+        );
         const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
         expect(result.error, output).to.equal(undefined);
         expect(result.status, output).to.equal(0);
