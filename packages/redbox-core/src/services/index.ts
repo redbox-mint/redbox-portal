@@ -1,3 +1,5 @@
+import * as SavedGridServiceModule from './SavedGridService';
+export { SavedGridServiceModule as SavedGridService };
 import * as PartyImportServiceModule from './PartyImportService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
@@ -182,6 +184,7 @@ function getOrCreateService(name: string, factory: () => unknown): unknown {
 }
 
 export const ServiceExports = {
+  get SavedGridService() { return getOrCreateService('SavedGridService', () => new SavedGridServiceModule.Services.SavedGrids().exports()); },
   get ExportService() {
     return getOrCreateService('ExportService', () => new ExportServiceModule.Services.Export().exports());
   },
