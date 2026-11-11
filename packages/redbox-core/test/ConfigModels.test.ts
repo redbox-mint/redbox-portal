@@ -18,7 +18,7 @@ describe('ConfigModels', function () {
     const modelInfo = ConfigModels.getModelInfo('systemMessage');
     expect(modelInfo).to.not.be.null;
     expect(modelInfo.modelName).to.equal('SystemMessage');
-    expect(modelInfo.title).to.equal('System Messages');
+    expect(modelInfo.title).to.equal('admin-nav-system-msg');
     expect(modelInfo.class).to.not.be.undefined;
   });
 

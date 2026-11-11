@@ -85,6 +85,7 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'every',
       'schedule',
+      'scheduleUnique',
       'now',
       'jobs',
       'sampleFunctionToDemonstrateHowToDefineAJobFunction',
@@ -189,6 +190,9 @@ export namespace Services {
       this.jobBackendByName = new Map<string, AgendaQueueBackend>();
       _.each(jobs, (job: AgendaJobDefinition) => {
         const backend = this.getBackendForJob(job);
+        if (job.name === 'Figshare-SyncRecord' && backend !== 'mongodb') {
+          throw new AgendaQueueUnsupportedFeatureError("AgendaQueue:: Figshare-SyncRecord requires backend 'mongodb' to bound pending deliveries. Other jobs can use SQS.");
+        }
         this.jobBackendByName.set(job.name, backend);
         requiredBackends.add(backend);
       });
@@ -443,7 +447,7 @@ export namespace Services {
       this.applyCommonAgendaOptions(agendaOptions, options);
 
       if (backend === 'mongodb') {
-        const { MongoBackend } = await import('@agendajs/mongo-backend');
+        const { MongoBackend, MongoJobRepository } = await import('@agendajs/mongo-backend');
         const datastoreUrl = _.get(sails.config, 'datastores.mongodb.url');
         const address =
           typeof options.db === 'string' && options.db.length > 0
@@ -451,7 +455,7 @@ export namespace Services {
             : typeof datastoreUrl === 'string' && datastoreUrl.length > 0
               ? datastoreUrl
               : undefined;
-        agendaOptions.backend = !_.isNil(address)
+        const mongoBackend = !_.isNil(address)
           ? new MongoBackend({
               address,
               collection: options.collection,
@@ -464,7 +468,20 @@ export namespace Services {
               },
             })
           : new MongoBackend({ mongo: dbManager as Db, collection: options.collection });
-        return this.createConnectedAgenda(agendaOptions.backend as AgendaBackend, agendaOptions, options);
+        const repository = mongoBackend.repository;
+        if (!(repository instanceof MongoJobRepository)) {
+          throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: Pending delivery uniqueness requires MongoJobRepository.');
+        }
+        // Use the queue's actual connection, which may differ from the records datastore.
+        // Legacy jobs have no deliveryKey, so an existing backlog does not prevent this index.
+        agendaOptions.backend = mongoBackend;
+        const mongoAgenda = await this.createConnectedAgenda(mongoBackend, agendaOptions, options);
+        await repository.collection.createIndex({ name: 1, 'data.deliveryKey': 1 }, {
+          name: 'agenda_pending_delivery', unique: true,
+          timeoutMS: 0, maxTimeMS: 0,
+          partialFilterExpression: { 'data.deliveryKey': { $type: 'string' }, nextRunAt: { $type: 'date' } }
+        });
+        return mongoAgenda;
       }
 
       const sqsOptions = options.sqs;
@@ -694,6 +711,48 @@ export namespace Services {
     public schedule(jobName: string, schedule: string, data: unknown = undefined) {
       this.ensureScheduleSupported(jobName, schedule, data);
       return this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
+    }
+
+    /**
+     * MongoDB only: coalesce wake-ups per job name/key at the earliest requested time.
+     * Preserve an existing pending job's original payload and lock. Callers must keep
+     * changing work in durable state; later data does not replace the pending payload.
+     * Running and completed deliveries allow a successor to be queued.
+     */
+    public async scheduleUnique(jobName: string, schedule: string | Date, data: Record<string, unknown>, deliveryKey: string): Promise<unknown> {
+      await this.ensureQueueInitialized();
+      if (this.getBackendForJobName(jobName) !== 'mongodb') {
+        throw new AgendaQueueUnsupportedFeatureError(`AgendaQueue:: scheduleUnique() requires a MongoDB-backed job: '${jobName}'.`);
+      }
+      const agenda = this.getAgendaForJobName(jobName);
+      const { MongoJobRepository } = await import('@agendajs/mongo-backend');
+      const repository = agenda.db;
+      if (!(repository instanceof MongoJobRepository)) {
+        throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: Pending delivery uniqueness requires MongoJobRepository.');
+      }
+      const job = agenda.create(jobName, this.toSerializableJobData({ ...data, deliveryKey }))
+        .schedule(schedule)
+        // One-time Agenda jobs set nextRunAt=null when they start. Matching only pending
+        // jobs avoids completed history suppressing future work, or a finishing worker
+        // overwriting a reschedule. Never modify the existing pending job's lock or data.
+        .unique({ 'data.deliveryKey': deliveryKey, nextRunAt: { $type: 'date' } }, { insertOnly: true });
+      // save() replaces nextRunAt with the existing delivery's date, so capture the request first.
+      const nextRunAt = job.attrs.nextRunAt;
+      let saved: Job | undefined;
+      try { saved = await job.save(); }
+      catch (error) {
+        // Concurrent upserts can race on the partial unique index. Also advance the winner
+        // when this request needs an earlier delivery than the competing enqueue.
+        if (!(error instanceof Error && 'code' in error && error.code === 11000 && error.message.includes('agenda_pending_delivery'))) throw error;
+      }
+      if (nextRunAt) {
+        // This update cannot postpone work or revive a job that started between save and update.
+        // Matching the key also handles an insert race without rewriting the winner's payload or lock.
+        await repository.collection.updateOne({ name: jobName, 'data.deliveryKey': deliveryKey, nextRunAt: { $type: 'date', $gt: nextRunAt } }, {
+          $min: { nextRunAt }
+        });
+      }
+      return saved;
     }
 
     public async now(jobName: string, data: unknown = undefined) {

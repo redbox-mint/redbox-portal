@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { from } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
-import { APP_BASE_HREF } from '@angular/common'; 
+import { APP_BASE_HREF } from '@angular/common';
 import { ConfigService } from './config.service';
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
@@ -49,7 +49,7 @@ describe('UserService testing', () => {
         ConfigService,
         LoggerService,
         UtilityService,
-        UserService        
+        UserService
       ]
     }).compileComponents();
     httpClient = TestBed.inject(HttpClient);
@@ -66,7 +66,7 @@ describe('UserService testing', () => {
     csrfReq.flush(mockCsrfData);
 
     const configReq = httpTestingController.expectOne(configService.configUrl);
-    configReq.flush(mockConfigData);  
+    configReq.flush(mockConfigData);
 
     await userService.waitForInit();
   });
@@ -82,7 +82,7 @@ describe('UserService testing', () => {
 
     const userInfoReq = httpTestingController.expectOne(userService.getInfoUrl());
     expect(userInfoReq.request.method).toEqual('GET');
-    userInfoReq.flush(mockUserData);    
+    userInfoReq.flush(mockUserData);
   });
 
   it('should process success login', async function () {
@@ -96,7 +96,7 @@ describe('UserService testing', () => {
     });
     const loginOkReq = httpTestingController.expectOne(userService.getLoginUrl());
     expect(loginOkReq.request.method).toEqual('POST');
-    loginOkReq.flush(mockUserLoginResultSuccessData);   
+    loginOkReq.flush(mockUserLoginResultSuccessData);
 
   });
 
@@ -162,8 +162,35 @@ describe('UserService testing', () => {
     expect(req.request.body).toEqual({ primaryUserId: 'primary-1', secondaryUserId: 'secondary-1' });
     req.flush({ primary: mockUserData, linkedAccounts: [], impact: { rolesMerged: 0, recordsRewritten: 0 } });
   });
- 
+
   afterEach(() => {
     httpTestingController.verify();
   });
+  it('passes the encoded sign-in filter and disabled flag together', async () => {
+    const result = userService.getUsers({ signIn: 'oidc', includeDisabled: true });
+    const req = httpTestingController.expectOne(userService.brandingAndPortalUrl + '/admin/users/get?includeDisabled=true&signIn=oidc');
+    req.flush([]); await result;
+  });
+
+  it('uses one CSRF-enabled POST for sole-role removal and returns the server roles', async () => {
+    const result = userService.removeRoleMember('role id', 'user id');
+    const req = httpTestingController.expectOne(userService.brandingAndPortalUrl + '/admin/roles/role%20id/users/user%20id/remove');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.context).toBe((userService as any).httpContext);
+    req.flush({ status: true, roles: [{ id: 'g', name: 'Guest' }] });
+    expect((await result).roles[0].name).toBe('Guest');
+  });
+
+  it('requests bounded server pages with search, membership, sort and disabled filters', async () => {
+    const result = userService.getUserPage({ page: 2, pageSize: 25, query: 'Name', role: 'Researcher', includeDisabled: true, sort: 'name', order: 'desc' });
+    const req = httpTestingController.expectOne(request => request.url.endsWith('/admin/users/get'));
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('role')).toBe('Researcher');
+    expect(req.request.params.get('includeDisabled')).toBe('true');
+    expect(req.request.params.get('order')).toBe('desc');
+    const response = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: {} };
+    req.flush(response);
+    expect(await result).toEqual(response);
+  });
+
 });

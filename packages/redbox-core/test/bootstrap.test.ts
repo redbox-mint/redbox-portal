@@ -483,6 +483,8 @@ describe('record schema bootstrap lifecycle', function () {
       config: { crontab: { enabled: false } },
       log,
       services: {
+        emailtemplateservice: { bootstrap: immediate },
+        emailservice: { validateExposedConfig: () => undefined },
         brandingservice,
         rolesservice: { bootstrap: () => of([]), getRolesWithBrand: () => of([]) },
         reportsservice: { bootstrapData: immediate },

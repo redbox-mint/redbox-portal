@@ -1,3 +1,5 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
+import { PartyImportComponent } from './party-import.component';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -13,8 +15,9 @@ import { SortComponent } from './sort/sort.component';
     DashboardComponent,
     SortComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
+    PartyImportComponent,
     FormsModule,
     RedboxPortalCoreServicesModule,
     RedboxPortalRecordsModule,

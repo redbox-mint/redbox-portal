@@ -22,7 +22,7 @@ import { mergeMap as flatMap, last, first } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { RoleModel } from '../model/storage/RoleModel';
- 
+
 
 
 export namespace Services {
@@ -60,8 +60,34 @@ export namespace Services {
       'getDefAuthenticatedRole',
       'getDefUnathenticatedRole',
       'getNestedRoles',
-      'createRoleWithBrand'
+      'createRoleWithBrand',
+      'updateDescription',
+      'adminRoleSummary',
+      'getSignInMethods'
     ];
+
+    public getSignInMethods(brand: BrandingModel): string[] {
+      const auth = ConfigService.getBrand(brand.name, 'auth') as { active?: string[] };
+      return _.uniq((auth?.active ?? []).filter(method => ['local', 'aaf', 'oidc'].includes(method)));
+    }
+
+    public adminRoleSummary(brand: BrandingModel, roles: RoleModel[]) {
+      const defaultRole = this.getDefUnathenticatedRole({ ...brand, roles });
+      return roles.map(role => ({
+        id: role.id, name: role.name, description: role.description || '',
+        descriptionKey: ['Admin', 'Librarians', 'Researcher', 'Guest'].includes(role.name)
+          ? `admin-roles-description-${role.name.toLowerCase()}` : null,
+        isDefault: role.id === defaultRole?.id,
+      }));
+    }
+
+    public async updateDescription(brand: BrandingModel, roleId: string, description: string): Promise<void> {
+      if (typeof description !== 'string' || description.length > 500 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(description)) {
+        throw new Error('Description must be plain text of at most 500 characters');
+      }
+      const role = await Role.updateOne({ id: roleId, branding: brand.id }).set({ description: description.trim() });
+      if (!role) throw new Error('Role not found in this brand');
+    }
 
     public getRoleWithName = (roles: RoleModel[], roleName: string): RoleModel | undefined => {
       return _.find(roles, (o: RoleModel) => { return o.name == roleName });

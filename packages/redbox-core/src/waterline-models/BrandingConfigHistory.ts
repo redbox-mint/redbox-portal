@@ -1,3 +1,4 @@
+import type { BrandingImages } from '../model/BrandingImages';
 /// <reference path="../sails.ts" />
 import { Entity, Attr, BelongsTo, toWaterlineModelDef } from '../decorators';
 import { BrandingConfigAttributes } from './BrandingConfig';
@@ -36,6 +37,9 @@ export class BrandingConfigHistoryClass {
   @Attr({ type: 'json' })
   public typeface?: BrandingTypefaceState | null;
 
+  @Attr({ type: 'json' })
+  public images?: BrandingImages;
+
   @Attr({ type: 'string' })
   public actorId?: string;
 
@@ -61,6 +65,7 @@ export interface BrandingConfigHistoryAttributes extends Sails.WaterlineAttribut
   variables?: Record<string, string>;
   version: number;
   typeface?: BrandingTypefaceState | null;
+  images?: BrandingImages;
   actorId?: string;
   actorDisplayName?: string;
   restoredFromVersion?: number;

@@ -1,4 +1,5 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, QueryList, ViewChild, ViewChildren, ChangeDetectionStrategy } from '@angular/core';
+
 import { FieldArrayType } from '@ngx-formly/core';
 
 @Component({
@@ -19,25 +20,19 @@ import { FieldArrayType } from '@ngx-formly/core';
       }
 
       @for (field of field.fieldGroup; track field; let i = $index) {
-        <div class="row align-items-start">
-          <formly-field class="col-xs-10" [field]="field"></formly-field>
-          <div class="col-xs-2 text-right">
-            <button
-              type="button"
-              (click)="remove(i)"
-              class="fa fa-minus-circle btn text-20 pull-right btn-danger"
-            ></button>
+        <div class="app-config-array-item d-flex gap-2 align-items-start mb-3">
+          <formly-field class="flex-grow-1" [field]="field"></formly-field>
+          <div class="text-end">
+            <button #removeButton type="button" (click)="remove(i)"
+            class="btn btn-sm btn-outline-danger" [attr.aria-label]="'admin-config-remove-item' | i18next: { number: i + 1 }">×</button>
           </div>
         </div>
       }
 
       <div class="row">
         <span class="col-xs-12">
-          <button
-            type="button"
-            (click)="add()"
-            class="btn btn-primary fa fa-plus-circle btn text-20 pull-right btn-success"
-          ></button>
+          <button #addButton type='button' (click)="add()"
+          class="btn btn-sm btn-outline-secondary">+ {{ 'admin-config-add-item' | i18next }}</button>
         </span>
       </div>
     </div>
@@ -45,4 +40,15 @@ import { FieldArrayType } from '@ngx-formly/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class ArrayTypeComponent extends FieldArrayType {}
+export class ArrayTypeComponent extends FieldArrayType {
+  @ViewChildren('removeButton') removeButtons!: QueryList<ElementRef<HTMLButtonElement>>;
+  @ViewChild('addButton') addButton?: ElementRef<HTMLButtonElement>;
+
+  override remove(index: number): void {
+    super.remove(index);
+    setTimeout(() => {
+      const buttons = this.removeButtons.toArray();
+      (buttons[Math.min(index, buttons.length - 1)]?.nativeElement ?? this.addButton?.nativeElement)?.focus();
+    });
+  }
+}

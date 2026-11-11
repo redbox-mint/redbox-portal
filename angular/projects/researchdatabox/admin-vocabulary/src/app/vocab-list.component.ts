@@ -1,4 +1,6 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, inject, ChangeDetectionStrategy } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+
 import { VocabularySummary } from './vocabulary-api.service';
 
 type SourceFilter = 'all' | 'local' | 'rva';
@@ -17,9 +19,11 @@ type VocabularyListQueryState = {
   standalone: false
 })
 export class VocabListComponent implements OnChanges, OnDestroy {
+  readonly adminDates = inject(AdminDateService);
   @Input() vocabularies: VocabularySummary[] = [];
   @Input() selectedId: string | null = null;
   @Input() totalCount = 0;
+  @Input() catalogueTotal?: number;
   @Input() pageSize = 25;
   @Input() offset = 0;
   @Input() query: VocabularyListQueryState = {
@@ -29,6 +33,8 @@ export class VocabListComponent implements OnChanges, OnDestroy {
   };
 
   @Output() selected = new EventEmitter<string>();
+  @Output() syncRequested = new EventEmitter<string>();
+  @Output() createRequested = new EventEmitter<void>();
   @Output() deleted = new EventEmitter<string>();
   @Output() queryChanged = new EventEmitter<VocabularyListQueryState>();
   @Output() pageChanged = new EventEmitter<number>();
@@ -83,6 +89,10 @@ export class VocabListComponent implements OnChanges, OnDestroy {
     return this.offset + this.pageSize < this.totalCount;
   }
 
+  displayName(vocabulary: VocabularySummary): string {
+    return vocabulary.name.replace(/^Australian and New Zealand Standard Research Classification 2020:\s*/, 'ANZSRC 2020: ');
+  }
+
   open(id: string): void {
     this.selected.emit(id);
   }
@@ -116,6 +126,14 @@ export class VocabListComponent implements OnChanges, OnDestroy {
       this.searchDebounceTimer = null;
       this.emitQueryChanged();
     }, 250);
+  }
+
+  clearFilters(): void {
+    if (this.searchDebounceTimer) { clearTimeout(this.searchDebounceTimer); this.searchDebounceTimer = null; }
+    this.searchTerm = '';
+    this.sourceFilter = 'all';
+    this.typeFilter = 'all';
+    this.emitQueryChanged();
   }
 
   previousPage(): void {

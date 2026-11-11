@@ -17,8 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { from } from 'rxjs';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { APP_BASE_HREF } from '@angular/common'; 
+import { APP_BASE_HREF } from '@angular/common';
 import { TranslationService } from './translation.service';
 import { ConfigService } from './config.service';
 import { HttpClient } from '@angular/common/http';
@@ -26,18 +27,28 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { UtilityService } from './utility.service';
 import { LoggerService } from './logger.service';
 import { getStubConfigService } from './helper.spec';
+import { I18NextPipe } from './i18next.pipe';
+
+@Component({
+  imports: [I18NextPipe],
+  template: `<span [attr.aria-label]="'missing-value' | i18next: { defaultValue: '{{value}}', value: value }">{{ 'missing-value' | i18next: { defaultValue: '{{value}}', value: value } }}</span>`
+})
+class InterpolatedTranslationHost {
+  value = 'Authorized domains & emails / <strong>example</strong>';
+}
 
 describe('TranslationService testing', () => {
   let translationService: TranslationService;
   let configService: any;
   let httpTestingController: HttpTestingController;
   let httpClient: HttpClient;
-  
+
   beforeEach(function () {
     configService = getStubConfigService();
     TestBed.configureTestingModule({
       imports: [
-        HttpClientTestingModule
+        HttpClientTestingModule,
+        InterpolatedTranslationHost
       ],
       providers: [
         {
@@ -60,6 +71,18 @@ describe('TranslationService testing', () => {
     translationService = TestBed.inject(TranslationService);
   });
 
+  it('renames a language with a metadata-only POST and no bundle read', async () => {
+    await translationService.waitForInit();
+    const result = translationService.updateLanguageDisplayName('en', 'translation', 'New English');
+    await Promise.resolve();
+    const request = httpTestingController.expectOne(r => r.url.endsWith('/admin/translation/en/translation/display-name'));
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ displayName: 'New English' });
+    request.flush({ locale: 'en', namespace: 'translation', displayName: 'New English' });
+    await result;
+    httpTestingController.verify();
+  });
+
   it('can initialize after a rejected config dependency is recovered', async () => {
     const dependency = spyOn(configService, 'waitForInit').and.rejectWith({ status: 403 });
     await expectAsync(translationService.waitForInit()).toBeRejected();
@@ -71,7 +94,7 @@ describe('TranslationService testing', () => {
 
   it('should produce a valid translation using configService with valid config', async function () {
     const mockConfigData = {
-      csrfToken: 'test', 
+      csrfToken: 'test',
       rootContext: 'base',
       branding: 'default',
       portal: 'rdmp',
@@ -121,6 +144,22 @@ describe('TranslationService testing', () => {
 
     expect(translationService.t('dashboard-heading', { stage: 'Draft', recordTypeName: 'Records' })).toEqual('My Draft Records');
     expect(translationService.t('dashboard-heading', { stage: 'Queued For Review', recordTypeName: 'Records' })).toEqual('My Queued For Review Records');
+  });
+
+  it('leaves ampersands and slashes readable while Angular safely binds interpolated values', async () => {
+    await translationService.waitForInit();
+    const fixture = TestBed.createComponent(InterpolatedTranslationHost);
+    fixture.detectChanges();
+    const span: HTMLSpanElement = fixture.nativeElement.querySelector('span');
+    expect(span.textContent).toBe(fixture.componentInstance.value);
+    expect(span.getAttribute('aria-label')).toBe(fixture.componentInstance.value);
+    expect(span.querySelector('strong')).toBeNull();
+    expect(translationService.t('missing-date', 'From {{date}}', { date: '06/11/2026' })).toBe('From 06/11/2026');
+    // HTML-rendering callers can still explicitly request i18next escaping.
+    expect(translationService.t('missing-value', '{{value}}', {
+      value: '& /', interpolation: { escapeValue: true }
+    })).toBe('&amp; &#x2F;');
+    fixture.destroy();
   });
 
   it('should create the same cache entry for equivalent option objects with different property order', async function () {

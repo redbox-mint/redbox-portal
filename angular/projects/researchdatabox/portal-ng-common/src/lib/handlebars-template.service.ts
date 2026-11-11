@@ -43,6 +43,26 @@ export type DashboardTemplateTarget =
 })
 export class HandlebarsTemplateService extends HttpClientService {
 
+    private templateRuntime?: typeof handlebarsTemplate;
+    private templateRuntimeLoading?: Promise<void>;
+
+    // Most embedded admin apps never render a record template. Load the runtime
+    // only with a valid template module, before exposing synchronous evaluation.
+    private async loadTemplateRuntime(): Promise<void> {
+        if (!this.templateRuntimeLoading) {
+            this.templateRuntimeLoading = import('@researchdatabox/sails-ng-common/handlebars-runtime')
+                .then(async module => {
+                    // Production esbuild wraps the CommonJS package in a default export;
+                    // the unit-test builder also exposes its named exports.
+                    const helpers = module.default ?? module;
+                    await helpers.loadMarkdownParser();
+                    this.templateRuntime = helpers.handlebarsTemplate;
+                })
+                .catch(error => { this.templateRuntimeLoading = undefined; throw error; });
+        }
+        return this.templateRuntimeLoading;
+    }
+
     // Registry of loaded template modules
     private moduleRegistry: Map<string, any> = new Map();
 
@@ -108,6 +128,7 @@ export class HandlebarsTemplateService extends HttpClientService {
         try {
             const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath, { settingsFingerprint });
             if (module && typeof module.evaluate === 'function') {
+                await this.loadTemplateRuntime();
                 this.moduleRegistry.set(registryKey, module);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded dashboard templates ${registryKey}`);
                 return true;
@@ -141,6 +162,7 @@ export class HandlebarsTemplateService extends HttpClientService {
             const module = await this.utilService.getDynamicImport(brandingAndPortalUrl, urlPath);
 
             if (module && typeof module.evaluate === 'function') {
+                await this.loadTemplateRuntime();
                 // Register the module using the report name as key
                 this.registerReportModule(module, reportName);
                 this.loggerService.debug(`HandlebarsTemplateService: Loaded and registered report module for ${reportName}`);
@@ -211,7 +233,7 @@ export class HandlebarsTemplateService extends HttpClientService {
                 try {
                     // The evaluate function compiles and runs the template with the context
                     // dynamicScriptAsset returns the rendered result directly: Handlebars.template(spec)(context)
-                    return module.evaluate(keyParts, context, { libraries: {handlebars: handlebarsTemplate} });
+                    return module.evaluate(keyParts, context, { libraries: {handlebars: this.templateRuntime} });
                 } catch (e) {
                     this.loggerService.error(`HandlebarsTemplateService: Error executing pre-compiled template for key ${keyParts.join('__')}: ${e}`);
                     return null;

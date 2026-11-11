@@ -1,5 +1,7 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
@@ -12,9 +14,10 @@ import { HarvestRunsComponent } from './harvest-runs.component';
   declarations: [
     HarvestRunsComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     FormsModule,
+    BsDatepickerModule,
     BrowserAnimationsModule,
     RedboxPortalCoreServicesModule,
     PaginationModule,

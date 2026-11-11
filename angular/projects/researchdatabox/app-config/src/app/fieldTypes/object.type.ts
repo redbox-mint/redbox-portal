@@ -1,26 +1,38 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { FieldType } from '@ngx-formly/core'; 
+
+import { FieldType, FormlyFieldConfig } from '@ngx-formly/core';
+
 @Component({
-    selector: 'formly-object-type',
-    template: `
-    <div class="mb-3">
-      @if (props.label) {
-        <legend>{{ props.label }}</legend>
-      }
-      @if (props.description) {
-        <p>{{ props.description }}</p>
-      }
-      @if (showError && formControl.errors) {
-        <div class="alert alert-danger" role="alert">
-          <formly-validation-message [field]="field"></formly-validation-message>
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'formly-object-type',
+  standalone: false,
+  template: `
+    @if (props['root']) {
+      <ng-container *ngTemplateOutlet="body"></ng-container>
+    } @else if (props['flat']) {
+      <div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div>
+    } @else {
+      <section class="app-config-subsection">
+        <div class="app-config-subsection-header"><h3>{{ props.label || field.key }}</h3>
+          @if (enabledField; as enabled) { <formly-field [field]="enabled"></formly-field> }
         </div>
+        @if (props.description) { <p class="rb-admin-hint">{{ props.description }}</p> }
+        <div [class.app-config-settings-off]="enabledField?.formControl?.value === false">@if (enabledField?.formControl?.value === false && !options.formState?.pageIsOff?.()) { <p class="rb-admin-hint">{{ 'admin-config-feature-off-help' | i18next: { name: props.label || field.key } }}</p> }<div class="rb-admin-form-grid"><ng-container *ngTemplateOutlet="body"></ng-container></div></div>
+      </section>
+    }
+    <ng-template #body>
+      @if (showError && formControl.errors) {
+        <div class="alert alert-danger" role="alert"><formly-validation-message [field]="field"></formly-validation-message></div>
       }
-      @for (f of field.fieldGroup; track f) {
-        <formly-field [field]="f"></formly-field>
+      @if (!field.fieldGroup?.length && !props['root']) { <p class="rb-admin-hint app-config-empty-section">{{ 'admin-config-no-editable-settings' | i18next }}</p> }
+      @for (child of field.fieldGroup; track child) {
+        @if (!child.props?.['pageEnabled'] && !child.props?.['headerEnabled']) { <formly-field [field]="child"></formly-field> }
       }
-    </div>
-    `,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
-}) 
-export class ObjectTypeComponent extends FieldType { }
+    </ng-template>
+  `
+})
+export class ObjectTypeComponent extends FieldType {
+  get enabledField(): FormlyFieldConfig | undefined {
+    return this.field.fieldGroup?.find(child => child.props?.['headerEnabled']);
+  }
+}

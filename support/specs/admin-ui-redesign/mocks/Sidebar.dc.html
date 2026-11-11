@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin sidebar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<aside class="sb" aria-label="Admin navigation" style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; max-width: 248px; min-height: 100%">
+  <div class="sb-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+    <input aria-label="Find an admin page" placeholder="Find a setting…">
+  </div>
+  <a class="{{homeCls}}" href="Main.dc.html">
+    <span style="display: flex; align-items: center; gap: 10px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+      Overview
+    </span>
+  </a>
+  <sc-for list="{{sections}}" as="sec" hint-placeholder-count="6">
+    <div class="sb-sec">
+      <div class="sb-h"><span>{{sec.title}}</span></div>
+      <sc-for list="{{sec.items}}" as="it" hint-placeholder-count="4">
+        <a class="{{it.cls}}" href="{{it.href}}">
+          <span>{{it.label}}</span>
+          <sc-if value="{{it.hasTag}}" hint-placeholder-val="{{false}}"><span class="{{it.tagCls}}">{{it.tag}}</span></sc-if>
+        </a>
+      </sc-for>
+    </div>
+  </sc-for>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","default":"home","options":["home","reports","named-query","harvest","export","deleted","users","roles","domains","sysmsg","menu","homepanels","adminsidebar","dashboard","branding","translations","analytics","parties","vocab","figvocab","figpub","oni","doi","raid","notif","api"]},"$preview":{"width":248,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'home';
+    const S = [
+      ['Records & reporting', [
+        ['reports', 'Reports', 'Reports.dc.html'],
+        ['named-query', 'Named queries', 'NamedQueries.dc.html'],
+        ['harvest', 'Harvest runs', 'HarvestRuns.dc.html'],
+        ['export', 'Export', 'Export.dc.html'],
+        ['deleted', 'Deleted records', 'DeletedRecords.dc.html']
+      ]],
+      ['People & access', [
+        ['users', 'Users', 'Users.dc.html'],
+        ['roles', 'Roles', 'Roles.dc.html'],
+        ['domains', 'Authorized domains', 'AuthorizedDomains.dc.html']
+      ]],
+      ['Site & content', [
+        ['sysmsg', 'System messages', 'SystemMessages.dc.html', 'Off', 'sb-tag'],
+        ['menu', 'Menu', 'MenuConfig.dc.html'],
+        ['homepanels', 'Home panels', 'MenuConfig.dc.html'],
+        ['adminsidebar', 'Admin sidebar', 'MenuConfig.dc.html'],
+        ['dashboard', 'Dashboards', 'DashboardConfig.dc.html'],
+        ['branding', 'Branding', 'Branding.dc.html'],
+        ['translations', 'Translations', 'Translations.dc.html'],
+        ['analytics', 'Web analytics', 'SystemMessages.dc.html']
+      ]],
+      ['Lookups & vocabularies', [
+        ['parties', 'Parties', 'Parties.dc.html'],
+        ['vocab', 'Vocabularies', 'Vocabularies.dc.html'],
+        ['figvocab', 'Figshare vocabularies', 'FigshareVocab.dc.html']
+      ]],
+      ['Integrations', [
+        ['figpub', 'Figshare publishing', 'IntegrationConfig.dc.html', 'On', 'sb-tag'],
+        ['oni', 'Oni publishing', 'IntegrationConfig.dc.html', 'Check', 'sb-tag warn'],
+        ['doi', 'DOI publishing', 'IntegrationConfig.dc.html', 'On', 'sb-tag'],
+        ['raid', 'RAiD publishing', 'RaidPublishing.dc.html', 'On', 'sb-tag'],
+        ['notif', 'Notifications', 'IntegrationConfig.dc.html']
+      ]],
+      ['Developer', [
+        ['api', 'API docs', 'ApiDocs.dc.html']
+      ]]
+    ];
+    const sections = S.map(([title, items]) => ({
+      title,
+      items: items.map(([id, label, href, tag, tagCls]) => ({
+        label, href, tag: tag || '', tagCls: tagCls || 'sb-tag', hasTag: !!tag,
+        cls: id === active ? 'sb-item active' : 'sb-item'
+      }))
+    }));
+    return { sections, homeCls: active === 'home' ? 'sb-item active' : 'sb-item' };
+  }
+}
+</script>
+</body>
+</html>

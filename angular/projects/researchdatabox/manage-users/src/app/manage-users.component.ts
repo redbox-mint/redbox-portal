@@ -1,4 +1,7 @@
-import { Component, Inject, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Inject, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+
 import { ModalDirective } from 'ngx-bootstrap/modal';
 import { FormArray, FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms';
 import {
@@ -79,7 +82,82 @@ type LinkingUserService = UserService & {
   standalone: false,
 })
 export class ManageUsersComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
+
   title = '@researchdatabox/manage-users';
+  roleFilter = '';
+  signInFilter = '';
+  signInMethods: string[] = [];
+  usersLoading = false;
+  page = 1;
+  readonly pageSize = 25;
+  totalUsers = 0;
+  sort: 'name' | 'username' | 'email' | 'type' | 'lastLogin' = 'name';
+  order: 'asc' | 'desc' = 'asc';
+  get totalPages(): number { return Math.max(1, Math.ceil(this.totalUsers / this.pageSize)); }
+  get pageStart(): number { return this.filteredUsers.length ? (this.page - 1) * this.pageSize + 1 : 0; }
+  async changePage(page: number): Promise<void> {
+    if (this.usersLoading || page === this.page) return;
+    try { await this.refreshUsers(page); } catch { /* The list error is visible. */ }
+  }
+  sortUsers(): void { this.order = this.order === 'asc' ? 'desc' : 'asc'; void this.onFilterChange(); }
+  private usersRequest = 0;
+  pendingUserAction: { kind: 'disable' | 'revoke'; user: ManageUser } | null = null;
+  confirmDiscard: 'details' | 'new' | null = null;
+  private detailsSnapshot = '';
+  private newSnapshot = '';
+
+  get detailsDirty(): boolean { return !!this.updateUserForm && JSON.stringify(this.updateUserForm.getRawValue()) !== this.detailsSnapshot; }
+  get newDirty(): boolean { return !!this.newUserForm && JSON.stringify(this.newUserForm.getRawValue()) !== this.newSnapshot; }
+
+  keepEditing(): void { this.confirmDiscard = null; this.detailsDestination = null; }
+  discardEditor(): void {
+    const editor = this.confirmDiscard;
+    this.confirmDiscard = null;
+    if (editor === 'details') this.hideDetailsModal(true);
+    if (editor === 'new') this.hideNewUserModal(true);
+  }
+  actionPending = false;
+  actionError = '';
+  keyPending = false;
+  @ViewChild('userActionModal') userActionModal?: ModalDirective;
+
+  requestUserAction(kind: 'disable' | 'revoke', user: ManageUser) {
+    this.actionError = '';
+    this.pendingUserAction = { kind, user };
+  }
+
+  async confirmUserAction() {
+    if (!this.pendingUserAction || this.actionPending) return;
+    const { kind, user } = this.pendingUserAction;
+    this.actionPending = true;
+    this.actionError = '';
+    try {
+      const response = kind === 'disable' ? await this.userService.disableUser(user.id) : await this.userService.revokeKey(user.id) as unknown as SaveResponse;
+      if (!response.status) {
+        this.actionError = response.message || this.translationService.t('admin-users-action-error');
+        return;
+      }
+      if (kind === 'revoke') user.token = '';
+      if (this.currentUser?.id === user.id) {
+        if (kind === 'revoke') this.currentUser.token = '';
+        else { this.currentUser.loginDisabled = true; this.currentUser.effectiveLoginDisabled = true; }
+      }
+      this.userActionModal?.hide();
+      this.setUpdateMessage(this.translationService.t(kind === 'disable' ? 'manage-users-disable-success' : 'admin-users-key-revoked'), 'success');
+      await this.refreshUsers();
+    } catch (error) {
+      this.actionError = (error as Error)?.message || this.translationService.t('admin-users-action-error');
+    } finally {
+      this.actionPending = false;
+    }
+  }
+
+  keyAction(user: ManageUser) {
+    if (user.token) this.requestUserAction('revoke', user);
+    else { this.editUser(user.username); this.genKey(user.id); }
+  }
+
 
   allUsers: ManageUser[] = [];
   filteredUsers: ManageUser[] = [];
@@ -109,6 +187,7 @@ export class ManageUsersComponent extends BaseComponent {
   @ViewChild('userAuditModal', { static: false }) userAuditModal?: ModalDirective;
 
   isDetailsModalShown: boolean = false;
+  detailsDestination: 'links' | 'audit' | null = null;
   isNewUserModalShown: boolean = false;
   isLinkModalShown: boolean = false;
   isAuditModalShown: boolean = false;
@@ -145,8 +224,10 @@ export class ManageUsersComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
+    this.brandingAndPortalUrl = this.userService.brandingAndPortalUrl;
     const roles = await this.userService.getBrandRoles() as unknown as Role[];
     this.allRoles = [...roles];
+    this.signInMethods = (await this.userService.getUserOptions()).signInMethods;
     await this.refreshUsers();
   }
 
@@ -182,7 +263,9 @@ export class ManageUsersComponent extends BaseComponent {
         roles: [this.mapRoles(newRolesControlArray.value), Validators.required],
       });
 
-      newRolesControlArray.valueChanges.subscribe(v => {
+      this.newSnapshot = JSON.stringify(this.newUserForm.getRawValue());
+
+      newRolesControlArray.valueChanges.subscribe((v) => {
         this.newUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
     } else {
@@ -228,7 +311,9 @@ export class ManageUsersComponent extends BaseComponent {
         roles: [this.mapRoles(updateRolesControlArray.value), Validators.required],
       });
 
-      updateRolesControlArray.valueChanges.subscribe(v => {
+      this.detailsSnapshot = JSON.stringify(this.updateUserForm.getRawValue());
+
+      updateRolesControlArray.valueChanges.subscribe((v) => {
         this.updateUserForm?.controls['roles'].setValue(this.mapRoles(v));
       });
     }
@@ -251,25 +336,25 @@ export class ManageUsersComponent extends BaseComponent {
     return selectedRoles.length ? selectedRoles : null;
   }
 
-  async refreshUsers() {
-    const users = (await this.userService.getUsers({
-      includeDisabled: this.showDisabledUsers,
-    })) as unknown as ManageUser[];
-    this.allUsers = [];
-    for (const user of users) {
-      this.allUsers.push(user);
+  async refreshUsers(page = this.page) {
+    const request = ++this.usersRequest;
+    this.usersLoading = true;
+    try {
+      const result = await this.userService.getUserPage({ page, pageSize: this.pageSize,
+        includeDisabled: this.showDisabledUsers, signIn: this.signInFilter,
+        query: this.searchFilter.name.trim(), role: this.roleFilter, sort: this.sort, order: this.order });
+      if (request !== this.usersRequest) return;
+      this.page = result.summary.page;
+      this.totalUsers = result.summary.numFound;
+      this.allUsers = result.records as ManageUser[];
+      this.filteredUsers = this.allUsers;
+      this.filteredUsers.forEach(user => user.roleStr = user.roles.map(role => role.name).join(', '));
+    } catch (error) {
+      if (request === this.usersRequest) this.setUpdateMessage(this.translationService.t('admin-users-load-error'), 'danger');
+      throw error;
+    } finally {
+      if (request === this.usersRequest) this.usersLoading = false;
     }
-    this.searchFilter.users = [];
-    this.filteredUsers = [];
-    _.forEach(users, user => {
-      this.searchFilter.users.push({ value: user.name, label: user.name, checked: false });
-      if (!_.includes(this.hiddenUsers, user.username)) {
-        this.filteredUsers.push(user);
-      }
-    });
-    _.map(this.filteredUsers, user => {
-      user.roleStr = _.join(_.map(user.roles, 'name'), ', ');
-    });
   }
 
   editUser(username: string) {
@@ -296,21 +381,36 @@ export class ManageUsersComponent extends BaseComponent {
     this.userDetailsModal?.show();
   }
 
-  hideDetailsModal(): void {
+  hideDetailsModal(force = false): void {
+    if (this.pendingUserAction || this.confirmDiscard) return;
+    if (!force && this.detailsDirty) { this.confirmDiscard = 'details'; return; }
     if (!_.isUndefined(this.userDetailsModal)) {
       this.userDetailsModal.hide();
     }
   }
 
+  navigateFromDetails(destination: 'links' | 'audit'): void {
+    this.detailsDestination = destination;
+    this.hideDetailsModal();
+  }
+
   onDetailsModalHidden(): void {
     this.isDetailsModalShown = false;
+    // Finish the old modal's backdrop/scroll cleanup before opening the next one.
+    const destination = this.detailsDestination;
+    this.detailsDestination = null;
+    if (!this.currentUser) return;
+    if (destination === 'links') this.manageLinks(this.currentUser.username);
+    if (destination === 'audit') this.viewAudit(this.currentUser);
   }
 
   showNewUserModal(): void {
     this.isNewUserModalShown = true;
   }
 
-  hideNewUserModal(): void {
+  hideNewUserModal(force = false): void {
+    if (this.confirmDiscard) return;
+    if (!force && this.newDirty) { this.confirmDiscard = 'new'; return; }
     if (!_.isUndefined(this.userNewModal)) {
       this.userNewModal.hide();
     }
@@ -362,39 +462,53 @@ export class ManageUsersComponent extends BaseComponent {
     this.auditSummary = { returnedCount: 0, truncated: false };
   }
 
-  async genKey(userid: string): Promise<void> {
-    this.setUpdateMessage('Generating...', 'primary');
-    const saveRes = (await this.userService.genKey(userid)) as unknown as SaveResponse;
-    if (saveRes.status) {
-      this.showToken = true;
-      if (this.currentUser != null) {
-        this.currentUser.token = saveRes.message;
+  async genKey(userid: string) {
+    if (this.keyPending) return;
+    this.keyPending = true;
+    this.setUpdateMessage(this.translationService.t('admin-users-key-generating'), 'info');
+    try {
+      const result = await this.userService.genKey(userid) as unknown as SaveResponse;
+      // A request may finish after the user closes the editor and opens another.
+      if (this.currentUser?.id === userid) {
+        if (result.status) {
+          this.showToken = true;
+          this.currentUser.token = result.message;
+        }
+        this.setUpdateMessage(result.status ? this.translationService.t('admin-users-key-generated') : result.message, result.status ? 'success' : 'danger');
       }
-      await this.refreshUsers();
-      this.setUpdateMessage('Token generated.', 'primary');
-    } else {
-      this.setUpdateMessage(saveRes.message, 'danger');
+      if (result.status) await this.refreshUsers();
+    } catch (error) {
+      this.setUpdateMessage((error as Error)?.message || this.translationService.t('admin-users-action-error'), 'danger');
+    } finally {
+      this.keyPending = false;
     }
   }
 
-  async revokeKey(userid: string): Promise<void> {
-    this.setUpdateMessage('Revoking...', 'primary');
-    const saveRes = (await this.userService.revokeKey(userid)) as unknown as SaveResponse;
-    if (saveRes.status) {
-      if (this.currentUser != null) {
-        this.currentUser.token = '';
-      }
-      await this.refreshUsers();
-      this.setUpdateMessage('Token revoked.', 'primary');
-    } else {
-      this.setUpdateMessage(saveRes.message, 'danger');
-    }
+  private readonly document = inject(DOCUMENT);
+
+  fieldInvalid(form: FormGroup, path: string): boolean {
+    const control = form.get(path);
+    const shown = this.submitted || control?.touched;
+    if (!shown) return false;
+    if (path === 'passwords.password') return !!(control?.invalid || form.get('passwords')?.hasError('passwordStrength'));
+    if (path === 'passwords.confirmPassword') return !!(control?.invalid || form.get('passwords')?.hasError('mismatched') || form.get('passwords')?.hasError('passwordStrength'));
+    return !!control?.invalid;
+  }
+
+  private focusInvalidUserField(form: FormGroup | null, formId: string): void {
+    if (!form) return;
+    form.markAllAsTouched();
+    const fields = ['username', 'name', 'email', 'passwords.password', 'passwords.confirmPassword', 'roles'];
+    const path = fields.find(field => this.fieldInvalid(form, field));
+    const selector = path === 'roles' ? '[formControlName="checked"]' : `[formControlName="${path?.split('.').pop()}"]`;
+    this.document.querySelector<HTMLElement>(`#${formId} ${selector}`)?.focus();
   }
 
   async updateUserSubmit(user: UserForm, isValid: boolean) {
     this.submitted = true;
     if (!isValid) {
       this.setUpdateMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
+      this.focusInvalidUserField(this.updateUserForm, 'detailsform');
       return;
     }
     const details: UserDetailsPayload = {
@@ -406,11 +520,11 @@ export class ManageUsersComponent extends BaseComponent {
     _.forEach(user.roles, role => {
       details.roles.push(role.name);
     });
-    this.setUpdateMessage('Saving...', 'primary');
+    this.setUpdateMessage(this.translationService.t('admin-users-saving'), 'info');
 
     const saveRes = (await this.userService.updateUserDetails(user.userid, details)) as unknown as SaveResponse;
     if (saveRes.status) {
-      this.hideDetailsModal();
+      this.hideDetailsModal(true);
       await this.refreshUsers();
       this.setUpdateMessage();
     } else {
@@ -422,6 +536,7 @@ export class ManageUsersComponent extends BaseComponent {
     this.submitted = true;
     if (!isValid) {
       this.setNewUserMessage(this.translationService.t('manage-users-validation-submit'), 'danger');
+      this.focusInvalidUserField(this.newUserForm, 'newform');
       return;
     }
     const details: UserDetailsPayload = {
@@ -435,10 +550,10 @@ export class ManageUsersComponent extends BaseComponent {
       details.roles.push(role.name);
     });
 
-    this.setNewUserMessage('Saving...', 'primary');
-    const saveRes = (await this.userService.addLocalUser(user.username, details)) as unknown as SaveResponse;
+    this.setNewUserMessage(this.translationService.t('admin-users-saving'), 'info');
+    const saveRes = await this.userService.addLocalUser(user.username, details) as unknown as SaveResponse;
     if (saveRes.status) {
-      this.hideNewUserModal();
+      this.hideNewUserModal(true);
       await this.refreshUsers();
       this.setNewUserMessage();
     } else {
@@ -515,7 +630,7 @@ export class ManageUsersComponent extends BaseComponent {
     if (_.isEmpty(timestamp)) {
       return '';
     }
-    return new Date(String(timestamp)).toLocaleString();
+    return this.adminDates.format(timestamp);
   }
 
   isAuditRowExpanded(recordId: string): boolean {
@@ -614,7 +729,7 @@ export class ManageUsersComponent extends BaseComponent {
 
   async toggleShowDisabled() {
     this.showDisabledUsers = !this.showDisabledUsers;
-    await this.refreshUsers();
+    await this.onFilterChange();
   }
 
   async disableUser(user: ManageUser) {
@@ -638,10 +753,9 @@ export class ManageUsersComponent extends BaseComponent {
     try {
       const response = await this.userService.enableUser(user.id);
       if (response.status) {
-        this.setUpdateMessage(
-          this.translationService.t('manage-users-enable-success') || 'User enabled successfully.',
-          'success'
-        );
+        user.loginDisabled = false;
+        user.effectiveLoginDisabled = false;
+        this.setUpdateMessage(this.translationService.t('manage-users-enable-success') || 'User enabled successfully.', 'success');
         await this.refreshUsers();
       } else {
         this.setUpdateMessage(response.message || 'Failed to enable user.', 'danger');
@@ -665,23 +779,19 @@ export class ManageUsersComponent extends BaseComponent {
     );
   }
 
-  onFilterChange() {
-    if (this.searchFilter.name != this.searchFilter.prevName) {
-      this.searchFilter.prevName = this.searchFilter.name;
-      const nameFilter = _.isEmpty(this.searchFilter.name) ? '' : _.trim(this.searchFilter.name);
-
-      this.filteredUsers = _.filter(this.allUsers, user => {
-        const hasNameMatch =
-          nameFilter == '' ? true : _.toLower(user.name).indexOf(_.toLower(this.searchFilter.name)) >= 0;
-        return hasNameMatch;
-      });
-    }
+  async onFilterChange() {
+    this.searchFilter.prevName = this.searchFilter.name;
+    try { await this.refreshUsers(1); } catch { /* refreshUsers presents the error. */ }
   }
 
-  resetFilter() {
+  async changeSignInFilter() { await this.onFilterChange(); }
+
+  async resetFilter() {
+    this.showDisabledUsers = false;
+    this.signInFilter = '';
     this.searchFilter.name = '';
-    _.map(this.searchFilter.users, user => (user.checked = user.value == null));
-    this.onFilterChange();
+    this.roleFilter = '';
+    await this.onFilterChange();
   }
 
   isUpdateUserFormConfirmPasswordTouched() {

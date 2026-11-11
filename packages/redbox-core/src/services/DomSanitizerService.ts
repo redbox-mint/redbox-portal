@@ -6,9 +6,10 @@ import domPurify = require('dompurify');
 import { Buffer } from 'buffer';
 
 
-//TODO: Move to a shared place when we want to reuse dompurify 
+//TODO: Move to a shared place when we want to reuse dompurify
 type DomPurifyInstance = {
   sanitize: (input: string, config?: Record<string, unknown>) => string;
+  removed?: unknown[];
   addHook: (hook: string, cb: (...args: unknown[]) => void) => void;
   removeHook: (hook: string) => void;
 };
@@ -201,26 +202,26 @@ const createDOMPurifyForCall = (): DomPurifyInstance => {
 export namespace Services {
   /**
    * SVG and DOM sanitization service using DOMPurify.
-   * 
+   *
    * This service provides secure sanitization of SVG and other DOM content using
    * configurable DOMPurify profiles defined in config/dompurify.js.
-   * 
+   *
    * Security Approach & OWASP References:
    * ======================================
    * This service implements defense-in-depth sanitization following OWASP recommendations:
-   * 
+   *
    * 1. **DOMPurify Library** (OWASP Recommended):
    *    - Uses DOMPurify, an OWASP-recommended DOM sanitization library
    *    - Reference: https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#html-sanitization
    *    - DOMPurify GitHub: https://github.com/cure53/DOMPurify
    *    - Actively maintained with regular security audits
-   * 
+   *
    * 2. **Multi-Layer Validation** (Defense in Depth):
    *    - Pre-sanitization validation: Size limits, structural checks, dangerous pattern detection
    *    - DOMPurify sanitization: Main sanitization pass with configurable profiles
    *    - Post-sanitization validation: Final security checks for remaining dangerous patterns
    *    - Reference: https://owasp.org/www-community/Defense_in_Depth
-   * 
+   *
    * 3. **SVG-Specific Threats Addressed**:
    *    - Script injection via <script> tags, event handlers (onclick, onload, etc.)
    *    - JavaScript/VBScript protocols in href/xlink:href attributes
@@ -230,31 +231,32 @@ export namespace Services {
    *    - External resource references (http/https URLs)
    *    - Reference: https://owasp.org/www-community/attacks/Billion_laughs_attack
    *    - Reference: https://owasp.org/www-community/attacks/Cross-site_Scripting_(XSS)
-   * 
+   *
    * 4. **Protocol Validation**:
    *    - Blocks dangerous protocols: javascript:, vbscript:, data:, file:, etc.
    *    - Blocks external references to prevent privacy leaks and SSRF
    *    - Reference: https://cheatsheetseries.owasp.org/cheatsheets/AJAX_Security_Cheat_Sheet.html
-   * 
+   *
    * 5. **Content Security Policy (CSP) Compatible**:
    *    - Sanitized content is safe for use with strict CSP
    *    - No inline scripts or event handlers in output
    *    - Reference: https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html
-   * 
+   *
    * 6. **Size & Complexity Limits**:
    *    - Prevents billion laughs attacks and resource exhaustion
    *    - Configurable maximum size limits
    *    - Nesting depth validation
-   * 
+   *
    * Available profiles:
    * - 'svg': Strict SVG sanitization for user-uploaded SVG files
    * - 'html': General HTML content sanitization for rich text
+   * - 'email': Email formatting with remote images and restricted URLs
    * - 'minimal': Light sanitization for trusted content
-   * 
+   *
    * Usage:
    * - sanitize(svg): Sanitizes SVG content with full validation and error reporting
    * - sanitizeWithProfile(content, profile): Generic sanitization with any profile
-   * 
+   *
    * Security Notes:
    * - Always validate sanitization results before rendering
    * - Review errors array for blocked threats
@@ -291,6 +293,48 @@ export namespace Services {
       } catch (error) {
         sails.log.error(`DomSanitizerService: Error sanitizing content with profile '${profileName}':`, error);
         throw error;
+      }
+    }
+
+    /** Strict email profile with attribute-specific URL checks (DOMPurify permits data images by default). */
+    sanitizeEmail(content: string, includeRemovals = false): { sanitized: string; removed: boolean; removals?: Array<{ element?: string; attribute?: string }> } {
+      if (typeof content !== 'string') throw new Error('Content must be a string');
+      if (!sails.config.dompurify?.profiles?.email) throw new Error('DOMPurify email profile is required');
+      const instance = createDOMPurifyForCall();
+      let removed = false;
+      const removals: Array<{ element?: string; attribute?: string }> = [];
+      // Names only: no attribute values, node text, URLs, or serialized markup.
+      const safeName = (name: string | undefined) => name && /^[a-z][a-z0-9:-]{0,63}$/i.test(name) ? name.toLowerCase() : 'other';
+      instance.addHook('uponSanitizeAttribute', (node: unknown, event: unknown) => {
+        const attribute = event as { attrName: string; attrValue: string; keepAttr: boolean };
+        const name = attribute.attrName.toLowerCase();
+        const value = attribute.attrValue.trim();
+        const tag = (node as { tagName?: string }).tagName?.toLowerCase();
+        const unsafe = name.startsWith('on') ||
+          (name === 'href' && (tag !== 'a' || !/^(?:https?:\/\/|mailto:)/i.test(value))) ||
+          (name === 'src' && (tag !== 'img' || !/^https?:\/\//i.test(value))) ||
+          // Keep inline presentation, but no CSS execution, escapes or resource loading.
+          (name === 'style' && /url\s*\(|(?:image-set|image|src|expression)\s*\(|(?:javascript|vbscript|data)\s*:|@|\\|\/\*|behavior\s*:|-moz-binding/i.test(value));
+        if (unsafe) { attribute.keepAttr = false; removed = true; removals.push({ element: safeName(tag), attribute: safeName(name) }); }
+      });
+      try {
+        const sanitized = String(instance.sanitize(content, this.getDOMPurifyConfig('email')));
+        // DOMPurify records its parser-created BODY wrapper as removed when
+        // BODY is absent from ALLOWED_TAGS. Attribute removals on that wrapper
+        // still count; serialization/HTML normalization alone does not.
+        const removedContent = instance.removed?.some(entry => {
+          const removal = entry as { element?: { tagName?: string }; attribute?: unknown };
+          return removal.attribute || removal.element?.tagName !== 'BODY';
+        });
+        for (const entry of instance.removed ?? []) {
+          const item = entry as { element?: { tagName?: string }; attribute?: { name?: string }; from?: { tagName?: string } };
+          if (item.attribute) removals.push({ element: safeName(item.from?.tagName), attribute: safeName(item.attribute.name) });
+          else if (item.element?.tagName !== 'BODY') removals.push({ element: safeName(item.element?.tagName) });
+        }
+        const unique = [...new Map(removals.map(item => [JSON.stringify(item), item])).values()];
+        return { sanitized, removed: removed || Boolean(removedContent), ...(includeRemovals ? { removals: unique } : {}) };
+      } finally {
+        instance.removeHook('uponSanitizeAttribute');
       }
     }
 

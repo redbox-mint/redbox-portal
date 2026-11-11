@@ -1,12 +1,12 @@
 /**
  * Home Panels Configuration Visual Editor
- * 
+ *
  * A custom Formly field type that provides a user-friendly visual editor
  * for managing home panels with support for:
- * - Collapsible panel cards
+ * - Compact selectable panels
  * - Nested panel items
  * - Live preview with panel grid layout
- * - Drag-and-drop reordering (future enhancement)
+ * - Keyboard-accessible row actions
  */
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
@@ -21,15 +21,16 @@ import { HomePanel, HomePanelItem } from './home-panel.interface';
   standalone: false
 })
 export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
   /** Currently expanded panel indices */
   expandedPanels: Set<number> = new Set([0]);
-  
+
   /** Resolve translation labels in preview */
   resolveTranslations = true;
-  
+
   /** Available roles for selection */
   availableRoles: string[] = ['Admin', 'Librarians', 'Researcher', 'Guest'];
-  
+
   /** Common icon classes for quick selection */
   commonIcons: string[] = [
     'icon-checklist icon-3x',
@@ -74,13 +75,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
     return this.formControl.value || [];
   }
 
-  togglePanel(index: number): void {
-    if (this.expandedPanels.has(index)) {
-      this.expandedPanels.delete(index);
-    } else {
-      this.expandedPanels.add(index);
-    }
-  }
+  togglePanel(index: number): void { this.selectParent(index); }
 
   isPanelExpanded(index: number): boolean {
     return this.expandedPanels.has(index);
@@ -96,7 +91,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
     };
     const panels = [...this.panels, newPanel];
     this.formControl.setValue(panels);
-    this.expandedPanels.add(panels.length - 1);
+    this.expandedPanels = new Set([panels.length - 1]);
     this.formControl.markAsDirty();
   }
 
@@ -110,7 +105,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
       if (i < index) newExpanded.add(i);
       else if (i > index) newExpanded.add(i - 1);
     });
-    this.expandedPanels = newExpanded;
+    this.expandedPanels = newExpanded.size ? newExpanded : new Set(panels.length ? [Math.min(index, panels.length - 1)] : []);
     this.formControl.markAsDirty();
   }
 
@@ -124,7 +119,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
     const panels = [...this.panels];
     panels.splice(index + 1, 0, panel);
     this.formControl.setValue(panels);
-    this.expandedPanels.add(index + 1);
+    this.expandedPanels = new Set([index + 1]);
     this.formControl.markAsDirty();
   }
 
@@ -132,10 +127,10 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
     const panels = [...this.panels];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= panels.length) return;
-    
+
     [panels[index], panels[newIndex]] = [panels[newIndex], panels[index]];
     this.formControl.setValue(panels);
-    
+
     // Update expanded state
     const wasExpanded = this.expandedPanels.has(index);
     const targetWasExpanded = this.expandedPanels.has(newIndex);
@@ -143,7 +138,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
     this.expandedPanels.delete(newIndex);
     if (wasExpanded) this.expandedPanels.add(newIndex);
     if (targetWasExpanded) this.expandedPanels.add(index);
-    
+
     this.formControl.markAsDirty();
   }
 
@@ -158,7 +153,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
   openItemEditor(panelIndex: number, itemIndex: number = -1): void {
     const panel = this.panels[panelIndex];
     const isEdit = itemIndex >= 0;
-    
+
     this.itemEditorState = {
       visible: true,
       mode: isEdit ? 'edit' : 'add',
@@ -214,9 +209,9 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
     const panel = { ...panels[panelIndex] };
     const items = [...(panel.items || [])];
     const newIndex = direction === 'up' ? itemIndex - 1 : itemIndex + 1;
-    
+
     if (newIndex < 0 || newIndex >= items.length) return;
-    
+
     [items[itemIndex], items[newIndex]] = [items[newIndex], items[itemIndex]];
     panel.items = items;
     panels[panelIndex] = panel;
@@ -227,13 +222,13 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
   toggleItemRole(role: string): void {
     const item = this.itemEditorState.item;
     const roles = new Set(item.requiredRoles || []);
-    
+
     if (roles.has(role)) {
       roles.delete(role);
     } else {
       roles.add(role);
     }
-    
+
     item.requiredRoles = Array.from(roles);
   }
 
@@ -253,7 +248,7 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
       .map(({ panel, originalIndex }) => ({
         panel: {
           ...panel,
-          items: panel.items.filter(item => 
+          items: panel.items.filter(item =>
             item.requiresAuth !== false && !item.hideWhenAuth
           )
         },
@@ -268,8 +263,8 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
       .map(({ panel, originalIndex }) => ({
         panel: {
           ...panel,
-          items: panel.items.filter(item => 
-            !item.requiresAuth || item.hideWhenAuth
+          items: panel.items.filter(item =>
+            item.requiresAuth === false
           )
         },
         originalIndex
@@ -288,5 +283,39 @@ export class HomePanelsEditorTypeComponent extends FieldType<FieldTypeConfig> im
 
   trackById(index: number, item: HomePanel | HomePanelItem): string {
     return item.id || index.toString();
+  }
+
+  previewSignedIn = true;
+
+  selectParent(index: number): void { this.expandedPanels = new Set([index]); }
+
+  jumpTo(index: number): void {
+    this.selectParent(index);
+    this.cdr.detectChanges();
+    document.getElementById('navigation-detail')?.focus();
+  }
+
+  parentAction(index: number, action: string): void {
+    if (action === 'up' || action === 'down') this.movePanel(index, action);
+    else if (action === 'duplicate') this.duplicatePanel(index);
+    else if (action === 'remove') this.removePanel(index);
+    else if (action === 'add') { this.selectParent(index); this.openItemEditor(index); }
+  }
+
+  childAction(parentIndex: number, childIndex: number, action: string): void {
+    if (action === 'up' || action === 'down') this.moveItem(parentIndex, childIndex, action);
+    else if (action === 'remove') this.removeItem(parentIndex, childIndex);
+    else if (action === 'duplicate') {
+      const parents = [...this.panels];
+      const parent = { ...parents[parentIndex] };
+      const children = [...(parent.items || [])];
+      const child = JSON.parse(JSON.stringify(children[childIndex]));
+      if (child.id) child.id += `-copy-${Date.now()}`;
+      children.splice(childIndex + 1, 0, child);
+      parent.items = children;
+      parents[parentIndex] = parent;
+      this.formControl.setValue(parents);
+      this.formControl.markAsDirty();
+    }
   }
 }

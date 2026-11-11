@@ -31,3 +31,15 @@ export * from './groups/export';
 export * from './groups/notifications';
 export * from './groups/named-query';
 export * from './groups/siem';
+
+export * from './groups/deleted-records';
+
+export * from './groups/admin-users';
+
+export * from './groups/admin-translation';
+
+export * from './groups/dashboard-records';
+
+export * from './groups/party-import';
+
+export * from './groups/figshare-source-update';

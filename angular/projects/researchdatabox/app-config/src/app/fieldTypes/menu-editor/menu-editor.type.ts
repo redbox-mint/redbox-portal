@@ -1,14 +1,15 @@
 /**
  * Menu Configuration Visual Editor
- * 
+ *
  * A custom Formly field type that provides a user-friendly visual editor
  * for managing navigation menu items with support for:
- * - Collapsible menu items
+ * - Compact selectable menu items
  * - Nested children (dropdown menus)
  * - Live preview
- * - Drag-and-drop reordering (future enhancement)
+ * - Keyboard-accessible row actions
  */
 import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
+
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { MenuItem } from './menu-item.interface';
@@ -20,19 +21,18 @@ import { MenuItem } from './menu-item.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false
 })
-export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit, AfterViewInit {
-  @ViewChild('childEditorModal') childEditorModal?: ElementRef;
-  private previousActiveElement: HTMLElement | null = null;
+export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 
   /** Currently expanded item indices */
   expandedItems: Set<number> = new Set([0]);
-  
+
   /** Resolve translation labels in preview */
   resolveTranslations = true;
-  
+
   /** Available roles for selection */
   availableRoles: string[] = ['Admin', 'Librarians', 'Researcher', 'Guest'];
-  
+
   /** Child editor modal state */
   childEditorState: {
     visible: boolean;
@@ -56,38 +56,6 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     // Initialize model if empty
     if (!this.model || !this.model[this.key as string]) {
       this.formControl.setValue([]);
-    }
-  }
-
-  ngAfterViewInit(): void {
-    // Focus trap logic handled in template via (keydown)
-  }
-
-  trapFocus(event: KeyboardEvent): void {
-    if (!this.childEditorState.visible || !this.childEditorModal) return;
-
-    const modalElement = this.childEditorModal.nativeElement;
-    const focusableElements = modalElement.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    
-    const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-    if (event.key === 'Tab') {
-      if (event.shiftKey) {
-        if (document.activeElement === firstElement) {
-          lastElement.focus();
-          event.preventDefault();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          firstElement.focus();
-          event.preventDefault();
-        }
-      }
-    } else if (event.key === 'Escape') {
-      this.closeChildEditor();
     }
   }
 
@@ -119,13 +87,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     }
   }
 
-  toggleItem(index: number): void {
-    if (this.expandedItems.has(index)) {
-      this.expandedItems.delete(index);
-    } else {
-      this.expandedItems.add(index);
-    }
-  }
+  toggleItem(index: number): void { this.selectParent(index); }
 
   isExpanded(index: number): boolean {
     return this.expandedItems.has(index);
@@ -141,7 +103,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     };
     const items = [...this.items, newItem];
     this.formControl.setValue(items);
-    this.expandedItems.add(items.length - 1);
+    this.expandedItems = new Set([items.length - 1]);
     this.formControl.markAsDirty();
   }
 
@@ -155,7 +117,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
       if (i < index) newExpanded.add(i);
       else if (i > index) newExpanded.add(i - 1);
     });
-    this.expandedItems = newExpanded;
+    this.expandedItems = newExpanded.size ? newExpanded : new Set(items.length ? [Math.min(index, items.length - 1)] : []);
     this.formControl.markAsDirty();
   }
 
@@ -172,7 +134,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     const items = [...this.items];
     items.splice(index + 1, 0, item);
     this.formControl.setValue(items);
-    this.expandedItems.add(index + 1);
+    this.expandedItems = new Set([index + 1]);
     this.formControl.markAsDirty();
   }
 
@@ -180,10 +142,10 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     const items = [...this.items];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= items.length) return;
-    
+
     [items[index], items[newIndex]] = [items[newIndex], items[index]];
     this.formControl.setValue(items);
-    
+
     // Update expanded state
     const wasExpanded = this.expandedItems.has(index);
     const targetWasExpanded = this.expandedItems.has(newIndex);
@@ -191,7 +153,7 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     this.expandedItems.delete(newIndex);
     if (wasExpanded) this.expandedItems.add(newIndex);
     if (targetWasExpanded) this.expandedItems.add(index);
-    
+
     this.formControl.markAsDirty();
   }
 
@@ -215,13 +177,13 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     const items = [...this.items];
     const item = { ...items[index] };
     const roles = new Set(item.requiredRoles || []);
-    
+
     if (roles.has(role)) {
       roles.delete(role);
     } else {
       roles.add(role);
     }
-    
+
     item.requiredRoles = Array.from(roles);
     items[index] = item;
     this.formControl.setValue(items);
@@ -234,10 +196,9 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
 
   // Child item management
   openChildEditor(parentIndex: number, childIndex: number = -1): void {
-    this.previousActiveElement = document.activeElement as HTMLElement;
     const parent = this.items[parentIndex];
     const isEdit = childIndex >= 0;
-    
+
     this.childEditorState = {
       visible: true,
       mode: isEdit ? 'edit' : 'add',
@@ -253,25 +214,11 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
           }
     };
     this.cdr.detectChanges();
-    
-    // Focus first input after modal opens
-    setTimeout(() => {
-      if (this.childEditorModal) {
-        const firstInput = this.childEditorModal.nativeElement.querySelector('input');
-        if (firstInput) firstInput.focus();
-      }
-    });
   }
 
   closeChildEditor(): void {
     this.childEditorState.visible = false;
     this.cdr.detectChanges();
-    
-    // Restore focus
-    if (this.previousActiveElement) {
-      this.previousActiveElement.focus();
-      this.previousActiveElement = null;
-    }
   }
 
   saveChildItem(): void {
@@ -313,9 +260,9 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
     const parent = { ...items[parentIndex] };
     const children = [...(parent.children || [])];
     const newIndex = direction === 'up' ? childIndex - 1 : childIndex + 1;
-    
+
     if (newIndex < 0 || newIndex >= children.length) return;
-    
+
     [children[childIndex], children[newIndex]] = [children[newIndex], children[childIndex]];
     parent.children = children;
     items[parentIndex] = parent;
@@ -330,14 +277,14 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
   }
 
   getAuthenticatedItems(): MenuItem[] {
-    return this.items.filter(item => 
+    return this.items.filter(item =>
       item.requiresAuth !== false && !item.hideWhenAuth
     );
   }
 
   getAnonymousItems(): MenuItem[] {
-    return this.items.filter(item => 
-      !item.requiresAuth || item.hideWhenAuth
+    return this.items.filter(item =>
+      item.requiresAuth === false
     );
   }
 
@@ -347,5 +294,39 @@ export class MenuEditorTypeComponent extends FieldType<FieldTypeConfig> implemen
 
   trackById(index: number, item: MenuItem): string {
     return item.id || index.toString();
+  }
+
+  previewSignedIn = true;
+
+  selectParent(index: number): void { this.expandedItems = new Set([index]); }
+
+  jumpTo(index: number): void {
+    this.selectParent(index);
+    this.cdr.detectChanges();
+    document.getElementById('navigation-detail')?.focus();
+  }
+
+  parentAction(index: number, action: string): void {
+    if (action === 'up' || action === 'down') this.moveItem(index, action);
+    else if (action === 'duplicate') this.duplicateItem(index);
+    else if (action === 'remove') this.removeItem(index);
+    else if (action === 'add') { this.selectParent(index); this.openChildEditor(index); }
+  }
+
+  childAction(parentIndex: number, childIndex: number, action: string): void {
+    if (action === 'up' || action === 'down') this.moveChild(parentIndex, childIndex, action);
+    else if (action === 'remove') this.removeChild(parentIndex, childIndex);
+    else if (action === 'duplicate') {
+      const parents = [...this.items];
+      const parent = { ...parents[parentIndex] };
+      const children = [...(parent.children || [])];
+      const child = JSON.parse(JSON.stringify(children[childIndex]));
+      if (child.id) child.id += `-copy-${Date.now()}`;
+      children.splice(childIndex + 1, 0, child);
+      parent.children = children;
+      parents[parentIndex] = parent;
+      this.formControl.setValue(parents);
+      this.formControl.markAsDirty();
+    }
   }
 }

@@ -1,4 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
+
 
 interface MappingEntry {
   id: number;
@@ -6,13 +8,19 @@ interface MappingEntry {
   value: string;
 }
 
+let nextEditorId = 0;
+
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'result-mapping-editor',
   templateUrl: './result-mapping-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  standalone: false,
 })
 export class ResultMappingEditorComponent implements OnChanges {
+  readonly idPrefix = 'result-mapping-editor-' + nextEditorId++;
+  @Input() fields: ContextSchemaField[] = [];
+  @Input() diagnostics: EditorDiagnostic[] = [];
+
   @Input() resultObjectMapping: Record<string, string> = {};
   @Output() resultObjectMappingChange = new EventEmitter<Record<string, string>>();
 
@@ -84,7 +92,7 @@ export class ResultMappingEditorComponent implements OnChanges {
     this.entries = Object.entries(this.resultObjectMapping || {}).map(([key, value]) => ({
       id: this.nextEntryId++,
       key,
-      value
+      value,
     }));
   }
 }

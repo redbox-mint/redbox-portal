@@ -17,11 +17,13 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject, ElementRef, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, Inject, ElementRef, inject, ChangeDetectionStrategy, signal } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+
 import { ConfigService, LoggerService, TranslationService, ReportService, BaseComponent, HandlebarsTemplateService } from '@researchdatabox/portal-ng-common';
 import { RecordSource } from '@researchdatabox/portal-ng-common';
 import {  RecordPropViewMetaDto, ReportDto, ReportResultDto, RecordPageDto, ReportFilterDto } from '@researchdatabox/sails-ng-common';
-import { isEmpty as _isEmpty, set as _set, map as _map } from 'lodash-es';
+import { isEmpty as _isEmpty, set as _set } from 'lodash-es';
 import { DateTime } from 'luxon';
 /**
  * Report Component
@@ -36,6 +38,7 @@ import { DateTime } from 'luxon';
     standalone: false
 })
 export class ReportComponent extends BaseComponent implements RecordSource {
+  readonly adminDates = inject(AdminDateService);
   datePickerPlaceHolder: string = '';
   datePickerOpts: any;
   filterParams: any = {};
@@ -43,6 +46,8 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   private pendingFilter: { params: any } | undefined;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   report: ReportDto = null as any;
+  appliedFilterParams: Record<string, string> = {};
+  private sortState: { variable: string; sort: string } | null = null;
   private readonly results = signal<ReportResultDto>(null as any);
   get reportResult(): ReportResultDto { return this.results(); }
   set reportResult(value: ReportResultDto) { this.results.set(value); }
@@ -86,13 +91,17 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.initTracker.resultsReturned = false;
     this.loadError = '';
     try {
-      this.reportResult = await this.reportService.getReportResult(this.reportName, pageNum, params, this.recordsPerPage);
+      const result = await this.reportService.getReportResult(this.reportName, pageNum, this.withSort(params), this.recordsPerPage);
+      if (!this.pendingFilter) {
+        this.reportResult = result;
+        this.appliedFilterParams = { ...params };
+      }
     } catch (error) {
       // Initial load failures must reach BaseComponent's bootstrap error subject.
       if (!this.isReady) {
         throw error;
       }
-      this.showLoadError(error, () => this.gotoPage(pageNum, params));
+      if (!this.pendingFilter) this.showLoadError(error, () => this.gotoPage(pageNum, params));
     } finally {
       this.pageLoadPending = false;
       this.initTracker.resultsReturned = true;
@@ -111,7 +120,8 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
     const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
     this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerOpts', defaultDatePickerOpts);
-    this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'datePickerPlaceHolder', defaultDatePickerPlaceHolder);
+    this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
+    this.datePickerPlaceHolder = this.adminDates.placeholder;
     this.brandingAndPortalUrl = this.reportService.brandingAndPortalUrl;
     _set(this.optTemplateData, 'brandingAndPortalUrl', this.brandingAndPortalUrl);
     this.recordsPerPage = ConfigService._getAppConfigProperty(sysConfig, this.appName, 'recordsPerPage', this.recordsPerPage);
@@ -156,8 +166,8 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       return null;
     }
     const query = new URLSearchParams({ name: this.reportName });
-    for (const key in params) {
-      query.set(key, params[key]);
+    for (const [key, value] of Object.entries(this.withSort(params))) {
+      query.set(key, value);
     }
     return `${this.brandingAndPortalUrl}/admin/downloadReportCSV?${query}`;
   }
@@ -243,11 +253,81 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     return params;
   }
 
-  public async recordTableAction(event: any, data: any, actionName: string) {
-    console.log('recordTableAction', arguments);
+  public filterLabel(filter: ReportFilterDto, bound?: string): string {
+    const message = String(filter.message || '');
+    const defaults: Record<string, string> = {
+      'Filter by title': 'title',
+      'Filter by date modified': 'modified',
+      'Filter by date created': 'created'
+    };
+    const standard = defaults[message];
+    if (standard === 'title' && filter.type === 'text') return this.translationService.t('admin-report-title-contains', 'Title contains');
+    if (standard && bound && filter.type === 'date-range') {
+      const direction = bound === 'fromDate' ? 'from' : 'to';
+      return this.translationService.t(`admin-report-${standard}-${direction}`);
+    }
+    const label = this.translationService.t(message);
+    return bound ? `${label} ${this.translationService.t(bound === 'fromDate' ? 'report-filter-date-from' : 'report-filter-date-to')}` : label;
   }
 
-  public async headerSortChanged(event: any, data: any) {
-    console.log('headerSortChanged', arguments);
+  public get activeFilters(): { key: string; label: string; value: string }[] {
+    return Object.entries(this.appliedFilterParams).map(([key, value]) => {
+      const filter = this.report.filter.find(item => key === item.paramName ||
+        (item.type === 'date-range' && [item.paramName + '_fromDate', item.paramName + '_toDate'].includes(key)));
+      let label = filter ? this.filterLabel(filter, filter.type === 'date-range' ? (key.endsWith('_fromDate') ? 'fromDate' : 'toDate') : undefined) : key;
+      let display = value;
+      if (filter?.type === 'date-range') {
+        // Use the same configured calendar format as the datepicker, preserving the selected day.
+        const zone = this.dateParamTzByFilter[this.reportName]?.[filter.paramName];
+        display = this.adminDates.format(value, true, zone || 'local');
+      }
+      return { key, label, value: display };
+    });
+  }
+
+  get hasFilters(): boolean {
+    return this.activeFilters.length > 0 || Object.values(this.filterParams).some(value => value != null && String(value).trim() !== '');
+  }
+
+  public async clearFilters(): Promise<void> {
+    this.filterParams = {};
+    await this.filter();
+  }
+
+  public async removeFilter(key: string): Promise<void> {
+    // Chips represent the applied query. Restore it before removing one so unfinished edits aren't submitted.
+    this.filterParams = {};
+    for (const chip of this.activeFilters) {
+      const filter = this.report.filter.find(item => item.type === 'date-range' &&
+        [item.paramName + '_fromDate', item.paramName + '_toDate'].includes(chip.key));
+      if (filter) {
+        const zone = this.dateParamTzByFilter[this.reportName]?.[filter.paramName];
+        const date = DateTime.fromISO(this.appliedFilterParams[chip.key], { zone: zone || 'local' });
+        this.filterParams[chip.key] = new Date(date.year, date.month - 1, date.day);
+      } else {
+        this.filterParams[chip.key] = this.appliedFilterParams[chip.key];
+      }
+    }
+    delete this.filterParams[key];
+    await this.filter();
+  }
+
+  public async recordTableAction(event: any, data: any, actionName: string) { }
+
+  private withSort(params: Record<string, string>): Record<string, string> {
+    return this.sortState ? { ...params, sortField: this.sortState.variable, sortDirection: this.sortState.sort } : params;
+  }
+
+  public async headerSortChanged(event: { variable: string; sort: string }, data: any) {
+    if (!this.report.columns.some(column => column.property === event.variable && column.sortable === true) ||
+      !['asc', 'desc'].includes(event.sort)) return;
+    this.sortState = event;
+    // Sorting preserves applied filters, including while another page request is in flight.
+    const params = { ...this.appliedFilterParams };
+    if (this.pageLoadPending) {
+      this.pendingFilter = { params };
+      return;
+    }
+    await this.gotoPage(1, params);
   }
 }

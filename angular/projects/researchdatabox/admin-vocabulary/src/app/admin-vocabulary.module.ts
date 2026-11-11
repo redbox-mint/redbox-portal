@@ -1,3 +1,4 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -18,7 +19,7 @@ import { RvaImportComponent } from './rva-import.component';
     VocabDetailComponent,
     RvaImportComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     A11yModule,
     FormsModule,

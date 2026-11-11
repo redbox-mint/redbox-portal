@@ -1,4 +1,7 @@
 <div class="preview-root">
+  @if (faviconSrc) {
+    <img [src]="faviconSrc" alt="" width="24" height="24" />
+  }
   <!-- Login/User bar -->
   <div class="header-area">
     <div class="container-fluid">
@@ -64,11 +67,9 @@
     <h3>Heading 3</h3>
     <p>Body text example with <a href="#">link</a>. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
     <p class="preview-sample-regular">Regular: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
-    <p class="preview-sample-bold fw-bold">Bold: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
-    <p class="preview-sample-italic fst-italic">
-      Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}
-    </p>
-    <p class="preview-sample-bold-italic fw-bold fst-italic">
+    <p class="preview-sample-bold">Bold: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
+    <p class="preview-sample-italic">Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}</p>
+    <p class="preview-sample-bold-italic">
       Bold Italic: {{ sampleText || 'The quick brown fox jumps over the lazy dog' }}
     </p>
     <div class="mb-3">

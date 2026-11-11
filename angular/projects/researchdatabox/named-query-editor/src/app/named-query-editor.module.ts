@@ -1,3 +1,6 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
+import { QueryAssistanceModule } from './query-assistance.module';
+import { FieldTreeComponent, SchemaTargetSelectorComponent } from '@researchdatabox/portal-ng-common';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -24,23 +27,26 @@ import { RelatedFilterEditorComponent } from './related-filter-editor/related-fi
     ResultMappingEditorComponent,
     SortEditorComponent,
     MongoQueryEditorComponent,
-    RelatedFilterEditorComponent
+    RelatedFilterEditorComponent,
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     A11yModule,
     FormsModule,
     RedboxPortalCoreServicesModule,
-    CommonModule
+    CommonModule,
+    QueryAssistanceModule,
+    FieldTreeComponent,
+    SchemaTargetSelectorComponent,
   ],
   providers: [
     NamedQueryApiService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),
-      deps: [PlatformLocation]
-    }
+      deps: [PlatformLocation],
+    },
   ],
-  bootstrap: [NamedQueryEditorComponent]
+  bootstrap: [NamedQueryEditorComponent],
 })
 export class NamedQueryEditorModule {}

@@ -74,7 +74,7 @@ interface FilterableItem {
 export namespace Services {
   /**
    * Navigation service that provides brand-aware menu and home panel configuration
-   * 
+   *
    * This service reads navigation configuration from the branding-aware config system
    * and resolves it into ready-to-render structures with proper filtering
    * based on authentication state, roles, translations, and placeholder pages.
@@ -118,7 +118,7 @@ export namespace Services {
 
     /**
      * Resolves the menu configuration for the current request context
-     * 
+     *
      * @param req - The Express/Sails request object
      * @returns ResolvedMenu ready for rendering in templates
      */
@@ -155,7 +155,7 @@ export namespace Services {
 
     /**
      * Resolves the home panel configuration for the current request context
-     * 
+     *
      * @param req - The Express/Sails request object
      * @returns ResolvedHomePanels ready for rendering in templates
      */
@@ -197,7 +197,7 @@ export namespace Services {
 
     /**
      * Resolves the admin sidebar configuration for the current request context
-     * 
+     *
      * @param req - The Express/Sails request object
      * @returns ResolvedAdminSidebar ready for rendering in templates
      */
@@ -572,7 +572,12 @@ export namespace Services {
       const resolved: ResolvedAdminSidebarItem = {
         label: visibilityResult.resolvedLabel,
         href,
-        external
+        external,
+        active: !external && (this.isActive(href, context.currentPath) ||
+          ([context.brandPortalPath + '/admin/parties', context.brandPortalPath + '/dashboard/party'].includes(href) &&
+           [context.brandPortalPath + '/admin/parties', context.brandPortalPath + '/dashboard/party'].includes(context.currentPath)) ||
+          (href === context.brandPortalPath + '/admin/reports' &&
+           context.currentPath.startsWith(context.brandPortalPath + '/admin/report/')))
       };
 
       if (external) {

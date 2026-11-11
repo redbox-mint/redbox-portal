@@ -39,7 +39,8 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.getResolvedLabel('menu-rolemgmt')).toBe('Role management');
     expect(component.getResolvedLabel('menu-create-rdmp')).toBe('Create a new RDMP');
     expect(component.getResolvedLabel('Untranslated literal')).toBe('Untranslated literal');
-    expect(component.getResolvedLabel('missing-key')).toBe('missing-key');
+    expect(component.getResolvedLabel('missing-key')).toBe('Missing key');
+    expect(component.getResolvedLabel('admin-nav-API-docs')).toBe('API docs');
     expect(component.getResolvedLabel('')).toBe('');
 
     component.resolveTranslations = false;
@@ -57,9 +58,9 @@ describe('AdminSidebarEditorTypeComponent', () => {
 
   it('updates header field', () => {
     const { component } = setup({ header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' } });
-    
+
     component.updateHeaderField('titleKey', 'new-title');
-    
+
     expect(component.header?.titleKey).toBe('new-title');
   });
 
@@ -80,7 +81,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('duplicates a section', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
       sections: [{ id: 's1', titleKey: 's1', items: [] }]
     });
@@ -92,7 +93,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('moves a section', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
       sections: [
         { id: 's1', titleKey: 's1', items: [] },
@@ -111,13 +112,13 @@ describe('AdminSidebarEditorTypeComponent', () => {
     // Boundary checks
     component.moveSection(0, 'up');
     expect(component.sections[0].id).toBe('s1');
-    
+
     component.moveSection(1, 'down');
     expect(component.sections[1].id).toBe('s2');
   });
 
   it('updates section field', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
       sections: [{ id: 's1', titleKey: 's1', items: [] }]
     });
@@ -126,17 +127,20 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(component.sections[0].titleKey).toBe('new-title');
   });
 
-  it('toggles section expansion', () => {
+  it('keeps one section selected when selecting the same row again', () => {
     const { component } = setup({ header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' } });
-    
+
     // Initially 0 is expanded by default in component
     expect(component.isSectionExpanded(0)).toBeTrue();
-    
-    component.toggleSection(0);
+
+    component.selectParent(1);
     expect(component.isSectionExpanded(0)).toBeFalse();
-    
-    component.toggleSection(0);
+    expect(component.isSectionExpanded(1)).toBeTrue();
+
+    component.selectParent(0);
+    component.selectParent(0);
     expect(component.isSectionExpanded(0)).toBeTrue();
+    expect(component.isSectionExpanded(1)).toBeFalse();
   });
 
   it('adds section items via the editor', () => {
@@ -152,18 +156,18 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('edits section items via the editor', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
-      sections: [{ 
-        id: 's1', 
-        titleKey: 's1', 
-        items: [{ id: 'i1', labelKey: 'old', href: '/old', requiresAuth: true }] 
+      sections: [{
+        id: 's1',
+        titleKey: 's1',
+        items: [{ id: 'i1', labelKey: 'old', href: '/old', requiresAuth: true }]
       }]
     });
 
     component.openItemEditor(0, 0);
     expect(component.itemEditorState.mode).toBe('edit');
-    
+
     component.itemEditorState.item.labelKey = 'new';
     component.saveItem();
 
@@ -171,12 +175,12 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('removes section items', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
-      sections: [{ 
-        id: 's1', 
-        titleKey: 's1', 
-        items: [{ id: 'i1', labelKey: 'i1', href: '/i1', requiresAuth: true }] 
+      sections: [{
+        id: 's1',
+        titleKey: 's1',
+        items: [{ id: 'i1', labelKey: 'i1', href: '/i1', requiresAuth: true }]
       }]
     });
 
@@ -185,15 +189,15 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('moves section items', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
-      sections: [{ 
-        id: 's1', 
-        titleKey: 's1', 
+      sections: [{
+        id: 's1',
+        titleKey: 's1',
         items: [
           { id: 'i1', labelKey: 'i1', href: '/i1', requiresAuth: true },
           { id: 'i2', labelKey: 'i2', href: '/i2', requiresAuth: true }
-        ] 
+        ]
       }]
     });
 
@@ -204,11 +208,11 @@ describe('AdminSidebarEditorTypeComponent', () => {
     component.moveItem(0, 1, 'up');
     expect(component.sections[0].items[0].id).toBe('i1');
     expect(component.sections[0].items[1].id).toBe('i2');
-    
+
     // Boundary checks
     component.moveItem(0, 0, 'up');
     expect(component.sections[0].items[0].id).toBe('i1');
-    
+
     component.moveItem(0, 1, 'down');
     expect(component.sections[0].items[1].id).toBe('i2');
   });
@@ -232,14 +236,14 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('edits footer links via the editor', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
       footerLinks: [{ id: 'f1', labelKey: 'old', href: '/old', requiresAuth: true }]
     });
 
     component.openFooterLinkEditor(0);
     expect(component.itemEditorState.mode).toBe('edit');
-    
+
     component.itemEditorState.item.labelKey = 'new';
     component.saveItem();
 
@@ -265,7 +269,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
   });
 
   it('moves footer links', () => {
-    const { component } = setup({ 
+    const { component } = setup({
       header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' },
       footerLinks: [
         { id: 'f1', labelKey: 'f1', href: '/f1', requiresAuth: true },
@@ -280,13 +284,23 @@ describe('AdminSidebarEditorTypeComponent', () => {
     component.moveFooterLink(1, 'up');
     expect(component.footerLinks[0].id).toBe('f1');
     expect(component.footerLinks[1].id).toBe('f2');
-    
+
     // Boundary checks
     component.moveFooterLink(0, 'up');
     expect(component.footerLinks[0].id).toBe('f1');
-    
+
     component.moveFooterLink(1, 'down');
     expect(component.footerLinks[1].id).toBe('f2');
+  });
+
+  it('preserves inactive header and expansion values when a sidebar section is edited', () => {
+    const header = { titleKey: 'stored-title', iconClass: 'fa fa-star' };
+    const { component } = setup({ header, sections: [{ id: 'section', titleKey: 'Before', defaultExpanded: false, requiresAuth: false, items: [{ labelKey: 'Link', href: '/admin', requiresAuth: false }] }] });
+    component.updateSectionField(0, 'titleKey', 'After');
+    expect(component.header).toEqual(header);
+    expect(component.sections[0].defaultExpanded).toBeFalse();
+    expect(component.getVisibleSections().length).toBe(1);
+    expect(component.getVisibleItems(component.sections[0]).length).toBe(1);
   });
 
   it('filters visible sections/items and resolves labels', () => {
@@ -318,7 +332,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
     expect(visibleSections.length).toBe(1);
     expect(component.getVisibleItems(visibleSections[0]).length).toBe(1);
     expect(component.getResolvedLabel('menu-admin')).toBe('Administration');
-    
+
     // Test with resolveTranslations = false
     component.resolveTranslations = false;
     expect(component.getResolvedLabel('menu-admin')).toBe('menu-admin');
@@ -334,7 +348,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
   it('checks section roles safely', () => {
     const { component } = setup({ sections: [] });
     expect(component.sectionHasRole(0, 'Admin')).toBeFalse();
-    
+
     // Manually add a section without requiredRoles to test safety
     (component.sections as any).push({ id: 's1', titleKey: 's1', items: [] });
     expect(component.sectionHasRole(0, 'Admin')).toBeFalse();
@@ -346,7 +360,7 @@ describe('AdminSidebarEditorTypeComponent', () => {
     Object.defineProperty(component, 'key', { value: 'header' });
     Object.defineProperty(component, 'model', { value: { header: { titleKey: 'menu-admin', iconClass: 'fa fa-cog' } } });
     Object.defineProperty(component, 'formControl', { value: new FormControl() }); // No parent
-    
+
     component.updateHeader({ titleKey: 'new', iconClass: 'new' });
     expect(component.header?.titleKey).toBe('new');
   });

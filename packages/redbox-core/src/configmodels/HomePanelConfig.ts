@@ -227,7 +227,7 @@ export const HOME_PANEL_CONFIG_SCHEMA = {
   properties: {
     panels: {
       type: 'array',
-      title: 'Home Panels',
+      title: 'admin-config-label-home-panels',
       description: 'Panels to display on the researcher home page',
       widget: {
         formlyConfig: {
@@ -237,30 +237,30 @@ export const HOME_PANEL_CONFIG_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          id: { type: 'string', title: 'ID' },
-          titleKey: { type: 'string', title: 'Title Key' },
-          iconClass: { type: 'string', title: 'Icon Class' },
-          columnClass: { type: 'string', title: 'Column Class', default: 'col-md-3 homepanel' },
+          id: { type: 'string', title: 'admin-config-label-id' },
+          titleKey: { type: 'string', title: 'admin-config-label-title-key' },
+          iconClass: { type: 'string', title: 'admin-config-label-icon-class' },
+          columnClass: { type: 'string', title: 'admin-config-label-column-class', default: 'col-md-3 homepanel' },
           items: {
             type: 'array',
-            title: 'Panel Items',
+            title: 'admin-config-label-panel-items',
             items: {
               type: 'object',
               properties: {
-                id: { type: 'string', title: 'ID' },
-                labelKey: { type: 'string', title: 'Label Key' },
-                href: { type: 'string', title: 'URL' },
-                external: { type: 'boolean', title: 'External Link', default: false },
-                requiresAuth: { type: 'boolean', title: 'Requires Authentication', default: true },
-                hideWhenAuth: { type: 'boolean', title: 'Hide When Authenticated', default: false },
-                requiredRoles: { 
-                  type: 'array', 
-                  title: 'Required Roles',
+                id: { type: 'string', title: 'admin-config-label-id' },
+                labelKey: { type: 'string', title: 'admin-config-label-label-key' },
+                href: { type: 'string', title: 'admin-config-label-url' },
+                external: { type: 'boolean', title: 'admin-config-label-external-link', default: false },
+                requiresAuth: { type: 'boolean', title: 'admin-config-label-requires-authentication', default: true },
+                hideWhenAuth: { type: 'boolean', title: 'admin-config-label-hide-when-authenticated', default: false },
+                requiredRoles: {
+                  type: 'array',
+                  title: 'admin-config-label-required-roles',
                   items: { type: 'string' },
                   default: []
                 },
-                featureFlag: { type: 'string', title: 'Feature Flag' },
-                visibleWhenTranslationExists: { type: 'boolean', title: 'Visible When Translation Exists', default: false }
+                featureFlag: { type: 'string', title: 'admin-config-label-feature-flag' },
+                visibleWhenTranslationExists: { type: 'boolean', title: 'admin-config-label-visible-when-translation-exists', default: false }
               },
               required: ['labelKey', 'href']
             },

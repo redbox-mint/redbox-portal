@@ -1,4 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
+
 
 interface SortEntry {
   id: number;
@@ -7,15 +9,20 @@ interface SortEntry {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'sort-editor',
   templateUrl: './sort-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  standalone: false,
 })
 export class SortEditorComponent implements OnChanges {
+  @Input() fields: ContextSchemaField[] = [];
+  @Input() diagnostics: EditorDiagnostic[] = [];
+
   @Input() sort: Array<Record<string, 'ASC' | 'DESC'>> | undefined = [];
   @Output() sortChange = new EventEmitter<Array<Record<string, 'ASC' | 'DESC'>> | undefined>();
 
+  private static nextId = 0;
+  readonly idPrefix = `nq-sort-${SortEditorComponent.nextId++}`;
   newField = '';
   newDirection: 'ASC' | 'DESC' = 'ASC';
 
@@ -50,11 +57,14 @@ export class SortEditorComponent implements OnChanges {
 
   addEntry(): void {
     if (!this.newField) return;
-    this.entries = [...this.entries, {
-      id: this.nextEntryId++,
-      field: this.newField,
-      direction: this.newDirection
-    }];
+    this.entries = [
+      ...this.entries,
+      {
+        id: this.nextEntryId++,
+        field: this.newField,
+        direction: this.newDirection,
+      },
+    ];
     this.emitFromEntries();
     this.newField = '';
   }
@@ -67,7 +77,7 @@ export class SortEditorComponent implements OnChanges {
   private emitFromEntries(): void {
     const list = this.entries
       .filter(e => e.field)
-      .map(e => ({ [e.field]: e.direction } as Record<string, 'ASC' | 'DESC'>));
+      .map(e => ({ [e.field]: e.direction }) as Record<string, 'ASC' | 'DESC'>);
     const value = list.length > 0 ? list : undefined;
     this.lastEmitted = value;
     this.sort = value;
@@ -76,13 +86,12 @@ export class SortEditorComponent implements OnChanges {
 
   private rebuildEntries(): void {
     const list = this.sort || [];
-    this.entries = list.map(item => {
-      const key = Object.keys(item)[0] || '';
-      return {
+    this.entries = list.flatMap(item =>
+      Object.entries(item).map(([field, direction]) => ({
         id: this.nextEntryId++,
-        field: key,
-        direction: item[key]
-      };
-    });
+        field,
+        direction,
+      }))
+    );
   }
 }

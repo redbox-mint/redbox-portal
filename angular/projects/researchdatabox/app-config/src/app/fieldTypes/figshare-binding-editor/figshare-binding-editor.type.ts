@@ -1,3 +1,5 @@
+import { FormsModule } from '@angular/forms';
+import { I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
 
@@ -14,9 +16,12 @@ interface FigshareBindingValue {
   selector: 'formly-figshare-binding-editor-type',
   templateUrl: './figshare-binding-editor.type.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  standalone: true,
+  imports: [FormsModule, I18NextPipe]
 })
 export class FigshareBindingEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
+  private static nextId = 0;
+  readonly idPrefix = `figshare-binding-${FigshareBindingEditorTypeComponent.nextId++}`;
   readonly bindingKinds: BindingKind[] = ['path', 'handlebars', 'jsonata'];
   private bindingValue: FigshareBindingValue = { kind: 'path', path: '' };
 

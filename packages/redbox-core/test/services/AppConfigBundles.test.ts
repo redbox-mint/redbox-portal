@@ -3,7 +3,7 @@ import * as sinon from 'sinon';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CreateSecretCommand, GetSecretValueCommand, PutSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
+import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_MASK, APP_CONFIG_SECRET_RETAIN_PREFIX, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
 import { AppConfigSecrets } from '../../src/services/AppConfigSecrets';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createBundleLockCollection } from './testHelper';
@@ -63,6 +63,26 @@ describe('AppConfig per-brand JSON bundles', function () {
     const globals = globalThis as unknown as Record<string, unknown>;
     delete globals.AppConfig;
     delete globals.BrandingService;
+  });
+
+  it('copies and renames dictionary entries without losing retained bundle credentials', async function () {
+    await service.createConfig('default', 'first', { sites: { 'old.site[0]': { ingestion: { adminToken: 'original-token' } } } });
+    const retain = APP_CONFIG_SECRET_RETAIN_PREFIX + JSON.stringify(['sites', 'old.site[0]', 'ingestion', 'adminToken']);
+    await service.createOrUpdateConfig(brand, 'first', { sites: {
+      'old.site[0]': { ingestion: { adminToken: APP_CONFIG_SECRET_MASK } }, copy: { ingestion: { adminToken: retain } }
+    } });
+    let runtime = service.getAppConfigurationForBrand('default') as any;
+    expect(runtime.first.sites.copy.ingestion.adminToken).to.equal('original-token');
+    expect(runtime.first.sites['old.site[0]'].ingestion.adminToken).to.equal('original-token');
+    await service.createOrUpdateConfig(brand, 'first', { sites: {
+      renamed: { ingestion: { adminToken: retain } }, copy: { ingestion: { adminToken: APP_CONFIG_SECRET_MASK } }
+    } });
+    runtime = service.getAppConfigurationForBrand('default') as any;
+    expect(runtime.first.sites.renamed.ingestion.adminToken).to.equal('original-token');
+    expect(runtime.first.sites.copy.ingestion.adminToken).to.equal('original-token');
+    const reloaded = new Services.AppConfigs();
+    reloaded.brandingAppConfigMap.default = await reloaded.loadAppConfigurationModel('brand1');
+    expect((reloaded.getAppConfigurationForBrand('default') as any).first.sites.renamed.ingestion.adminToken).to.equal('original-token');
   });
 
   function calls(type: typeof CreateSecretCommand | typeof GetSecretValueCommand | typeof PutSecretValueCommand): number {

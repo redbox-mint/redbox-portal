@@ -2,7 +2,7 @@ let expect: Chai.ExpectStatic;
 import('chai').then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
 import { AgendaQueueUnsupportedFeatureError, Services } from '../../src/services/AgendaQueueService';
-import { parseAgendaHistoryRetentionHours, parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
+import { agendaQueue, parseAgendaHistoryRetentionHours, parseAgendaQueueBackend } from '../../src/config/agendaQueue.config';
 import { cleanupServiceTestGlobals, createMockSails } from './testHelper';
 
 describe('AgendaQueueService', function () {
@@ -98,6 +98,7 @@ describe('AgendaQueueService', function () {
 
       expect(exported).to.have.property('every');
       expect(exported).to.have.property('schedule');
+      expect(exported).to.have.property('scheduleUnique');
       expect(exported).to.have.property('now');
       expect(exported).to.have.property('jobs');
       expect(exported).to.have.property('sampleFunctionToDemonstrateHowToDefineAJobFunction');
@@ -107,6 +108,10 @@ describe('AgendaQueueService', function () {
   });
 
   describe('config parsing', function () {
+    it('keeps Figshare dispatcher and delivery jobs on Mongo when ordinary jobs use SQS', function () {
+      expect(agendaQueue.jobs['Figshare-SyncRecord'].backend).to.equal('mongodb');
+      expect(agendaQueue.jobs['Figshare-Dispatch'].backend).to.equal('mongodb');
+    });
     it('accepts supported backend values', function () {
       expect(parseAgendaQueueBackend('mongodb', 'test-env')).to.equal('mongodb');
       expect(parseAgendaQueueBackend('sqs', 'test-env')).to.equal('sqs');
@@ -126,6 +131,80 @@ describe('AgendaQueueService', function () {
     it('rejects invalid history retention hours', function () {
       expect(() => parseAgendaHistoryRetentionHours('-1', 'test-env')).to.throw("Invalid test-env value '-1'. Expected a non-negative number of hours.");
       expect(() => parseAgendaHistoryRetentionHours('invalid', 'test-env')).to.throw("Invalid test-env value 'invalid'. Expected a non-negative number of hours.");
+    });
+  });
+
+  describe('pending delivery scheduling', function () {
+    it('fails startup when the Mongo repository cannot enforce pending uniqueness', async function () {
+      const { MongoBackend } = await import('@agendajs/mongo-backend');
+      sinon.stub(MongoBackend.prototype, 'repository').get(() => ({}));
+      const createIndex = sinon.stub().resolves();
+      const manager = { collection: () => ({ createIndex }) };
+      const service = new Services.AgendaQueue();
+      try {
+        await Reflect.get(service, 'createAgendaForBackend').call(service, 'mongodb', {}, manager);
+        throw new Error('Expected unsupported repository rejection');
+      } catch (error) {
+        expect(error).to.be.instanceOf(AgendaQueueUnsupportedFeatureError);
+        expect((error as Error).message).to.include('MongoJobRepository');
+      }
+    });
+
+    it('routes Figshare to Mongo alongside ordinary SQS jobs with an SQS default', async function () {
+      setupGlobals(createMockSails({
+        config: { agendaQueue: {
+          options: { backend: 'sqs', collection: 'agendaJobs' },
+          jobs: {
+            'Figshare-SyncRecord': agendaQueue.jobs['Figshare-SyncRecord'],
+            'ordinary-job': { fnName: 'testservice.process' }
+          }
+        } },
+        services: { figshareservice: { syncRecordJob: sinon.stub().resolves() }, testservice: { process: sinon.stub().resolves() } }
+      }));
+      const service = new Services.AgendaQueue();
+      const pending = { attrs: { nextRunAt: new Date() }, schedule: sinon.stub().returnsThis(), unique: sinon.stub().returnsThis(), save: sinon.stub().resolves() };
+      const { MongoJobRepository } = await import('@agendajs/mongo-backend');
+      const repository = new MongoJobRepository({ db: { address: 'mongodb://unused' } });
+      Reflect.set(repository, 'collection', { updateOne: sinon.stub().resolves() });
+      const mongoAgenda = createAgendaStub({ create: sinon.stub().returns(pending), db: repository });
+      const sqsAgenda = createAgendaStub();
+      Reflect.set(service, 'createAgendaForBackend', async (backend: string) => backend === 'mongodb' ? mongoAgenda : sqsAgenda);
+      await Reflect.get(service, 'handleReady').call(service);
+      await service.scheduleUnique('Figshare-SyncRecord', new Date(), { oid: 'record', brandId: 'brand' }, 'key');
+      await service.now('ordinary-job', { sample: true });
+      expect(mongoAgenda.create.calledOnceWithExactly('Figshare-SyncRecord', { oid: 'record', brandId: 'brand', deliveryKey: 'key' })).to.equal(true);
+      expect(sqsAgenda.now.calledOnceWithExactly('ordinary-job', { sample: true })).to.equal(true);
+    });
+
+    it('rejects unsupported SQS uniqueness before creating a job', async function () {
+      const service = new Services.AgendaQueue();
+      const sqsAgenda = createAgendaStub();
+      sinon.stub(service as any, 'ensureQueueInitialized').resolves();
+      Reflect.set(service, 'agendas', { sqs: sqsAgenda });
+      Reflect.set(service, 'jobBackendByName', new Map([['sqs-job', 'sqs']]));
+      try {
+        await service.scheduleUnique('sqs-job', new Date(), { oid: 'record' }, 'key');
+        throw new Error('Expected uniqueness rejection');
+      } catch (error) {
+        expect(error).to.be.instanceOf(AgendaQueueUnsupportedFeatureError);
+        expect((error as Error).message).to.include('requires a MongoDB-backed job');
+      }
+      expect(sqsAgenda.create.called).to.equal(false);
+    });
+
+    it('rejects an explicit SQS override for Figshare during startup', async function () {
+      setupGlobals(createMockSails({ config: { agendaQueue: {
+        options: { backend: 'sqs' },
+        jobs: { 'Figshare-SyncRecord': { fnName: 'figshareservice.syncRecordJob', backend: 'sqs' } }
+      } } }));
+      const service = new Services.AgendaQueue();
+      try {
+        await Reflect.get(service, 'handleReady').call(service);
+        throw new Error('Expected Figshare backend rejection');
+      } catch (error) {
+        expect(error).to.be.instanceOf(AgendaQueueUnsupportedFeatureError);
+        expect((error as Error).message).to.include("Figshare-SyncRecord requires backend 'mongodb'");
+      }
     });
   });
 
@@ -526,6 +605,10 @@ describe('AgendaQueueService', function () {
       expect((service as any).agendas.mongodb).to.equal(undefined);
       expect(disconnect.calledOnce).to.equal(true);
       connect.resolves();
+      const { MongoJobRepository } = await import('@agendajs/mongo-backend');
+      const repository = new MongoJobRepository({ db: { address: 'mongodb://unused' } });
+      Reflect.set(repository, 'collection', { createIndex: sinon.stub().resolves() });
+      sinon.stub(MongoBackend.prototype, 'repository').get(() => repository);
       const saved = sinon.stub(Agenda.prototype, 'now').resolves({} as any);
       await service.now('pdf', { oid: 'retry' });
       await (service as any).agendas.mongodb.ready;

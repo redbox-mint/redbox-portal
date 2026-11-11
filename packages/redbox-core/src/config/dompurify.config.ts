@@ -1,7 +1,7 @@
 /**
  * DOMPurify Config Interface
  * (sails.config.dompurify)
- * 
+ *
  * DOMPurify sanitization profiles and hooks.
  */
 
@@ -98,7 +98,7 @@ export const dompurify: DomPurifyConfig = {
         /**
          * SVG sanitization profile for user-uploaded SVG content
          * Used primarily for branding logos and icons
-         * 
+         *
          * SECURITY NOTE: 'foreignObject' is explicitly forbidden as it's a high-risk
          * XSS vector that can embed arbitrary HTML/iframes inside SVG, bypassing
          * content security policies and allowing script execution.
@@ -161,10 +161,33 @@ export const dompurify: DomPurifyConfig = {
             IN_PLACE: false
         },
 
+        /** Email-safe formatting; external institution images are intentionally supported. */
+        email: {
+            ALLOWED_TAGS: [
+                'a', 'p', 'br', 'hr', 'strong', 'em', 'u', 'i', 'b', 's', 'small', 'span', 'div',
+                'sub', 'sup', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li',
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img',
+                'table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+            ],
+            ALLOWED_ATTR: [
+                'class', 'title', 'style', 'href', 'src', 'alt', 'width', 'height',
+                'align', 'valign', 'border', 'cellpadding', 'cellspacing', 'colspan', 'rowspan',
+                'scope', 'start', 'type',
+            ],
+            FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button',
+                'textarea', 'select', 'option', 'svg', 'math', 'template'],
+            ALLOW_DATA_ATTR: false,
+            ALLOW_UNKNOWN_PROTOCOLS: false,
+            ALLOWED_URI_REGEXP: /^(?:https?:\/\/|mailto:)/i,
+            SANITIZE_DOM: true,
+            KEEP_CONTENT: true,
+            IN_PLACE: false,
+        },
+
         /**
          * HTML content sanitization profile for rich text content
          * More restrictive than SVG, suitable for user-generated HTML content
-         * 
+         *
          * SECURITY NOTE: The 'target' attribute is allowed, but any link with target="_blank"
          * MUST have rel="noopener noreferrer" to prevent tabnapping attacks. This is enforced
          * via DOMPurify hooks (see afterSanitizeAttributes hook below) that automatically add
@@ -229,7 +252,7 @@ export const dompurify: DomPurifyConfig = {
      */
     hooks: {
         /**
-         * afterSanitizeAttributes hook: Automatically add rel="noopener noreferrer" 
+         * afterSanitizeAttributes hook: Automatically add rel="noopener noreferrer"
          * to any anchor tag with target="_blank" to prevent tabnapping attacks.
          */
         afterSanitizeAttributes: function (node: unknown) {

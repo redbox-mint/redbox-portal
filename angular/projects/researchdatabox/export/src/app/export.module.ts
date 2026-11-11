@@ -1,3 +1,5 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -13,8 +15,9 @@ import { ExportService } from './export.service';
   declarations: [
     ExportComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
+    A11yModule,
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreServicesModule,

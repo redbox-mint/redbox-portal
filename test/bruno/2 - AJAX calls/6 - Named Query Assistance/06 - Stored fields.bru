@@ -1,0 +1,31 @@
+meta {
+  name: Named queries - Stored fields
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/editor/fields?collectionName=record&recordType={{queryEditorType}}&stage={{queryEditorStage}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Separates metadata and envelope paths", () => {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.envelopeFields.some(field => field.path === "redboxOid")).to.equal(true);
+    expect(data.fields.every(field => field.path === "metadata" || field.path.startsWith("metadata."))).to.equal(true);
+  });
+}

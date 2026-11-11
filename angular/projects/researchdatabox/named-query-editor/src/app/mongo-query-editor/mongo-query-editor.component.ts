@@ -1,4 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, ChangeDetectionStrategy } from '@angular/core';
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
+
 
 interface QueryEntry {
   id: number;
@@ -7,13 +9,20 @@ interface QueryEntry {
   value: string;
 }
 
+let nextEditorId = 0;
+
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'mongo-query-editor',
   templateUrl: './mongo-query-editor.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: false
+  standalone: false,
 })
 export class MongoQueryEditorComponent implements OnChanges {
+  readonly idPrefix = 'mongo-query-editor-' + nextEditorId++;
+  @Output() validityChange = new EventEmitter<boolean>();
+  @Input() fields: ContextSchemaField[] = [];
+  @Input() diagnostics: EditorDiagnostic[] = [];
+
   @Input() mongoQuery: Record<string, unknown> = {};
   @Output() mongoQueryChange = new EventEmitter<Record<string, unknown>>();
 
@@ -44,8 +53,7 @@ export class MongoQueryEditorComponent implements OnChanges {
 
   toggleRawJson(): void {
     if (this.useRawJson) {
-      this.useRawJson = false;
-      this.jsonError = null;
+      this.applyRawJson();
     } else {
       this.rawJsonText = JSON.stringify(this.mongoQuery, null, 2);
       this.useRawJson = true;
@@ -56,23 +64,41 @@ export class MongoQueryEditorComponent implements OnChanges {
   applyRawJson(): void {
     try {
       const parsed = JSON.parse(this.rawJsonText);
-      if (typeof parsed !== 'object' || parsed === null) {
-        this.jsonError = 'Must be a valid JSON object';
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        this.jsonError = 'named-query-invalid-json';
+        this.validityChange.emit(false);
         return;
       }
       this.jsonError = null;
+      this.validityChange.emit(true);
       this.emit(parsed as Record<string, unknown>);
       this.useRawJson = false;
     } catch (e: unknown) {
-      this.jsonError = 'Invalid JSON: ' + ((e as Error).message || String(e));
+      this.jsonError = 'named-query-invalid-json';
+      this.validityChange.emit(false);
     }
   }
 
   addEntry(): void {
     if (!this.newPath) return;
-    const updated = { ...this.mongoQuery };
-    updated[this.newPath] = this.parseValue(this.newType, this.newValue);
-    this.emit(updated);
+    try {
+      this.parseValue(this.newType, this.newValue);
+    } catch {
+      this.jsonError = 'named-query-invalid-json';
+      this.validityChange.emit(false);
+      return;
+    }
+    // Entries include pending edits that are absent from the last valid query.
+    const existing = this.entries.find(entry => entry.path === this.newPath);
+    if (existing) {
+      existing.type = this.newType;
+      existing.value = this.newValue;
+    } else {
+      this.entries = [...this.entries, {
+        id: this.nextEntryId++, path: this.newPath, type: this.newType, value: this.newValue,
+      }];
+    }
+    this.emitFromEntries();
     this.newPath = '';
     this.newValue = '';
     this.newType = 'string';
@@ -103,9 +129,16 @@ export class MongoQueryEditorComponent implements OnChanges {
 
   private emitFromEntries(): void {
     const updated: Record<string, unknown> = {};
-    for (const e of this.entries) {
-      if (!e.path) continue;
-      updated[e.path] = this.parseValue(e.type, e.value);
+    try {
+      for (const e of this.entries) {
+        if (e.path) updated[e.path] = this.parseValue(e.type, e.value);
+      }
+      this.jsonError = null;
+      this.validityChange.emit(true);
+    } catch {
+      this.jsonError = 'named-query-invalid-json';
+      this.validityChange.emit(false);
+      return;
     }
     this.lastEmitted = updated;
     this.mongoQuery = updated;
@@ -124,7 +157,7 @@ export class MongoQueryEditorComponent implements OnChanges {
       id: this.nextEntryId++,
       path,
       type: this.detectType(value),
-      value: this.serializeValue(value)
+      value: this.serializeValue(value),
     }));
   }
 
@@ -144,19 +177,27 @@ export class MongoQueryEditorComponent implements OnChanges {
     return JSON.stringify(value);
   }
 
+  rawChanged(): void {
+    this.validityChange.emit(false);
+  }
+
   private parseValue(type: string, valueStr: string): unknown {
     switch (type) {
-      case 'null': return null;
-      case 'number': return Number(valueStr);
-      case 'boolean': return valueStr === 'true';
+      case 'null':
+        return null;
+      case 'number':
+        return Number(valueStr);
+      case 'boolean':
+        return valueStr === 'true';
       case 'array':
       case 'object':
         try {
           return JSON.parse(valueStr || (type === 'array' ? '[]' : '{}'));
         } catch {
-          return type === 'array' ? [] : {};
+          throw new Error('named-query-invalid-json');
         }
-      default: return valueStr;
+      default:
+        return valueStr;
     }
   }
 

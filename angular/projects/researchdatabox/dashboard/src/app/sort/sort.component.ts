@@ -9,6 +9,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 })
 export class SortComponent {
 
+  @Input() adminPresentation = false;
   @Input() sort: string = '';
   @Input() title: string = '';
   @Input() step: string = '';

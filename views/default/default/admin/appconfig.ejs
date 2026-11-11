@@ -1,18 +1,22 @@
-<% let appName = 'app-config'; %>
+<% let appName = 'app-config';
+const earlyHeader = configKey === 'authorizedDomainsEmails' ? {
+  title: TranslationService.t(formTitle),
+  description: TranslationService.t('admin-config-description-authorized-account-creation'),
+  adminLabel: TranslationService.t('menu-admin'),
+  breadcrumbLabel: TranslationService.t('admin-breadcrumb-label'),
+  section: ((typeof adminSidebar !== 'undefined' && adminSidebar.sections) || []).find(section => section.items.some(item => item.active))?.title || '',
+  adminUrl: BrandingService.getBrandAndPortalPath(req) + '/admin'
+} : null;
+%>
 
-<div class="row admin-layout">
-  <div class="col-md-3 col-lg-2">
-    <%- include('layout/sidebar.ejs') %>
-  </div>
-  <div class="col-md-9 col-lg-10 admin-main-content">
-    <h2><%= formTitle %></h2>
-    <app-config configKey="<%= configKey %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+<%- include('layout/start.ejs') %>
+    <app-config configKey="<%= configKey %>"<% if (earlyHeader) { %> data-admin-header="<%= JSON.stringify(earlyHeader) %>"<% } %> <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <% if (earlyHeader) { %><%- include('layout/early-header.ejs', { header: earlyHeader }) %><% } %>
       <div class="col-xs-12">
         <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg" alt="<%= TranslationService.t('loading-alt-text') %>">
       </div>
     </app-config>
-  </div>
-</div>
+<%- include('layout/end.ejs') %>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%=appName%>/browser/main<%=CacheService.getNgAppFileHash(appName, 'main', '-') %>.js"
    type="module"></script>
 <link rel="stylesheet" href="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/styles<%=CacheService.getNgAppFileHash(appName, 'styles', '-')%>.css">

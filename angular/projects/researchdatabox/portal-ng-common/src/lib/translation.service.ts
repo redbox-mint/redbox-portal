@@ -25,7 +25,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, merge as
 
 import { Service } from './service.interface';
 import { HttpClientService } from './httpClient.service';
-import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common";
+import { isLikelyNaturalLanguage } from "@researchdatabox/sails-ng-common/dist/src/translation-helpers";
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { ConfigService } from './config.service';
@@ -43,7 +43,7 @@ export const PORTAL_I18N_TEST_OPTIONS = new InjectionToken<InitOptions>('PORTAL_
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
- * 
+ *
  */
 @Injectable()
 export class TranslationService extends HttpClientService implements Service {
@@ -64,6 +64,9 @@ export class TranslationService extends HttpClientService implements Service {
     fallbackLng: 'en',
     debug: true,
     returnEmptyString: true,
+    // Angular escapes text and attribute bindings; escaping here would display
+    // HTML entities for interpolated labels, URLs and dates.
+    interpolation: { escapeValue: false },
     // Legacy ReDBox keys often include ":" (e.g. "@dmpt-foaf:fundedBy_foaf:Agent"),
     // so ":" cannot be treated as an i18next namespace separator.
     nsSeparator: false,
@@ -176,6 +179,9 @@ export class TranslationService extends HttpClientService implements Service {
         _set(this.i18NextOpts, 'returnEmptyString', this.i18NextOptsDefault.returnEmptyString);
         if (_isUndefined(_get(this.i18NextOpts, 'nsSeparator'))) {
           _set(this.i18NextOpts, 'nsSeparator', this.i18NextOptsDefault.nsSeparator);
+        }
+        if (_isUndefined(_get(this.i18NextOpts, 'interpolation.escapeValue'))) {
+          _set(this.i18NextOpts, 'interpolation.escapeValue', this.i18NextOptsDefault.interpolation.escapeValue);
         }
       } else {
         this.loggerService.info(`Language service using default config`);
@@ -302,13 +308,30 @@ export class TranslationService extends HttpClientService implements Service {
 
   // ===== Admin translation API (Angular app) =====
   /** List i18n entries for the current branding */
-  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string; contentFormat?: 'plain' | 'html' }>> {
+  public async listEntries(locale: string, namespace = 'translation', keyPrefix?: string): Promise<Array<{ key: string; value: any; description?: string; category?: string; contentFormat?: 'plain' | 'html'; provenance?: 'default' | 'override' | 'missing'; hasDefault?: boolean }>> {
     await this.waitForInit();
-    const params = new URLSearchParams({ locale, namespace });
-    if (keyPrefix) params.set('keyPrefix', keyPrefix);
-    const url = `${this.brandingAndPortalUrl}/app/i18n/entries?${params.toString()}`;
-    const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
+    const url = `${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/editor`;
+    const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res.filter(entry => !keyPrefix || entry.key.startsWith(keyPrefix)) : []));
     return firstValueFrom(req$);
+  }
+
+  public translationExportUrl(locale: string, namespace: string): string {
+    return `${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/export`;
+  }
+
+  public async previewTranslationImport(locale: string, namespace: string, json: string, keepUnknown: boolean): Promise<any> {
+    await this.waitForInit();
+    return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/import/preview`, { json, keepUnknown }, this.requestOptions));
+  }
+
+  public async applyTranslationImport(locale: string, namespace: string, json: string, keepUnknown: boolean, previewToken: string): Promise<any> {
+    await this.waitForInit();
+    return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/import/apply`, { json, keepUnknown, previewToken }, this.requestOptions));
+  }
+
+  public async revertEntry(locale: string, namespace: string, key: string): Promise<any> {
+    await this.waitForInit();
+    return firstValueFrom(this.http.post(`${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/revert`, { key }, this.requestOptions));
   }
 
   /** Create/update a single entry for the current branding */
@@ -320,9 +343,9 @@ export class TranslationService extends HttpClientService implements Service {
   }
 
   /** List supported languages for current branding */
-  public async listLanguages(): Promise<{ code: string; displayName: string; }[]> {
+  public async listLanguages(includeCounts = false): Promise<{ code: string; displayName: string; enabled?: boolean; translated?: number; total?: number }[]> {
     await this.waitForInit();
-    const url = `${this.brandingAndPortalUrl}/locales`;
+    const url = `${this.brandingAndPortalUrl}/${includeCounts ? 'admin/translation/languages' : 'locales'}`;
     const req$ = this.http.get(url, this.requestOptions).pipe(map((res: any) => Array.isArray(res) ? res : []));
     return firstValueFrom(req$);
   }
@@ -382,22 +405,8 @@ export class TranslationService extends HttpClientService implements Service {
   public async updateLanguageDisplayName(locale: string, namespace = 'translation', displayName: string): Promise<any> {
     await this.waitForInit();
 
-    try {
-      // Get current bundle
-      const bundle = await this.getBundle(locale, namespace);
-      if (!bundle) {
-        throw new Error(`Bundle not found for ${locale}:${namespace}`);
-      }
-
-      // Update with new display name using POST (same endpoint as setBundle)
-      const url = `${this.brandingAndPortalUrl}/app/i18n/bundles/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}`;
-      const body = { data: bundle.data, displayName };
-      const req$ = this.http.post<any>(url, body, this.requestOptions).pipe(map(res => res));
-      return firstValueFrom(req$);
-    } catch (error) {
-      console.error(`Failed to update display name for ${locale}:`, error);
-      throw error;
-    }
+    const url = `${this.brandingAndPortalUrl}/admin/translation/${encodeURIComponent(locale)}/${encodeURIComponent(namespace)}/display-name`;
+    return firstValueFrom(this.http.post(url, { displayName }, this.requestOptions));
   }
 
   /** Ensure all languages have lang-<langcode> entries for the language selector */

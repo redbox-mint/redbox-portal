@@ -1,3 +1,4 @@
+import { AdminPagerComponent } from './admin-pager.component';
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { RecordTableComponent } from './record-table.component';
 /** Optional record table, sorting and pagination UI. */
 @NgModule({
   declarations: [RecordTableComponent, HeaderSortComponent],
-  imports: [CommonModule, FormsModule, I18NextPipe, PaginationModule],
+  imports: [AdminPagerComponent, CommonModule, FormsModule, I18NextPipe, PaginationModule],
   exports: [RecordTableComponent, HeaderSortComponent, PaginationModule]
 })
 export class RedboxPortalRecordTableModule {}

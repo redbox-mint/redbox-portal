@@ -1,8 +1,8 @@
-import { PaginationModule } from 'ngx-bootstrap/pagination';
+import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { APP_BASE_HREF } from '@angular/common';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { LoggerService, RedboxPortalCoreServicesModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
+import { ConfigService, RecordService, getStubConfigService, getStubRecordService, LoggerService, RedboxPortalCoreModule, TranslationService, getStubTranslationService } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService, HarvestRunDetail } from './harvest-run-api.service';
 import { HarvestRunsComponent } from './harvest-runs.component';
 
@@ -13,8 +13,9 @@ describe('HarvestRunsComponent', () => {
   let apiService: jasmine.SpyObj<HarvestRunApiService>;
 
   beforeEach(async () => {
-    apiService = jasmine.createSpyObj<HarvestRunApiService>('HarvestRunApiService', ['waitForInit', 'listRuns', 'getRun', 'listRunEvents', 'listRunChunks', 'getBrandingAndPortalUrl']);
+    apiService = jasmine.createSpyObj<HarvestRunApiService>('HarvestRunApiService', ['waitForInit', 'getStatistics', 'listRuns', 'getRun', 'listRunEvents', 'listRunChunks', 'getBrandingAndPortalUrl']);
     apiService.waitForInit.and.resolveTo(apiService);
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 25, failedLast7Days: 3, runningNow: 2, lastSuccessfulRun: { completedAt: new Date(Date.now() - 2 * 3600000).toISOString(), sourceName: 'Global source' } });
     apiService.getBrandingAndPortalUrl.and.returnValue('base/default/rdmp');
     apiService.listRuns.and.resolveTo({
       summary: { numFound: 1, page: 1, start: 0 },
@@ -37,9 +38,11 @@ describe('HarvestRunsComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [HarvestRunsComponent],
-      imports: [FormsModule, RedboxPortalCoreServicesModule, PaginationModule],
+      imports: [FormsModule, RedboxPortalCoreModule, BsDatepickerModule],
       providers: [
         LoggerService,
+        { provide: ConfigService, useValue: getStubConfigService() },
+        { provide: RecordService, useValue: getStubRecordService({ types: [{ name: 'rdmp' }, { name: 'dataRecord' }] }) },
         {
           provide: APP_BASE_HREF,
           useValue: 'base'
@@ -51,6 +54,7 @@ describe('HarvestRunsComponent', () => {
             'harvest-runs-heading': 'Harvest runs',
             'harvest-runs-loading': 'Loading harvest runs',
             'harvest-runs-empty': 'No harvest runs found.',
+            'admin-harvest-empty': 'No harvest runs yet',
             'harvest-runs-filter-apply': 'Apply filters',
             'harvest-runs-filter-clear': 'Clear filters',
             'harvest-runs-detail-summary': 'Summary',
@@ -79,14 +83,166 @@ describe('HarvestRunsComponent', () => {
       ]
     }).compileComponents();
 
+    TestBed.inject(TranslationService).getCurrentLanguage = () => 'en';
     fixture = TestBed.createComponent(HarvestRunsComponent);
     component = fixture.componentInstance;
   });
 
-  it('loads runs and the initial selected run detail on init', async () => {
+  it('loads only summaries initially and exposes long error details after selection', async () => {
+    detail.events[0].outcome = 'failed';
+    detail.events[0].status = false;
+    detail.events[0].message = 'Failure '.repeat(40) + '\nsecond line';
+    fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable();
+    expect(apiService.getRun).not.toHaveBeenCalled();
+    expect(apiService.listRunEvents).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.hr-detail')).toBeNull();
+    await component.selectRun('run-1'); await fixture.whenStable(); fixture.detectChanges();
+    expect(apiService.getRun).toHaveBeenCalledTimes(1);
+    const disclosure = fixture.nativeElement.querySelector('.hr-message details');
+    expect(disclosure.open).toBeFalse();
+    expect(disclosure.textContent).toContain('second line');
+    expect(component.getEventPreview(detail.events[0]).length).toBeLessThanOrEqual(161);
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('.hr-detail h2'));
+  });
+
+  it('requests runs and statistics while record-type filter options are still loading', fakeAsync(() => {
+    let resolveTypes!: (types: Array<{ name: string }>) => void;
+    spyOn(TestBed.inject(RecordService), 'getAllTypes').and.returnValue(new Promise(resolve => { resolveTypes = resolve; }));
+    fixture.detectChanges();
+    flushMicrotasks();
+    expect(apiService.listRuns).toHaveBeenCalled();
+    expect(apiService.getStatistics).toHaveBeenCalled();
+    expect(component.isInitializing()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.harvest-runs-app')).toBeNull();
+
+    resolveTypes([{ name: 'rdmp' }]);
+    flushMicrotasks();
+    fixture.detectChanges();
+    expect(component.isInitializing()).toBeFalse();
+    expect(component.recordTypes).toEqual(['rdmp']);
+    expect(fixture.nativeElement.querySelector('.harvest-runs-app')).not.toBeNull();
+    fixture.destroy();
+  }));
+
+  it('keeps the translated header and a disabled refresh control while data is pending', () => {
+    component.earlyHeader = { title: 'Collectes', description: 'Description traduite', adminLabel: 'Administration', breadcrumbLabel: 'Fil', section: 'Données', refresh: 'Actualiser', adminUrl: '/default/rdmp/admin' };
+    (component as any).brandingAndPortalUrl = '/default/rdmp';
+    spyOn(component, 'ngOnInit').and.stub();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('h1').textContent).toBe('Collectes');
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header p').textContent).toBe('Description traduite');
+    const refresh = fixture.nativeElement.querySelector('.rb-admin-page-header button');
+    expect(refresh.disabled).toBeTrue();
+    refresh.click();
+    expect(apiService.listRuns).not.toHaveBeenCalled();
+    (component as any).isReady = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header button').disabled).toBeFalse();
+  });
+
+  it('renders global statistics above the list, with failed alert styling and relative success time', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    const stats = fixture.nativeElement.querySelector('.hr-global-stats');
+    expect(Array.from(stats.querySelectorAll('.rb-admin-stat b')).map((el: any) => el.textContent.trim()).slice(0, 3)).toEqual(['25', '2', '3']);
+    expect(stats.querySelector('.hr-global-stat--danger')).toBeTruthy();
+    expect(stats.textContent).toContain('Global source');
+    expect(stats.querySelector('time').textContent).toContain('2');
+    expect(stats.querySelector('time').getAttribute('title')).toBeTruthy();
+    expect(stats.nextElementSibling.classList.contains('card')).toBeTrue();
+  });
+
+  it('hides filters for an empty list and retains them for a filtered empty result', async () => {
+    apiService.listRuns.and.resolveTo({ summary: { numFound: 0, page: 1, start: 0 }, records: [] });
+    fixture.autoDetectChanges(true);
+    await component.waitForInit(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.harvest-runs-filters')).toBeNull();
+    component.filters.status = 'failed';
+    await component.applyFilters(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.harvest-runs-filters')).not.toBeNull();
+  });
+
+  it('refreshes global statistics without filters on Refresh, Apply and Clear', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    component.filters.status = 'failed';
+    component.filters.sourceName = 'source-b';
+    await component.applyFilters();
+    await component.refreshRuns();
+    await component.clearFilters();
+    expect(apiService.getStatistics).toHaveBeenCalledTimes(4);
+    expect(apiService.getStatistics.calls.allArgs()).toEqual([[], [], [], []]);
+    expect(component.statistics?.runsLast7Days).toBe(25);
+  });
+
+  it('shows zero counts and a dash without an alert when the brand has no runs', async () => {
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    const stats = fixture.nativeElement.querySelector('.hr-global-stats');
+    expect(Array.from(stats.querySelectorAll('b')).map((el: any) => el.textContent.trim())).toEqual(['0', '0', '0', '—']);
+    expect(stats.querySelector('.hr-global-stat--danger')).toBeNull();
+    expect(stats.querySelector('time')).toBeNull();
+  });
+
+  it('keeps the list usable on summary failure, clears stale statistics, and recovers on Refresh', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    apiService.getStatistics.and.rejectWith(new Error('summary unavailable'));
+    await component.refreshRuns();
+    expect(component.statistics).toBeNull();
+    expect(component.statisticsError).toBeTruthy();
+    expect(component.listResponse.records.length).toBe(1);
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await component.refreshRuns();
+    expect(component.statisticsError).toBe('');
+    expect(component.statistics?.runsLast7Days).toBe(0);
+  });
+
+  it('ignores an older summary response when refreshes overlap', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    let resolveOld!: (value: any) => void;
+    apiService.getStatistics.and.returnValue(new Promise(resolve => { resolveOld = resolve; }));
+    const first = component.refreshRuns();
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 42, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await component.refreshRuns();
+    resolveOld({ runsLast7Days: 7, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await first;
+    expect(component.statistics?.runsLast7Days).toBe(42);
+  });
+
+  it('uses inclusive local date bounds and refuses invalid dates without querying', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    apiService.listRuns.calls.reset();
+    component.dateFrom = new Date(2026, 9, 1);
+    component.dateTo = new Date(2026, 9, 31);
+    await component.applyFilters();
+    const query = apiService.listRuns.calls.mostRecent().args[0]!;
+    expect(query.dateFrom).toBe(new Date(2026, 9, 1, 0, 0, 0, 0).toISOString());
+    expect(query.dateTo).toBe(new Date(2026, 9, 31, 23, 59, 59, 999).toISOString());
+    apiService.listRuns.calls.reset();
+    component.dateFrom = 'invalid';
+    await component.applyFilters();
+    expect(apiService.listRuns).not.toHaveBeenCalled();
+    expect(component.listError).toBeTruthy();
+    await component.clearFilters();
+    expect(component.dateFrom).toBeNull();
+    expect(component.dateTo).toBeNull();
+    expect(apiService.listRuns.calls.mostRecent().args[0]!.dateFrom).toBe('');
+  });
+
+  it('loads runs initially and loads details when selected', async () => {
     fixture.autoDetectChanges(true);
 
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
 
     expect(apiService.listRuns).toHaveBeenCalledTimes(1);
@@ -131,7 +287,7 @@ describe('HarvestRunsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('No harvest runs found.');
+    expect(fixture.nativeElement.textContent).toContain('No harvest runs yet');
   });
   it('ignores repeated clicks on the selected run, including while it is loading', async () => {
     let resolveDetail!: (value: HarvestRunDetail) => void;
@@ -199,6 +355,7 @@ describe('HarvestRunsComponent', () => {
   it('does not refetch page 2 when the loading state recreates pagination', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
 
     let resolveEvents!: (value: Awaited<ReturnType<HarvestRunApiService['listRunEvents']>>) => void;
@@ -217,9 +374,26 @@ describe('HarvestRunsComponent', () => {
     expect(apiService.listRunEvents).toHaveBeenCalledOnceWith('run-1', { outcome: '', harvestId: '', page: 2, pageSize: 20 });
   });
 
+  it('ignores earlier event results when a new filter is applied during loading', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await component.selectRun('run-1');
+    let finishOlder: (response: any) => void = () => {};
+    apiService.listRunEvents.and.returnValues(new Promise(resolve => finishOlder = resolve), Promise.resolve({ summary: { numFound: 0, page: 1, start: 0 }, records: [] }));
+    component.eventFilters.harvestId = 'older';
+    const older = component.applyEventFilters();
+    component.eventFilters.harvestId = 'newer';
+    await component.applyEventFilters();
+    finishOlder({ summary: { numFound: 1, page: 1, start: 0 }, records: [{ harvestId: 'older' }] });
+    await older;
+    expect(component.eventResponse.records).toEqual([]);
+    expect(component.loadingEvents).toBeFalse();
+  });
+
   it('filters failed events by exact harvest ID through the form', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     const outcome: HTMLSelectElement = fixture.nativeElement.querySelector('#harvest-events-outcome');
     outcome.value = 'failed';
@@ -291,6 +465,7 @@ describe('HarvestRunsComponent', () => {
     detail.chunksTotal = 1332;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     let resolveChunks!: (value: Awaited<ReturnType<HarvestRunApiService['listRunChunks']>>) => void;
     apiService.listRunChunks.and.returnValue(new Promise(resolve => { resolveChunks = resolve; }));
@@ -372,6 +547,7 @@ describe('HarvestRunsComponent', () => {
     detail.chunks[0].chunkIndex = 0;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     const el: HTMLElement = fixture.nativeElement;
     const chunks = el.querySelector('details.hr-chunks') as HTMLDetailsElement;
@@ -406,6 +582,7 @@ describe('HarvestRunsComponent', () => {
     detail.eventsTotal = 0;
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     expect(fixture.nativeElement.textContent).toContain('Some detailed history has expired.');
     expect(component.getSummaryCounts()[0].value).toBe(2);
@@ -431,6 +608,7 @@ describe('HarvestRunsComponent', () => {
   it('returns to the first event page when retention removes the requested page, keeping filters', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     await component.viewChunkRecords(detail.chunks[0], true);
     apiService.listRunEvents.calls.reset();
@@ -464,6 +642,7 @@ describe('HarvestRunsComponent', () => {
   it('keeps navigation if a nonzero total accompanies an empty first page without retrying forever', async () => {
     fixture.autoDetectChanges(true);
     await component.waitForInit();
+    await component.selectRun('run-1');
     await fixture.whenStable();
     apiService.listRunEvents.and.resolveTo({ summary: { numFound: 21, page: 1, start: 0 }, records: [] });
     await component.onEventPageChanged({ page: 2, itemsPerPage: 20 });
@@ -478,6 +657,43 @@ describe('HarvestRunsComponent', () => {
     apiService.listRunEvents.and.resolveTo({ summary: { numFound: 0, page: 2, start: 20 }, records: [] });
     await component.onEventPageChanged({ page: 2, itemsPerPage: 20 });
     expect(apiService.listRunEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens run details with a labelled disclosure button', async () => {
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    component.selectedRunId = '';
+    apiService.getRun.calls.reset();
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('button[aria-controls="harvest-run-detail"]');
+    expect(button).toBeTruthy();
+    expect(button.hasAttribute('aria-label')).toBeTrue();
+    expect(button.closest('tr').hasAttribute('tabindex')).toBeFalse();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    button.click();
+    await fixture.whenStable();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#harvest-run-detail .hr-detail')).toBeTruthy();
+    expect(apiService.getRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits table headers for an empty run list', async () => {
+    apiService.listRuns.and.resolveTo({ summary: { numFound: 0, page: 1, start: 0 }, records: [] });
+    fixture.autoDetectChanges(true);
+    await component.waitForInit();
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.hr-table--runs')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeTruthy();
+  });
+  it('hides all-zero statistics only when the runs list is also empty', async () => {
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 0, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    apiService.listRuns.and.resolveTo({ summary: { numFound: 0, page: 1, start: 0 }, records: [] });
+    fixture.autoDetectChanges(true); await component.waitForInit(); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.hr-global-stats')).toBeNull();
+    apiService.getStatistics.and.resolveTo({ runsLast7Days: 1, failedLast7Days: 0, runningNow: 0, lastSuccessfulRun: null });
+    await component.refreshRuns(); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.hr-global-stats')).not.toBeNull();
   });
 
 });

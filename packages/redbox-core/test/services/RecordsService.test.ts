@@ -2215,7 +2215,7 @@ describe('RecordsService', function () {
     });
 
     it('should delete record if user has access', async function () {
-      const user = { username: 'admin' };
+      const user = { id: 'admin-id', username: 'admin' };
       const record = {
         metaMetadata: { brandId: 'brand-1' },
         metadata: {},
@@ -2227,6 +2227,7 @@ describe('RecordsService', function () {
       const result = await RecordsService.delete('record-123', user);
 
       expect(mockStorageService.createTombstone.calledOnce).to.be.true;
+      expect(mockStorageService.createTombstone.firstCall.args[2].deletedBy).to.deep.equal({ brandId: 'brand-1', id: 'admin-id', username: 'admin' });
       expect(mockStorageService.removeActiveRecord.calledOnce).to.be.true;
       expect(mockStorageService.updateTombstone.calledOnce).to.be.true;
       expect(mockStorageService.delete.notCalled).to.be.true;

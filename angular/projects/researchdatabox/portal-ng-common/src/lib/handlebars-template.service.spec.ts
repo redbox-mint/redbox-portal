@@ -106,6 +106,15 @@ describe('HandlebarsTemplateService', () => {
     });
   });
 
+  it('loads the template runtime before exposing a report module for synchronous evaluation', async () => {
+    const spec = new Function('return ' + handlebarsPrecompile('Report: {{title}} {{{markdownToHtml content "markdown"}}}'))();
+    utilityServiceSpy.getDynamicImport.and.resolveTo({
+      evaluate: (_keys: string[], context: any, options: any) => options.libraries.handlebars(spec)(context)
+    });
+    await service.loadReportTemplates('default', 'portal', 'records');
+    expect(service.compileAndRunTemplate('', { title: 'Example', content: '**bold**' }, ['records', 'column'])).toBe('Report: Example <p><strong>bold</strong></p>\n');
+  });
+
   describe('compileAndRunTemplate', () => {
     it('should execute precompiled template from loaded module if keys provided', async () => {
       // Create a real template spec using the full Handlebars (imported in test)

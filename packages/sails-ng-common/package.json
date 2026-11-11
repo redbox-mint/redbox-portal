@@ -78,7 +78,11 @@
       "**/src/record-save.model.*",
       "**/src/handlebars-helper-definitions.*",
       "**/src/handlebars-registration.*",
-      "**/src/handlebars-runtime.*"
+      "**/src/handlebars-runtime.*",
+      "**/src/query-report-context.*",
+      "**/src/template-path.*",
+      "**/src/schema-utils.*",
+      "**/src/schema-fields.*"
     ],
     "reporter": [
       "lcov",

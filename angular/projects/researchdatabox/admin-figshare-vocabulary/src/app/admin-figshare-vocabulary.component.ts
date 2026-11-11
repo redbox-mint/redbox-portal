@@ -1,4 +1,7 @@
-import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, ViewChild, inject, ChangeDetectionStrategy } from '@angular/core';
+import { isEqual } from 'lodash-es';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   FigshareCrosswalkMapping,
@@ -11,7 +14,6 @@ import {
   FigshareTaxonomySummary,
   FigshareVocabularyApiService,
 } from './services/figshare-vocabulary-api.service';
-import { formatFigshareTimestamp } from './figshare-format';
 import { FigshareImportRequest } from './import/figshare-import-wizard.component';
 import { PreviewFilterState } from './sync-preview/figshare-sync-preview.component';
 import { MappingChangeRequest, MappingSearchState } from './crosswalks/figshare-crosswalk-editor.component';
@@ -27,7 +29,11 @@ const MAPPING_PAGE_SIZE = 50;
   standalone: false,
 })
 export class AdminFigshareVocabularyComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
   public view: FigshareView = 'sources';
+  @ViewChild('subviewHeading') set subviewHeading(heading: ElementRef<HTMLElement> | undefined) {
+    heading?.nativeElement.focus();
+  }
   public message = '';
   public error = '';
 
@@ -38,6 +44,70 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   /** Id of the source whose row action is running, so that row can show progress. */
   public busySourceId = '';
 
+  public editingSource: FigshareSourceSummary | null = null;
+  public sourceDraft = { expectedRevision: 0, displayName: '', scope: '', archived: false, syncSchedule: 'manual' };
+  public sourceSaving = false;
+  public sourceEditError = '';
+
+  private originalSourceDraft = { ...this.sourceDraft };
+  pendingSourceAction?: () => void;
+  private allowSourceLeave = false;
+
+  get sourceDirty(): boolean { return !!this.editingSource && !isEqual(this.sourceDraft, this.originalSourceDraft); }
+
+  private canLeaveSource(action: () => void): boolean {
+    if (this.sourceSaving) return false;
+    if (this.sourceDirty) { this.pendingSourceAction = action; return false; }
+    this.editingSource = null;
+    return true;
+  }
+
+  cancelSource(): void {
+    if (!this.canLeaveSource(() => this.cancelSource())) return;
+    this.sourceDraft = { ...this.originalSourceDraft };
+  }
+
+  discardSourceChanges(): void {
+    const action = this.pendingSourceAction;
+    this.pendingSourceAction = undefined;
+    this.sourceDraft = { ...this.originalSourceDraft };
+    this.editingSource = null;
+    action?.();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent): void {
+    if ((this.sourceDirty || this.sourceSaving) && !this.allowSourceLeave) { event.preventDefault(); event.returnValue = ''; }
+  }
+
+  @HostListener('document:click', ['$event'])
+  confirmNavigation(event: MouseEvent): void {
+    if (this.allowSourceLeave || (!this.sourceDirty && !this.sourceSaving) || event.defaultPrevented || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download') || anchor.getAttribute('href')?.startsWith('#')) return;
+    event.preventDefault();
+    this.canLeaveSource(() => { this.allowSourceLeave = true; window.location.assign(anchor.href); });
+  }
+
+  editSource(source: FigshareSourceSummary): void {
+    if (!this.canLeaveSource(() => this.editSource(source))) return;
+    this.editingSource = source;
+    this.sourceEditError = '';
+    this.sourceDraft = { expectedRevision: source.settingsRevision ?? 0, displayName: source.displayName, scope: source.scope, archived: source.archived, syncSchedule: source.syncSchedule ?? 'manual' };
+    this.originalSourceDraft = { ...this.sourceDraft };
+  }
+  async saveSource(): Promise<void> {
+    if (!this.editingSource || this.sourceSaving) return;
+    this.sourceSaving = true; this.sourceEditError = '';
+    try {
+      await this.api.updateSource(this.editingSource.id, this.sourceDraft);
+      this.editingSource = null;
+      await this.loadSources();
+      this.message = this.translationService.t('figshare-vocab-source-saved');
+    } catch (error) { this.sourceEditError = this.errorText('figshare-vocab-source-save-error', error); }
+    finally { this.sourceSaving = false; }
+  }
+
   public crosswalks: FigshareCrosswalkSummary[] = [];
   public crosswalkTotal = 0;
   public crosswalkStatusFilter = '';
@@ -46,6 +116,17 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   public syncRuns: FigshareSyncRunSummary[] = [];
   public historySourceId = '';
   public historyLoading = false;
+  public historySearch = '';
+
+  get filteredSyncRuns(): FigshareSyncRunSummary[] {
+    const q = this.historySearch.trim().toLowerCase();
+    return this.syncRuns.filter(run => `${run.state} ${run.scope} ${run.taxonomyId} ${run.requestedBy}`.toLowerCase().includes(q));
+  }
+
+  async filterHistorySource(sourceId: string): Promise<void> {
+    this.historySourceId = sourceId;
+    await this.loadSyncRuns();
+  }
 
   public taxonomies: FigshareTaxonomySummary[] = [];
   public localVocabularies: FigshareLocalVocabulary[] = [];
@@ -88,7 +169,13 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   protected override async initComponent(): Promise<void> {
-    await Promise.all([this.loadSources(), this.loadCrosswalks()]);
+    this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
+    await Promise.all([this.loadSources(), this.loadCrosswalks(), this.loadSyncRuns()]);
+  }
+
+  get showStatistics(): boolean {
+    return !!(this.totalSources || this.approvedCrosswalkCount || this.syncWarningCount ||
+      this.sources.length || this.crosswalks.length || this.syncRuns.length);
   }
 
   get totalSources(): number {
@@ -106,6 +193,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   // ── Navigation ────────────────────────────────────────────────────
 
   async showTab(view: FigshareView): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.showTab(view); })) return;
     this.view = view;
     this.message = '';
     this.error = '';
@@ -119,6 +207,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async startImport(): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.startImport(); })) return;
     this.wizardError = '';
     this.taxonomies = [];
     this.view = 'import';
@@ -138,13 +227,12 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
 
   async onScopeFilterChanged(scope: '' | 'public' | 'account'): Promise<void> {
     this.scopeFilter = scope;
-    await this.loadSources();
   }
 
   private async loadSources(): Promise<void> {
     this.sourcesLoading = true;
     try {
-      const result = await this.api.listSources(this.scopeFilter || undefined);
+      const result = await this.loadCatalogue(offset => this.api.listSources(undefined, { limit: 100, offset }));
       this.sources = result.records;
       this.sourceTotal = result.total;
     } catch (err) {
@@ -156,6 +244,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async resyncSource(source: FigshareSourceSummary): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.resyncSource(source); })) return;
     this.clearAlerts();
     this.previewError = '';
     this.applying = false;
@@ -172,6 +261,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async cloneSource(source: FigshareSourceSummary): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.cloneSource(source); })) return;
     this.clearAlerts();
     const name = this.t('figshare-vocab-clone-name-suffix', '{{name}} (local copy)', { name: source.displayName });
     this.busySourceId = source.id;
@@ -191,6 +281,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   async showHistoryFor(source: FigshareSourceSummary): Promise<void> {
+    if (!this.canLeaveSource(() => { void this.showHistoryFor(source); })) return;
     this.historySourceId = source.id;
     this.view = 'history';
     await this.loadSyncRuns();
@@ -341,13 +432,12 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
 
   async onCrosswalkStatusFilterChanged(status: string): Promise<void> {
     this.crosswalkStatusFilter = status;
-    await this.loadCrosswalks();
   }
 
   private async loadCrosswalks(): Promise<void> {
     this.crosswalksLoading = true;
     try {
-      const result = await this.api.listCrosswalks({ status: this.crosswalkStatusFilter || undefined });
+      const result = await this.loadCatalogue(offset => this.api.listCrosswalks({ limit: 100, offset }));
       this.crosswalks = result.records;
       this.crosswalkTotal = result.total;
     } catch (err) {
@@ -484,6 +574,20 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
     this.view = 'crosswalks';
   }
 
+  /** Source/crosswalk catalogues are small configuration lists. Read their existing
+   * pages so stats and local filters describe the whole catalogue, not page one. */
+  private async loadCatalogue<T>(page: (offset: number) => Promise<{ records: T[]; total: number }>): Promise<{ records: T[]; total: number }> {
+    const records: T[] = [];
+    let total = 0;
+    do {
+      const result = await page(records.length);
+      total = result.total;
+      if (!result.records?.length) break;
+      records.push(...result.records);
+    } while (records.length < total);
+    return { records, total };
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────
 
   private t(key: string, defaultValue: string, options?: Record<string, unknown>): string {
@@ -497,7 +601,7 @@ export class AdminFigshareVocabularyComponent extends BaseComponent {
   }
 
   public formatDate(value?: string | null): string {
-    return formatFigshareTimestamp(value);
+    return this.adminDates.format(value);
   }
 
   public scopeLabelKey(scope: string): string {

@@ -14,10 +14,10 @@ function buildAngularApp() {
     node_modules/.bin/ng b "@researchdatabox/${1}" --configuration production
   fi
 }
-export NVM_DIR="$HOME/.nvm"
-[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 cd angular
-nvm install
+nvm install -b
 nvm use
 npm ci --ignore-scripts --strict-peer-deps --no-audit
 if [ $# -ne 0 ]

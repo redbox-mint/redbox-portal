@@ -334,13 +334,19 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        return req.logIn(user, function (err: unknown) {
+        return req.logIn(user, async function (err: unknown) {
           if (err) {
             if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController',
               typeof req.body?.username === 'string' ? { username: req.body.username } : undefined);
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
           }
+
+          try { await UsersService.recordSuccessfulLogin(user); } catch (error) {
+            that.updateChronicle(req, { userLoginSuccess: false }, [error]);
+            return res.serverError();
+          }
+
           const requestDetails = new RequestDetails(req);
           // We don't want to store the password!
           delete (requestDetails.body as Record<string, unknown>).password;
@@ -444,11 +450,15 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        req.logIn(user, function (err: unknown) {
+        req.logIn(user, async function (err: unknown) {
           if (err) {
             if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
+          }
+          try { await UsersService.recordSuccessfulLogin(user); } catch (error) {
+            that.updateChronicle(req, { userLoginSuccess: false }, [error]);
+            return res.serverError();
           }
           that.updateChronicle(req, {userLoginSuccess: true});
           const requestDetails = new RequestDetails(req);
@@ -620,11 +630,15 @@ export namespace Controllers {
           return res.serverError();
         }
 
-        req.logIn(user, function (err: unknown) {
+        req.logIn(user, async function (err: unknown) {
           if (err) {
             if (typeof SecurityEventService !== 'undefined') void SecurityEventService.emitRequestFailure(req, 'authentication.login.failure', 'UserController');
             that.updateChronicle(req, {userLoginSuccess: false}, [err]);
             return res.send(err);
+          }
+          try { await UsersService.recordSuccessfulLogin(user); } catch (error) {
+            that.updateChronicle(req, { userLoginSuccess: false }, [error]);
+            return res.serverError();
           }
           that.updateChronicle(req, {userLoginSuccess: true});
           const requestDetails = new RequestDetails(req);

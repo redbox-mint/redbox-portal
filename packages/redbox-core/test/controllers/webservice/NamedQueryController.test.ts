@@ -1,3 +1,4 @@
+import { NamedQueryInUseError } from '../../../src/services/named-query/usage';
 import * as sinon from 'sinon';
 import { of } from 'rxjs';
 import { Controllers } from '../../../src/controllers/webservice/NamedQueryController';
@@ -30,6 +31,7 @@ describe('Webservice NamedQueryController', () => {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' })
     };
     (global as any).NamedQueryService = {
+      getUsage: sinon.stub().resolves({}),
       list: sinon.stub().resolves([
         { name: 'query-1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
         { name: 'query-2', collectionName: 'user', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
@@ -346,4 +348,24 @@ describe('Webservice NamedQueryController', () => {
     expect(sendRespStub.calledOnce).to.be.true;
     expect(sendRespStub.firstCall.args[2]?.status).to.equal(404);
   });
+  it('aggregates brand-scoped usage once for the entire list', async () => {
+    const consumer = { type: 'report' as const, name: 'Report', path: '/admin/report/report' };
+    const service = (global as any).NamedQueryService;
+    service.getUsage.resolves({ 'query-1': [consumer] });
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.listQueries({ session: { branding: 'default' } } as any, {} as any);
+    expect(service.getUsage.calledOnceWithExactly({ id: 'brand-1', name: 'default' })).to.equal(true);
+    expect(send.firstCall.args[2].data.map((q: any) => q.usedBy)).to.deep.equal([[consumer], []]);
+  });
+
+  it('returns a clear 409 and consumer metadata when deletion is refused', async () => {
+    const consumers = [{ type: 'report' as const, name: 'Report', path: '/admin/report/report' }];
+    (global as any).NamedQueryService.delete.rejects(new NamedQueryInUseError(consumers));
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.deleteQuery({ session: { branding: 'default' }, param: () => 'query-1' } as any, {} as any);
+    expect(send.firstCall.args[2].status).to.equal(409);
+    expect(send.firstCall.args[2].meta.usedBy).to.deep.equal(consumers);
+    expect(send.firstCall.args[2].displayErrors[0].detail).to.include('Remove its configured references');
+  });
+
 });

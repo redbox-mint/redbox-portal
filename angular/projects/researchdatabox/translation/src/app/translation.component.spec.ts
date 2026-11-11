@@ -1,8 +1,12 @@
+import { By } from '@angular/platform-browser';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './translation.component';
 import { FormBuilder } from '@angular/forms';
 import { APP_BASE_HREF } from '@angular/common';
-import { CSP_NONCE, signal } from '@angular/core';
+import { CSP_NONCE, DebugElement, signal } from '@angular/core';
+
+import { Subject } from 'rxjs';
 // Portal common services / stubs
 import {
   ConfigService,
@@ -16,6 +20,11 @@ import {
 
 // Custom richer mock translation service implementing the API used by the component
 class RichMockTranslationService {
+  translationChanges$ = new Subject<void>();
+  isInitializing() { return false; }
+  t(key: string) {
+    return ({ 'admin-tx-plain-text': 'Plain text', 'admin-tx-rich-text': 'Rich text', 'admin-tx-html-source': 'HTML source', 'admin-tx-retry-entries': 'Retry loading entries', 'admin-tx-retry-languages': 'Retry loading languages', 'admin-tx-retry-availability': 'Retry loading availability' })[key] || key;
+  }
   languages = [
     { code: 'en', displayName: 'English', enabled: true },
     { code: 'fr', displayName: 'French', enabled: true },
@@ -28,6 +37,21 @@ class RichMockTranslationService {
       { key: 'greet.bye', value: 'Bye', category: 'greetings' }
     ]
   };
+
+  translationExportUrl(code: string, ns: string) { return `/admin/translation/${code}/${ns}/export`; }
+  async previewTranslationImport(_code: string, _ns: string, _json: string, _keepUnknown: boolean) {
+    return { previewToken: 'a'.repeat(64), counts: { added: 1, changed: 1, unchanged: 1, unknown: 1, ignored: 1 },
+      sample: [{ key: 'label', before: 'Before', after: '<img src=x onerror=alert(1)>', action: 'changed' }] };
+  }
+  async applyTranslationImport(_code: string, _ns: string, _json: string, _keepUnknown: boolean, _token: string) {
+    return { applied: 2, failed: 1, counts: { ignored: 1 }, results: [{ key: 'failed-key', status: 'failed' }] };
+  }
+
+  async revertEntry(code: string, ns: string, key: string) {
+    const entry = this.entriesMap[`${code}:${ns}`].find(e => e.key === key);
+    Object.assign(entry, { value: 'Default value', provenance: 'default' });
+    return entry;
+  }
 
   // Spies counters
   listLanguagesCalls = 0;
@@ -97,6 +121,7 @@ describe('AppComponent (translation)', () => {
       imports: [AppComponent],
       providers: [
         FormBuilder,
+        { provide: CSP_NONCE, useValue: 'translation-test-nonce' },
         { provide: APP_BASE_HREF, useValue: 'base' },
         LoggerService,
         UtilityService,
@@ -112,6 +137,185 @@ describe('AppComponent (translation)', () => {
     const comp = fixture.componentInstance;
     return { fixture, comp };
   }
+
+  it('keeps empty states hidden until initial reads settle and reserves the export action', async () => {
+    let releaseLanguages!: (languages: any[]) => void;
+    spyOn(translationService, 'listLanguages').and.returnValue(new Promise(resolve => releaseLanguages = resolve));
+    const { fixture, comp } = create();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('h1')).toBeNull();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    fixture.detectChanges();
+    expect(comp.initializing()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeNull();
+    const exportLink = fixture.nativeElement.querySelector('a[download]');
+    expect(exportLink).not.toBeNull();
+    expect(exportLink.getAttribute('href')).toBeNull();
+    expect(exportLink.getAttribute('aria-disabled')).toBe('true');
+    releaseLanguages(translationService.languages);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(comp.initializing()).toBeFalse();
+    expect(exportLink.getAttribute('href')).toContain('/export');
+    expect(exportLink.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  it('guards unsaved language availability and restores the saved choices on discard', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const saved = [...comp.availableLanguages()];
+    comp.toggleAvailableLanguage('fr', false); fixture.detectChanges();
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    comp.beforeUnload(unload); expect(unload.defaultPrevented).toBeTrue();
+    const anchor: HTMLAnchorElement = fixture.nativeElement.querySelector('.rb-admin-crumbs a');
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    anchor.dispatchEvent(click); fixture.detectChanges(); await fixture.whenStable();
+    expect(click.defaultPrevented).toBeTrue(); expect(comp.pendingLeave).toBe(anchor.href);
+    const stay = fixture.nativeElement.querySelector('rb-admin-discard-dialog .btn-outline-secondary');
+    stay.click(); fixture.detectChanges(); await fixture.whenStable();
+    expect(comp.pendingLeave).toBe(''); expect(comp.availabilityDirty()).toBeTrue();
+    expect(comp.availableLanguages()).not.toContain('fr');
+    const discard = fixture.nativeElement.querySelector('.card-footer .btn-outline-secondary');
+    discard.click(); fixture.detectChanges(); await fixture.whenStable();
+    fixture.nativeElement.querySelector('rb-admin-discard-dialog .rb-admin-danger-confirm').click();
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(comp.availableLanguages()).toEqual(saved); expect(comp.availabilityDirty()).toBeFalse();
+    expect(translationService.updateBundleEnabledCalls).toEqual([]);
+    const cleanUnload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    comp.beforeUnload(cleanUnload); expect(cleanUnload.defaultPrevented).toBeFalse();
+  });
+
+  it('preserves the saved discard baseline when an availability retry fails', async () => {
+    const { comp } = create(); await comp.ngOnInit();
+    comp.toggleAvailableLanguage('fr', false);
+    spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
+    await comp.loadAvailableLanguagesFromBundles();
+    comp.discardAvailability();
+    expect(comp.availableLanguages()).toContain('fr');
+    expect(comp.availabilityDirty()).toBeFalse();
+  });
+
+  it('lets modified clicks and downloads bypass the availability navigation dialog', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    comp.toggleAvailableLanguage('fr', false);
+    const anchor: HTMLAnchorElement = fixture.nativeElement.querySelector('.rb-admin-crumbs a');
+    const modified = new MouseEvent('click', { ctrlKey: true, cancelable: true });
+    Object.defineProperty(modified, 'target', { value: anchor }); comp.confirmNavigation(modified);
+    expect(modified.defaultPrevented).toBeFalse(); expect(comp.pendingLeave).toBe('');
+    anchor.setAttribute('download', '');
+    const download = new MouseEvent('click', { cancelable: true });
+    Object.defineProperty(download, 'target', { value: anchor }); comp.confirmNavigation(download);
+    expect(download.defaultPrevented).toBeFalse(); expect(comp.pendingLeave).toBe('');
+  });
+
+  it('discards to the successfully saved availability when the following refresh fails', async () => {
+    const { comp } = create(); await comp.ngOnInit();
+    comp.toggleAvailableLanguage('fr', false);
+    spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
+    await comp.saveLanguages();
+    expect(translationService.languages.find(language => language.code === 'fr')?.enabled).toBeFalse();
+    comp.toggleAvailableLanguage('fr', true);
+    comp.discardAvailability();
+    expect(comp.availableLanguages()).not.toContain('fr');
+    expect(comp.availabilityDirty()).toBeFalse();
+  });
+
+  it('breaks keys at separators and shows descriptions on a second line', async () => {
+    const { comp, fixture } = create();
+    translationService.entriesMap['en:translation'] = [
+      { key: 'admin.report-long.title', value: 'Title', description: 'Help for title', category: 'admin' }
+    ];
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(comp.keySegments('admin.report-long.title')).toEqual(['admin.', 'report-', 'long.', 'title']);
+    const code = fixture.nativeElement.querySelector('.tx-data-table code');
+    expect(code.querySelectorAll('wbr').length).toBe(3);
+    expect(code.querySelector('.tx-key-tail').textContent.replace('\u2060', '').trim()).toBe('title');
+    expect(code.querySelector('button')).toBeNull();
+    expect(code.parentElement.querySelector('.rb-admin-sub').textContent).toBe('Help for title');
+    expect(code.textContent.replace('\u2060', '').trim()).toBe('admin.report-long.title');
+  });
+
+  it('filters Missing and Changed with badges, counts and a revert menu', async () => {
+    const { comp, fixture } = create();
+    translationService.entriesMap['en:translation'] = [
+      { key: 'default', value: 'Default value', provenance: 'default', hasDefault: true },
+      { key: 'empty', value: '', provenance: 'missing', hasDefault: true },
+      { key: 'custom', value: 'Custom value', provenance: 'override', hasDefault: true },
+      { key: 'unknown', value: 'New', provenance: 'override', hasDefault: false }
+    ];
+    Object.assign(translationService.languages[0], { translated: 3, total: 4 });
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.tx-translated').textContent).toContain('3 / 4');
+    comp.setShow('missing'); fixture.detectChanges();
+    expect(comp.pageEntries().map(e => e.key)).toEqual(['empty']);
+    expect(fixture.nativeElement.querySelector('.tx-row-missing')).toBeTruthy();
+    comp.setShow('override'); fixture.detectChanges();
+    expect(comp.pageEntries().map(e => e.key)).toEqual(['custom', 'unknown']);
+    expect(fixture.nativeElement.querySelectorAll('.rb-admin-badge-warning').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('.rb-admin-overflow').length).toBe(1);
+    const revert = spyOn(translationService, 'revertEntry').and.callThrough();
+    await comp.revertEntry(comp.pageEntries()[0]); fixture.detectChanges();
+    expect(revert).toHaveBeenCalledWith('en', 'translation', 'custom');
+    expect(comp.pageEntries().map(e => e.key)).toEqual(['unknown']);
+    comp.clearAllFilters();
+    expect(comp.show).toBe('all'); expect(comp.pageEntries().length).toBe(4);
+  });
+
+  it('makes the portal background inert while the import dialog is open', async () => {
+    const background = document.createElement('button');
+    document.body.appendChild(background);
+    const { comp, fixture } = create();
+    try {
+      fixture.detectChanges(); await fixture.whenStable();
+      comp.openImport(); fixture.detectChanges(); await fixture.whenStable();
+      expect(background.inert).toBeTrue();
+      expect(document.activeElement?.id).toBe('tx-import-file');
+      comp.closeImport(); fixture.detectChanges(); await fixture.whenStable();
+      expect(background.inert).toBeFalse();
+    } finally {
+      fixture.destroy();
+      background.remove();
+    }
+  });
+
+  it('previews a JSON file before applying and escapes the diff sample', async () => {
+    const { comp, fixture } = create(); fixture.detectChanges(); await fixture.whenStable();
+    const preview = spyOn(translationService, 'previewTranslationImport').and.callThrough();
+    const apply = spyOn(translationService, 'applyTranslationImport').and.callThrough();
+    comp.openImport();
+    await comp.readImportFile({ target: { files: [new File(['{"label":"After"}'], 'translations.json', { type: 'application/json' })] } } as any);
+    fixture.detectChanges();
+    expect(apply).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[href="/admin/translation/en/translation/export"]')).toBeTruthy();
+    await comp.previewImport(); fixture.detectChanges();
+    expect(preview).toHaveBeenCalledWith('en', 'translation', '{"label":"After"}', false);
+    expect(fixture.nativeElement.querySelectorAll('.tx-import-counts .rb-admin-stat').length).toBe(5);
+    expect(fixture.nativeElement.querySelector('.tx-import-diff').textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(fixture.nativeElement.querySelector('.tx-import-diff img')).toBeNull();
+    comp.selectedLang = 'fr';
+    await comp.applyImport(); fixture.detectChanges();
+    expect(apply).toHaveBeenCalledWith('en', 'translation', '{"label":"After"}', false, 'a'.repeat(64));
+    expect(comp.importResult().failed).toBe(1);
+    expect(comp.importPreview()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('failed-key');
+  });
+  it('rejects oversized files, invalidates preview on options/file changes and handles stale preview', async () => {
+    const { comp, fixture } = create(); fixture.detectChanges(); await fixture.whenStable();
+    comp.openImport();
+    await comp.readImportFile({ target: { files: [new File(['x'.repeat(2 * 1024 * 1024 + 1)], 'large.json')] } } as any);
+    expect(comp.importJson).toBe(''); expect(comp.importError()).toBe('admin-tx-import-size-error');
+    comp.importJson = '{}'; await comp.previewImport();
+    comp.keepUnknown = true; comp.invalidateImportPreview();
+    expect(comp.importPreview()).toBeNull();
+    await comp.applyImport(); expect(comp.importResult()).toBeNull();
+    await comp.previewImport();
+    spyOn(translationService, 'applyTranslationImport').and.rejectWith({ status: 409 });
+    await comp.applyImport();
+    expect(comp.importPreview()).toBeNull(); expect(comp.importError()).toBe('admin-tx-import-stale');
+    comp.closeImport(); expect(comp.importModalOpen()).toBeFalse();
+  });
 
   it('shows a warning for failed entries, preserves editor data, and retries to a real empty list', async () => {
     const { comp, fixture } = create();
@@ -190,6 +394,7 @@ describe('AppComponent (translation)', () => {
     await comp.ngOnInit();
     const spy = spyOn(translationService, 'getBundle').and.rejectWith(new Error('offline'));
     comp.displayNameModalOpen.set(true);
+    comp.displayNameLanguage = 'en';
     comp.editDisplayName = 'en';
     await comp.loadCurrentDisplayName();
     expect(comp.readWarnings().displayName).toContain('could not be loaded');
@@ -207,6 +412,91 @@ describe('AppComponent (translation)', () => {
     await comp.loadCurrentDisplayName();
     expect(comp.editDisplayName).toBe('My unsaved name');
     expect(translationService.updateLanguageDisplayNameCalls).toEqual([]);
+  });
+
+  it('renders only a page from the full bundle, sorts all matches and resets filters to page one', async () => {
+    const { comp, fixture } = create();
+    const entries = Array.from({ length: 2093 }, (_, index) => ({
+      key: `key-${String(index).padStart(4, '0')}`, value: `Value ${index}`, category: index % 2 ? 'menu' : 'admin'
+    }));
+    translationService.entriesMap['en:translation'] = entries;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(comp.viewEntries().length).toBe(2093);
+    expect(fixture.nativeElement.querySelectorAll('.tx-data-table tbody tr').length).toBe(50);
+    expect([comp.rangeStart, comp.rangeEnd, comp.totalPages]).toEqual([1, 50, 42]);
+    comp.setPage(2);
+    expect(comp.pageEntries()[0].key).toBe('key-0050');
+    comp.setSort('key');
+    expect(comp.page).toBe(1);
+    expect(comp.pageEntries()[0].key).toBe('key-2092');
+    comp.setPage(42);
+    expect(comp.pageEntries().length).toBe(43);
+    comp.selectedCategory = 'menu';
+    comp.onCategoryChange();
+    expect(comp.page).toBe(1);
+    expect(comp.viewEntries().every(entry => entry.category === 'menu')).toBeTrue();
+    comp.setPage(2);
+    comp.filterText = 'VALUE 2091';
+    comp.onFilterTextChange();
+    expect([comp.page, comp.rangeStart, comp.rangeEnd]).toEqual([1, 1, 1]);
+    expect(comp.pageEntries()[0].key).toBe('key-2091');
+    comp.filterText = 'no-match';
+    comp.onFilterTextChange();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty')).toBeTruthy();
+    expect([comp.rangeStart, comp.rangeEnd]).toEqual([0, 0]);
+    comp.clearAllFilters();
+    comp.pageSize = 100;
+    comp.onPageSizeChange();
+    expect(comp.pageEntries().length).toBe(100);
+    comp.setPage(99);
+    expect(comp.page).toBe(21);
+    comp.selectedLang = 'fr';
+    await comp.onLangChange();
+    expect(comp.page).toBe(1);
+    expect(comp.pageEntries().length).toBe(0);
+  });
+
+  it('renames an unavailable language without changing the language being edited', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.openDisplayNameModal('de');
+    await comp.loadCurrentDisplayName();
+    expect(comp.editDisplayName).toBe('German');
+    comp.editDisplayName = 'Deutsch';
+    await comp.updateDisplayName();
+    expect(comp.selectedLang).toBe('en');
+    expect(translationService.updateLanguageDisplayNameCalls).toEqual([{ code: 'de', ns: 'translation', displayName: 'Deutsch' }]);
+    expect(comp.languages().find(language => language.code === 'de').displayName).toBe('Deutsch');
+    expect(comp.isLanguageAvailable('de')).toBeFalse();
+  });
+
+  it('clears rows when the last available language is disabled and reloads when enabled', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.toggleAvailableLanguage('fr', false);
+    comp.toggleAvailableLanguage('en', false);
+    await comp.onLangChange();
+    expect(comp.selectedLang).toBe('');
+    expect(comp.pageEntries()).toEqual([]);
+    expect(comp.availabilityDirty()).toBeTrue();
+    comp.toggleAvailableLanguage('en', true);
+    await comp.onLangChange();
+    expect(comp.selectedLang).toBe('en');
+    expect(comp.pageEntries().length).toBe(3);
+    await comp.saveLanguages();
+    expect(comp.availabilityDirty()).toBeFalse();
+  });
+
+  it('uses the Angular CSP nonce for the editor stylesheet', async () => {
+    const { comp } = create();
+    await comp.ngOnInit();
+    comp.openEdit(comp.entries()[0]);
+    expect(comp.richTextEditor?.options.injectNonce).toBe('translation-test-nonce');
+    expect(comp.richTextEditor?.options.editorProps.attributes).toEqual({ cdkFocusInitial: '', role: 'textbox', 'aria-multiline': 'true', 'aria-labelledby': 'tx-translation-value-label' });
+    comp.closeModal();
   });
 
   it('should create', async () => {
@@ -311,6 +601,7 @@ describe('AppComponent (translation)', () => {
     comp.entries.set([{ key: 'greet.hello', value: 'Hello', category: 'greetings' }]);
     const mockEditor = {
       getHTML: () => '<p>Hi</p>',
+      getText: () => 'Hi',
       destroy: jasmine.createSpy('destroy'),
       commands: { setContent: jasmine.createSpy('setContent') }
     } as any;
@@ -329,6 +620,7 @@ describe('AppComponent (translation)', () => {
     const { comp } = create();
     const mockEditor = {
       getHTML: () => '<p>Hello</p>',
+      getText: () => 'Hello',
       destroy: jasmine.createSpy('destroy'),
       commands: { setContent: jasmine.createSpy('setContent') }
     } as any;
@@ -643,4 +935,61 @@ describe('AppComponent (translation)', () => {
     const enCall = translationService.updateBundleEnabledCalls.find(c => c.code === 'en');
     expect(enCall?.enabled).toBeTrue();
   });
+  it('confirms changed translation dismissal and preserves plain, HTML and rich drafts', async () => {
+    const { comp } = create();
+    for (const format of ['plain', 'html'] as const) {
+      comp.openEdit({ key: 'test', value: format === 'plain' ? 'Original' : '<p>Original</p>', contentFormat: format });
+      comp.closeModal(); expect(comp.modalOpen()).toBeFalse();
+      comp.openEdit({ key: 'test', value: format === 'plain' ? 'Original' : '<p>Original</p>', contentFormat: format });
+      if (format === 'plain') comp.onPlainTextChange('Changed');
+      else comp.richTextEditor!.commands.setContent('<p>Changed</p>');
+      comp.closeModal();
+      expect(comp.confirmDiscard).toBeTrue(); expect(comp.modalOpen()).toBeTrue();
+      expect(comp.editValue).toContain('Changed');
+      comp.confirmDiscard = false;
+      expect(comp.editValue).toContain('Changed');
+      comp.closeModal(true); expect(comp.modalOpen()).toBeFalse();
+    }
+    comp.openEdit({ key: 'test', value: '<p>Original</p>', contentFormat: 'html' });
+    comp.setEditorMode('html'); comp.onHtmlSourceChange('<p>Source edit</p>'); comp.closeModal();
+    expect(comp.confirmDiscard).toBeTrue(); expect(comp.htmlSourceValue).toContain('Source edit');
+    comp.closeModal(true);
+  });
+  it('suspends the translation editor trap until a nested discard is dismissed', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.openEdit({ key: 'test', value: 'Original', contentFormat: 'plain' });
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.onPlainTextChange('Changed'); comp.closeModal();
+    fixture.detectChanges(); await fixture.whenStable();
+    const traps: CdkTrapFocus[] = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map((el: DebugElement) => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    expect(traps[0].enabled).toBeFalse();
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="txEditModalTitle"]').inert).toBeTrue();
+    fixture.nativeElement.querySelector('rb-admin-discard-dialog [role=alertdialog]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(comp.confirmDiscard).toBeFalse();
+    expect(comp.modalOpen()).toBeTrue();
+    expect(comp.editValue).toBe('Changed');
+    expect(traps[0].enabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[aria-labelledby="txEditModalTitle"]').inert).toBeFalse();
+  });
+
+  it('closes overflow actions on Escape with focus return and on activation', async () => {
+    const { comp, fixture } = create();
+    fixture.detectChanges(); await fixture.whenStable();
+    comp.pageEntries.set([{ key: 'test', value: 'Override', provenance: 'override', hasDefault: true }]);
+    fixture.detectChanges();
+    const menu: HTMLDetailsElement = fixture.nativeElement.querySelector('details.rb-admin-overflow');
+    const trigger = menu.querySelector('summary')!;
+    menu.open = true;
+    menu.querySelector('button')!.focus();
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(menu.open).toBeFalse(); expect(document.activeElement).toBe(trigger);
+    const revert = spyOn(comp, 'revertEntry').and.resolveTo();
+    menu.open = true; menu.querySelector('button')!.click();
+    expect(menu.open).toBeFalse(); expect(revert).toHaveBeenCalled();
+    fixture.destroy();
+  });
+
 });

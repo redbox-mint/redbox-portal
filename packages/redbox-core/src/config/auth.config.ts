@@ -1,7 +1,7 @@
 /**
  * Authentication and Authorization Configuration
  * (sails.config.auth)
- * 
+ *
  * Bootstrap configuration for roles, rules, and default auth settings.
  * Brand-specific auth configuration is in brandingConfigurationDefaults.config.ts
  */
@@ -31,7 +31,9 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/record/delete(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/record/destroy(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/listDeletedRecords(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/deletedRecords/bulk', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin', role: 'Librarians', can_update: true },
+        { path: '/:branding/:portal/admin/translation(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/translation', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/admin/api-docs', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/admin/api-docs(/*)', role: 'Admin', can_read: true },
@@ -49,6 +51,12 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/admin/dashboard-config(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/named-query(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin/export', role: 'Librarians', can_update: true },
+        { path: '/:branding/:portal/admin/users/options', role: 'Admin', can_read: true },
+        { path: '/:branding/:portal/admin/roles/:id/description', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/roles/:id/users/:userId/remove', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/appconfig/:integration/test-connection', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/appconfig/:appConfigId/reset', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/appconfig/authorizedDomainsEmails/test', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/admin(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/record(/*)', role: 'Researcher', can_update: true },
         { path: '/:branding/:portal/record(/*)', role: 'Librarians', can_update: true },
@@ -71,6 +79,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/dashboard-view(/*)', role: 'Researcher', can_read: true },
         { path: '/:branding/:portal/researcher/home', role: 'Researcher', can_update: true },
         { path: '/:branding/:portal/researcher/home', role: 'Librarians', can_update: true },
+        { path: '/:branding/:portal/export/jobs/:id/cancel', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/export(/*)', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/export(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/appconfig(/*)', role: 'Admin', can_update: true },
@@ -81,11 +90,13 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/users/:id/audit', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/integration-audit(/*)', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/report-config(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/api/harvest-runs/summary', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/harvest-runs', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/harvest-runs(/*)', role: 'Admin', can_read: true },
         { path: '/:branding/:portal/api/users/link', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/disable', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/users/:id/enable', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/parties/import(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/figshare-vocabularies(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/figshare-crosswalks(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api/dashboard-config(/*)', role: 'Admin', can_update: true },
@@ -93,6 +104,8 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/api/siem(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/api(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/home', role: 'Guest', can_read: true },
+        { path: '/:branding/:portal/app/email-templates(/*)', role: 'Admin', can_update: true },
+        { path: '/:branding/:portal/admin/email-templates', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/app/branding(/*)', role: 'Admin', can_update: true },
         { path: '/:branding/:portal/dynamicAsset/adminReportTemplates/:reportName', role: 'Librarians', can_read: true },
         { path: '/:branding/:portal/dynamicAsset/adminReportTemplates/:reportName', role: 'Admin', can_read: true },

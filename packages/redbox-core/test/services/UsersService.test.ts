@@ -1,4 +1,5 @@
 import * as sinon from 'sinon';
+import * as AuthorizedEmailAccess from '../../src/utilities/AuthorizedEmailAccess';
 import { of, throwError, Subject, EMPTY, Observable } from 'rxjs';
 import { UserWLDef } from '../../src/waterline-models/User';
 import {
@@ -1514,6 +1515,80 @@ describe('UsersService', function () {
         { status: 'fulfilled', value: 'thenable' },
       ]);
     });
+  });
+
+  describe('provider callbacks with existing mixed-case rules', () => {
+    for (const provider of ['aaf', 'oidc']) {
+      for (const ruleType of ['domain', 'email', 'subdomain']) {
+        it(`${provider} applies normalized ${ruleType} rules only when creating accounts`, async () => {
+          const rules = { enabled: true, [ruleType === 'email' ? `emails${provider === 'aaf' ? 'Aaf' : 'Oidc'}` : `domains${provider === 'aaf' ? 'Aaf' : 'Oidc'}`]:
+            [ruleType === 'email' ? ' Person@UNI.edu ' : ' UNI.edu. '] };
+          mockSails.config.brandingAware.returns({ authorizedDomainsEmails: rules });
+          const email = ruleType === 'subdomain' ? 'Person@Staff.UNI.edu' : 'Person@UNI.edu';
+          const user = { id: 'user-1', username: 'person', email: email.toLowerCase(), roles: [] };
+          configureModelMethod(mockUser.create, user);
+          configureModelMethod(mockUser.update, [user]);
+          sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(user);
+          let callback: Function;
+          if (provider === 'aaf') {
+            sinon.stub(UsersService, 'getAuthConfig').returns({ active: ['aaf'], aaf: { opts: { secretOrKey: 'key' }, attributesField: 'attributes' } });
+            const use = sinon.stub(); mockSails.config.passport = { use };
+            UsersService.aafAuthInit(); await mockSails.on.firstCall.args[1]();
+            callback = done => use.firstCall.args[1]._verify({}, { sub: 'person', attributes: { mail: email } }, done);
+          } else callback = done => UsersService.openIdConnectAuthVerifyCallback(
+            { opts: {}, claimMappings: { username: 'sub', email: 'email' } }, {}, {}, {}, { sub: 'person', email }, done);
+          for (const existing of [false, true]) {
+            mockUser.findOne.callsFake((_query: unknown, cb: Function) => cb(null, existing ? user : null));
+            const done = sinon.spy(); callback(done);
+            await new Promise(resolve => setImmediate(resolve));
+            expect(done.calledOnce).to.equal(true);
+            if (!existing && ruleType === 'subdomain') expect(done.firstCall.args.slice(0, 2)).to.deep.equal(['authorized-email-denied', false]);
+            else expect(done.firstCall.args[0]).to.equal(null);
+          }
+          expect(mockUser.create.called).to.equal(ruleType !== 'subdomain');
+        });
+      }
+    }
+  });
+
+  describe('provider callbacks use the shared authorized-email evaluator', () => {
+    for (const provider of ['aaf', 'oidc']) {
+      for (const allowed of [true, false]) {
+        it(`${provider} honors shared decision ${allowed} after lowercasing the claim`, async () => {
+          const evaluate = sinon.stub(AuthorizedEmailAccess, 'evaluateAuthorizedEmail').returns({ allowed, reason: allowed ? 'unrestricted' : 'denied' });
+          const user = { id: 'new-user', username: 'person', email: 'person@uni.edu' };
+          mockUser.findOne.callsFake((_query: unknown, cb: Function) => cb(null, null));
+          configureModelMethod(mockUser.create, user);
+          sinon.stub(UsersService, 'resolveLinkedUserCandidate').resolves(user);
+          const done = sinon.spy();
+          if (provider === 'oidc') {
+            UsersService.openIdConnectAuthVerifyCallback(
+              { opts: {}, claimMappings: { username: 'sub', email: 'email' } }, {}, {}, {},
+              { sub: 'person', email: 'Person@UNI.edu' }, done
+            );
+          } else {
+            sinon.stub(UsersService, 'getAuthConfig').returns({ active: ['aaf'], aaf: { opts: { secretOrKey: 'key' }, attributesField: 'attributes' } });
+            const use = sinon.stub();
+            mockSails.config.passport = { use };
+            UsersService.aafAuthInit();
+            await mockSails.on.firstCall.args[1]();
+            use.firstCall.args[1]._verify({}, { sub: 'person', attributes: { mail: 'Person@UNI.edu' } }, done);
+          }
+          await new Promise(resolve => setImmediate(resolve));
+          expect(evaluate.calledOnce).to.equal(true);
+          expect(evaluate.firstCall.args[0]).to.equal('person@uni.edu');
+          expect(evaluate.firstCall.args[2]).to.equal(provider);
+          expect(done.calledOnce).to.equal(true);
+          if (allowed) {
+            expect(done.firstCall.args[0]).to.equal(null);
+            expect(mockUser.create.calledOnce).to.equal(true);
+          } else {
+            expect(done.firstCall.args.slice(0, 2)).to.deep.equal(['authorized-email-denied', false]);
+            expect(mockUser.create.called).to.equal(false);
+          }
+        });
+      }
+    }
   });
 
   describe('login post-save hook completion', function () {

@@ -349,7 +349,7 @@ export const workflow: WorkflowConfig = {
                     viewRoles: ['Admin', 'Librarians'],
                     editRoles: ['Admin', 'Librarians']
                 },
-                form: 'generated-view-only',
+                form: 'party-1.0-draft',
                 dashboard: {
                     table: {
                         rowConfig: [

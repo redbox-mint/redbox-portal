@@ -21,7 +21,7 @@ import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { FormsModule } from "@angular/forms";
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { DeletedRecordsComponent } from './deleted-records.component';
-import { ModalModule } from "ngx-bootstrap/modal";
+import { A11yModule } from '@angular/cdk/a11y';
 
 describe('DeletedRecordsComponent', () => {
   async function settleView(fixture: any): Promise<void> {
@@ -105,8 +105,8 @@ describe('DeletedRecordsComponent', () => {
         FormsModule,
         BsDatepickerModule,
         PaginationModule,
-        ModalModule,
-        RedboxPortalCoreServicesModule, RedboxPortalRecordsModule, RedboxPortalRecordTableModule
+        A11yModule,
+        RedboxPortalCoreModule
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -133,10 +133,71 @@ describe('DeletedRecordsComponent', () => {
     await testModule.compileComponents();
   });
 
-  afterEach(async () => {
-    // Original modal tests rely on TestBed teardown; drain deferred show tasks first.
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  it('hides filters when empty and retains them for a filtered empty result', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.deletedRecordsResult = { ...component.deletedRecordsResult, records: [], total: 0 };
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('form.rb-admin-filter-bar')).toBeNull();
+    component.filterParams.title = 'no match';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('form.rb-admin-filter-bar')).not.toBeNull();
+    fixture.destroy();
+  });
+
+  it('selects only the current page, confirms the count, reports partial failures and clears selection after refresh', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const bulk = recordService.bulkDeletedRecords = jasmine.createSpy().and.resolveTo({ results: [
+      { oid: 'rdmp-record-1', status: 'succeeded', reason: 'completed' },
+      { oid: 'dataRecord-record-2', status: 'failed', reason: 'record-changed' },
+    ] });
+    const select = fixture.nativeElement.querySelector('thead input[type=checkbox]') as HTMLInputElement;
+    select.click(); fixture.detectChanges();
+    expect(component.selectedRecords.size).toBe(2);
+    expect(fixture.nativeElement.querySelector('.rb-admin-bulk-bar')).toBeTruthy();
+    component.showBulkDestroy(); fixture.detectChanges();
+    expect(component.bulkDestroy).toBeTrue();
+    expect(bulk).not.toHaveBeenCalled();
+    component.hideDestroyRecordModal();
+    expect(component.selectedRecords.size).toBe(2);
+    component.showBulkDestroy();
+    await component.confirmDestroyRecordModal(null);
+    fixture.detectChanges();
+    expect(bulk).toHaveBeenCalledOnceWith('destroy', jasmine.arrayContaining([jasmine.objectContaining({ oid: 'rdmp-record-1', revision: 3 })]));
+    expect(component.isDestroyRecordModalShown).toBeFalse();
+    expect(component.selectedRecords.size).toBe(0);
+    expect(component.bulkResults[1].reason).toBe('record-changed');
+    expect(fixture.nativeElement.querySelector('.action-feedback').textContent).toContain('dataRecord-record-2');
+  });
+
+  it('bulk restores selected rows and prevents repeated submissions while pending', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    let complete: any;
+    const bulk = recordService.bulkDeletedRecords = jasmine.createSpy().and.returnValue(new Promise(resolve => complete = resolve));
+    component.togglePage(true);
+    const pending = component.runBulk('restore');
+    await component.runBulk('restore');
+    expect(bulk).toHaveBeenCalledTimes(1);
+    complete({ results: [{ oid: 'rdmp-record-1', status: 'succeeded', reason: 'completed' }] });
+    await pending;
+    expect(component.selectedRecords.size).toBe(0);
+  });
+
+  it('passes deletion period and actor to server filtering and clears page selection', async () => {
+    const fixture = TestBed.createComponent(DeletedRecordsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    component.togglePage(true);
+    const read = spyOn(recordService, 'getDeletedRecords').and.callThrough();
+    component.filterParams.deletedWithin = '7'; component.filterParams.deletedBy = 'alice';
+    await component.filter();
+    expect(read.calls.mostRecent().args.slice(-2)).toEqual(['7', 'alice']);
+    expect(component.selectedRecords.size).toBe(0);
   });
 
   for (const paginationFails of [false, true]) {
@@ -157,21 +218,19 @@ describe('DeletedRecordsComponent', () => {
       fixture.autoDetectChanges();
       await settleView(fixture);
       fixture.detectChanges();
-      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '2')!;
       pageTwo.click();
       fixture.detectChanges();
       const page = http.expectOne(req => req.url.includes('listDeleted'));
       const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
-      const submit = fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement;
       for (const title of ['discarded', 'latest']) {
         input.value = title;
-        input.dispatchEvent(new Event('input'));
-        submit.click();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
       }
-      // Editing without submitting must not alter the queued or retry criteria.
-      input.value = 'unsubmitted';
-      input.dispatchEvent(new Event('input'));
+      // A later edit must not alter the captured criteria of an in-flight query.
+      component.filterParams.title = 'unsubmitted';
       http.expectNone(req => req.url.includes('listDeleted'));
       if (paginationFails) {
         page.flush('failed', { status: 500, statusText: 'Server Error' });
@@ -188,7 +247,7 @@ describe('DeletedRecordsComponent', () => {
       await settle();
       await settleView(fixture);
       fixture.detectChanges();
-      expect(component.deletedRecordsResult.pageNum).toBe(paginationFails ? 1 : 2);
+      expect(component.deletedRecordsResult.pageNum).toBe(1);
       expect(component.loadError).toContain('Unable to load');
       (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
       await settle();
@@ -232,8 +291,8 @@ describe('DeletedRecordsComponent', () => {
     await settleView(fixture);
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:1');
-    expect(header.getAttribute('aria-sort')).toBe('ascending');
-    const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
+    const pageTwo = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === '2')!;
     pageTwo.click();
     fixture.detectChanges();
@@ -243,7 +302,7 @@ describe('DeletedRecordsComponent', () => {
     const input = fixture.nativeElement.querySelector('input#title') as HTMLInputElement;
     input.value = 'latest';
     input.dispatchEvent(new Event('input'));
-    (fixture.nativeElement.querySelector('a.btn-primary') as HTMLAnchorElement).click();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     header.click(); // latest criteria: latest filter, descending sort
     http.expectNone(req => req.url.includes('listDeletedRecords'));
     page.flush('failed', { status: 500, statusText: 'Server Error' });
@@ -258,7 +317,7 @@ describe('DeletedRecordsComponent', () => {
     await settleView(fixture);
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:1');
-    expect(header.getAttribute('aria-sort')).toBe('ascending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('ascending');
     expect(fixture.nativeElement.textContent).toContain('Ascending');
     expect(component.currentPageNumber).toBe(1);
     (fixture.nativeElement.querySelector('[role="alert"] button') as HTMLButtonElement).click();
@@ -270,7 +329,7 @@ describe('DeletedRecordsComponent', () => {
     await settleView(fixture);
     fixture.detectChanges();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:-1');
-    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('descending');
     expect(fixture.nativeElement.textContent).toContain('Descending latest');
     expect(component.loadError).toBe('');
 
@@ -289,14 +348,14 @@ describe('DeletedRecordsComponent', () => {
     header.click();
     await settle();
     fixture.detectChanges();
-    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('descending');
     rejectConfig({ status: 403 });
     await settle();
     await settleView(fixture);
     fixture.detectChanges();
     expect(component.loadPending).toBeFalse();
     expect(component.sort).toBe('deletedRecordMetadata.metadata.title:-1');
-    expect(header.getAttribute('aria-sort')).toBe('descending');
+    expect(header.closest('th')?.getAttribute('aria-sort')).toBe('descending');
     expect(fixture.nativeElement.textContent).toContain('Descending latest');
     expect(component.loadError).toContain('Sign in again');
     http.expectNone(req => req.url.includes('listDeletedRecords'));
@@ -343,9 +402,9 @@ describe('DeletedRecordsComponent', () => {
     fixture.detectChanges();
     await settleView(fixture);
     fixture.detectChanges();
-    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+    const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
       .find(link => link.textContent?.trim() === String(page))!;
-    const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
+    const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager [aria-current="page"]')?.textContent.trim();
     let reject!: (reason: unknown) => void;
     const read = spyOn(recordService, 'getDeletedRecords').and.returnValue(new Promise((_resolve, rejectRequest) => { reject = rejectRequest; }));
     expect(activePage()).toBe('1');
@@ -526,7 +585,7 @@ describe('DeletedRecordsComponent', () => {
       return mockData.deletedRecords;
     };
 
-    for (const header of app.tableHeaders) {
+    for (const header of app.tableHeaders.filter(header => header.sortable !== false)) {
       await app.headerSortChanged({ sort: 'asc' }, header);
       await app.headerSortChanged({ sort: 'desc' }, header);
     }
@@ -615,7 +674,13 @@ describe('DeletedRecordsComponent', () => {
     };
 
     // trigger destroy
-    await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4}, 'destroy');
+    translationService.translationMap['admin-deleted-confirm-target'] = 'Permanently delete “{{title}}”?';
+    await app.recordTableAction(undefined, {oid: 'rdmp-record-1', revision: 4, title: 'Target <record>'}, 'destroy');
+    fixture.detectChanges();
+    const confirmation = fixture.nativeElement.querySelector('#deleted-records-confirm-modal-description');
+    expect(confirmation.textContent).toContain('Permanently delete “Target <record>”?');
+    expect(confirmation.textContent).toContain('rdmp-record-1');
+    expect(confirmation.querySelector('record')).toBeNull();
     expect(app.isDestroyRecordModalShown).toEqual(true);
     expect(app.currentDestroyRecordModalOid).toEqual('rdmp-record-1');
 
@@ -667,9 +732,9 @@ describe('DeletedRecordsComponent', () => {
       if (action === 'destroy') {
         await app.recordTableAction(null, { oid: 'rdmp-record-1', revision: 3 }, action);
         fixture.detectChanges();
-        (fixture.nativeElement.querySelector('.modal-footer .btn-primary') as HTMLButtonElement).click();
+        (fixture.nativeElement.querySelector('.modal-footer .rb-admin-danger-confirm') as HTMLButtonElement).click();
       } else {
-        (fixture.nativeElement.querySelector('record-table .btn-primary') as HTMLButtonElement).click();
+        (fixture.nativeElement.querySelector('record-table .restore-record') as HTMLButtonElement).click();
       }
       approveSelectedRevision(http);
       await settle();
@@ -957,7 +1022,7 @@ describe('DeletedRecordsComponent', () => {
         expect(app.currentDestroyRecordModalOid).toBe('rdmp-record-1');
       }
       mutation.and.resolveTo({ success: true });
-      const retry = fixture.nativeElement.querySelector(action === 'restore' ? '.retry-restore' : '.modal-footer .btn-primary') as HTMLButtonElement;
+      const retry = fixture.nativeElement.querySelector(action === 'restore' ? '.retry-restore' : '.modal-footer .rb-admin-danger-confirm') as HTMLButtonElement;
       retry.click();
       await settleView(fixture);
       fixture.detectChanges();
@@ -986,7 +1051,7 @@ describe('DeletedRecordsComponent', () => {
         expect(mutation).toHaveBeenCalledTimes(1);
         if (action === 'destroy') {
           expect(app.currentDestroyRecordModalOid).toBe('rdmp-record-1');
-          expect(fixture.nativeElement.querySelector('.modal-footer .btn-primary').disabled).toBeTrue();
+          expect(fixture.nativeElement.querySelector('.modal-footer .rb-admin-danger-confirm').disabled).toBeTrue();
         }
         reload.and.rejectWith(new HttpErrorResponse({ status: 0 }));
         (fixture.nativeElement.querySelector('.refresh-actions') as HTMLButtonElement).click();
@@ -1001,7 +1066,7 @@ describe('DeletedRecordsComponent', () => {
         fixture.detectChanges();
         expect(app.actionNeedsRefresh).toBeFalse();
         expect(app.currentDestroyRecordModalOid).toBeUndefined();
-        expect(fixture.nativeElement.textContent).toContain('Verify the record state');
+        expect(fixture.nativeElement.textContent).toContain('admin-deleted-list-refreshed');
         expect(mutation).toHaveBeenCalledTimes(1);
         await destroyView(fixture);
       });
@@ -1025,8 +1090,8 @@ describe('DeletedRecordsComponent', () => {
       it(`${action}: ${outcome} with failed refresh retains the real page and retries only the read`, async () => {
         const { fixture, app, mutation, reload, run } = await setupAction();
         const previous = app.deletedRecordsResult;
-        const activePage = () => fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
-        const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+        const activePage = () => fixture.nativeElement.querySelector('rb-admin-pager [aria-current="page"]')?.textContent.trim();
+        const pageLink = (page: number) => Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
           .find(link => link.textContent?.trim() === String(page))!;
         expect(activePage()).toBe('2');
         if (outcome === 'success') {
@@ -1052,7 +1117,7 @@ describe('DeletedRecordsComponent', () => {
         expect(app.currentPageNumber).toBe(2);
         expect(activePage()).toBe('2');
         expect(fixture.nativeElement.textContent).toContain('rdmp record 1');
-        expect(fixture.nativeElement.querySelector('record-table .btn-primary')).toBeNull();
+        expect(fixture.nativeElement.querySelector('record-table .restore-record')).toBeNull();
         expect(fixture.nativeElement.querySelector('.retry-restore')).toBeNull();
         await run();
         await app.retryRestore();
@@ -1085,9 +1150,9 @@ describe('DeletedRecordsComponent', () => {
         expect(app.actionPending).toBeFalse();
         expect(app.actionRefreshError).toBe('');
         expect(app.currentDestroyRecordModalOid).toBeUndefined();
-        expect(fixture.nativeElement.textContent).toContain('Verify the record state');
+        expect(fixture.nativeElement.textContent).toContain('admin-deleted-list-refreshed');
         expect(fixture.nativeElement.textContent).toContain('Verified page two');
-        expect(fixture.nativeElement.querySelector('record-table .btn-primary')).toBeTruthy();
+        expect(fixture.nativeElement.querySelector('record-table .restore-record')).toBeTruthy();
         expect(activePage()).toBe('2');
         expect(mutation).toHaveBeenCalledTimes(1);
         await destroyView(fixture);
@@ -1102,7 +1167,7 @@ describe('DeletedRecordsComponent', () => {
       }
       let finishRead!: (result: any) => void;
       reload.and.returnValue(new Promise(resolve => { finishRead = resolve; }));
-      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '3')!;
       pageThree.click();
       // Exercise method guards before Angular updates disabled/hidden controls.
@@ -1112,9 +1177,9 @@ describe('DeletedRecordsComponent', () => {
       fixture.detectChanges();
       expect(mutation).not.toHaveBeenCalled();
       expect(reload).toHaveBeenCalledTimes(1);
-      expect(fixture.nativeElement.querySelector('record-table .btn-primary')).toBeNull();
+      expect(fixture.nativeElement.querySelector('record-table .restore-record')).toBeNull();
       if (action === 'destroy') {
-        expect(fixture.nativeElement.querySelector('.modal-footer .btn-primary').disabled).toBeTrue();
+        expect(fixture.nativeElement.querySelector('.modal-footer .rb-admin-danger-confirm').disabled).toBeTrue();
       }
       finishRead({ items: [], totalItems: 30, currentPage: 3 });
       await settleView(fixture);
@@ -1131,16 +1196,16 @@ describe('DeletedRecordsComponent', () => {
       if (action === 'destroy') {
         await app.recordTableAction(null, { oid: 'rdmp-record-1', revision: 3 }, action);
         fixture.detectChanges();
-        const confirm = fixture.nativeElement.querySelector('.modal-footer .btn-primary') as HTMLButtonElement;
+        const confirm = fixture.nativeElement.querySelector('.modal-footer .rb-admin-danger-confirm') as HTMLButtonElement;
         confirm.click();
         confirm.click();
         fixture.detectChanges();
         expect(confirm.disabled).toBeTrue();
-        (fixture.nativeElement.querySelector('.modal-footer .btn-default') as HTMLButtonElement).click();
+        (fixture.nativeElement.querySelector('.modal-footer .btn-outline-secondary') as HTMLButtonElement).click();
         expect(app.currentDestroyRecordModalOid).toBe('rdmp-record-1');
       } else {
         // Exercise the real table buttons before rendering disables them.
-        const restore = fixture.nativeElement.querySelector('record-table .btn-primary') as HTMLButtonElement;
+        const restore = fixture.nativeElement.querySelector('record-table .restore-record') as HTMLButtonElement;
         expect(restore).toBeTruthy();
         restore.click();
         restore.click();
@@ -1148,7 +1213,7 @@ describe('DeletedRecordsComponent', () => {
       await app.recordTableAction(null, { oid: 'another-record' }, 'destroy');
       await app.confirmDestroyRecordModal(null);
       expect(mutation).toHaveBeenCalledTimes(1);
-      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('pagination .pagination-page a') as NodeListOf<HTMLAnchorElement>)
+      const pageThree = Array.from(fixture.nativeElement.querySelectorAll('rb-admin-pager button.page-link') as NodeListOf<HTMLButtonElement>)
         .find(link => link.textContent?.trim() === '3')!;
       fixture.detectChanges();
       pageThree.click();

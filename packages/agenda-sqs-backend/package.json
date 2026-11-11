@@ -39,9 +39,9 @@
     "@tsconfig/node24": "24.0.5",
     "@types/debug": "4.1.13",
     "@types/node": "26.6.6",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "typescript": "5.9.3",
-    "vitest": "5.0.5",
+    "vitest": "5.1.0",
     "agenda": "6.2.7"
   }
 }

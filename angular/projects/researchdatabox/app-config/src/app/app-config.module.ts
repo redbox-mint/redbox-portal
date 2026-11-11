@@ -1,9 +1,20 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
+import { FormlyFieldWrapperComponent } from '@researchdatabox/portal-ng-common';
+import { DictionaryTypeComponent } from './fieldTypes/dictionary.type';
+import { JsonTypeComponent } from './fieldTypes/json.type';
+import { NavigationRowComponent } from './fieldTypes/navigation-editor/navigation-row.component';
+import { NavigationFieldsComponent } from './fieldTypes/navigation-editor/navigation-fields.component';
+import { NavigationLinkDialogComponent } from './fieldTypes/navigation-editor/navigation-link-dialog.component';
+import { ChipsTypeComponent } from './fieldTypes/chips.type';
+import { SecretTypeComponent } from './fieldTypes/secret.type';
+import { SectionTypeComponent } from './fieldTypes/section.type';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
-import { RouterModule } from '@angular/router'; 
+import { RouterModule } from '@angular/router';
 import { FormlyModule } from '@ngx-formly/core';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { AppConfigComponent } from './app-config.component';
@@ -21,16 +32,22 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
 
 @NgModule({
   declarations: [
-    AppConfigComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
+    AppConfigComponent, DictionaryTypeComponent, JsonTypeComponent, NavigationRowComponent, NavigationFieldsComponent, NavigationLinkDialogComponent, SectionTypeComponent, SecretTypeComponent, ChipsTypeComponent, ArrayTypeComponent, ObjectTypeComponent, TextAreaComponent, CheckboxTypeComponent, MenuEditorTypeComponent, AdminSidebarEditorTypeComponent, HomePanelsEditorTypeComponent, ValueBindingEditorTypeComponent, FigshareCategoryMappingEditorTypeComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
+    A11yModule,
     ReactiveFormsModule,
     FormsModule,
     RouterModule,
     RedboxPortalCoreServicesModule,
    FormlyModule.forRoot({
     types: [
+      { name: 'app-config-section', component: SectionTypeComponent },
+      { name: 'app-config-dictionary', component: DictionaryTypeComponent },
+      { name: 'app-config-json', component: JsonTypeComponent },
+      { name: 'app-config-secret', component: SecretTypeComponent },
+      { name: 'app-config-chips', component: ChipsTypeComponent },
       { name: 'array', component: ArrayTypeComponent },
       { name: 'object', component: ObjectTypeComponent },
       { name: 'textarea', component: FormlyFieldTextArea },
@@ -42,7 +59,8 @@ import { FigshareCrosswalkApiService } from './services/figshare-crosswalk-api.s
       { name: 'figshare-category-mapping-editor', component: FigshareCategoryMappingEditorTypeComponent }
     ],
   }),
-    FormlyBootstrapModule
+    FormlyBootstrapModule,
+    FormlyModule.forChild({ wrappers: [{ name: 'form-field', component: FormlyFieldWrapperComponent }] })
   ],
   providers: [
     FigshareCrosswalkApiService,

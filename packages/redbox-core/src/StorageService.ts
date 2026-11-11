@@ -27,6 +27,18 @@ export const RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS = [
 
 export type RecordSchemaStorageCapabilityMethod = (typeof RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS)[number];
 
+/** Opt-in record queries; omitted options preserve legacy filtering and pagination. */
+export interface RecordQueryOptions {
+  /** Additional OR predicates, ANDed with brand, ACL, type and existing field filters. */
+  anyOf?: Array<{ field: string; value: string; match: 'contains' | 'exact' }>;
+  /** Present (including null for the first batch): binary OID order, no offset, 1–100 rows, no internal IDs. */
+  afterOid?: string | null;
+  /** Defaults to true. False avoids the count query and leaves totalItems at zero. */
+  count?: boolean;
+  /** Resolve canonical brand role IDs and legacy ACLs as RecordsService.hasViewAccess does. */
+  authorization?: 'record-view';
+}
+
 /**
  * Service interface for Storage operations.
  * Note: This interface uses `unknown` types extensively for backward compatibility.
@@ -144,7 +156,8 @@ export interface StorageService {
     fieldNames?: unknown,
     filterString?: unknown,
     filterMode?: unknown,
-    secondarySort?: unknown
+    secondarySort?: unknown,
+    queryOptions?: RecordQueryOptions
   ): Promise<StorageServiceResponse>;
   getDeletedRecords(
     workflowState: unknown,
@@ -159,7 +172,9 @@ export interface StorageService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    secondarySort?: unknown,
+    deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
   getDeletedRecordMeta(oid: unknown): Promise<RecordModel | null>;
   exportAllPlans(
@@ -169,7 +184,8 @@ export interface StorageService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    checkpoint?: () => Promise<void>
   ): Readable;
 
   /**

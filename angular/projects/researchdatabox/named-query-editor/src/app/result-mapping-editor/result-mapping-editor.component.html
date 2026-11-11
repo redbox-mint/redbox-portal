@@ -1,24 +1,28 @@
 <div class="nq-subeditor">
   <div class="nq-section-header">
-    <h6>{{ 'named-query-mappings-heading' | i18next }}</h6>
+    <h2 class="nq-section-title">{{ 'named-query-mappings-heading' | i18next }}</h2>
   </div>
-  <p class="text-muted small mb-2">{{ 'named-query-mappings-help' | i18next }}</p>
+  <p class="rb-ws-lede">{{ 'named-query-mappings-help' | i18next }}</p>
 
   @if (entries.length > 0) {
     <div class="table-responsive">
       <table class="table table-sm table-bordered mb-0">
-        <thead class="thead-light">
+        <thead>
           <tr>
-            <th class="nq-mapping-column">{{ 'named-query-mapping-field' | i18next }}</th>
+            <th class="nq-col-key">{{ 'named-query-mapping-field' | i18next }}</th>
             <th>{{ 'named-query-mapping-template' | i18next }}</th>
-            <th class="nq-actions-column">{{ 'record-table-results-table-header-actions' | i18next }}</th>
+            <th class="nq-col-actions">{{ 'record-table-results-table-header-actions' | i18next }}</th>
           </tr>
         </thead>
         <tbody>
           @for (entry of entries; track trackById($index, entry)) {
             <tr>
               <td>
+                <label class="visually-hidden" [for]="idPrefix + '-control-1' + '-' + entry.id">{{
+                  'named-query-name' | i18next
+                }}</label>
                 <input
+                  [id]="idPrefix + '-control-1' + '-' + entry.id"
                   type="text"
                   class="form-control form-control-sm"
                   [ngModel]="entry.key"
@@ -26,13 +30,16 @@
                 />
               </td>
               <td>
-                <input
-                  type="text"
-                  class="form-control form-control-sm font-monospace"
-                  [ngModel]="entry.value"
-                  (ngModelChange)="onValueChange(entry, $event)"
-                  spellcheck="false"
-                />
+                <nq-diagnostics
+                  [diagnostics]="diagnostics"
+                  [location]="'resultObjectMapping.' + entry.key"
+                ></nq-diagnostics>
+                <nq-mapping-value
+                  [label]="('named-query-mapping-source' | i18next) + ': ' + entry.key"
+                  [value]="entry.value"
+                  [fields]="fields"
+                  (valueChange)="onValueChange(entry, $event)"
+                ></nq-mapping-value>
               </td>
               <td class="text-center">
                 <button class="btn btn-sm btn-outline-danger" type="button" (click)="removeEntry(entry)">
@@ -46,23 +53,24 @@
     </div>
   }
   @if (entries.length === 0) {
-    <p class="text-muted mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
+    <p class="rb-ws-empty mb-2">{{ 'named-query-mapping-empty' | i18next }}</p>
   }
 
-  <div class="d-flex flex-wrap nq-add-row mt-2">
+  <div class="d-flex flex-wrap nq-add-row mt-3">
+    <label class="visually-hidden" [for]="idPrefix + '-control-2'">{{ 'named-query-name' | i18next }}</label>
     <input
+      [id]="idPrefix + '-control-2'"
       type="text"
       class="form-control form-control-sm nq-add-grow"
       [(ngModel)]="newKey"
       [attr.placeholder]="'named-query-mapping-field-placeholder' | i18next"
     />
-    <input
-      type="text"
-      class="form-control form-control-sm nq-add-grow-wide font-monospace"
-      [(ngModel)]="newValue"
-      [attr.placeholder]="'named-query-mapping-template-placeholder' | i18next"
-      spellcheck="false"
-    />
+    <nq-mapping-value
+      [label]="('named-query-mapping-source' | i18next) + ': ' + newKey"
+      [value]="newValue"
+      [fields]="fields"
+      (valueChange)="newValue = $event"
+    ></nq-mapping-value>
     <button class="btn btn-sm btn-outline-primary" type="button" (click)="addEntry()">
       {{ 'named-query-add' | i18next }}
     </button>

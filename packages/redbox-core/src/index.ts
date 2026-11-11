@@ -138,7 +138,7 @@ export {
   RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
   getMissingRecordSchemaStorageCapabilities,
 } from './StorageService';
-export type { RecordSchemaStorageCapabilityMethod } from './StorageService';
+export type { RecordQueryOptions, RecordSchemaStorageCapabilityMethod } from './StorageService';
 export { RecordAuditParams } from './RecordAuditParams';
 export { IntegrationAuditParams } from './IntegrationAuditParams';
 export type {
@@ -281,3 +281,6 @@ export * from './api-routes';
 
 export * from './RecordWriteOptions';
 export * from './model/storage/FigshareSyncModel';
+export { EmailTemplateError, EmailTemplateConflictError } from './services/EmailTemplateService';
+export type { EmailTemplateContent, ResolvedEmailTemplate, EmailTemplateErrorCode } from './services/EmailTemplateService';
+export type { EmailRenderContext } from './services/EmailService';

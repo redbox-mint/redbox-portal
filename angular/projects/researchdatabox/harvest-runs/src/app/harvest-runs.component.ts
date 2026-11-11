@@ -1,7 +1,9 @@
-import { Component, ElementRef, Inject, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild, inject, afterNextRender, Injector, ChangeDetectionStrategy } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+
 import { PageChangedEvent } from 'ngx-bootstrap/pagination';
-import { DateTime } from 'luxon';
-import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
+import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
+import { BaseComponent, ConfigService, RecordService, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   HarvestRunApiService,
   HarvestRunDetail,
@@ -9,6 +11,7 @@ import {
   HarvestRunEvent,
   HarvestRunListQuery,
   HarvestRunSummary,
+  HarvestRunStatistics,
   ListApiResponse,
 } from './harvest-run-api.service';
 
@@ -27,12 +30,18 @@ type StatusOption = {
   standalone: false
 })
 export class HarvestRunsComponent extends BaseComponent {
+  earlyHeader?: { title: string; description: string; adminLabel: string; breadcrumbLabel: string; section: string; refresh: string; adminUrl: string };
+  readonly adminDates = inject(AdminDateService);
+  recordTypes: string[] = [];
+  dateFrom: Date | string | null = null;
+  dateTo: Date | string | null = null;
+  datePickerPlaceHolder = 'dd/mm/yyyy';
+  datePickerOpts: Partial<BsDatepickerConfig> = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
   readonly runPageSize = 20;
   readonly eventPageSize = 20;
   readonly chunkPageSize = 20;
-  readonly displayDateFormat = 'dd/MM/yyyy HH:mm';
   readonly statusOptions: StatusOption[] = [
-    { value: '', labelKey: 'harvest-runs-status-all' },
+    { value: '', labelKey: 'admin-any-status' },
     { value: 'running', labelKey: 'harvest-runs-status-running' },
     { value: 'completed', labelKey: 'harvest-runs-status-completed' },
     { value: 'completed_with_errors', labelKey: 'harvest-runs-status-completed-with-errors' },
@@ -57,10 +66,16 @@ export class HarvestRunsComponent extends BaseComponent {
   filters: HarvestRunListQuery = this.createEmptyFilters();
   listResponse: ListApiResponse<HarvestRunSummary> = this.emptyListResponse<HarvestRunSummary>();
   eventResponse: ListApiResponse<HarvestRunEvent> = this.emptyListResponse<HarvestRunEvent>();
+  private readonly viewInjector = inject(Injector);
+  @ViewChild('detailHeading') detailHeading?: ElementRef<HTMLElement>;
   selectedRun: HarvestRunDetail | null = null;
   selectedRunId = '';
   loadingRuns = false;
   loadingDetail = false;
+  statistics: HarvestRunStatistics | null = null;
+  loadingStatistics = false;
+  statisticsError = '';
+  private statisticsRequestId = 0;
   listError = '';
   detailError = '';
   private detailRequestId = 0;
@@ -68,31 +83,85 @@ export class HarvestRunsComponent extends BaseComponent {
   private loadedEventPage = 1;
 
   constructor(
+    @Inject(ElementRef) elementRef: ElementRef,
+    @Inject(ConfigService) private configService: ConfigService,
+    @Inject(RecordService) private recordService: RecordService,
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(HarvestRunApiService) private harvestRunApiService: HarvestRunApiService
   ) {
     super();
-    this.initDependencies = [this.translationService, this.harvestRunApiService];
+    const earlyHeader = elementRef.nativeElement.getAttribute('data-admin-header');
+    if (earlyHeader) {
+      this.earlyHeader = JSON.parse(earlyHeader);
+      this.brandingAndPortalUrl = this.earlyHeader!.adminUrl.replace(/\/admin$/, '');
+    }
+    this.initDependencies = [this.translationService, this.harvestRunApiService, this.recordService];
   }
 
   protected async initComponent(): Promise<void> {
-    await this.loadRuns(1);
+    this.brandingAndPortalUrl = this.harvestRunApiService.getBrandingAndPortalUrl();
+    const config = await this.configService.getConfig();
+    this.datePickerOpts = ConfigService._getAppConfigProperty(config, 'report', 'datePickerOpts', this.datePickerOpts);
+    this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
+    this.datePickerPlaceHolder = this.adminDates.placeholder;
+    // Filter options and the initial list are independent requests.
+    await Promise.all([
+      Promise.resolve(this.recordService.getAllTypes()).then(types => {
+        this.recordTypes = types.map((type: { name: string }) => type.name);
+      }),
+      this.loadRuns(1)
+    ]);
+  }
+
+  public get hasEventFilters(): boolean {
+    return Object.values(this.eventFilters).some(Boolean) || Object.values(this.appliedEventFilters).some(Boolean);
+  }
+
+  get showStatistics(): boolean {
+    return this.loadingStatistics || this.loadingRuns || this.listResponse.records.length > 0 ||
+      !!(this.statistics && (this.statistics.runsLast7Days || this.statistics.runningNow || this.statistics.failedLast7Days || this.statistics.lastSuccessfulRun));
+  }
+
+  public get hasFilters(): boolean {
+    return Object.values(this.filters).some(Boolean);
+  }
+
+  public async refreshRuns(): Promise<void> {
+    await this.loadRuns(this.loadedRunPage || 1);
+    if (this.selectedRunId) { await this.selectRun(this.selectedRunId, true); }
   }
 
   public async applyFilters(event?: Event): Promise<void> {
     event?.preventDefault();
+    const from = this.filterDate(this.dateFrom, false);
+    const to = this.filterDate(this.dateTo, true);
+    if (from === undefined || to === undefined || (from && to && from > to)) {
+      this.listError = this.translationService.t(from === undefined || to === undefined ? 'export-invalid-date' : 'export-invalid-date-order');
+      return;
+    }
+    this.filters.dateFrom = from;
+    this.filters.dateTo = to;
     await this.loadRuns(1);
   }
 
+  private filterDate(value: Date | string | null, end: boolean): string | undefined {
+    if (!value) { return ''; }
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) { return undefined; }
+    const date = new Date(value);
+    date.setHours(end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0);
+    return date.toISOString();
+  }
+
   public async clearFilters(): Promise<void> {
+    this.dateFrom = this.dateTo = null;
     this.filters = this.createEmptyFilters();
     await this.loadRuns(1);
   }
 
-  public async selectRun(runId: string): Promise<void> {
+  public async selectRun(runId: string, force = false): Promise<void> {
     const trimmedRunId = String(runId ?? '').trim();
-    if (!trimmedRunId || (trimmedRunId === this.selectedRunId && (this.loadingDetail || this.selectedRun))) {
+    if (!trimmedRunId || (!force && trimmedRunId === this.selectedRunId && (this.loadingDetail || this.selectedRun))) {
       return;
     }
 
@@ -118,6 +187,8 @@ export class HarvestRunsComponent extends BaseComponent {
         return;
       }
       this.selectedRun = detail;
+      // Move keyboard users to the newly opened detail without moving focus on refresh.
+      if (!force) afterNextRender(() => this.detailHeading?.nativeElement.focus(), { injector: this.viewInjector });
       this.loadedChunkPage = 1;
       this.chunkResponse = {
         summary: { numFound: detail.chunksTotal, page: 1, start: 0 },
@@ -185,7 +256,7 @@ export class HarvestRunsComponent extends BaseComponent {
 
   public async applyEventFilters(event?: Event): Promise<void> {
     event?.preventDefault();
-    if (!this.selectedRun || this.loadingEvents) {
+    if (!this.selectedRun) {
       return;
     }
     const filters = { outcome: this.eventFilters.outcome, harvestId: this.eventFilters.harvestId.trim() };
@@ -287,8 +358,7 @@ export class HarvestRunsComponent extends BaseComponent {
       return '';
     }
 
-    const date = DateTime.fromISO(safeValue);
-    return date.isValid ? date.toFormat(this.displayDateFormat) : safeValue;
+    return this.adminDates.format(safeValue);
   }
 
   public getStatusLabel(status?: string): string {
@@ -369,6 +439,13 @@ export class HarvestRunsComponent extends BaseComponent {
     return [event.errorCode, event.message, event.details].filter(Boolean).join(' ').trim();
   }
 
+  public getEventPreview(event: HarvestRunEvent): string {
+    const message = this.getEventMessage(event);
+    if (event.outcome !== 'failed' && event.status !== false) return message;
+    const firstLine = message.split(/\r?\n/, 1)[0];
+    return firstLine.length > 160 ? firstLine.slice(0, 160) + '…' : firstLine;
+  }
+
   public getRecordUrl(oid?: string): string {
     return `${this.harvestRunApiService.getBrandingAndPortalUrl()}/record/view/${encodeURIComponent(String(oid ?? '').trim())}`;
   }
@@ -408,10 +485,39 @@ export class HarvestRunsComponent extends BaseComponent {
     ];
   }
 
+  public getLastSuccessRelativeTime(): string {
+    const timestamp = this.statistics?.lastSuccessfulRun?.completedAt;
+    if (!timestamp || !Number.isFinite(Date.parse(timestamp))) { return '—'; }
+    const seconds = (Date.parse(timestamp) - Date.now()) / 1000;
+    const formatter = new Intl.RelativeTimeFormat(this.translationService.getCurrentLanguage(), { numeric: 'auto', style: 'short' });
+    for (const [unit, size] of [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]] as const) {
+      if (Math.abs(seconds) >= size) { return formatter.format(Math.round(seconds / size), unit); }
+    }
+    return formatter.format(0, 'second');
+  }
+
+  private async loadStatistics(): Promise<void> {
+    const requestId = ++this.statisticsRequestId;
+    this.loadingStatistics = true;
+    this.statisticsError = '';
+    try {
+      const statistics = await this.harvestRunApiService.getStatistics();
+      if (requestId === this.statisticsRequestId) { this.statistics = statistics; }
+    } catch {
+      if (requestId === this.statisticsRequestId) {
+        this.statistics = null;
+        this.statisticsError = this.translationService.t('harvest-runs-statistics-error');
+      }
+    } finally {
+      if (requestId === this.statisticsRequestId) { this.loadingStatistics = false; }
+    }
+  }
+
   private async loadRuns(page: number): Promise<void> {
     const requestId = ++this.runRequestId;
     this.loadingRuns = true;
     this.listError = '';
+    const statisticsRequest = this.loadStatistics();
     try {
       const response = await this.harvestRunApiService.listRuns({
         status: this.filters.status,
@@ -444,12 +550,6 @@ export class HarvestRunsComponent extends BaseComponent {
         this.eventResponse = this.emptyListResponse<HarvestRunEvent>();
       }
 
-      if (!this.selectedRunId && this.listResponse.records.length > 0) {
-        const firstRunId = String(this.listResponse.records[0].id ?? '').trim();
-        if (firstRunId) {
-          await this.selectRun(firstRunId);
-        }
-      }
     } catch (error) {
       if (requestId !== this.runRequestId) {
         return;
@@ -458,6 +558,7 @@ export class HarvestRunsComponent extends BaseComponent {
       this.listResponse.summary.page = this.loadedRunPage || 1;
       this.loggerService.error(this.listError);
     } finally {
+      await statisticsRequest;
       if (requestId === this.runRequestId) {
         this.loadingRuns = false;
       }
@@ -465,8 +566,8 @@ export class HarvestRunsComponent extends BaseComponent {
   }
 
   private getBadgeClass(variant: string): string {
-    const tone = variant === 'muted' || variant === 'neutral' ? 'secondary' : variant;
-    return `badge rounded-pill hr-badge bg-${tone}-subtle text-${tone}-emphasis border border-${tone}-subtle`;
+    const tone = variant === 'muted' || variant === 'neutral' ? 'primary' : variant;
+    return `badge rb-admin-badge-${tone}`;
   }
 
   private getStatusTranslationKey(status?: string): string {

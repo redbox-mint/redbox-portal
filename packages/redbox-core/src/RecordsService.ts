@@ -275,7 +275,8 @@ export interface RecordsService {
     sort: unknown,
     fieldNames?: unknown,
     filterString?: unknown,
-    filterMode?: unknown
+    filterMode?: unknown,
+    deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
   getRecords(
     workflowState: unknown,
@@ -379,7 +380,8 @@ export interface RecordsService {
     format: unknown,
     modBefore: unknown,
     modAfter: unknown,
-    recType: unknown
+    recType: unknown,
+    checkpoint?: () => Promise<void>
   ): unknown;
   bootstrapData(): Promise<void>;
   // Probably to be retired or reimplemented in a different service

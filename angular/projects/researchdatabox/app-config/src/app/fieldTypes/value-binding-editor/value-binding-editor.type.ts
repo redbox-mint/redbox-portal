@@ -24,75 +24,75 @@ interface ValueBindingValue {
 }
 
 const HUMAN_LABELS: Record<string, string> = {
-  doi: 'DOI',
-  url: 'URL',
-  contentUrl: 'Content URL',
-  publicationYear: 'Publication Year',
-  publisher: 'Publisher',
-  prefix: 'Prefix',
-  language: 'Language',
-  version: 'Version',
-  formats: 'Formats',
-  sizes: 'Sizes',
-  name: 'Name',
-  nameType: 'Name Type',
-  givenName: 'Given Name',
-  familyName: 'Family Name',
-  nameIdentifier: 'Name Identifier',
-  nameIdentifierScheme: 'Name ID Scheme',
-  schemeUri: 'Scheme URI',
-  affiliationIdentifier: 'Affiliation ID',
-  affiliationIdentifierScheme: 'Affiliation ID Scheme',
-  title: 'Title',
-  titleType: 'Title Type',
-  lang: 'Language',
-  subject: 'Subject',
-  subjectScheme: 'Subject Scheme',
-  valueUri: 'Value URI',
-  classificationCode: 'Classification Code',
-  date: 'Date',
-  dateType: 'Date Type',
-  dateInformation: 'Date Information',
-  identifier: 'Identifier',
-  identifierType: 'Identifier Type',
-  relatedIdentifier: 'Related Identifier',
-  relatedIdentifierType: 'Related ID Type',
-  relationType: 'Relation Type',
-  relatedMetadataScheme: 'Related Metadata Scheme',
-  schemeType: 'Scheme Type',
-  resourceTypeGeneral: 'Resource Type (General)',
-  resourceType: 'Resource Type',
-  rights: 'Rights',
-  rightsUri: 'Rights URI',
-  rightsIdentifier: 'Rights Identifier',
-  rightsIdentifierScheme: 'Rights ID Scheme',
-  description: 'Description',
-  descriptionType: 'Description Type',
-  ris: 'RIS',
-  bibtex: 'BibTeX',
-  citeproc: 'Citeproc',
-  schemaOrg: 'Schema.org',
-  contributorType: 'Contributor Type',
-  pointLongitude: 'Longitude',
-  pointLatitude: 'Latitude',
-  westBoundLongitude: 'West Longitude',
-  eastBoundLongitude: 'East Longitude',
-  southBoundLatitude: 'South Latitude',
-  northBoundLatitude: 'North Latitude',
-  geoLocationPlace: 'Place Name',
-  funderName: 'Funder Name',
-  funderIdentifier: 'Funder ID',
-  funderIdentifierType: 'Funder ID Type',
-  awardNumber: 'Award Number',
-  awardUri: 'Award URI',
-  awardTitle: 'Award Title',
-  relatedItemType: 'Related Item Type',
-  volume: 'Volume',
-  issue: 'Issue',
-  number: 'Number',
-  firstPage: 'First Page',
-  lastPage: 'Last Page',
-  edition: 'Edition',
+  doi: 'admin-config-binding-field-doi',
+  url: 'admin-config-binding-field-url',
+  contentUrl: 'admin-config-binding-field-contentUrl',
+  publicationYear: 'admin-config-binding-field-publicationYear',
+  publisher: 'admin-config-binding-field-publisher',
+  prefix: 'admin-config-binding-field-prefix',
+  language: 'admin-config-binding-field-language',
+  version: 'admin-config-binding-field-version',
+  formats: 'admin-config-binding-field-formats',
+  sizes: 'admin-config-binding-field-sizes',
+  name: 'admin-config-binding-field-name',
+  nameType: 'admin-config-binding-field-nameType',
+  givenName: 'admin-config-binding-field-givenName',
+  familyName: 'admin-config-binding-field-familyName',
+  nameIdentifier: 'admin-config-binding-field-nameIdentifier',
+  nameIdentifierScheme: 'admin-config-binding-field-nameIdentifierScheme',
+  schemeUri: 'admin-config-binding-field-schemeUri',
+  affiliationIdentifier: 'admin-config-binding-field-affiliationIdentifier',
+  affiliationIdentifierScheme: 'admin-config-binding-field-affiliationIdentifierScheme',
+  title: 'admin-config-binding-field-title',
+  titleType: 'admin-config-binding-field-titleType',
+  lang: 'admin-config-binding-field-lang',
+  subject: 'admin-config-binding-field-subject',
+  subjectScheme: 'admin-config-binding-field-subjectScheme',
+  valueUri: 'admin-config-binding-field-valueUri',
+  classificationCode: 'admin-config-binding-field-classificationCode',
+  date: 'admin-config-binding-field-date',
+  dateType: 'admin-config-binding-field-dateType',
+  dateInformation: 'admin-config-binding-field-dateInformation',
+  identifier: 'admin-config-binding-field-identifier',
+  identifierType: 'admin-config-binding-field-identifierType',
+  relatedIdentifier: 'admin-config-binding-field-relatedIdentifier',
+  relatedIdentifierType: 'admin-config-binding-field-relatedIdentifierType',
+  relationType: 'admin-config-binding-field-relationType',
+  relatedMetadataScheme: 'admin-config-binding-field-relatedMetadataScheme',
+  schemeType: 'admin-config-binding-field-schemeType',
+  resourceTypeGeneral: 'admin-config-binding-field-resourceTypeGeneral',
+  resourceType: 'admin-config-binding-field-resourceType',
+  rights: 'admin-config-binding-field-rights',
+  rightsUri: 'admin-config-binding-field-rightsUri',
+  rightsIdentifier: 'admin-config-binding-field-rightsIdentifier',
+  rightsIdentifierScheme: 'admin-config-binding-field-rightsIdentifierScheme',
+  description: 'admin-config-binding-field-description',
+  descriptionType: 'admin-config-binding-field-descriptionType',
+  ris: 'admin-config-binding-field-ris',
+  bibtex: 'admin-config-binding-field-bibtex',
+  citeproc: 'admin-config-binding-field-citeproc',
+  schemaOrg: 'admin-config-binding-field-schemaOrg',
+  contributorType: 'admin-config-binding-field-contributorType',
+  pointLongitude: 'admin-config-binding-field-pointLongitude',
+  pointLatitude: 'admin-config-binding-field-pointLatitude',
+  westBoundLongitude: 'admin-config-binding-field-westBoundLongitude',
+  eastBoundLongitude: 'admin-config-binding-field-eastBoundLongitude',
+  southBoundLatitude: 'admin-config-binding-field-southBoundLatitude',
+  northBoundLatitude: 'admin-config-binding-field-northBoundLatitude',
+  geoLocationPlace: 'admin-config-binding-field-geoLocationPlace',
+  funderName: 'admin-config-binding-field-funderName',
+  funderIdentifier: 'admin-config-binding-field-funderIdentifier',
+  funderIdentifierType: 'admin-config-binding-field-funderIdentifierType',
+  awardNumber: 'admin-config-binding-field-awardNumber',
+  awardUri: 'admin-config-binding-field-awardUri',
+  awardTitle: 'admin-config-binding-field-awardTitle',
+  relatedItemType: 'admin-config-binding-field-relatedItemType',
+  volume: 'admin-config-binding-field-volume',
+  issue: 'admin-config-binding-field-issue',
+  number: 'admin-config-binding-field-number',
+  firstPage: 'admin-config-binding-field-firstPage',
+  lastPage: 'admin-config-binding-field-lastPage',
+  edition: 'admin-config-binding-field-edition',
 };
 
 @Component({
@@ -107,6 +107,12 @@ const HUMAN_LABELS: Record<string, string> = {
     .binding-card.configured { border-left-color: #198754; }
     .binding-card.has-default-only { border-left-color: #0d6efd; }
     .binding-header {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
       cursor: pointer;
       user-select: none;
       transition: background-color 0.15s;
@@ -114,8 +120,7 @@ const HUMAN_LABELS: Record<string, string> = {
     }
     .binding-header:hover { background-color: rgba(0,0,0,0.03); }
     .binding-source {
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 0.8rem;
+      font-size: inherit;
     }
     .binding-summary {
       max-width: 400px;
@@ -154,7 +159,7 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
 
   private async loadCrosswalkOptions(): Promise<void> {
     if (!this.crosswalkApi) {
-      this.crosswalksLoadError = 'Figshare crosswalk options are unavailable.';
+      this.crosswalksLoadError = 'admin-config-binding-crosswalks-unavailable';
       return;
     }
     this.crosswalksLoading = true;
@@ -165,7 +170,7 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
       this.vocabularies = await this.crosswalkApi.listAllLocalVocabularies();
       this.crosswalks = await this.crosswalkApi.listAllApprovedCrosswalks();
     } catch (_err) {
-      this.crosswalksLoadError = 'Unable to load approved Figshare crosswalks.';
+      this.crosswalksLoadError = 'admin-config-binding-crosswalks-error';
     } finally {
       this.crosswalksLoading = false;
     }
@@ -227,14 +232,14 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
   /** Mirrors the server-side gates so misconfiguration surfaces before a publish attempt. */
   get crosswalkValidationMessage(): string {
     if (this.kind !== 'crosswalk') return '';
-    if (!this.isSimpleConfigured(this.value.source)) return 'Configure the source binding that supplies the codes.';
-    if (!this.value.sourceVocabularyId) return 'Select a source vocabulary.';
-    if (!this.value.crosswalkId) return 'Select an approved crosswalk.';
+    if (!this.isSimpleConfigured(this.value.source)) return 'admin-config-binding-source-required';
+    if (!this.value.sourceVocabularyId) return 'admin-config-binding-vocabulary-required';
+    if (!this.value.crosswalkId) return 'admin-config-binding-crosswalk-required';
     if (this.crosswalksLoading || this.crosswalksLoadError) return '';
     const selected = this.selectedCrosswalk;
-    if (!selected) return 'The selected crosswalk is not available for this brand.';
-    if (selected.localVocabularyId !== this.value.sourceVocabularyId) return 'The crosswalk maps a different local vocabulary.';
-    if (selected.approvedRevision == null) return 'Approve a mapping revision before selecting this crosswalk.';
+    if (!selected) return 'admin-config-binding-crosswalk-unavailable';
+    if (selected.localVocabularyId !== this.value.sourceVocabularyId) return 'admin-config-binding-vocabulary-mismatch';
+    if (selected.approvedRevision == null) return 'admin-config-binding-approval-required';
     return '';
   }
 
@@ -476,7 +481,8 @@ export class ValueBindingEditorTypeComponent extends FieldType<FieldTypeConfig> 
         defaultValue: next['defaultValue'] ?? '',
         sourceVocabularyId: next['sourceVocabularyId'] ?? '',
         crosswalkId: next['crosswalkId'] ?? '',
-        outputs: next['outputs'] ?? '',
+        // Output is absent for simple bindings; an empty string fails the enum validator.
+        outputs: next['outputs'],
         // Always a full shape so a partial patch cannot leave stale siblings behind.
         source: {
           kind: 'path',

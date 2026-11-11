@@ -1,3 +1,5 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -30,8 +32,9 @@ import { TemplatePreviewService } from './template-preview/template-preview.serv
     RuleEditorComponent,
     TemplatePreviewComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
+    A11yModule,
     FormsModule,
     RedboxPortalCoreServicesModule,
     CommonModule

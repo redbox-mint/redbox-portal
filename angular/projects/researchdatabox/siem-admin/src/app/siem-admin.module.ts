@@ -1,3 +1,4 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +12,7 @@ import { SiemAdminComponent } from './siem-admin.component';
   declarations: [
     SiemAdminComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,

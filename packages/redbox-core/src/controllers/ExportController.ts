@@ -46,6 +46,7 @@ export namespace Controllers {
       'listJobs',
       'getJob',
       'deleteJob',
+      'cancelJob',
       'downloadJob',
     ];
 
@@ -55,6 +56,14 @@ export namespace Controllers {
      * *************************************************************************************************
      */
     public override index(req: Sails.Req, res: Sails.Res) {
+      const { brand, user } = this.getExportContext(req);
+      const roles = (user.roles ?? []) as Array<{ name?: string; branding?: string | { id?: string } }>;
+      req.options!.locals ??= {};
+      req.options!.locals['isAdmin'] = roles.some(
+        role =>
+          role.name === 'Admin' &&
+          String(typeof role.branding === 'object' ? role.branding?.id : role.branding) === String(brand.id)
+      );
       return this.sendView(req, res, 'export/index');
     }
 
@@ -87,6 +96,15 @@ export namespace Controllers {
     public async getJob(req: Sails.Req, res: Sails.Res) {
       try {
         const job = await ExportService.getJob(this.getExportContext(req), getRouteParam(req, 'id'));
+        return this.sendResp(req, res, { data: job, headers: this.getExportHeaders() });
+      } catch (error: unknown) {
+        return this.sendExportError(req, res, error);
+      }
+    }
+
+    public async cancelJob(req: Sails.Req, res: Sails.Res) {
+      try {
+        const job = await ExportService.cancelJob(this.getExportContext(req), getRouteParam(req, 'id'));
         return this.sendResp(req, res, { data: job, headers: this.getExportHeaders() });
       } catch (error: unknown) {
         return this.sendExportError(req, res, error);

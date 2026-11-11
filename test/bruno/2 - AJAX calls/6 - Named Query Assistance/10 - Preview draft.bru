@@ -1,0 +1,55 @@
+meta {
+  name: Named queries - Preview draft
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "record",
+      "mongoQuery": {},
+      "queryParams": {
+        "createdAfter": {
+          "type": "date",
+          "path": "dateCreated",
+          "queryType": ">=",
+          "whenUndefined": "ignore"
+        }
+      },
+      "resultObjectMapping": {
+        "projectTitle": "record.metadata.title"
+      }
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Returns the bounded report result wrapper", () => {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.valid).to.equal(true);
+    expect(data.records.length).to.be.at.most(100);
+    expect(data.truncated).to.be.a("boolean");
+    expect(data.truncationReasons).to.be.an("array");
+    if (data.records.length) expect(data.records[0]).to.have.keys("oid", "title", "metadata", "dateCreated", "lastSaveDate");
+  });
+}

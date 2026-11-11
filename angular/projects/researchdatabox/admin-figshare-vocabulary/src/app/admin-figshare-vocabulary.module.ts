@@ -1,3 +1,4 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -24,7 +25,7 @@ import { FigshareMappingPickerComponent } from './crosswalks/figshare-mapping-pi
     FigshareCrosswalkEditorComponent,
     FigshareMappingPickerComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     A11yModule,
     FormsModule,

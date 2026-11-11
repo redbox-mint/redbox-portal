@@ -1,3 +1,4 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from "@angular/forms";
@@ -10,9 +11,9 @@ import { BrandingAdminComponent } from './branding-admin.component';
 
 @NgModule({
   declarations: [
-    
+
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,
@@ -28,6 +29,5 @@ import { BrandingAdminComponent } from './branding-admin.component';
       deps: [PlatformLocation]
     }
   ],
-  bootstrap: [BrandingAdminComponent]
 })
 export class BrandingAdminModule { }

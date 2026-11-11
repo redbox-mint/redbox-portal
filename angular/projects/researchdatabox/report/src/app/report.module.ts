@@ -1,3 +1,4 @@
+import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from "@angular/forms";
@@ -12,7 +13,7 @@ import { ReportComponent } from './report.component';
   declarations: [
     ReportComponent
   ],
-  imports: [
+  imports: [RedboxPortalAdminModule,
     BrowserModule,
     FormsModule,
     BrowserAnimationsModule,

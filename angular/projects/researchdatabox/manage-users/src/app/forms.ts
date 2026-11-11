@@ -40,7 +40,7 @@ export function optionalEmailValidator(control: FormControl): any { //{[key: str
 
 export function passwordStrengthValidator(control1: string): ValidatorFn  {
   return (group: AbstractControl):{ [key: string]: any } | null => {
-    
+
     let password = group.get(control1);
 
     if(!_.isUndefined(password) && !_.isNull(password)) {

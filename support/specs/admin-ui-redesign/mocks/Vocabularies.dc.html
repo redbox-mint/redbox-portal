@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vocabularies</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="vocab" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Lookups &amp; vocabularies</span><span>/</span><span>Vocabularies</span></nav>
+      <header class="ph">
+        <div><h1>Vocabularies</h1><p>Controlled term lists for form fields. Create local lists, or import and sync from Research Vocabularies Australia.</p></div>
+        <div class="ph-actions"><button class="btn btn-secondary" type="button">Import from RVA</button><button class="btn btn-primary" type="button">+ Create vocabulary</button></div>
+      </header>
+
+      <div class="stats">
+        <div class="stat"><b>3</b><span>Vocabularies</span></div>
+        <div class="stat"><b>1</b><span>Local</span></div>
+        <div class="stat"><b>2</b><span>From RVA</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Vocabularies</h2><span class="meta">3 of 3</span></div>
+        <div class="filters">
+          <div class="field grow"><label for="v-s">Search</label><input id="v-s" class="inp" placeholder="Name or slug"></div>
+          <div class="field"><span class="lbl">Source</span><div class="seg" role="group" aria-label="Source"><button type="button" class="on">All</button><button type="button">Local</button><button type="button">RVA</button></div></div>
+          <div class="field"><span class="lbl">Structure</span><div class="seg" role="group" aria-label="Structure"><button type="button" class="on">All</button><button type="button">Flat</button><button type="button">Tree</button></div></div>
+        </div>
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Vocabulary</th><th>Structure</th><th>Source</th><th>Last synced</th><th class="act">Actions</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#"><b>ANZSRC Type of Activity</b></a><span class="sub mono">anzsrc-toa</span></td><td><span class="badge">Flat</span></td><td><span class="badge">Local</span></td><td class="muted">—</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Edit</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#"><b>ANZSRC 2020: Fields of Research</b></a><span class="sub mono">anzsrc-2020-for</span></td><td><span class="badge">Tree</span></td><td><span class="badge info">RVA</span></td><td class="small">[date]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Sync</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+            <tr><td><a href="#"><b>ANZSRC 2020: Socio-Economic Objectives</b></a><span class="sub mono">anzsrc-2020-seo</span></td><td><span class="badge">Tree</span></td><td><span class="badge info">RVA</span></td><td class="small">[date]</td><td class="act"><button class="btn btn-secondary btn-sm" type="button">Sync</button> <button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+          </tbody>
+        </table></div>
+        <div class="card-f"><span>Showing 1–3 of 3</span><div class="pager"><button type="button">‹</button><button type="button" class="on">1</button><button type="button">›</button></div></div>
+      </div>
+      <p class="note">Long ANZSRC names are shortened to “ANZSRC 2020: …” with the full title in the editor. The slug moves under the name to free up a column. The “Last synced” column is proposed and needs data from the sync endpoint.</p>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

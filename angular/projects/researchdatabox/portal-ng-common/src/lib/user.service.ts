@@ -37,6 +37,7 @@ export interface User {
   email: string;
   token: string;
   roles: Role[];
+  lastLogin?: string | Date;
   newRoles: Role[];
   roleStr: string;
   accountLinkState?: 'active' | 'linked-alias';
@@ -50,10 +51,24 @@ export interface User {
 }
 
 export interface Role {
+  description?: string;
+  descriptionKey?: string;
+  isDefault?: boolean;
   id: string;
   name: string;
   users: User[];
   hasRole: boolean;
+}
+
+export interface AdminUserQuery {
+  page?: number; pageSize?: number; query?: string; role?: string; excludeRole?: string;
+  includeDisabled?: boolean; signIn?: string; candidates?: boolean;
+  sort?: 'name' | 'username' | 'email' | 'type' | 'lastLogin'; order?: 'asc' | 'desc';
+}
+export interface AdminUserPage {
+  records: User[];
+  summary: { numFound: number; page: number; start: number };
+  roleCounts: Record<string, { active: number; disabled: number; removableActive: number }>;
 }
 
 export interface UserLoginResult {
@@ -125,13 +140,13 @@ export interface UserAuditResponse {
 }
 
 /**
- * User-centric functions. 
- * 
+ * User-centric functions.
+ *
  * Note: functions will be ported over as these are consumed by the apps/
  *
  * Author: <a href='https://github.com/shilob' target='_blank'>Shilo Banihit</a>
  *
- * 
+ *
  */
 @Injectable()
 export class UserService extends HttpClientService {
@@ -139,9 +154,9 @@ export class UserService extends HttpClientService {
   protected infoUrl: string = "";
   protected loginUrl: string = "";
   private requestOptions:any = null as any;
-  
-  constructor( 
-    @Inject(HttpClient) protected override http: HttpClient, 
+
+  constructor(
+    @Inject(HttpClient) protected override http: HttpClient,
     @Inject(APP_BASE_HREF) public override rootContext: string,
     @Inject(UtilityService) protected override utilService: UtilityService,
     @Inject(ConfigService) protected override configService: ConfigService,
@@ -157,7 +172,7 @@ export class UserService extends HttpClientService {
       })
     );
     return firstValueFrom(req);
-  } 
+  }
 
   loginLocal(username: string, password: string): Promise<any> {
     this.loggerService.debug(`Logging in locally using brand: ${this.config.branding}, portal: ${this.config.portal}:: ${this.loginUrl}`);
@@ -192,14 +207,25 @@ export class UserService extends HttpClientService {
   // headersObj['X-Source'] = 'jsclient';
   // headersObj['Content-Type'] = 'application/json;charset=utf-8';
   // headersObj['X-CSRF-Token'] = this.config.csrfToken;
-  public async getUsers(options?: { includeDisabled?: boolean }) {
+  public async getUsers(options?: { includeDisabled?: boolean; signIn?: string }) {
     let url = `${this.brandingAndPortalUrl}/admin/users/get`;
-    if (options?.includeDisabled) {
-      url += '?includeDisabled=true';
-    }
+    const params = new URLSearchParams();
+    if (options?.includeDisabled) params.set('includeDisabled', 'true');
+    if (options?.signIn) params.set('signIn', options.signIn);
+    if (params.size) url += '?' + params.toString();
     const result$ = this.http.get(url, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned User[]
+  }
+
+  public async getUserPage(options: AdminUserQuery = {}): Promise<AdminUserPage> {
+    const params: Record<string, string> = { page: '1', pageSize: '25' };
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== undefined && value !== '') params[key] = String(value);
+    }
+    return firstValueFrom(this.http.get<AdminUserPage>(`${this.brandingAndPortalUrl}/admin/users/get`, {
+      responseType: 'json', observe: 'body', context: this.httpContext, params
+    }));
   }
 
   public async updateUserDetails(userid: any, details: any) {
@@ -228,6 +254,18 @@ export class UserService extends HttpClientService {
     const result$ = this.http.post(url, {userid: userid}, this.requestOptions).pipe(map(res => res));
     let result =  await firstValueFrom(result$);
     return result; // old function in angular legacy returned SaveResult[]
+  }
+
+  public async getUserOptions(): Promise<{ signInMethods: string[] }> {
+    return await firstValueFrom(this.http.get<{ signInMethods: string[] }>(`${this.brandingAndPortalUrl}/admin/users/options`, { responseType: 'json', observe: 'body', context: this.httpContext }));
+  }
+
+  public async updateRoleDescription(roleId: string, description: string) {
+    return await firstValueFrom(this.http.post<{ status: boolean }>(`${this.brandingAndPortalUrl}/admin/roles/${encodeURIComponent(roleId)}/description`, { description }, { responseType: 'json', observe: 'body', context: this.httpContext }));
+  }
+
+  public async removeRoleMember(roleId: string, userId: string) {
+    return await firstValueFrom(this.http.post<{ status: boolean; roles: Role[] }>(`${this.brandingAndPortalUrl}/admin/roles/${encodeURIComponent(roleId)}/users/${encodeURIComponent(userId)}/remove`, {}, { responseType: 'json', observe: 'body', context: this.httpContext }));
   }
 
   public async getBrandRoles() {
@@ -307,5 +345,5 @@ export class UserService extends HttpClientService {
     }).pipe(map(res => res));
     return await firstValueFrom(result$);
   }
-  
+
 }
