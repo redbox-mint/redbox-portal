@@ -198,6 +198,26 @@ describe('named query lookup consumer contracts', () => {
       assert.equal(engine.execute.callCount, 0);
     }
   });
+  it('warns without refusing configuration when runtime schema inspection is unavailable', async () => {
+    engine.getBootstrapReadSchema.rejects(new Error('Schema temporarily unavailable'));
+    logger.warn.resetHistory();
+    const form = await migrateFormConfigVerify(
+      {
+        name: 'unavailable',
+        componentDefinitions: [
+          {
+            name: 'lookup',
+            component: { class: 'TypeaheadInputComponent', config: { sourceType: 'namedQuery', queryId: 'party' } },
+            model: { class: 'TypeaheadInputModel', config: {} },
+          },
+        ],
+      },
+      logger
+    );
+    assert.ok(form);
+    assert.ok(logger.warn.calledWithMatch(/compatibility is unverified: LOOKUP_CONFIG_UNAVAILABLE/));
+    assert.equal(engine.execute.callCount, 0);
+  });
   it('uses explicit trusted brand/portal scope for config inspection without executing or borrowing a caller', async () => {
     const target = { ...gridCaller.brand, id: 'scoped-brand' };
     const getBrand = sinon.stub().withArgs('scoped').returns(target);

@@ -8,6 +8,7 @@ import {
   FormConfigFrame,
   NamedQueryLookupResult,
   TypeaheadOption,
+  TypeaheadSourceType,
 } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule } from '../helpers.spec';
 import { TypeaheadDataService, TypeaheadLookupError } from '../service/typeahead-data.service';
@@ -31,7 +32,22 @@ describe('bounded lookup input integration', () => {
     );
     translationService.t = (key: string) => (key === '@form-typeahead-refine-search' ? 'Refine your search' : key);
   });
-  async function render(minChars?: number, maxResults = 25, lookupDiagnostics?: EditorDiagnostic[]) {
+  async function render(
+    minChars?: number,
+    maxResults = 25,
+    lookupDiagnostics?: EditorDiagnostic[],
+    sourceType: TypeaheadSourceType = 'namedQuery'
+  ) {
+    const source =
+      sourceType === 'namedQuery'
+        ? { sourceType, queryId: 'party' }
+        : sourceType === 'static'
+          ? { sourceType, staticOptions: [{ label: 'Default choice', value: 'default' }] }
+          : sourceType === 'vocabulary'
+            ? { sourceType, vocabRef: 'party' }
+            : sourceType === 'service'
+              ? { sourceType, serviceId: 'party' }
+              : { sourceType, provider: 'party' };
     const config: FormConfigFrame = {
       name: 'bounded',
       componentDefinitions: [
@@ -40,12 +56,11 @@ describe('bounded lookup input integration', () => {
           component: {
             class: 'TypeaheadInputComponent',
             config: {
-              sourceType: 'namedQuery',
-              queryId: 'party',
+              ...source,
               ...(minChars === undefined ? {} : { minChars }),
               maxResults,
               debounceMs: 0,
-              cacheResults: true,
+              cacheResults: sourceType === 'namedQuery',
               lookupDiagnostics,
             },
           },
@@ -96,6 +111,35 @@ describe('bounded lookup input integration', () => {
       expect(view.component.searchState).toBe('idle');
       expect(view.component.hasNextPage).toBeFalse();
       expect(view.directive.isOpen).toBeFalse();
+    });
+  }
+  for (const source of ['static', 'vocabulary', 'service', 'external'] as const) {
+    it(`retains ${source} empty focus/input options when minChars is zero`, async () => {
+      const methods = {
+        static: 'searchStatic',
+        vocabulary: 'searchVocabularyEntries',
+        service: 'searchService',
+        external: 'searchExternal',
+      } as const;
+      const search = spyOn(TestBed.inject(TypeaheadDataService), methods[source]).and.resolveTo([
+        { label: 'Default choice', value: 'default' },
+      ]);
+      const view = await render(0, 25, undefined, source);
+      view.input.dispatchEvent(new Event('focus'));
+      await settle();
+      view.fixture.detectChanges();
+      expect(search).toHaveBeenCalled();
+      expect(search.calls.mostRecent().args[source === 'static' ? 0 : 1]).toBe('');
+      expect(view.directive.isOpen).toBeTrue();
+      expect(view.fixture.nativeElement.querySelector('typeahead-container')?.textContent).toContain('Default choice');
+      await view.type('match');
+      const callsBeforeClearing = search.calls.count();
+      await view.type('');
+      expect(search.calls.count()).toBeGreaterThan(callsBeforeClearing);
+      expect(search.calls.mostRecent().args[source === 'static' ? 0 : 1]).toBe('');
+      expect(view.directive.isOpen).toBeTrue();
+      expect(view.fixture.nativeElement.querySelector('typeahead-container')?.textContent).toContain('Default choice');
+      expect(view.component.hasNextPage).toBeFalse();
     });
   }
   for (const [configured, effective] of [

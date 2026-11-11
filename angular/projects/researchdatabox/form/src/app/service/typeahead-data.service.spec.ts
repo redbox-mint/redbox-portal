@@ -285,16 +285,26 @@ describe("bounded named-query lookup compatibility", () => {
             expect(result.source).toBe(source === 'graphql' ? 'graphql' : undefined);
         });
     }
-    for (const search of ['', '   ']) {
-        it('preserves legacy empty and whitespace searches on the wire', async () => {
+    for (const search of [undefined, null, '', '   ']) {
+        it(`preserves legacy ${String(search)} searches on the wire`, async () => {
             const pending = service.searchNamedQuery('party', search);
             await Promise.resolve();
             const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
-            expect(request.request.params.get('search')).toBe(search);
+            expect(request.request.params.get('search')).toBe(String(search ?? ''));
             request.flush([{ label: 'Default choice', value: 'default' }]);
             expect((await pending)[0].value).toBe('default');
         });
     }
+    it('deduplicates legacy null, undefined and empty terms using their wire value', async () => {
+        const pending = [undefined, null, ''].map(search => service.searchNamedQuery('party', search));
+        expect(pending[0]).toBe(pending[1]);
+        expect(pending[1]).toBe(pending[2]);
+        await Promise.resolve();
+        const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+        expect(request.request.params.get('search')).toBe('');
+        request.flush([{ label: 'Default choice', value: 'default' }]);
+        expect((await Promise.all(pending)).every(options => options[0].value === 'default')).toBeTrue();
+    });
     for (const rows of [10, 50]) {
         it(`preserves HttpErrorResponse for the legacy ${rows}-row wrapper`, async () => {
             const pending = service.searchNamedQuery('party', 'a', 0, rows);

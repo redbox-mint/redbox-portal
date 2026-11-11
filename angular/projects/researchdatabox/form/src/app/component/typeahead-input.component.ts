@@ -332,7 +332,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         this.searchState = 'idle';
         this.statusMessage = '';
       }
-      this.isOpen = false;
+      this.isOpen = this.sourceType !== 'namedQuery' && this.minChars === 0;
       this.setModelValue(null);
       return;
     }
@@ -402,7 +402,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
       return [];
     }
     const trimmedTerm = term.trim();
-    if (!trimmedTerm || trimmedTerm.length < this.minChars) {
+    if ((this.sourceType === 'namedQuery' && !trimmedTerm) || trimmedTerm.length < this.minChars) {
       return [];
     }
     const cacheKey = `${this.sourceType}:${includeHistoricalValues ? 'historical' : 'current'}:${trimmedTerm}`;

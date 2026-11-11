@@ -109,7 +109,7 @@ export class TypeaheadDataService extends HttpClientService {
 
     public searchNamedQuery(
         queryId: string,
-        search: string,
+        search: string | null | undefined,
         start = 0,
         rows = 25,
         labelField = "label",
@@ -119,10 +119,11 @@ export class TypeaheadDataService extends HttpClientService {
         // legacy callers. The form uses the bounded metadata-aware method below.
         const id = String(queryId ?? "").trim();
         if (!id) return Promise.reject(new Error("queryId is required"));
+        const term = String(search ?? "");
         const label = String(labelField ?? "").trim() || "label";
         const value = String(valueField ?? "").trim() || "value";
-        return this.dedupe(`namedQuery|${id}|${search}|${start}|${rows}|${label}|${value}`, () =>
-            this.fetchNamedQuery(id, search, start, rows, label, value).then(result => result.options));
+        return this.dedupe(`namedQuery|${id}|${term}|${start}|${rows}|${label}|${value}`, () =>
+            this.fetchNamedQuery(id, term, start, rows, label, value).then(result => result.options));
     }
 
     public searchNamedQueryLookup(

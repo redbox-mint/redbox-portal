@@ -28,12 +28,22 @@ export async function migrateFormConfigVerify(
     data: formConfig, formMode: 'edit', reusableFormDefs: reusableFormDefinitions
   });
 
-  // This trusted config-tooling boundary checks the scoped schema, not record
-  // values or the permissions of a record-save caller. Never execute lookups here.
-  await new VocabInlineFormConfigVisitor(logger).resolveVocabs(constructResult, lookupScope?.branding, {
-    portal: lookupScope?.portal,
-    validateLookupsOnly: true,
-  });
+  // Dev-tools also verifies forms without Sails. Only inspect saved queries when
+  // runtime services exist or the caller explicitly requests a tooling scope.
+  const runtimeLookupsAvailable = typeof sails !== 'undefined' &&
+    Boolean(sails?.config?.auth?.defaultBrand && sails?.config?.auth?.defaultPortal) &&
+    typeof BrandingService !== 'undefined' && typeof BrandingService.getBrand === 'function' &&
+    typeof FormVocabularyService !== 'undefined' && typeof FormVocabularyService.inspectNamedQueryLookup === 'function' &&
+    typeof NamedQueryService !== 'undefined' && typeof NamedQueryService.getNamedQueryConfig === 'function' &&
+    typeof RecordGraphqlService !== 'undefined' && typeof RecordGraphqlService.getBootstrapReadSchema === 'function';
+  if (lookupScope || runtimeLookupsAvailable) {
+    await new VocabInlineFormConfigVisitor(logger).resolveVocabs(constructResult, lookupScope?.branding, {
+      portal: lookupScope?.portal,
+      validateLookupsOnly: true,
+    });
+  } else {
+    logger.warn('Named-query lookup compatibility is unverified in offline config tooling.');
+  }
 
   const templateVisitor = new TemplateFormConfigVisitor(logger);
   await templateVisitor.start({

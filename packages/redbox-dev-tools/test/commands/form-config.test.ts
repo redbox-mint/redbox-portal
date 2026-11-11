@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const fs = require('fs');
 const path = require('path');
 const commander = require('commander');
+const { spawnSync } = require('node:child_process');
 const loadTs = require('../support/load-ts.cjs');
 const formConfigCommands = loadTs(module, '../../src/commands/form-config');
 const packageRoot = fs.existsSync(path.resolve(__dirname, '..', '..', 'package.json'))
@@ -73,6 +74,36 @@ describe('form-config commands', () => {
       expect(linkValue).to.not.equal(undefined);
       expect(linkValue?.layout?.config?.label).to.equal(undefined);
       expect(linkValue?.layout?.config?.helpText).to.equal(undefined);
+    });
+
+    it('migrates the query vocabulary branch and builds its client form through the offline CLI', function () {
+      this.timeout(30000);
+      const input = path.join(testRoot, 'resources', 'migrate-form-config', 'legacy-query-form.js');
+      const serverOutput = path.join(tempRoot, 'query-server.ts');
+      const clientOutput = path.join(tempRoot, 'query-client.ts');
+      for (const args of [
+        ['migrate-form-config', '--input', input, '--output', serverOutput],
+        ['client-form-config', '--input', serverOutput, '--output', clientOutput],
+      ]) {
+        // A fresh process has no Sails/service globals. ts-node handles the TS
+        // config consumed by client-form-config, as in the existing command tests.
+        const result = spawnSync(process.execPath, [
+          '--no-experimental-strip-types', '--require', 'ts-node/register', path.join(packageRoot, 'bin', 'cli.js'), ...args,
+        ], { cwd: packageRoot, encoding: 'utf8', timeout: 25000,
+          env: { ...process.env, TS_NODE_PROJECT: path.join(testRoot, 'tsconfig.json') },
+        });
+        const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+        expect(result.error, output).to.equal(undefined);
+        expect(result.status, output).to.equal(0);
+        expect(output).to.contain('compatibility is unverified in offline config tooling');
+        expect(output).to.contain('Done!');
+      }
+      for (const output of [serverOutput, clientOutput]) {
+        const config = loadTs(module, output).default;
+        expect(config.componentDefinitions[0].component.class).to.equal('TypeaheadInputComponent');
+        expect(config.componentDefinitions[0].component.config.sourceType).to.equal('namedQuery');
+        expect(config.componentDefinitions[0].component.config.queryId).to.equal('party');
+      }
     });
 
     it('should migrate a legacy form config and write cjs format TS output', async () => {

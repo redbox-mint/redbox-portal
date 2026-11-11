@@ -73,7 +73,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     this.branding = branding;
     this.lookupCaller = options?.lookupCaller;
     this.portal = this.lookupCaller?.portal ?? options?.portal ??
-      (typeof sails === 'undefined' ? '' : sails.config.auth.defaultPortal);
+      (typeof sails === 'undefined' ? '' : sails?.config?.auth?.defaultPortal ?? '');
     this.validateLookupsOnly = options?.validateLookupsOnly === true;
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.pendingResolutions = [];
@@ -105,8 +105,14 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
       config.lookupDiagnostics = [graphqlDiagnostic('LOOKUP_CONFIG_UNAVAILABLE', 'queryId',
         'The named query lookup configuration could not be inspected.', true)];
     }
-    if (this.validateLookupsOnly && config.lookupDiagnostics.length) {
-      throw new Error(`Invalid named query lookup configuration: ${config.lookupDiagnostics.map(item => item.code).join(', ')}`);
+    if (this.validateLookupsOnly) {
+      const incompatible = config.lookupDiagnostics.filter(item => item.code !== 'LOOKUP_CONFIG_UNAVAILABLE');
+      if (incompatible.length) {
+        throw new Error(`Invalid named query lookup configuration: ${incompatible.map(item => item.code).join(', ')}`);
+      }
+      if (config.lookupDiagnostics.length) {
+        this.logger.warn('Named-query lookup compatibility is unverified: LOOKUP_CONFIG_UNAVAILABLE.');
+      }
     }
   }
 
@@ -423,6 +429,6 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     if (normalizedOverride) {
       return normalizedOverride;
     }
-    return typeof sails === 'undefined' ? '' : String(sails.config?.auth?.defaultBrand ?? '').trim();
+    return typeof sails === 'undefined' ? '' : String(sails?.config?.auth?.defaultBrand ?? '').trim();
   }
 }
