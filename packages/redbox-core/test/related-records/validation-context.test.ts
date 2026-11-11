@@ -158,9 +158,12 @@ describe('validation operation related context', () => {
     const result = resolved(await new Services.RecordValidation(f.dependencies).resolve(request));
     assert.equal(result.shouldBlock, false);
     assert.equal(result.resolved.expressionContext!.relatedMetadata![relationId].status, 'empty');
-    f.dependencies.loadWorkflowStep = async () => ({ name: 'draft', config: { form: 'dataset-2.4-draft',
+    const draftStep = { name: 'draft', config: { form: 'dataset-2.4-draft',
       recordValidation: { operations: { submit: { relatedMetadata: selection(true) } } },
-    } });
+    } };
+    // The stored stage resolves from the step list, with the single-step lookup as fallback.
+    f.dependencies.loadWorkflowSteps = async () => [draftStep] as never;
+    f.dependencies.loadWorkflowStep = async () => draftStep as never;
     assert.equal((await new Services.RecordValidation(f.dependencies).resolve(request)).shouldBlock, true);
   });
 

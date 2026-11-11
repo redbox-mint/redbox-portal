@@ -45,8 +45,8 @@ import {
 import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
 // Use the packaged modules directly: the CommonJS root eagerly loads the
 // server template/compiler stack even when an admin app only needs contracts.
+import type { RelatedMetadata } from '@researchdatabox/sails-ng-common/dist/src/related-records.model';
 import {
-  RelatedMetadata,
   emptyRecordSaveCompletion,
   isRecordSaveComplete,
   isRecordSaveOutcome,

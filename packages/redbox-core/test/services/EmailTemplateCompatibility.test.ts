@@ -63,7 +63,7 @@ describe('Email template compatibility', () => {
     rmSync(directory, { recursive: true, force: true });
   });
 
-  it('renders all 7 core bodies and selected subjects as supplied files and DB overrides', async () => {
+  it('renders all 8 core bodies and selected subjects as supplied files and DB overrides', async () => {
     const sourceDir = join(__dirname, '../../../../views/emailTemplates');
     mockSails.config.emailnotification.settings.templateDir = sourceDir;
     const data = { name: 'Researcher', data: 'Test payload', oid: 'record-123', record,
@@ -71,7 +71,7 @@ describe('Email template compatibility', () => {
       integrationName: 'Example', integrationAction: 'sync', status: 'failed', redboxOid: 'record-123',
       traceId: 'trace', spanId: 'span', timestamp: '2026-10-01', startedAt: '2026-10-01' };
     const files = readdirSync(sourceDir).filter(file => file.endsWith('.hbs'));
-    assert.equal(files.length, 7, 'Update the compatibility expectation when adding templates.');
+    assert.equal(files.length, 8, 'Update the compatibility expectation when adding templates.');
     const email = new EmailServices.Email();
     (global as any).EmailService = email;
     const admin = new AdminServices.EmailTemplateAdmin();

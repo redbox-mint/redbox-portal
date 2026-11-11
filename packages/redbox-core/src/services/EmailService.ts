@@ -64,6 +64,8 @@ export function curateEmailRecordData(data: Record<string, unknown>): Record<str
       metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
     };
     const record = prepared['record'] as Record<string, unknown>;
+    // Present only when a notification opted in to related resolution; already access-filtered.
+    if (raw.relatedMetadata != null) record.relatedMetadata = _.cloneDeep(raw.relatedMetadata);
     record.redboxOid = record.oid;
     prepared['oid'] = record.oid;
     // Conventional display values are defaults, not aliases: caller edits always win.

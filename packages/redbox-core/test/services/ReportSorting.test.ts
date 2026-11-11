@@ -97,7 +97,7 @@ describe('Report server sorting', () => {
         const req = request({ sortField: modified.property, sortDirection: direction });
         await service.getResults(brand, 'rdmpRecords', req, 10, 5);
         assert.deepEqual(execute.lastCall.args[0].sort, [{ lastSaveDate: direction.toUpperCase() }]);
-        assert.deepEqual(execute.lastCall.args.slice(3), [10, 5]);
+        assert.deepEqual(execute.lastCall.args.slice(3, 5), [10, 5]);
         const csv = await service.getCSVResult(brand, 'rdmpRecords', req);
         assert.deepEqual(execute.lastCall.args[0].sort, [{ lastSaveDate: direction.toUpperCase() }]);
         assert.ok(JSON.stringify(csv).includes('2026-11-05'));
@@ -189,7 +189,7 @@ describe('Report server sorting', () => {
       const req = request({ sortField: 'metadata.alias', sortDirection: direction });
       await service.getResults(brand, 'sorting', req, 10, 5);
       assert.deepEqual(execute.lastCall.args[0].sort, [{ 'metadata.name': direction.toUpperCase() }]);
-      assert.deepEqual(execute.lastCall.args.slice(3), [10, 5]);
+      assert.deepEqual(execute.lastCall.args.slice(3, 5), [10, 5]);
       await service.getCSVResult(brand, 'sorting', req);
       assert.deepEqual(execute.lastCall.args[0].sort, [{ 'metadata.name': direction.toUpperCase() }]);
     }

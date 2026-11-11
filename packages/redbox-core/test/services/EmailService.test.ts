@@ -10,6 +10,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { of, firstValueFrom, Subject, throwError } from 'rxjs';
 import { rejects } from 'node:assert/strict';
+import { readEmailTemplateDefault } from '../../src/services/EmailTemplateService';
 
 describe('EmailService', function() {
   let mockSails: any;
@@ -378,6 +379,8 @@ describe('EmailService', function() {
         } }));
         (global as any).RecordsService = { enrichWithRelatedMetadata: enrich };
         (global as any).BrandingService = { getBrandById: sinon.stub().withArgs('tenant').returns(brand) };
+        // Brand-scoped sends resolve through EmailTemplateService; use the supplied file defaults.
+        (global as any).EmailTemplateService = { resolve: async (id: string) => readEmailTemplateDefault(id) };
         send = sinon.stub(EmailService, 'sendMessage').returns(of({ success: true, msg: 'sent' }));
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'email-related-'));
         mockSails.config.emailnotification.settings.templateDir = tmpDir + path.sep;
@@ -389,6 +392,7 @@ describe('EmailService', function() {
         fs.rmSync(tmpDir, { recursive: true, force: true });
         delete (global as any).RecordsService;
         delete (global as any).BrandingService;
+        delete (global as any).EmailTemplateService;
       });
 
       function options(): any {

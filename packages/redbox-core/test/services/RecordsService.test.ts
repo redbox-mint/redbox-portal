@@ -3395,7 +3395,8 @@ describe('RecordsService', function () {
       mockStorageService.getMeta.resolves(candidate);
       await RecordsService.setRecordFields('record-123', { 'metadata.title': 'Local' }, 4, ['metadata.title'], {});
       const indexed = mockSearchService.index.firstCall.args[1];
-      const audited = mockQueueService.now.firstCall.args[1].record;
+      // Audits persist directly; the queue is used only for failure recovery.
+      const audited = mockStorageService.createRecordAudit.firstCall.args[0].record;
       for (const snapshot of [indexed, audited]) {
         expect(snapshot).not.to.have.property('relatedMetadata');
         expect(snapshot.metadata.relatedMetadata).to.deep.equal({ local: true });
@@ -3668,7 +3669,8 @@ describe('RecordsService', function () {
         fingerprint = issued,
         routeForm = grant,
         routeFamily = 'browser',
-        targetStep = 'finalised'
+        targetStep = 'finalised',
+        metadata: Record<string, unknown> = { title: 'Finalised title' }
       ) =>
         RecordsService.updateMeta(
           { id: 'brand-1' },
@@ -3678,7 +3680,7 @@ describe('RecordsService', function () {
           true,
           false,
           steps.find(step => step.name === targetStep),
-          { metadata: { title: 'Finalised title' }, mode: 'replace' },
+          { metadata, mode: 'replace' },
           createRecordSaveContext({
             routeFamily,
             operation: 'transition',
@@ -3687,6 +3689,40 @@ describe('RecordsService', function () {
             concurrency: { entityTagSupplied: true, expectedRevision: revision, formFingerprint: fingerprint },
           })
         );
+
+      for (const source of ['route', 'stored']) {
+        for (const compatible of [false, true]) {
+          it(`enforces ${source} display declarations on alternate-form transitions with ${compatible ? 'compatible' : 'incompatible'} destinations`, async () => {
+            recordType.relatedTo = [{ id: 'activity', recordType: 'activity',
+              localField: 'metadata.primaryActivity', foreignField: 'redboxOid',
+              resolution: { metadataFields: ['/title'] } }];
+            const definitions = [
+              { name: 'title', relatedDisplay: { relationId: 'activity' }, component: { class: 'SimpleInputComponent' } },
+              { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+            ];
+            sourceForm.configuration.componentDefinitions = source === 'route' ? definitions : [];
+            (global as any).FormsService.getFormByName.callsFake(name => of(name === sourceForm.name ? sourceForm : {
+              name, branding: 'brand-1', configuration: { type: 'rdmp', componentDefinitions:
+                (name === 'default-form' && source === 'stored') || (name === 'rdmp-finalised' && compatible)
+                  ? definitions : [] },
+            }));
+            stored.metadata.primaryActivity = 'source-id';
+            issued = routeFormFingerprint((await RecordsService.getRecordFormFingerprint(
+              { ...stored, metaMetadata: { ...stored.metaMetadata, form: sourceForm.name } }, recordType, sourceForm
+            ))!);
+            grant.fingerprint = issued;
+
+            const result = await save(4, issued, grant, 'browser', 'finalised', {
+              title: 'Finalised title', primaryActivity: 'source-id',
+            });
+
+            expect(result.outcome).to.equal('not-saved');
+            expect(JSON.stringify(result)).to.contain(compatible
+              ? 'related-display-field-not-writable' : 'related-display-contract-invalid');
+            expect(writes).to.deep.equal([]);
+          });
+        }
+      }
 
       it('saves the allowed transition form directly to finalised and permits a later strict normal edit', async () => {
         const result = await save();
@@ -3993,13 +4029,15 @@ describe('RecordsService', function () {
       const legacy = await RecordsService.getRecordFormFingerprint(stored, recordType, deliveredForm);
       // Capture the pre-feature composition verbatim, including workflow sorting.
       const { formatRecordFormFingerprint } = require('../../src/RecordFormFingerprint');
-      const steps = await (await import('rxjs')).firstValueFrom((global as any).WorkflowStepsService.getAllForRecordType(recordType)) as any[];
+      const steps = await (await import('rxjs')).firstValueFrom((global as any).WorkflowStepsService.getAllForRecordTypeIncludingHidden(recordType)) as any[];
       const expected = formatRecordFormFingerprint({
         recordType: 'rdmp', recordValidation: undefined,
         currentWorkflow: { stage: stored.workflow.stage, form: 'default-form' },
         workflowFormContract: steps.map(step => ({ name: String(step.name ?? '').trim(), starting: step.starting === true,
           hidden: step.hidden === true, config: step.config ?? {} })).sort((a, b) => a.name.localeCompare(b.name)),
-        form: deliveredForm, reusableFormDefinitions: mockSails.config.reusableFormDefinitions ?? {},
+        form: { id: deliveredForm.id, name: deliveredForm.name, branding: deliveredForm.branding,
+          configuration: { ...deliveredForm.configuration, type: String(stored.metaMetadata.type ?? recordType.name).trim() } },
+        reusableFormDefinitions: mockSails.config.reusableFormDefinitions ?? {},
         validatorDefinitions: mockSails.config.validators?.definitions ?? [],
       });
       expect(legacy).to.equal(expected);

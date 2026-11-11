@@ -39,19 +39,22 @@ export function normalizeDisplayWrites(options: {
   stored?: Record<string, unknown>;
   input: Record<string, unknown>;
   contract?: RelatedFormDescriptors;
+  additionalSourceContracts?: RelatedFormDescriptors[];
   targetContract?: RelatedFormDescriptors;
   transitioning?: boolean;
   localInput?: Record<string, unknown>;
 }): void {
   const { metadata, stored, input, contract, targetContract, transitioning } = options;
-  const contracts = [contract, targetContract].filter((item): item is RelatedFormDescriptors => !!item);
+  const sourceContracts = [contract, ...(options.additionalSourceContracts ?? [])]
+    .filter((item): item is RelatedFormDescriptors => !!item);
+  const contracts = [...sourceContracts, targetContract].filter((item): item is RelatedFormDescriptors => !!item);
   // Validate every opted-in reference, including sources without display targets.
   for (const current of contracts)
     for (const relation of current.relations) selected(metadata, current, relation.relationId);
-  if (transitioning && contract) {
-    for (const target of contract.displayTargets) {
+  if (transitioning) {
+    for (const source of sourceContracts) for (const target of source.displayTargets) {
       if (
-        selected(metadata, contract, target.relationId) &&
+        selected(metadata, source, target.relationId) &&
         !targetContract?.displayTargets.some(
           other => other.metadataPointer === target.metadataPointer && other.relationId === target.relationId
         )
@@ -89,6 +92,8 @@ export function normalizeDisplayWrites(options: {
  */
 export interface RelatedDisplayWriteContext {
   sourceForm?: string;
+  /** Validated alternate browser source; supplements the stored form contract. */
+  routeSourceForm?: string;
   hasDeclarations?: boolean;
   forms: Map<string, Promise<FormAttributes | null>>;
   contracts: Map<string, Promise<RelatedFormDescriptors | undefined>>;
