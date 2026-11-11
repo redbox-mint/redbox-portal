@@ -121,20 +121,24 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
       }`,
       variables: { type: grid.recordType, stages: grid.workflowStage ? [grid.workflowStage] : undefined, ids },
     });
-    if (response.status !== 200) {
-      const errors = response.data.errors;
-      const first = Array.isArray(errors) ? errors[0] : undefined;
-      const extensions = first && typeof first === 'object' && !Array.isArray(first) ? first.extensions : undefined;
-      const code =
-        extensions && typeof extensions === 'object' && !Array.isArray(extensions) ? extensions.code : undefined;
+    const errors = response.data.errors;
+    const first = Array.isArray(errors) ? errors[0] : undefined;
+    const extensions = first && typeof first === 'object' && !Array.isArray(first) ? first.extensions : undefined;
+    const code =
+      extensions && typeof extensions === 'object' && !Array.isArray(extensions) ? extensions.code : undefined;
+    if (response.status !== 200 || Object.hasOwn(response.data, 'errors')) {
+      if (code === 'GRAPHQL_DISABLED') throw new SavedGridError(503, code);
       if (
-        response.status === 503 &&
-        (code === 'GRAPHQL_DISABLED' || code === 'UNAVAILABLE' || code === 'QUERY_TIMEOUT')
+        code === 'UNAVAILABLE' ||
+        code === 'SEARCH_UNAVAILABLE' ||
+        code === 'COLLECTION_UNAVAILABLE' ||
+        code === 'STORAGE_UNAVAILABLE' ||
+        code === 'UNSUPPORTED_SEARCH_INDEX'
       )
-        throw new SavedGridError(503, code);
-      if (response.status === 504 && code === 'QUERY_TIMEOUT') throw new SavedGridError(504, code);
+        throw new SavedGridError(503, 'UNAVAILABLE');
+      if (code === 'QUERY_TIMEOUT') throw new SavedGridError(response.status === 504 ? 504 : 503, code);
+      if (code === 'QUERY_LIMIT' || code === 'CATALOGUE_LIMIT') throw new SavedGridError(413, code);
       if (response.status >= 500) throw new SavedGridError(503, 'UNAVAILABLE');
-      if (response.status === 413 && code === 'QUERY_LIMIT') throw new SavedGridError(413, code);
       if (response.status === 401 || response.status === 403) throw new SavedGridError(response.status, 'FORBIDDEN');
       throw new SavedGridError(400, 'schema-changed');
     }

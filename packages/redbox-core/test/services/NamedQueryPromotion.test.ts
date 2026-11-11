@@ -238,6 +238,26 @@ describe('Detached explorer named-query promotion', () => {
       execute.resolves(graphqlFailure(status, code, 'PRIVATE QUERY AND VALUES'));
       await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status, code });
     });
+  for (const [code, status, expectedCode] of [
+    ['SEARCH_UNAVAILABLE', 503, 'UNAVAILABLE'],
+    ['COLLECTION_UNAVAILABLE', 503, 'UNAVAILABLE'],
+    ['STORAGE_UNAVAILABLE', 503, 'UNAVAILABLE'],
+    ['UNSUPPORTED_SEARCH_INDEX', 503, 'UNAVAILABLE'],
+    ['QUERY_TIMEOUT', 503, 'QUERY_TIMEOUT'],
+    ['QUERY_LIMIT', 413, 'QUERY_LIMIT'],
+    ['CATALOGUE_LIMIT', 413, 'CATALOGUE_LIMIT'],
+    ['UNKNOWN_FIELD', 400, 'schema-changed'],
+    ['UNKNOWN_WORKFLOW_STAGE', 400, 'schema-changed'],
+    ['UNKNOWN_RECORD_TYPE', 400, 'schema-changed'],
+    ['PRIVATE_CODE', 400, 'schema-changed'],
+  ] as const)
+    it(`classifies HTTP 200 discovery resolver error ${code} safely`, async () => {
+      execute.resolves({
+        status: 200,
+        data: { errors: [{ message: 'PRIVATE QUERY AND VALUES', extensions: { code } }] },
+      });
+      await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status, code: expectedCode });
+    });
   it('normalizes unexpected upstream errors and malformed successful discovery safely', async () => {
     execute.resolves(graphqlFailure(500, 'PRIVATE_CODE', 'PRIVATE QUERY AND VALUES'));
     await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status: 503, code: 'UNAVAILABLE' });
