@@ -178,6 +178,8 @@ describe('ManageUsersComponent', () => {
   afterEach(async () => {
     for (const fixture of fixtures) {
       await fixture.whenStable();
+      // Let ngx-bootstrap finish its deferred initial show before tearing down its injector.
+      await new Promise(resolve => setTimeout(resolve, 350));
       const app = fixture.componentInstance;
       app.confirmDiscard = null;
       app.pendingUserAction = null;
@@ -929,7 +931,9 @@ describe('ManageUsersComponent', () => {
 
   it('keeps dirty editor drafts until discard is explicit, including new users', async () => {
     const { fixture, app } = await createComponent();
-    app.editUser('admin'); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    await new Promise<void>(resolve => app.userDetailsModal!.onShown.subscribe(() => resolve()));
+    await fixture.whenStable();
     app.updateUserForm!.get('name')!.setValue('Unsaved name');
     app.hideDetailsModal(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.confirmDiscard).toBe('details');
@@ -938,10 +942,13 @@ describe('ManageUsersComponent', () => {
     expect(app.updateUserForm!.get('name')!.value).toBe('Unsaved name');
     app.hideDetailsModal();
     const detailsHidden = new Promise<void>(resolve => app.userDetailsModal!.onHidden.subscribe(() => resolve()));
-    app.discardEditor(); await detailsHidden;
+    app.discardEditor(); fixture.detectChanges();
+    await detailsHidden;
     await fixture.whenStable(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.isDetailsModalShown).toBeFalse();
-    app.newUser(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); await fixture.whenStable();
+    app.newUser(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
+    await new Promise<void>(resolve => app.userNewModal!.onShown.subscribe(() => resolve()));
+    await fixture.whenStable();
     app.newUserForm!.get('name')!.setValue('New unsaved name');
     app.hideNewUserModal(); fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(app.confirmDiscard).toBe('new');
@@ -949,7 +956,7 @@ describe('ManageUsersComponent', () => {
     app.newUserForm!.get('name')!.setValue('');
     expect(app.newDirty).toBeFalse();
     const newHidden = new Promise<void>(resolve => app.userNewModal!.onHidden.subscribe(() => resolve()));
-    app.hideNewUserModal(); await newHidden; await fixture.whenStable();
+    app.hideNewUserModal(); fixture.detectChanges(); await newHidden; await fixture.whenStable();
     expect(app.isNewUserModalShown).toBeFalse();
   });
 

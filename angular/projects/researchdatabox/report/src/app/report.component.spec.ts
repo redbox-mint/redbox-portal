@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { RedboxPortalAdminModule } from '@researchdatabox/portal-ng-common';
 import { By } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
@@ -673,7 +674,7 @@ describe('ReportComponent', () => {
     app.initTracker.resultsReturned = true;
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).toBeNull();
-    app.filterParams.title = 'Search'; fixture.detectChanges();
+    app.filterParams.title = 'Search'; fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-admin-empty button')).not.toBeNull();
     fixture.destroy();
   });

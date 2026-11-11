@@ -306,16 +306,7 @@
                 @for (e of pageEntries(); track trackByKey($index, e)) {
                   <tr [class.tx-row-missing]="e.provenance === 'missing'">
                     <td>
-                      <code [title]="e.key">
-                        @for (segment of keySegments(e.key); track segment; let last = $last) {
-                          @if (!last) {
-                            {{ segment }}<wbr />
-                          }
-                          @if (last) {
-                            <span class="tx-key-tail">{{ segment }}</span>
-                          }
-                        }
-                      </code>
+                      <code [title]="e.key">@for (segment of keySegments(e.key); track $index; let last = $last) {@if (!last) {<ng-container>{{ segment }}</ng-container><wbr />}@if (last) {<span class="tx-key-tail">{{ segment }}</span>}}</code>
                       @if (e.description) {
                         <span class="rb-admin-sub">{{ e.description }}</span>
                       }

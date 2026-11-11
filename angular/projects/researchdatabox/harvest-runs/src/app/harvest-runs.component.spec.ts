@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { APP_BASE_HREF } from '@angular/common';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
@@ -138,7 +139,7 @@ describe('HarvestRunsComponent', () => {
     refresh.click();
     expect(apiService.listRuns).not.toHaveBeenCalled();
     (component as any).isReady = true;
-    fixture.detectChanges();
+    fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
     expect(fixture.nativeElement.querySelector('.rb-admin-page-header button').disabled).toBeFalse();
   });

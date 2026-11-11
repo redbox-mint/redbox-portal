@@ -2,7 +2,7 @@ import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { Pipe, PipeTransform } from '@angular/core';
+import { ChangeDetectorRef, Pipe, PipeTransform } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import {
@@ -280,7 +280,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     const wrapper = fixture.debugElement.query(By.directive(QueryPathInputComponent));
     const tree = wrapper.query(By.directive(FieldTreeComponent)).componentInstance as FieldTreeComponent;
     tree.onSearch('metadata.title');
-    fixture.detectChanges();
+    wrapper.query(By.directive(FieldTreeComponent)).injector.get(ChangeDetectorRef).detectChanges();
     const button = wrapper.nativeElement.querySelector('.et-field-name') as HTMLButtonElement;
     expect(button.tagName).toBe('BUTTON');
     button.click();
@@ -289,7 +289,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     const mapping = fixture.debugElement.query(By.directive(QueryMappingValueComponent))
       .componentInstance as QueryMappingValueComponent;
     mapping.template = true;
-    fixture.detectChanges();
+    fixture.debugElement.query(By.directive(QueryMappingValueComponent)).injector.get(ChangeDetectorRef).detectChanges();
     const editor = fixture.debugElement.query(By.directive(CodeEditorComponent))
       .componentInstance as CodeEditorComponent;
     expect(editor.completions?.roots).toEqual(['record']);
@@ -847,6 +847,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     expect(direct.getAttribute('aria-label')).toContain('projectTitle');
     sources.slice(0, 2).forEach(source => {
       (source.componentInstance as QueryMappingValueComponent).template = true;
+      source.injector.get(ChangeDetectorRef).detectChanges();
     });
     fixture.detectChanges();
     const areas = sources.slice(0, 2).map(source => source.nativeElement.querySelector('textarea') as HTMLTextAreaElement);
@@ -907,7 +908,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     editor.newParam.key = 'person';
     editor.newParam.type = 'object';
     editor.newParam.whenUndefined = 'defaultValue';
-    fixture.detectChanges();
+    params.injector.get(ChangeDetectorRef).detectChanges();
     params.query(By.css('nq-typed-value textarea')).triggerEventHandler('ngModelChange', '{ unfinished');
     fixture.detectChanges();
     expect(component.canSave).toBeFalse();
@@ -931,7 +932,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
     editor.startAdd();
     editor.newParam.key = 'otherTitle';
     editor.newParam.whenUndefined = 'defaultValue';
-    fixture.detectChanges();
+    params.injector.get(ChangeDetectorRef).detectChanges();
     const controls = params.queryAll(By.directive(QueryTypedValueComponent));
     expect(controls.length).toBe(2);
     expect(controls[0].nativeElement.querySelector('input').getAttribute('aria-label')).toContain('otherTitle');

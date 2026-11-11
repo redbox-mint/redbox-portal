@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { AdminTabsDirective } from '@researchdatabox/portal-ng-common';
 import { QueryAssistanceModule } from '../query-assistance.module';
 import {
@@ -135,7 +136,7 @@ describe('NqDetailComponent', () => {
     expect(section.textContent).toContain('Party · Draft');
     expect(section.querySelector('a').getAttribute('href')).toBe('/brand/portal/admin/dashboard-config#target=party');
     component.isNew = true;
-    fixture.detectChanges();
+    fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('[aria-labelledby="nq-used-by-title"]')).toBeNull();
   });
 

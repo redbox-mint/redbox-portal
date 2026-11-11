@@ -108,14 +108,7 @@ import { DashboardFieldCatalogue, DashboardRowConfig } from '../dashboard-config
                     </button>
                   </td>
                   <td>
-                    <code [title]="col.variable || ''">
-                      @for (part of (col.variable || '—').split('.'); track $index) {
-                        @if ($index) {
-                          .<wbr />
-                        }
-                        {{ part }}
-                      }
-                    </code>
+                    <code [title]="col.variable || ''">@for (part of (col.variable || '—').split('.'); track $index) {@if ($index) {.<wbr />}{{ part }}}</code>
                   </td>
                   <td>
                     {{ col.initialSort || '—' }}

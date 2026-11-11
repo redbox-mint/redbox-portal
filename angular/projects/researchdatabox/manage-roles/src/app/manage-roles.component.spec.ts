@@ -141,6 +141,7 @@ describe('AppComponent', () => {
     await fixture.componentInstance.waitForInit();
     // Isolate membership mutations between tests.
     fixture.componentInstance.users = JSON.parse(JSON.stringify(usersData));
+    fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     return { fixture, app: fixture.componentInstance };
   }
 
