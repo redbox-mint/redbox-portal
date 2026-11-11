@@ -365,7 +365,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   draftChanged(): void {
     this.draftVersion++;
-    // A removed or retyped parameter no longer owns its old control's error.
+    // Retain errors until their control disappears or changes its input kind.
     for (const [key, definition] of this.invalidTestParameters) {
       if (definition !== this.testParameterDefinition(key)) this.invalidTestParameters.delete(key);
     }
@@ -456,7 +456,9 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.previewing = false;
   }
   private testParameterDefinition(key: string): string {
-    if (this.draft.source === 'graphql') return JSON.stringify(Object.values(this.draft.graphql.variables).find(binding => binding?.ownership === 'consumer' && binding.parameter === key));
+    // GraphQL always uses the same JSON control, tracked by consumer parameter name.
+    // Binding defaults/types/ownership edits must not clear a still-mounted control's error.
+    if (this.draft.source === 'graphql') return this.parameterEntries.some(parameter => parameter.key === key) ? 'graphql-json' : 'absent';
     const param = this.draft.queryParams?.[key];
     return JSON.stringify(param ? [param.type, param.template] : null);
   }
