@@ -66,8 +66,8 @@ usable as explicitly nonpaginated responses.
 
 ## Backend integration and persistence
 
-Deploy with parent GraphQL implementation `570c34d28` on
-`feature/graphql-record-metadata`; this source branch retains the admin-design base.
+This branch now includes the GraphQL parent implementation from `570c34d28` and
+the reviewed structured-field and UON compatibility fixes as source changes.
 Parent setup requires `recordGraphql.enabled`, a shared cursor secret of at least
 32 characters, structured Solr adapter, verified metadata index mappings and reindex.
 Matching uses asynchronous index values; returned records use current storage values.
@@ -115,9 +115,8 @@ The exact pinned MIT `graphql` 16.14.2 dependency supplies parsing/schema valida
 there are no Enterprise editor/grid dependencies.
 
 `SavedGridService` has canonical global typing derived from the parent's execute
-signature. This base lacks that implementation; `services/RecordGraphqlService.d.ts`
-is a type-only public-contract bridge. Combining branches resolves the actual `.ts`
-class, verified by building the combined runtime.
+signature. It resolves the actual `RecordGraphqlService.ts` implementation; the
+previous type-only bridge was removed when the branches were combined.
 
 ## Checks
 
@@ -186,8 +185,8 @@ selection and were unselectable. The narrow parent addition is retained in
 [backend-patches/record-graphql-complex-fields.patch](backend-patches/record-graphql-complex-fields.patch):
 `record-graphql/catalogue.ts` projects declared repeating parents with complete typed
 children and `grid.test.ts` verifies projection, pairing, nested lists, private-field
-exclusion and rejection of repeated scalar operations. Apply it to the GraphQL parent
-`570c34d28` when combining this feature; these parent files are absent from this base.
+exclusion and rejection of repeated scalar operations. These changes are now applied
+to source in this branch; the patch is retained only as historical integration evidence.
 It is separate from the earlier UON compatibility patch and introduces no API fields.
 `SavedGridService.ts` in this worktree now accepts authoritative selectable repeated
 columns while keeping scalar filter/sort validation unchanged. Saved IDs are resolved
@@ -292,7 +291,6 @@ required until the hook patch is adopted; merely updating the persisted forms is
 because UON startup regenerates them. No record metadata is inferred or rewritten.
 
 Parent-only compiler/catalogue changes and their regression tests are retained in
-`backend-patches/record-graphql-single-object-fields.patch`. Apply it **after** the existing
-`record-graphql-complex-fields.patch` to the combined GraphQL parent runtime; do not replace
-that earlier patch. The primary frontend protocol and SavedGridService accept discovered
+`backend-patches/record-graphql-single-object-fields.patch` as historical evidence. Both
+patches are already applied to source in this branch; do not apply them again. The primary frontend protocol and SavedGridService accept discovered
 selectable OBJECT columns, while continuing to validate persistence against discovery.

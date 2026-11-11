@@ -5,6 +5,8 @@ import type {
   SimpleInputFormComponentDefinitionFrame,
   GroupFormComponentDefinitionFrame,
   RepeatableFormComponentDefinitionFrame,
+  TabContentFormComponentDefinitionFrame,
+  ReusableFormComponentDefinitionFrame,
 } from '@researchdatabox/sails-ng-common';
 import {
   RecordContractCompiler,
@@ -44,7 +46,8 @@ const group = (
 async function compile(
   definitions: readonly FormComponentDefinitionFrame[],
   fieldMode: 'edit' | 'read' = 'read',
-  maxProperties = 10_000
+  maxProperties = 10_000,
+  reusableFormDefinitions?: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>
 ) {
   const compiler = new RecordContractCompiler(
     new RecordContractContributorRegistry(
@@ -56,6 +59,7 @@ async function compile(
     form: { name: 'read-variants', type: 'publication', componentDefinitions: definitions },
     context,
     fieldMode,
+    reusableFormDefinitions,
   });
 }
 
@@ -82,6 +86,128 @@ describe('Read contract UI variants', () => {
         assert.equal(fromTree(result.contract.root.properties.related_url).kind, 'string');
       }
     }
+  });
+  it('excludes view Content projections only when the resolved path has another owner', async () => {
+    const person = { ...group('Researcher', [simple('name'), simple('email')]), name: 'contributor_ci' };
+    const view = {
+      ...simple('contributor_ci'),
+      constraints: { allowModes: ['view' as const] },
+      overrides: {
+        formModeClasses: { view: { component: 'ContentComponent' as const, template: '{{content.name}}' } },
+      },
+    };
+    for (const mode of ['read', 'edit'] as const) {
+      const result = await compile([person, view], mode);
+      assert.equal(result.kind, 'compiled', JSON.stringify(result));
+      if (result.kind !== 'compiled') continue;
+      const shape = fromTree(result.contract.root.properties.contributor_ci);
+      assert.equal(shape.kind, 'object');
+      if (shape.kind === 'object') assert.deepEqual(Object.keys(shape.properties), ['email', 'name']);
+    }
+    // A real scalar edit declaration still conflicts: hidden fields are not globally ignored.
+    const conflict = await compile([
+      person,
+      { ...simple('contributor_ci'), constraints: { allowModes: ['edit'] } },
+      view,
+    ]);
+    assert.equal(conflict.kind, 'compiled');
+    if (conflict.kind === 'compiled')
+      assert.equal(fromTree(conflict.contract.root.properties.contributor_ci).kind, 'json');
+    const viewOnly = await compile([view]);
+    assert.equal(viewOnly.kind, 'compiled');
+    if (viewOnly.kind === 'compiled')
+      assert.equal(fromTree(viewOnly.contract.root.properties.contributor_ci).kind, 'string');
+  });
+  it('preserves standalone view-only workflow fields and does not match names at different paths', async () => {
+    const view = {
+      ...simple('external_reference'),
+      constraints: { allowModes: ['view' as const] },
+      overrides: { formModeClasses: { view: { component: 'ContentComponent' as const, template: '{{content}}' } } },
+    };
+    for (const definitions of [[view], [group('Researcher', [simple('external_reference')]), view]]) {
+      const result = await compile(definitions);
+      assert.equal(result.kind, 'compiled', JSON.stringify(result));
+      if (result.kind !== 'compiled') continue;
+      assert.equal(fromTree(result.contract.root.properties.external_reference).kind, 'string');
+      assert.equal(result.contract.completeness, 'complete');
+    }
+    const edit = await compile([view], 'edit');
+    assert.equal(edit.kind, 'compiled');
+    if (edit.kind === 'compiled') assert.deepEqual(edit.contract.root.properties, {});
+  });
+  it('resolves projection ownership across reusable renames and transparent containers in either order', async () => {
+    const view = {
+      ...simple('display_name'),
+      constraints: { allowModes: ['view' as const] },
+      overrides: {
+        replaceName: 'contributor_ci',
+        formModeClasses: { view: { component: 'ContentComponent' as const, template: '{{content.name}}' } },
+      },
+    };
+    const person = {
+      ...group('Researcher', [simple('name'), simple('email')]),
+      overrides: { replaceName: 'contributor_ci' },
+    };
+    const reusable = (name: string): ReusableFormComponentDefinitionFrame => ({
+      name,
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
+      overrides: { reusableFormName: name },
+    });
+    for (const order of [
+      [reusable('person'), reusable('display')],
+      [reusable('display'), reusable('person')],
+    ]) {
+      const tabs: TabContentFormComponentDefinitionFrame[] = order.map((child, index) => ({
+        name: 'tab' + index,
+        component: { class: 'TabContentComponent', config: { componentDefinitions: [child] } },
+      }));
+      const result = await compile(tabs, 'read', 10_000, { person: [person], display: [view] });
+      assert.equal(result.kind, 'compiled', JSON.stringify(result));
+      if (result.kind !== 'compiled') continue;
+      const node = result.contract.root.properties.contributor_ci;
+      assert.equal(node.kind, 'object');
+      if (node.kind === 'object') assert.deepEqual(Object.keys(node.properties), ['email', 'name']);
+      assert.equal(result.contract.root.properties.display_name, undefined);
+    }
+    const standalone = await compile([reusable('display')], 'read', 10_000, { display: [view] });
+    assert.equal(standalone.kind, 'compiled');
+    if (standalone.kind === 'compiled')
+      assert.equal(fromTree(standalone.contract.root.properties.contributor_ci).kind, 'string');
+  });
+  it('discovers reusable person children and translated labels through replaceName', async () => {
+    const result = await compile(
+      [
+        {
+          name: 'person',
+          component: { class: 'ReusableComponent', config: {} },
+          overrides: { reusableFormName: 'personGroup' },
+        },
+      ],
+      'read',
+      10_000,
+      {
+        personGroup: [
+          {
+            ...group('Researcher', [
+              {
+                name: 'personFields',
+                component: { class: 'ReusableComponent', config: { componentDefinitions: [] } },
+                overrides: { reusableFormName: 'personFields' },
+              },
+            ]),
+            overrides: { replaceName: 'contributor_ci' },
+            layout: { class: 'DefaultLayout', config: { label: '@chief-investigator' } },
+          },
+        ],
+        personFields: [simple('name'), simple('email')],
+      }
+    );
+    assert.equal(result.kind, 'compiled', JSON.stringify(result));
+    if (result.kind !== 'compiled') return;
+    const node = result.contract.root.properties.contributor_ci;
+    assert.equal(node.kind, 'object');
+    if (node.kind === 'object') assert.deepEqual(Object.keys(node.properties), ['email', 'name']);
+    assert.equal(node.annotations?.extensions?.['x-redbox-label'], '@chief-investigator');
   });
   it('merges nested fields across role variants while preserving first-variant write semantics', async () => {
     const definitions = [

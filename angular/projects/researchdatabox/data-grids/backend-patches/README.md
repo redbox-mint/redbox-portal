@@ -1,3 +1,11 @@
+# Integration patch archive
+
+The three core patches below are now applied to source in the Record explorer branch.
+Do not apply them again when deploying the PR stack. They remain here as reviewed
+integration evidence. The UON hook patch still applies separately to that repository.
+
+## Original integration instructions (historical)
+
 # Integration patches
 
 This feature is based on the admin-design stack. The GraphQL implementation lives on
