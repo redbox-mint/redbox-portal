@@ -33,7 +33,7 @@ import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError, previewDeadlineIssue } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
-import type { GraphqlNamedQueryOperation } from '@researchdatabox/sails-ng-common';
+import type { GraphqlNamedQueryOperation, InvalidNamedQueryCatalogueEntry } from '@researchdatabox/sails-ng-common';
 import { assertNamedQueryDefinition, NamedQueryDefinitionError, namedQuerySource, requireDatabaseNamedQuery } from './named-query/definition';
 import type { GraphQLSchema } from 'graphql';
 import type { ReadCaller } from '../record-graphql/read-record';
@@ -548,13 +548,27 @@ export namespace Services {
     public async list(brand: BrandingModel) {
       const records = await NamedQuery.find({ branding: brand.id }) as NamedQueryAttributes[];
       return records.map(r => {
+        try {
+          namedQuerySource({ source: r.source ?? undefined });
+        } catch (error) {
+          if (!(error instanceof NamedQueryDefinitionError)) throw error;
+          // Keep a damaged row identifiable/deletable without treating its stored
+          // execution fields as a database definition or hiding unrelated rows.
+          const invalid: InvalidNamedQueryCatalogueEntry = {
+            name: r.name, source: r.source, valid: false,
+            diagnostics: [{
+              code: 'INVALID_NAMED_QUERY_SOURCE', severity: 'error', capability: 'definition',
+              field: 'source', reason: 'The saved named query has an unsupported source.',
+              line: 1, column: 1,
+            }],
+          };
+          return invalid;
+        }
         if (r.source === 'graphql') return {
           name: r.name, source: 'graphql' as const,
           ...(r.description != null ? { description: r.description } : {}),
           graphql: parseSerializedValue<GraphqlNamedQueryOperation | undefined>(r.graphql, undefined),
         };
-        // Validate persisted source names rather than treating unknown sources as database.
-        namedQuerySource({ source: r.source ?? undefined });
         return {
           name: r.name,
           ...(r.source === 'database' ? { source: 'database' as const } : {}),

@@ -12,7 +12,7 @@ const consumer = objectField({
   name: stringField('Consumer display name or translation key'),
   path: stringField('Link relative to the current brand and portal'),
 }, ['type', 'name', 'path']);
-const queryWithUsage = objectField({ usedBy: arrayField(consumer, 'Configured consumers in this brand') }, ['usedBy'], 'Named query definition with usage metadata', true);
+const queryWithUsage = objectField({ usedBy: arrayField(consumer, 'Configured consumers in this brand') }, ['usedBy'], 'Named query definition with usage metadata; list may include read-only recovery entries with name, raw source, valid:false and safe diagnostics', true);
 const listWithUsageResponse = responseField(objectField({ data: arrayField(queryWithUsage) }, ['data']), 'Brand named queries with usage');
 const queryWithUsageResponse = responseField(objectField({ data: queryWithUsage }, ['data']), 'Named query with usage');
 const inUseResponse = responseField(objectField({
@@ -38,7 +38,7 @@ export const listNamedQueriesRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'List all named queries for the brand',
-    description: 'Admin-only. Includes usedBy consumers, aggregated once for the whole list. Links are relative to the current brand/portal. Runtime API callers are not tracked.',
+    description: 'Admin-only. Includes usedBy consumers, aggregated once for the whole list. Unsupported stored sources remain identifiable/deletable as minimal entries with name, raw source, valid:false and safe diagnostics; they are never executable definitions. Links are relative to the current brand/portal. Runtime API callers are not tracked.',
     responses: { 200: listWithUsageResponse },
   }
 );

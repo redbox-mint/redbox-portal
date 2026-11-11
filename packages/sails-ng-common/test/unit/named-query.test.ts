@@ -7,6 +7,7 @@ import type {
   NamedQueryLookupResult,
   NamedQuerySourceDescription,
   NamedQuerySourcePreview,
+  NamedQueryCatalogueEntry,
 } from '../../src';
 
 /** These consumers compile against shared DTOs alone, without server or Angular imports. */
@@ -45,10 +46,10 @@ function contractsOnly(description: NamedQuerySourceDescription, preview: NamedQ
     const unknownTotal: null = preview.summary.numFound;
     void unknownTotal;
   }
-  // @ts-expect-error An exact numeric total cannot represent GraphQL's unknown total.
   const wrong: GraphqlNamedQueryResult = {
     source: 'graphql',
     records: [],
+    // @ts-expect-error An exact numeric total cannot represent GraphQL's unknown total.
     summary: { numFound: 0, start: 0, page: 1 },
     pagination: { mode: 'firstPage', hasNextPage: false },
   };
@@ -62,3 +63,16 @@ function contractsOnly(description: NamedQuerySourceDescription, preview: NamedQ
   void contradictory;
 }
 void contractsOnly;
+
+function catalogueOnly(entry: NamedQueryCatalogueEntry): NamedQueryDefinition | undefined {
+  if (entry.valid === false) {
+    const rawSource: unknown = entry.source;
+    // @ts-expect-error A damaged catalogue entry must never become an executable definition.
+    const definition: NamedQueryDefinition = entry;
+    void rawSource;
+    void definition;
+    return undefined;
+  }
+  return entry;
+}
+void catalogueOnly;

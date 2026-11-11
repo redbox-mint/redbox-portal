@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
+import * as sinon from 'sinon';
 import { NamedQueryWLDef, NamedQueryWaterlineModel } from '../../src/waterline-models/NamedQuery';
 import { Services } from '../../src/services/NamedQueryService';
+import { NamedQueryDefinitionError } from '../../src/services/named-query/definition';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 
 interface Orm {
@@ -196,6 +198,72 @@ describe('named query source Mongo persistence', function () {
     await assert.rejects(
       service.update(brand, 'graphql', { collectionName: 'record' }),
       /Invalid named query definition/
+    );
+  });
+
+  it('lists a natively inserted unknown source safely alongside valid rows and permits deletion without execution', async () => {
+    await service.create(brand, 'catalogueDatabase', database);
+    await service.create(brand, 'catalogueGraphql', graphql, caller);
+    assert.ok(client);
+    const storedQueries = client.db(databaseName).collection('namedquery');
+    const name = 'nativeUnknownSource';
+    const key = `${brand.id}_${name}`;
+    // Bypass Waterline's source enum, as an old/newer installation or manual
+    // import can. A catalogue read must not let this one row hide the brand.
+    await storedQueries.insertOne({
+      key,
+      name,
+      branding: new ObjectId(brand.id),
+      source: 'retired-engine',
+      mongoQuery: '{"private":"must not be copied into recovery diagnostics"}',
+      graphql: '{"document":"must not be copied into recovery diagnostics"}',
+    });
+    const list = await service.list(brand);
+    assert.ok(list.some(item => item.name === 'catalogueDatabase' && item.source === undefined));
+    assert.ok(list.some(item => item.name === 'catalogueGraphql' && item.source === 'graphql'));
+    const invalid = list.find(item => item.name === name);
+    assert.ok(invalid && 'valid' in invalid && invalid.valid === false);
+    assert.deepEqual(invalid, {
+      name,
+      source: 'retired-engine',
+      valid: false,
+      diagnostics: [
+        {
+          code: 'INVALID_NAMED_QUERY_SOURCE',
+          severity: 'error',
+          capability: 'definition',
+          field: 'source',
+          reason: 'The saved named query has an unsupported source.',
+          line: 1,
+          column: 1,
+        },
+      ],
+    });
+    const execute = sinon.spy(service, 'performNamedQuery');
+    // Only usage discovery is stubbed; deletion still uses real Waterline/Mongo
+    // and must retain its existing in-use protection for all sources.
+    const usage = sinon.stub(service, 'getUsage').resolves({});
+    try {
+      await assert.rejects(service.getNamedQueryConfig(brand, name), NamedQueryDefinitionError);
+      await assert.rejects(service.performNamedQueryFromConfig(invalid, {}, brand, 0, 25), NamedQueryDefinitionError);
+      await assert.rejects(
+        service.performNamedQueryFromConfigResults(invalid, {}, brand, name),
+        NamedQueryDefinitionError
+      );
+      assert.equal(execute.called, false);
+      await service.delete(brand, name);
+      assert.equal(usage.calledOnceWithExactly(brand), true);
+    } finally {
+      execute.restore();
+      usage.restore();
+    }
+    assert.equal(await storedQueries.findOne({ key }), null);
+    const remaining = await service.list(brand);
+    assert.ok(remaining.some(item => item.name === 'catalogueDatabase'));
+    assert.ok(remaining.some(item => item.name === 'catalogueGraphql'));
+    assert.equal(
+      remaining.some(item => item.name === name),
+      false
     );
   });
 

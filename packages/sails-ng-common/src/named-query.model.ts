@@ -1,3 +1,5 @@
+import type { EditorDiagnostic } from './schema-assist.model';
+
 /** Source-independent, data-only named-query contracts shared by server and browser. */
 export type NamedQuerySource = 'database' | 'graphql';
 export type NamedQueryJson = null | boolean | number | string | NamedQueryJson[] | { [key: string]: NamedQueryJson };
@@ -109,6 +111,18 @@ export interface GraphqlNamedQueryDefinition {
   queryParams?: never;
 }
 export type NamedQueryDefinition = DatabaseNamedQueryDefinition | GraphqlNamedQueryDefinition;
+
+/** Read-only catalogue recovery entry, never an executable definition. The raw
+ * stored source is intentionally unknown rather than defaulted to database.
+ */
+export interface InvalidNamedQueryCatalogueEntry {
+  name: string;
+  source: unknown;
+  valid: false;
+  diagnostics: EditorDiagnostic[];
+}
+/** Check valid:false before interpreting the source or offering execution/editing. */
+export type NamedQueryCatalogueEntry = (NamedQueryDefinition & { valid?: true }) | InvalidNamedQueryCatalogueEntry;
 
 /** Numeric database summaries remain compatible with ListAPIResponse. */
 export interface DatabaseNamedQueryResult<T = unknown> {

@@ -130,6 +130,7 @@ describe('named query source persistence boundaries', () => {
     assert.equal(scope.called, false);
     assert.equal(store.get('brand-1_graphql')?.branding, brand.id);
     const [listed] = await service.list(brand);
+    assert.ok(!('valid' in listed));
     assert.equal(listed.source, 'graphql');
     assert.deepEqual(listed.graphql, graphql.graphql);
     const reloaded = await new Services.NamedQueryService().getNamedQueryConfig(brand, 'graphql');
