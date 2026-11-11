@@ -148,7 +148,7 @@ export class TypeaheadDataService extends HttpClientService {
                 const codes = this.isObject(body) ? [body['message'], ...(Array.isArray(body['errors'])
                     ? body['errors'].map((item: unknown) => this.isObject(item) ? item['code'] : undefined) : [])] : [];
                 const misconfigured = codes.some(code => typeof code === 'string' && [
-                    'GRAPHQL_LOOKUP_CONFIG_INVALID', 'GRAPHQL_LOOKUP_UNSUPPORTED', 'GRAPHQL_DEFINITION_INVALID', 'GRAPHQL_VOCAB_MAPPING_UNSUPPORTED',
+                    'GRAPHQL_LOOKUP_CONFIG_INVALID', 'GRAPHQL_LOOKUP_UNSUPPORTED', 'INVALID_GRAPHQL_NAMED_QUERY', 'GRAPHQL_VOCAB_MAPPING_UNSUPPORTED',
                     'query-vocab-invalid-config', 'query-vocab-not-configured'
                 ].includes(code));
                 throw new TypeaheadLookupError(misconfigured);

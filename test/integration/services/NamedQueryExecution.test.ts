@@ -357,6 +357,17 @@ describe('GraphQL named query execution over HTTP', function () {
     const denied = await rest().expect(422);
     assert.ok(!JSON.stringify(denied.body).includes('private_note'));
     assert.ok(!JSON.stringify(denied.body).includes(`PRIVATE_DATA_${suffix}`));
+    // Keep the frontend's misconfiguration classification tied to the actual
+    // versioned vocabulary error bodies for saved-definition/schema drift.
+    for (const version of ['1.0', '2.0']) {
+      const invalidLookup = await vocab().set('X-ReDBox-Api-Version', version).expect(422);
+      assert.deepEqual(
+        invalidLookup.body,
+        version === '1.0'
+          ? { message: 'INVALID_GRAPHQL_NAMED_QUERY', details: '' }
+          : { errors: [{ code: 'INVALID_GRAPHQL_NAMED_QUERY', title: 'INVALID_GRAPHQL_NAMED_QUERY' }], meta: {} }
+      );
+    }
     await NamedQuery.updateOne({ key: `${brand.id}_${name}` }).set({ graphql: JSON.stringify(definition.graphql) });
     const partial = structuredClone(definition);
     partial.graphql.document = partial.graphql.document.replace(/}\s*$/, ` denied:record(oid:"${ids[27]}"){oid} }`);

@@ -312,6 +312,20 @@ describe("bounded named-query lookup compatibility", () => {
             await rejected;
         });
     }
+    // Exact FormVocabularyController/CoreController envelopes, also asserted over
+    // HTTP in NamedQueryExecution.test.ts for a schema-drifted saved definition.
+    for (const [version, body] of [
+        ['1.0', { message: 'INVALID_GRAPHQL_NAMED_QUERY', details: '' }],
+        ['2.0', { errors: [{ code: 'INVALID_GRAPHQL_NAMED_QUERY', title: 'INVALID_GRAPHQL_NAMED_QUERY' }], meta: {} }]
+    ] as const) {
+        it(`classifies the real API ${version} invalid-definition envelope as misconfigured`, async () => {
+            const pending = service.searchNamedQueryLookup('party', 'a');
+            const rejected = expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ misconfigured: true }));
+            await Promise.resolve();
+            http.expectOne(req => req.url.includes('/query/vocab/party')).flush(body, { status: 422, statusText: 'Unprocessable Content' });
+            await rejected;
+        });
+    }
     it('keeps a real scan-bound HTTP failure distinct from no results and misconfiguration', async () => {
         const pending = service.searchNamedQueryLookup('party', 'a');
         const rejected = expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ misconfigured: false }));

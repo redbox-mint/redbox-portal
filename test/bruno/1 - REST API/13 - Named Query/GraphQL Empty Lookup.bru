@@ -44,8 +44,9 @@ tests {
 }
 
 docs {
-  Requires the typed test/resources/config/named-query-lookups.json server fixture,
-  alongside the normal named-query Bruno authentication/setup requests. This alias
+  The committed general Bruno Compose harness loads the typed
+  test/resources/config/named-query-lookups.json fixture for both CI and mount profiles.
+  Run alongside the normal named-query Bruno authentication/setup requests. This alias
   deliberately references the created query, so usage protection prevents deleting
   it through CRUD. Run in an isolated disposable test database and remove it with
   the harness down -v cleanup, as for the mounted integration fixtures.
