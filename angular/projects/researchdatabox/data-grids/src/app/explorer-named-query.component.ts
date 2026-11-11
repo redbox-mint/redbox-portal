@@ -90,6 +90,7 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
   error = '';
   schemaError = false;
   pendingInput = false;
+  initializing = true;
   saving = false;
   validating = false;
   confirmCancel = false;
@@ -97,6 +98,7 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
   private changedInput = false;
   private sequence = 0;
   private destroyed = false;
+  private initialized = false;
   private timer?: ReturnType<typeof setTimeout>;
   constructor(@Inject(NamedQueryApiService) private api: NamedQueryApiService) {}
 
@@ -104,11 +106,23 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
     this.draft = structuredClone(this.prepared.definition);
     this.variableValues = structuredClone(this.prepared.variableValues);
     this.baseline = JSON.stringify(this.draft);
-    void this.loadSchema();
-    void this.validate();
+    void this.initialize();
   }
   ngAfterViewInit(): void {
     this.heading?.nativeElement.focus();
+  }
+  private async initialize(): Promise<void> {
+    try {
+      await this.api.waitForInit();
+      if (this.destroyed) return;
+      this.initialized = true;
+      void this.loadSchema();
+      void this.validate();
+    } catch {
+      if (!this.destroyed) this.error = 'data-grids-promotion-init-failed';
+    } finally {
+      if (!this.destroyed) this.initializing = false;
+    }
   }
   private async loadSchema(): Promise<void> {
     try {
@@ -124,6 +138,7 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
   get canSave(): boolean {
     const name = this.draft?.name?.trim();
     return (
+      this.initialized &&
       !!name &&
       /^[A-Za-z0-9_-]+$/.test(name) &&
       name !== 'collections' &&
@@ -137,13 +152,14 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
     this.changedInput = true;
     this.sequence++;
     this.description = null;
-    this.error = '';
+    if (this.initialized) this.error = '';
     this.validating = false;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => void this.validate(), 250);
+    if (this.initialized) this.timer = setTimeout(() => void this.validate(), 250);
   }
   async validate(): Promise<boolean> {
     clearTimeout(this.timer);
+    if (!this.initialized || this.destroyed) return false;
     const seq = ++this.sequence;
     const snapshot = JSON.stringify(this.draft);
     this.validating = true;

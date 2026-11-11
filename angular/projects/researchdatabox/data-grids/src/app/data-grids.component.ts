@@ -227,6 +227,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       try { snapshot.variables = parseQueryVariables(JSON.parse(this.variablesText)); }
       catch { this.promotionError = 'promotion-invalid-values'; return; }
     }
+    const trigger = this.promotionButton?.nativeElement;
     this.promotionOpening = true;
     this.promotionError = '';
     this.promotionSaved = false;
@@ -234,9 +235,19 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       const prepared = await this.source.prepareNamedQuery(snapshot);
       if (!this.disposed) this.promotion = structuredClone(prepared);
     } catch (error) {
-      if (!this.disposed) this.promotionError = error instanceof HttpErrorResponse && [401, 403].includes(error.status)
-        ? 'promotion-denied' : 'promotion-open-failed';
-    } finally { if (!this.disposed) this.promotionOpening = false; }
+      if (!this.disposed) {
+        this.promotionError = error instanceof HttpErrorResponse && [401, 403].includes(error.status)
+          ? 'promotion-denied' : 'promotion-open-failed';
+        setTimeout(() => {
+          if (!this.disposed) (trigger?.isConnected ? trigger : this.promotionButton?.nativeElement)?.focus();
+        });
+      }
+    } finally {
+      if (!this.disposed) {
+        this.promotionOpening = false;
+        this.requestRender();
+      }
+    }
   }
   closePromotion(saved = false): void {
     this.promotion = null;

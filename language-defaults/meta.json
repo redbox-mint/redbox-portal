@@ -11045,5 +11045,10 @@
     "category": "data-grids",
     "description": "Named query created. Your exploration and its unsaved changes are retained.",
     "contentFormat": "plain"
+  },
+  "data-grids-promotion-init-failed": {
+    "category": "data-grids",
+    "description": "The named-query editor could not load. Your exploration and detached draft are retained.",
+    "contentFormat": "plain"
   }
 }

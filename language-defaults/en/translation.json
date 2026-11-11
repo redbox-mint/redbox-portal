@@ -4414,5 +4414,6 @@
   "data-grids-promotion-invalid-values": "Correct the explorer variables JSON before creating a named query.",
   "data-grids-promotion-open-failed": "The named-query editor could not be opened. Your exploration is retained; check its fields and try again.",
   "data-grids-promotion-opening": "Preparing an unsaved named-query copy…",
-  "data-grids-promotion-saved": "Named query created. Your exploration and its unsaved changes are retained."
+  "data-grids-promotion-saved": "Named query created. Your exploration and its unsaved changes are retained.",
+  "data-grids-promotion-init-failed": "The named-query editor could not load. Your exploration and detached draft are retained."
 }

@@ -14,6 +14,7 @@
     <p class="rb-ws-lede">{{ 'data-grids-promotion-help' | i18next }}</p>
     <p *ngIf="draft?.graphql?.provenance" class="rb-ws-lede">{{ 'data-grids-promotion-provenance' | i18next }}</p>
     <div *ngIf="error" class="alert alert-danger" role="alert">{{ error | i18next }}</div>
+    <p *ngIf="initializing" role="status">{{ 'data-grids-promotion-opening' | i18next }}</p>
     <fieldset [disabled]="saving">
       <div class="promotion-body">
         <main class="rb-ws-main">
