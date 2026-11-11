@@ -68,7 +68,8 @@ describe('named query source CRUD API', function () {
     assert.equal(legacy.source, undefined);
     assert.deepEqual(legacy.mongoQuery, {});
     await request().put(`${prefix}/${name}`).set(auth()).send(legacy).expect(200);
-    await request().put(`${prefix}/${name}`).set(auth()).send(graphql).expect(200);
+    const review = (await editorSession.post(`${prefix}/${name}/review-update`).set(editorAuth()).send({ definition: graphql }).expect(200)).body.data;
+    await request().put(`${prefix}/${name}`).set(auth()).set('X-ReDBox-Named-Query-Confirmation', review.confirmation).send(graphql).expect(200);
     const read = (await request().get(`${prefix}/${name}`).set(auth()).expect(200)).body.data;
     assert.equal(read.source, 'graphql');
     assert.deepEqual(read.graphql, graphql.graphql);

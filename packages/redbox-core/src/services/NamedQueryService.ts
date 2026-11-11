@@ -1,3 +1,5 @@
+import type { NamedQueryUpdateReview } from '@researchdatabox/sails-ng-common';
+import { namedQueryBreakingChanges, updateConfirmation, NamedQueryUpdateConfirmationError, NamedQueryUpdateConflictError } from './named-query/update-review';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -162,6 +164,7 @@ export namespace Services {
       "list",
       "getUsage",
       "update",
+      "reviewUpdate",
       "delete",
     ];
 
@@ -561,7 +564,7 @@ export namespace Services {
             diagnostics: [{
               code: 'INVALID_NAMED_QUERY_SOURCE', severity: 'error', capability: 'definition',
               field: 'source', reason: 'The saved named query has an unsupported source.',
-              line: 1, column: 1,
+              line: 0, column: 0,
             }],
           };
           return invalid;
@@ -606,7 +609,30 @@ export namespace Services {
         views: sails.config.dashboardview ?? {}, vocabularies: sails.config.vocab?.queries ?? {} });
     }
 
-    public async update(brand: BrandingModel, name: string, input: unknown, validationCaller?: ReadCaller) {
+    public async reviewUpdate(brand: BrandingModel, name: string, input: unknown, validationCaller?: ReadCaller): Promise<NamedQueryUpdateReview> {
+      assertNamedQueryDefinition(input);
+      if (input.source === 'graphql') {
+        const { validation } = await inspectGraphqlNamedQuery(input, validationCaller, String(brand.id));
+        if (!validation.valid) throw new GraphqlNamedQueryValidationError(validation.diagnostics);
+      }
+      const existing = await NamedQuery.findOne({ key: `${brand.id}_${name}` });
+      if (!existing) throw new Error(`Named query '${name}' not found`);
+      const serialized = this.serializeDefinition(brand, name, input, existing);
+      const review = await this.updateReview(brand, name, input, existing);
+      return { ...review, ...(review.required ? { confirmation: updateConfirmation(existing, serialized, review, validationCaller) } : {}) };
+    }
+
+    private async updateReview(brand: BrandingModel, name: string, input: NamedQueryDefinition, existing: NamedQueryAttributes): Promise<NamedQueryUpdateReview> {
+      let previous: NamedQueryDefinition | undefined;
+      try { previous = readNamedQueryConfig(existing); } catch (error) {
+        if (!(error instanceof NamedQueryDefinitionError)) throw error;
+      }
+      const changes = namedQueryBreakingChanges(previous, input);
+      return { required: changes.length > 0, changes, usageComplete: false,
+        usedBy: changes.length ? (await this.getUsage(brand))[name] ?? [] : [] };
+    }
+
+    public async update(brand: BrandingModel, name: string, input: unknown, validationCaller?: ReadCaller, confirmation?: string) {
       assertNamedQueryDefinition(input);
       if (input.source === 'graphql') {
         const { validation } = await inspectGraphqlNamedQuery(input, validationCaller, String(brand.id));
@@ -616,8 +642,16 @@ export namespace Services {
       const existing = await NamedQuery.findOne({ key });
       if (!existing) throw new Error(`Named query '${name}' not found`);
       const serialized = this.serializeDefinition(brand, name, input, existing);
-      const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set(serialized)));
-      if (!updated) throw new Error(`Named query '${name}' not found`);
+      const review = await this.updateReview(brand, name, input, existing);
+      if (review.required && (!confirmation || !updateConfirmation(existing, serialized, review, validationCaller, confirmation)))
+        throw new NamedQueryUpdateConfirmationError(review);
+      // Match every stored execution field, including updatedAt when present: another
+      // writer cannot change the reviewed definition between the read and this write.
+      const criteria: Record<string, unknown> = { key };
+      for (const field of ['updatedAt', 'source', 'graphql', 'collectionName', 'mongoQuery', 'queryParams', 'resultObjectMapping', 'sort', 'relatedRecordFilters', 'expandRelations', 'brandIdFieldPath', 'description'] as const)
+        if (Object.hasOwn(existing, field)) criteria[field] = Reflect.get(existing, field);
+      const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ where: criteria }).set(serialized)));
+      if (!updated) throw new NamedQueryUpdateConflictError();
       return updated;
     }
 

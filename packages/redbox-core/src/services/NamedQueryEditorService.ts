@@ -1,3 +1,4 @@
+import { printSchema } from 'graphql';
 import * as Handlebars from 'handlebars';
 import {
   lookupPath,
@@ -264,6 +265,7 @@ export namespace Services {
   export class NamedQueryEditor extends CoreServices.Core.Service {
     protected override _exportedMethods = [
       'schemaTargets',
+      'graphqlSchema',
       'describeFields',
       'validateDraft',
       'describeDraft',
@@ -286,6 +288,16 @@ export namespace Services {
     private graphqlCaller(brand: BrandingModel, portal: string, caller: FormRecordAccessContext): ReadCaller | undefined {
       if (!Array.isArray(caller.user?.roles)) return;
       return { brand, portal, user: caller.user, roles: caller.user.roles };
+    }
+
+    public async graphqlSchema(brand: BrandingModel, portal: string, caller: FormRecordAccessContext) {
+      this.caller(brand, caller);
+      const context = this.graphqlCaller(brand, portal, caller);
+      if (!context?.user?.username || !context.portal) throw new NamedQueryAssistanceError('FORBIDDEN', 403);
+      const schema = await RecordGraphqlService.getReadSchema(context);
+      const sdl = printSchema(schema);
+      if (Buffer.byteLength(sdl) > QUERY_LIMITS.responseBytes) throw new NamedQueryAssistanceError('RESPONSE_LIMIT', 413);
+      return { sdl };
     }
 
     public async schemaTargets(brand: BrandingModel, caller: FormRecordAccessContext) {
@@ -492,16 +504,19 @@ export namespace Services {
       caller: FormRecordAccessContext,
       request: NamedQueryDraftRequest
     ): Promise<NamedQuerySourceDescription> {
-      const validation = await this.validateDraft(brand, portal, caller, request);
+      this.caller(brand, caller);
+      checkDraftBudget(request);
       const definition = object(request.definition) ? request.definition : {};
       if (definition.source === 'graphql') {
         let parameters: Array<GraphqlNamedQueryBinding & { variable: string }> = [];
         let operationName: string | undefined;
+        const inspected = await inspectGraphqlNamedQuery(definition, this.graphqlCaller(brand, portal, caller), String(brand.id));
         try {
           assertNamedQueryDefinition(definition);
           if (definition.source === 'graphql') {
             parameters = Object.entries(definition.graphql.variables).flatMap(([variable, binding]) =>
-              binding.ownership === 'consumer' ? [{ ...binding, variable }] : []
+              binding.ownership === 'consumer' ? [{ ...binding, variable,
+                ...inspected.operationVariables?.find(item => item.variable === variable) }] : []
             );
             operationName = definition.graphql.operationName;
           }
@@ -509,12 +524,13 @@ export namespace Services {
           // Malformed/stale stored records remain describable and editable.
         }
         return {
-          ...validation,
+          ...inspected.validation,
           source: 'graphql',
           ...(typeof definition.name === 'string' ? { name: definition.name } : {}),
-          operationName, parameters, result: unavailable(),
+          operationName, parameters, operationVariables: inspected.operationVariables ?? [], result: unavailable(),
         };
       }
+      const validation = await this.validateDraft(brand, portal, caller, request);
       const collectionName = typeof definition.collectionName === 'string' ? definition.collectionName : '';
       const source = await this.guidance(
         brand,

@@ -2,8 +2,12 @@ import { Component, Inject, OnDestroy, HostListener } from '@angular/core';
 import type {
   ContextSchemaField,
   EditorDiagnostic,
-  NamedQueryDescription,
-  NamedQueryPreview,
+  NamedQuerySourceDescription,
+  NamedQuerySourcePreview,
+  GraphqlNamedQueryDefinition,
+  GraphqlNamedQueryDescription,
+  NamedQueryUpdateReview,
+  NamedQuerySource,
   NamedQueryDraftRequest,
   NamedQueryFieldDescription,
   NamedQuerySchemaSelection,
@@ -12,7 +16,7 @@ import type {
 import { storedRecordPath } from '@researchdatabox/sails-ng-common';
 import { LatestRequest, type FieldNode } from '@researchdatabox/portal-ng-common';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
-import { NamedQueryApiService, NamedQueryDefinition } from './named-query-api.service';
+import { NamedQueryApiService, NamedQueryDefinition, NamedQueryDatabaseDefinition, NamedQueryCatalogueRow } from './named-query-api.service';
 import { NamedQueryListQueryState } from './nq-list/nq-list.component';
 
 @Component({
@@ -22,14 +26,78 @@ import { NamedQueryListQueryState } from './nq-list/nq-list.component';
   standalone: false,
 })
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {
-  queries: NamedQueryDefinition[] = [];
-  filteredQueries: NamedQueryDefinition[] = [];
+  queries: NamedQueryCatalogueRow[] = [];
+  filteredQueries: NamedQueryCatalogueRow[] = [];
   collections: string[] = [];
   listQuery: NamedQueryListQueryState = { searchTerm: '' };
 
   selectedQuery: NamedQueryDefinition | null = null;
   draft: NamedQueryDefinition = this.emptyDraft();
   isNew = false;
+  databaseBuffer: NamedQueryDatabaseDefinition = this.emptyDraft();
+  graphqlBuffer: GraphqlNamedQueryDefinition = this.emptyGraphqlDraft();
+  private sourceValidity: Record<NamedQuerySource, boolean> = { database: true, graphql: true };
+  graphqlSdl = '';
+  schemaLoading = false;
+  schemaError = '';
+  private schemaRequests = new LatestRequest();
+  private draftVersion = 0;
+  pendingReview: { review: NamedQueryUpdateReview; payload: NamedQueryDefinition; snapshot: string; version: number } | null = null;
+  private reviewTrigger: HTMLElement | null = null;
+  capabilities: { lookup: boolean; diagnostics: EditorDiagnostic[] } | null = null;
+  get activeDatabaseBuffer(): NamedQueryDatabaseDefinition { return this.draft.source === 'graphql' ? this.databaseBuffer : this.draft; }
+  get activeGraphqlBuffer(): GraphqlNamedQueryDefinition { return this.draft.source === 'graphql' ? this.draft : this.graphqlBuffer; }
+  get source(): NamedQuerySource { return this.draft.source === 'graphql' ? 'graphql' : 'database'; }
+  get graphqlDescription(): GraphqlNamedQueryDescription | null { return this.description?.source === 'graphql' ? this.description : null; }
+  get catalogueDiagnostics(): EditorDiagnostic[] { return this.queries.flatMap(query => query.valid === false ? query.diagnostics : []); }
+  changeSource(source: NamedQuerySource): void {
+    if (source === this.source || this.saving) return;
+    if (this.draft.source === 'graphql') this.graphqlBuffer = this.draft;
+    else this.databaseBuffer = this.draft;
+    const identity = { name: this.draft.name, description: this.draft.description };
+    const buffer = source === 'graphql' ? this.graphqlBuffer : this.databaseBuffer;
+    Object.assign(buffer, identity);
+    this.draft = buffer;
+    this.pendingInput = !this.sourceValidity[source];
+    this.invalidTestParameters.clear();
+    this.testParameters = {};
+    this.guidance = source === 'database' ? this.inferGuidance() : null;
+    this.invalidateAssistance();
+    this.draftChanged();
+    if (source === 'graphql') void this.loadGraphqlSchema();
+    else { void this.loadTargets(); void this.refreshFields(); }
+  }
+  async loadGraphqlSchema(): Promise<void> {
+    const token = this.schemaRequests.next();
+    this.schemaLoading = true;
+    this.schemaError = '';
+    try { const result = await this.api.graphqlSchema(); if (this.schemaRequests.isCurrent(token)) this.graphqlSdl = result.sdl; }
+    catch { if (this.schemaRequests.isCurrent(token)) this.schemaError = this.t('named-query-graphql-schema-error', 'Current GraphQL schema unavailable. Your draft is retained.'); }
+    finally { if (this.schemaRequests.isCurrent(token)) this.schemaLoading = false; }
+  }
+  sourceValidityChanged(source: NamedQuerySource, valid: boolean): void {
+    this.sourceValidity[source] = valid;
+    if (this.source === source) this.validityChanged(valid);
+  }
+  cancelSaveReview(): void {
+    this.pendingReview = null;
+    const trigger = this.reviewTrigger;
+    this.reviewTrigger = null;
+    setTimeout(() => (trigger?.isConnected ? trigger : document.getElementById('named-query-save'))?.focus(), 0);
+  }
+  async confirmSaveReview(): Promise<void> {
+    const pending = this.pendingReview;
+    if (!pending) return;
+    this.cancelSaveReview();
+    if (this.pendingInput || this.draftVersion !== pending.version || JSON.stringify(this.draft) !== pending.snapshot) {
+      this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.'); return;
+    }
+    this.saving = true;
+    try { await this.persist(pending.payload, pending.snapshot, pending.review.confirmation); }
+    catch (error) { this.saveError(error); }
+    finally { this.saving = false; }
+  }
+
 
   message = '';
   error = '';
@@ -46,8 +114,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   diagnostics: EditorDiagnostic[] = [];
   private validationBlocking = false;
   private invalidTestParameters = new Map<string, string>();
-  description: NamedQueryDescription | null = null;
-  previewResult: NamedQueryPreview | null = null;
+  description: NamedQuerySourceDescription | null = null;
+  previewResult: NamedQuerySourcePreview | null = null;
   testParameters: Record<string, unknown> = {};
   assistanceError = '';
   validating = false;
@@ -76,7 +144,9 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   get dirty(): boolean {
     return this.isEditing && (this.inputDirty || JSON.stringify(this.draft) !== this.baseline);
   }
-  get parameterEntries() {
+  get parameterEntries(): Array<{ key: string; path: string; type: string; format?: string; queryType?: string; template?: string }> {
+    if (this.draft.source === 'graphql') return Object.entries(this.draft.graphql.variables).flatMap(([variable, binding]) =>
+      binding?.ownership === 'consumer' ? [{ key: binding.parameter, path: '$' + variable, type: binding.inputType, format: undefined, queryType: undefined, template: undefined }] : []);
     return Object.entries(this.draft.queryParams || {}).map(([key, param]) => ({ key, ...param }));
   }
   get previewColumns(): string[] {
@@ -128,10 +198,19 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.previewResult = null;
     this.description = null;
     this.diagnostics = [];
+    this.capabilities = null;
     this.validationBlocking = false;
   }
 
   private startDraft(): void {
+    this.schemaRequests.invalidate();
+    this.graphqlSdl = '';
+    this.schemaError = '';
+    this.sourceValidity = { database: true, graphql: true };
+    this.databaseBuffer = this.draft.source === 'graphql' ? this.emptyDraft() : this.draft;
+    this.graphqlBuffer = this.draft.source === 'graphql' ? this.draft : this.emptyGraphqlDraft();
+    this.draftVersion++;
+    this.pendingReview = null;
     this.invalidateAssistance();
     this.targetRequests.invalidate();
     this.baseline = JSON.stringify(this.draft);
@@ -146,8 +225,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.fields = [];
     this.assistanceError = '';
     this.targets = [];
-    void this.loadTargets();
-    void this.refreshFields();
+    if (this.source === 'graphql') void this.loadGraphqlSchema();
+    else { void this.loadTargets(); void this.refreshFields(); }
     if (this.draft.relatedRecordFilters?.length) void this.foreignContextChanged({ index: -1, collectionName: '' });
     this.scheduleValidation();
     // Focus the workspace heading after Angular has rendered the new item.
@@ -205,7 +284,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     const token = this.fieldsRequests.next();
     this.fieldDescription = null;
     this.fields = [];
-    if (!this.draft.collectionName) return;
+    if (this.draft.source === 'graphql' || !this.draft.collectionName) return;
     try {
       const fields = await this.api.fields({ collectionName: this.draft.collectionName, ...this.guidance });
       if (this.fieldsRequests.isCurrent(token)) {
@@ -268,12 +347,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   draftChanged(): void {
+    this.draftVersion++;
     // A removed or retyped parameter no longer owns its old control's error.
     for (const [key, definition] of this.invalidTestParameters) {
       if (definition !== this.testParameterDefinition(key)) this.invalidTestParameters.delete(key);
     }
     for (const key of Object.keys(this.testParameters)) {
-      if (!Object.prototype.hasOwnProperty.call(this.draft.queryParams || {}, key)) delete this.testParameters[key];
+      if (!this.parameterEntries.some(parameter => parameter.key === key)) delete this.testParameters[key];
     }
     this.inputDirty = true;
     this.previewRequests.invalidate();
@@ -281,6 +361,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.previewResult = null;
     this.description = null;
     this.diagnostics = [];
+    this.capabilities = null;
     this.validationBlocking = false;
     this.validationRequests.invalidate();
     this.scheduleValidation();
@@ -288,6 +369,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   inputChanged(event?: Event): void {
     if ((event?.target as Element | undefined)?.closest?.('rb-field-tree, [data-nq-guidance]')) return;
+    this.draftVersion++;
     this.inputDirty = true;
     this.validationRequests.invalidate();
     this.validating = false;
@@ -324,11 +406,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       if (this.validationRequests.isCurrent(token)) {
         this.diagnostics = result.diagnostics;
         this.validationBlocking = !result.valid;
+        this.capabilities = result.capabilities ?? null;
+        if (this.source === 'graphql') {
+          const description = await this.api.describe(this.request());
+          if (this.validationRequests.isCurrent(token)) this.description = description;
+        }
       }
     } catch {
       if (this.validationRequests.isCurrent(token)) {
         this.diagnostics = [];
-        this.validationBlocking = false;
+        this.validationBlocking = this.source === 'graphql';
         this.assistanceError = this.t(
           'named-query-validation-unavailable',
           'Validation unavailable. Your draft is retained.'
@@ -352,6 +439,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.previewing = false;
   }
   private testParameterDefinition(key: string): string {
+    if (this.draft.source === 'graphql') return JSON.stringify(Object.values(this.draft.graphql.variables).find(binding => binding?.ownership === 'consumer' && binding.parameter === key));
     const param = this.draft.queryParams?.[key];
     return JSON.stringify(param ? [param.type, param.template] : null);
   }
@@ -359,7 +447,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     return this.pendingInput || this.invalidTestParameters.size > 0;
   }
   async preview(): Promise<void> {
-    if (this.previewInputInvalid || this.previewing) return;
+    if (this.previewInputInvalid || this.previewing || this.pendingReview) return;
     if (this.validationTimer) clearTimeout(this.validationTimer);
     this.validationTimer = null;
     this.validationRequests.invalidate();
@@ -424,6 +512,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     super.ngOnDestroy();
     this.itemRequests.invalidate();
     this.targetRequests.invalidate();
+    this.schemaRequests.invalidate();
     this.invalidateAssistance();
     if (this.messageTimer) clearTimeout(this.messageTimer);
     this.messageTimer = null;
@@ -434,25 +523,25 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   get presentCollections(): string[] {
-    return [...new Set(this.queries.map(query => query.collectionName).filter(Boolean))].sort();
+    return [...new Set(this.queries.map(query => query.valid === false ? undefined : query.collectionName).filter((collection): collection is string => !!collection))].sort();
   }
 
   get uniqueCollections(): number {
     const set = new Set<string>();
     for (const q of this.queries) {
-      if (q.collectionName) set.add(q.collectionName);
+      if (q.valid !== false && q.collectionName) set.add(q.collectionName);
     }
     return set.size;
   }
 
   get canSave(): boolean {
-    if (!this.isEditing || this.pendingInput || this.saving || this.validationBlocking) return false;
+    if (!this.isEditing || this.pendingInput || this.saving || !!this.pendingReview || this.validationBlocking) return false;
     if (this.isNew) {
       const trimmed = this.draft.name?.trim();
       if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
       if (trimmed === 'collections') return false;
     }
-    return !!this.draft.collectionName?.trim();
+    return this.draft.source === 'graphql' ? !!this.draft.graphql.document.trim() : !!this.draft.collectionName?.trim();
   }
 
   get pendingDeleteDisplayName(): string {
@@ -486,14 +575,15 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
     this.filteredQueries = this.queries.filter(q => {
       const name = (q.name || '').toLowerCase();
-      const collection = (q.collectionName || '').toLowerCase();
-      return (!this.listQuery.collection || q.collectionName === this.listQuery.collection) &&
+      const collectionName = q.valid === false ? '' : q.collectionName || '';
+      const collection = (q.valid === false ? this.t('named-query-invalid-source', 'Unsupported source') : q.source === 'graphql' ? 'GraphQL' : collectionName).toLowerCase();
+      return (!this.listQuery.collection || collectionName === this.listQuery.collection) &&
         (name.includes(term) || collection.includes(term));
     });
   }
 
   newQuery(): void {
-    if (this.saving || !this.confirmDiscard()) return;
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
     this.itemRequests.invalidate();
     this.clearMessage();
     this.error = '';
@@ -506,7 +596,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   async openQuery(name: string): Promise<void> {
-    if (this.saving || !this.confirmDiscard()) return;
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    if (this.queries.some(query => query.name === name && query.valid === false)) { this.error = this.t('named-query-invalid-source-help', 'This saved source is unsupported. Review its diagnostics or delete it after removing known usages.'); return; }
     const token = this.itemRequests.next();
     this.invalidateAssistance();
     this.clearMessage();
@@ -530,9 +621,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   closeEditModal(): void {
-    if (this.saving || !this.confirmDiscard()) return;
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
     this.itemRequests.invalidate();
     this.targetRequests.invalidate();
+    this.schemaRequests.invalidate();
     this.invalidateAssistance();
     this.isEditing = false;
     this.restoreEditModalTrigger();
@@ -553,6 +645,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
         } else if (trimmed === 'collections') {
           this.error = this.t('named-query-error-name-reserved', "'collections' is a reserved name and cannot be used");
         }
+      } else if (this.source === 'graphql') {
+        this.error = this.t('named-query-graphql-correct-before-save', 'Correct the GraphQL document and variable diagnostics before saving.');
       } else {
         this.error = this.t('named-query-error-collection-required', 'Collection name is required');
       }
@@ -566,34 +660,40 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     try {
       await this.validateDraft();
       if (this.validationBlocking || this.pendingInput || JSON.stringify(this.draft) !== draftAtSave) return;
-      if (this.isNew) {
-        await this.api.create(payload);
-        this.setMessage(
-          this.t('named-query-message-created', 'Named query "{{name}}" created', { name: payload.name ?? '' })
-        );
-      } else {
-        await this.api.update(payload.name as string, payload);
-        this.setMessage(
-          this.t('named-query-message-updated', 'Named query "{{name}}" updated', { name: payload.name ?? '' })
-        );
+      if (!this.isNew) {
+        const review = await this.api.reviewUpdate(payload.name as string, payload);
+        if (JSON.stringify(this.draft) !== draftAtSave || this.pendingInput) return;
+        if (review.required) {
+          this.reviewTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          this.pendingReview = { review, payload, snapshot: draftAtSave, version: this.draftVersion };
+          return;
+        }
       }
-      await this.loadQueries();
-      if (JSON.stringify(this.draft) === draftAtSave) {
-        this.inputDirty = false;
-        this.baseline = draftAtSave;
-        this.saving = false;
-        this.closeEditModal();
-      }
-    } catch (err) {
-      const key = this.isNew ? 'named-query-error-create' : 'named-query-error-update';
-      const fallback = this.isNew
-        ? 'Failed to create named query: {{error}}'
-        : 'Failed to update named query: {{error}}';
-      this.error = this.t(key, fallback, { error: this.asErrorMessage(err) });
-      this.logger.error(this.error);
+      await this.persist(payload, draftAtSave);
+    } catch (err) { this.saveError(err);
     } finally {
       this.saving = false;
     }
+  }
+
+  private async persist(payload: NamedQueryDefinition, snapshot: string, confirmation?: string): Promise<void> {
+    if (this.isNew) await this.api.create(payload);
+    else await this.api.update(payload.name as string, payload, confirmation);
+    this.setMessage(this.t(this.isNew ? 'named-query-message-created' : 'named-query-message-updated',
+      this.isNew ? 'Named query "{{name}}" created' : 'Named query "{{name}}" updated', { name: payload.name ?? '' }));
+    await this.loadQueries();
+    if (JSON.stringify(this.draft) === snapshot) {
+      this.inputDirty = false; this.baseline = snapshot; this.saving = false; this.closeEditModal();
+    }
+  }
+  private saveError(error: unknown): void {
+    this.error = this.t(this.source === 'graphql' ? 'named-query-graphql-save-error' : (this.isNew ? 'named-query-error-create' : 'named-query-error-update'),
+      'Failed to save named query: {{error}}', { error: this.asErrorMessage(error) });
+  }
+  graphqlTestValue(key: string, value: unknown): void {
+    if (value === undefined) { const parameters = { ...this.testParameters }; delete parameters[key]; this.testParameters = parameters; }
+    else this.testParameterChanged(key, value);
+    this.previewRequests.invalidate(); this.previewResult = null; this.previewing = false;
   }
 
   requestDelete(name: string): void {
@@ -645,7 +745,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     }
   }
 
-  private emptyDraft(): NamedQueryDefinition {
+  private emptyDraft(): NamedQueryDatabaseDefinition {
     return {
       name: '',
       collectionName: '',
@@ -658,8 +758,23 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     };
   }
 
+  private emptyGraphqlDraft(): GraphqlNamedQueryDefinition {
+    return { name: '', source: 'graphql', graphql: { document: '', variables: {}, resultPath: [], mappings: {} } };
+  }
+
   private cloneQuery(q: NamedQueryDefinition): NamedQueryDefinition {
     const cloned = JSON.parse(JSON.stringify(q)) as NamedQueryDefinition;
+    if (cloned.source === 'graphql') {
+      const operation = cloned.graphql;
+      cloned.graphql = { ...operation,
+        document: typeof operation?.document === 'string' ? operation.document : '',
+        variables: operation?.variables && typeof operation.variables === 'object' && !Array.isArray(operation.variables) ? operation.variables : {},
+        resultPath: Array.isArray(operation?.resultPath) ? operation.resultPath : [],
+        mappings: operation?.mappings && typeof operation.mappings === 'object' && !Array.isArray(operation.mappings) ? operation.mappings : {},
+        lookup: operation?.lookup && typeof operation.lookup === 'object' && !Array.isArray(operation.lookup) ? operation.lookup : undefined,
+      };
+      return cloned;
+    }
     cloned.mongoQuery = cloned.mongoQuery || {};
     cloned.queryParams = cloned.queryParams || {};
     cloned.resultObjectMapping = cloned.resultObjectMapping || {};
@@ -669,8 +784,14 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private sanitizeQuery(q: NamedQueryDefinition): NamedQueryDefinition {
+    if (q.source === 'graphql') return { source: 'graphql', name: q.name?.trim() || undefined,
+      ...(q.description !== undefined ? { description: q.description } : {}), graphql: q.graphql };
+    const { graphql: inactiveGraphql, usedBy, ...databaseFields } = q;
     return {
-      ...q,
+      ...databaseFields,
+      ...(q.source === 'database' ? { source: 'database' as const } : {}),
+      ...(q.description !== undefined ? { description: q.description } : {}),
+      ...(q.brandIdFieldPath !== undefined ? { brandIdFieldPath: q.brandIdFieldPath } : {}),
       name: q.name?.trim() || undefined,
       collectionName: q.collectionName?.trim() || '',
       mongoQuery: q.mongoQuery || {},
@@ -734,14 +855,14 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private asErrorMessage(err: unknown): string {
-    if (err instanceof Error) return err.message;
+
     if (typeof err === 'object' && err !== null) {
       const maybe = err as { message?: string; error?: { message?: string; errors?: { detail?: string }[] } };
       if (maybe.error?.errors?.[0]?.detail) return maybe.error.errors[0].detail;
       if (typeof maybe.message === 'string' && maybe.message) return maybe.message;
       if (maybe.error && typeof maybe.error.message === 'string') return maybe.error.message;
     }
-    return String(err);
+    return err instanceof Error ? err.message : String(err);
   }
 
   private t(key: string, defaultValue: string, options?: Record<string, unknown>): string {

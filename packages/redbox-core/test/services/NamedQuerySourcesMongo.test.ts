@@ -64,6 +64,7 @@ describe('named query source Mongo persistence', function () {
   let orm: Orm | undefined;
   let initialized = false;
   let service: Services.NamedQueryService;
+  let usage: sinon.SinonStub;
   let client: MongoClient | undefined;
   let url: string;
   let bootstrapRoot: string | undefined;
@@ -105,6 +106,7 @@ describe('named query source Mongo persistence', function () {
     initialized = true;
     Reflect.set(globalThis, 'NamedQuery', ontology.collections.namedquery);
     service = new Services.NamedQueryService();
+    usage = sinon.stub(service, 'getUsage').resolves({});
   }
   async function stop() {
     if (!orm || !initialized) return;
@@ -137,6 +139,7 @@ describe('named query source Mongo persistence', function () {
     cleanupServiceTestGlobals();
     Reflect.deleteProperty(globalThis, 'NamedQuery');
     Reflect.deleteProperty(globalThis, 'RecordGraphqlService');
+    sinon.restore();
   });
 
   it('persists both sources, preserves legacy bytes, reloads after ORM restart and clears replaced source fields', async () => {
@@ -184,8 +187,8 @@ describe('named query source Mongo persistence', function () {
       },
       caller
     );
-    await service.update(brand, 'explicit', graphql, caller);
-    await service.update(brand, 'explicit', database);
+    await service.update(brand, 'explicit', graphql, caller, (await service.reviewUpdate(brand, 'explicit', graphql, caller)).confirmation);
+    await service.update(brand, 'explicit', database, undefined, (await service.reviewUpdate(brand, 'explicit', database)).confirmation);
     assert.equal((await NamedQuery.findOne({ key: `${brand.id}_explicit` }))?.graphql, null);
     assert.equal((await service.getNamedQueryConfig(brand, 'explicit'))?.source, undefined);
   });
@@ -216,7 +219,7 @@ describe('named query source Mongo persistence', function () {
       NamedQueryDefinitionError
     );
     assert.equal((await storedQueries.findOne({ key }))?.source, 'retired-engine');
-    await service.update(brand, name, database);
+    await service.update(brand, name, database, undefined, (await service.reviewUpdate(brand, name, database)).confirmation);
     const repaired = await storedQueries.findOne({ key });
     assert.equal(repaired?.source, null);
     assert.equal(repaired?.graphql, null);
@@ -261,15 +264,15 @@ describe('named query source Mongo persistence', function () {
           capability: 'definition',
           field: 'source',
           reason: 'The saved named query has an unsupported source.',
-          line: 1,
-          column: 1,
+          line: 0,
+          column: 0,
         },
       ],
     });
     const execute = sinon.spy(service, 'performNamedQuery');
     // Only usage discovery is stubbed; deletion still uses real Waterline/Mongo
     // and must retain its existing in-use protection for all sources.
-    const usage = sinon.stub(service, 'getUsage').resolves({});
+    usage.resetHistory();
     try {
       await assert.rejects(service.getNamedQueryConfig(brand, name), NamedQueryDefinitionError);
       await assert.rejects(service.performNamedQueryFromConfig(invalid, {}, brand, 0, 25), NamedQueryDefinitionError);
@@ -282,7 +285,6 @@ describe('named query source Mongo persistence', function () {
       assert.equal(usage.calledOnceWithExactly(brand), true);
     } finally {
       execute.restore();
-      usage.restore();
     }
     assert.equal(await storedQueries.findOne({ key }), null);
     const remaining = await service.list(brand);

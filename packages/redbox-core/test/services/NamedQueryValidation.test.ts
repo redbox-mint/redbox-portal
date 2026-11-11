@@ -152,11 +152,11 @@ describe('Named query safe structural diagnostic paths', () => {
               json: sinon.stub().returnsThis(),
             };
             await controller[action](req as unknown as Sails.Req, res as unknown as Sails.Res);
-            // The core response helper turns generic internal errors into 500;
-            // GraphQL diagnostics use the explicit 400/422 display-error branches.
+            // Structural authoring failures are safe client errors; diagnostics keep
+            // their explicit 400/422 status on both response versions.
             assert.equal(
               res.status.lastCall.args[0],
-              action === 'previewDraft' ? 422 : failure === 'structural' ? 500 : 400
+              action === 'previewDraft' ? 422 : 400
             );
             const response = res.json.lastCall.args[0];
             assert.ok(!JSON.stringify(response).includes('PRIVATE_KEY'));

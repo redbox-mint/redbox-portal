@@ -13,6 +13,7 @@ import {
   isObjectType,
   isScalarType,
   isInputType,
+  isEnumType,
   parse,
   specifiedRules,
   typeFromAST,
@@ -36,6 +37,7 @@ import type {
   GraphqlNamedQueryDefinition,
   NamedQueryValidation,
   NamedQueryPath,
+  NamedQueryOperationVariableDescription,
 } from '@researchdatabox/sails-ng-common';
 import type { ReadCaller } from '../../record-graphql/read-record';
 import { GRID_LIMITS } from '../../record-graphql/grid-types';
@@ -350,8 +352,10 @@ export function validateGraphqlNamedQuery(
 ): {
   validation: NamedQueryValidation;
   prepared?: ValidatedGraphqlNamedQuery;
+  operationVariables?: NamedQueryOperationVariableDescription[];
 } {
   const diagnostics: EditorDiagnostic[] = [];
+  const operationVariables: NamedQueryOperationVariableDescription[] = [];
   const capabilities: EditorDiagnostic[] = [];
   const issue = (code: string, field: string, reason: string) =>
     diagnostics.push(graphqlDiagnostic(code, field, reason));
@@ -364,7 +368,7 @@ export function validateGraphqlNamedQuery(
       diagnostics,
       capabilities: { lookup: !diagnostics.length && !capabilities.length, diagnostics: capabilities },
     };
-    return { validation, ...(prepared && validation.valid ? { prepared: { ...prepared, validation } } : {}) };
+    return { validation, operationVariables, ...(prepared && validation.valid ? { prepared: { ...prepared, validation } } : {}) };
   };
   try {
     checkDraftBudget(input);
@@ -435,6 +439,19 @@ export function validateGraphqlNamedQuery(
       'Select the single query operation; mutations and subscriptions are prohibited.'
     );
     return result();
+  }
+  for (const declaration of operation.variableDefinitions ?? []) {
+    const inputType = typeFromAST(schema, declaration.type);
+    if (!inputType || !isInputType(inputType)) continue;
+    const leaf = getNamedType(inputType);
+    operationVariables.push({
+      variable: declaration.variable.name.value, inputType: String(inputType),
+      required: isNonNullType(inputType), consumerSupported: consumerInput(inputType),
+      hasOperationDefault: declaration.defaultValue !== undefined,
+      omissionSatisfied: !isNonNullType(inputType) ||
+        (declaration.defaultValue !== undefined && valueFromAST(declaration.defaultValue, inputType) !== undefined),
+      ...(isEnumType(leaf) ? { enumValues: leaf.getValues().map(value => value.name) } : {}),
+    });
   }
   if (errors.length) return result();
   const types = new Map<string, GraphQLInputType>();

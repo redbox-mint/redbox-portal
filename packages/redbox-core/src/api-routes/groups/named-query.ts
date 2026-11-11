@@ -93,13 +93,14 @@ export const updateNamedQueryRoute = apiRoute(
   'updateQuery',
   {
     params: nameParam,
+    headers: objectField({ 'x-redbox-named-query-confirmation': stringField('Short-lived acknowledgement returned by review-update for this exact breaking change') }),
     body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
   },
   {
     tags: ['NamedQuery'],
     summary: 'Update an existing named query',
-    description: 'Replaces the selected source definition. Unknown sources and contradictory fields are rejected. Legacy database JSON and omitted source are preserved on unchanged saves.',
-    responses: { 200: namedQueryResponse },
+    description: 'Replaces the selected source definition. Unknown sources and contradictory fields are rejected. Legacy database JSON and omitted source are preserved on unchanged saves. Breaking source, parameter/default/type/nullability or lookup mapping changes require review-update and its X-ReDBox-Named-Query-Confirmation header; missing/stale confirmation or intervening writes return 409.',
+    responses: { 200: namedQueryResponse, 409: responseField(anyField('Safe confirmation-required or saved-state conflict error, with current review metadata where applicable'), 'Review is required again before updating') },
   }
 );
 
@@ -130,6 +131,16 @@ const assistanceQuery = objectField(
 );
 
 export const namedQueryEditorRoutes = [
+  { ...apiRoute('post', '/:branding/:portal/api/named-query/:name/review-update',
+    'webservice/NamedQueryController', 'reviewUpdate',
+    { params: nameParam, body: { required: true, content: { 'application/json': { schema: namedQueryDraftSchema } } } },
+    { tags: ['NamedQuery'], summary: 'Review breaking changes and known usages before an immediate update',
+      description: 'Does not persist or execute. Returns a short-lived confirmation bound to the exact definition, saved state, caller and known usages. Pass it in X-ReDBox-Named-Query-Confirmation on PUT. Dynamic hooks/API/config callers cannot be enumerated. A changed draft or saved state requires review again. Responses are no-store.',
+      responses: { 200: namedQueryResponse } }), csrf: true },
+  apiRoute('get', '/:branding/:portal/api/named-query/editor/graphql-schema',
+    'webservice/NamedQueryController', 'graphqlSchema', {},
+    { tags: ['NamedQuery'], summary: 'Current caller-scoped GraphQL read schema for named-query assistance',
+      description: 'Requires named-query permission and real authenticated caller context. Returns bounded SDL without executing records. Responses are no-store.', responses: { 200: namedQueryResponse } }),
   apiRoute(
     'get',
     '/:branding/:portal/api/named-query/editor/schema-targets',

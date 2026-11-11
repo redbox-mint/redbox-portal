@@ -34,7 +34,8 @@ let nextAssistanceControlId = 0;
     <strong class="rb-ws-diagnostic-label">{{
       (d.severity === 'warning' ? 'named-query-advisory' : 'named-query-blocking') | i18next
     }}</strong>
-    <span>{{ d.reason }}</span>
+    <span>{{ d.reason }}</span><code>{{ d.field }}</code>
+    <span *ngIf="d.line > 0 && d.column > 0">{{ 'named-query-diagnostic-location' | i18next: { line: d.line, column: d.column } }}</span>
     <span *ngIf="d.suggestion">
       {{ 'named-query-suggestion' | i18next }} <code>{{ d.suggestion }}</code></span
     >

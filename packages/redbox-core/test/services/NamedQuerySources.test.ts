@@ -64,7 +64,7 @@ describe('named query source persistence boundaries', () => {
       }),
       findOne: sinon.stub().callsFake(({ key }: { key: string }) => Promise.resolve(store.get(key))),
       find: sinon.stub().callsFake(() => createQueryObject([...store.values()])),
-      updateOne: sinon.stub().callsFake(({ key }: { key: string }) => ({
+      updateOne: sinon.stub().callsFake(({ where: { key } }: { where: { key: string } }) => ({
         set: (attrs: Partial<NamedQueryAttributes>) => {
           const existing = store.get(key);
           const row = existing ? { ...existing, ...attrs } : undefined;
@@ -79,6 +79,7 @@ describe('named query source persistence boundaries', () => {
       getBootstrapReadSchema: async () => schema,
     });
     service = new Services.NamedQueryService();
+    sinon.stub(service, 'getUsage').resolves({});
   });
   afterEach(() => {
     cleanupServiceTestGlobals();
@@ -147,11 +148,11 @@ describe('named query source persistence boundaries', () => {
 
   it('clears inactive execution fields when either source is replaced', async () => {
     await service.create(brand, 'switch', database);
-    await service.update(brand, 'switch', graphql, caller);
+    await service.update(brand, 'switch', graphql, caller, (await service.reviewUpdate(brand, 'switch', graphql, caller)).confirmation);
     assert.equal(store.get('brand-1_switch')?.mongoQuery, null);
     const gql = await service.getNamedQueryConfig(brand, 'switch');
     assert.ok(gql && !Object.hasOwn(gql, 'mongoQuery'));
-    await service.update(brand, 'switch', database);
+    await service.update(brand, 'switch', database, undefined, (await service.reviewUpdate(brand, 'switch', database)).confirmation);
     assert.equal(store.get('brand-1_switch')?.graphql, null);
     const db = await service.getNamedQueryConfig(brand, 'switch');
     assert.ok(db && db.source !== 'graphql');

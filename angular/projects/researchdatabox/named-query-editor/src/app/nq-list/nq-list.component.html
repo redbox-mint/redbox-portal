@@ -12,13 +12,13 @@
   <button *ngIf="searchTerm || query.collection" type="button" class="btn rb-admin-ghost" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button>
   </div>
   <div *ngIf="queries.length" class="table-responsive"><table class="table table-hover" [attr.aria-label]="'named-query-list-aria-label' | i18next">
-    <thead><tr><th>{{ 'named-query-name' | i18next }}</th><th>{{ 'named-query-collection' | i18next }}</th>
+    <thead><tr><th>{{ 'named-query-name' | i18next }}</th><th>{{ 'named-query-source' | i18next }}</th><th>{{ 'named-query-collection' | i18next }}</th>
       <th class="text-end d-none d-lg-table-cell">{{ 'named-query-params' | i18next }}</th><th class="text-end d-none d-lg-table-cell">{{ 'named-query-mappings' | i18next }}</th><th class="text-end d-none d-lg-table-cell">{{ 'named-query-related-filters' | i18next }}</th><th>{{ 'named-query-used-by' | i18next }}</th><th class="rb-admin-actions-col text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th>
     </tr></thead>
     <tbody>
       <tr *ngFor="let q of queries; trackBy: trackByName" [class.nq-selected]="selectedName === q.name">
-        <td><button type="button" class="rb-admin-list-name" (click)="open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></button></td>
-        <td><span class="badge rb-admin-badge-primary">{{ (q.collectionName === 'record' || q.collectionName === 'user' ? 'admin-query-collection-' + q.collectionName : q.collectionName || '—') | i18next }}</span></td>
+        <td><button type="button" class="rb-admin-list-name" [disabled]="q.valid === false" (click)="open(q.name)"><code class="rb-admin-code-wrap">{{ q.name }}</code></button></td>
+        <td>{{ sourceLabel(q) | i18next }}</td><td><span class="badge rb-admin-badge-primary">{{ collectionLabel(q) | i18next }}</span></td>
         <td class="text-end d-none d-lg-table-cell nq-param-count">{{ paramCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ mappingCount(q) || '—' }}</td><td class="text-end d-none d-lg-table-cell">{{ filterCount(q) || '—' }}</td>
         <td class="small">
           <ul *ngIf="q.usedBy?.length; else notUsed" class="list-unstyled mb-0 nq-consumers">
@@ -31,7 +31,7 @@
           <ng-template #notUsed><span class="text-muted nq-not-used">{{ 'named-query-not-used' | i18next }}</span></ng-template>
         </td>
         <td class="rb-admin-actions-col"><div class="rb-admin-row-actions">
-          <button class="btn btn-sm btn-outline-secondary" type="button" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="q.valid === false" (click)="open(q.name)">{{ 'named-query-edit' | i18next }}</button>
           <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: q.name }">⋯</summary>
             <div><button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(q.name); actions.open = false">{{ 'named-query-delete' | i18next }}</button></div>
           </details>

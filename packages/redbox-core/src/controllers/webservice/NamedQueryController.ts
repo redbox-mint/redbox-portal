@@ -1,3 +1,4 @@
+import { NamedQueryUpdateConfirmationError, NamedQueryUpdateConflictError } from '../../services/named-query/update-review';
 import { NamedQueryInUseError } from '../../services/named-query/usage';
 import type {
   NamedQueryDraftRequest,
@@ -30,6 +31,8 @@ export namespace Controllers {
       'updateQuery',
       'deleteQuery',
       'schemaTargets',
+      'graphqlSchema',
+      'reviewUpdate',
       'describeFields',
       'validateDraft',
       'describeDraft',
@@ -99,6 +102,19 @@ export namespace Controllers {
           headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' },
         });
       }
+    }
+
+    public graphqlSchema(req: Sails.Req, res: Sails.Res) {
+      return this.assistance(req, res, (brand, portal, caller) => NamedQueryEditorService.graphqlSchema(brand, portal, caller));
+    }
+    public async reviewUpdate(req: Sails.Req, res: Sails.Res) {
+      try {
+        const brand = this.resolveBrand(req);
+        const name = String(req.param('name'));
+        return this.sendResp(req, res, { data: await NamedQueryService.reviewUpdate(brand, name,
+          (req.body as NamedQueryDraftRequest).definition, this.validationCaller(req, brand)),
+          headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
+      } catch (error) { return this.sendError(req, res, error); }
     }
 
     public schemaTargets(req: Sails.Req, res: Sails.Res) {
@@ -189,6 +205,11 @@ export namespace Controllers {
     }
 
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
+      if (error instanceof NamedQueryUpdateConfirmationError || error instanceof NamedQueryUpdateConflictError) {
+        return this.sendResp(req, res, { status: 409,
+          ...(error instanceof NamedQueryUpdateConfirmationError ? { meta: { review: error.review } } : {}),
+          displayErrors: [{ code: error.code, detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
+      }
       if (error instanceof GraphqlNamedQueryValidationError) {
         return this.sendResp(req, res, {
           status: 400,
@@ -201,7 +222,10 @@ export namespace Controllers {
         return this.sendResp(req, res, { status: 409, meta: { usedBy: error.consumers },
           displayErrors: [{ detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
       }
-      return this.sendResp(req, res, { status: this.statusForError(error), errors: [this.asError(error)], headers: this.getNoCacheHeaders() });
+      const status = this.statusForError(error);
+      return this.sendResp(req, res, { status,
+        ...(status < 500 ? { displayErrors: [{ detail: this.asError(error).message, status: String(status) }] } : { errors: [this.asError(error)] }),
+        headers: this.getNoCacheHeaders() });
     }
 
     private resolveBrand(req: Sails.Req): BrandingModel {
@@ -299,7 +323,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.update(brand, name, body, this.validationCaller(req, brand));
+        await NamedQueryService.update(brand, name, body, this.validationCaller(req, brand), req.get?.('X-ReDBox-Named-Query-Confirmation') || undefined);
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
