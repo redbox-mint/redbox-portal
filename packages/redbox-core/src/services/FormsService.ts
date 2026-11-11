@@ -1,4 +1,4 @@
-import { compileRelatedDisplayContract, bindRelatedDisplayContract, relatedFormDescriptors, prepareRelatedViewForm, pruneRelatedViewValues } from '../related-records/display-descriptors';
+import { compileRelatedDisplayContract, bindRelatedDisplayContract, relatedFormDescriptors, prepareRelatedViewForm, pruneRelatedViewValues, pruneRelatedFormSources } from '../related-records/display-descriptors';
 import { populateRelatedViewContent } from '../related-records/related-view-content';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -973,6 +973,7 @@ export namespace Services {
         );
       }
 
+      pruneRelatedFormSources(result);
       if (formMode === 'view' && relatedRecords) pruneRelatedViewValues(result);
 
       if (recordAccessContext && !suppressRelatedResolution && (recordMetadata || relatedRecords)) {
@@ -1003,6 +1004,7 @@ export namespace Services {
         // References cannot change in view mode. After authorized hydration,
         // use the same content presentation as every other view field.
         visitor.completeRelatedViewTransforms();
+        pruneRelatedFormSources(result);
       }
 
       const componentDefinitions = result.componentDefinitions as unknown[] | undefined;

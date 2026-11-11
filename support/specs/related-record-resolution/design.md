@@ -373,6 +373,9 @@ reference configuration is a configuration error, not a second source definition
 The server supplies a compiled client descriptor with the relation ID, reference
 tokens relative to metadata, object-OID extraction and the initial result/reference
 fingerprint. Client descriptors are derived data, not trusted request input.
+The readiness source list includes only components surviving caller role/mode
+pruning and final view conversion. Canonical display targets and relation
+references remain intact for persistence projection and fingerprinting.
 
 ### Lifecycle
 
@@ -567,6 +570,13 @@ Keep the original record for hook return values and `onNotifySuccess` mutations.
 Do not replace it with the enriched rendering object. Required-resolution failure
 must happen before sending; optional sources remain template-configurable. Do not
 change delivery retries or create a new notification pipeline.
+
+For record-backed administrative previews, declare the shared request on the
+server-owned `emailnotification.templates[templateId].relatedMetadata` configuration.
+Both delivery and preview use this default with the trusted caller's permissions.
+An explicit delivery `options.relatedMetadata` overrides it (`null` disables the
+default). A preview has no delivery-trigger options, so trigger-only overrides
+are not inferred; template content and edited preview JSON cannot select relations.
 
 ### DOI minting/updating
 

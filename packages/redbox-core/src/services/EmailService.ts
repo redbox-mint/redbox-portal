@@ -610,9 +610,16 @@ export namespace Services {
 
     /** Read-time display view. Post-send hooks always receive the authoritative input record. */
     protected async prepareNotificationRecord(record: Record<string, unknown>, options: Record<string, unknown>, user: Record<string, unknown>): Promise<Record<string, unknown>> {
+      const templates = sails.config.emailnotification?.templates ?? {};
+      const template = typeof options.template === 'string' && Object.hasOwn(templates, options.template)
+        ? templates[options.template] : undefined;
+      // Admin previews know the selected template, not a particular trigger's
+      // options. Share its server-configured projection with delivery; explicit
+      // per-notification requests (including null opt-out) still take precedence.
+      const relatedMetadata = options.relatedMetadata === undefined ? template?.relatedMetadata : options.relatedMetadata;
       // Resolve from the supplied candidate so unsaved reference changes are respected.
       // Keep this rendering view separate from the original mutable hook record.
-      return options.relatedMetadata == null ? record : await RecordsService.enrichWithRelatedMetadata(
+      return relatedMetadata == null ? record : await RecordsService.enrichWithRelatedMetadata(
         record as unknown as RecordModel,
         {
           brand: BrandingService.getBrandById(_.get(record, 'metaMetadata.brandId') as string),
@@ -620,7 +627,7 @@ export namespace Services {
           audience: 'service',
           serviceId: 'EmailService',
         },
-        options.relatedMetadata as RelatedMetadataRequest,
+        relatedMetadata as RelatedMetadataRequest,
       );
     }
 

@@ -405,6 +405,44 @@ describe('EmailService', function() {
           subject: '{{record.relatedMetadata.activities.records.0.metadata.title}}' };
       }
 
+      it('uses the template related-data request for both delivery and trusted previews', async function() {
+        mockSails.config.emailnotification.templates.related = { template: 'related', relatedMetadata: request };
+        const original = _.cloneDeep(record);
+        const notification = options();
+        delete notification.relatedMetadata;
+        await EmailService.sendRecordNotification('plan', record, notification, user, {});
+        const context = await EmailService.buildPreviewContext('related', { record, oid: 'plan' }, 'tenant', user);
+        expect(context.record.relatedMetadata.activities.records[0].metadata.title).to.equal('Current');
+        expect(context.imports.record).to.deep.equal(context.record);
+        const rendered = await firstValueFrom(EmailService.buildFromTemplate('related', context, { brandId: 'tenant' }));
+        expect(rendered.body).to.equal(send.firstCall.args[1]);
+        expect(enrich.callCount).to.equal(2);
+        for (const call of enrich.getCalls()) expect(call.args).to.deep.equal([record,
+          { brand, user, audience: 'service', serviceId: 'EmailService' }, request]);
+        expect(record).to.deep.equal(original);
+      });
+
+      it('keeps explicit notification requests ahead of template defaults and allows an explicit opt-out', async function() {
+        mockSails.config.emailnotification.templates.related = { template: 'related',
+          relatedMetadata: { relations: [{ relationId: 'other' }] } };
+        await EmailService.sendRecordNotification('plan', record, options(), user, {});
+        expect(enrich.firstCall.args[2]).to.deep.equal(request);
+        enrich.resetHistory();
+        await EmailService.prepareNotificationRecord(record, { template: 'related', relatedMetadata: null }, user);
+        expect(enrich.called).to.be.false;
+      });
+
+      it('rejects unavailable required preview sources without modifying the input record', async function() {
+        mockSails.config.emailnotification.templates.related = { template: 'related', relatedMetadata: request };
+        const original = _.cloneDeep(record);
+        const unavailable = new Error('Required related metadata unavailable');
+        enrich.rejects(unavailable);
+        await rejects(EmailService.buildPreviewContext('related', { record, oid: 'plan' }, 'tenant', user),
+          error => error === unavailable);
+        expect(record).to.deep.equal(original);
+        expect(send.called).to.be.false;
+      });
+
       it('uses one fresh result for trigger, all recipients, subject and body per operation', async function() {
         record.relatedMetadata = { stale: true };
         const original = _.cloneDeep(record);

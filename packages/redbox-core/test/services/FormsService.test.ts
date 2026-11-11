@@ -655,6 +655,61 @@ describe('FormsService', function () {
   });
 
   describe('buildClientFormConfig', async function () {
+    for (const mode of ['edit', 'view'] as const) {
+      for (const suppressResolution of [false, true]) {
+        it(`tracks only surviving related sources in ${mode} mode (suppressed=${suppressResolution})`, async function () {
+          const relation = (id: string) => ({ id, recordType: 'activity', localField: `metadata.${id}`,
+            foreignField: 'redboxOid', resolution: { metadataFields: ['/title'] } });
+          (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [
+            relation('activity'), relation('private'), relation('mode'),
+          ] })) };
+          const source = (name: string, relationId: string, required = false): any => ({ name,
+            component: { class: 'RelatedObjectDataComponent', config: { relationId, required } } });
+          const item: FormConfigFrame = { name: 'filtered-sources', type: 'plan', componentDefinitions: [
+            { name: 'notes', component: { class: 'SimpleInputComponent' } },
+            source('allowed', 'activity'),
+            { ...source('denied', 'activity', true), constraints: { authorization: { allowRoles: ['Admin'] } } },
+            { name: 'private', constraints: { authorization: { allowRoles: ['Admin'] } },
+              component: { class: 'GroupComponent', config: { componentDefinitions: [source('source', 'private', true)] } } },
+            { ...source('wrongMode', 'mode', true), constraints: { allowModes: [mode === 'edit' ? 'view' : 'edit'] } },
+          ] };
+          const resolver = sinon.stub().resolves({ activity: { status: 'empty', records: [], issues: [] } });
+          mockSails.services.recordsservice = { resolveRelatedMetadata: resolver };
+          const snapshot = JSON.stringify(item);
+          const result = await FormsService.buildClientFormConfig(item, mode, ['Researcher'], {}, {}, 'default', {},
+            { user: { roles: [] }, brand: { id: 'brand-1' }, record: { redboxOid: 'plan' } }, false, suppressResolution);
+          expect(result.relatedRecords.sources.map((source: any) => source.componentPointer)).to.deep.equal(['/allowed']);
+          expect(result.relatedRecords.sources[0].required).to.equal(false);
+          expect(resolver.callCount).to.equal(suppressResolution ? 0 : 1);
+          if (!suppressResolution) expect(resolver.firstCall.args[2]).to.deep.equal({
+            relations: [{ relationId: 'activity', required: false }],
+          });
+          expect(JSON.stringify(item)).to.equal(snapshot);
+        });
+      }
+    }
+
+    it('removes readiness sources flattened into view content after hydration', async function () {
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activity',
+        recordType: 'activity', localField: 'metadata.details.reference', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title'] } }] })) };
+      const item: FormConfigFrame = { name: 'flattened-source', type: 'plan', componentDefinitions: [{
+        name: 'details', model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: {
+          componentDefinitions: [
+            { name: 'reference', component: { class: 'SimpleInputComponent' } },
+            { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+          ],
+        } },
+      }] };
+      const resolver = sinon.stub().resolves({ activity: { status: 'empty', records: [], issues: [] } });
+      mockSails.services.recordsservice = { resolveRelatedMetadata: resolver };
+      const result = await FormsService.buildClientFormConfig(item, 'view', ['Researcher'], { details: { reference: '' } }, {},
+        'default', {}, { user: { roles: [] }, brand: { id: 'brand-1' }, record: { redboxOid: 'plan' } });
+      expect(resolver.callCount).to.equal(1);
+      expect(result.componentDefinitions[0].component.class).to.equal('ContentComponent');
+      expect(result.relatedRecords.sources).to.deep.equal([]);
+    });
+
     it('suppresses inline source reads only for explicit projection builds', async function () {
       const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
       const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
@@ -670,7 +725,7 @@ describe('FormsService', function () {
       } finally { resolve.restore(); }
     });
 
-    it('delivers canonical descriptors before role pruning, including hidden source and target', async function () {
+    it('keeps canonical display targets while removing readiness sources excluded by role pruning', async function () {
       (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activities',
         recordType: 'activity', localField: 'metadata.activities', foreignField: 'redboxOid',
         resolution: { metadataFields: ['/title'] } }] })) };
@@ -690,8 +745,7 @@ describe('FormsService', function () {
       } finally { compile.restore(); }
       expect(result.componentDefinitions.map((field: any) => field.name)).to.deep.equal(['notes']);
       expect(result.relatedRecords.displayTargets).to.deep.equal([{ metadataPointer: '/title', relationId: 'activities' }]);
-      expect(result.relatedRecords.sources[0]).to.deep.equal({ componentPointer: '/source', relationId: 'activities', required: true,
-        referenceTokens: ['activities'] });
+      expect(result.relatedRecords.sources).to.deep.equal([]);
       expect(item).not.to.have.property('relatedRecords');
     });
 

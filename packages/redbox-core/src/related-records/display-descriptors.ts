@@ -212,6 +212,28 @@ export function relatedFormDescriptors(contract: CompiledRelatedDisplayContract)
   };
 }
 
+/** Readiness follows the caller's rendered sources; persistence keeps canonical targets/relations. */
+export function pruneRelatedFormSources(form: FormConfigOutline): void {
+  if (!form.relatedRecords) return;
+  const surviving = new Set<string>();
+  const walk = (items: FormComponentDefinitionOutline[], parent: string[]): void => {
+    for (const item of items) {
+      if (!item.component) continue;
+      const tokens = [...parent, ...(item.name ? [item.name] : [])];
+      const config = item.component.config as Record<string, unknown> | undefined;
+      if (item.component.class === 'RelatedObjectDataComponent' && typeof config?.relationId === 'string') {
+        surviving.add(JSON.stringify([pointer(tokens), config.relationId]));
+      }
+      for (const key of ['componentDefinitions', 'tabs', 'panels']) {
+        if (Array.isArray(config?.[key])) walk(config[key] as FormComponentDefinitionOutline[], tokens);
+      }
+    }
+  };
+  walk(form.componentDefinitions, []);
+  form.relatedRecords.sources = form.relatedRecords.sources.filter(source =>
+    surviving.has(JSON.stringify([source.componentPointer, source.relationId])));
+}
+
 /** Keep reference/target models during server view hydration and role pruning.
  * Ordinary view flattening removes both reference values and target expressions.
  * Only intersecting subtrees are deferred; populateRelatedViewContent hydrates

@@ -19,7 +19,7 @@ export async function populateRelatedViewContent(
   if (!contract) return;
   const values = projectRelatedDisplayMetadata(cloneDeep(metadata), contract);
   type Node = FormComponentDefinitionOutline & {
-    component: { class: string; config?: Record<string, any> };
+    component: { class: string; config?: Record<string, unknown> };
     model?: { config?: Record<string, unknown> };
   };
   const nodes: { item: Node; tokens: string[] }[] = [];
@@ -29,7 +29,7 @@ export async function populateRelatedViewContent(
       nodes.push({ item, tokens });
       const config = item.component.config;
       for (const key of ['componentDefinitions', 'tabs', 'panels']) {
-        if (Array.isArray(config?.[key])) walk(config[key], tokens);
+        if (Array.isArray(config?.[key])) walk(config[key] as Node[], tokens);
       }
       // Repeatable rows are one complete display target. Row templates describe
       // shape/authorization, rather than a second root metadata path.
