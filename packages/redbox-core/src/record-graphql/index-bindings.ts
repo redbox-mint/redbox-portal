@@ -52,7 +52,8 @@ export function gridPrefixIndexBindings(core: SolrCoreConfig): Map<string, { fie
       prefixTargets.filter(target => target === field).length !== 1 ||
       definition.length !== 1 ||
       definition[0].indexed !== true ||
-      definition[0].multiValued !== false
+      definition[0].multiValued !== false ||
+      definition[0].default !== undefined
     )
       continue;
     result.set(id, { field, tokens: source.tokens });

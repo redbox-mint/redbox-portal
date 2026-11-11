@@ -21,6 +21,28 @@ function enablePrefix(env = gridEnvironment()): GridEnvironment {
 }
 
 describe('Record grid ASCII-case-insensitive literal prefix', () => {
+  it('discovers and executes collection reads without configured field lists or metadata mappings', async () => {
+    const h = gridHarness();
+    for (const key of Object.keys(h.environment.config.schema))
+      Reflect.deleteProperty(h.environment.config.schema, key);
+    h.environment.config.recordGraphqlFields = {};
+    assert.deepEqual(h.environment.config.schema, {});
+    const discovery = await h.query('{recordFields(recordType:"grid-fixture"){fields{id operators}}}');
+    assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+    assert.ok(discovery.body.data?.recordFields?.fields.find(f => f.id === 'record:oid')?.operators.includes('EQ'));
+    assert.deepEqual(discovery.body.data?.recordFields?.fields.find(f => f.id === 'metadata:/title')?.operators, []);
+    const result = await h.query(
+      '{records(recordType:"grid-fixture",first:2,filters:[{field:"record:oid",exists:true}]){nodes{oid} hasNextPage}}'
+    );
+    assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
+    assert.deepEqual(
+      result.body.data?.records?.nodes.map(row => row.oid),
+      ['a', 'b']
+    );
+    assert.equal(result.body.data?.records?.hasNextPage, true);
+    assert.equal(h.calls.length, 1);
+  });
+
   it('folds exactly ASCII capitals for every UTF-16 code unit without domain restrictions', () => {
     // Whole-string lowercasing does not preserve prefixes; the agreed fold does.
     assert.ok(!'ΟΣΑ'.toLowerCase().startsWith('ΟΣ'.toLowerCase()));
@@ -137,6 +159,12 @@ describe('Record grid ASCII-case-insensitive literal prefix', () => {
       },
     ],
     [
+      'omitted configured field list',
+      env => {
+        Reflect.deleteProperty(env.config.schema, 'add-field');
+      },
+    ],
+    [
       'dynamic-only companion',
       env => {
         env.schema.fields = env.schema.fields.slice(0, -1);
@@ -222,6 +250,29 @@ describe('Record grid ASCII-case-insensitive literal prefix', () => {
         /not supported/
       );
     });
+  }
+
+  for (const value of ['ghost-prefix', '', false, 0]) {
+    for (const location of ['configured', 'live']) {
+      it(`rejects ${location} companion default ${JSON.stringify(value)}`, () => {
+        const env = enablePrefix();
+        const fields = location === 'configured' ? env.config.schema['add-field'] : env.schema.fields;
+        fields.at(-1)!.default = value;
+        const snapshot = buildCatalogue(gridContracts(), 'grid-fixture', [], env);
+        assert.ok(!snapshot.catalogue.fields.find(f => f.id === 'metadata:/title')?.operators.includes('IPREFIX'));
+        assert.equal(snapshot.prefixBindings.size, 0);
+        assert.throws(
+          () =>
+            queryPlan(
+              { recordType: 'grid-fixture', filters: [{ field: 'metadata:/title', iprefix: 'ghost' }] },
+              snapshot,
+              env,
+              'brand'
+            ),
+          /not supported/
+        );
+      });
+    }
   }
 
   it('never exposes private, repeating, non-string or partial-variant fields through a companion', () => {

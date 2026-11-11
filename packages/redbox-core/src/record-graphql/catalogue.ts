@@ -328,8 +328,10 @@ export function buildCatalogue(
     if (kind === 'TextField' && field.scalarType === 'STRING') ops = ['EXISTS'];
     const prefixTarget = prefixTargets.get(field.id)?.field;
     // Explicit companions only: dynamic fields and analyzers cannot certify this representation.
-    const prefix = environment.schema.fields.find(item => item.name === prefixTarget);
-    const configuredPrefix = environment.config.schema['add-field'].find(item => item.name === prefixTarget);
+    const prefix = prefixTarget ? environment.schema.fields.find(item => item.name === prefixTarget) : undefined;
+    const configuredPrefix = prefixTarget
+      ? environment.config.schema['add-field']?.find(item => item.name === prefixTarget)
+      : undefined;
     if (
       kind === 'StrField' &&
       field.scalarType === 'STRING' &&
@@ -337,6 +339,8 @@ export function buildCatalogue(
       prefix.name !== environment.schema.uniqueKey &&
       prefix.indexed === true &&
       prefix.multiValued === false &&
+      // Defaults manufacture terms for omitted sources, violating the original-value contract.
+      prefix.default === undefined &&
       prefix.type === configuredPrefix?.type &&
       indexClass(environment, prefix) === 'StrField' &&
       !environment.schema.copyFields?.some(copy => matchesField(copy.dest, prefix.name))

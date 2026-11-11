@@ -20,6 +20,8 @@ export interface SolrFieldDefinition {
     multiValued?: boolean;
     required?: boolean;
     docValues?: boolean;
+    /** Applied by Solr when omitted; prefix companions must not define a default. */
+    default?: string | number | boolean;
 }
 
 export interface SolrCopyFieldDefinition {

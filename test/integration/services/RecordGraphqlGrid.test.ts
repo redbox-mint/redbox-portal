@@ -309,6 +309,125 @@ describe('GraphQL grid over Sails and Solr', function () {
       restored.body.data.recordFields.fields.find(field => field.id === 'metadata:/title').operators.includes('IPREFIX')
     );
   });
+  it('supports discovery and collection execution with no configured schema fields or metadata mappings', async () => {
+    const core = sails.config.solr.cores.default;
+    const before = {
+      schema: core.schema,
+      primary: core.recordGraphqlFields,
+      prefix: core.recordGraphqlCaseInsensitivePrefixFields,
+    };
+    core.schema = {};
+    delete core.recordGraphqlFields;
+    delete core.recordGraphqlCaseInsensitivePrefixFields;
+    try {
+      const discovery = await send(
+        '{recordFields(recordType:"dataPublication",workflowStages:["draft"],ids:["record:oid"]){fields{id operators}}}'
+      );
+      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+      assert.ok(discovery.body.data.recordFields.fields[0].operators.includes('EQ'));
+      const response = await send(page, { filters: [{ field: 'record:oid', eq: { text: oids[0] } }] });
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      assert.deepEqual(
+        response.body.data.records.nodes.map(row => row.oid),
+        [oids[0]]
+      );
+    } finally {
+      core.schema = before.schema;
+      core.recordGraphqlFields = before.primary;
+      core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
+    }
+  });
+  it('rejects defaulted companions and matches only real strings after removing the Solr default and reindexing', async () => {
+    const core = sails.config.solr.cores.default;
+    const before = { schema: core.schema, prefix: core.recordGraphqlCaseInsensitivePrefixFields };
+    const companion = { ...prefixField, name: `${prefixField.name}_default_test` };
+    const rows = [undefined, null, 42, false, [], { nested: 'text' }, '', 'Ghost-Prefix-real'].map(value =>
+      prefixRow(value)
+    );
+    await axios.post(`${url}/schema`, { 'add-field': { ...companion, default: 'ghost-prefix' } });
+    // Configuration has no default: the live schema alone must withdraw IPREFIX.
+    core.schema = { ...core.schema, 'add-field': [...core.schema['add-field'], companion] };
+    core.recordGraphqlCaseInsensitivePrefixFields = { 'metadata:/title': companion.name };
+    try {
+      const created = await Record.createEach(
+        rows.map(row => ({
+          redboxOid: row.oid,
+          metadata: row.title === undefined ? {} : { title: row.title },
+          metaMetadata: {
+            brandId: brand.id,
+            type: 'dataPublication',
+            form: 'dataPublication-1.0-draft',
+            searchCore: 'default',
+          },
+          workflow: { stage: 'draft' },
+          authorization: { view: [username], edit: [], viewRoles: [], editRoles: [] },
+        }))
+      ).fetch();
+      const documents = created.map(record =>
+        sails.services.solrsearchservice.preIndex({ ...record, storage_id: record.id })
+      );
+      assert.deepEqual(
+        documents.map(document => document.redbox_grid_oid),
+        rows.map(row => row.oid)
+      );
+      for (const document of documents.slice(0, 6)) assert.ok(!Object.hasOwn(document, companion.name));
+      assert.equal(documents[6][companion.name], '');
+      assert.equal(documents[7][companion.name], 'ghost-prefix-real');
+      await axios.post(`${url}/update`, documents, { params: { commit: true } });
+      const rawMatches = async () =>
+        (
+          await axios.get(`${url}/select`, {
+            params: {
+              q: `{!prefix f=${companion.name} v=$needle}`,
+              needle: 'ghost-prefix',
+              fq: '{!terms f=redbox_grid_oid v=$rbFixtureIds}',
+              rbFixtureIds: rows.map(row => row.oid).join(','),
+              rows: 20,
+              fl: 'redbox_grid_oid',
+              wt: 'json',
+            },
+          })
+        ).data.response;
+      // Solr defaults manufacture matches for omitted sources and even the empty string.
+      const polluted = await rawMatches();
+      assert.equal(polluted.numFound, rows.length, JSON.stringify(polluted));
+      assert.deepEqual(polluted.docs.map(row => row.redbox_grid_oid).sort(), rows.map(row => row.oid).sort());
+      const discovery = await send(catalogue);
+      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+      assert.ok(
+        !discovery.body.data.recordFields.fields
+          .find(field => field.id === 'metadata:/title')
+          .operators.includes('IPREFIX')
+      );
+      const rejected = await prefixPage('ghost-prefix');
+      assert.equal(rejected.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(rejected.body));
+      assert.equal(rejected.body.data.records, null);
+
+      await axios.post(`${url}/schema`, { 'replace-field': companion });
+      await axios.post(`${url}/update`, documents, { params: { commit: true } });
+      assert.equal((await rawMatches()).numFound, 1);
+      const restored = await send(catalogue);
+      assert.equal(restored.body.errors, undefined, JSON.stringify(restored.body));
+      assert.ok(
+        restored.body.data.recordFields.fields
+          .find(field => field.id === 'metadata:/title')
+          .operators.includes('IPREFIX')
+      );
+      const result = await prefixPage('ghost-prefix', 25, [
+        { field: 'record:oid', in: rows.map(row => ({ text: row.oid })) },
+      ]);
+      assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
+      assert.deepEqual(
+        result.body.data.records.nodes.map(row => row.oid),
+        [rows[7].oid]
+      );
+      assert.equal(result.body.data.records.hasNextPage, false);
+    } finally {
+      await axios.post(`${url}/schema`, { 'replace-field': companion });
+      core.schema = before.schema;
+      core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
+    }
+  });
   it('matches positive literal wildcard, quote, backslash, bracket and search-syntax prefixes in real Solr', async () => {
     for (const [i, p] of literalPrefixes.entries()) {
       const response = await prefixPage(p, 50);
