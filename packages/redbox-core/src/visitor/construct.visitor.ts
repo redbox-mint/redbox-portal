@@ -785,6 +785,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
     this.sharedProps.setPropOverride('includeTabLabel', item.config, config);
     this.sharedProps.setPropOverride('showWhenValid', item.config, config);
+    this.sharedProps.setPropOverride('deferErrorsOnNewRecord', item.config, config);
   }
 
   async visitValidationSummaryFormComponentDefinition(

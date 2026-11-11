@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject, Input } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { PristineChangeEvent, TouchedChangeEvent } from '@angular/forms';
 import { FormFieldBaseComponent, FormFieldCompMapEntry, labelToPlainText } from "@researchdatabox/portal-ng-common";
 import type { FormComponent } from "../form.component";
 import { TabComponent } from './tab.component';
@@ -14,9 +15,10 @@ import {
   TabContentComponentName,
   TabContentLayoutName,
   ValidationSummaryComponentName,
+  ValidationSummaryFieldComponentDefinitionFrame,
 } from "@researchdatabox/sails-ng-common";
 import { FormComponentEventBus, createLineageFieldFocusRequestEvent, FormComponentEventType } from '../form-state';
-import {BehaviorSubject, merge} from 'rxjs';
+import {BehaviorSubject, filter, merge} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {FormService} from "../form.service";
 
@@ -25,12 +27,12 @@ import {FormService} from "../form.service";
   selector: 'redbox-validation-summary-field',
   template: `
     @let validationList = (validationErrorsDisplay$ | async) ?? [];
-    @if (formComponent.editMode() && validationList.length === 0 && showWhenValid) {
+    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-validation-summary-valid' | i18next }}
       </div>
     }
-    @if (formComponent.editMode() && validationList.length > 0) {
+    @if (formComponent.editMode() && !errorDisplayDeferred && validationList.length > 0) {
       <div class="alert alert-danger validation-summary mt-3" role="alert">
         <i class="fa-solid fa-circle-exclamation validation-summary__icon" aria-hidden="true"></i>
         <div class="validation-summary__content">
@@ -120,6 +122,10 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   protected readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
   public readonly validationErrorsDisplay$ = new BehaviorSubject<FormValidatorSummaryErrors[]>([]);
+  /** True while a new record's summary is held back. Read by the template. */
+  public errorDisplayDeferred = false;
+  /** Set on the first interaction, save request or save failure. Never cleared. */
+  private errorsRevealed = false;
   private validationRefreshQueued = false;
   private validationRefreshDeferred = false;
   private validationRefreshDeferredHandle: ReturnType<typeof setTimeout> | undefined;
@@ -136,6 +142,41 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
   constructor() {
     super();
     this.destroyRef.onDestroy(() => this.clearDeferredValidationErrorsRefresh());
+  }
+
+  public get deferErrorsOnNewRecord(): boolean {
+    const component = this.formFieldCompMapEntry?.compConfigJson?.component;
+    return isTypeFieldDefinitionName<ValidationSummaryFieldComponentDefinitionFrame>(
+      component, ValidationSummaryComponentName
+    ) && component.config?.deferErrorsOnNewRecord === true;
+  }
+
+  private shouldDeferErrorDisplay(): boolean {
+    if (this.errorsRevealed || !this.deferErrorsOnNewRecord) {
+      return false;
+    }
+    const formComponent = this.getFormComponent;
+    const isNewRecord = (formComponent.trimmedParams.oid() ?? '') === '';
+    const form = formComponent.form;
+    if (!isNewRecord || form?.dirty || form?.touched) {
+      this.errorsRevealed = true;
+      return false;
+    }
+    return true;
+  }
+
+  private revealErrors(): void {
+    if (this.errorsRevealed) {
+      return;
+    }
+    this.errorsRevealed = true;
+    this.queueValidationErrorsRefresh();
+  }
+
+  protected override setPropertiesFromComponentMapEntry(formFieldCompMapEntry: FormFieldCompMapEntry): void {
+    super.setPropertiesFromComponentMapEntry(formFieldCompMapEntry);
+    // Decide as soon as the config is known, so the template cannot render before the first refresh.
+    this.errorDisplayDeferred = this.shouldDeferErrorDisplay();
   }
 
   public allValidationErrorsDisplay(): Promise<FormValidatorSummaryErrors[]> {
@@ -157,6 +198,17 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     this.eventBus.select$(FormComponentEventType.FORM_VALIDATION_BROADCAST)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.queueValidationErrorsRefresh());
+
+    merge(
+      this.eventBus.select$(FormComponentEventType.FORM_SAVE_REQUESTED),
+      this.eventBus.select$(FormComponentEventType.FORM_SAVE_FAILURE)
+    )
+      .pipe(
+        filter(event => this.deferErrorsOnNewRecord &&
+          (!event.formScopeId || event.formScopeId === this.getFormComponent.eventScopeId)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => this.revealErrors());
   }
 
   private bindFormChangeStreamsIfReady(): void {
@@ -170,9 +222,23 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
     }
 
     this.formChangesBound = true;
-    merge(form.valueChanges, form.statusChanges)
+    merge(
+      form.valueChanges,
+      form.statusChanges,
+      form.events.pipe(
+        filter(event => this.deferErrorsOnNewRecord &&
+          (event instanceof TouchedChangeEvent || event instanceof PristineChangeEvent))
+      )
+    )
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.queueValidationErrorsRefresh());
+      .subscribe(event => {
+        // Capture interaction before a reset can clear it during the queued refresh.
+        if ((event instanceof TouchedChangeEvent && event.touched) ||
+            (event instanceof PristineChangeEvent && !event.pristine)) {
+          this.revealErrors();
+        }
+        this.queueValidationErrorsRefresh();
+      });
   }
 
   protected queueValidationErrorsRefresh(): void {
@@ -199,6 +265,7 @@ export class ValidationSummaryFieldComponent extends FormFieldBaseComponent<stri
       return;
     }
 
+    this.errorDisplayDeferred = this.shouldDeferErrorDisplay();
     this.validationErrorsDisplay$.next(await this.collectValidationErrors());
     this.changeDetectorRef.markForCheck();
   }
