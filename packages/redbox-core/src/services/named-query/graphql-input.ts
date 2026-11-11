@@ -3,7 +3,7 @@ import { isEnumType, isInputObjectType, isListType, isNonNullType, isScalarType,
 /** No coercion errors may echo the input (including custom scalar exceptions). */
 export class GraphqlNamedQueryInputError extends Error {
   readonly code = 'INVALID_GRAPHQL_PARAMETER';
-  constructor(readonly field: string) {
+  constructor(readonly field: string | readonly PropertyKey[]) {
     super('Invalid GraphQL named query parameter.');
   }
 }
@@ -26,7 +26,12 @@ export function consumerInput(type: GraphQLInputType): boolean {
   return isEnumType(type) || (isScalarType(type) && ['Int', 'Float', 'Boolean', 'String', 'ID'].includes(type.name));
 }
 
-export function convertGraphqlInput(type: GraphQLInputType, value: unknown, field: string, fixed = false): unknown {
+export function convertGraphqlInput(
+  type: GraphQLInputType,
+  value: unknown,
+  field: string | readonly PropertyKey[],
+  fixed = false
+): unknown {
   const fail = (): never => {
     throw new GraphqlNamedQueryInputError(field);
   };

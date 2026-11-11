@@ -5,6 +5,7 @@ import {
   TypeInfo,
   getNamedType,
   getOperationAST,
+  getVariableValues,
   isAbstractType,
   isCompositeType,
   isListType,
@@ -28,6 +29,7 @@ import {
   type GraphQLSchema,
   type OperationDefinitionNode,
   type SelectionSetNode,
+  type VariableDefinitionNode,
 } from 'graphql';
 import type {
   EditorDiagnostic,
@@ -36,12 +38,18 @@ import type {
   NamedQueryPath,
 } from '@researchdatabox/sails-ng-common';
 import type { ReadCaller } from '../../record-graphql/read-record';
+import { GRID_LIMITS } from '../../record-graphql/grid-types';
 import { boundedQueryRule, QUERY_LIMITS } from '../../record-graphql/schema';
 import { checkDraftBudget, boundedJsonBytes } from '../../utilities/NamedQueryPreview';
 import { assertNamedQueryDefinition, NamedQueryDefinitionError, safeNamedQueryDiagnosticField } from './definition';
 import { consumerInput, convertGraphqlInput, GraphqlNamedQueryInputError, safeSegment } from './graphql-input';
 
-export function graphqlDiagnostic(code: string, field: string, reason: string, lookup = false): EditorDiagnostic {
+export function graphqlDiagnostic(
+  code: string,
+  field: string | readonly PropertyKey[],
+  reason: string,
+  lookup = false
+): EditorDiagnostic {
   return {
     source: 'graphql',
     capability: lookup ? 'lookup' : 'definition',
@@ -166,13 +174,40 @@ function selectedPath(
   return path.length ? walk(start, selections, 0) : undefined;
 }
 
-/** Resolve only immutable operation inputs. Supplied JSON keeps strict conversion;
- * literals/defaults use GraphQL's input coercion, including singleton lists.
+/** Coerce immutable variables once. Supplied JSON first passes strict conversion;
+ * GraphQL then applies actual operation types and omitted operation defaults.
+ */
+function staticVariables(
+  schema: GraphQLSchema,
+  operation: OperationDefinitionNode,
+  definition: GraphqlNamedQueryDefinition
+): Record<string, unknown> {
+  const declarations: VariableDefinitionNode[] = [];
+  const values: Record<string, unknown> = Object.create(null);
+  for (const declaration of operation.variableDefinitions ?? []) {
+    const name = declaration.variable.name.value;
+    const binding = definition.graphql.variables[name];
+    if (!binding || binding.ownership === 'consumer') continue;
+    if (binding.ownership === 'fixed') {
+      const type = typeFromAST(schema, declaration.type);
+      if (!type || !isInputType(type)) continue;
+      try {
+        values[name] = convertGraphqlInput(type, binding.value, name, true);
+      } catch {
+        continue; // Ownership validation already reports this invalid fixed input.
+      }
+    }
+    declarations.push(declaration);
+  }
+  return getVariableValues(schema, declarations, values).coerced ?? Object.create(null);
+}
+
+/** Any unresolved variable keeps the entire compound expression dynamic. Passing
+ * immutable variables to valueFromAST also resolves variables nested in lists.
  */
 function staticArgument(
   schema: GraphQLSchema,
-  operation: OperationDefinitionNode,
-  definition: GraphqlNamedQueryDefinition,
+  variables: Record<string, unknown>,
   collection: FieldNode,
   name: string
 ): unknown {
@@ -180,20 +215,13 @@ function staticArgument(
   const argumentType = field?.args.find(arg => arg.name === name)?.type;
   const value = collection.arguments?.find(arg => arg.name.value === name)?.value;
   if (!value || !argumentType) return undefined;
-  if (value.kind !== Kind.VARIABLE) return valueFromAST(value, argumentType);
-  const declaration = operation.variableDefinitions?.find(v => v.variable.name.value === value.name.value);
-  const inputType = declaration && typeFromAST(schema, declaration.type);
-  if (!inputType || !isInputType(inputType)) return undefined;
-  const binding = definition.graphql.variables[value.name.value];
-  if (binding?.ownership === 'fixed') {
-    try {
-      return convertGraphqlInput(inputType, binding.value, value.name.value, true);
-    } catch {
-      return undefined; // The ownership validation already reports this input.
-    }
-  }
-  if (binding?.ownership === 'omitted' && declaration?.defaultValue)
-    return valueFromAST(declaration.defaultValue, inputType);
+  let dynamic = false;
+  visit(value, {
+    Variable(node) {
+      if (!Object.hasOwn(variables, node.name.value)) dynamic = true;
+    },
+  });
+  return dynamic ? undefined : valueFromAST(value, argumentType, variables);
 }
 
 /** Check every selected collection/discovery scope, including fragments and fields
@@ -202,8 +230,7 @@ function staticArgument(
 function staticScopeDiagnostics(
   schema: GraphQLSchema,
   document: DocumentNode,
-  operation: OperationDefinitionNode,
-  definition: GraphqlNamedQueryDefinition
+  variables: Record<string, unknown>
 ): EditorDiagnostic[] {
   const variants: unknown = schema.extensions.recordReadVariants;
   if (!Array.isArray(variants)) return [];
@@ -215,6 +242,7 @@ function staticScopeDiagnostics(
     stagesByType.set(variant.recordType, stages);
   }
   const diagnostics: EditorDiagnostic[] = [];
+  const allStages = new Set([...stagesByType.values()].flatMap(stages => [...stages]));
   const info = new TypeInfo(schema);
   visit(
     document,
@@ -222,13 +250,35 @@ function staticScopeDiagnostics(
       Field(node) {
         if (info.getParentType() !== schema.getQueryType() || !['records', 'recordFields'].includes(node.name.value))
           return;
-        const type = staticArgument(schema, operation, definition, node, 'recordType');
-        if (typeof type !== 'string') return;
+        const type = staticArgument(schema, variables, node, 'recordType');
+        const stages = staticArgument(schema, variables, node, 'workflowStages');
         const location = (name: string) => {
           const value = node.arguments?.find(arg => arg.name.value === name)?.value;
           return value?.kind === Kind.VARIABLE ? `graphql.variables.${value.name.value}` : 'graphql.document';
         };
-        const knownStages = stagesByType.get(type);
+        if (typeof type === 'string' && (!type || type.length > 200)) {
+          diagnostics.push(
+            graphqlDiagnostic('INVALID_SCOPE', location('recordType'), 'Choose a bounded non-empty record type.')
+          );
+          return;
+        }
+        if (
+          stages != null &&
+          (!Array.isArray(stages) ||
+            stages.length > GRID_LIMITS.stages ||
+            stages.some(stage => typeof stage !== 'string' || !stage || stage.length > 200) ||
+            new Set(stages).size !== stages.length)
+        ) {
+          diagnostics.push(
+            graphqlDiagnostic(
+              'INVALID_SCOPE',
+              location('workflowStages'),
+              'Choose a bounded list of distinct non-empty workflow stages.'
+            )
+          );
+          return;
+        }
+        const knownStages = typeof type === 'string' ? stagesByType.get(type) : allStages;
         if (!knownStages) {
           diagnostics.push(
             graphqlDiagnostic(
@@ -239,13 +289,12 @@ function staticScopeDiagnostics(
           );
           return;
         }
-        const stages = staticArgument(schema, operation, definition, node, 'workflowStages');
         if (Array.isArray(stages) && stages.some(stage => !knownStages.has(stage)))
           diagnostics.push(
             graphqlDiagnostic(
               'UNKNOWN_WORKFLOW_STAGE',
               location('workflowStages'),
-              'Choose workflow stages available for the record type in the current read schema.'
+              'Choose workflow stages available for the selected scope in the current read schema.'
             )
           );
       },
@@ -262,7 +311,8 @@ function collectionMetadataTypes(
   schema: GraphQLSchema,
   document: DocumentNode,
   operation: OperationDefinitionNode,
-  definition: GraphqlNamedQueryDefinition
+  definition: GraphqlNamedQueryDefinition,
+  variables: Record<string, unknown>
 ): ReadonlySet<string> | undefined {
   const root = schema.getQueryType();
   const top = definition.graphql.resultPath[0];
@@ -272,7 +322,7 @@ function collectionMetadataTypes(
       : undefined;
   const collection = selected?.find(field => field.node.name.value === 'records')?.node;
   if (!root || !collection) return;
-  const argument = (name: string) => staticArgument(schema, operation, definition, collection, name);
+  const argument = (name: string) => staticArgument(schema, variables, collection, name);
   const type = argument('recordType');
   const stages = argument('workflowStages');
   // A variable-controlled stage list without fixed/omitted ownership cannot
@@ -471,12 +521,13 @@ export function validateGraphqlNamedQuery(
       issue('PAGE_VARIABLE', 'graphql.lookup', 'Declare both server-owned paging variables in the selected operation.');
 
   const root = schema.getQueryType();
-  const scopeDiagnostics = staticScopeDiagnostics(schema, document, operation, input);
+  const immutableVariables = staticVariables(schema, operation, input);
+  const scopeDiagnostics = staticScopeDiagnostics(schema, document, immutableVariables);
   if (scopeDiagnostics.length) {
     diagnostics.push(...scopeDiagnostics);
     return result();
   }
-  const metadataTypes = collectionMetadataTypes(schema, document, operation, input);
+  const metadataTypes = collectionMetadataTypes(schema, document, operation, input, immutableVariables);
   const at = (path: NamedQueryPath) =>
     root &&
     selectedPath(
@@ -711,14 +762,14 @@ export function bindGraphqlNamedQuery(
       values[name] = convertGraphqlInput(type, binding.value, `graphql.variables.${name}`, true);
     else if (binding.ownership === 'consumer') {
       if (Object.hasOwn(parameters, binding.parameter))
-        values[name] = convertGraphqlInput(type, parameters[binding.parameter], `parameters.${binding.parameter}`);
+        values[name] = convertGraphqlInput(type, parameters[binding.parameter], ['parameters', binding.parameter]);
       else if (Object.hasOwn(binding, 'defaultValue'))
-        values[name] = convertGraphqlInput(type, binding.defaultValue, `parameters.${binding.parameter}`);
+        values[name] = convertGraphqlInput(type, binding.defaultValue, ['parameters', binding.parameter]);
       else if (
         isNonNullType(type) &&
         !prepared.operation.variableDefinitions?.find(v => v.variable.name.value === name)?.defaultValue
       )
-        throw new GraphqlNamedQueryInputError(`parameters.${binding.parameter}`);
+        throw new GraphqlNamedQueryInputError(['parameters', binding.parameter]);
     }
   }
   if (
