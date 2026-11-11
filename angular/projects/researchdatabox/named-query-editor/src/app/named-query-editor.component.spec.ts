@@ -293,6 +293,81 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.error).toContain('Save rejected'); expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save);
     if (oldTabindex === null) document.body.removeAttribute('tabindex'); else document.body.setAttribute('tabindex', oldTabindex);
   });
+  for (const phase of ['create', 'update', 'validation'] as const) {
+    it(`restores focus after deferred ordinary ${phase} failure with controls rendered`, async () => {
+      const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+      const api = TestBed.inject(NamedQueryApiService);
+      fixture.detectChanges(); await component.waitForInit();
+      if (phase === 'create') { component.newQuery(); component.draft.name = 'new-query'; component.draft.collectionName = 'record'; }
+      else await component.openQuery('existing');
+      fixture.detectChanges();
+      const validation = deferred<Awaited<ReturnType<NamedQueryApiService['validate']>>>();
+      spyOn(api, 'validate').and.returnValue(validation.promise);
+      const write = deferred<{ name: string }>();
+      const create = spyOn(api, 'create').and.returnValue(write.promise);
+      const update = spyOn(api, 'update').and.returnValue(write.promise);
+      const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+      save.focus(); const saving = component.save(); fixture.detectChanges();
+      expect(save.disabled).toBeTrue(); save.blur();
+      await new Promise(yes => setTimeout(yes, 0)); expect(document.activeElement).not.toBe(save);
+      validation.resolve({ valid: phase !== 'validation', diagnostics: phase === 'validation' ? [{ code: 'INVALID', severity: 'error', field: 'mongoQuery', reason: 'Invalid current definition', line: 0, column: 0 }] : [] });
+      if (phase !== 'validation') {
+        await new Promise(yes => setTimeout(yes, 0));
+        expect(phase === 'create' ? create : update).toHaveBeenCalledTimes(1);
+        expect(document.activeElement).not.toBe(save); write.reject(new Error('Rejected current definition'));
+      }
+      await saving; fixture.detectChanges(); await new Promise(yes => setTimeout(yes, 0));
+      expect(component.isEditing).toBeTrue();
+      if (phase === 'validation') {
+        expect(save.disabled).toBeTrue(); expect(create).not.toHaveBeenCalled(); expect(update).not.toHaveBeenCalled();
+        expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
+      } else { expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save); }
+      fixture.destroy();
+    });
+  }
+  it('does not restore failed-save focus or write after destruction during validation', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing'); fixture.detectChanges();
+    const validation = deferred<Awaited<ReturnType<NamedQueryApiService['validate']>>>();
+    spyOn(api, 'validate').and.returnValue(validation.promise); const update = spyOn(api, 'update');
+    const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+    save.focus(); const saving = component.save(); fixture.detectChanges(); const focus = spyOn(save, 'focus').and.callThrough();
+    fixture.destroy(); validation.resolve({ valid: true, diagnostics: [] }); await saving; await new Promise(yes => setTimeout(yes, 0));
+    expect(focus).not.toHaveBeenCalled(); expect(update).not.toHaveBeenCalled();
+  });
+  it('does not restore failed-save focus after a successful write while newer edits remain open', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing'); fixture.detectChanges();
+    const write = deferred<{ name: string }>(); spyOn(api, 'update').and.returnValue(write.promise);
+    const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+    save.focus(); const saving = component.save(); fixture.detectChanges(); save.blur();
+    await new Promise(yes => setTimeout(yes, 0)); component.draft.description = 'Newer unsaved edit';
+    const focus = spyOn(save, 'focus').and.callThrough(); write.resolve({ name: 'existing' });
+    await saving; fixture.detectChanges(); await new Promise(yes => setTimeout(yes, 0));
+    expect(component.isEditing).toBeTrue(); expect(focus).not.toHaveBeenCalled(); fixture.destroy();
+  });
+  it('does not restore success focus after destruction during the post-save catalogue refresh', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing'); fixture.detectChanges();
+    const list = deferred<Awaited<ReturnType<NamedQueryApiService['list']>>>();
+    spyOn(api, 'list').and.returnValue(list.promise); spyOn(api, 'update').and.resolveTo({ name: 'existing' });
+    const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+    save.focus(); const saving = component.save(); fixture.detectChanges();
+    await new Promise(yes => setTimeout(yes, 0));
+    const close = spyOn(component, 'closeEditModal').and.callThrough();
+    fixture.destroy(); list.resolve([]); await saving; await new Promise(yes => setTimeout(yes, 0));
+    expect(close).not.toHaveBeenCalled();
+  });
+  it('uses a labelled editing region inside the portal main landmark', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    fixture.detectChanges(); await component.waitForInit(); component.newQuery(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('main')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="region"][aria-labelledby="named-query-workspace-title"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#named-query-workspace-title')).not.toBeNull(); fixture.destroy();
+  });
   it('ignores a database schema-target failure after successful GraphQL assistance', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
     const api = TestBed.inject(NamedQueryApiService);

@@ -1,6 +1,6 @@
 import { getOperationAST, Kind, parse, type SelectionSetNode } from 'graphql';
 import { z } from 'zod';
-import { recordGridRequest } from '@researchdatabox/sails-ng-common';
+import { recordGridFilter, recordGridRequest } from '@researchdatabox/sails-ng-common';
 import type {
   NamedQueryJson,
   NamedQueryPromotionDraft,
@@ -8,7 +8,6 @@ import type {
 } from '@researchdatabox/sails-ng-common';
 import type { ReadCaller } from '../../record-graphql/read-record';
 import { savedGridDefinition, savedGridId, savedGridRevision, SavedGridError } from '../SavedGridService';
-import { normalizeTimestamp } from '../../utilities/SavedGridTimestamp';
 
 const discovery = z.object({
   data: z.object({
@@ -18,6 +17,7 @@ const discovery = z.object({
           id: z.string(),
           scalarType: z.string(),
           selectable: z.boolean(),
+          filterable: z.boolean(),
           repeating: z.boolean(),
           availableInAllVariants: z.boolean(),
           operators: z.array(z.string()),
@@ -116,14 +116,30 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
     const response = await RecordGraphqlService.execute(caller, {
       query: `query PromotionFields($type: String!, $stages: [String!], $ids: [ID!]) {
         recordFields(recordType: $type, workflowStages: $stages, ids: $ids) {
-          fields { id scalarType selectable repeating availableInAllVariants operators sortable selections { selection responsePath } }
+          fields { id scalarType selectable filterable repeating availableInAllVariants operators sortable selections { selection responsePath } }
         }
       }`,
       variables: { type: grid.recordType, stages: grid.workflowStage ? [grid.workflowStage] : undefined, ids },
     });
-    const found = discovery.safeParse(response.data);
-    if (response.status !== 200 || !found.success || Object.hasOwn(response.data, 'errors'))
+    if (response.status !== 200) {
+      const errors = response.data.errors;
+      const first = Array.isArray(errors) ? errors[0] : undefined;
+      const extensions = first && typeof first === 'object' && !Array.isArray(first) ? first.extensions : undefined;
+      const code =
+        extensions && typeof extensions === 'object' && !Array.isArray(extensions) ? extensions.code : undefined;
+      if (
+        response.status === 503 &&
+        (code === 'GRAPHQL_DISABLED' || code === 'UNAVAILABLE' || code === 'QUERY_TIMEOUT')
+      )
+        throw new SavedGridError(503, code);
+      if (response.status === 504 && code === 'QUERY_TIMEOUT') throw new SavedGridError(504, code);
+      if (response.status >= 500) throw new SavedGridError(503, 'UNAVAILABLE');
+      if (response.status === 413 && code === 'QUERY_LIMIT') throw new SavedGridError(413, code);
+      if (response.status === 401 || response.status === 403) throw new SavedGridError(response.status, 'FORBIDDEN');
       throw new SavedGridError(400, 'schema-changed');
+    }
+    const found = discovery.safeParse(response.data);
+    if (!found.success || Object.hasOwn(response.data, 'errors')) throw new SavedGridError(400, 'schema-changed');
     const fields = found.data.data.recordFields.fields;
     const selected = grid.columns.map(id => fields.find(field => field.id === id));
     if (selected.some(field => !field?.selectable || !field.selections.length))
@@ -138,70 +154,16 @@ export async function prepareExplorerNamedQuery(input: unknown, caller: ReadCall
     }
     const filters = grid.filters.map(filter => {
       const field = fields.find(field => field.id === filter.fieldId);
-      if (
-        !field ||
-        field.repeating ||
-        !field.availableInAllVariants ||
-        !field.operators.includes(filter.operator.toUpperCase())
-      )
-        throw new SavedGridError(400, 'schema-changed');
-      if (!filter.expectedScalarType || filter.expectedScalarType !== field.scalarType)
-        throw new SavedGridError(400, 'filter-type-changed');
-      const typed = (value: string): string | number | boolean => {
-        if (['NUMBER', 'INTEGER'].includes(field.scalarType)) {
-          if (
-            !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()) ||
-            !Number.isFinite(Number(value)) ||
-            (field.scalarType === 'INTEGER' && !Number.isSafeInteger(Number(value)))
-          )
-            throw new SavedGridError(400, 'invalid-definition');
-          return Number(value);
-        }
-        if (field.scalarType === 'BOOLEAN') {
-          if (!['true', 'false'].includes(value)) throw new SavedGridError(400, 'invalid-definition');
-          return value === 'true';
-        }
-        if (field.scalarType === 'DATETIME') {
-          try {
-            return normalizeTimestamp(value);
-          } catch {
-            throw new SavedGridError(400, 'invalid-definition');
-          }
-        }
-        return value;
-      };
-      const values = filter.operator === 'exists' ? [] : filter.values.map(typed);
-      if (filter.operator === 'between') {
-        const [from, to] = values;
-        if (
-          (typeof from !== 'number' && typeof from !== 'string') ||
-          (typeof to !== 'number' && typeof to !== 'string') ||
-          from > to
-        )
-          throw new SavedGridError(400, 'invalid-definition');
+      if (!field) throw new SavedGridError(400, 'schema-changed');
+      try {
+        return recordGridFilter(filter, field);
+      } catch (error) {
+        const code =
+          error instanceof Error && ['schema-changed', 'filter-type-changed'].includes(error.message)
+            ? error.message
+            : 'invalid-definition';
+        throw new SavedGridError(400, code);
       }
-      const operand = (value: NamedQueryJson): NamedQueryJson => ({
-        [field.scalarType === 'DATETIME'
-          ? 'dateTime'
-          : ['NUMBER', 'INTEGER'].includes(field.scalarType)
-            ? 'number'
-            : field.scalarType === 'BOOLEAN'
-              ? 'boolean'
-              : 'text']: value,
-      });
-      return {
-        field: field.id,
-        [filter.operator]:
-          filter.operator === 'exists'
-            ? filter.values[0] === 'true'
-            : filter.operator === 'contains'
-              ? values[0]
-              : filter.operator === 'in'
-                ? values.map(operand)
-                : filter.operator === 'between'
-                  ? { from: operand(values[0]), to: operand(values[1]) }
-                  : operand(values[0]),
-      };
     });
     const generated = recordGridRequest({
       recordType: grid.recordType,

@@ -1,4 +1,4 @@
-import { recordGridRequest } from '@researchdatabox/sails-ng-common';
+import { recordGridFilter, recordGridRequest } from '@researchdatabox/sails-ng-common';
 import {
   GridDefinition,
   SavedQuery,
@@ -12,7 +12,6 @@ import {
   GridScope,
   Operator,
   queryFor,
-  Scalar,
   validatePage,
   scalarTypeFor,
 } from './data-grid.model';
@@ -156,30 +155,17 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
       discovery.fields.some(field => field.id === sort.fieldId && sort.expectedScalarType !== scalarTypeFor(field)))
   )
     throw new GridRequestError('sort-type-changed');
-  const current = queryFor(request.definition, { ...scope, fields: discovery.fields }, request.after);
-  const typed = (value: Scalar, fieldId: string) => {
-    const field = discovery.fields.find(field => field.id === fieldId)!;
-    return {
-      [field.type === 'datetime'
-        ? 'dateTime'
-        : field.type === 'number'
-          ? 'number'
-          : field.type === 'boolean'
-            ? 'boolean'
-            : 'text']: value,
-    };
-  };
-  const filters = current.filters.map(filter => {
-    const value = filter.value!;
-    const operand =
-      filter.operator === 'exists' || filter.operator === 'contains'
-        ? value
-        : filter.operator === 'in'
-          ? (value as Scalar[]).map(value => typed(value, filter.fieldId))
-          : filter.operator === 'between'
-            ? { from: typed((value as Scalar[])[0], filter.fieldId), to: typed((value as Scalar[])[1], filter.fieldId) }
-            : typed(value as Scalar, filter.fieldId);
-    return { field: filter.fieldId, [filter.operator]: operand };
+  queryFor(request.definition, { ...scope, fields: discovery.fields }, request.after);
+  const filters = request.definition.filters.map(filter => {
+    const field = discovery.fields.find(field => field.id === filter.fieldId)!;
+    return recordGridFilter(filter, {
+      scalarType: scalarTypeFor(field) ?? '',
+      // parseDiscovery strips operators when the real filterable flag is false.
+      filterable: field.operators.length > 0,
+      repeating: !!field.repeating,
+      availableInAllVariants: !field.partial,
+      operators: field.operators,
+    });
   });
   const fields = request.definition.columns.map(id => discovery.fields.find(field => field.id === id)!);
   if (fields.some(field => !field.selections.length)) return invalid();

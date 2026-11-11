@@ -44,6 +44,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   private draftVersion = 0;
   pendingReview: { review: NamedQueryUpdateReview; payload: NamedQueryDefinition; snapshot: string; version: number } | null = null;
   private reviewTrigger: HTMLElement | null = null;
+  private editorDestroyed = false;
   capabilities: { lookup: boolean; diagnostics: EditorDiagnostic[] } | null = null;
   get activeDatabaseBuffer(): NamedQueryDatabaseDefinition { return this.draft.source === 'graphql' ? this.databaseBuffer : this.draft; }
   get activeGraphqlBuffer(): GraphqlNamedQueryDefinition { return this.draft.source === 'graphql' ? this.draft : this.graphqlBuffer; }
@@ -86,8 +87,9 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     if (this.source === source) this.validityChanged(valid);
   }
   private restoreReviewFocus(trigger: HTMLElement | null): void {
+    this.requestRender();
     setTimeout(() => {
-      if (this.saving || !this.isEditing || this.pendingReview) return;
+      if (this.editorDestroyed || this.saving || !this.isEditing || this.pendingReview) return;
       const target = trigger?.isConnected ? trigger : document.getElementById('named-query-save');
       (target && !target.matches(':disabled') ? target : document.getElementById('named-query-workspace-title'))?.focus();
     }, 0);
@@ -100,7 +102,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
   async confirmSaveReview(): Promise<void> {
     const pending = this.pendingReview;
-    if (!pending) return;
+    if (!pending || this.editorDestroyed) return;
     const trigger = this.reviewTrigger;
     this.pendingReview = null;
     this.reviewTrigger = null;
@@ -110,9 +112,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       return;
     }
     this.saving = true;
-    try { await this.persist(pending.payload, pending.snapshot, pending.review.confirmation); }
-    catch (error) { this.saveError(error); }
-    finally { this.saving = false; this.restoreReviewFocus(trigger); }
+    let saved = false;
+    try { await this.persist(pending.payload, pending.snapshot, pending.review.confirmation); saved = true; }
+    catch (error) { if (!this.editorDestroyed) this.saveError(error); }
+    finally { this.saving = false; if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger); }
   }
 
 
@@ -528,6 +531,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   override ngOnDestroy(): void {
+    this.editorDestroyed = true;
     super.ngOnDestroy();
     this.itemRequests.invalidate();
     this.targetRequests.invalidate();
@@ -650,7 +654,9 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   async save(): Promise<void> {
-    if (this.saving) return;
+    if (this.saving || this.editorDestroyed) return;
+    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement : document.getElementById('named-query-save');
     if (!this.canSave) {
       if (this.isNew) {
         const trimmed = this.draft.name?.trim();
@@ -669,6 +675,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       } else {
         this.error = this.t('named-query-error-collection-required', 'Collection name is required');
       }
+      this.restoreReviewFocus(trigger);
       return;
     }
     this.error = '';
@@ -676,22 +683,21 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     const draftAtSave = JSON.stringify(this.draft);
     const versionAtSave = this.draftVersion;
     const payload = this.sanitizeQuery(JSON.parse(draftAtSave));
-    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
-      ? document.activeElement : document.getElementById('named-query-save');
+    let saved = false;
     this.saving = true;
     try {
       await this.validateDraft();
+      if (this.editorDestroyed) return;
       if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
         this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
-        this.restoreReviewFocus(trigger);
         return;
       }
       if (this.validationBlocking) return;
       if (!this.isNew) {
         const review = await this.api.reviewUpdate(payload.name as string, payload);
+        if (this.editorDestroyed) return;
         if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
           this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
-          this.restoreReviewFocus(trigger);
           return;
         }
         if (review.required) {
@@ -701,18 +707,22 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
         }
       }
       await this.persist(payload, draftAtSave);
-    } catch (err) { this.saveError(err);
+      saved = true;
+    } catch (err) { if (!this.editorDestroyed) this.saveError(err);
     } finally {
       this.saving = false;
+      if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger);
     }
   }
 
   private async persist(payload: NamedQueryDefinition, snapshot: string, confirmation?: string): Promise<void> {
     if (this.isNew) await this.api.create(payload);
     else await this.api.update(payload.name as string, payload, confirmation);
+    if (this.editorDestroyed) return;
     this.setMessage(this.t(this.isNew ? 'named-query-message-created' : 'named-query-message-updated',
       this.isNew ? 'Named query "{{name}}" created' : 'Named query "{{name}}" updated', { name: payload.name ?? '' }));
     await this.loadQueries();
+    if (this.editorDestroyed) return;
     if (JSON.stringify(this.draft) === snapshot) {
       this.inputDirty = false; this.baseline = snapshot; this.saving = false; this.closeEditModal();
     }

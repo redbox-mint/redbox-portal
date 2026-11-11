@@ -92,7 +92,7 @@ describe('RecordGridService HTTP contract', () => {
   it('prepares a detached named query using a scoped CSRF POST body and no values in the URL', fakeAsync(() => {
     const input = { ...request().definition, name: 'Current unsaved explorer' };
     let result: unknown;
-    service.prepareNamedQuery(input).then(value => result = value);
+    service.prepareNamedQuery(input).then(value => (result = value));
     flushMicrotasks();
     const req = http.expectOne('/context/brand/portal/api/named-query/editor/from-explorer');
     expect(req.request.method).toBe('POST');
@@ -100,10 +100,18 @@ describe('RecordGridService HTTP contract', () => {
     expect(req.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
     expect(req.request.body).toEqual({ exploration: input });
     expect(req.request.body.exploration).not.toBe(input);
-    const prepared = { definition: { source: 'graphql', name: '', graphql: { document: 'query { __typename }',
-      variables: {}, resultPath: [], mappings: {} } }, variableValues: { current: [false, 0] } };
-    req.flush({ data: prepared }); flushMicrotasks();
-    expect(result).toEqual(prepared); expect(result).not.toBe(prepared);
+    const prepared = {
+      definition: {
+        source: 'graphql',
+        name: '',
+        graphql: { document: 'query { __typename }', variables: {}, resultPath: [], mappings: {} },
+      },
+      variableValues: { current: [false, 0] },
+    };
+    req.flush({ data: prepared });
+    flushMicrotasks();
+    expect(result).toEqual(prepared);
+    expect(result).not.toBe(prepared);
     http.expectNone('/context/brand/portal/app/data-grids');
   }));
 
@@ -269,6 +277,35 @@ describe('RecordGridService HTTP contract', () => {
     expect(error?.key).toBe('filter-type-changed');
     http.expectNone(url);
   }));
+  it('blocks a filterable=false field even when stale operators remain in fresh discovery', fakeAsync(() => {
+    let error: unknown;
+    service.query(request()).catch(value => (error = value));
+    flushMicrotasks();
+    http.expectOne(url).flush({ data: { recordFields: discovery([{ ...title, filterable: false }, oid]) } });
+    flushMicrotasks();
+    expect(error).toBeDefined();
+    http.expectNone(url);
+  }));
+  for (const [operator, values] of [
+    ['exists', []],
+    ['exists', ['true', 'false']],
+    ['exists', ['yes']],
+    ['contains', ['']],
+    ['in', []],
+    ['in', Array(21).fill('x')],
+    ['eq', ['é'.repeat(129)]],
+  ] as const)
+    it(`refuses crafted ${operator} operands before any collection request`, fakeAsync(() => {
+      const input = request();
+      input.definition.filters = [{ fieldId: title.id, expectedScalarType: 'STRING', operator, values: [...values] }];
+      let error: unknown;
+      service.query(input).catch(value => (error = value));
+      flushMicrotasks();
+      http.expectOne(url).flush({ data: { recordFields: discovery() } });
+      flushMicrotasks();
+      expect(error).toBeDefined();
+      http.expectNone(url);
+    }));
   it('blocks sort drift during fresh discovery before sending a collection query', fakeAsync(() => {
     const input = request();
     input.definition.sort = { fieldId: title.id, expectedScalarType: 'NUMBER', direction: 'asc' };

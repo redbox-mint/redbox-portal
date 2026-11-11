@@ -3,6 +3,7 @@ import { A11yModule } from '@angular/cdk/a11y';
 import {
   AfterViewInit,
   Component,
+  ChangeDetectorRef,
   ElementRef,
   EventEmitter,
   HostListener,
@@ -82,6 +83,7 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<string>();
   @ViewChild('heading') heading?: ElementRef<HTMLElement>;
+  @ViewChild('saveButton') saveButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('cancelButton') cancelButton?: ElementRef<HTMLButtonElement>;
   draft!: GraphqlNamedQueryDefinition;
   variableValues: NamedQueryPromotionDraft['variableValues'] = {};
@@ -100,7 +102,10 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
   private destroyed = false;
   private initialized = false;
   private timer?: ReturnType<typeof setTimeout>;
-  constructor(@Inject(NamedQueryApiService) private api: NamedQueryApiService) {}
+  constructor(
+    @Inject(NamedQueryApiService) private api: NamedQueryApiService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.draft = structuredClone(this.prepared.definition);
@@ -177,6 +182,9 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
   }
   async save(): Promise<void> {
     if (!this.canSave) return;
+    const active = this.heading?.nativeElement.ownerDocument.activeElement;
+    const trigger = active instanceof HTMLElement ? active : this.saveButton?.nativeElement;
+    let saved = false;
     const snapshot = JSON.stringify(this.draft);
     const candidate: GraphqlNamedQueryDefinition = JSON.parse(snapshot);
     candidate.name = candidate.name?.trim();
@@ -187,11 +195,11 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
       if (this.destroyed) return;
       if (this.pendingInput || snapshot !== JSON.stringify(this.draft)) {
         this.error = 'named-query-review-changed';
-        this.heading?.nativeElement.focus();
         return;
       }
       if (!valid) return;
       const result = await this.api.create(candidate);
+      saved = true;
       if (!this.destroyed) this.saved.emit(result.name);
     } catch (error) {
       if (!this.destroyed)
@@ -202,7 +210,16 @@ export class ExplorerNamedQueryComponent implements OnInit, AfterViewInit, OnDes
               ? 'data-grids-promotion-name-exists'
               : 'data-grids-promotion-save-failed';
     } finally {
-      if (!this.destroyed) this.saving = false;
+      if (!this.destroyed) {
+        this.saving = false;
+        this.cdr.detectChanges();
+        if (!saved)
+          setTimeout(() => {
+            if (this.destroyed || this.saving) return;
+            const target = trigger?.isConnected && trigger !== document.body ? trigger : this.saveButton?.nativeElement;
+            (target && !target.matches(':disabled') ? target : this.heading?.nativeElement)?.focus();
+          });
+      }
     }
   }
   cancel(): void {

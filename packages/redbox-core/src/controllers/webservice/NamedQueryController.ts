@@ -116,6 +116,12 @@ export namespace Controllers {
       } catch (error) {
         const status = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.status : 500;
         const code = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.code : 'PROMOTION_UNAVAILABLE';
+        if (status === 500) {
+          // Never log the exception, its message, request body, document or values.
+          const errorClass = error instanceof TypeError ? 'TypeError' : error instanceof RangeError ? 'RangeError' :
+            error instanceof SyntaxError ? 'SyntaxError' : error instanceof Error ? 'Error' : 'UnknownError';
+          sails.log.error('Named-query promotion preparation failed', { code: 'PROMOTION_UNAVAILABLE', errorClass });
+        }
         return this.sendResp(req, res, { status, displayErrors: [{ code, title: code, status: String(status) }], headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       }
     }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
+import { graphqlFailure } from '../../src/services/RecordGraphqlService';
 import { prepareExplorerNamedQuery } from '../../src/services/named-query/explorer-promotion';
 import { Services as Editors } from '../../src/services/NamedQueryEditorService';
 import { Services as Rules } from '../../src/services/PathRulesService';
@@ -41,6 +42,7 @@ const fields = () => [
     id: 'record:oid',
     scalarType: 'STRING',
     selectable: true,
+    filterable: true,
     repeating: false,
     availableInAllVariants: true,
     operators: ['EQ'],
@@ -51,6 +53,7 @@ const fields = () => [
     id: 'metadata:/title',
     scalarType: 'STRING',
     selectable: true,
+    filterable: true,
     repeating: false,
     availableInAllVariants: true,
     operators: ['CONTAINS'],
@@ -135,17 +138,112 @@ describe('Detached explorer named-query promotion', () => {
     assert.equal(validation.valid, true, JSON.stringify(validation.diagnostics));
     assert.equal(validation.capabilities?.lookup, false);
   });
-  for (const drift of ['missing', 'type', 'sort'] as const)
+  for (const drift of ['missing', 'type', 'sort', 'filterable'] as const)
     it(`refuses current discovery ${drift} drift without silently dropping an operation`, async () => {
       const found = fields();
       if (drift === 'missing') found.pop();
       if (drift === 'type') found[1].scalarType = 'INTEGER';
+      if (drift === 'filterable') found[1].filterable = false;
       if (drift === 'sort') found[1].sortable = false;
       execute.resolves({ status: 200, data: { data: { recordFields: { fields: found } } } });
       await assert.rejects(prepareExplorerNamedQuery(visual(), caller), {
         code: drift === 'type' ? 'sort-type-changed' : 'schema-changed',
       });
     });
+  for (const [operator, values] of [
+    ['exists', []],
+    ['exists', ['true', 'false']],
+    ['exists', ['yes']],
+    ['contains', ['']],
+    ['eq', ['a', 'b']],
+    ['in', []],
+    ['in', Array(21).fill('x')],
+    ['eq', ['é'.repeat(129)]],
+  ] as const)
+    it(`rejects crafted visual ${operator} operands ${JSON.stringify(values)}`, async () => {
+      const input = {
+        ...visual(),
+        filters: [{ fieldId: 'metadata:/title', expectedScalarType: 'STRING', operator, values }],
+      };
+      await assert.rejects(prepareExplorerNamedQuery(input, caller), { status: 400, code: 'invalid-definition' });
+      assert.equal(execute.called, false);
+    });
+  for (const [scalarType, operator, values] of [
+    ['NUMBER', 'eq', ['0x20']],
+    ['INTEGER', 'eq', ['1.5']],
+    ['BOOLEAN', 'eq', ['yes']],
+    ['DATETIME', 'eq', ['2026-02-30T00:00:00Z']],
+    ['NUMBER', 'between', ['20', '10']],
+  ] as const)
+    it(`rejects crafted ${scalarType} conversion using fresh discovery`, async () => {
+      const found = fields();
+      found[1].scalarType = scalarType;
+      found[1].operators = [operator.toUpperCase()];
+      execute.resolves({ status: 200, data: { data: { recordFields: { fields: found } } } });
+      await assert.rejects(
+        prepareExplorerNamedQuery(
+          {
+            ...visual(),
+            sort: null,
+            filters: [
+              {
+                fieldId: found[1].id,
+                expectedScalarType: scalarType,
+                operator,
+                values,
+              },
+            ],
+          },
+          caller
+        ),
+        { status: 400, code: 'invalid-definition' }
+      );
+    });
+  for (const [scalarType, operator, values, operand] of [
+    ['INTEGER', 'in', ['+02', '3'], { in: [{ number: 2 }, { number: 3 }] }],
+    ['BOOLEAN', 'eq', ['false'], { eq: { boolean: false } }],
+    [
+      'DATETIME',
+      'between',
+      ['2028-02-29T12:00:00+12:00', '2028-03-01T00:00:00Z'],
+      {
+        between: { from: { dateTime: '2028-02-29T00:00:00.000Z' }, to: { dateTime: '2028-03-01T00:00:00.000Z' } },
+      },
+    ],
+    ['STRING', 'exists', ['false'], { exists: false }],
+  ] as const)
+    it(`preserves unsaved ${scalarType} ${operator} operands`, async () => {
+      const found = fields();
+      found[1].scalarType = scalarType;
+      found[1].operators = [operator.toUpperCase()];
+      execute.resolves({ status: 200, data: { data: { recordFields: { fields: found } } } });
+      const input = {
+        ...visual(),
+        sort: null,
+        filters: [{ fieldId: found[1].id, expectedScalarType: scalarType, operator, values }],
+      };
+      const before = structuredClone(input);
+      const result = await prepareExplorerNamedQuery(input, caller);
+      assert.deepEqual(result.variableValues.filters, [{ field: found[1].id, ...operand }]);
+      assert.deepEqual(input, before);
+    });
+  for (const [status, code] of [
+    [503, 'GRAPHQL_DISABLED'],
+    [503, 'UNAVAILABLE'],
+    [503, 'QUERY_TIMEOUT'],
+    [504, 'QUERY_TIMEOUT'],
+    [413, 'QUERY_LIMIT'],
+  ] as const)
+    it(`preserves safe discovery ${status}/${code} without private errors`, async () => {
+      execute.resolves(graphqlFailure(status, code, 'PRIVATE QUERY AND VALUES'));
+      await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status, code });
+    });
+  it('normalizes unexpected upstream errors and malformed successful discovery safely', async () => {
+    execute.resolves(graphqlFailure(500, 'PRIVATE_CODE', 'PRIVATE QUERY AND VALUES'));
+    await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status: 503, code: 'UNAVAILABLE' });
+    execute.resolves({ status: 200, data: { data: { recordFields: { fields: 'PRIVATE' } } } });
+    await assert.rejects(prepareExplorerNamedQuery(visual(), caller), { status: 400, code: 'schema-changed' });
+  });
   it('does not require lookup compatibility or execute a raw query to prepare a repairable definition', async () => {
     const input = {
       ...raw(),

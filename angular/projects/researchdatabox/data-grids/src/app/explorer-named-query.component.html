@@ -17,7 +17,7 @@
     <p *ngIf="initializing" role="status">{{ 'data-grids-promotion-opening' | i18next }}</p>
     <fieldset [disabled]="saving">
       <div class="promotion-body">
-        <main class="rb-ws-main">
+        <div class="rb-ws-main" role="region" aria-labelledby="promotion-heading">
           <nq-graphql-draft-editor
             [draft]="draft"
             [isNew]="true"
@@ -27,7 +27,7 @@
             (draftChange)="changed()"
             (validityChange)="pendingInput = !$event"
           ></nq-graphql-draft-editor>
-        </main>
+        </div>
         <aside class="rb-ws-help" [attr.aria-label]="'named-query-fields-help' | i18next">
           <h3>{{ 'named-query-fields-help' | i18next }}</h3>
           <p *ngIf="schemaError" role="status">{{ 'named-query-graphql-schema-error' | i18next }}</p>
@@ -56,7 +56,7 @@
       <button #cancelButton class="btn btn-outline-secondary" [disabled]="saving" (click)="cancel()">
         {{ 'named-query-cancel' | i18next }}
       </button>
-      <button id="promotion-save" class="btn btn-primary" [disabled]="!canSave" (click)="save()">
+      <button #saveButton id="promotion-save" class="btn btn-primary" [disabled]="!canSave" (click)="save()">
         {{ 'named-query-save' | i18next }}
       </button>
     </div>

@@ -303,10 +303,27 @@ describe('Explorer detached named-query promotion', () => {
       const child = await open();
       await ready(child);
       expect(child.canSave).toBeTrue();
-      api.create.and.rejectWith(new HttpErrorResponse({ status }));
+      let reject!: (error: HttpErrorResponse) => void;
+      api.create.and.returnValue(
+        new Promise((_resolve, no) => {
+          reject = no;
+        })
+      );
       const candidate = JSON.stringify(child.draft);
-      await child.save();
+      const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
+      save.focus();
+      const saving = child.save();
       await render();
+      expect(save.disabled).toBeTrue();
+      save.blur();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(document.activeElement).not.toBe(save);
+      reject(new HttpErrorResponse({ status }));
+      await saving;
+      await render();
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(save.disabled).toBeFalse();
+      expect(document.activeElement).toBe(save);
       expect(JSON.stringify(child.draft)).toBe(candidate);
       expect(explorer.promotion).not.toBeNull();
       expect(origin()).toBe(before);
@@ -316,13 +333,97 @@ describe('Explorer detached named-query promotion', () => {
       );
       expect(source.save).not.toHaveBeenCalled();
     });
+  it('returns focus to the heading after deferred validation invalidates Save', async () => {
+    const before = origin();
+    const child = await open();
+    await ready(child);
+    let resolve!: (description: GraphqlNamedQueryDescription) => void;
+    api.describe.and.returnValue(
+      new Promise(yes => {
+        resolve = yes;
+      })
+    );
+    const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
+    save.focus();
+    const saving = child.save();
+    await render();
+    save.blur();
+    expect(save.disabled).toBeTrue();
+    resolve(described(false));
+    await saving;
+    await render();
+    await new Promise(yes => setTimeout(yes, 0));
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#promotion-heading'));
+    expect(save.disabled).toBeTrue();
+    expect(api.create).not.toHaveBeenCalled();
+    expect(origin()).toBe(before);
+  });
+  it('does not restore focus or persist after destruction during validation', async () => {
+    const child = await open();
+    await ready(child);
+    let resolve!: (description: GraphqlNamedQueryDescription) => void;
+    api.describe.and.returnValue(
+      new Promise(yes => {
+        resolve = yes;
+      })
+    );
+    const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
+    save.focus();
+    const saving = child.save();
+    await render();
+    const focus = spyOn(save, 'focus').and.callThrough();
+    explorer.closePromotion();
+    await render();
+    resolve(described(true));
+    await saving;
+    await new Promise(yes => setTimeout(yes, 0));
+    expect(focus).not.toHaveBeenCalled();
+    expect(api.create).not.toHaveBeenCalled();
+  });
+  for (const [status, code, expected] of [
+    [503, 'GRAPHQL_DISABLED', 'disabled'],
+    [503, 'UNAVAILABLE', 'unavailable'],
+    [503, 'QUERY_TIMEOUT', 'timeout'],
+    [504, 'QUERY_TIMEOUT', 'timeout'],
+    [400, 'schema-changed', 'schema-changed'],
+    [503, 'PRIVATE_CODE', 'unavailable'],
+  ] as const)
+    it(`announces safe preparation ${status}/${code} and preserves the exploration`, async () => {
+      const before = origin();
+      // v2 and legacy v1 envelopes must give the same useful, translated error.
+      for (const body of [
+        { errors: [{ code, detail: 'PRIVATE QUERY' }] },
+        { error: { code, title: 'PRIVATE QUERY' } },
+      ]) {
+        source.prepareNamedQuery.and.rejectWith(new HttpErrorResponse({ status, error: body }));
+        const trigger = explorer.promotionButton!.nativeElement;
+        await explorer.createNamedQuery();
+        await render();
+        await new Promise(yes => setTimeout(yes, 0));
+        expect(explorer.promotionError).toBe('promotion-' + expected);
+        const live = fixture.nativeElement.querySelector('#explorer-promotion-status') as HTMLElement;
+        expect(live.textContent).toContain('data-grids-promotion-' + expected);
+        expect(live.textContent).not.toContain('PRIVATE');
+        expect(origin()).toBe(before);
+        expect(explorer.promotion).toBeNull();
+        expect(api.create).not.toHaveBeenCalled();
+        expect(source.save).not.toHaveBeenCalled();
+        expect(document.activeElement).toBe(trigger);
+      }
+    });
   it('permits a valid nonlookup save, leaving the original exploration unchanged', async () => {
     const before = origin();
     const child = await open();
     await ready(child);
     expect(child.description?.capabilities?.lookup).toBeFalse();
     expect(child.canSave).toBeTrue();
+    expect(fixture.nativeElement.querySelector('rb-explorer-named-query main')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="region"][aria-labelledby="promotion-heading"]')).not.toBeNull();
+    const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
+    const focus = spyOn(save, 'focus').and.callThrough();
     await child.save();
+    await new Promise(yes => setTimeout(yes, 0));
+    expect(focus).not.toHaveBeenCalled();
     await render();
     expect(api.create).toHaveBeenCalledTimes(1);
     expect(api.create.calls.mostRecent().args[0].source).toBe('graphql');

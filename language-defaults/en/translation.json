@@ -4415,5 +4415,9 @@
   "data-grids-promotion-open-failed": "The named-query editor could not be opened. Your exploration is retained; check its fields and try again.",
   "data-grids-promotion-opening": "Preparing an unsaved named-query copy…",
   "data-grids-promotion-saved": "Named query created. Your exploration and its unsaved changes are retained.",
-  "data-grids-promotion-init-failed": "The named-query editor could not load. Your exploration and detached draft are retained."
+  "data-grids-promotion-init-failed": "The named-query editor could not load. Your exploration and detached draft are retained.",
+  "data-grids-promotion-disabled": "Record GraphQL is disabled. Your exploration is retained; ask an administrator to enable it before trying again.",
+  "data-grids-promotion-timeout": "Preparing the named query timed out. Your exploration is retained; try again.",
+  "data-grids-promotion-unavailable": "Record GraphQL is temporarily unavailable. Your exploration is retained; try again later.",
+  "data-grids-promotion-schema-changed": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again."
 }

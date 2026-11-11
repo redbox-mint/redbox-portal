@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 import UrlPattern from 'url-pattern';
+import { SavedGridError } from '../../../src/services/SavedGridService';
 import { Controllers } from '../../../src/controllers/webservice/NamedQueryController';
 import { namedQueryEditorRoutes } from '../../../src/api-routes/groups/named-query';
 import { policies } from '../../../src/config/policies.config';
@@ -95,10 +96,19 @@ describe('Named query assistance HTTP boundary', () => {
       preparePromotion.rejects(new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403));
       await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
       assert.equal(send.secondCall.args[2]?.status, 403);
-      preparePromotion.rejects(new Error('PRIVATE DOCUMENT/VALUES'));
+      for (const [status, code] of [[503, 'GRAPHQL_DISABLED'], [503, 'UNAVAILABLE'], [503, 'QUERY_TIMEOUT'], [504, 'QUERY_TIMEOUT']] as const) {
+        preparePromotion.rejects(new SavedGridError(status, code));
+        await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+        assert.equal(send.lastCall.args[2]?.status, status);
+        assert.equal(send.lastCall.args[2]?.displayErrors?.[0]?.code, code);
+      }
+      preparePromotion.rejects(Object.assign(new TypeError('PRIVATE DOCUMENT/VALUES'), { code: 'PRIVATE CODE', name: 'PRIVATE CLASS' }));
       await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
-      assert.equal(send.thirdCall.args[2]?.status, 500);
-      assert.ok(!JSON.stringify(send.thirdCall.args[2]).includes('PRIVATE'));
+      assert.equal(send.lastCall.args[2]?.status, 500);
+      assert.ok(!JSON.stringify(send.lastCall.args[2]).includes('PRIVATE'));
+      const log = sails.log.error as sinon.SinonStub;
+      assert.deepEqual(log.lastCall.args, ['Named-query promotion preparation failed', { code: 'PROMOTION_UNAVAILABLE', errorClass: 'TypeError' }]);
+      assert.ok(!JSON.stringify(log.lastCall.args).includes('PRIVATE'));
       preparePromotion.resetHistory();
       await controller.preparePromotion({ ...req, isAuthenticated: () => false } as unknown as Sails.Req, {} as Sails.Res);
       assert.equal(preparePromotion.called, false);

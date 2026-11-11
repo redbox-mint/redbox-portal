@@ -155,3 +155,5 @@ export * from './query-report-context';
 export * from './named-query-assist.model';
 export * from './named-query.model';
 export * from './record-grid-query';
+
+export * from './record-grid-filter';

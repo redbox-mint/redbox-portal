@@ -236,8 +236,15 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (!this.disposed) this.promotion = structuredClone(prepared);
     } catch (error) {
       if (!this.disposed) {
+        const code: unknown = error instanceof HttpErrorResponse
+          ? error.error?.errors?.[0]?.code ?? error.error?.data?.error?.code ?? error.error?.error?.code : undefined;
         this.promotionError = error instanceof HttpErrorResponse && [401, 403].includes(error.status)
-          ? 'promotion-denied' : 'promotion-open-failed';
+          ? 'promotion-denied'
+          : error instanceof HttpErrorResponse && [503, 504].includes(error.status)
+            ? code === 'GRAPHQL_DISABLED' ? 'promotion-disabled' : code === 'QUERY_TIMEOUT' ? 'promotion-timeout' : 'promotion-unavailable'
+            : error instanceof HttpErrorResponse && error.status === 400 &&
+              typeof code === 'string' && ['schema-changed', 'filter-type-changed', 'sort-type-changed'].includes(code)
+              ? 'promotion-schema-changed' : 'promotion-open-failed';
         setTimeout(() => {
           if (!this.disposed) (trigger?.isConnected ? trigger : this.promotionButton?.nativeElement)?.focus();
         });

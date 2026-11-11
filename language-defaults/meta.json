@@ -11050,5 +11050,25 @@
     "category": "data-grids",
     "description": "The named-query editor could not load. Your exploration and detached draft are retained.",
     "contentFormat": "plain"
+  },
+  "data-grids-promotion-disabled": {
+    "category": "data-grids",
+    "description": "Record GraphQL is disabled. Your exploration is retained; ask an administrator to enable it before trying again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-timeout": {
+    "category": "data-grids",
+    "description": "Preparing the named query timed out. Your exploration is retained; try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-unavailable": {
+    "category": "data-grids",
+    "description": "Record GraphQL is temporarily unavailable. Your exploration is retained; try again later.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-schema-changed": {
+    "category": "data-grids",
+    "description": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again.",
+    "contentFormat": "plain"
   }
 }
