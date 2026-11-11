@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Db, MongoClient as MongoClientType } from 'mongodb';
+import type { Agenda } from 'agenda';
 import type { FigshareSyncModel, FigshareSourceIntent } from '../../src/model/storage/FigshareSyncModel';
 import type { FigsharePublishingConfigData } from '../../src/configmodels/FigsharePublishing';
 
@@ -20,6 +21,7 @@ const { prepareSourceIntent, currentExecutionEligible } = requireTest('../../src
 
 const { figshareAdmin } = requireTest('../../src/services/figshare-v2/admin');
 const { legacyDelayMs } = requireTest('../../src/services/figshare-v2/config');
+const { scheduleFigshareDelivery } = requireTest('../../src/services/figshare-v2/queue');
 
 const intent = (generation = 1): FigshareSourceIntent => ({ generation, pending: true, readiness: 'ready', saveToken: `save-${generation}`,
   requestedAt: new Date().toISOString(), requestedBy: 'researcher', intents: [{ kind: 'sync', policyId: 'onUpdate.pre.validateFigshareRecord', condition: '<%= record.workflow.stage === "queued" %>' }] });
@@ -114,6 +116,26 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   }
   const job = { attrs: { data: { oid: 'record-1', brandId: 'brand-1' } } };
   async function run() { await runFigshareWorker(service, job, store); }
+  async function useMongoQueue(): Promise<Agenda> {
+    const { Services: { AgendaQueue } } = requireTest('../../src/services/AgendaQueueService');
+    const queue = new AgendaQueue();
+    assignGlobals({ _: requireTest('lodash') });
+    const agenda: Agenda = await Reflect.get(queue, 'createAgendaForBackend').call(queue, 'mongodb', { collection: 'agendaJobs' }, db);
+    await agenda.ready;
+    Reflect.set(queue, 'agendas', { mongodb: agenda });
+    Reflect.set(queue, 'jobBackendByName', new Map([['Figshare-SyncRecord', 'mongodb']]));
+    assignGlobals({ AgendaQueueService: queue.exports() });
+    agenda.define('Figshare-SyncRecord', delivery => runFigshareWorker(service, delivery, store));
+    return agenda;
+  }
+  async function pendingDelivery(agenda: Agenda, oid = 'record-1') {
+    const document = await db.collection('agendaJobs').findOneAndUpdate({ name: 'Figshare-SyncRecord', 'data.oid': oid, nextRunAt: { $type: 'date' } },
+      { $set: { lockedAt: new Date() } }, { returnDocument: 'after' });
+    assert.ok(document);
+    const { Job, toJobId } = await import('agenda');
+    return new Job(agenda, { name: 'Figshare-SyncRecord', type: 'normal', _id: toJobId(document._id.toHexString()),
+      data: { oid, brandId: 'brand-1', deliveryKey: document.data.deliveryKey }, lockedAt: document.lockedAt, nextRunAt: document.nextRunAt });
+  }
   before(async () => {
     connection = new MongoClient(process.env.FIGSHARE_TEST_MONGO_URI!); await connection.connect();
     db = connection.db(`figshare_queued_test_${process.pid}`);
@@ -172,7 +194,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
       BrandingService: { getBrandById: () => ({ id: 'brand-1', name: 'brand' }), getBrand: () => ({ id: 'brand-1', name: 'brand' }) },
       RecordTypesService: { get: () => ({ toPromise: async () => ({ hooks: { onUpdate: { pre: [{ function: 'sails.services.figshareservice.validateFigshareRecord', options: { triggerCondition: '<%= record.workflow.stage === "queued" %>' } }] } } }) }) },
       RolesService: { getAdminFromRoles: () => true },
-      AgendaQueueService: { now: async () => {} },
+      AgendaQueueService: { scheduleUnique: async () => {} },
       UsersService: { getUserWithUsername: () => ({ toPromise: async () => ({ username: 'service', type: 'local', roles: [] }) }) },
       RecordsService: { getMeta: (oid: string) => records.findOne({ redboxOid: oid }), getFigshareIntentStorage: () => storage,
         hasEditAccess: async () => true,
@@ -202,13 +224,317 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   });
   it('recovers dropped queue delivery and bounds dispatcher duplication without consuming work', async () => {
     let deliveries = 0;
-    assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; if (deliveries === 1) throw new Error('queue unavailable'); } } });
+    assignGlobals({ AgendaQueueService: { scheduleUnique: async () => { deliveries++; if (deliveries === 1) throw new Error('queue unavailable'); } } });
     await dispatchFigshare();
     assert.equal((await store.get('record-1')).work.sync.processed, 0);
     await dispatchFigshare(); assert.equal(deliveries, 1);
     await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
     await dispatchFigshare(); assert.equal(deliveries, 2);
     await run(); assert.equal(articles.length, 1);
+  });
+  it('keeps one pending delivery across repeated dispatcher intervals', async () => {
+    await useMongoQueue();
+    for (let interval = 0; interval < 5; interval++) {
+      await dispatchFigshare();
+      // Each real dispatcher interval is longer than the dispatch claim cooldown.
+      await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+    }
+    assert.equal(await db.collection('agendaJobs').countDocuments({ name: 'Figshare-SyncRecord' }), 1);
+    assert.equal((await store.get('record-1')).work.sync.processed, 0);
+  });
+  it('coalesces out-of-order dispatch enqueues after the first dispatch claim expires', async () => {
+    const agenda = await useMongoQueue();
+    const saveJob = agenda.db.saveJob.bind(agenda.db);
+    let first = true;
+    let firstRunAt: Date | undefined;
+    let entered!: () => void;
+    let release!: () => void;
+    const blocked = new Promise<void>(resolve => { entered = resolve; });
+    const resume = new Promise<void>(resolve => { release = resolve; });
+    agenda.db.saveJob = async (...args) => {
+      if (first) {
+        first = false; firstRunAt = args[0].nextRunAt ?? undefined;
+        entered(); await resume;
+      }
+      return saveJob(...args);
+    };
+    const firstDispatch = dispatchFigshare();
+    try {
+      await Promise.race([blocked, firstDispatch.then(() => assert.fail('Dispatcher completed before its enqueue was blocked'))]);
+      // The cooldown expires while the original enqueue is still waiting for Mongo.
+      await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+      await dispatchFigshare();
+      const winner = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+      assert.ok(winner); assert.ok(firstRunAt);
+      assert.ok(winner.nextRunAt.getTime() >= firstRunAt.getTime());
+      release(); await firstDispatch;
+      const after = await db.collection('agendaJobs').findOne({ _id: winner._id });
+      assert.ok(after); assert.equal(after.nextRunAt.getTime(), firstRunAt.getTime());
+      assert.deepEqual(after.data, winner.data);
+      assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+      assert.equal((await store.get('record-1')).work.sync.processed, 0);
+      await (await pendingDelivery(agenda)).run();
+      assert.equal((await store.get('record-1')).work.sync.processed, 1);
+      assert.equal(articles.length, 1);
+    } finally { release(); await firstDispatch; agenda.db.saveJob = saveJob; }
+  });
+  it('advances a delayed save delivery when the dispatcher finds durable work due', async () => {
+    const agenda = await useMongoQueue();
+    config.processing!.coalesceMs = 900000;
+    await service.wakeFigshareRecord('record-1');
+    const before = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(before); assert.ok(before.nextRunAt.getTime() > Date.now() + 890000);
+    await dispatchFigshare();
+    const after = await db.collection('agendaJobs').findOne({ _id: before._id });
+    assert.ok(after); assert.ok(after.nextRunAt.getTime() <= Date.now());
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 1);
+  });
+  it('advances only the time of a locked pending delivery and never postpones it', async () => {
+    const agenda = await useMongoQueue();
+    await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+    await pendingDelivery(agenda);
+    const before = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(before);
+    const earlier = new Date(Date.now() + 30000);
+    await AgendaQueueService.scheduleUnique('Figshare-SyncRecord', earlier, { oid: 'replacement', brandId: 'other' }, before.data.deliveryKey);
+    await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+    const after = await db.collection('agendaJobs').findOne({ _id: before._id });
+    assert.ok(after);
+    assert.equal(after.nextRunAt.getTime(), earlier.getTime());
+    assert.equal(after.lockedAt.getTime(), before.lockedAt.getTime());
+    assert.deepEqual(after.data, before.data);
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
+  for (const lifecycle of ['running', 'completed']) {
+    it(`does not revive a delivery that becomes ${lifecycle} between enqueue and advancement`, async () => {
+      const agenda = await useMongoQueue();
+      await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+      const saveJob = agenda.db.saveJob.bind(agenda.db);
+      const now = new Date();
+      agenda.db.saveJob = async (...args) => {
+        const saved = await saveJob(...args);
+        await db.collection('agendaJobs').updateOne({ 'data.oid': 'record-1' }, {
+          $set: { nextRunAt: null, lastRunAt: now, lockedAt: lifecycle === 'running' ? now : null,
+            ...(lifecycle === 'completed' ? { lastFinishedAt: now } : {}) }
+        });
+        return saved;
+      };
+      try { await scheduleFigshareDelivery('record-1', 'brand-1'); }
+      finally { agenda.db.saveJob = saveJob; }
+      const after = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+      assert.ok(after); assert.equal(after.nextRunAt, null);
+      assert.equal(after.lockedAt?.getTime() ?? null, lifecycle === 'running' ? now.getTime() : null);
+      assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+    });
+  }
+  it('advances the competing pending delivery after a duplicate-key enqueue race', async () => {
+    const agenda = await useMongoQueue();
+    await scheduleFigshareDelivery('record-1', 'brand-1', new Date(Date.now() + 900000));
+    const saveJob = agenda.db.saveJob.bind(agenda.db);
+    agenda.db.saveJob = async () => { throw Object.assign(new Error('E11000 duplicate key: agenda_pending_delivery'), { code: 11000 }); };
+    try { await scheduleFigshareDelivery('record-1', 'brand-1'); }
+    finally { agenda.db.saveJob = saveJob; }
+    const after = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(after); assert.ok(after.nextRunAt.getTime() <= Date.now());
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
+  it('retains the earliest requested time across concurrent pending wake-ups', async () => {
+    await useMongoQueue();
+    const now = Date.now();
+    const times = [900000, 60000, 30000, 120000].map(delay => new Date(now + delay));
+    await Promise.all(times.map(time => scheduleFigshareDelivery('record-1', 'brand-1', time)));
+    const after = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(after); assert.equal(after.nextRunAt.getTime(), now + 30000);
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
+  it('coalesces concurrent dispatch and save wake-ups without modifying a locked pending job', async () => {
+    const agenda = await useMongoQueue();
+    await dispatchFigshare();
+    const delivery = await pendingDelivery(agenda);
+    await Promise.all(Array.from({ length: 20 }, () => service.wakeFigshareRecord('record-1')));
+    const document = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+    assert.ok(document);
+    assert.equal(document.lockedAt.getTime(), delivery.attrs.lockedAt!.getTime());
+    assert.equal(document.nextRunAt.getTime(), delivery.attrs.nextRunAt!.getTime());
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+  });
+  it('enforces the pending bound across racing Mongo upserts', async () => {
+    await useMongoQueue();
+    await Promise.all(Array.from({ length: 30 }, () => scheduleFigshareDelivery('record-1', 'brand-1')));
+    assert.equal(await db.collection('agendaJobs').countDocuments({ nextRunAt: { $type: 'date' } }), 1);
+  });
+  it('coalesces a retry when enqueue committed but its acknowledgement was lost', async () => {
+    const agenda = await useMongoQueue();
+    const saveJob = agenda.db.saveJob.bind(agenda.db);
+    agenda.db.saveJob = async (...args) => {
+      const saved = await saveJob(...args);
+      agenda.db.saveJob = saveJob;
+      throw new Error(`Delivery acknowledgement lost for ${saved.name}`);
+    };
+    try {
+      await dispatchFigshare();
+      assert.equal((await store.get('record-1')).work.sync.processed, 0);
+      await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+      await dispatchFigshare();
+      assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+      await (await pendingDelivery(agenda)).run();
+      assert.equal(articles.length, 1); assert.equal((await store.get('record-1')).work.sync.processed, 1);
+    } finally { agenda.db.saveJob = saveJob; }
+  });
+  it('installs the pending index alongside legacy duplicate deliveries', async () => {
+    await db.collection('agendaJobs').insertMany(Array.from({ length: 3 }, () => ({ name: 'Figshare-SyncRecord', type: 'normal',
+      data: { oid: 'record-1', brandId: 'brand-1' }, nextRunAt: new Date() })));
+    await useMongoQueue();
+    await Promise.all(Array.from({ length: 10 }, () => scheduleFigshareDelivery('record-1', 'brand-1')));
+    assert.equal(await db.collection('agendaJobs').countDocuments({ 'data.deliveryKey': { $type: 'string' } }), 1);
+    assert.equal(await db.collection('agendaJobs').countDocuments({ 'data.deliveryKey': { $exists: false } }), 3);
+  });
+  it('allows concurrent Mongo queue initialisation with the same required index', async () => {
+    await Promise.all(Array.from({ length: 3 }, () => useMongoQueue()));
+    const indexes = await db.collection('agendaJobs').listIndexes().toArray();
+    const pendingIndex = indexes.find(index => index.name === 'agenda_pending_delivery');
+    assert.ok(pendingIndex); assert.equal(pendingIndex.unique, true);
+    assert.deepEqual(pendingIndex.key, { name: 1, 'data.deliveryKey': 1 });
+    assert.deepEqual(pendingIndex.partialFilterExpression, { 'data.deliveryKey': { $type: 'string' }, nextRunAt: { $type: 'date' } });
+  });
+  it('fails Mongo queue initialisation when existing keyed pending deliveries conflict', async () => {
+    await db.collection('agendaJobs').insertMany(Array.from({ length: 2 }, () => ({ name: 'Figshare-SyncRecord', type: 'normal',
+      data: { oid: 'record-1', brandId: 'brand-1', deliveryKey: JSON.stringify(['brand-1', 'record-1']) }, nextRunAt: new Date() })));
+    await assert.rejects(useMongoQueue(), (error: unknown) => error instanceof Error && 'code' in error && error.code === 11000);
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 2);
+  });
+  it('retains newer work when an older delivery runs between dispatch claim and enqueue', async () => {
+    const agenda = await useMongoQueue();
+    const recordsService = Reflect.get(globalThis, 'RecordsService');
+    const getMeta = recordsService.getMeta;
+    recordsService.getMeta = async (oid: string) => {
+      recordsService.getMeta = getMeta;
+      await run(); // An existing delivery wins the worker lease before this dispatcher enqueues.
+      await seed(2);
+      return getMeta(oid);
+    };
+    try { await dispatchFigshare(); } finally { recordsService.getMeta = getMeta; }
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 2);
+    assert.equal(articles.length, 1); assert.equal(articles[0].title, 'title-2');
+  });
+  it('recovers a lost delivery and ignores retained completed jobs for a newer save', async () => {
+    const agenda = await useMongoQueue();
+    await dispatchFigshare();
+    // Loss after enqueue (or a queue restore) cannot acknowledge durable work.
+    await db.collection('agendaJobs').deleteMany({ name: 'Figshare-SyncRecord' });
+    await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+    await dispatchFigshare();
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 1);
+    assert.equal(await db.collection('agendaJobs').countDocuments({ nextRunAt: null, lastFinishedAt: { $type: 'date' } }), 1);
+    await seed(2); await service.wakeFigshareRecord('record-1');
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 2);
+    assert.equal(articles.length, 1); assert.equal(articles[0].title, 'title-2');
+  });
+  it('recovers an Agenda handler failure before the durable lease is acquired', async () => {
+    const agenda = await useMongoQueue();
+    await dispatchFigshare();
+    agenda.define('Figshare-SyncRecord', async () => { throw new Error('worker failed before claim'); });
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 0);
+    agenda.define('Figshare-SyncRecord', delivery => runFigshareWorker(service, delivery, store));
+    await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+    await dispatchFigshare(); await (await pendingDelivery(agenda)).run();
+    assert.equal(articles.length, 1); assert.equal((await store.get('record-1')).work.sync.processed, 1);
+  });
+  it('retains retry deadlines and recovers an uncertain create without a second article', async () => {
+    const agenda = await useMongoQueue();
+    createFailure = 503;
+    await dispatchFigshare(); await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).status, 'retrying');
+    assert.equal(articles.length, 1);
+    await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+    await dispatchFigshare();
+    assert.equal(await db.collection('agendaJobs').countDocuments({ nextRunAt: { $type: 'date' } }), 0);
+    createFailure = undefined;
+    await store.change('record-1', (s: FigshareSyncModel) => { s.work.sync.dueAt = 1; });
+    await dispatchFigshare(); await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 1);
+    assert.equal(articles.length, 1);
+    assert.equal(requests.filter(r => r.method === 'POST' && r.path === '/account/articles').length, 1);
+  });
+  it('recovers an expired worker lease without dispatching behind a live owner', async () => {
+    const agenda = await useMongoQueue();
+    await dispatchFigshare();
+    const lost = await pendingDelivery(agenda);
+    // A process died after Agenda started and after it acquired the durable lease.
+    await db.collection('agendaJobs').updateOne({ 'data.oid': 'record-1' }, { $set: { nextRunAt: null } });
+    await store.claim('record-1', 'brand-1', 'lost-worker', 60000);
+    await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+    await dispatchFigshare();
+    assert.equal(await db.collection('agendaJobs').countDocuments({ nextRunAt: { $type: 'date' } }), 0);
+    assert.equal(await store.dispatchClaim('record-1'), false);
+    await store.collection.updateOne({ oid: 'record-1' }, { $set: { leaseUntil: 1 }, $inc: { revision: 1 } });
+    await dispatchFigshare(); await (await pendingDelivery(agenda)).run();
+    await lost.run(); // A stale Agenda redelivery cannot repeat completed durable sync.
+    assert.equal(articles.length, 1); assert.equal((await store.get('record-1')).work.sync.processed, 1);
+  });
+  it('delivers a newer save while the preceding Agenda job is finishing', async () => {
+    const agenda = await useMongoQueue();
+    let finishWorker!: () => void;
+    const workerFinished = new Promise<void>(resolve => { finishWorker = resolve; });
+    let finishAgenda!: () => void;
+    const agendaFinishing = new Promise<void>(resolve => { finishAgenda = resolve; });
+    agenda.define('Figshare-SyncRecord', async delivery => {
+      await runFigshareWorker(service, delivery, store);
+      finishWorker(); await agendaFinishing;
+    });
+    await dispatchFigshare();
+    const running = (await pendingDelivery(agenda)).run();
+    try {
+      await workerFinished;
+      await seed(2); await service.wakeFigshareRecord('record-1');
+      await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+      await dispatchFigshare();
+      assert.equal(await db.collection('agendaJobs').countDocuments({ nextRunAt: { $type: 'date' } }), 1);
+    } finally { finishAgenda(); await running; }
+    agenda.define('Figshare-SyncRecord', delivery => runFigshareWorker(service, delivery, store));
+    await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 2);
+    assert.equal(articles.length, 1); assert.equal(articles[0].title, 'title-2');
+  });
+  it('dispatches a newer save imported during execution after the lease is released', async () => {
+    const agenda = await useMongoQueue();
+    mutateOnUpdate = async () => {
+      await seed(2); await importRecordIntent(store, await RecordsService.getMeta('record-1'));
+      await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+      await dispatchFigshare();
+      assert.equal(await db.collection('agendaJobs').countDocuments({ nextRunAt: { $type: 'date' } }), 0);
+    };
+    await dispatchFigshare(); await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 0);
+    await dispatchFigshare(); await (await pendingDelivery(agenda)).run();
+    assert.equal((await store.get('record-1')).work.sync.processed, 2);
+    assert.equal(articles.length, 1); assert.equal(articles[0].title, 'title-2');
+  });
+  it('runs independent records concurrently while retaining per-record lease exclusion', async () => {
+    const agenda = await useMongoQueue();
+    const source = await seed();
+    await db.collection('records').insertOne({ ...source, redboxOid: 'record-2' });
+    let releaseFirst!: () => void;
+    const firstBlocked = new Promise<void>(resolve => { releaseFirst = resolve; });
+    let enteredFirst!: () => void;
+    const firstEntered = new Promise<void>(resolve => { enteredFirst = resolve; });
+    mutateOnUpdate = async () => { enteredFirst(); await firstBlocked; };
+    await dispatchFigshare();
+    const first = (await pendingDelivery(agenda)).run();
+    try {
+      await firstEntered;
+      assert.ok((await store.get('record-1')).leaseUntil > Date.now());
+      await (await pendingDelivery(agenda, 'record-2')).run();
+      assert.equal((await store.get('record-2')).work.sync.processed, 1);
+      assert.equal((await store.get('record-1')).work.sync.processed, 0);
+    } finally { releaseFirst(); await first; }
+    assert.equal(articles.length, 2); assert.equal((await store.get('record-1')).work.sync.processed, 1);
   });
   it('stops after losing its lease during an HTTP call and lets the successor reconcile', async () => {
     mutateOnUpdate = async () => { await store.collection.updateOne({ oid: 'record-1' }, { $set: { leaseOwner: 'successor', leaseUntil: Date.now() + 60000 }, $inc: { revision: 1 } }); };
@@ -264,7 +590,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assignGlobals({ BrandingService: { getBrandById: (id: string) => ({ id, name: id }), getBrand: () => ({ name: 'brand-1' }) },
       AppConfigService: { getAppConfigurationForBrand: (name: string) => ({ figsharePublishing: name === 'paused' ? { ...config, processing: { ...config.processing, enabled: false } } : name === 'bad' ? { ...config, processing: { ...config.processing, observationMs: undefined }, queue: { ...config.queue, publishAfterUploadDelay: 'tomorrow at noon' } } : config }) } });
     let deliveries = 0;
-    assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; } } });
+    assignGlobals({ AgendaQueueService: { scheduleUnique: async () => { deliveries++; } } });
     await dispatchFigshare();
     assert.equal(deliveries, 1);
     assert.ok(await store.get('record-1'));
@@ -281,7 +607,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assignGlobals({ BrandingService: { getBrandById: (id: string) => ({ id, name: id }), getBrand: () => ({ name: 'brand-1' }) },
       AppConfigService: { getAppConfigurationForBrand: (name: string) => ({ figsharePublishing: name === 'bad' ? { ...config, processing: { ...config.processing, observationMs: undefined }, queue: { ...config.queue, publishAfterUploadDelay: 'tomorrow at noon' } } : config }) } });
     const delivered: string[] = [];
-    assignGlobals({ AgendaQueueService: { now: async (_name: string, data: { oid: string }) => { delivered.push(data.oid); } } });
+    assignGlobals({ AgendaQueueService: { scheduleUnique: async (_name: string, _schedule: string | Date, data: { oid: string }) => { delivered.push(data.oid); } } });
     await dispatchFigshare();
     assert.deepEqual(delivered, ['record-1']);
     assert.ok((await store.get('bad-000')).dispatchUntil > Date.now() + 60000);
@@ -298,7 +624,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
       await claim.call(this, oid); await this.collection.updateOne({ oid }, { $set: { dispatchUntil: 0 } }); return true;
     };
     const delivered: string[] = [];
-    assignGlobals({ AgendaQueueService: { now: async (_name: string, data: { oid: string }) => { delivered.push(data.oid); } } });
+    assignGlobals({ AgendaQueueService: { scheduleUnique: async (_name: string, _schedule: string | Date, data: { oid: string }) => { delivered.push(data.oid); } } });
     try { await dispatchFigshare(); } finally { FigshareSyncStore.prototype.dispatchClaim = claim; }
     assert.equal(delivered.length, 121); assert.ok(delivered.includes('record-1'));
   });
@@ -311,7 +637,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
         config.queue[legacy] = 'tomorrow at noon';
         assignGlobals({ AppConfigService: { getAppConfigurationForBrand: () => ({ figsharePublishing: { ...config, processing } }) } });
         let deliveries = 0;
-        assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; } } });
+        assignGlobals({ AgendaQueueService: { scheduleUnique: async () => { deliveries++; } } });
         for (let attempt = 0; attempt < 3; attempt++) {
           await service.wakeFigshareRecord('record-1'); await dispatchFigshare(); await run();
         }
@@ -453,7 +779,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
       await run();
       articles[0].status = 'private';
       const mutations = requests.filter(r => r.method !== 'GET').length;
-      assignGlobals({ AgendaQueueService: { now: async (name: string) => { assert.equal(name, 'Figshare-SyncRecord'); await run(); } } });
+      assignGlobals({ AgendaQueueService: { scheduleUnique: async (name: string) => { assert.equal(name, 'Figshare-SyncRecord'); await run(); } } });
       for (let day = 0; day < 20; day++) {
         await store.change('record-1', (s: FigshareSyncModel) => { s.work.observe.dueAt = Date.now() - 1; s.dispatchUntil = 0; });
         await service.transitionRecordWorkflowFromFigshareArticlePropertiesJob({});
@@ -625,7 +951,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await importRecordIntent(store, await seed());
     config.processing!.enabled = false;
     let deliveries = 0;
-    assignGlobals({ AgendaQueueService: { now: async () => { deliveries++; } } });
+    assignGlobals({ AgendaQueueService: { scheduleUnique: async () => { deliveries++; } } });
     await dispatchFigshare();
     assert.equal(deliveries, 0); assert.ok((await store.get('record-1')).dispatchUntil > Date.now() + 60000);
     config.processing!.enabled = true;
