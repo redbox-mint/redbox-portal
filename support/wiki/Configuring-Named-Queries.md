@@ -241,7 +241,20 @@ A valid nonlookup definition may be saved even when it cannot serve a typeahead.
 Keep the existing vocabulary alias (`querySource: 'database'` with
 `databaseQuery.queryName` pointing to the named query); this adapter dispatches by
 the saved definition's source. Configure the form with `sourceType: 'namedQuery'`
-and the alias as `queryId`. GraphQL lookup compatibility requires consumer-bound
+and the alias as `queryId`. A complete vocabulary alias is:
+
+```javascript
+projectPrefix: {
+  querySource: 'database',
+  databaseQuery: { queryName: 'projectPrefix' },
+  queryField: { type: 'text', property: 'search' }
+}
+```
+
+`queryField.property` must equal `graphql.lookup.searchParameter`, its type must be
+`text`, and the alias must not define `resultObjectMapping`. The form's `labelField`
+and `valueField` must be `title` and `oid` respectively (or left at those defaults).
+GraphQL lookup compatibility requires consumer-bound
 search, scalar identifier/label mappings and explicit page metadata:
 
 ```javascript
@@ -312,7 +325,9 @@ engine messages and document values are not echoed.
    not provide a general CRUD permission redesign. Audit those roles separately.
 3. Session mutations require CSRF. Sessionless bearer CRUD remains supported, but a
    breaking bearer PUT must obtain the review acknowledgement described above (409
-   otherwise). Preparation is never enabled by bearer authentication alone.
+   otherwise). The review POST requires a CSRF session cookie and token: automation
+   must retain the cookie jar from `GET /csrfToken` and send its token, even when bearer
+   authentication supplies identity. Purely cookieless breaking updates are unsupported. Preparation is never enabled by bearer authentication alone.
 4. Configure/reconcile/backfill any prefix companion before enabling its form alias.
    Verify real mixed-case, literal-prefix and ordinary-user ACL behavior. Schema
    presence and grid version markers do not certify completed reindexing.
@@ -326,3 +341,7 @@ GraphQL reports, numbered-page/unknown-total report UI, CSV/export, exact totals
 broad performance work remain deferred. Report/CSV follow-up must establish trusted
 caller propagation, bounded cursor traversal, unknown-total UI and explicit consistency
 decisions; first-page suggestions are not an export interface.
+
+GraphQL bootstrap definitions that fail validation or cannot inspect an available schema
+are logged using safe codes and skipped. Check bootstrap logs before enabling a
+dependent form alias; unchecked definitions are not silently imported.

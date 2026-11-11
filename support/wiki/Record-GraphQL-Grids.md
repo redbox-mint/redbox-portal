@@ -202,7 +202,12 @@ Deployment order and rollback:
 4. Verify the companion values/counts in Solr, discovery IPREFIX and actual mixed-case/prefix/literal queries with admin and ordinary authorized callers. Merely adding the schema/map leaves old documents without companions. Enable the named-query/form reference only after reindex completion and these checks; existing grid version `1` does not certify companion backfill. Runtime record ACL, stage/form checks and existing scan/time/page bounds still apply.
 5. Roll back by disabling the new lookup/form reference and companion mapping, then deploying the previous application if needed. Leave raw metadata, primary mappings, records and index fields intact; the unused fresh companion can remain. Changed indexing semantics require a new versioned companion and another reindex.
 
-For the UON demonstration, T02 verified `metadata:/dc:identifier` → `uon_grid_project_id`, 60 synthetic RDMP project IDs and stable OIDs. Its effective mappings are in the separate runtime overlay `/home/andrew/.t3/redbox-uon-explorer/docker.js`/`mappings.js`, rather than the UON hook's tracked Solr configuration. Apply the additions there only during a separately authorized deployment, preserving the overlay's existing mappings and per-core copy rules. Do not assume the generic development Compose file owns that environment. Map the lookup label from the searched project ID and the identifier from `oid`; retain title separately in metadata. Optional title search requires its own companion and separate lookup with title as its label. Live deployment, reindex and form verification remain separate prerequisites; implementing this operator does not perform them or require starting UON.
+For an institutional deployment, inspect the environment's runtime overlay as well
+as hook configuration. Generic development Compose files may not own the target.
+Preserve effective mappings and per-core copy rules. Map lookup labels from the
+searched project ID and identifiers from `oid`; retain title separately in metadata.
+Title search needs its own companion and lookup. Deployment, backfill and ordinary-user
+verification are operational steps, not effects of merely installing the operator.
 
 ## Pagination, permissions and consistency
 

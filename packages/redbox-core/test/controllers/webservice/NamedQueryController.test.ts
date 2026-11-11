@@ -392,4 +392,19 @@ describe('Webservice NamedQueryController', () => {
     expect(send.firstCall.args[2].displayErrors[0].detail).to.include('Remove its configured references');
   });
 
+  it('keeps unclassified validation details out of client display errors', async () => {
+    Reflect.get(globalThis, 'NamedQueryService').create = sinon.stub().throws(new Error('Invalid private database attribute secret_value'));
+    const req = {
+      session: { branding: 'default' }, isAuthenticated: () => true,
+      user: { username: 'admin', roles: [{ id: 'admin' }] }, param: () => 'rdmp',
+      body: { name: 'test-query', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
+    } as unknown as Sails.Req;
+    const send = sinon.stub(controller, 'sendResp');
+    await controller.createQuery(req, {} as Sails.Res);
+    const response = send.firstCall.args[2];
+    expect(response?.status).to.equal(400);
+    expect(response?.displayErrors).to.equal(undefined);
+    expect(response?.errors).to.have.length(1);
+  });
+
 });

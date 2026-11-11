@@ -245,8 +245,12 @@ export namespace Controllers {
           displayErrors: [{ detail: error.message, status: '409' }], headers: this.getNoCacheHeaders() });
       }
       const status = this.statusForError(error);
+      const detail = error instanceof NamedQueryDefinitionError
+        ? error.message
+        : status === 404 ? 'Named query not found'
+          : status === 409 ? 'Named query already exists' : undefined;
       return this.sendResp(req, res, { status,
-        ...(status < 500 ? { displayErrors: [{ detail: this.asError(error).message, status: String(status) }] } : { errors: [this.asError(error)] }),
+        ...(detail ? { displayErrors: [{ detail, status: String(status) }] } : { errors: [this.asError(error)] }),
         headers: this.getNoCacheHeaders() });
     }
 
