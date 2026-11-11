@@ -154,7 +154,7 @@ All routes below are relative to `/:branding/:portal/api/named-query` and use
 current brand path permissions (Admin by default), authenticated caller context
 and no-store responses. POSTs require a session CSRF token even when a bearer
 token is also supplied. Session-backed create/update/delete also require CSRF;
-existing sessionless bearer CRUD clients retain their behavior.
+sessionless bearer CRUD remains supported subject to the create permission and breaking-update review requirements below.
 
 | Method | Suffix | Body / query |
 |---|---|---|
@@ -170,3 +170,159 @@ validation and structured preview refusals return HTTP 200 with `valid: false`
 and diagnostics. API v1 returns DTOs directly; v2 (`X-ReDBox-Api-Version: 2.0`)
 wraps them in `data`/`meta`. See [Configuring Reports](Configuring-Reports) for
 report-owned description access and display/CSV contexts.
+
+## GraphQL source
+
+Choose **GraphQL** in the editor to store a read-only operation instead of a database
+query. A missing `source` still means database; existing definitions are not migrated.
+Unknown sources and mixed database/GraphQL fields are rejected. Switching sources
+keeps separate unsaved buffers. A save publishes immediately; there is no publication
+lifecycle. Validation checks schema, variables and mappings without executing records.
+Preview explicitly reads real caller-authorized data.
+
+GraphQL definitions have this shape (select metadata fragments from current schema
+assistance when adding labels):
+
+```javascript
+{
+  source: 'graphql',
+  graphql: {
+    document: `query Plans($type: String!, $first: Int, $after: String) {
+      records(recordType: $type, first: $first, after: $after) {
+        nodes { oid workflowStep }
+        hasNextPage endCursor
+      }
+    }`,
+    operationName: 'Plans',
+    variables: {
+      type: { ownership: 'fixed', value: 'rdmp' },
+      first: { ownership: 'omitted' },
+      after: { ownership: 'omitted' }
+    },
+    resultPath: ['records', 'nodes'],
+    mappings: { oid: ['oid'], title: ['workflowStep'] }
+  }
+}
+```
+
+This is a nonlookup definition. A GraphQL named query is executable only through
+supported authenticated consumers with trusted brand, portal and user context;
+server calls without context fail closed (`GRAPHQL_CONTEXT_REQUIRED`). It invokes
+the local RecordGraphqlService, never a remote endpoint, service-account fallback or
+impersonated caller. Record/workflow/field permissions and all existing execution
+bounds apply. Anonymous execution, mutations and subscriptions are unsupported.
+
+### Variables and mapping
+
+Classify each operation variable explicitly as `fixed`, `consumer` or `omitted`.
+Fixed bindings contain a JSON `value`; omitted bindings leave the variable absent so
+GraphQL operation defaults can apply. Consumer bindings contain `parameter`, GraphQL
+`inputType`, `required` and optional `defaultValue`. Consumer inputs support scalars,
+enums and lists of them; nested input objects are allowed only as schema-validated
+fixed values. Numeric and boolean strings undergo strict schema-aware conversion.
+Ambiguous values and unknown parameters fail validation.
+
+A named-query consumer default applies only when the parameter is absent. Explicit
+null, false, zero and empty text remain distinct. Without a named-query default an
+absent optional variable is omitted, allowing its GraphQL default. Required values
+must satisfy the declared GraphQL type and consumer contract.
+
+Paths are arrays of literal property segments. `resultPath` starts at GraphQL `data`
+and must resolve to an array; mapping paths start at each item. Aliases are response
+keys, punctuation is literal, and only own properties are traversed. Prototype-related
+segments, templates, automatic flattening and arbitrary expression evaluation are
+unsupported. `metadata` maps an object; envelope mappings include `oid`, `title`,
+`dateCreated` and `lastSaveDate`. Missing/null/invalid identifiers or labels cannot
+be used for a lookup. Partial/error responses are failures, not empty suggestions.
+A valid nonlookup definition may be saved even when it cannot serve a typeahead.
+
+### First-page form lookups
+
+Keep the existing vocabulary alias (`querySource: 'database'` with
+`databaseQuery.queryName` pointing to the named query); this adapter dispatches by
+the saved definition's source. Configure the form with `sourceType: 'namedQuery'`
+and the alias as `queryId`. GraphQL lookup compatibility requires consumer-bound
+search, scalar identifier/label mappings and explicit page metadata:
+
+```javascript
+lookup: {
+  mode: 'firstPage',
+  collectionPath: ['records'],
+  hasNextPagePath: ['records', 'hasNextPage'],
+  endCursorPath: ['records', 'endCursor'],
+  firstVariable: 'first',
+  afterVariable: 'after',
+  searchParameter: 'search'
+}
+```
+
+Put this object inside `graphql`. Declare `$first: Int` and `$after: String` in the
+operation, use them directly for the selected records page, and leave them out of
+`variables`: they belong exclusively to the server. Bind the operation's search
+variable as consumer input, for example
+`{ ownership: 'consumer', parameter: 'search', inputType: 'String!', required: true }`.
+Use current schema selections and a filter such as
+`{field: "metadata:/dc:identifier", iprefix: $search}` only after the
+[explicit prefix index prerequisite](Record-GraphQL-Grids#literal-prefix-with-ascii-case-folding).
+
+Only the first page is exposed, at most 25 suggestions, with `summary.numFound: null`,
+`start: 0`, `page: 1`, and `pagination: { mode: 'firstPage', hasNextPage }`.
+No offset or load-more emulation is provided. The form retains its configured minimum
+characters/debounce, suppresses empty named-query searches and stale responses, avoids
+caching GraphQL results, and displays a refine-search hint only when continuation is
+proved. Database lookups retain their configured limits and legacy adapter behavior.
+Lookup compatibility diagnostics belong to configuration verification, not record-save
+validation. Offline tooling warns when runtime inspection is unavailable; genuine
+inspected incompatibility remains fatal in verify mode.
+
+### Explorer promotion and update review
+
+**Create named query** snapshots the current unsaved visual or GraphQL exploration
+into a detached editor. Visual mode uses fresh discovery and shared filter validation;
+raw mode copies the current document and candidate variables without executing it.
+Candidate values are neither fixed values nor defaults until explicitly classified.
+Saving requires a unique valid name and separate named-query CREATE permission.
+Cancel/failure leaves the exploration's identity, revision, URL, saved content and
+unsaved edits intact. Provenance is informational; execution never follows it.
+Preparation is session-only and CSRF-protected, including when a bearer token is sent.
+
+Breaking source, parameter/default/type/nullability or lookup mapping changes require
+`POST /:name/review-update` with the proposed definition, then PUT with
+`X-ReDBox-Named-Query-Confirmation`. The signed acknowledgement expires after ten
+minutes and binds the exact draft, saved state, actor/scope and known usages. A changed
+draft, concurrent write or stale acknowledgement requires another review (409).
+Known usages cannot enumerate dynamic hook/API callers.
+
+Additional editor routes: `GET /editor/graphql-schema`,
+`POST /editor/from-explorer`, `POST /:name/review-update`. All use no-store responses.
+Disabled execution returns `GRAPHQL_DISABLED`/503; service unavailability can return
+`UNAVAILABLE`/503 and timeouts 503. Other validation/bound failures retain safe codes;
+engine messages and document values are not echoed.
+
+### Deployment and rollback
+
+1. Deploy above the current GraphQL and explorer layers. Build shared contracts before
+   core, then affected form, named-query-editor and data-grids Angular applications.
+   Package the matching assets and loader-generated shims together; no new hook service
+   registration is required. Hook definitions still use normal config registration.
+2. Review persisted path rules. Named-query POST now requires an applicable
+   `/:branding/:portal/api/named-query` write (`can_update`) rule for session **and
+   bearer** callers, in addition to feature access. Missing rules fail closed.
+   Legacy update/delete still use their existing read-access check; this layer does
+   not provide a general CRUD permission redesign. Audit those roles separately.
+3. Session mutations require CSRF. Sessionless bearer CRUD remains supported, but a
+   breaking bearer PUT must obtain the review acknowledgement described above (409
+   otherwise). Preparation is never enabled by bearer authentication alone.
+4. Configure/reconcile/backfill any prefix companion before enabling its form alias.
+   Verify real mixed-case, literal-prefix and ordinary-user ACL behavior. Schema
+   presence and grid version markers do not certify completed reindexing.
+5. Back up definitions before rollout. To revert the application, first remove or
+   disable GraphQL form aliases and consumers, then archive/disable new GraphQL
+   definitions. Older applications must not execute persisted GraphQL definitions as
+   database queries. Do not mass-convert them. Revert runtime mounts/config and matched
+   assets together; unused versioned companion fields may remain safely in Solr.
+
+GraphQL reports, numbered-page/unknown-total report UI, CSV/export, exact totals and
+broad performance work remain deferred. Report/CSV follow-up must establish trusted
+caller propagation, bounded cursor traversal, unknown-total UI and explicit consistency
+decisions; first-page suggestions are not an export interface.
