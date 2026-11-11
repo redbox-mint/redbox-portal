@@ -53,6 +53,7 @@ export function gridPrefixIndexBindings(core: SolrCoreConfig): Map<string, { fie
       definition.length !== 1 ||
       definition[0].indexed !== true ||
       definition[0].multiValued !== false ||
+      definition[0].required === true ||
       definition[0].default !== undefined
     )
       continue;

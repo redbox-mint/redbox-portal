@@ -252,6 +252,38 @@ describe('Record grid ASCII-case-insensitive literal prefix', () => {
     });
   }
 
+  for (const location of ['configured', 'live', 'both']) {
+    it(`rejects ${location} required companions at discovery and query planning`, () => {
+      const env = enablePrefix();
+      if (location !== 'live') env.config.schema['add-field'].at(-1)!.required = true;
+      if (location !== 'configured') env.schema.fields.at(-1)!.required = true;
+      assert.equal(gridPrefixIndexBindings(env.config).size, location === 'live' ? 1 : 0);
+      const snapshot = buildCatalogue(gridContracts(), 'grid-fixture', [], env);
+      assert.ok(!snapshot.catalogue.fields.find(f => f.id === 'metadata:/title')?.operators.includes('IPREFIX'));
+      assert.equal(snapshot.prefixBindings.size, 0);
+      assert.throws(
+        () =>
+          queryPlan(
+            { recordType: 'grid-fixture', filters: [{ field: 'metadata:/title', iprefix: 'required' }] },
+            snapshot,
+            env,
+            'brand'
+          ),
+        /not supported/
+      );
+    });
+  }
+
+  it('accepts an explicitly non-required companion in configuration and live schema', () => {
+    const env = enablePrefix();
+    env.config.schema['add-field'].at(-1)!.required = false;
+    env.schema.fields.at(-1)!.required = false;
+    assert.equal(gridPrefixIndexBindings(env.config).size, 1);
+    const snapshot = buildCatalogue(gridContracts(), 'grid-fixture', [], env);
+    assert.ok(snapshot.catalogue.fields.find(f => f.id === 'metadata:/title')?.operators.includes('IPREFIX'));
+    assert.equal(snapshot.prefixBindings.size, 1);
+  });
+
   for (const value of ['ghost-prefix', '', false, 0]) {
     for (const location of ['configured', 'live']) {
       it(`rejects ${location} companion default ${JSON.stringify(value)}`, () => {

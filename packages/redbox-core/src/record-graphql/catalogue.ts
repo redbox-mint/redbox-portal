@@ -339,6 +339,8 @@ export function buildCatalogue(
       prefix.name !== environment.schema.uniqueKey &&
       prefix.indexed === true &&
       prefix.multiValued === false &&
+      // Omitted sources must not make Solr reject this or unrelated record types.
+      prefix.required !== true &&
       // Defaults manufacture terms for omitted sources, violating the original-value contract.
       prefix.default === undefined &&
       prefix.type === configuredPrefix?.type &&

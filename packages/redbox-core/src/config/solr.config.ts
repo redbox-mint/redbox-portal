@@ -80,6 +80,7 @@ export interface SolrCoreConfig {
     recordGraphqlFields?: Record<string, string>;
     /**
      * Opt-in metadata IDs to dedicated, explicit single-valued StrField companions.
+     * Companions must be non-required and have no default value.
      * IPREFIX folds ASCII A-Z only, preserving all other UTF-16 code units exactly.
      * Requires the primary scalar copy, schema reconciliation and a complete reindex.
      */

@@ -428,6 +428,107 @@ describe('GraphQL grid over Sails and Solr', function () {
       core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
     }
   });
+  it('rejects required companions and indexes omitted sources and unrelated record types after schema repair', async () => {
+    const core = sails.config.solr.cores.default;
+    const before = { schema: core.schema, prefix: core.recordGraphqlCaseInsensitivePrefixFields };
+    const companion = { ...prefixField, name: `${prefixField.name}_required_test`, required: false };
+    const rows = [undefined, null, 42, false, [], { nested: 'text' }, '', 'Required-Actual'].map(value =>
+      prefixRow(value)
+    );
+    const unrelated = prefixRow(undefined);
+    rows.push(unrelated);
+    const created = await Record.createEach(
+      rows.map(row => ({
+        redboxOid: row.oid,
+        metadata: row.title === undefined ? {} : { title: row.title },
+        metaMetadata: {
+          brandId: brand.id,
+          type: row === unrelated ? 'rdmp' : 'dataPublication',
+          form: row === unrelated ? 'rdmp-1.0-draft' : 'dataPublication-1.0-draft',
+          searchCore: 'default',
+        },
+        workflow: { stage: 'draft' },
+        authorization: { view: [username], edit: [], viewRoles: [], editRoles: [] },
+      }))
+    ).fetch();
+    await axios.post(`${url}/schema`, { 'add-field': { ...companion, required: true } });
+    // Configuration permits omission, so this independently exercises live required:true.
+    core.schema = { ...core.schema, 'add-field': [...core.schema['add-field'], companion] };
+    core.recordGraphqlCaseInsensitivePrefixFields = { 'metadata:/title': companion.name };
+    try {
+      const documents = created.map(record =>
+        sails.services.solrsearchservice.preIndex({ ...record, storage_id: record.id })
+      );
+      const omitted = [...documents.slice(0, 6), documents[8]];
+      for (const document of omitted) assert.ok(!Object.hasOwn(document, companion.name));
+      assert.equal(documents[6][companion.name], '');
+      assert.equal(documents[7][companion.name], 'required-actual');
+      const discovery = await send(catalogue);
+      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+      assert.ok(
+        !discovery.body.data.recordFields.fields
+          .find(field => field.id === 'metadata:/title')
+          .operators.includes('IPREFIX')
+      );
+      const rejected = await prefixPage('required');
+      assert.equal(rejected.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(rejected.body));
+      assert.equal(rejected.body.data.records, null);
+
+      // Solr enforces required fields across every record type in the core.
+      for (const document of omitted) {
+        const response = await axios.post(`${url}/update`, [document], {
+          params: { commit: true },
+          validateStatus: () => true,
+        });
+        assert.equal(response.status, 400, JSON.stringify(response.data));
+        assert.match(response.data.error.msg, /missing required field/);
+        assert.ok(response.data.error.msg.includes(companion.name), JSON.stringify(response.data));
+      }
+
+      // Capability rejection cannot fix a required live field; repair it before retrying indexing.
+      await axios.post(`${url}/schema`, { 'replace-field': companion });
+      const indexed = await axios.post(`${url}/update`, documents, { params: { commit: true } });
+      assert.equal(indexed.data.responseHeader.status, 0, JSON.stringify(indexed.data));
+      const scope = {
+        fq: '{!terms f=redbox_grid_oid v=$rbRequiredFixtureIds}',
+        rbRequiredFixtureIds: rows.map(row => row.oid).join(','),
+        rows: 20,
+        fl: 'redbox_grid_oid,redbox_grid_type',
+        wt: 'json',
+      };
+      const all = (await axios.get(`${url}/select`, { params: { ...scope, q: '*:*' } })).data.response;
+      assert.equal(all.numFound, rows.length, JSON.stringify(all));
+      assert.deepEqual(all.docs.map(row => row.redbox_grid_oid).sort(), rows.map(row => row.oid).sort());
+      assert.equal(all.docs.find(row => row.redbox_grid_oid === unrelated.oid).redbox_grid_type, 'rdmp');
+      const matches = (
+        await axios.get(`${url}/select`, {
+          params: { ...scope, q: `{!prefix f=${companion.name} v=$rbRequiredPrefix}`, rbRequiredPrefix: 'required' },
+        })
+      ).data.response;
+      assert.equal(matches.numFound, 1, JSON.stringify(matches));
+      assert.equal(matches.docs[0].redbox_grid_oid, rows[7].oid);
+      const restored = await send(catalogue);
+      assert.equal(restored.body.errors, undefined, JSON.stringify(restored.body));
+      assert.ok(
+        restored.body.data.recordFields.fields
+          .find(field => field.id === 'metadata:/title')
+          .operators.includes('IPREFIX')
+      );
+      const result = await prefixPage('required', 25, [
+        { field: 'record:oid', in: rows.map(row => ({ text: row.oid })) },
+      ]);
+      assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
+      assert.deepEqual(
+        result.body.data.records.nodes.map(row => row.oid),
+        [rows[7].oid]
+      );
+      assert.equal(result.body.data.records.hasNextPage, false);
+    } finally {
+      core.schema = before.schema;
+      core.recordGraphqlCaseInsensitivePrefixFields = before.prefix;
+      await axios.post(`${url}/schema`, { 'replace-field': companion });
+    }
+  });
   it('matches positive literal wildcard, quote, backslash, bracket and search-syntax prefixes in real Solr', async () => {
     for (const [i, p] of literalPrefixes.entries()) {
       const response = await prefixPage(p, 50);
