@@ -138,6 +138,26 @@ describe('named query source CRUD API', function () {
     await request().get('/default/rdmp/api/report/namedQuery').set(auth()).query({ queryName: name }).expect(500);
     await request().delete(`${prefix}/${name}`).set(auth()).expect(200);
   });
+  it('returns a field-specific preview parameter diagnostic without reflecting the supplied value', async () => {
+    const definition = {
+      ...graphql,
+      graphql: {
+        ...graphql.graphql,
+        document: 'query($count: Int) { records(recordType: "rdmp", first: $count) { nodes { oid workflowStep } } }',
+        variables: { count: { ownership: 'consumer', parameter: 'count', inputType: 'Int', required: false } },
+      },
+    };
+    const response = await editorSession
+      .post(`${prefix}/editor/preview`)
+      .set(editorAuth())
+      .send({ definition, parameters: { count: 'PRIVATE_INVALID_COUNT' } })
+      .expect(400);
+    const diagnostic = response.body.meta.diagnostics[0];
+    assert.equal(diagnostic.field, 'parameters.count');
+    assert.equal(diagnostic.code, 'INVALID_GRAPHQL_PARAMETER');
+    assert.match(diagnostic.reason, /declared input type/);
+    assert.ok(!JSON.stringify(response.body).includes('PRIVATE_INVALID_COUNT'));
+  });
   it('imports trusted startup files without caller or enabled endpoint, skips invalid neighbours and grants no execution', async () => {
     const root = await fs.mkdtemp(path.resolve('.tmp/t04-http-bootstrap-'));
     const bootstrapBefore = sails.config.bootstrap.bootstrapDataPath;

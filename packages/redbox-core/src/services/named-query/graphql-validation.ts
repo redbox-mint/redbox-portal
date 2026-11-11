@@ -16,7 +16,7 @@ import {
   typeFromAST,
   validate,
   visit,
-  valueFromASTUntyped,
+  valueFromAST,
   type DocumentNode,
   type FieldNode,
   type GraphQLCompositeType,
@@ -64,10 +64,15 @@ export interface ValidatedGraphqlNamedQuery {
   validation: NamedQueryValidation;
 }
 
+interface ScopedSelection {
+  selectionSet: SelectionSetNode;
+  guaranteed: boolean;
+}
 interface Selected {
   type: GraphQLOutputType;
   node: FieldNode;
   guaranteed: boolean;
+  selections: readonly ScopedSelection[];
 }
 const unwrap = (type: GraphQLOutputType) => (isNonNullType(type) ? type.ofType : type);
 
@@ -78,7 +83,7 @@ function selectedPath(
   schema: GraphQLSchema,
   document: DocumentNode,
   start: GraphQLCompositeType,
-  selections: readonly SelectionSetNode[],
+  selections: readonly ScopedSelection[],
   path: NamedQueryPath,
   metadataTypes?: ReadonlySet<string>
 ): Selected[] | undefined {
@@ -87,19 +92,23 @@ function selectedPath(
   );
   const find = (
     type: GraphQLObjectType,
-    sets: readonly SelectionSetNode[],
+    sets: readonly ScopedSelection[],
     alias: string,
-    guaranteed: boolean,
     active = new Set<string>()
   ): Selected[] => {
     const result: Selected[] = [];
-    for (const set of sets)
-      for (const node of set.selections) {
+    for (const { selectionSet, guaranteed } of sets)
+      for (const node of selectionSet.selections) {
         const certain = guaranteed && !node.directives?.some(d => ['skip', 'include'].includes(d.name.value));
         if (node.kind === Kind.FIELD) {
           const field = node.name.value === '__typename' ? TypeNameMetaFieldDef : type.getFields()[node.name.value];
           if (field && (node.alias?.value ?? node.name.value) === alias)
-            result.push({ type: field.type, node, guaranteed: certain });
+            result.push({
+              type: field.type,
+              node,
+              guaranteed: certain,
+              selections: node.selectionSet ? [{ selectionSet: node.selectionSet, guaranteed: certain }] : [],
+            });
         } else {
           const fragment = node.kind === Kind.FRAGMENT_SPREAD ? fragments.get(node.name.value) : node;
           if (!fragment || (node.kind === Kind.FRAGMENT_SPREAD && active.has(node.name.value))) continue;
@@ -109,9 +118,8 @@ function selectedPath(
           result.push(
             ...find(
               type,
-              [fragment.selectionSet],
+              [{ selectionSet: fragment.selectionSet, guaranteed: certain }],
               alias,
-              certain,
               new Set([...active, ...(node.kind === Kind.FRAGMENT_SPREAD ? [node.name.value] : [])])
             )
           );
@@ -121,26 +129,31 @@ function selectedPath(
   };
   const walk = (
     parent: GraphQLCompositeType,
-    sets: readonly SelectionSetNode[],
-    index: number,
-    certain: boolean
+    sets: readonly ScopedSelection[],
+    index: number
   ): Selected[] | undefined => {
     const possible = (isObjectType(parent) ? [parent] : schema.getPossibleTypes(parent)).filter(
       type => parent.name !== 'RecordMetadata' || !metadataTypes || metadataTypes.has(type.name)
     );
     const results: Selected[] = [];
     for (const type of possible) {
-      const found = find(type, sets, path[index], certain);
+      const found = find(type, sets, path[index]);
       if (!found.length) return undefined;
-      if (index === path.length - 1) results.push(...found);
-      else {
+      if (index === path.length - 1) {
+        // The response field is guaranteed if any occurrence is unconditional,
+        // but each child selection retains its own complete ancestor chain.
+        results.push({
+          ...found[0],
+          guaranteed: found.some(f => f.guaranteed),
+          selections: found.flatMap(f => f.selections),
+        });
+      } else {
         const output = unwrap(found[0].type);
         if (isListType(output) || !isCompositeType(output)) return undefined;
         const next = walk(
           output,
-          found.flatMap(f => (f.node.selectionSet ? [f.node.selectionSet] : [])),
-          index + 1,
-          found.some(f => f.guaranteed)
+          found.flatMap(f => f.selections),
+          index + 1
         );
         if (!next) return undefined;
         results.push(...next);
@@ -148,7 +161,7 @@ function selectedPath(
     }
     return results.length ? results : undefined;
   };
-  return path.length ? walk(start, selections, 0, true) : undefined;
+  return path.length ? walk(start, selections, 0) : undefined;
 }
 
 /** The read schema records variant identities when compiling contracts. Narrow
@@ -163,21 +176,32 @@ function collectionMetadataTypes(
 ): ReadonlySet<string> | undefined {
   const root = schema.getQueryType();
   const top = definition.graphql.resultPath[0];
-  const selected = root && top ? selectedPath(schema, document, root, [operation.selectionSet], [top]) : undefined;
+  const selected =
+    root && top
+      ? selectedPath(schema, document, root, [{ selectionSet: operation.selectionSet, guaranteed: true }], [top])
+      : undefined;
   const collection = selected?.find(field => field.node.name.value === 'records')?.node;
-  if (!collection) return;
+  if (!root || !collection) return;
   const argument = (name: string): unknown => {
+    const argumentType = root.getFields()[collection.name.value]?.args.find(arg => arg.name === name)?.type;
     const value = collection.arguments?.find(arg => arg.name.value === name)?.value;
-    if (!value) return undefined;
-    if (value.kind !== Kind.VARIABLE) return valueFromASTUntyped(value);
+    if (!value || !argumentType) return undefined;
+    if (value.kind !== Kind.VARIABLE) return valueFromAST(value, argumentType);
+    const declaration = operation.variableDefinitions?.find(v => v.variable.name.value === value.name.value);
+    const inputType = declaration && typeFromAST(schema, declaration.type);
+    if (!inputType || !isInputType(inputType)) return undefined;
     const binding = definition.graphql.variables[value.name.value];
-    if (binding?.ownership === 'fixed') return binding.value;
-    if (binding?.ownership === 'omitted') {
-      const defaultValue = operation.variableDefinitions?.find(
-        v => v.variable.name.value === value.name.value
-      )?.defaultValue;
-      return defaultValue ? valueFromASTUntyped(defaultValue) : undefined;
+    if (binding?.ownership === 'fixed') {
+      try {
+        // Supplied JSON retains the explicit-array rule; only AST literals and
+        // operation defaults receive GraphQL's singleton list coercion.
+        return convertGraphqlInput(inputType, binding.value, value.name.value, true);
+      } catch {
+        return undefined; // The ownership validation already reports this input.
+      }
     }
+    if (binding?.ownership === 'omitted' && declaration?.defaultValue)
+      return valueFromAST(declaration.defaultValue, inputType);
   };
   const type = argument('recordType');
   const stages = argument('workflowStages');
@@ -379,7 +403,15 @@ export function validateGraphqlNamedQuery(
   const root = schema.getQueryType();
   const metadataTypes = collectionMetadataTypes(schema, document, operation, input);
   const at = (path: NamedQueryPath) =>
-    root && selectedPath(schema, document, root, [operation.selectionSet], path, metadataTypes);
+    root &&
+    selectedPath(
+      schema,
+      document,
+      root,
+      [{ selectionSet: operation.selectionSet, guaranteed: true }],
+      path,
+      metadataTypes
+    );
   const rows = at(config.resultPath);
   if (!rows?.length || rows.some(row => !isListType(unwrap(row.type))))
     issue(
@@ -398,12 +430,12 @@ export function validateGraphqlNamedQuery(
         const selection =
           path.length === 0
             ? [{ ...row, type: list.ofType }]
-            : isCompositeType(item) && row.node.selectionSet
+            : isCompositeType(item) && row.selections.length
               ? selectedPath(
                   schema,
                   document,
                   item,
-                  rows.flatMap(r => (r.node.selectionSet ? [r.node.selectionSet] : [])),
+                  rows.flatMap(r => r.selections),
                   path,
                   metadataTypes
                 )

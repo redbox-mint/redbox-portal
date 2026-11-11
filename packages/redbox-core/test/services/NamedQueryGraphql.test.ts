@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import { buildSchema, GraphQLScalarType, getVariableValues, GraphQLSchema } from 'graphql';
+import { buildSchema, GraphQLScalarType, getVariableValues, GraphQLSchema, executeSync, parse } from 'graphql';
 import type { GraphqlNamedQueryDefinition, GraphqlNamedQueryVariable } from '@researchdatabox/sails-ng-common';
 import { createRecordYoga } from '../../src/record-graphql/schema';
 import { RecordContractContributorRegistry, createCoreRecordContractContributors } from '../../src/record-contract';
@@ -362,6 +362,72 @@ describe('GraphQL named query validation and binding', () => {
     wrong.graphql.lookup!.hasNextPagePath = ['matches', 'cursor'];
     assert.equal(prepare(wrong).validation.capabilities?.lookup, false);
   });
+  for (const [selection, path] of [
+    ['metadata { other } metadata @skip(if: true) { title }', ['metadata', 'title']],
+    ['metadata @include(if: false) { title } metadata { other }', ['metadata', 'title']],
+    ['metadata { other } ... on Record @skip(if: true) { metadata { title } }', ['metadata', 'title']],
+    ['metadata { detail { other } } metadata @skip(if: true) { detail { title } }', ['metadata', 'detail', 'title']],
+    ['metadata { detail { other } detail @skip(if: true) { title } }', ['metadata', 'detail', 'title']],
+  ] as const)
+    it(`keeps conditional ancestor provenance when merging ${selection}`, () => {
+      const nested = buildSchema(`
+        input RecordFilterInput { field: ID!, contains: String }
+        type Query { records(recordType: String!, filters: [RecordFilterInput!], first: Int, after: String): Page }
+        type Page { nodes: [Record!]!, hasNextPage: Boolean!, endCursor: String }
+        type Record { oid: ID!, metadata: Metadata }
+        type Metadata { other: String, title: String, detail: Metadata }
+      `);
+      const input = definition();
+      input.graphql.document = input.graphql.document.replace('label: workflowStep', selection);
+      input.graphql.mappings!.title = [...path];
+      const result = executeSync({
+        schema: nested,
+        document: parse(input.graphql.document),
+        variableValues: { first: 25, after: null },
+        rootValue: {
+          records: {
+            nodes: [{ oid: 'r', metadata: { other: 'x', title: 'hidden', detail: { other: 'y', title: 'hidden' } } }],
+            hasNextPage: false,
+            endCursor: null,
+          },
+        },
+      });
+      assert.equal(result.errors, undefined);
+      const rows = graphqlPath(result.data, ['matches', 'items']);
+      assert.ok(Array.isArray(rows));
+      assert.equal(graphqlPath(rows[0], [...path]), undefined);
+      const validation = prepare(input, nested).validation;
+      assert.equal(validation.capabilities?.lookup, false);
+      assert.ok(
+        validation.capabilities?.diagnostics.some(
+          d => d.code === 'LOOKUP_MAPPING' && d.field === 'graphql.mappings.title'
+        )
+      );
+      // An unconditional copy of the whole mapped path is sufficient even when
+      // a duplicate parent is conditional. Do not disable safe merged selections.
+      input.graphql.document = input.graphql.document.replace('metadata { other }', 'metadata { other title }');
+      if (path.length === 2 && selection.startsWith('metadata { other }'))
+        assert.equal(prepare(input, nested).validation.capabilities?.lookup, true);
+    });
+  it('keeps conditional provenance across duplicate list selections', () => {
+    const input = definition();
+    input.graphql.document = input.graphql.document.replace(
+      'items: nodes { id: oid label: workflowStep }',
+      'items: nodes { id: oid } items: nodes @skip(if: true) { label: workflowStep }'
+    );
+    const validation = prepare(input).validation;
+    assert.equal(validation.capabilities?.lookup, false);
+    assert.ok(
+      validation.capabilities?.diagnostics.some(
+        d => d.code === 'LOOKUP_MAPPING' && d.field === 'graphql.mappings.title'
+      )
+    );
+    input.graphql.document = input.graphql.document.replace(
+      'items: nodes { id: oid }',
+      'items: nodes { id: oid label: workflowStep }'
+    );
+    assert.equal(prepare(input).validation.capabilities?.lookup, true);
+  });
   it('validates nested aliases across every selected metadata union variant', () => {
     const nested = buildSchema(`
       type Query { rows: [Row!]! }
@@ -428,6 +494,70 @@ describe('GraphQL named query validation and binding', () => {
     input.graphql.variables.type = { ownership: 'omitted' };
     input.graphql.document = input.graphql.document.replace('$type: String!', '$type: String! = "a"');
     assert.ok(prepare(input, scoped));
+  });
+  it('narrows metadata stages using GraphQL literal/default coercion while supplied JSON lists stay explicit', () => {
+    const base = buildSchema(`
+      type Query { records(recordType: String!, workflowStages: [String!]): Page }
+      type Page { nodes: [Row!]! }
+      type Row { metadata: RecordMetadata }
+      union RecordMetadata = Draft | Published
+      type Draft { title: String }
+      type Published { other: String }
+    `);
+    const scoped = new GraphQLSchema({
+      ...base.toConfig(),
+      extensions: {
+        recordReadVariants: [
+          { recordType: 'a', workflowStep: 'draft', typeName: 'Draft' },
+          { recordType: 'a', workflowStep: 'published', typeName: 'Published' },
+        ],
+      },
+    });
+    const input: GraphqlNamedQueryDefinition = {
+      source: 'graphql',
+      graphql: {
+        document:
+          'query($stages: [String!] = "draft") { records(recordType: "a", workflowStages: $stages) { nodes { metadata { ... on Draft { title } } } } }',
+        variables: { stages: { ownership: 'omitted' } },
+        resultPath: ['records', 'nodes'],
+        mappings: { title: ['metadata', 'title'] },
+      },
+    };
+    const prepared = prepare(input, scoped);
+    assert.deepEqual(getVariableValues(scoped, prepared.operation.variableDefinitions ?? [], {}).coerced?.stages, [
+      'draft',
+    ]);
+    assert.ok(
+      prepare(
+        {
+          ...input,
+          graphql: { ...input.graphql, document: input.graphql.document.replace('= "draft"', '= ["draft"]') },
+        },
+        scoped
+      )
+    );
+    input.graphql.variables = {};
+    input.graphql.document = input.graphql.document
+      .replace('query($stages: [String!] = "draft")', 'query')
+      .replace('workflowStages: $stages', 'workflowStages: "draft"');
+    assert.ok(prepare(input, scoped));
+    input.graphql.document = input.graphql.document
+      .replace('query {', 'query($stages: [String!]) {')
+      .replace('workflowStages: "draft"', 'workflowStages: $stages');
+    input.graphql.variables = { stages: { ownership: 'fixed', value: 'draft' } };
+    assert.equal(validateGraphqlNamedQuery(input, scoped).validation.valid, false);
+    input.graphql.variables = { stages: { ownership: 'fixed', value: ['draft'] } };
+    assert.ok(prepare(input, scoped));
+    input.graphql.variables = {
+      stages: {
+        ownership: 'consumer',
+        parameter: 'stages',
+        inputType: '[String!]',
+        required: false,
+        defaultValue: ['draft'],
+      },
+    };
+    assert.equal(validateGraphqlNamedQuery(input, scoped).validation.valid, false);
   });
   it('leaves omitted nested fixed input-field defaults for GraphQL to apply', () => {
     const nested = buildSchema(

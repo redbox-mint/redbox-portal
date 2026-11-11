@@ -14,7 +14,7 @@ import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 import { Controllers as controllers } from '../../CoreController';
 import { NamedQueryDefinitionError } from '../../services/named-query/definition';
 import { GraphqlNamedQueryInputError } from '../../services/named-query/graphql-input';
-import { GraphqlNamedQueryValidationError } from '../../services/named-query/graphql-validation';
+import { GraphqlNamedQueryValidationError, graphqlDiagnostic } from '../../services/named-query/graphql-validation';
 import type { ReadCaller } from '../../record-graphql/read-record';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
@@ -77,10 +77,24 @@ export namespace Controllers {
                     ? 403
                     : 400
                   : 500;
+        const diagnostics =
+          error instanceof GraphqlNamedQueryValidationError
+            ? error.diagnostics
+            : error instanceof GraphqlNamedQueryInputError
+              ? [graphqlDiagnostic(error.code, error.field, 'Provide a value that satisfies the declared input type.')]
+              : undefined;
         return this.sendResp(req, res, {
           status,
-          displayErrors: [{ code, status: String(status) }],
-          ...(error instanceof GraphqlNamedQueryValidationError ? { meta: { diagnostics: error.diagnostics } } : {}),
+          displayErrors: [
+            {
+              code,
+              status: String(status),
+              ...(error instanceof GraphqlNamedQueryInputError && diagnostics
+                ? { detail: `${diagnostics[0].field}: ${diagnostics[0].reason}` }
+                : {}),
+            },
+          ],
+          ...(diagnostics ? { meta: { diagnostics } } : {}),
           headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' },
         });
       }

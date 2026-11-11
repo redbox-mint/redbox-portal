@@ -8,6 +8,7 @@ import { routes } from '../../../src/config/routes.config';
 import { namedQueryMutationCsrf } from '../../../src/policies/namedQueryMutationCsrf';
 import { checkAuth } from '../../../src/policies/checkAuth';
 import { NamedQueryAssistanceError, NAMED_QUERY_PREVIEW_LIMITS } from '../../../src/utilities/NamedQueryPreview';
+import { GraphqlNamedQueryInputError } from '../../../src/services/named-query/graphql-input';
 import { FieldDescriptionError } from '../../../src/services/FieldDescriptionsService';
 import { Services as PathServices } from '../../../src/services/PathRulesService';
 import { Services as EditorServices } from '../../../src/services/NamedQueryEditorService';
@@ -267,6 +268,33 @@ describe('Named query assistance HTTP boundary', () => {
     await controller.previewDraft(req as unknown as Sails.Req, res as unknown as Sails.Res);
     assert.equal(res.status.lastCall.args[0], 408);
     assert.equal(res.json.lastCall.args[0].errors[0].code, 'PREVIEW_TIMEOUT');
+  });
+  it('returns the safe parameter diagnostic location through both API response versions', async () => {
+    service.previewDraft.rejects(new GraphqlNamedQueryInputError('parameters.count'));
+    for (const version of ['1.0', '2.0']) {
+      const res = {
+        status: sinon.stub().returnsThis(),
+        set: sinon.stub().returnsThis(),
+        json: sinon.stub().returnsThis(),
+      };
+      const req = {
+        ...request(),
+        headers: { 'x-redbox-api-version': version },
+        body: { ...request().body, parameters: { count: 'PRIVATE_INPUT' } },
+      };
+      await controller.previewDraft(req as unknown as Sails.Req, res as unknown as Sails.Res);
+      assert.equal(res.status.lastCall.args[0], 400);
+      const response = res.json.lastCall.args[0];
+      if (version === '2.0') {
+        assert.equal(response.meta.diagnostics[0].field, 'parameters.count');
+        assert.equal(response.meta.diagnostics[0].code, 'INVALID_GRAPHQL_PARAMETER');
+        assert.match(response.meta.diagnostics[0].reason, /declared input type/);
+      } else {
+        assert.equal(response.message, 'INVALID_GRAPHQL_PARAMETER');
+        assert.match(response.details, /parameters.count: .*declared input type/);
+      }
+      assert.ok(!JSON.stringify(response).includes('PRIVATE_INPUT'));
+    }
   });
   it('maps guidance denial, missing saved query, size and timeout failures', async () => {
     const send = sinon.stub(controller, 'sendResp');
