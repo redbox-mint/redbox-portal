@@ -1,10 +1,14 @@
 import { APP_BASE_HREF } from "@angular/common";
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Inject, Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 import { get as _get } from "lodash-es";
 import { ConfigService, HttpClientService, UtilityService } from "@researchdatabox/portal-ng-common";
-import { TypeaheadOption } from "@researchdatabox/sails-ng-common";
+import { NamedQueryLookupResult, TypeaheadOption } from "@researchdatabox/sails-ng-common";
+
+export class TypeaheadLookupError extends Error {
+    constructor(readonly misconfigured: boolean) { super('Lookup request failed'); }
+}
 
 type WrappedResponse<T> = { data?: T; meta?: Record<string, unknown> };
 
@@ -15,6 +19,7 @@ export class TypeaheadDataService extends HttpClientService {
     // removed so subsequent callers always re-fetch. This avoids serving stale results for
     // user-typed terms while still collapsing the burst of identical lookups that fire when
     // multiple typeahead instances on the same form initialise with the same stored value.
+    private readonly namedQueryInFlight = new Map<string, Promise<NamedQueryLookupResult<TypeaheadOption>>>();
     private readonly inFlight = new Map<string, Promise<TypeaheadOption[]>>();
 
     constructor(
@@ -110,15 +115,50 @@ export class TypeaheadDataService extends HttpClientService {
         labelField = "label",
         valueField = "value"
     ): Promise<TypeaheadOption[]> {
+        // Keep the established database array API (including paging) for hooks and
+        // legacy callers. The form uses the bounded metadata-aware method below.
+        if (start === 0 && Number.isSafeInteger(rows) && rows >= 1 && rows <= 25)
+            return this.searchNamedQueryLookup(queryId, search, start, rows, labelField, valueField).then(result => result.options);
+        const id = String(queryId ?? "").trim();
+        if (!id) return Promise.reject(new Error("queryId is required"));
+        if (!String(search ?? "").trim()) return Promise.resolve([]);
+        const label = String(labelField ?? "").trim() || "label";
+        const value = String(valueField ?? "").trim() || "value";
+        return this.dedupe(`namedQuery|${id}|${search}|${start}|${rows}|${label}|${value}`, () =>
+            this.fetchNamedQuery(id, search, start, rows, label, value).then(result => result.options));
+    }
+
+    public searchNamedQueryLookup(
+        queryId: string, search: string, start = 0, rows = 25, labelField = "label", valueField = "value"
+    ): Promise<NamedQueryLookupResult<TypeaheadOption>> {
         const trimmedQueryId = String(queryId ?? "").trim();
-        if (!trimmedQueryId) {
-            return Promise.reject(new Error("queryId is required"));
-        }
-        const trimmedSearch = String(search ?? "");
+        if (!trimmedQueryId) return Promise.reject(new Error("queryId is required"));
+        if (start !== 0) return Promise.reject(new Error("Lookup offsets are unsupported"));
+        if (!Number.isSafeInteger(rows) || rows < 1) return Promise.reject(new Error("Invalid lookup page size"));
+        if (!String(search ?? "").trim()) return Promise.resolve({ options: [] });
+        const limit = Math.min(rows, 25);
         const resolvedLabelField = String(labelField ?? "").trim() || "label";
         const resolvedValueField = String(valueField ?? "").trim() || "value";
-        const key = `namedQuery|${trimmedQueryId}|${trimmedSearch}|${start}|${rows}|${resolvedLabelField}|${resolvedValueField}`;
-        return this.dedupe(key, () => this.fetchNamedQuery(trimmedQueryId, trimmedSearch, start, rows, resolvedLabelField, resolvedValueField));
+        const key = JSON.stringify([trimmedQueryId, search, limit, resolvedLabelField, resolvedValueField]);
+        const existing = this.namedQueryInFlight.get(key);
+        if (existing) return existing;
+        const pending = this.fetchNamedQuery(trimmedQueryId, search, 0, limit, resolvedLabelField, resolvedValueField).catch((error: unknown) => {
+            if (error instanceof HttpErrorResponse) {
+                const body: unknown = error.error;
+                const codes = this.isObject(body) ? [body['message'], ...(Array.isArray(body['errors'])
+                    ? body['errors'].map((item: unknown) => this.isObject(item) ? item['code'] : undefined) : [])] : [];
+                const misconfigured = codes.some(code => typeof code === 'string' && [
+                    'GRAPHQL_LOOKUP_CONFIG_INVALID', 'GRAPHQL_LOOKUP_UNSUPPORTED', 'GRAPHQL_DEFINITION_INVALID', 'GRAPHQL_VOCAB_MAPPING_UNSUPPORTED',
+                    'query-vocab-invalid-config', 'query-vocab-not-configured'
+                ].includes(code));
+                throw new TypeaheadLookupError(misconfigured);
+            }
+            throw error;
+        });
+        this.namedQueryInFlight.set(key, pending);
+        const cleanup = () => this.namedQueryInFlight.delete(key);
+        pending.then(cleanup, cleanup);
+        return pending;
     }
 
     private async fetchNamedQuery(
@@ -128,7 +168,7 @@ export class TypeaheadDataService extends HttpClientService {
         rows: number,
         labelField: string,
         valueField: string
-    ): Promise<TypeaheadOption[]> {
+    ): Promise<NamedQueryLookupResult<TypeaheadOption>> {
         await this.waitForInit();
         const url = `${this.brandingAndPortalUrl}/query/vocab/${encodeURIComponent(queryId)}`;
         const response = await firstValueFrom(
@@ -144,19 +184,45 @@ export class TypeaheadDataService extends HttpClientService {
             })
         );
 
-        const records = this.extractNamedQueryRecords(response);
-        return records
+        const root = (response as WrappedResponse<unknown>)?.data ?? response;
+        if (this.isObject(root) && Object.hasOwn(root, 'errors')) throw new Error('Lookup response contains errors');
+        if (this.isObject(root) && root['source'] === 'graphql') {
+            const pageRows = Math.min(rows, 25);
+            const summary = root['summary'];
+            const pagination = root['pagination'];
+            const records = root['records'];
+            if (!this.isObject(summary) || summary['numFound'] !== null || summary['start'] !== 0 || summary['page'] !== 1 ||
+                !this.isObject(pagination) || pagination['mode'] !== 'firstPage' || typeof pagination['hasNextPage'] !== 'boolean' ||
+                !Array.isArray(records) || records.length > pageRows || (pagination['hasNextPage'] && records.length !== pageRows)) {
+                throw new Error('Invalid GraphQL lookup response');
+            }
+            const options = records.map((record: unknown): TypeaheadOption => {
+                if (!this.isObject(record) || typeof record['oid'] !== 'string' || !record['oid'].trim() ||
+                    typeof record['title'] !== 'string' || !record['title'].trim()) throw new Error('Invalid GraphQL lookup row');
+                // GraphQL uses the validated shared wrapper; legacy path defaults do not invent IDs from labels.
+                const label = labelField === 'label' ? record['title'] : this.getPathValue(record, labelField);
+                const value = valueField === 'value' ? record['oid'] : this.getPathValue(record, valueField);
+                if (typeof label !== 'string' || !label.trim() || typeof value !== 'string' || !value.trim())
+                    throw new Error('Invalid GraphQL lookup mapping');
+                return { label, value, sourceType: 'namedQuery', raw: record };
+            });
+            return { options, source: 'graphql', summary: { numFound: null, start: 0, page: 1 },
+                pagination: { mode: 'firstPage', hasNextPage: pagination['hasNextPage'] } };
+        }
+        if (this.isObject(root) && root['source'] !== undefined && root['source'] !== 'database')
+            throw new Error('Unsupported lookup source');
+        const options = this.extractNamedQueryRecords(response)
             .map((record) => {
                 const label = this.getPathValue(record, labelField);
                 const value = this.getPathValue(record, valueField);
-                return {
-                    label: String(label ?? ""),
-                    value: String(value ?? label ?? ""),
-                    sourceType: "namedQuery" as const,
-                    raw: record
-                };
+                return { label: String(label ?? ""), value: String(value ?? label ?? ""), sourceType: "namedQuery" as const, raw: record };
             })
             .filter((entry) => Boolean(entry.label || entry.value));
+        return { options };
+    }
+
+    private isObject(value: unknown): value is Record<string, unknown> {
+        return value !== null && typeof value === 'object' && !Array.isArray(value);
     }
 
     public async searchService(

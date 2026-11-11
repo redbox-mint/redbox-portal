@@ -10643,5 +10643,17 @@
     "category": "admin",
     "description": "Record explorer: empty object marker",
     "contentFormat": "plain"
+  },
+  "@form-typeahead-refine-search": {
+    "category": "form",
+    "description": "Shown only when the current lookup has a verified next page."
+  },
+  "@form-typeahead-incompatible-query": {
+    "category": "form",
+    "description": "Lookup alias or GraphQL consumer configuration is incompatible."
+  },
+  "@validator-error-typeahead-lookup-compatibility": {
+    "category": "form",
+    "description": "Form inspection diagnostic for an incompatible named query lookup."
   }
 }

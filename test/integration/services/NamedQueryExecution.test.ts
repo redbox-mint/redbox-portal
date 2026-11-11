@@ -228,6 +228,38 @@ describe('GraphQL named query execution over HTTP', function () {
       for (const parameters of [{ start: 1 }, { rows: 1.5 }, { rows: 'NaN' }]) await route(parameters).expect(400);
     }
   });
+  it('suppresses empty lookup execution and inspects JSON-authored aliases before form use', async () => {
+    const engine = sinon.spy(sails.services.recordgraphqlservice, 'execute');
+    const empty = (await vocab({ search: '' }).expect(200)).body.data;
+    assert.deepEqual(empty.records, []);
+    assert.equal(empty.summary.numFound, null);
+    assert.equal(empty.pagination.hasNextPage, false);
+    assert.equal(engine.callCount, 0);
+    await vocab({ search: '', start: 1 }).expect(400);
+    const config = JSON.parse(JSON.stringify({ name: 'lookup-json', componentDefinitions: [{ name: 'lookup',
+      component: { class: 'TypeaheadInputComponent', config: { sourceType: 'namedQuery', queryId: alias, minChars: 0 } },
+      model: { class: 'TypeaheadInputModel', config: {} } }] }));
+    const compatible = await FormsService.buildClientFormConfig(config, 'edit', ['Researcher'], {}, {}, 'default');
+    assert.deepEqual(compatible.componentDefinitions[0].component.config.lookupDiagnostics, []);
+    const before = sails.config.vocab.queries[alias];
+    try {
+      sails.config.vocab.queries[alias] = { ...before, queryField: { property: 'wrongSearch', type: 'text' } };
+      const invalid = await FormsService.buildClientFormConfig(config, 'edit', ['Researcher'], {}, {}, 'default');
+      assert.equal(invalid.componentDefinitions[0].component.config.lookupDiagnostics[0].code, 'LOOKUP_SEARCH_BINDING');
+      await vocab().expect(422);
+      assert.equal(engine.callCount, 0);
+    } finally { sails.config.vocab.queries[alias] = before; }
+  });
+  it('proves exhaustion at exactly 25 visible matches without inventing a total', async () => {
+    const revoked = await Record.find({ redboxOid: [ids[25], ids[26]] });
+    try {
+      await Record.update({ redboxOid: [ids[25], ids[26]] }).set({ authorization: { view: [], edit: [], viewRoles: [], editRoles: [] } });
+      const result = (await vocab().expect(200)).body.data;
+      assert.equal(result.records.length, 25);
+      assert.equal(result.pagination.hasNextPage, false);
+      assert.equal(result.summary.numFound, null);
+    } finally { for (const record of revoked) await Record.update({ redboxOid: record.redboxOid }).set({ authorization: record.authorization }); }
+  });
   it('rejects anonymous/invalid tokens and cannot override trusted identity/scope with REST parameters', async () => {
     for (const path of [`${base}/api/report/namedQuery?queryName=${name}`, `${base}/query/vocab/${alias}`]) {
       const result = await request()

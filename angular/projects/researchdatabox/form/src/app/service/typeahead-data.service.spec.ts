@@ -229,3 +229,114 @@ describe("TypeaheadDataService", () => {
         ]);
     });
 });
+
+
+describe("bounded named-query lookup compatibility", () => {
+    let service: TypeaheadDataService;
+    let http: HttpTestingController;
+    beforeEach(() => {
+        TestBed.configureTestingModule({ providers: [
+            { provide: APP_BASE_HREF, useValue: "" }, { provide: ConfigService, useValue: getStubConfigService() },
+            LoggerService, UtilityService, TypeaheadDataService, provideHttpClient(), provideHttpClientTesting()
+        ] });
+        service = TestBed.inject(TypeaheadDataService);
+        http = TestBed.inject(HttpTestingController);
+        spyOn(service, "waitForInit").and.resolveTo(service);
+    });
+    afterEach(() => http.verify());
+    const page = (count: number, more: boolean) => ({ source: 'graphql',
+        records: Array.from({ length: count }, (_, i) => ({ oid: `id-${i}`, title: `Match ${i}` })),
+        summary: { numFound: null, start: 0, page: 1 }, pagination: { mode: 'firstPage', hasNextPage: more } });
+    for (const [count, more, rows] of [[0, false, 25], [25, false, 25], [25, true, 25], [3, true, 3]] as const) {
+        it(`retains unknown total and genuine continuation for ${count}/${more}/${rows}`, async () => {
+            const pending = service.searchNamedQueryLookup('party', 'a', 0, rows);
+            await Promise.resolve();
+            const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+            expect(request.request.params.get('start')).toBe('0');
+            expect(request.request.params.get('rows')).toBe(String(rows));
+            request.flush({ data: page(count, more) });
+            const result = await pending;
+            expect(result.options.length).toBe(count);
+            expect(result.pagination?.hasNextPage).toBe(more);
+            if (result.source !== 'graphql') throw new Error('Expected GraphQL source');
+            expect(result.summary.numFound).toBeNull();
+            if (count) expect(result.options[0].value).toBe('id-0');
+        });
+    }
+    it('keeps the array API as a narrow wrapper for bounded requests', async () => {
+        const pending = service.searchNamedQuery('party', 'a', 0, 25);
+        await Promise.resolve();
+        const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+        expect(request.request.params.get('rows')).toBe('25');
+        request.flush(page(25, true));
+        expect((await pending).length).toBe(25);
+    });
+    it('suppresses empty input and rejects offsets without making a request', async () => {
+        expect(await service.searchNamedQueryLookup('party', '')).toEqual({ options: [] });
+        expect(await service.searchNamedQuery('party', '   ')).toEqual([]);
+        await expectAsync(service.searchNamedQueryLookup('party', 'a', 1)).toBeRejected();
+        http.expectNone(req => req.url.includes('/query/vocab/'));
+    });
+    for (const invalid of [
+        { ...page(1, false), summary: { numFound: 1, start: 0, page: 1 } },
+        { ...page(1, false), pagination: undefined },
+        { ...page(1, false), records: [{ title: 'Label without identity' }] },
+        { ...page(1, false), records: [{ oid: 'id', title: '' }] },
+        page(26, true), page(1, true), { ...page(0, false), errors: [{ message: 'failed' }] }
+    ]) {
+        it('rejects malformed metadata/rows instead of returning an empty success', async () => {
+            const pending = service.searchNamedQueryLookup('party', 'a');
+            const rejected = expectAsync(pending).toBeRejected();
+            await Promise.resolve();
+            http.expectOne(req => req.url.includes('/query/vocab/party')).flush(invalid);
+            await rejected;
+        });
+    }
+    it('retains legacy database path mapping and array shape without guessed continuation', async () => {
+        const pending = service.searchNamedQueryLookup('party', 'a', 0, 25, 'metadata.fullName', 'oid');
+        await Promise.resolve();
+        http.expectOne(req => req.url.includes('/query/vocab/party')).flush({ records: [
+            { oid: 'party-1', metadata: { fullName: 'Jane' } }
+        ], summary: { numFound: 100, start: 0, page: 1 } });
+        const result = await pending;
+        expect(result.options[0].label).toBe('Jane');
+        expect(result.options[0].value).toBe('party-1');
+        expect(result.pagination).toBeUndefined();
+    });
+    for (const body of [{ message: 'GRAPHQL_LOOKUP_CONFIG_INVALID' }, { errors: [{ code: 'GRAPHQL_LOOKUP_UNSUPPORTED' }], meta: {} }]) {
+        it('recognizes incompatible configuration in either API error version', async () => {
+            const pending = service.searchNamedQueryLookup('party', 'a');
+            const rejected = expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ misconfigured: true }));
+            await Promise.resolve();
+            http.expectOne(req => req.url.includes('/query/vocab/party')).flush(body, { status: 422, statusText: 'Unprocessable Content' });
+            await rejected;
+        });
+    }
+    it('keeps a real scan-bound HTTP failure distinct from no results and misconfiguration', async () => {
+        const pending = service.searchNamedQueryLookup('party', 'a');
+        const rejected = expectAsync(pending).toBeRejectedWith(jasmine.objectContaining({ misconfigured: false }));
+        await Promise.resolve();
+        http.expectOne(req => req.url.includes('/query/vocab/party')).flush({ message: 'COLLECTION_LIMIT' }, { status: 422, statusText: 'Unprocessable Content' });
+        await rejected;
+    });
+
+    it('preserves legacy database array paging while the new lookup method is first-page-only', async () => {
+        const pending = service.searchNamedQuery('party', 'a', 30, 10, 'title', 'oid');
+        await Promise.resolve();
+        const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+        expect(request.request.params.get('start')).toBe('30');
+        expect(request.request.params.get('rows')).toBe('10');
+        request.flush({ records: [{ oid: 'a', title: 'Alpha' }], summary: { numFound: 31, start: 30, page: 4 } });
+        expect((await pending)[0].value).toBe('a');
+    });
+
+    it('preserves the legacy database zero-row sentinel in the array API', async () => {
+        const pending = service.searchNamedQuery('party', 'a', 0, 0, 'title', 'oid');
+        await Promise.resolve();
+        const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+        expect(request.request.params.get('rows')).toBe('0');
+        request.flush({ records: [{ oid: 'a', title: 'Alpha' }], summary: { numFound: 1, start: 0, page: 1 } });
+        expect((await pending)[0].value).toBe('a');
+    });
+
+});

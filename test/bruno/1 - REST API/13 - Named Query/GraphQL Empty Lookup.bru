@@ -1,0 +1,52 @@
+meta {
+  name: GraphQL Empty Lookup
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{host}}/default/rdmp/query/vocab/t07GraphqlLookup?search=&start=0&rows=25
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+}
+
+script:pre-request {
+  const axios = require('axios');
+  await axios.post(bru.interpolate('{{host}}/default/rdmp/api/named-query'), {
+    name: 't07_bruno_lookup',
+    source: 'graphql',
+    graphql: {
+      document: 'query($search:String!,$first:Int,$after:String){records(recordType:"dataPublication",workflowStages:["draft"],filters:[{field:"record:oid",contains:$search}],first:$first,after:$after){nodes{oid workflowStep} hasNextPage endCursor}}',
+      variables: { search: { ownership: 'consumer', parameter: 'search', inputType: 'String!', required: true } },
+      resultPath: ['records', 'nodes'],
+      mappings: { oid: ['oid'], title: ['workflowStep'] },
+      lookup: { mode: 'firstPage', collectionPath: ['records'], hasNextPagePath: ['records', 'hasNextPage'],
+        endCursorPath: ['records', 'endCursor'], firstVariable: 'first', afterVariable: 'after', searchParameter: 'search' }
+    }
+  }, { headers: { Authorization: bru.interpolate('Bearer {{token}}'), 'X-ReDBox-Api-Version': '2.0' } });
+}
+
+
+tests {
+  test('Empty authenticated GraphQL lookup is suppressed with an unknown total and no continuation', () => {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.source).to.equal('graphql');
+    expect(data.records).to.deep.equal([]);
+    expect(data.summary).to.deep.equal({ numFound: null, start: 0, page: 1 });
+    expect(data.pagination).to.deep.equal({ mode: 'firstPage', hasNextPage: false });
+  });
+}
+
+docs {
+  Requires the typed test/resources/config/named-query-lookups.json server fixture,
+  alongside the normal named-query Bruno authentication/setup requests. This alias
+  deliberately references the created query, so usage protection prevents deleting
+  it through CRUD. Run in an isolated disposable test database and remove it with
+  the harness down -v cleanup, as for the mounted integration fixtures.
+}

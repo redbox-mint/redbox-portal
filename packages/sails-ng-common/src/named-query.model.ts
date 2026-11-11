@@ -144,7 +144,6 @@ export interface GraphqlNamedQueryResult<T = unknown> {
 export type NamedQueryExecutionResult<T = unknown> = DatabaseNamedQueryResult<T> | GraphqlNamedQueryResult<T>;
 
 /** Metadata-aware lookup adapter; legacy array methods may return only options. */
-export interface NamedQueryLookupResult<T = unknown> {
-  options: T[];
-  pagination?: NamedQueryFirstPage;
-}
+export type NamedQueryLookupResult<T = unknown> =
+  | { options: T[]; source?: 'database'; pagination?: never }
+  | { options: T[]; source: 'graphql'; summary: GraphqlNamedQueryResult['summary']; pagination: NamedQueryFirstPage };

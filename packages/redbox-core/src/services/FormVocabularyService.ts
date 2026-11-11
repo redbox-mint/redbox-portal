@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import type { ResolvedNamedQueryConfig } from './NamedQueryService';
 import { SearchService } from '../SearchService';
 import type {
   VocabExternalEndpoint,
@@ -29,8 +30,10 @@ import { VocabQueryConfig } from '../model/config/VocabQueryConfig';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { Services as services } from '../CoreService';
 import axios from 'axios';
+import type { EditorDiagnostic, TypeaheadInputFieldComponentConfigCommonFrame } from '@researchdatabox/sails-ng-common';
+import { graphqlDiagnostic, inspectGraphqlNamedQuery, validateGraphqlNamedQuery } from './named-query/graphql-validation';
 import type { ReadCaller } from '../record-graphql/read-record';
-import { GraphqlNamedQueryExecutionError, GRAPHQL_NAMED_QUERY_ROWS } from './named-query/graphql-execution';
+import { completeGraphqlCaller, GraphqlNamedQueryExecutionError, GRAPHQL_NAMED_QUERY_ROWS } from './named-query/graphql-execution';
 
 export namespace Services {
   type FormVocabularyUserContext = Record<string, unknown>;
@@ -60,9 +63,46 @@ export namespace Services {
       'findInExternalService',
       'findInServiceLookup',
       'findRecords',
+      'inspectNamedQueryLookup',
       'buildNamedQueryParamMap',
       'getResultObjectMappings'
     ];
+
+    /** Static consumer selection/configuration inspection. Never executes a query.
+     * Without a caller, only trusted server config tooling may supply brand/portal.
+     * Execution always revalidates with the actual authenticated caller.
+     */
+    public async inspectNamedQueryLookup(
+      queryId: string, brand: BrandingModel, portal: string,
+      fields: Pick<TypeaheadInputFieldComponentConfigCommonFrame, 'labelField' | 'valueField'> = {},
+      caller?: ReadCaller
+    ): Promise<EditorDiagnostic[]> {
+      const issue = (code: string, field: string, message: string) => [graphqlDiagnostic(code, field, message, true)];
+      const config = sails.config.vocab.queries?.[queryId];
+      if (!config) return issue('LOOKUP_ALIAS_UNKNOWN', 'queryId', 'Select a configured query vocabulary alias.');
+      if (config.querySource === 'solr') return [];
+      if (config.querySource !== 'database') return issue('LOOKUP_SOURCE_INVALID', 'queryId', 'Select a supported query vocabulary source.');
+      const name = String(config.databaseQuery?.queryName ?? '').trim();
+      if (!name) return issue('LOOKUP_QUERY_UNKNOWN', 'queryId', 'The vocabulary alias requires a saved named query.');
+      let definition: ResolvedNamedQueryConfig | null;
+      try { definition = await NamedQueryService.getNamedQueryConfig(brand, name); }
+      catch { return issue('LOOKUP_QUERY_INVALID', 'queryId', 'Repair the named query referenced by this vocabulary alias.'); }
+      if (!definition) return issue('LOOKUP_QUERY_UNKNOWN', 'queryId', 'The vocabulary alias references a missing named query.');
+      if (definition.source !== 'graphql') return [];
+      const inspected = caller
+        ? await inspectGraphqlNamedQuery(definition, caller, String(brand.id))
+        : validateGraphqlNamedQuery(definition, await RecordGraphqlService.getBootstrapReadSchema(brand, portal));
+      if (!inspected.validation.valid) return inspected.validation.diagnostics;
+      if (!inspected.validation.capabilities?.lookup) return inspected.validation.capabilities?.diagnostics ??
+        issue('GRAPHQL_LOOKUP_UNSUPPORTED', 'queryId', 'Select a lookup-compatible named query.');
+      if (Object.keys(config.resultObjectMapping ?? {}).length)
+        return issue('GRAPHQL_VOCAB_MAPPING_UNSUPPORTED', 'queryId', 'Use the GraphQL named query mappings instead of vocabulary templates.');
+      if (config.queryField?.type !== 'text' || config.queryField.property !== definition.graphql.lookup?.searchParameter)
+        return issue('LOOKUP_SEARCH_BINDING', 'queryId', 'Map the vocabulary text search to the declared lookup search parameter.');
+      if (!['label', 'title'].includes(fields.labelField || 'label') || !['value', 'oid'].includes(fields.valueField || 'value'))
+        return issue('LOOKUP_RESULT_FIELDS', 'queryId', 'Use title/oid (or label/value defaults) from the validated GraphQL lookup wrapper.');
+      return [];
+    }
 
     public async findRecords(sourceType: string, brand: BrandingModel, searchString: string, start: number, rows: number, user: FormVocabularyUserContext, caller?: ReadCaller): Promise<Record<string, unknown> | Array<Record<string, unknown>>> {
       const normalizedSourceType = String(sourceType ?? '').trim();
@@ -90,8 +130,22 @@ export namespace Services {
             `Query vocabulary '${normalizedSourceType}' references unknown named query '${queryName}'.`
           );
         }
-        if (namedQueryConfig.source === 'graphql' && Object.keys(queryConfig.resultObjectMapping ?? {}).length)
-          throw new GraphqlNamedQueryExecutionError('GRAPHQL_VOCAB_MAPPING_UNSUPPORTED');
+        if (namedQueryConfig.source === 'graphql') {
+          if (!completeGraphqlCaller(caller, brand)) throw new GraphqlNamedQueryExecutionError('GRAPHQL_CONTEXT_REQUIRED', 401);
+          if (Object.keys(queryConfig.resultObjectMapping ?? {}).length)
+            throw new GraphqlNamedQueryExecutionError('GRAPHQL_VOCAB_MAPPING_UNSUPPORTED');
+          if (!namedQueryConfig.graphql.lookup || queryConfig.queryField?.type !== 'text' ||
+              queryConfig.queryField.property !== namedQueryConfig.graphql.lookup.searchParameter)
+            throw new GraphqlNamedQueryExecutionError('GRAPHQL_LOOKUP_CONFIG_INVALID');
+          // The executor performs current-schema/capability validation inside its
+          // existing single deadline; do not add an unbudgeted second schema pass here.
+          // Empty input is never an unfiltered lookup. Paging/context checks remain enforced.
+          if (!searchString.trim()) {
+            if (!Number.isNaN(start) && start !== 0) throw new GraphqlNamedQueryExecutionError('GRAPHQL_OFFSET_UNSUPPORTED', 400);
+            if (!Number.isNaN(rows) && (!Number.isSafeInteger(rows) || rows < 1)) throw new GraphqlNamedQueryExecutionError('GRAPHQL_PAGE_INVALID', 400);
+            return { source: 'graphql', records: [], summary: { numFound: null, start: 0, page: 1 }, pagination: { mode: 'firstPage', hasNextPage: false } };
+          }
+        }
         const paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
         // The legacy HTTP adapter represents omitted paging as NaN. Normalize
         // that sentinel only for GraphQL; database calls retain the original values.

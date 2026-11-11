@@ -635,6 +635,10 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
         params: { sourceType },
       });
     }
+    if (sourceType === 'namedQuery' && config?.lookupDiagnostics?.length) {
+      configErrors.push({ class: 'typeaheadLookupCompatibility', message: '@validator-error-typeahead-lookup-compatibility',
+        params: { codes: config.lookupDiagnostics.map(diagnostic => diagnostic.code).join(', ') } });
+    }
     const serviceId = String((config as Record<string, unknown> | undefined)?.['serviceId'] ?? '').trim();
     if (sourceType === 'service' && !serviceId) {
       configErrors.push({

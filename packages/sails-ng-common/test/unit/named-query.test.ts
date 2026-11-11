@@ -31,11 +31,12 @@ describe('shared named query contracts', () => {
     };
     assert.equal(total(database), 9);
     assert.equal(total(graphql), null);
-    const lookup: NamedQueryLookupResult<string> = { options: ['one'], pagination: graphql.pagination };
+    const lookup: NamedQueryLookupResult<string> = { source: 'graphql', options: ['one'], summary: graphql.summary, pagination: graphql.pagination };
     // An array adapter can keep its established return type while a new method carries metadata.
     const legacy: string[] = lookup.options;
     assert.deepEqual(legacy, ['one']);
     assert.equal(lookup.pagination?.hasNextPage, true);
+    assert.equal(lookup.summary.numFound, null);
   });
 });
 

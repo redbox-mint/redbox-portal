@@ -654,6 +654,44 @@ export namespace Controllers {
       };
     }
 
+    /**
+     * Build the client form used by the record metadata read and save-sync paths.
+     * The false edit lookup / edit form mode pairing is inherited from getMeta and
+     * has not been independently reviewed; keep both values explicit at call sites.
+     */
+    private async getEffectiveClientFormConfig(
+      req: Sails.Req,
+      brand: BrandingModel,
+      record: ControllerRecord,
+      formName: string,
+      formLookupEditMode: boolean,
+      formMode: FormModesConfig
+    ): Promise<FormConfigFrame | undefined> {
+      const metaMetadata = record.metaMetadata as AnyRecord | undefined;
+      const brandId = String(metaMetadata?.['brandId'] ?? brand.id);
+      const formRecord = await firstValueFrom(FormsService.getFormByName(formName, formLookupEditMode, brandId));
+      const formConfig = formRecord?.configuration;
+      if (!formConfig) {
+        return undefined;
+      }
+
+      const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[])
+        .map((role: AnyRecord) => String(role['name'] ?? ''))
+        .filter((name: string) => !!name);
+      const reusableFormDefs = sails.config.reusableFormDefinitions;
+      const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
+      return FormsService.buildClientFormConfig(
+        formConfig,
+        formMode,
+        userRoles,
+        record.metadata,
+        reusableFormDefs,
+        String(brand?.name ?? ''),
+        contextVariablesMap,
+        { user: req.user as UserModel, brand, record: record as RecordModel, ...(typeof req.session?.portal === 'string' ? { portal: req.session.portal } : {}) }
+      );
+    }
+
     private async getPostSaveMetadata(
       req: Sails.Req,
       brand: BrandingModel,
@@ -1180,7 +1218,7 @@ export namespace Controllers {
           reusableFormDefs,
           String(brand?.name ?? ''),
           contextVariablesMap,
-          { user: req.user as UserModel, brand, record: recordData as RecordModel }
+          { user: req.user as UserModel, brand, record: recordData as RecordModel, ...(typeof req.session?.portal === 'string' ? { portal: req.session.portal } : {}) }
         );
         const viewMetadata = formMode === 'view' && recordData?.metadata
           ? FormRecordConsistencyService.metadataForViewForm(recordData.metadata as AnyRecord, mergedForm)

@@ -4319,5 +4319,8 @@
   "data-grids-rename": "Rename",
   "data-grids-cell-null-item": "No item (null)",
   "data-grids-repeating-unavailable": "Unavailable as an independent column \u00b7 choose a declared parent group where available",
-  "data-grids-cell-empty-object": "Empty object"
+  "data-grids-cell-empty-object": "Empty object",
+  "@form-typeahead-refine-search": "Refine your search to see more matches.",
+  "@form-typeahead-incompatible-query": "This lookup is not configured correctly. Contact your administrator.",
+  "@validator-error-typeahead-lookup-compatibility": "The named query is not compatible with this lookup ({{codes}})."
 }

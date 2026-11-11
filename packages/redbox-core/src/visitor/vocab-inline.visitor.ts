@@ -23,8 +23,11 @@ import {
   TabContentFormComponentDefinitionOutline,
   TabFieldComponentDefinitionOutline,
   TabFormComponentDefinitionOutline,
+  TypeaheadInputFormComponentDefinitionOutline,
   ILogger
 } from '@researchdatabox/sails-ng-common';
+import { graphqlDiagnostic } from '../services/named-query/graphql-validation';
+import type { ReadCaller } from '../record-graphql/read-record';
 import { VocabularyEntryAttributes } from '../waterline-models';
 
 type InlineCheckboxTreeNode = CheckboxTreeNode & { disabled?: boolean };
@@ -39,11 +42,13 @@ type ComponentConfigWithInlineVocab = {
 
 type ResolveVocabsOptions = {
   includeHistoricalValues?: boolean;
+  lookupCaller?: ReadCaller;
 };
 
 
 export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'VocabInlineFormConfigVisitor';
+  private lookupCaller?: ReadCaller;
   private branding = '';
   private includeHistoricalValues = false;
   private pendingResolutions: Promise<void>[] = [];
@@ -63,6 +68,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     }
 
     this.branding = branding;
+    this.lookupCaller = options?.lookupCaller;
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.pendingResolutions = [];
     await form.accept(this);
@@ -76,6 +82,22 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   async visitFormConfig(item: FormConfigOutline): Promise<void> {
     for (const component of item.componentDefinitions) {
       await component.accept(this);
+    }
+  }
+
+  async visitTypeaheadInputFormComponentDefinition(item: TypeaheadInputFormComponentDefinitionOutline): Promise<void> {
+    const config = item.component.config;
+    if (config?.sourceType !== 'namedQuery') return;
+    // This includes JSON-authored and reusable/migrated forms after construction.
+    // Author-provided diagnostics are never trusted or copied.
+    try {
+      const brand = BrandingService.getBrand(this.branding);
+      config.lookupDiagnostics = await FormVocabularyService.inspectNamedQueryLookup(
+        String(config.queryId ?? '').trim(), brand, this.lookupCaller?.portal ?? sails.config.auth.defaultPortal, config, this.lookupCaller
+      );
+    } catch {
+      config.lookupDiagnostics = [graphqlDiagnostic('LOOKUP_CONFIG_UNAVAILABLE', 'queryId',
+        'The named query lookup configuration could not be inspected.', true)];
     }
   }
 
