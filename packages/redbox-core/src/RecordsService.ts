@@ -286,6 +286,9 @@ export interface RecordsService {
     filterMode?: unknown,
     deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
+  /** Detached, authorized consumer presentation only; never use for persistence. */
+  getConsumerView(record: AnyRecord, brand: unknown, user: unknown): Promise<AnyRecord>;
+  getRecordsForDisplay(...args: Parameters<RecordsService['getRecords']>): Promise<StorageServiceResponse>;
   getRecords(
     workflowState: unknown,
     recordType: unknown,

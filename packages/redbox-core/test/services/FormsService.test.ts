@@ -725,9 +725,12 @@ describe('FormsService', function () {
           expect(serialized, removed).not.to.contain(removed);
         }
         const container: any = result.componentDefinitions.find(field => field.name === 'group');
-        expect(container.model.config.value).to.deep.equal({ reference: 'A' });
+        expect(container.component.class).to.equal('ContentComponent');
+        expect(container.model).not.to.exist;
+        expect(container.component.config.content).to.deep.equal({ reference: 'A' });
         const rows: any = result.componentDefinitions.find(field => field.name === 'rows');
-        expect(rows.model.config.value).to.deep.equal([{ reference: 'B' }]);
+        expect(rows.component.class).to.equal('ContentComponent');
+        expect(rows.component.config.content).to.deep.equal([]);
       } finally { resolve.restore(); }
     });
 
@@ -768,24 +771,18 @@ describe('FormsService', function () {
             for (const denied of ['DENIED_VALUE', 'DENIED_LITERAL', '"secret"', 'literal/key~nameDenied']) {
               expect(serialized, denied).not.to.contain(denied);
             }
-          } else expect(serialized).to.contain('DENIED_VALUE');
-          const outer: any = result.componentDefinitions.find(field => field.name === 'outer');
-          const expected: any = role === 'Admin' ? snapshot : {
-            reference: 'A', secretPublic: 'PUBLIC', 'literal/key~name': 'LITERAL',
-          };
-          expect(outer.model.config.value).to.deep.equal({ nested: { reference: 'A' }, rows: [expected] });
-          const nested = outer.component.config.componentDefinitions.find((field: any) => field.name === 'nested');
-          for (const carrier of ['value', 'defaultValue']) {
-            expect(nested.model.config[carrier], carrier).to.deep.equal({ reference: 'A' });
           }
-          const rows = outer.component.config.componentDefinitions.find((field: any) => field.name === 'rows');
-          expect(rows.model.config.defaultValue).to.deep.equal([expected]);
-          expect(rows.component.config.elementTemplate.model.config.newEntryValue).to.deep.equal(expected);
+          const outer: any = result.componentDefinitions.find(field => field.name === 'outer');
+          const expected = role === 'Admin' ? snapshot : { reference: 'A', secretPublic: 'PUBLIC', 'literal/key~name': 'LITERAL' };
+          expect(outer.component.class).to.equal('ContentComponent');
+          expect(outer.model).not.to.exist;
+          expect(outer.component.config.content).to.deep.equal({ nested: expected });
+
         }
       } finally { resolve.restore(); }
     });
 
-    it('retains live related references and targets in view mode for both dev-plan roles', async function () {
+    it('renders related references and targets as content in view mode for both dev-plan roles', async function () {
       const plan = require('../../../redbox-hook-dev/src/form-config/related-plan-1.0-draft').default;
       const snapshot = JSON.stringify(plan);
       const relations = require('../../../redbox-hook-dev/src/config/recordtype').recordtype['related-plan'].relatedTo;
@@ -816,31 +813,186 @@ describe('FormsService', function () {
           const field = (name: string): any => result.componentDefinitions.find(item => item.name === name);
           expect(field('title').component.class).to.equal('ContentComponent');
           expect(field('title').component.config.relatedViewPreserved).not.to.equal(true);
-          expect(field('primaryActivity').model, 'view reference remains model-backed').to.exist;
-          expect(field('primaryActivity').model.config.value).to.equal('A');
-          expect(field('activities').model.config.value).to.deep.equal([{ oid: 'A' }, { oid: 'B' }]);
-          expect(field('activities').component.class).to.equal('RepeatableComponent');
-          expect(field('activityTitle').component.class).to.equal(role === 'Admin' ? 'SimpleInputComponent' : 'TextAreaComponent');
+          expect(field('primaryActivity').component.class).to.equal('ContentComponent');
+          expect(field('primaryActivity').component.config.content).to.equal('A');
           for (const name of ['primaryActivity', 'activities', 'activityTitle', 'activityDates', 'activitySummaries']) {
-            expect(field(name).model, name).to.exist;
-            expect(field(name).component.config.disabled, name).to.equal(true);
-            expect(field(name).component.config.relatedViewPreserved, name).to.equal(true);
+            expect(field(name).model, name).not.to.exist;
+            expect(field(name).component.class, name).to.equal('ContentComponent');
+            expect(field(name).component.config.relatedViewPreserved, name).not.to.equal(true);
+            expect(field(name).expressions ?? [], name).to.have.length(0);
           }
-          for (const name of ['activityTitle', 'activityDates', 'activitySummaries']) {
-            expect(field(name).expressions, name).to.have.length(1);
-            expect(field(name).expressions[0].config.target).to.equal('model.value');
-          }
-          expect(field('activityDates').component.class).to.equal('GroupComponent');
-          expect(field('activityDates').component.config.componentDefinitions.map((child: any) => [child.name, child.model.class]))
-            .to.deep.equal([['startDate', 'SimpleInputModel'], ['endDate', 'SimpleInputModel']]);
-          const dateIndex = result.componentDefinitions.findIndex((child: any) => child.name === 'activityDates');
-          expect(compiled.some((entry: any) => entry.key.map(String).join('/') ===
-            `componentDefinitions/${dateIndex}/expressions/0/config/template`)).to.equal(true);
-          expect(field('activities').component.config.elementTemplate.component.config.componentDefinitions[0].model.class).to.equal('SimpleInputModel');
           expect(field('primarySource').component.class).to.equal('RelatedObjectDataComponent');
         }
         expect(JSON.stringify(plan)).to.equal(snapshot);
       } finally { resolve.restore(); (global as any).FormsService = savedForms; }
+    });
+
+    it('preserves allowed nested content siblings and prunes their denied descendants under a retained ancestor', async function () {
+      const input = (name: string, denied = false): any => ({ name, component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel' }, ...(denied ? { constraints: { authorization: { allowRoles: ['Admin'] } } } : {}) });
+      const group = (name: string): any => ({ name, model: { class: 'GroupModel' }, component: { class: 'GroupComponent',
+        config: { componentDefinitions: [input('public'), input('secret', true)] } } });
+      const item: any = { name: 'nested-content-siblings', type: 'plan', componentDefinitions: [{ name: 'outer',
+        model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: { componentDefinitions: [
+          input('reference'), group('unrelated'),
+          { name: 'deniedOnly', model: { class: 'GroupModel' }, component: { class: 'GroupComponent',
+            config: { componentDefinitions: [input('secret', true)] } } },
+          { name: 'deniedRows', model: { class: 'RepeatableModel' }, component: { class: 'RepeatableComponent',
+            config: { elementTemplate: { name: '', model: { class: 'GroupModel' }, component: { class: 'GroupComponent',
+              config: { componentDefinitions: [input('secret', true)] } } } } } },
+          { name: 'rows', model: { class: 'RepeatableModel' },
+            component: { class: 'RepeatableComponent', config: { elementTemplate: group('') } } },
+        ] } } }, { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } }] };
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activity',
+        recordType: 'activity', localField: 'metadata.outer.reference', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title'] } }] })) };
+      const visitor = require('../../src/visitor/related-object-data-inline.visitor').RelatedObjectDataInlineFormConfigVisitor;
+      const resolve = sinon.stub(visitor.prototype, 'resolve').resolves();
+      try {
+        const metadata = { outer: { reference: 'A', unrelated: { public: 'PUBLIC_GROUP', secret: 'DENIED_GROUP' },
+          rows: [{ public: 'PUBLIC_ROW', secret: 'DENIED_ROW' }],
+          deniedOnly: { secret: 'DENIED_ONLY_GROUP' }, deniedRows: [{ secret: 'DENIED_ONLY_ROW' }] } };
+        const result = await FormsService.buildClientFormConfig(item, 'view', ['Librarians'], metadata, {}, 'default', {},
+          { user: { username: 'reader' }, brand: { id: 'brand-1' } });
+        const outer = result.componentDefinitions.find((field: any) => field.name === 'outer');
+        expect(outer.component.class).to.equal('ContentComponent');
+        expect(outer.component.config.content).to.deep.equal({ reference: 'A',
+          unrelated: { public: 'PUBLIC_GROUP' }, rows: [{ public: 'PUBLIC_ROW' }] });
+        const serialized = JSON.stringify(result);
+        expect(serialized).to.contain('PUBLIC_GROUP').and.to.contain('PUBLIC_ROW');
+        expect(serialized).not.to.contain('DENIED_');
+      } finally { resolve.restore(); }
+    });
+
+    it('keeps authored hidden title carriers and PDF widgets while hydrating inline vocabulary displays', async function () {
+      const binding = (name: string): any => ({ name: 'populate', config: { conditionKind: 'jsonpointer',
+        condition: '/source::field.value.changed', target: 'model.value',
+        template: `event.value.status = "resolved" ? event.value.records[0].metadata.${name} : ""` } });
+      const item: any = { name: 'custom-related-view', type: 'plan', componentDefinitions: [
+        { name: 'heading', component: { class: 'ContentComponent', config: {
+          template: '<h1>{{get formData content ""}}</h1>', content: 'title' } } },
+        { name: 'title', relatedDisplay: { relationId: 'activity' }, constraints: { allowModes: ['view'] },
+          overrides: { formModeClasses: { view: { component: 'SimpleInputComponent' } } },
+          component: { class: 'SimpleInputComponent', config: { type: 'hidden', visible: false } },
+          layout: { class: 'DefaultLayout', config: { visible: false } }, model: { class: 'SimpleInputModel' } },
+        { name: 'toolbar', overrides: { formModeClasses: { view: { component: 'GroupComponent' } } },
+          component: { class: 'GroupComponent', config: { componentDefinitions: [
+            { name: 'pdf', overrides: { formModeClasses: { view: { component: 'PDFListComponent' } } },
+              component: { class: 'PDFListComponent', config: { downloadBtnLabel: 'Download a PDF of this plan' } },
+              model: { class: 'PDFListModel' } },
+          ] } } },
+        { name: 'reference', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' } },
+        { name: '', overrides: { formModeClasses: { view: { component: 'GroupComponent' } } },
+          component: { class: 'GroupComponent', config: { componentDefinitions: [
+            { name: 'title', relatedDisplay: { relationId: 'activity' }, component: { class: 'SimpleInputComponent' },
+              model: { class: 'SimpleInputModel' }, expressions: [binding('title')] },
+            { name: 'option', relatedDisplay: { relationId: 'activity' }, component: { class: 'DropdownInputComponent',
+              config: { inlineVocab: true, vocabRef: 'activity-type' } }, model: { class: 'DropdownInputModel' },
+              expressions: [binding('option')] },
+          ] } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+      ] };
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activity',
+        recordType: 'activity', localField: 'metadata.reference', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title', '/option'] } }] })) };
+      const savedVocabulary = (global as any).VocabularyService;
+      (global as any).VocabularyService = { getEntries: sinon.stub().resolves({ entries: [
+        { value: 'Applied research', label: 'Applied research label' },
+        { value: 'Strategic research', label: 'Strategic research label' },
+      ] }) };
+      mockSails.services.recordsservice = { resolveRelatedMetadata: sinon.stub().resolves({ activity: {
+        status: 'resolved', records: [{ redboxOid: 'A', metadata: { title: 'Current linked title', option: 'Applied research' } }], issues: [],
+      } }) };
+      const metadata = { reference: 'A', title: 'STALE_TITLE', option: 'Strategic research' };
+      const snapshot = JSON.stringify(metadata);
+      try {
+        const result = await FormsService.buildClientFormConfig(item, 'view', ['Librarians'], metadata, {}, 'default', {},
+          { user: { username: 'reader' }, brand: { id: 'brand-1' }, record: { redboxOid: 'plan', workflow: { stage: 'submitted' } } });
+        const title = result.componentDefinitions.find((field: any) => field.name === 'title');
+        expect(title.component.class).to.equal('SimpleInputComponent');
+        expect(title.component.config.visible).to.equal(false);
+        expect(title.model.config.value).to.equal('Current linked title');
+        const pdf = findComponentDefinitionByName(result.componentDefinitions, 'pdf');
+        expect(pdf.component.class).to.equal('PDFListComponent');
+        expect(pdf.component.config.downloadBtnLabel).to.equal('Download a PDF of this plan');
+        const details = result.componentDefinitions.find((field: any) => field.name === '').component.config.componentDefinitions;
+        expect(details.find((field: any) => field.name === 'title').component.config.content).to.equal('Current linked title');
+        expect(details.find((field: any) => field.name === 'option').component.config.content)
+          .to.deep.equal({ value: 'Applied research', label: 'Applied research label' });
+        expect(details.every((field: any) => field.component.class === 'ContentComponent' && !field.model)).to.equal(true);
+        // Compiled assets must use the hydrated selection too. An unresolved
+        // linked dropdown chooses the empty-value template (<span></span>).
+        const savedForms = (global as any).FormsService;
+        (global as any).FormsService = FormsService;
+        try {
+          const { Services } = require('../../src/services/FormRecordConsistencyService');
+          const consistency = new Services.FormRecordConsistency();
+          const compiled = await consistency.extractRawTemplates(item, 'view', ['Librarians'], metadata, {},
+            { user: { username: 'reader' }, brand: { id: 'brand-1' }, record: { redboxOid: 'plan', workflow: { stage: 'submitted' } } });
+          const expected = await new TemplateFormConfigVisitor(mockSails.log).start({ form: result });
+          expect(compiled).to.deep.equal(expected);
+        } finally { (global as any).FormsService = savedForms; }
+        expect(JSON.stringify(result)).not.to.contain('STALE_TITLE');
+        expect(JSON.stringify(result)).not.to.contain('__relatedViewOriginal');
+        expect(JSON.stringify(metadata)).to.equal(snapshot);
+      } finally { (global as any).VocabularyService = savedVocabulary; }
+    });
+
+    it('hydrates authorized current scalar, option, date, group and repeatable content before view conversion', async function () {
+      const input = (name: string, denied = false): any => ({ name, component: { class: 'SimpleInputComponent' },
+        model: { class: 'SimpleInputModel' }, ...(denied ? { constraints: { authorization: { allowRoles: ['Admin'] } } } : {}) });
+      const target = (name: string, component: any, template: string): any => ({ name,
+        relatedDisplay: { relationId: 'activity' }, component,
+        expressions: [{ name: 'populate', config: { conditionKind: 'jsonpointer',
+          condition: '/source::field.value.changed', target: 'model.value', template } }] });
+      const item: any = { name: 'current-view', type: 'plan', componentDefinitions: [input('reference'),
+        target('title', { class: 'SimpleInputComponent' }, 'event.value.status = "resolved" ? event.value.records[0].metadata.title : ""'),
+        target('option', { class: 'DropdownInputComponent', config: { options: [{ value: 'selected', label: 'Selected label' },
+          { value: 'other', label: 'Unselected label' }] } }, 'event.value.records[0].metadata.option'),
+        target('end', { class: 'DateInputComponent' }, 'event.value.records[0].metadata.end'),
+        { ...target('person', { class: 'GroupComponent', config: { componentDefinitions: [input('name'), input('secret', true)] } },
+          'event.value.records[0].metadata.person'), model: { class: 'GroupModel' } },
+        { ...target('rows', { class: 'RepeatableComponent', config: { allowZeroRows: true, elementTemplate: {
+          name: '', model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: {
+            componentDefinitions: [input('name'), input('secret', true)] } } } } }, 'event.value.records[0].metadata.rows'),
+          model: { class: 'RepeatableModel' } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity', required: true } } },
+      ] };
+      (global as any).RecordTypesService = { get: sinon.stub().returns(of({ relatedTo: [{ id: 'activity',
+        recordType: 'activity', localField: 'metadata.reference', foreignField: 'redboxOid',
+        resolution: { metadataFields: ['/title', '/option', '/end', '/person', '/rows'] } }] })) };
+      const resultEntry = { status: 'resolved', records: [{ redboxOid: 'A', metadata: { title: 'Current title',
+        option: 'selected', end: '2028-12-31', person: { name: 'Current person', secret: 'DENIED_PERSON' },
+        rows: [{ name: 'Current row', secret: 'DENIED_ROW' }] } }], issues: [] };
+      const resolver = sinon.stub().resolves({ activity: resultEntry });
+      mockSails.services.recordsservice = { resolveRelatedMetadata: resolver };
+      const metadata = { reference: 'A', title: 'STALE_TITLE', person: { name: 'STALE_PERSON' }, rows: [{ name: 'STALE_ROW' }] };
+      const snapshot = JSON.stringify(metadata);
+      const access = { user: { username: 'reader', roles: [{ name: 'Librarians' }] }, brand: { id: 'brand-1' },
+        record: { redboxOid: 'plan', workflow: { stage: 'draft' } } };
+      const result = await FormsService.buildClientFormConfig(item, 'view', ['Librarians'], metadata, {}, 'default', {}, access);
+      const field = (name: string): any => result.componentDefinitions.find((entry: any) => entry.name === name);
+      for (const name of ['reference', 'title', 'option', 'end', 'person', 'rows']) {
+        expect(field(name).component.class, name).to.equal('ContentComponent');
+        expect(field(name).model, name).not.to.exist;
+      }
+      expect(field('title').component.config.content).to.equal('Current title');
+      expect(field('option').component.config.content).to.deep.equal({ value: 'selected', label: 'Selected label' });
+      expect(field('end').component.config.content).to.equal('2028-12-31');
+      expect(field('person').component.config.content).to.deep.equal({ name: 'Current person' });
+      expect(field('rows').component.config.content).to.deep.equal([{ name: 'Current row' }]);
+      expect(JSON.stringify(result.componentDefinitions)).not.to.contain('DENIED_');
+      expect(JSON.stringify(result.componentDefinitions)).not.to.contain('STALE_');
+      expect(JSON.stringify(metadata)).to.equal(snapshot);
+      expect(resolver.callCount).to.equal(1);
+      const expected = await new TemplateFormConfigVisitor(mockSails.log).start({ form: result });
+      const rebuilt = await FormsService.buildClientFormConfig(item, 'view', ['Librarians'], metadata, {}, 'default', {}, access);
+      expect(await new TemplateFormConfigVisitor(mockSails.log).start({ form: rebuilt })).to.deep.equal(expected);
+      resolver.resolves({ activity: { status: 'unavailable', records: [], issues: [] } });
+      const unavailable = await FormsService.buildClientFormConfig(item, 'view', ['Librarians'], metadata, {}, 'default', {}, access);
+      expect(unavailable.componentDefinitions.find((entry: any) => entry.name === 'title').component.config.content).to.equal('');
+      expect(JSON.stringify(unavailable.componentDefinitions)).not.to.contain('STALE_');
+      expect(unavailable.relatedRecords.sources[0].initialResult.status).to.equal('unavailable');
     });
 
     it('builds distinct dev-plan role presentations with identical persistence descriptors', async function () {

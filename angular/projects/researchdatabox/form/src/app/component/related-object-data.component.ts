@@ -48,7 +48,7 @@ export class RelatedObjectDataComponent extends ContentComponent {
     this.releaseWork = this.relatedDataState?.begin();
     this.relatedDataState?.result(this.descriptor.componentPointer, !!this.descriptor.required);
     this.relatedSubscriptions.add(this.eventBus.select$(FormComponentEventType.FORM_DEFINITION_READY).pipe(take(1)).subscribe(() => {
-      this.relatedSubscriptions.add(this.formComponent.form.valueChanges.subscribe(() => {
+      this.relatedSubscriptions.add(this.formComponent.form?.valueChanges.subscribe(() => {
         // Preserve attribution even for aggregate changes without a field event.
         publishControlValueNotification(this.formComponent.form, cause => { void this.refreshRelatedData(false, false, cause); });
       }));
@@ -68,7 +68,7 @@ export class RelatedObjectDataComponent extends ContentComponent {
     if (!descriptor || !this.isActive()) return;
     // Only snapshot the referenced subtree; unrelated fields can be large.
     const [rootToken, ...tokens] = descriptor.referenceTokens;
-    const referenceControl = rootToken === undefined ? this.formComponent.form : this.formComponent.form.get([rootToken]);
+    const referenceControl = rootToken === undefined ? this.formComponent.form : this.formComponent.form?.get([rootToken]);
     const reference = readRelatedReference(referenceControl?.getRawValue(), tokens);
     const identity = relatedReferenceIdentity(reference, descriptor.oidTokens);
     const fingerprint = JSON.stringify(identity);
@@ -96,7 +96,11 @@ export class RelatedObjectDataComponent extends ContentComponent {
         if (!request.isCurrent()) return;
         await this.refreshContent();
       };
-      if (initial && descriptor.initialResult && fingerprint === descriptor.referenceFingerprint) {
+      // View fields are flattened to content after server hydration, so their
+      // reference controls are absent. The authorized server result is final
+      // for this immutable view; edit mode still checks the live reference.
+      if (initial && descriptor.initialResult &&
+          ((this.formComponent.editMode?.() === false && !referenceControl) || fingerprint === descriptor.referenceFingerprint)) {
         await publish(descriptor.initialResult);
         return;
       }

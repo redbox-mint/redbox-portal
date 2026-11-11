@@ -7,6 +7,7 @@ import {
   FieldModelDefinitionKind,
   FormComponentDefinitionKind,
   effectiveReusableComponents,
+  viewMetadataSource,
   type FormComponentDefinitionOutline,
   consoleLogger,
   type FormConfigFrame,
@@ -211,10 +212,10 @@ export function relatedFormDescriptors(contract: CompiledRelatedDisplayContract)
   };
 }
 
-/** Keep live related references and expression targets model-backed in view mode.
- * Ordinary view flattening removes both the reference values and target expressions.
- * Preserve only intersecting metadata subtrees, with disabled/read-only controls;
- * caller mode/role constraints still run through the normal construction pipeline.
+/** Keep reference/target models during server view hydration and role pruning.
+ * Ordinary view flattening removes both reference values and target expressions.
+ * Only intersecting subtrees are deferred; populateRelatedViewContent hydrates
+ * them before FormsService applies the normal content presentation.
  */
 export function prepareRelatedViewForm(
   form: FormConfigFrame,
@@ -250,8 +251,9 @@ export function prepareRelatedViewForm(
       const config = (item.component.config ??= {}) as Record<string, unknown>;
       delete config.relatedViewPreserved;
       if (path && paths.some(target => target === path || target.startsWith(path + '/') || path.startsWith(target + '/'))) {
-        item.overrides = { ...item.overrides, formModeClasses: { ...item.overrides?.formModeClasses,
-          view: { component: item.component.class as Exclude<AvailableFormComponentDefinitionFrames['component']['class'], 'ReusableComponent'> } } };
+        item.overrides = { ...item.overrides, __relatedViewOriginal: cloneDeep(item.overrides?.formModeClasses?.view ?? null),
+          formModeClasses: { ...item.overrides?.formModeClasses,
+          view: { component: item.component.class as Exclude<AvailableFormComponentDefinitionFrames['component']['class'], 'ReusableComponent'> } } } as typeof item.overrides;
         // View expressions may populate values, but must never re-enable editing.
         item.expressions = item.expressions?.filter(expression => expression.config && 'target' in expression.config && expression.config.target === 'model.value');
         config.relatedViewPreserved = true;
@@ -284,19 +286,27 @@ export function pruneRelatedViewValues(form: FormConfigOutline): void {
     } else Object.defineProperty(value, head, { value: child, enumerable: true, writable: true });
   };
   type ViewNode = {
-    component?: { config?: Record<string, unknown> & { elementTemplate?: ViewNode } };
+    component?: { class?: string; config?: Record<string, unknown> & { elementTemplate?: ViewNode } };
     model?: { config?: Record<string, unknown> };
+    [viewMetadataSource]?: ViewNode;
   };
   const children = (item: ViewNode): ViewNode[] => ['componentDefinitions', 'tabs', 'panels']
     .flatMap(key => (item.component?.config?.[key] as ViewNode[] | undefined) ?? []);
+  const isContainer = (item: ViewNode): boolean => item.component?.class === 'GroupComponent' ||
+    item.component?.class === 'RepeatableComponent' || ['componentDefinitions', 'tabs', 'panels', 'elementTemplate']
+      .some(key => Object.prototype.hasOwnProperty.call(item.component?.config ?? {}, key));
   const project = (item: ViewNode, value: unknown): unknown => {
+    // Content may represent a previously pruned scalar, group or repeatable.
+    // Keep its surviving source shape, rather than treating every Content node
+    // as a scalar and copying unfiltered nested snapshots from its parent.
+    item = item[viewMetadataSource] ?? item;
     const template = item.component?.config?.elementTemplate;
     if (template) return Array.isArray(value) ? value.map(row => project(template, row)) : undefined;
     const fields = children(item);
-    if (!fields.length) return item.model ? cloneDeep(value) : undefined;
+    if (!fields.length) return isContainer(item) ? {} : item.model ? cloneDeep(value) : undefined;
     const result: Record<string, unknown> = {};
     for (const child of fields) {
-      const tokens = FormPathHelper.metadataTokensForComponent(child as Parameters<typeof FormPathHelper.metadataTokensForComponent>[0]).map(String);
+      const tokens = FormPathHelper.metadataTokensForComponent((child[viewMetadataSource] ?? child) as Parameters<typeof FormPathHelper.metadataTokensForComponent>[0]).map(String);
       const projected = project(child, read(value, tokens));
       if (tokens.length) write(result, tokens, projected);
       else if (projected && typeof projected === 'object') {
@@ -308,7 +318,7 @@ export function pruneRelatedViewValues(form: FormConfigOutline): void {
   const walk = (item: ViewNode): void => {
     for (const child of children(item)) walk(child);
     if (item.component?.config?.elementTemplate) walk(item.component.config.elementTemplate);
-    if (children(item).length || item.component?.config?.elementTemplate) {
+    if (isContainer(item)) {
       for (const key of ['value', 'defaultValue', 'newEntryValue']) {
         if (item.model?.config && Object.prototype.hasOwnProperty.call(item.model.config, key)) {
           item.model.config[key] = project(item, item.model.config[key]);

@@ -4193,6 +4193,8 @@ export namespace Services {
       'appendToRecord',
       'removeFromRecord',
       'getRecords',
+      'getRecordsForDisplay',
+      'getConsumerView',
       'exportAllPlans',
       'storeRecordAudit',
       'recoverRecordAudit',
@@ -7428,6 +7430,15 @@ export namespace Services {
         });
       }
       return await this.getMeta(oid);
+    }
+
+    /** Explicit read-only consumer extension. Persistence and indexing keep getMeta/getRecords. */
+    public async getConsumerView(record: AnyRecord, _brand: unknown, _user: unknown): Promise<AnyRecord> {
+      return _.cloneDeep(record);
+    }
+
+    public getRecordsForDisplay(...args: Parameters<Records['getRecords']>): ReturnType<Records['getRecords']> {
+      return this.getRecords(...args);
     }
 
     public getRecords(

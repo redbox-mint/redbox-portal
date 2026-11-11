@@ -2698,6 +2698,11 @@ export class FormComponent extends BaseComponent implements OnDestroy {
     if (this.form) {
       this.clearServerErrorsFromControl(this.form, true);
     }
+    // Display-only components can sit outside the persisted form tree, but
+    // applyServerSaveProblems can still attach issues to their controls.
+    for (const { control } of this.serverControlCandidates()) {
+      this.clearServerErrorsFromControl(control);
+    }
   }
 
   private clearServerErrorsFromControl(control: AbstractControl, recursive = false): void {

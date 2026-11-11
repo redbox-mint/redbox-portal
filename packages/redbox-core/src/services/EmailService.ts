@@ -517,7 +517,11 @@ export namespace Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
-    public async buildPreviewContext(templateName: string, data: Record<string, unknown>, brandId: string): Promise<Record<string, unknown>> {
+    public async buildPreviewContext(templateName: string, data: Record<string, unknown>, brandId: string, user?: Record<string, unknown>): Promise<Record<string, unknown>> {
+      if (user && data.record) {
+        const record = await this.prepareNotificationRecord(data.record as Record<string, unknown>, { template: templateName }, user);
+        data = { ...data, record, imports: { record, oid: data.oid } };
+      }
       const response: Record<string, unknown> = {};
       this.previewContextRequests.set(response, { brandId });
       // Same virtual method dispatch and pre-curation as buildFromTemplate; SCU's override runs here.
@@ -604,6 +608,22 @@ export namespace Services {
         ? handlebarsCompile(template, { strict: true })(this.createRenderData(variables, undefined, false)) : template;
     }
 
+    /** Read-time display view. Post-send hooks always receive the authoritative input record. */
+    protected async prepareNotificationRecord(record: Record<string, unknown>, options: Record<string, unknown>, user: Record<string, unknown>): Promise<Record<string, unknown>> {
+      // Resolve from the supplied candidate so unsaved reference changes are respected.
+      // Keep this rendering view separate from the original mutable hook record.
+      return options.relatedMetadata == null ? record : await RecordsService.enrichWithRelatedMetadata(
+        record as unknown as RecordModel,
+        {
+          brand: BrandingService.getBrandById(_.get(record, 'metaMetadata.brandId') as string),
+          user: user as unknown as UserModel,
+          audience: 'service',
+          serviceId: 'EmailService',
+        },
+        options.relatedMetadata as RelatedMetadataRequest,
+      );
+    }
+
     /**
      * Send an email build from the given record data.
      *
@@ -625,18 +645,7 @@ export namespace Services {
         }
         return record;
       }
-      // Resolve from the supplied candidate so unsaved reference changes are respected.
-      // Keep this rendering view separate from the original mutable hook record.
-      const evaluationRecord = options.relatedMetadata == null ? record : await RecordsService.enrichWithRelatedMetadata(
-        record as unknown as RecordModel,
-        {
-          brand: BrandingService.getBrandById(_.get(record, 'metaMetadata.brandId') as string),
-          user: user as unknown as UserModel,
-          audience: 'service',
-          serviceId: 'EmailService',
-        },
-        options.relatedMetadata as RelatedMetadataRequest,
-      );
+      const evaluationRecord = await this.prepareNotificationRecord(record, options, user);
       if (this.metTriggerCondition(oid, evaluationRecord, options, user) == "true") {
         const variables = {
           imports: {

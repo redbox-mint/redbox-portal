@@ -432,6 +432,37 @@ describe('EmailService', function() {
         expect(opts.returnType).to.equal('response');
       });
 
+      it('uses a hook display view for rendering while success hooks keep the stored record', async function() {
+        const view = { ..._.cloneDeep(record), metadata: { title: 'Current source title' } };
+        const prepare = sinon.stub(EmailService, 'prepareNotificationRecord').resolves(view);
+        fs.writeFileSync(path.join(tmpDir, 'projected.hbs'), '{{record.metadata.title}}/{{imports.record.metadata.title}}');
+        const hook = sinon.spy((_oid, candidate) => { candidate.metadata.notified = true; return of(candidate); });
+        mockSails.services.notificationtest = { success: hook };
+        await EmailService.sendRecordNotification('plan', record, { forceRun: true,
+          template: 'projected', to: 'current@example.com', subject: '{{record.metadata.title}}',
+          onNotifySuccess: [{ function: 'sails.services.notificationtest.success' }],
+        }, user, {});
+        expect(prepare.firstCall.args[0]).to.equal(record);
+        expect(send.firstCall.args.slice(0, 3)).to.deep.equal(['current@example.com',
+          'Current source title/Current source title', 'Current source title']);
+        expect(hook.firstCall.args[1]).to.equal(record);
+        expect(record.metadata).to.deep.equal({ activity: 'unsaved-reference', notified: true });
+        expect(view.metadata).to.deep.equal({ title: 'Current source title' });
+      });
+
+      it('projects record-backed editor contexts with the trusted preview user', async function() {
+        const view = { ..._.cloneDeep(record), metadata: { title: 'Current source title' } };
+        const prepare = sinon.stub(EmailService, 'prepareNotificationRecord').resolves(view);
+        fs.writeFileSync(path.join(tmpDir, 'projected.hbs'), '{{record.metadata.title}}');
+        const context = await EmailService.buildPreviewContext('projected', { record, oid: 'plan' }, 'tenant', user);
+        expect(prepare.calledOnceWithExactly(record, { template: 'projected' }, user)).to.be.true;
+        expect(context.record.metadata.title).to.equal('Current source title');
+        expect(record.metadata).to.deep.equal({ activity: 'unsaved-reference' });
+        prepare.resetHistory();
+        await EmailService.buildPreviewContext('projected', { record: view }, 'tenant');
+        expect(prepare.called).to.be.false;
+      });
+
       it('rejects required failures before trigger evaluation, rendering or sending', async function() {
         const error = new Error('Required related metadata unavailable');
         enrich.rejects(error);

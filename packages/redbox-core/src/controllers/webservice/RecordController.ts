@@ -842,7 +842,7 @@ export namespace Controllers {
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       try {
-        const record = await this.requireRecordInBrand(oid, brand);
+        let record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
           return this.sendResp(req, res, {
             status: 404,
@@ -853,6 +853,9 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
+        if (validated.query.consumerView === 'true') {
+          record = await this.RecordsService.getConsumerView(record as unknown as globalThis.Record<string, unknown>, brand, req.user) as unknown as typeof record;
+        }
         const headers = await this.recordReadDiscoveryHeaders(req, brand, oid, representation.headers);
         if (!this.shouldIncludeRelationships(req)) {
           return this.sendResp(req, res, {

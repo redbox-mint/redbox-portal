@@ -155,5 +155,37 @@ describe('Email template compatibility', () => {
       assert.equal(preview.subject, supplied.subject);
       assert.equal(preview.html, sanitizer.sanitizeEmail(String(supplied.body)).sanitized);
     }
+    // Resolve record-backed editor context with the trusted caller before
+    // curation. Rendering edited JSON performs no further server lookups.
+    const linked = { redboxOid: 'plan', metaMetadata: { type: 'rdmp', brandId: 'a' },
+      metadata: { 'irma-id': { oid: 'activity' }, title: 'Stale title',
+        contributor_ci: { name: 'Stale CI', email: 'stale@example.invalid' } } };
+    const original = structuredClone(linked);
+    const user = { username: 'preview-user' };
+    let reads = 0;
+    let denied = false;
+    mockSails.services.brandingservice = { getBrandById: () => ({ id: 'a' }) };
+    mockSails.services.recordsservice = { resolveRelatedMetadata: async (_record: unknown, caller: any) => {
+      reads++;
+      assert.equal(caller.user, user);
+      assert.equal(caller.serviceId, 'SCUTriggerService');
+      return { primaryActivity: denied ? { status: 'unavailable', records: [] } : {
+        status: 'resolved', records: [{ metadata: { title: 'Current Alpha title',
+          contributor_ci: { given_name: 'Alice', family_name: 'Alpha' } } }],
+      } };
+    } };
+    const selected = templates.find((template: any) => template.id === 'e01RdmpSubmittedResearcher')!;
+    (global as any).EmailTemplateService = { resolve: async () => ({ ...selected, format: 'html', source: 'override' }) };
+    const context = await email.buildPreviewContext(selected.id, { record: linked, oid: 'plan' }, 'a', user);
+    assert.equal(context.record.metadata.title, 'Current Alpha title');
+    assert.equal(context.scuEmail.ciName, 'Alice Alpha');
+    const preview = await admin.preview('a', selected.id, { ...selected, format: 'html' }, JSON.stringify(context));
+    assert.deepEqual(preview.diagnostics, []);
+    assert.ok(preview.html!.includes('Current Alpha title'));
+    assert.equal(reads, 1);
+    assert.deepEqual(linked, original);
+    denied = true;
+    await assert.rejects(email.buildPreviewContext(selected.id, { record: linked, oid: 'plan' }, 'a', user), /Primary activity is unavailable/);
+    assert.deepEqual(linked, original);
   });
 });

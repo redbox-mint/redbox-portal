@@ -539,7 +539,7 @@ export namespace Services {
       if (!selected) throw new EmailTemplateError('UNKNOWN_TEMPLATE', 'Select an email template for preview context.');
       emailTemplateDefinition(selected);
       const context = filterEmailPreviewContext(
-        await EmailService.buildPreviewContext(selected, { record, oid, imports: { record, oid } }, brandId)
+        await EmailService.buildPreviewContext(selected, { record, oid, imports: { record, oid } }, brandId, user as unknown as Record<string, unknown>)
       );
       // The legacy `imports` alias is rebuilt from `record` on every preview, so it is
       // not offered for editing.

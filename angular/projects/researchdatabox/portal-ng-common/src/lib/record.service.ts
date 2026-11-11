@@ -368,11 +368,12 @@ export class RecordService extends HttpClientService {
     return response.data;
   }
 
-  public async getRecordMeta(oid: string) {
+  public async getRecordMeta(oid: string, options: { consumerView?: boolean } = {}) {
     // Cache-bust metadata reads so publication refreshes do not reuse a stale
     // browser response after the related record has been saved elsewhere.
     const ts = Date.now();
     let url = `${this.brandingAndPortalUrl}/record/metadata/${oid}?ts=${ts}`;
+    if (options.consumerView) url += '&consumerView=true';
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;

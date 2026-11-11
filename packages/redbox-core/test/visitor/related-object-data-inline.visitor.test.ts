@@ -5,6 +5,7 @@ import { FormConfigFrame, RelatedObjectDataFormComponentDefinitionOutline } from
 import type { ILogger } from '@researchdatabox/sails-ng-common';
 import type { RecordsService } from '../../src/RecordsService';
 import { UserModel } from '../../src/model/storage/UserModel';
+import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 import { RelatedObjectDataInlineFormConfigVisitor } from '../../src/visitor/related-object-data-inline.visitor';
 
@@ -47,6 +48,30 @@ describe('RelatedObjectDataInlineFormConfigVisitor', () => {
     );
     return (form.componentDefinitions[0] as RelatedObjectDataFormComponentDefinitionOutline).component.config;
   }
+
+  it('skips role-filtered containers without resolving their hidden sources', async () => {
+    const related = (name: string) => ({ name, component: { class: 'RelatedObjectDataComponent' as const,
+      config: { dataPath: `metadata.${name}`, relatedFields: ['title'] } } });
+    const input: FormConfigFrame = { name: 'researcher', componentDefinitions: [{
+      name: 'tabs', component: { class: 'TabComponent', config: { tabs: [
+        { name: 'visible', component: { class: 'TabContentComponent', config: { componentDefinitions: [related('allowed')] } } },
+        { name: 'admin', constraints: { authorization: { allowRoles: ['Admin'] } },
+          component: { class: 'TabContentComponent', config: { componentDefinitions: [related('hidden')] } } },
+      ] } },
+    }] };
+    const form = await new ConstructFormConfigVisitor(logger).start({ data: input });
+    await new ClientFormConfigVisitor(logger).start({ form, formMode: 'edit', userRoles: ['Researcher'] });
+    const requested: string[] = [];
+    const service = { getMeta: async (oid: string) => {
+      requested.push(oid);
+      return { metadata: { title: 'Visible' } };
+    }, hasViewAccess: () => true } as unknown as RecordsService;
+    await new RelatedObjectDataInlineFormConfigVisitor(logger, service).resolve(form,
+      { allowed: ['readable'], hidden: ['private'] },
+      { user: Object.assign(new UserModel(), { username: 'researcher' }), brand: { name: 'default' } as never });
+    expect(requested).to.deep.equal(['readable']);
+    expect(JSON.stringify(form)).not.to.contain('private');
+  });
 
   it('projects configured fields and buckets denied and failed oids', async () => {
     const config = await resolve([{ id: 'allowed' }, { id: 'denied' }, { id: 'missing' }, { id: 'allowed' }]);

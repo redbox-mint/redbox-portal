@@ -562,11 +562,12 @@ export namespace Services {
           reusableFormDefs?: ReusableFormDefinitions,
           recordAccessContext?: FormRecordAccessContext
         ): Promise<TemplateCompileInput[]> {
-          // Compile the same caller-effective view structure returned by getForm.
-          // Plain view construction flattens live related targets and loses their keys.
+          // Compile the same authorized, hydrated view returned by getForm.
+          // Selection-dependent templates (for example empty vs selected options)
+          // must use current source values, not an unresolved placeholder.
           if (formMode === 'view' && recordAccessContext && compileRelatedDisplayContract(item, reusableFormDefs)) {
             const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata,
-              reusableFormDefs, undefined, undefined, recordAccessContext, false, true);
+              reusableFormDefs, undefined, undefined, recordAccessContext);
             // The client carrier strips behaviour templates; compile their raw definitions.
             form.behaviours = _.cloneDeep(item.behaviours);
             return await new TemplateFormConfigVisitor(this.logger).start({ form });

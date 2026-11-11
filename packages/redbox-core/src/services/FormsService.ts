@@ -1,4 +1,5 @@
 import { compileRelatedDisplayContract, bindRelatedDisplayContract, relatedFormDescriptors, prepareRelatedViewForm, pruneRelatedViewValues } from '../related-records/display-descriptors';
+import { populateRelatedViewContent } from '../related-records/related-view-content';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -957,7 +958,8 @@ export namespace Services {
       await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
+      const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs,
+        deferRelatedViewTransforms: formMode === 'view' && !!relatedRecords });
       if (!result) {
         throw new Error(
           `The form config is invalid because all form fields were removed, ` +
@@ -992,6 +994,15 @@ export namespace Services {
           };
         }
         await relatedVisitor.resolve(result, recordMetadata ?? {}, accessContext);
+      }
+
+      if (formMode === 'view' && relatedRecords) {
+        await populateRelatedViewContent(result, recordMetadata ?? {}, {
+          ...contextVariablesMap, user: { ...recordAccessContext?.user, roles: userRoles ?? [] },
+        });
+        // References cannot change in view mode. After authorized hydration,
+        // use the same content presentation as every other view field.
+        visitor.completeRelatedViewTransforms();
       }
 
       const componentDefinitions = result.componentDefinitions as unknown[] | undefined;

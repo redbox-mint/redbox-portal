@@ -15,7 +15,7 @@ import { createFieldValueChangedEvent, FormComponentEvent } from '../events/form
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from '../apply-expression-target';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
-import { BehaviourFieldResolverContext, ResolvedField, resolveFieldByPointer } from './behaviour-field-resolver';
+import { BehaviourFieldResolverContext, ResolvedField, resolveComponentByPointer, resolveFieldByPointer } from './behaviour-field-resolver';
 
 /**
  * Dependencies shared by action execution.
@@ -360,12 +360,20 @@ async function applySingleUIProperty(
   let host: ExpressionTargetHost = {};
   if (entry.target !== FormExpressionsTargetValidationGroups) {
     const fieldPathKind = fieldPathConfig.fieldPathKind ?? FieldPathKind.ComponentJsonPointer;
-    const resolved =
-      fieldPathKind === FieldPathKind.Logical
-        ? resolveLogicalField(ctx, logicalEntryIndex)
-        : await resolveDynamicField(fieldPathConfig, fieldPathKeyPath, pipelineContext, ctx, fieldPathKind);
+    // UI-only targets do not require a FormControl. In particular Save and
+    // Delete buttons have no model but still need workflow/context guards.
+    let fieldPath = fieldPathConfig.fieldPath;
+    if (fieldPathKind === FieldPathKind.JSONata && fieldPathConfig.hasFieldPathTemplate && ctx.compiledTemplateEvaluator) {
+      const evaluated = await ctx.compiledTemplateEvaluator.evaluate(
+        ctx.behaviourIndex, [ctx.listName, ctx.actionIndex, ...fieldPathKeyPath, 'fieldPath'], pipelineContext);
+      fieldPath = typeof evaluated === 'string' ? evaluated : undefined;
+    }
+    const lockedEntry = fieldPathKind === FieldPathKind.Logical
+      ? ctx.getLogicalFieldEntry(ctx.listName, ctx.actionIndex, logicalEntryIndex) : undefined;
+    if (fieldPathKind === FieldPathKind.Logical) fieldPath = lockedEntry?.lineagePaths?.angularComponentsJsonPointer;
+    const componentEntry = fieldPath ? resolveComponentByPointer(fieldPath, ctx.fieldResolverContext) : undefined;
     if (ctx.isActive?.() === false) return;
-    if (!resolved) {
+    if (!componentEntry) {
       ctx.logger.warn('Behaviour action setUIProperty: target field did not resolve.', {
         behaviourIndex: ctx.behaviourIndex,
         actionIndex: ctx.actionIndex,
@@ -375,7 +383,7 @@ async function applySingleUIProperty(
       });
       return;
     }
-    host = buildTargetHost(resolved.entry);
+    host = buildTargetHost(componentEntry);
   }
 
   const value = await resolveActionValue(entry, valueKeyPath, pipelineContext, ctx, { allowLiteralValue: true });

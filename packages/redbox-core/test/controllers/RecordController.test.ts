@@ -758,6 +758,23 @@ describe('RecordController getWorkflowSteps', () => {
             ...(roles.includes('Admin') ? { restricted: 'restricted-secret' } : {}),
             ...(mode === 'edit' ? { editOnly: 'edit-secret' } : {}),
           });
+          // Project before role/mode filtering: authorized related data cannot
+          // make a field removed from the caller's form visible again.
+          Object.assign(controller.recordsService, {
+            getConsumerView: sinon.stub().callsFake(async (raw: any) => ({ ...raw,
+              metadata: { ...raw.metadata, title: 'Current projected title',
+                restricted: 'projected-role-secret', serverOnly: 'projected-server-secret' },
+            })),
+          });
+          req.query.consumerView = 'true';
+          sendResp.resetHistory();
+          await controller.getMeta(req, {} as Sails.Res);
+          expect(sendResp.firstCall.args[2].data).to.deep.equal({
+            title: 'Current projected title',
+            ...(roles.includes('Admin') ? { restricted: 'projected-role-secret' } : {}),
+          });
+          expect(JSON.stringify(sendResp.firstCall.args[2])).not.to.contain('projected-server-secret');
+          expect(record.metadata.title).to.equal('Visible');
         });
       }
     }
@@ -2522,7 +2539,7 @@ describe('RecordController getWorkflowSteps', () => {
 
   it('includes the authoritative revision on browser actionable list rows', async function () {
     controller.recordsService = {
-      getRecords: sinon.stub().resolves({
+      getRecordsForDisplay: sinon.stub().resolves({
         isSuccessful: () => true,
         totalItems: 1,
         items: [

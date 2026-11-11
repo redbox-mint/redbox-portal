@@ -91,7 +91,7 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
   async visitRelatedObjectDataFormComponentDefinition(
     item: RelatedObjectDataFormComponentDefinitionOutline
   ): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitRelatedObjectDataFieldComponentDefinition(
     item: RelatedObjectDataFieldComponentDefinitionOutline
@@ -99,25 +99,25 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
     this.pending.push(this.resolveComponent(item));
   }
   async visitGroupFormComponentDefinition(item: GroupFormComponentDefinitionOutline): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitGroupFieldComponentDefinition(item: GroupFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) await def.accept(this);
   }
   async visitTabFormComponentDefinition(item: TabFormComponentDefinitionOutline): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitTabFieldComponentDefinition(item: TabFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.tabs ?? []) await def.accept(this);
   }
   async visitAccordionFormComponentDefinition(item: AccordionFormComponentDefinitionOutline): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitAccordionFieldComponentDefinition(item: AccordionFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.panels ?? []) await def.accept(this);
   }
   async visitAccordionPanelFormComponentDefinition(item: AccordionPanelFormComponentDefinitionOutline): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitAccordionPanelFieldComponentDefinition(
     item: AccordionPanelFieldComponentDefinitionOutline
@@ -125,13 +125,13 @@ export class RelatedObjectDataInlineFormConfigVisitor extends FormConfigVisitor 
     for (const def of item.config?.componentDefinitions ?? []) await def.accept(this);
   }
   async visitTabContentFormComponentDefinition(item: TabContentFormComponentDefinitionOutline): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitTabContentFieldComponentDefinition(item: TabContentFieldComponentDefinitionOutline): Promise<void> {
     for (const def of item.config?.componentDefinitions ?? []) await def.accept(this);
   }
   async visitRepeatableFormComponentDefinition(item: RepeatableFormComponentDefinitionOutline): Promise<void> {
-    await item.component.accept(this);
+    await item.component?.accept(this);
   }
   async visitRepeatableFieldComponentDefinition(item: RepeatableFieldComponentDefinitionOutline): Promise<void> {
     await item.config?.elementTemplate?.accept(this);

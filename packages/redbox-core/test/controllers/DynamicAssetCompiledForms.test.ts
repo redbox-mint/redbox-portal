@@ -106,19 +106,25 @@ describe('compiled form template endpoint', () => {
     sinon.assert.notCalled(resolve);
     sinon.assert.notCalled(records.resolveRelatedMetadata);
   });
-  it('emits opted-in view target keys without resolving related sources again', async () => {
+  it('emits hydrated view target templates using the trusted caller context', async () => {
     configuration = require('../../../redbox-hook-dev/src/form-config/related-plan-1.0-draft').default;
+    const current = { status: 'resolved', records: [{ redboxOid: 'A', metadata: {
+      title: 'Current activity', startDate: '2026-01-01', endDate: '2028-12-31',
+    } }], issues: [] };
+    records.resolveRelatedMetadata.resolves({ primaryActivity: current, activities: current });
+    (global as any).sails.services.recordsservice = records;
     await request();
     sinon.assert.calledOnce(res.view);
+    sinon.assert.calledOnce(records.resolveRelatedMetadata);
+    assert.deepEqual(records.resolveRelatedMetadata.firstCall.args[1], { brand, user: req.user, audience: 'browser' });
     const entries = res.view.firstCall.args[1].entries;
     const client = await forms.buildClientFormConfig(configuration, 'view', ['Admin'], root.metadata, {},
-      undefined, undefined, { brand, user: req.user, record: root }, false, true);
+      undefined, undefined, { brand, user: req.user, record: root });
     for (const name of ['activityTitle', 'activityDates', 'activitySummaries']) {
       const index = client.componentDefinitions.findIndex((field: any) => field.name === name);
-      assert.ok(entries.some((entry: any) => entry.key === `componentDefinitions__${index}__expressions__0__config__template`), name);
+      assert.equal(client.componentDefinitions[index].component.class, 'ContentComponent');
+      assert.ok(entries.some((entry: any) => entry.key === `componentDefinitions__${index}__component__config__template`), name);
     }
-    sinon.assert.notCalled(resolve);
-    sinon.assert.notCalled(records.resolveRelatedMetadata);
     sinon.assert.calledOnce(records.getMeta);
   });
 });

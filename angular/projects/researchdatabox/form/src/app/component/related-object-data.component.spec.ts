@@ -13,6 +13,7 @@ import { FormConfigFrame, handlebarsCompile, jsonataCompileAndEvaluate } from '@
 import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } from '../helpers.spec';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { RelatedObjectDataComponent } from './related-object-data.component';
+import { ContentComponent } from './content.component';
 
 describe('RelatedObjectDataComponent', () => {
   let utilityService: UtilityService;
@@ -21,7 +22,7 @@ describe('RelatedObjectDataComponent', () => {
   beforeEach(async () => {
     recordService = jasmine.createSpyObj('RecordService', ['resolveRelatedMetadata', 'update', 'create']);
     await createTestbedModule({
-      declarations: { RelatedObjectDataComponent, SimpleInputComponent, GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent },
+      declarations: { ContentComponent, RelatedObjectDataComponent, SimpleInputComponent, GroupFieldComponent, RepeatableComponent, RepeatableElementLayoutComponent },
       providers: { RecordService: { provide: RecordService, useValue: recordService }, UtilityService: null, HandlebarsTemplateService: { provide: HandlebarsTemplateService, useValue: {} } },
     });
     utilityService = TestBed.inject(UtilityService);
@@ -110,6 +111,34 @@ describe('RelatedObjectDataComponent', () => {
 
   }));
 
+  }
+
+  for (const status of ['resolved', 'unavailable'] as const) {
+    it(`keeps the server ${status} result when view references are content without controls`, fakeAsync(() => {
+      const initialResult: RelatedMetadataEntry = { status, issues: [], records: status === 'resolved' ? [{
+        redboxOid: 'A', metadata: { title: 'Current title' }, metaMetadata: { type: 'activity', brandId: 'default' },
+      }] : [] };
+      const config: FormConfigFrame = { name: 'related-content-view', relatedRecords: {
+        displayTargets: [{ metadataPointer: '/title', relationId: 'activity' }],
+        relations: [{ relationId: 'activity', referenceTokens: ['reference'] }], sources: [{
+          componentPointer: '/source', relationId: 'activity', referenceTokens: ['reference'], required: true,
+          referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }), initialResult,
+        }],
+      }, componentDefinitions: [
+        { name: 'reference', component: { class: 'ContentComponent', config: { content: 'A' } } },
+        { name: 'title', component: { class: 'ContentComponent', config: { content: status === 'resolved' ? 'Current title' : '' } } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activity' } } },
+      ] };
+      let result!: Awaited<ReturnType<typeof createFormAndWaitForReady>>;
+      void createFormAndWaitForReady(config, { editMode: false }).then(value => { result = value; });
+      flushMicrotasks(); tick(); result.fixture.detectChanges();
+      expect(result.formComponent.form?.get('reference') ?? null).toBeNull();
+      expect(result.fixture.nativeElement.querySelectorAll('input,textarea,select').length).toBe(0);
+      expect(result.fixture.nativeElement.textContent).toContain(status === 'resolved' ? 'Current title' : 'A');
+      expect(result.formComponent.relatedState).toBe(status === 'resolved' ? 'ready' : 'error');
+      expect(recordService.resolveRelatedMetadata).not.toHaveBeenCalled();
+      result.fixture.destroy();
+    }));
   }
 
   for (const delayedWork of ['expressions', 'repeatable setter']) {

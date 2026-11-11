@@ -724,18 +724,22 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.recordsService.getMeta(oid);
+        let record = await this.recordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, { status: 404 });
         }
         const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
         if (hasViewAccess) {
           const representation = recordRepresentationConcurrency(record);
+          const consumerView = req.query.consumerView === 'true';
+          if (consumerView) {
+            record = await this.recordsService.getConsumerView(record as unknown as AnyRecord, brand, req.user) as unknown as typeof record;
+          }
           const formName = record.metaMetadata?.['form'] as string | undefined;
           if (formName) {
             try {
               const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
-              const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
+              const formMode: FormModesConfig = !consumerView && hasEditAccess ? 'edit' : 'view';
               const clientFormConfig = await getEffectiveRelatedClientForm(
                 req,
                 brand,
@@ -2961,7 +2965,7 @@ export namespace Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = (packageType as string).split(',');
       }
-      const results = await this.recordsService.getRecords(
+      const results = await this.recordsService.getRecordsForDisplay(
         workflowState,
         recordType,
         start,

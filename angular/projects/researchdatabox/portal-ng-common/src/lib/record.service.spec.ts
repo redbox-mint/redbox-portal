@@ -71,6 +71,16 @@ describe('RecordService', () => {
     await expectAsync(pending).toBeResolvedTo(data);
   });
 
+  it('requests a consumer view only when explicitly selected', async () => {
+    for (const consumerView of [false, true]) {
+      const result = recordService.getRecordMeta('linked-plan', { consumerView });
+      const request = httpTestingController.expectOne(req => req.url.includes('/record/metadata/linked-plan'));
+      expect(request.request.url.includes('consumerView=true')).toBe(consumerView);
+      request.flush({ title: consumerView ? 'Current' : 'Stored' });
+      await expectAsync(result).toBeResolvedTo({ title: consumerView ? 'Current' : 'Stored' });
+    }
+  });
+
   it('sends the configured dashboard page size and matching offset while preserving the default', async () => {
     recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
     for (const rows of [undefined, 25, 100]) {

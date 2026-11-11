@@ -1,11 +1,12 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { FormOverride } from '@researchdatabox/sails-ng-common';
+import { FormOverride, viewMetadataSource } from '@researchdatabox/sails-ng-common';
 import {
   compileRelatedDisplayContract as compile,
   relatedFormDescriptors,
   bindRelatedDisplayContract,
   cachedRelatedDisplayDeclarations,
+  pruneRelatedViewValues,
 } from '../../src/related-records/display-descriptors';
 import { formatRecordFormFingerprint } from '../../src/RecordFormFingerprint';
 
@@ -34,6 +35,25 @@ const source = (config = {}): any => ({
 });
 
 describe('related display descriptors', () => {
+  it('does not treat empty authorized container provenance as an unrestricted scalar value', () => {
+    const emptyGroup = { component: { class: 'GroupComponent', config: { componentDefinitions: [] } },
+      model: { class: 'GroupModel', config: {} } };
+    const value = { denied: { secret: 'DENIED_GROUP' }, rows: [{ secret: 'DENIED_ROW' }], scalar: { allowed: 'PUBLIC' } };
+    const outer: any = { name: 'outer', model: { class: 'GroupModel', config: { value } },
+      component: { class: 'GroupComponent', config: { componentDefinitions: [
+        { name: 'denied', component: { class: 'ContentComponent', config: { content: {} } }, [viewMetadataSource]: { ...emptyGroup, name: 'denied' } },
+        { name: 'rows', component: { class: 'ContentComponent', config: { content: [] } }, [viewMetadataSource]: {
+          name: 'rows', component: { class: 'RepeatableComponent', config: { elementTemplate: emptyGroup } }, model: { class: 'RepeatableModel' },
+        } },
+        { name: 'scalar', component: { class: 'ContentComponent' }, [viewMetadataSource]: {
+          name: 'scalar', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+        } },
+      ] } } };
+    pruneRelatedViewValues(form(outer));
+    expect(outer.model.config.value).to.deep.equal({ denied: {}, rows: [{}], scalar: { allowed: 'PUBLIC' } });
+    expect(JSON.stringify(outer.model.config.value)).not.to.contain('DENIED_');
+  });
+
   it('rejects display declarations on reusable usages, including nested usages', () => {
     const usage: any = { name: 'wrapper', relatedDisplay: { relationId: 'activities' },
       component: { class: 'ReusableComponent' }, overrides: { reusableFormName: 'fields' } };
