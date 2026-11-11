@@ -30,12 +30,15 @@ export function recordGridRequest(input: {
     ...new Set(input.selections.filter(item => item.responsePath[0] === 'metadata').map(item => item.selection)),
   ];
   const envelope = [
-    ...new Set(input.selections.filter(item => item.responsePath[0] !== 'metadata').map(item => item.selection)),
+    ...new Set([
+      'oid',
+      ...input.selections.filter(item => item.responsePath[0] !== 'metadata').map(item => item.selection),
+    ]),
   ];
   return {
     query: `query GridPage($type: String!, $stages: [String!], $filters: [RecordFilterInput!], $sort: [RecordSortInput!], $first: Int, $after: String) {
       records(recordType: $type, workflowStages: $stages, filters: $filters, sort: $sort, first: $first, after: $after) {
-        nodes { oid ${envelope.join('\n')} metadata { __typename ${fragments.join('\n')} } }
+        nodes { ${envelope.join('\n')} metadata { __typename ${fragments.join('\n')} } }
         hasNextPage endCursor
       }
     }`,
