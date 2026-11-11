@@ -1,4 +1,5 @@
 import { dispatchFigshare, runFigshareWorker, getSyncStore, importRecordIntent } from './figshare-v2/worker';
+import { scheduleFigshareDelivery } from './figshare-v2/queue';
 import { workerClient } from './figshare-v2/execution';
 import { buildMetadataPayload as buildLocalMetadataPayload } from './figshare-v2/metadata';
 import { Services as services } from '../CoreService';
@@ -297,7 +298,7 @@ export namespace Services {
       await importRecordIntent(store, fresh);
       const state = await store.get(oid);
       if (state?.nextActionAt != null) {
-        await AgendaQueueService.schedule('Figshare-SyncRecord', `in ${Math.min(config.processing.coalesceMs, 900000)} milliseconds`, { oid, brandId: fresh.metaMetadata.brandId });
+        await scheduleFigshareDelivery(oid, fresh.metaMetadata.brandId, `in ${Math.min(config.processing.coalesceMs, 900000)} milliseconds`);
       }
       return record;
     }

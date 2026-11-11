@@ -18,6 +18,7 @@ import { startFigshareAudit, completeFigshareAudit, failFigshareAudit } from './
 import { createRunContext } from './context';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
 import { RecordWriteConflict } from '../../RecordWriteOptions';
+import { scheduleFigshareDelivery } from './queue';
 
 export interface QueuedFigshareService {
   makeClient(config: ResolvedFigsharePublishingConfigData, record: RecordModel, jobId?: string, triggerSource?: string): FigshareClient;
@@ -93,7 +94,7 @@ export async function dispatchFigshare(): Promise<void> {
           await store.dispatchClaim(due.oid, PAUSED_DISPATCH_BACKOFF_MS, true);
           continue;
         }
-        await AgendaQueueService.now('Figshare-SyncRecord', { oid: due.oid, brandId: due.brandId });
+        await scheduleFigshareDelivery(due.oid, due.brandId);
       }
       catch (error) { sails.log.error('Figshare delivery failed; durable work remains due', error); }
     }

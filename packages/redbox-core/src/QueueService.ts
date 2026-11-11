@@ -24,5 +24,6 @@
 export interface QueueService {
   every(jobName: string, interval: string, data: unknown, options: unknown): void;
   schedule(jobName: string, schedule: string, data: unknown): Promise<unknown>;
+  scheduleUnique(jobName: string, schedule: string | Date, data: Record<string, unknown>, deliveryKey: string): Promise<unknown>;
   now(jobName: string, data: unknown): Promise<unknown>;
 }
