@@ -117,11 +117,8 @@ export class TypeaheadDataService extends HttpClientService {
     ): Promise<TypeaheadOption[]> {
         // Keep the established database array API (including paging) for hooks and
         // legacy callers. The form uses the bounded metadata-aware method below.
-        if (start === 0 && Number.isSafeInteger(rows) && rows >= 1 && rows <= 25)
-            return this.searchNamedQueryLookup(queryId, search, start, rows, labelField, valueField).then(result => result.options);
         const id = String(queryId ?? "").trim();
         if (!id) return Promise.reject(new Error("queryId is required"));
-        if (!String(search ?? "").trim()) return Promise.resolve([]);
         const label = String(labelField ?? "").trim() || "label";
         const value = String(valueField ?? "").trim() || "value";
         return this.dedupe(`namedQuery|${id}|${search}|${start}|${rows}|${label}|${value}`, () =>
@@ -136,7 +133,9 @@ export class TypeaheadDataService extends HttpClientService {
         if (start !== 0) return Promise.reject(new Error("Lookup offsets are unsupported"));
         if (!Number.isSafeInteger(rows) || rows < 1) return Promise.reject(new Error("Invalid lookup page size"));
         if (!String(search ?? "").trim()) return Promise.resolve({ options: [] });
-        const limit = Math.min(rows, 25);
+        // The alias resolves on the server: database limits remain configurable,
+        // while GraphQL execution enforces its own first-page maximum of 25.
+        const limit = rows;
         const resolvedLabelField = String(labelField ?? "").trim() || "label";
         const resolvedValueField = String(valueField ?? "").trim() || "value";
         const key = JSON.stringify([trimmedQueryId, search, limit, resolvedLabelField, resolvedValueField]);

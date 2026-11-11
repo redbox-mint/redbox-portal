@@ -58,7 +58,7 @@ export class TypeaheadInputModel extends FormFieldModel<TypeaheadInputModelValue
         [typeaheadAsync]="true"
         [typeaheadMinLength]="minChars"
         [typeaheadWaitMs]="debounceMs"
-        [typeaheadOptionsLimit]="maxResults"
+        [typeaheadOptionsLimit]="displayLimit"
         [typeaheadOptionField]="'label'"
         [typeaheadSingleWords]="false"
         [dropup]="false"
@@ -195,7 +195,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.minChars = Number.isInteger(cfg.minChars) && (cfg.minChars ?? 0) >= 0 ? Number(cfg.minChars) : 2;
     this.debounceMs = Number.isInteger(cfg.debounceMs) && (cfg.debounceMs ?? 0) >= 0 ? Number(cfg.debounceMs) : 250;
     this.maxResults = Number.isInteger(cfg.maxResults) && (cfg.maxResults ?? 0) > 0 ? Number(cfg.maxResults) : 25;
-    if (this.sourceType === 'namedQuery') this.maxResults = Math.min(this.maxResults, 25);
+    this.graphqlLookup = false;
     this.valueMode = cfg.valueMode === 'optionObject' ? 'optionObject' : 'value';
     this.allowFreeText = cfg.requireSelection !== true && this.canStoreFreeTextValue();
     this.cacheResults = cfg.cacheResults ?? (this.sourceType !== 'namedQuery' && this.sourceType !== 'service');
@@ -353,6 +353,12 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
     this.isOpen = false;
   }
 
+  private graphqlLookup = false;
+
+  public get displayLimit(): number {
+    return this.graphqlLookup ? Math.min(this.maxResults, 25) : this.maxResults;
+  }
+
   private validateConfiguration(): boolean {
     this.hasNextPage = false;
     if (this.sourceType === 'namedQuery' && (this.componentDefinition?.config as TypeaheadInputFieldComponentConfig)?.lookupDiagnostics?.length) {
@@ -447,6 +453,7 @@ export class TypeaheadInputComponent extends FormFieldBaseComponent<TypeaheadInp
         );
       }
       if (requestId !== this.lookupRequestId) return [];
+      this.graphqlLookup = result?.source === 'graphql';
       options = result?.options ?? options;
       options = this.filterHistoricalOptions(options);
       options = this.applyTemplateLabels(options);

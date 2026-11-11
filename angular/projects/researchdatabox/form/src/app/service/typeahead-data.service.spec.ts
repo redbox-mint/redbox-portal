@@ -1,6 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { APP_BASE_HREF } from "@angular/common";
-import { HttpContext } from "@angular/common/http";
+import { HttpContext, HttpErrorResponse } from "@angular/common/http";
 import { provideHttpClient } from "@angular/common/http";
 import { HttpTestingController, provideHttpClientTesting } from "@angular/common/http/testing";
 import {
@@ -271,9 +271,48 @@ describe("bounded named-query lookup compatibility", () => {
         request.flush(page(25, true));
         expect((await pending).length).toBe(25);
     });
+    for (const source of ['database', 'graphql']) {
+        it(`preserves requested 50 rows with a ${source} response`, async () => {
+            const pending = service.searchNamedQueryLookup('party', 'a', 0, 50);
+            await Promise.resolve();
+            const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+            expect(request.request.params.get('rows')).toBe('50');
+            request.flush(source === 'graphql' ? page(25, true) : {
+                records: Array.from({ length: 50 }, (_, i) => ({ label: `Match ${i}`, value: `id-${i}` }))
+            });
+            const result = await pending;
+            expect(result.options.length).toBe(source === 'graphql' ? 25 : 50);
+            expect(result.source).toBe(source === 'graphql' ? 'graphql' : undefined);
+        });
+    }
+    for (const search of ['', '   ']) {
+        it('preserves legacy empty and whitespace searches on the wire', async () => {
+            const pending = service.searchNamedQuery('party', search);
+            await Promise.resolve();
+            const request = http.expectOne(req => req.url.includes('/query/vocab/party'));
+            expect(request.request.params.get('search')).toBe(search);
+            request.flush([{ label: 'Default choice', value: 'default' }]);
+            expect((await pending)[0].value).toBe('default');
+        });
+    }
+    for (const rows of [10, 50]) {
+        it(`preserves HttpErrorResponse for the legacy ${rows}-row wrapper`, async () => {
+            const pending = service.searchNamedQuery('party', 'a', 0, rows);
+            const failure = pending.catch((error: unknown) => error);
+            await Promise.resolve();
+            const body = { message: 'INVALID_GRAPHQL_NAMED_QUERY' };
+            http.expectOne(req => req.url.includes('/query/vocab/party')).flush(body, {
+                status: 422, statusText: 'Unprocessable Content'
+            });
+            const error = await failure;
+            expect(error instanceof HttpErrorResponse).toBeTrue();
+            if (!(error instanceof HttpErrorResponse)) throw new Error('Expected original HTTP error');
+            expect(error.status).toBe(422);
+            expect(error.error).toEqual(body);
+        });
+    }
     it('suppresses empty input and rejects offsets without making a request', async () => {
         expect(await service.searchNamedQueryLookup('party', '')).toEqual({ options: [] });
-        expect(await service.searchNamedQuery('party', '   ')).toEqual([]);
         await expectAsync(service.searchNamedQueryLookup('party', 'a', 1)).toBeRejected();
         http.expectNone(req => req.url.includes('/query/vocab/'));
     });

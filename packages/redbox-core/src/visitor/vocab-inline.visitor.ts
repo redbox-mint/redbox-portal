@@ -43,6 +43,9 @@ type ComponentConfigWithInlineVocab = {
 type ResolveVocabsOptions = {
   includeHistoricalValues?: boolean;
   lookupCaller?: ReadCaller;
+  portal?: string;
+  /** Config-tooling pass: inspect lookups without fetching inline vocabulary entries. */
+  validateLookupsOnly?: boolean;
 };
 
 
@@ -50,6 +53,8 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
   protected override logName = 'VocabInlineFormConfigVisitor';
   private lookupCaller?: ReadCaller;
   private branding = '';
+  private portal = '';
+  private validateLookupsOnly = false;
   private includeHistoricalValues = false;
   private pendingResolutions: Promise<void>[] = [];
 
@@ -63,12 +68,13 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     options?: ResolveVocabsOptions
   ): Promise<void> {
     const branding = this.resolveBranding(brandingOverride);
-    if (!branding) {
-      return;
-    }
+    if (!branding && !options?.validateLookupsOnly) return;
 
     this.branding = branding;
     this.lookupCaller = options?.lookupCaller;
+    this.portal = this.lookupCaller?.portal ?? options?.portal ??
+      (typeof sails === 'undefined' ? '' : sails.config.auth.defaultPortal);
+    this.validateLookupsOnly = options?.validateLookupsOnly === true;
     this.includeHistoricalValues = options?.includeHistoricalValues === true;
     this.pendingResolutions = [];
     await form.accept(this);
@@ -93,11 +99,14 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     try {
       const brand = BrandingService.getBrand(this.branding);
       config.lookupDiagnostics = await FormVocabularyService.inspectNamedQueryLookup(
-        String(config.queryId ?? '').trim(), brand, this.lookupCaller?.portal ?? sails.config.auth.defaultPortal, config, this.lookupCaller
+        String(config.queryId ?? '').trim(), brand, this.portal, config, this.lookupCaller
       );
     } catch {
       config.lookupDiagnostics = [graphqlDiagnostic('LOOKUP_CONFIG_UNAVAILABLE', 'queryId',
         'The named query lookup configuration could not be inspected.', true)];
+    }
+    if (this.validateLookupsOnly && config.lookupDiagnostics.length) {
+      throw new Error(`Invalid named query lookup configuration: ${config.lookupDiagnostics.map(item => item.code).join(', ')}`);
     }
   }
 
@@ -180,7 +189,7 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     componentConfig: ComponentConfigWithInlineVocab | undefined,
     treeMode: boolean
   ): Promise<void> {
-    if (!componentConfig?.inlineVocab || !componentConfig.vocabRef) {
+    if (this.validateLookupsOnly || !componentConfig?.inlineVocab || !componentConfig.vocabRef) {
       return;
     }
 
@@ -414,6 +423,6 @@ export class VocabInlineFormConfigVisitor extends FormConfigVisitor {
     if (normalizedOverride) {
       return normalizedOverride;
     }
-    return String(sails?.config?.auth?.defaultBrand ?? '').trim();
+    return typeof sails === 'undefined' ? '' : String(sails.config?.auth?.defaultBrand ?? '').trim();
   }
 }

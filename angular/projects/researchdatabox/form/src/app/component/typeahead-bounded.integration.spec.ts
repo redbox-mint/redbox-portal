@@ -107,15 +107,29 @@ describe('bounded lookup input integration', () => {
         page('match', true, effective)
       );
       const view = await render(1, configured);
-      expect(view.directive.typeaheadOptionsLimit).toBe(effective);
+      expect(view.directive.typeaheadOptionsLimit).toBe(configured);
       await view.type('match');
-      expect(search.calls.mostRecent().args[3]).toBe(effective);
+      expect(search.calls.mostRecent().args[3]).toBe(configured);
+      expect(view.directive.typeaheadOptionsLimit).toBe(effective);
       expect(view.component.hasNextPage).toBeTrue();
       const status = view.fixture.nativeElement.querySelector(`#${view.component.statusElementId}`) as HTMLElement;
       expect(status.getAttribute('aria-live')).toBe('polite');
       expect(status.textContent).toContain('Refine your search');
       expect(view.input.getAttribute('aria-describedby')).toBe(status.id);
       expect(view.fixture.nativeElement.querySelectorAll('typeahead-container .dropdown-item').length).toBe(effective);
+    });
+  }
+  for (const source of ['database', 'graphql']) {
+    it(`renders the resolved ${source} limit through the real directive with maxResults 50`, async () => {
+      const result = source === 'graphql' ? page('match', true, 25) : { options: page('match', false, 50).options };
+      const search = spyOn(TestBed.inject(TypeaheadDataService), 'searchNamedQueryLookup').and.resolveTo(result);
+      const view = await render(1, 50);
+      await view.type('match');
+      expect(search.calls.mostRecent().args[3]).toBe(50);
+      const count = source === 'graphql' ? 25 : 50;
+      expect(view.directive.typeaheadOptionsLimit).toBe(count);
+      expect(view.fixture.nativeElement.querySelectorAll('typeahead-container .dropdown-item').length).toBe(count);
+      expect(view.component.hasNextPage).toBe(source === 'graphql');
     });
   }
   it('keeps latest rendered options and continuation after out-of-order responses', async () => {

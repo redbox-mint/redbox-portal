@@ -8,6 +8,7 @@ import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor'
 import { VocabInlineFormConfigVisitor } from '../../src/visitor/vocab-inline.visitor';
 import { ValidatorFormConfigVisitor } from '../../src/visitor/validator.visitor';
 import { ClientFormConfigVisitor } from '../../src/visitor/client.visitor';
+import { migrateFormConfigVerify } from '../../src/visitor/visitor-helpers';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 import type { ReadCaller } from '../../src/record-graphql/read-record';
 import { createSinonStubLogger } from '../logger.test';
@@ -46,10 +47,13 @@ describe('named query lookup consumer contracts', () => {
   const logger = createSinonStubLogger(sinon);
   beforeEach(() => {
     previous = Object.fromEntries(
-      ['RecordGraphqlService', 'NamedQueryService', 'FormVocabularyService', 'BrandingService'].map(key => [
-        key,
-        Reflect.get(globalThis, key),
-      ])
+      [
+        'RecordGraphqlService',
+        'NamedQueryService',
+        'FormVocabularyService',
+        'BrandingService',
+        'VocabularyService',
+      ].map(key => [key, Reflect.get(globalThis, key)])
     );
     setupServiceTestGlobals(
       createMockSails({
@@ -153,7 +157,7 @@ describe('named query lookup consumer contracts', () => {
     );
     assert.equal(engine.execute.callCount, 0);
   });
-  it('passes compatible JSON-authored config through construction/client visitors and diagnoses incompatible config', async () => {
+  it('validates JSON-authored lookups at the real config entrypoint, independently of record-save validation', async () => {
     const frame: FormConfigFrame = {
       name: 'json-form',
       componentDefinitions: [
@@ -161,7 +165,7 @@ describe('named query lookup consumer contracts', () => {
           name: 'lookup',
           component: {
             class: 'TypeaheadInputComponent',
-            config: { sourceType: 'namedQuery', queryId: 'party', minChars: 0 },
+            config: { sourceType: 'namedQuery', queryId: 'party', minChars: 0, lookupDiagnostics: [] },
           },
           model: { class: 'TypeaheadInputModel', config: {} },
         },
@@ -169,16 +173,23 @@ describe('named query lookup consumer contracts', () => {
     };
     for (const compatible of [true, false]) {
       if (!compatible) delete saved.graphql.lookup;
+      const json: FormConfigFrame = JSON.parse(JSON.stringify(frame));
+      if (compatible) {
+        await migrateFormConfigVerify(json, logger);
+      } else {
+        await assert.rejects(migrateFormConfigVerify(json, logger), /Invalid named query lookup configuration/);
+      }
+      assert.ok(engine.getBootstrapReadSchema.calledWith(gridCaller.brand, 'rdmp'));
+      assert.equal(engine.getReadSchema.callCount, compatible ? 0 : 1);
       const form = await new ConstructFormConfigVisitor(logger).start({
         data: JSON.parse(JSON.stringify(frame)),
         formMode: 'edit',
       });
       await new VocabInlineFormConfigVisitor(logger).resolveVocabs(form, 'default', { lookupCaller: gridCaller });
       const errors = await new ValidatorFormConfigVisitor(logger).start({ form });
-      assert.equal(
-        errors.some(error => error.errors.some(item => item.class === 'typeaheadLookupCompatibility')),
-        !compatible
-      );
+      // Client diagnostics describe lookup availability, not the saved record's validity.
+      assert.deepEqual(errors, []);
+      assert.ok(engine.getReadSchema.calledWith(gridCaller));
       const client = await new ClientFormConfigVisitor(logger).start({ form, formMode: 'edit', userRoles: [] });
       assert.ok(client);
       const config = client.componentDefinitions[0].component?.config;
@@ -186,5 +197,37 @@ describe('named query lookup consumer contracts', () => {
       assert.equal(Array.isArray(config.lookupDiagnostics) && config.lookupDiagnostics.length > 0, !compatible);
       assert.equal(engine.execute.callCount, 0);
     }
+  });
+  it('uses explicit trusted brand/portal scope for config inspection without executing or borrowing a caller', async () => {
+    const target = { ...gridCaller.brand, id: 'scoped-brand' };
+    const getBrand = sinon.stub().withArgs('scoped').returns(target);
+    const getEntries = sinon.stub().rejects(new Error('Config inspection must not fetch inline entries'));
+    Object.assign(globalThis, { BrandingService: { getBrand }, VocabularyService: { getEntries } });
+    const json: FormConfigFrame = JSON.parse(
+      JSON.stringify({
+        name: 'scoped-config',
+        componentDefinitions: [
+          {
+            name: 'lookup',
+            component: {
+              class: 'TypeaheadInputComponent',
+              config: { sourceType: 'namedQuery', queryId: 'party' },
+            },
+            model: { class: 'TypeaheadInputModel', config: {} },
+          },
+        ],
+      })
+    );
+    json.componentDefinitions.push({
+      name: 'inline-options',
+      component: { class: 'DropdownInputComponent', config: { inlineVocab: true, vocabRef: 'not-fetched' } },
+      model: { class: 'DropdownInputModel', config: {} },
+    });
+    await migrateFormConfigVerify(json, logger, { branding: 'scoped', portal: 'alternate' });
+    assert.equal(getEntries.callCount, 0);
+    assert.ok(getBrand.calledOnceWithExactly('scoped'));
+    assert.ok(engine.getBootstrapReadSchema.calledOnceWithExactly(target, 'alternate'));
+    assert.equal(engine.getReadSchema.callCount, 0);
+    assert.equal(engine.execute.callCount, 0);
   });
 });

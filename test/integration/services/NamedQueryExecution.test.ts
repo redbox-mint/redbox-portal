@@ -4,7 +4,7 @@ import axios from 'axios';
 import supertest from 'supertest';
 import sinon from 'sinon';
 import { firstValueFrom } from 'rxjs';
-import { recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
+import { recordGraphql, SOLR_RECORD_GRID_FIELDS, migrateFormConfigVerify, ConstructFormConfigVisitor, ValidatorFormConfigVisitor } from '@researchdatabox/redbox-core';
 
 /** Real Sails policies, bearer/session auth, Waterline/Mongo and Solr execution. */
 describe('GraphQL named query execution over HTTP', function () {
@@ -228,6 +228,34 @@ describe('GraphQL named query execution over HTTP', function () {
       for (const parameters of [{ start: 1 }, { rows: 1.5 }, { rows: 'NaN' }]) await route(parameters).expect(400);
     }
   });
+  it('preserves database lookup pages of 50, smaller pages and empty searches over HTTP', async () => {
+    const databaseName = `${name}_database`;
+    const databaseAlias = `${alias}_database`;
+    try {
+      await request().post(`${base}/api/named-query`).set(auth(adminToken)).send({
+        name: databaseName, source: 'database', collectionName: 'record',
+        brandIdFieldPath: 'metaMetadata.brandId', mongoQuery: { redboxOid: { contains: sparse } },
+        queryParams: {}, resultObjectMapping: {},
+      }).expect(201);
+      sails.config.vocab.queries[databaseAlias] = {
+        querySource: 'database', databaseQuery: { queryName: databaseName },
+        queryField: { property: 'search', type: 'text' },
+      };
+      for (const search of [sparse, '', '   ']) {
+        const response = await request().get(`${base}/query/vocab/${databaseAlias}`).set(auth(adminToken))
+          .query({ search, start: 0, rows: 50 }).expect(200);
+        assert.equal(response.body.data.records.length, 50);
+        assert.equal(response.body.data.summary.numFound, sparseIds.length);
+        assert.equal(response.body.data.pagination, undefined);
+      }
+      const small = await request().get(`${base}/query/vocab/${databaseAlias}`).set(auth(adminToken))
+        .query({ search: sparse, start: 0, rows: 3 }).expect(200);
+      assert.equal(small.body.data.records.length, 3);
+    } finally {
+      delete sails.config.vocab.queries[databaseAlias];
+      await NamedQuery.destroy({ name: databaseName });
+    }
+  });
   it('suppresses empty lookup execution and inspects JSON-authored aliases before form use', async () => {
     const engine = sinon.spy(sails.services.recordgraphqlservice, 'execute');
     const empty = (await vocab({ search: '' }).expect(200)).body.data;
@@ -239,13 +267,22 @@ describe('GraphQL named query execution over HTTP', function () {
     const config = JSON.parse(JSON.stringify({ name: 'lookup-json', componentDefinitions: [{ name: 'lookup',
       component: { class: 'TypeaheadInputComponent', config: { sourceType: 'namedQuery', queryId: alias, minChars: 0 } },
       model: { class: 'TypeaheadInputModel', config: {} } }] }));
+    await migrateFormConfigVerify(config, sails.log, { branding: 'default', portal: 'rdmp' });
     const compatible = await FormsService.buildClientFormConfig(config, 'edit', ['Researcher'], {}, {}, 'default');
     assert.deepEqual(compatible.componentDefinitions[0].component.config.lookupDiagnostics, []);
     const before = sails.config.vocab.queries[alias];
     try {
       sails.config.vocab.queries[alias] = { ...before, queryField: { property: 'wrongSearch', type: 'text' } };
+      await assert.rejects(
+        migrateFormConfigVerify(config, sails.log, { branding: 'default', portal: 'rdmp' }),
+        /Invalid named query lookup configuration: LOOKUP_SEARCH_BINDING/
+      );
       const invalid = await FormsService.buildClientFormConfig(config, 'edit', ['Researcher'], {}, {}, 'default');
       assert.equal(invalid.componentDefinitions[0].component.config.lookupDiagnostics[0].code, 'LOOKUP_SEARCH_BINDING');
+      // The record validator must not block saves because a lookup alias drifted.
+      const form = await new ConstructFormConfigVisitor(sails.log).start({ data: config, formMode: 'edit' });
+      form.componentDefinitions[0].component.config.lookupDiagnostics = invalid.componentDefinitions[0].component.config.lookupDiagnostics;
+      assert.deepEqual(await new ValidatorFormConfigVisitor(sails.log).start({ form }), []);
       await vocab().expect(422);
       assert.equal(engine.callCount, 0);
     } finally { sails.config.vocab.queries[alias] = before; }

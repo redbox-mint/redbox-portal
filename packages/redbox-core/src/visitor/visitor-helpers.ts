@@ -9,20 +9,30 @@ import {TemplateFormConfigVisitor} from './template.visitor';
 import {ConstructFormConfigVisitor} from './construct.visitor';
 import {ValidatorFormConfigVisitor} from './validator.visitor';
 import {ClientFormConfigVisitor} from './client.visitor';
-// import {VocabInlineFormConfigVisitor} from './vocab-inline.visitor';
+import {VocabInlineFormConfigVisitor} from './vocab-inline.visitor';
 import {AttachmentFieldsVisitor} from './attachment-fields.visitor';
 import {reusableFormDefinitions} from '../config';
 import {cloneDeep as _cloneDeep} from 'lodash';
 import {QuestionTreeHelper} from "@researchdatabox/sails-ng-common";
 
 
-export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logger: ILogger) {
+export async function migrateFormConfigVerify(
+  formConfig: FormConfigFrame, logger: ILogger,
+  lookupScope?: { branding?: string; portal?: string }
+) {
   console.log(`ℹ️ Run form visitors to confirm migrated config is valid.`);
 
   // Also run other visitors to check for issues in the migration.
   const constructVisitor = new ConstructFormConfigVisitor(logger);
   const constructResult = await constructVisitor.start({
     data: formConfig, formMode: 'edit', reusableFormDefs: reusableFormDefinitions
+  });
+
+  // This trusted config-tooling boundary checks the scoped schema, not record
+  // values or the permissions of a record-save caller. Never execute lookups here.
+  await new VocabInlineFormConfigVisitor(logger).resolveVocabs(constructResult, lookupScope?.branding, {
+    portal: lookupScope?.portal,
+    validateLookupsOnly: true,
   });
 
   const templateVisitor = new TemplateFormConfigVisitor(logger);
@@ -35,9 +45,6 @@ export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logge
     form: constructResult,
     validatorDefinitions: formValidatorsSharedDefinitions
   });
-
-  // const vocabInlineVisitor = new VocabInlineFormConfigVisitor(logger);
-  // await vocabInlineVisitor.resolveVocabs(constructResult);
 
   const attachmentFieldsVisitor = new AttachmentFieldsVisitor(logger);
   await attachmentFieldsVisitor.start(constructResult);
