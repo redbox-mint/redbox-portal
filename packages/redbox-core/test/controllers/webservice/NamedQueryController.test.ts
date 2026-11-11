@@ -248,7 +248,6 @@ describe('Webservice NamedQueryController', () => {
       session: { branding: 'default' },
       isAuthenticated: () => true,
       user: { username: 'admin', roles: [{ id: 'admin' }] },
-      param: () => 'rdmp',
       param,
       body: { collectionName: 'unscopedmodel', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }
     } as unknown as Sails.Req;
