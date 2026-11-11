@@ -57,7 +57,7 @@ export const executeNamedQueryRoute = apiRoute(
       401: responseField(apiErrorResponseSchema, 'Authenticated GraphQL execution context required'),
       413: responseField(apiErrorResponseSchema, 'GraphQL byte bound exceeded'),
       422: responseField(apiErrorResponseSchema, 'Invalid or unsupported GraphQL execution/result'),
-      503: responseField(apiErrorResponseSchema, 'GraphQL deadline exceeded'),
+      503: responseField(apiErrorResponseSchema, 'GraphQL service disabled/unavailable or deadline exceeded'),
       500: internalServerErrorResponse,
     },
   }

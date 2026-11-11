@@ -6,8 +6,9 @@ import { metadataTypeName } from '../../src/record-graphql/renderer';
 import { namedQueryExecutionResultSchema } from '../../src/api-routes/schemas/named-query';
 import { Services } from '../../src/services/NamedQueryService';
 import { Services as EditorServices } from '../../src/services/NamedQueryEditorService';
-import { Services as GraphqlServices, RecordGraphqlDisabledError } from '../../src/services/RecordGraphqlService';
-import { recordGraphql } from '../../src/config/recordGraphql.config';
+import { Services as GraphqlServices } from '../../src/services/RecordGraphqlService';
+import { recordGraphql, type RecordGraphqlConfig } from '../../src/config/recordGraphql.config';
+import { RecordContractContributorRegistry, createCoreRecordContractContributors } from '../../src/record-contract';
 import { Controllers } from '../../src/controllers/webservice/NamedQueryController';
 import {
   executeGraphqlNamedQuery,
@@ -55,6 +56,47 @@ const code = (expected: string, status?: number) => (error: unknown) =>
   error instanceof GraphqlNamedQueryExecutionError &&
   error.code === expected &&
   (status === undefined || error.status === status);
+
+/** Run the actual schema compiler, then change config before the actual execute call. */
+function configFlipReadService(next: Partial<RecordGraphqlConfig> = { enabled: false }) {
+  const config = { ...recordGraphql, enabled: true };
+  const read = sinon.spy(async () => null);
+  const registry = new RecordContractContributorRegistry(
+    createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' as const }))
+  );
+  class ConfigFlipRecordGraphql extends GraphqlServices.RecordGraphql {
+    public override async getReadSchema(caller: ReadCaller) {
+      const schema = await super.getReadSchema(caller);
+      Object.assign(config, next);
+      return schema;
+    }
+  }
+  const service = new ConfigFlipRecordGraphql({
+    getConfig: () => config,
+    getContributorRegistry: () => registry,
+    getCandidates: async () => [
+      {
+        recordType: 'grid-fixture',
+        workflowStep: 'draft',
+        form: 'draft-form',
+        configuration: {
+          name: 'draft-form',
+          type: 'grid-fixture',
+          componentDefinitions: [
+            {
+              name: 'title',
+              component: { class: 'SimpleInputComponent' },
+              model: { class: 'SimpleInputModel', config: {} },
+            },
+          ],
+        },
+      },
+    ],
+    getReusableDefinitions: () => ({}),
+    getRecord: read,
+  });
+  return { service, read };
+}
 
 describe('GraphQL named query execution boundary', () => {
   let previous: Record<string, unknown>;
@@ -259,20 +301,24 @@ describe('GraphQL named query execution boundary', () => {
       await assert.rejects(run(), code('GRAPHQL_RESULT_INVALID'));
     }
   });
-  for (const [status, errorCode, expected] of [
-    [200, 'COLLECTION_LIMIT', 'COLLECTION_LIMIT'],
-    [200, 'PRIVATE_FIELD', 'GRAPHQL_EXECUTION_FAILED'],
-    [503, 'QUERY_TIMEOUT', 'QUERY_TIMEOUT'],
-    [413, 'QUERY_LIMIT', 'QUERY_LIMIT'],
-    [500, 'SECRET', 'GRAPHQL_EXECUTION_FAILED'],
+  for (const [status, errorCode, expected, expectedStatus] of [
+    [200, 'COLLECTION_LIMIT', 'COLLECTION_LIMIT', 422],
+    [200, 'PRIVATE_FIELD', 'GRAPHQL_EXECUTION_FAILED', 422],
+    [503, 'QUERY_TIMEOUT', 'QUERY_TIMEOUT', 503],
+    [413, 'QUERY_LIMIT', 'QUERY_LIMIT', 413],
+    [500, 'SECRET', 'GRAPHQL_EXECUTION_FAILED', 422],
+    [503, 'GRAPHQL_DISABLED', 'GRAPHQL_DISABLED', 503],
+    [503, 'UNAVAILABLE', 'UNAVAILABLE', 503],
+    [500, 'UNAVAILABLE', 'GRAPHQL_EXECUTION_FAILED', 422],
+    [200, 'GRAPHQL_DISABLED', 'GRAPHQL_EXECUTION_FAILED', 422],
   ] as const)
-    it(`rejects partial/non-success ${errorCode} safely`, async () => {
+    it(`rejects partial/non-success ${status} ${errorCode} safely`, async () => {
       const response = {
         status,
         data: { ...validData(), errors: [{ message: 'PRIVATE QUERY VALUE', extensions: { code: errorCode } }] },
       };
       engine.execute.resolves(response);
-      await assert.rejects(run(), error => code(expected)(error) && !String(error).includes('PRIVATE'));
+      await assert.rejects(run(), error => code(expected, expectedStatus)(error) && !String(error).includes('PRIVATE'));
     });
   it('enforces response/mapped byte bounds and a deadline including schema validation', async () => {
     engine.execute.resolves({ status: 200, data: validData([{ id: 'x', label: 'x'.repeat(262144) }]) });
@@ -304,13 +350,28 @@ describe('GraphQL named query execution boundary', () => {
     await assert.rejects(run(), code('GRAPHQL_DISABLED', 503));
     assert.equal(execute.called, false);
   });
-  it('returns unavailable for a coded disabled error after validation without reflecting its message', async () => {
-    const disabled = new RecordGraphqlDisabledError();
-    disabled.message = 'PRIVATE engine detail';
-    engine.execute.rejects(disabled);
-    await assert.rejects(run(), error => code('GRAPHQL_DISABLED', 503)(error) && !String(error).includes('PRIVATE'));
-    assert.equal(engine.execute.calledOnce, true);
-  });
+  for (const [next, expected] of [
+    [{ enabled: false }, 'GRAPHQL_DISABLED'],
+    [{ cacheEntries: 0 }, 'UNAVAILABLE'],
+  ] as const)
+    it(`preserves the real ${expected} service response when configuration changes after inspection`, async () => {
+      const actual = configFlipReadService(next);
+      const execute = sinon.spy(actual.service, 'execute');
+      Reflect.set(globalThis, 'RecordGraphqlService', actual.service);
+      await assert.rejects(run(), code(expected, 503));
+      assert.equal(execute.calledOnce, true);
+      const response = await execute.firstCall.returnValue;
+      assert.equal(response.status, 503);
+      assert.deepEqual(response.data, {
+        errors: [
+          {
+            message: expected === 'GRAPHQL_DISABLED' ? 'Record GraphQL is disabled.' : 'Record GraphQL is unavailable.',
+            extensions: { code: expected },
+          },
+        ],
+      });
+      assert.equal(actual.read.called, false);
+    });
   it('preserves ordinary schema-unavailable validation diagnostics', async () => {
     engine.getReadSchema.rejects(new Error('PRIVATE GRAPHQL_DISABLED schema detail'));
     await assert.rejects(
@@ -322,7 +383,12 @@ describe('GraphQL named query execution boundary', () => {
     );
     assert.equal(engine.execute.called, false);
   });
-  for (const stage of ['disabled schema', 'disabled execution', 'unexpected execution'] as const)
+  for (const stage of [
+    'disabled schema',
+    'disabled execution',
+    'unavailable execution',
+    'unexpected execution',
+  ] as const)
     it(`preserves the safe ${stage} status/code through both preview response versions`, async () => {
       if (stage === 'disabled schema')
         Reflect.set(
@@ -330,11 +396,7 @@ describe('GraphQL named query execution boundary', () => {
           'RecordGraphqlService',
           new GraphqlServices.RecordGraphql({ getConfig: () => ({ ...recordGraphql, enabled: false }) })
         );
-      else {
-        const error = stage === 'disabled execution' ? new RecordGraphqlDisabledError() : new Error();
-        error.message = 'PRIVATE engine detail';
-        engine.execute.rejects(error);
-      }
+      else if (stage === 'unexpected execution') engine.execute.rejects(new Error('PRIVATE engine detail'));
       Object.assign(globalThis, {
         BrandingService: { getBrand: () => gridCaller.brand },
         NamedQueryEditorService: new EditorServices.NamedQueryEditor(),
@@ -342,8 +404,19 @@ describe('GraphQL named query execution boundary', () => {
       });
       const controller = new Controllers.NamedQuery();
       const status = stage === 'unexpected execution' ? 422 : 503;
-      const expected = stage === 'unexpected execution' ? 'GRAPHQL_EXECUTION_FAILED' : 'GRAPHQL_DISABLED';
+      const expected =
+        stage === 'unexpected execution'
+          ? 'GRAPHQL_EXECUTION_FAILED'
+          : stage === 'unavailable execution'
+            ? 'UNAVAILABLE'
+            : 'GRAPHQL_DISABLED';
       for (const version of ['1.0', '2.0']) {
+        if (stage === 'disabled execution' || stage === 'unavailable execution')
+          Reflect.set(
+            globalThis,
+            'RecordGraphqlService',
+            configFlipReadService(stage === 'disabled execution' ? { enabled: false } : { cacheEntries: 0 }).service
+          );
         const session: Partial<Sails.Req['session']> = { branding: gridCaller.brand.name, portal: gridCaller.portal };
         const req: Partial<Sails.Req> = {
           method: 'POST',

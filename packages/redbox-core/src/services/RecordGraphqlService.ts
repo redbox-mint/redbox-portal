@@ -179,7 +179,9 @@ export namespace Services {
             );
           }),
         ]);
-      } catch {
+      } catch (error) {
+        if (error instanceof RecordGraphqlDisabledError)
+          return graphqlFailure(503, 'GRAPHQL_DISABLED', 'Record GraphQL is disabled.');
         return graphqlFailure(503, 'UNAVAILABLE', 'Record GraphQL is unavailable.');
       } finally {
         if (timer !== undefined) clearTimeout(timer);

@@ -130,6 +130,8 @@ export async function executeGraphqlNamedQuery(
         Array.isArray(errors) && object(errors[0]) && object(errors[0].extensions)
           ? errors[0].extensions.code
           : undefined;
+      if (response.status === 503 && (code === 'GRAPHQL_DISABLED' || code === 'UNAVAILABLE'))
+        throw new GraphqlNamedQueryExecutionError(code, 503);
       const safe =
         typeof code === 'string' && ['QUERY_LIMIT', 'QUERY_TIMEOUT', 'COLLECTION_LIMIT'].includes(code)
           ? code
