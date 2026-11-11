@@ -19,4 +19,18 @@ describe('shared visual grid query', () => {
     assert.match(result.query, /workflowStep/);
     assert.equal(result.variables.type, 'rdmp');
   });
+  it('keeps the mandatory oid and selected envelope order without an oid column', () => {
+    const result = recordGridRequest({
+      recordType: 'rdmp',
+      selections: [
+        { selection: 'workflowStep', responsePath: ['workflowStep'] },
+        { selection: 'id: oid', responsePath: ['id'] },
+      ],
+      filters: [],
+      sort: [],
+      first: 25,
+      after: null,
+    });
+    assert.match(result.query, /nodes \{ oid\s+workflowStep\s+id: oid/);
+  });
 });
