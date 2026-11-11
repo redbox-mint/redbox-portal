@@ -403,7 +403,7 @@ describe('Webservice NamedQueryController', () => {
     await controller.createQuery(req, {} as Sails.Res);
     const response = send.firstCall.args[2];
     expect(response?.status).to.equal(400);
-    expect(response?.displayErrors).to.equal(undefined);
+    expect(response?.displayErrors).to.deep.equal([{ detail: 'Invalid named query request', status: '400' }]);
     expect(response?.errors).to.have.length(1);
   });
 

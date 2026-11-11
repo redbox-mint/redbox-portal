@@ -327,7 +327,8 @@ engine messages and document values are not echoed.
    breaking bearer PUT must obtain the review acknowledgement described above (409
    otherwise). The review POST requires a CSRF session cookie and token: automation
    must retain the cookie jar from `GET /csrfToken` and send its token, even when bearer
-   authentication supplies identity. Purely cookieless breaking updates are unsupported. Preparation is never enabled by bearer authentication alone.
+   authentication supplies identity. Purely cookieless breaking updates are unsupported.
+   Preparation is never enabled by bearer authentication alone.
 4. Configure/reconcile/backfill any prefix companion before enabling its form alias.
    Verify real mixed-case, literal-prefix and ordinary-user ACL behavior. Schema
    presence and grid version markers do not certify completed reindexing.

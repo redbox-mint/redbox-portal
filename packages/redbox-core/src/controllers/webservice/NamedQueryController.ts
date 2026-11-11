@@ -250,7 +250,10 @@ export namespace Controllers {
         : status === 404 ? 'Named query not found'
           : status === 409 ? 'Named query already exists' : undefined;
       return this.sendResp(req, res, { status,
-        ...(detail ? { displayErrors: [{ detail, status: String(status) }] } : { errors: [this.asError(error)] }),
+        ...(detail
+          ? { displayErrors: [{ detail, status: String(status) }] }
+          : { errors: [this.asError(error)], ...(status < 500
+            ? { displayErrors: [{ detail: 'Invalid named query request', status: String(status) }] } : {}) }),
         headers: this.getNoCacheHeaders() });
     }
 
