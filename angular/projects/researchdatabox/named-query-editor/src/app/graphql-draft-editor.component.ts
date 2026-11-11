@@ -31,6 +31,7 @@ import { GraphqlJsonInputComponent } from './graphql-json-input.component';
 export class GraphqlDraftEditorComponent implements OnChanges {
   @Input() draft!: GraphqlNamedQueryDefinition;
   @Input() isNew = false;
+  @Input() candidateValues: Record<string, NamedQueryJson> = {};
   @Input() diagnostics: EditorDiagnostic[] = [];
   @Input() description: GraphqlNamedQueryDescription | null = null;
   @Output() draftChange = new EventEmitter<void>();
@@ -123,7 +124,7 @@ export class GraphqlDraftEditorComponent implements OnChanges {
       ownership === 'consumer'
         ? { ownership, parameter: name, inputType: variable?.inputType ?? '', required: variable?.required ?? false }
         : ownership === 'fixed'
-          ? { ownership, value: null }
+          ? { ownership, value: Object.hasOwn(this.candidateValues, name) ? structuredClone(this.candidateValues[name]) : null }
           : { ownership: 'omitted' };
     this.operation.variables = { ...this.operation.variables, [name]: binding };
     this.clearValidity(name);

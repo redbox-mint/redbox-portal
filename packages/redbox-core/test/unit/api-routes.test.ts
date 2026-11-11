@@ -771,6 +771,9 @@ describe('API routes contract layer', function () {
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
       const expected =
+        route.controller === 'webservice/NamedQueryController' && route.action === 'preparePromotion'
+          ? ['namedQueryMutationCsrf', ...expectedPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')]
+          :
         (route.controller === 'webservice/NamedQueryController' &&
         ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)) ||
         (route.controller === 'webservice/ReportController' && ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action))

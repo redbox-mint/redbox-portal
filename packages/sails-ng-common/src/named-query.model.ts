@@ -147,3 +147,10 @@ export type NamedQueryExecutionResult<T = unknown> = DatabaseNamedQueryResult<T>
 export type NamedQueryLookupResult<T = unknown> =
   | { options: T[]; source?: 'database'; pagination?: never }
   | { options: T[]; source: 'graphql'; summary: GraphqlNamedQueryResult['summary']; pagination: NamedQueryFirstPage };
+
+/** Ephemeral explorer handoff. Values are candidates, not fixed values or defaults.
+ * Ownership remains absent until explicitly chosen in the detached editor. */
+export interface NamedQueryPromotionDraft {
+  definition: GraphqlNamedQueryDefinition;
+  variableValues: Record<string, NamedQueryJson>;
+}

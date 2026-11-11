@@ -219,6 +219,56 @@ describe('NamedQueryEditorComponent', () => {
     dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
     expect(component.pendingReview).toBeNull(); expect(update).not.toHaveBeenCalled(); expect(component.isEditing).toBeTrue(); expect(document.activeElement).toBe(save);
   });
+  it('opens review usage links in a new tab without a dirty-document discard prompt', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    spyOn(api, 'reviewUpdate').and.resolveTo({ required: true, changes: ['source'],
+      usedBy: [{ type: 'form', name: 'Known form', path: '/record/form/known' }], usageComplete: false, confirmation: 'bound' });
+    fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing');
+    component.changeSource('graphql'); Object.assign(component.graphqlBuffer.graphql, graphqlDraft().graphql);
+    component.draftChanged(); fixture.detectChanges(); await component.save(); fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector('[aria-labelledby="nq-review-title"] a') as HTMLAnchorElement;
+    expect(link.target).toBe('_blank');
+    // Suppress the browser default only; the real document capture guard still runs.
+    link.addEventListener('click', event => event.preventDefault());
+    (window.confirm as jasmine.Spy).calls.reset();
+    link.click();
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(component.pendingReview).not.toBeNull(); expect(component.isEditing).toBeTrue();
+  });
+  for (const phase of ['validation', 'review'] as const) {
+    for (const change of ['draft', 'pendingInput'] as const) {
+      it(`explains ${change} changes during deferred ${phase} and restores a focus cue`, async () => {
+        const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+        const api = TestBed.inject(NamedQueryApiService);
+        fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing'); fixture.detectChanges();
+        const validation = deferred<Awaited<ReturnType<NamedQueryApiService['validate']>>>();
+        const review = deferred<Awaited<ReturnType<NamedQueryApiService['reviewUpdate']>>>();
+        spyOn(api, 'validate').and.returnValue(validation.promise);
+        const reviewSpy = spyOn(api, 'reviewUpdate').and.returnValue(review.promise);
+        const update = spyOn(api, 'update');
+        const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+        save.focus(); const saving = component.save(); fixture.detectChanges();
+        if (phase === 'review') {
+          validation.resolve({ valid: true, diagnostics: [] });
+          await new Promise(resolve => setTimeout(resolve, 0));
+          expect(reviewSpy).toHaveBeenCalledTimes(1);
+        }
+        if (change === 'draft') { component.draft.description = 'Edited while awaiting response'; component.draftChanged(); }
+        else component.pendingInput = true;
+        fixture.detectChanges();
+        if (phase === 'validation') validation.resolve({ valid: true, diagnostics: [] });
+        else review.resolve({ required: false, changes: [], usedBy: [], usageComplete: false });
+        await saving; fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
+        expect(component.error).toContain('The draft changed');
+        expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('The draft changed');
+        expect(update).not.toHaveBeenCalled(); expect(component.pendingReview).toBeNull();
+        if (change === 'pendingInput') expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
+        else expect(document.activeElement).toBe(save);
+        if (phase === 'validation') expect(reviewSpy).not.toHaveBeenCalled();
+      });
+    }
+  }
   it('captures Save focus before deferred validation/review and restores it after cancellation or a failed confirmed save', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
     const api = TestBed.inject(NamedQueryApiService);

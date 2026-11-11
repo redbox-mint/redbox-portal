@@ -1,3 +1,5 @@
+import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
+import { NamedQueryApiService } from '../../../named-query-editor/src/app/named-query-api.service';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AgGridAngular } from 'ag-grid-angular';
@@ -10,8 +12,9 @@ import { DataGridsComponent } from './data-grids.component';
 
 @NgModule({
   declarations: [DataGridsComponent],
-  imports: [BrowserModule, FormsModule, AgGridAngular, CommonModule, RedboxPortalCoreModule],
+  imports: [ExplorerNamedQueryComponent, BrowserModule, FormsModule, AgGridAngular, CommonModule, RedboxPortalCoreModule],
   providers: [
+    NamedQueryApiService,
     { provide: DATA_GRID_SOURCE, useExisting: RecordGridService },
     {
       provide: APP_BASE_HREF,

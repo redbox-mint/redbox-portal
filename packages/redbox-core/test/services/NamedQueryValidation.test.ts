@@ -117,6 +117,7 @@ describe('Named query safe structural diagnostic paths', () => {
           const validation = validateGraphqlNamedQuery(definition, schema).validation;
           Object.assign(globalThis, {
             NamedQueryEditorService: {
+              canCreate: () => true,
               previewDraft: sinon.stub().rejects(new GraphqlNamedQueryValidationError(validation.diagnostics)),
             },
             NamedQueryService: {

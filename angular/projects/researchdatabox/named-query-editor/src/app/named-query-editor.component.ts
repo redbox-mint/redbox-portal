@@ -193,7 +193,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   @HostListener('document:click', ['$event'])
   guardExternalNavigation(event: MouseEvent): void {
     const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
-    if (anchor && anchor.getAttribute('href') !== '#' && this.dirty && !this.confirmDiscard()) {
+    if (anchor && anchor.target.toLowerCase() !== '_blank' && anchor.getAttribute('href') !== '#' && this.dirty && !this.confirmDiscard()) {
       event.preventDefault();
       event.stopPropagation();
     }
@@ -674,16 +674,26 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.error = '';
     this.clearMessage();
     const draftAtSave = JSON.stringify(this.draft);
+    const versionAtSave = this.draftVersion;
     const payload = this.sanitizeQuery(JSON.parse(draftAtSave));
     const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
       ? document.activeElement : document.getElementById('named-query-save');
     this.saving = true;
     try {
       await this.validateDraft();
-      if (this.validationBlocking || this.pendingInput || JSON.stringify(this.draft) !== draftAtSave) return;
+      if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
+        this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
+        this.restoreReviewFocus(trigger);
+        return;
+      }
+      if (this.validationBlocking) return;
       if (!this.isNew) {
         const review = await this.api.reviewUpdate(payload.name as string, payload);
-        if (JSON.stringify(this.draft) !== draftAtSave || this.pendingInput) return;
+        if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
+          this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
+          this.restoreReviewFocus(trigger);
+          return;
+        }
         if (review.required) {
           this.reviewTrigger = trigger;
           this.pendingReview = { review, payload, snapshot: draftAtSave, version: this.draftVersion };

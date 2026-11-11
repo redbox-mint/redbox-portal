@@ -82,6 +82,11 @@
     <p *ngIf="omissionSatisfied(variable.name)" class="rb-ws-status">
       {{ 'named-query-graphql-omission-satisfied' | i18next }}
     </p>
+    <details *ngIf="candidateValues[variable.name] !== undefined" class="rb-ws-disclosure">
+      <summary>{{ 'data-grids-promotion-current-value' | i18next }}</summary>
+      <pre class="rb-ws-json">{{ candidateValues[variable.name] | json }}</pre>
+      <p class="rb-ws-lede">{{ 'data-grids-promotion-value-help' | i18next }}</p>
+    </details>
     <label class="rb-ws-label" [for]="'nq-owner-' + variable.name">{{
       'named-query-graphql-ownership' | i18next
     }}</label>

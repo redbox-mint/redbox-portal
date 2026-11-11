@@ -10955,5 +10955,95 @@
   "named-query-untracked-callers-note": {
     "category": "Named queries",
     "description": "Known usage discovery is incomplete for dynamic hooks, API callers and opaque configuration references."
+  },
+  "data-grids-create-named-query": {
+    "category": "data-grids",
+    "description": "Create named query",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-help": {
+    "category": "data-grids",
+    "description": "This is an unsaved copy of your current exploration. Review candidate mappings and choose ownership for every variable before saving.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-provenance": {
+    "category": "data-grids",
+    "description": "The explorer reference is informational. Editing either saved definition leaves the other independent.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-save-help": {
+    "category": "data-grids",
+    "description": "Save creates an immediately available named query. Your exploration stays unchanged.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-current-value": {
+    "category": "data-grids",
+    "description": "Current explorer value",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-value-help": {
+    "category": "data-grids",
+    "description": "Choosing Fixed copies this value. A consumer parameter has no named-query default until you enter one.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-validation-failed": {
+    "category": "data-grids",
+    "description": "Validation is unavailable. Your detached draft is retained; change a field to retry.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-denied": {
+    "category": "data-grids",
+    "description": "Named-query create permission is required. Your exploration and detached draft are retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-name-exists": {
+    "category": "data-grids",
+    "description": "That named-query name already exists. Choose a unique name and save again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-save-failed": {
+    "category": "data-grids",
+    "description": "The named query could not be saved. Your detached draft is retained; try saving again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard-heading": {
+    "category": "data-grids",
+    "description": "Discard this named-query draft?",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard-help": {
+    "category": "data-grids",
+    "description": "Your original exploration and its unsaved changes will be retained.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-keep-editing": {
+    "category": "data-grids",
+    "description": "Keep editing",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-discard": {
+    "category": "data-grids",
+    "description": "Discard named-query draft",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-invalid-values": {
+    "category": "data-grids",
+    "description": "Correct the explorer variables JSON before creating a named query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-open-failed": {
+    "category": "data-grids",
+    "description": "The named-query editor could not be opened. Your exploration is retained; check its fields and try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-opening": {
+    "category": "data-grids",
+    "description": "Preparing an unsaved named-query copy…",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-saved": {
+    "category": "data-grids",
+    "description": "Named query created. Your exploration and its unsaved changes are retained.",
+    "contentFormat": "plain"
   }
 }

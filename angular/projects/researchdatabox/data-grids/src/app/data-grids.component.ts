@@ -1,3 +1,6 @@
+import type { NamedQueryPromotionDraft } from '@researchdatabox/sails-ng-common';
+import { HttpErrorResponse } from '@angular/common/http';
+import { parseQueryVariables } from './record-grid.protocol';
 import { inspectCell, detailKeyboard, CellText, displayScalar } from './cell-detail';
 import type { GraphQLSchema } from 'graphql';
 import {
@@ -49,6 +52,11 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   @ViewChild('saveDialog') saveDialog?: ElementRef<HTMLDialogElement>;
   @ViewChild('editorHeading') editorHeading?: ElementRef<HTMLElement>;
   @ViewChild('catalogueHeading') catalogueHeading?: ElementRef<HTMLElement>;
+  @ViewChild('promotionButton') promotionButton?: ElementRef<HTMLButtonElement>;
+  promotion: NamedQueryPromotionDraft | null = null;
+  promotionOpening = false;
+  promotionError = '';
+  promotionSaved = false;
   catalogue: GridCatalogue | null = null;
   saved: SavedQuery[] = [];
   nextSaved: string | null = null;
@@ -119,7 +127,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
 
   constructor(
     @Inject(TranslationService) readonly i18n: TranslationService,
-    @Inject(DATA_GRID_SOURCE) private source: DataGridSource
+    @Inject(DATA_GRID_SOURCE) private source: DataGridSource,
+    private host: ElementRef<HTMLElement>
   ) {
     super();
     this.initDependencies = [i18n];
@@ -205,6 +214,34 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       !this.loadingPage &&
       !this.loadingFields
     );
+  }
+  get canPromote(): boolean {
+    return this.host.nativeElement.getAttribute('can-create-named-query') === 'true' && !!this.source.prepareNamedQuery &&
+      !!this.activeDefinition && !this.promotionOpening && !this.promotion && !this.busy && !this.saving && !this.loadingFields &&
+      (this.mode === 'graphql' ? !this.rawErrors.length : !this.issues.length);
+  }
+  async createNamedQuery(): Promise<void> {
+    if (!this.canPromote || !this.activeDefinition || !this.source.prepareNamedQuery) return;
+    const snapshot = structuredClone(this.activeDefinition);
+    if (snapshot.mode === 'graphql') {
+      try { snapshot.variables = parseQueryVariables(JSON.parse(this.variablesText)); }
+      catch { this.promotionError = 'promotion-invalid-values'; return; }
+    }
+    this.promotionOpening = true;
+    this.promotionError = '';
+    this.promotionSaved = false;
+    try {
+      const prepared = await this.source.prepareNamedQuery(snapshot);
+      if (!this.disposed) this.promotion = structuredClone(prepared);
+    } catch (error) {
+      if (!this.disposed) this.promotionError = error instanceof HttpErrorResponse && [401, 403].includes(error.status)
+        ? 'promotion-denied' : 'promotion-open-failed';
+    } finally { if (!this.disposed) this.promotionOpening = false; }
+  }
+  closePromotion(saved = false): void {
+    this.promotion = null;
+    this.promotionSaved = saved;
+    setTimeout(() => { if (!this.disposed) this.promotionButton?.nativeElement.focus(); });
   }
   get canSave(): boolean {
     return (

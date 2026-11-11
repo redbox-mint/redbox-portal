@@ -1,3 +1,4 @@
+import { recordGridRequest } from '@researchdatabox/sails-ng-common';
 import {
   GridDefinition,
   SavedQuery,
@@ -183,30 +184,17 @@ export function collectionRequest(request: GridQuery, scope: GridScope, discover
   const fields = request.definition.columns.map(id => discovery.fields.find(field => field.id === id)!);
   if (fields.some(field => !field.selections.length)) return invalid();
   const selections = fields.flatMap(field => field.selections);
-  const fragments = [
-    ...new Set(selections.filter(item => item.responsePath[0] === 'metadata').map(item => item.selection)),
-  ];
-  const envelope = [
-    ...new Set(selections.filter(item => item.responsePath[0] !== 'metadata').map(item => item.selection)),
-  ];
-  return {
-    query: `query GridPage($type: String!, $stages: [String!], $filters: [RecordFilterInput!], $sort: [RecordSortInput!], $first: Int, $after: String) {
-      records(recordType: $type, workflowStages: $stages, filters: $filters, sort: $sort, first: $first, after: $after) {
-        nodes { oid ${envelope.join('\n')} metadata { __typename ${fragments.join('\n')} } }
-        hasNextPage endCursor
-      }
-    }`,
-    variables: {
-      type: scope.recordType,
-      stages: scope.workflowStage ? [scope.workflowStage] : undefined,
-      filters,
-      sort: request.definition.sort
-        ? [{ field: request.definition.sort.fieldId, direction: request.definition.sort.direction.toUpperCase() }]
-        : [],
-      first: request.definition.pageSize,
-      after: request.after,
-    },
-  };
+  return recordGridRequest({
+    recordType: scope.recordType,
+    workflowStage: scope.workflowStage,
+    selections,
+    filters,
+    sort: request.definition.sort
+      ? [{ field: request.definition.sort.fieldId, direction: request.definition.sort.direction.toUpperCase() }]
+      : [],
+    first: request.definition.pageSize,
+    after: request.after,
+  });
 }
 export function parsePage(value: unknown, request: GridQuery, fields: DiscoveredField[]): GridPage {
   const data = object(value);

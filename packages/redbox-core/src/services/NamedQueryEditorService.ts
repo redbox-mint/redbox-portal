@@ -1,3 +1,4 @@
+import { prepareExplorerNamedQuery } from './named-query/explorer-promotion';
 import { printSchema } from 'graphql';
 import * as Handlebars from 'handlebars';
 import {
@@ -264,6 +265,8 @@ function templateAdvice(
 export namespace Services {
   export class NamedQueryEditor extends CoreServices.Core.Service {
     protected override _exportedMethods = [
+      'canCreate',
+      'preparePromotion',
       'schemaTargets',
       'graphqlSchema',
       'describeFields',
@@ -272,6 +275,20 @@ export namespace Services {
       'describeSaved',
       'previewDraft',
     ];
+
+    public canCreate(brand: BrandingModel, portal: string, user: Record<string, unknown> | undefined): boolean {
+      if (!brand?.id || !portal || !user?.username || !Array.isArray(user.roles)) return false;
+      const roles = user.roles.filter((role): role is { id: string } => !!role && typeof role === 'object' && typeof role.id === 'string');
+      const path = `${BrandingService.getRootContext()}/${brand.name}/${portal}/api/named-query`;
+      const rules = PathRulesService.getRulesFromPath(path, brand);
+      return !!rules?.length && PathRulesService.canWrite(rules, roles, brand.name);
+    }
+
+    public preparePromotion(input: unknown, caller: ReadCaller) {
+      if (!this.canCreate(caller?.brand, caller?.portal, caller?.user))
+        throw new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403);
+      return prepareExplorerNamedQuery(input, caller);
+    }
 
     private fieldService(): FieldServices.FieldDescriptions {
       return (

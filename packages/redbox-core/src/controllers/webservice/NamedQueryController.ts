@@ -1,3 +1,5 @@
+import { savedGridContext } from '../SavedGridController';
+import { SavedGridError } from '../../services/SavedGridService';
 import { NamedQueryUpdateConfirmationError, NamedQueryUpdateConflictError } from '../../services/named-query/update-review';
 import { NamedQueryInUseError } from '../../services/named-query/usage';
 import type {
@@ -24,6 +26,7 @@ import { BrandingModel } from '../../model/storage/BrandingModel';
 export namespace Controllers {
   export class NamedQuery extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = [
+      'preparePromotion',
       'listQueries',
       'getCollections',
       'getQuery',
@@ -101,6 +104,19 @@ export namespace Controllers {
           ...(diagnostics ? { meta: { diagnostics } } : {}),
           headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' },
         });
+      }
+    }
+
+    public async preparePromotion(req: Sails.Req, res: Sails.Res) {
+      try {
+        const { caller } = savedGridContext(req);
+        const body = req.body as { exploration?: unknown };
+        const data = await NamedQueryEditorService.preparePromotion(body?.exploration, caller);
+        return this.sendResp(req, res, { data, headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
+      } catch (error) {
+        const status = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.status : 500;
+        const code = error instanceof SavedGridError || error instanceof NamedQueryAssistanceError ? error.code : 'PROMOTION_UNAVAILABLE';
+        return this.sendResp(req, res, { status, displayErrors: [{ code, title: code, status: String(status) }], headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       }
     }
 
@@ -281,6 +297,9 @@ export namespace Controllers {
     public async createQuery(req: Sails.Req, res: Sails.Res) {
       try {
         const brand = this.resolveBrand(req);
+        if (!req.isAuthenticated?.() || !NamedQueryEditorService.canCreate(brand, String(req.param('portal') ?? ''), req.user)) {
+          return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'NAMED_QUERY_CREATE_FORBIDDEN', status: '403' }], headers: this.getNoCacheHeaders() });
+        }
         const body = (req.body as Record<string, unknown>) || {};
         const name = body['name'] as string;
         if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {

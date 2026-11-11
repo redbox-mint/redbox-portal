@@ -50,6 +50,24 @@ describe('detached GraphQL named-query editor', () => {
     editor.setFixed('search', { nested: [false, 0] });
     expect(JSON.stringify(editor.fixed('search'))).toBe('{"nested":[false,0]}');
   });
+  it('offers candidate values without choosing ownership, then copies only an explicitly fixed value', async () => {
+    const candidate = { nested: [false, 0, 'current'] };
+    editor.candidateValues = { search: candidate };
+    editor.tab = 'variables'; fixture.detectChanges(); await fixture.whenStable();
+    expect(editor.ownership('search')).toBe('');
+    expect(editor.operation.variables).toEqual({});
+    expect(fixture.nativeElement.textContent).toContain('current');
+    editor.classify('search', 'consumer');
+    expect(Object.hasOwn(editor.binding('search')!, 'defaultValue')).toBeFalse();
+    editor.classify('search', 'fixed');
+    expect(JSON.stringify(editor.fixed('search'))).toBe(JSON.stringify(candidate));
+    expect(editor.fixed('search') === candidate).toBeFalse();
+    candidate.nested.push('origin changed');
+    expect(JSON.stringify(editor.fixed('search'))).not.toContain('origin changed');
+    const value = editor.fixed('search');
+    if (value && typeof value === 'object' && !Array.isArray(value) && Array.isArray(value['nested'])) value['nested'].push('fixed changed');
+    expect(candidate.nested).not.toContain('fixed changed');
+  });
   it('retains pending invalid default text and focus across change detection', async () => {
     editor.classify('search', 'consumer');
     editor.tab = 'variables';

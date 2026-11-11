@@ -65,7 +65,7 @@ describe('Named query assistance HTTP boundary', () => {
     ) as Record<(typeof actions)[number], sinon.SinonStub>;
     Object.assign(globalThis, {
       BrandingService: { getBrand: sinon.stub().returns(brand) },
-      NamedQueryEditorService: service,
+      NamedQueryEditorService: { ...service, canCreate: () => true },
       TranslationService: { t: (value: string) => value },
     });
   });
@@ -78,6 +78,44 @@ describe('Named query assistance HTTP boundary', () => {
       PathRulesService: previous.rules,
       TranslationService: previous.translation,
     });
+  });
+  it('prepares only an authenticated explorer admin snapshot and returns safe no-store errors', async () => {
+    const previousRoles = Reflect.get(globalThis, 'RolesService');
+    const preparePromotion = sinon.stub().resolves({ definition: { source: 'graphql', name: '' }, variableValues: {} });
+    const req = { ...request(), params: { branding: 'brand-a', portal: 'rdmp' }, body: { exploration: { version: 1, mode: 'graphql' } } };
+    const send = sinon.stub(controller, 'sendResp');
+    Reflect.set(globalThis, 'NamedQueryEditorService', { ...service, preparePromotion });
+    Reflect.set(globalThis, 'RolesService', { getAdmin: () => ({ id: 'query-author' }) });
+    try {
+      await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(preparePromotion.firstCall.args[0], req.body.exploration);
+      assert.equal(preparePromotion.firstCall.args[1].user, req.user);
+      assert.equal(preparePromotion.firstCall.args[1].portal, 'rdmp');
+      assert.equal(send.firstCall.args[2]?.headers?.['Cache-Control'], 'no-store');
+      preparePromotion.rejects(new NamedQueryAssistanceError('NAMED_QUERY_CREATE_FORBIDDEN', 403));
+      await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(send.secondCall.args[2]?.status, 403);
+      preparePromotion.rejects(new Error('PRIVATE DOCUMENT/VALUES'));
+      await controller.preparePromotion(req as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(send.thirdCall.args[2]?.status, 500);
+      assert.ok(!JSON.stringify(send.thirdCall.args[2]).includes('PRIVATE'));
+      preparePromotion.resetHistory();
+      await controller.preparePromotion({ ...req, isAuthenticated: () => false } as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(preparePromotion.called, false);
+      assert.equal(send.lastCall.args[2]?.status, 403);
+    } finally { Reflect.set(globalThis, 'RolesService', previousRoles); }
+  });
+  it('checks independent destination CREATE on the actual persistence action', async () => {
+    const create = sinon.stub(); const previousQuery = Reflect.get(globalThis, 'NamedQueryService');
+    const canCreate = sinon.stub().returns(false);
+    Reflect.set(globalThis, 'NamedQueryEditorService', { ...service, canCreate });
+    Reflect.set(globalThis, 'NamedQueryService', { create });
+    const send = sinon.stub(controller, 'sendResp');
+    try {
+      await controller.createQuery(request() as unknown as Sails.Req, {} as Sails.Res);
+      assert.equal(canCreate.firstCall.args[0], brand); assert.equal(canCreate.firstCall.args[1], 'rdmp');
+      assert.equal(create.called, false); assert.equal(send.firstCall.args[2]?.status, 403);
+    } finally { Reflect.set(globalThis, 'NamedQueryService', previousQuery); }
   });
   for (const action of actions)
     it(`${action} uses session brand, portal and the feature caller`, async () => {
@@ -397,6 +435,14 @@ describe('Named query assistance HTTP boundary', () => {
       assert(chain.includes('checkAuth'));
       assert(!chain.includes('emailTemplateAdmin'));
     }
+  });
+  it('keeps explorer preparation session-only with CSRF and normal path authorization', () => {
+    const chains = policies['webservice/NamedQueryController'];
+    assert(chains && typeof chains === 'object' && !Array.isArray(chains));
+    const chain = chains.preparePromotion;
+    assert(Array.isArray(chain));
+    assert(chain.includes('namedQueryMutationCsrf')); assert(chain.includes('checkAuth'));
+    assert(chain.includes('validateApiContractRequest')); assert(!chain.includes('isWebServiceAuthenticated'));
   });
   it('allows a brand-authorized custom administration role and denies an unauthorized caller', () => {
     const next = sinon.stub();

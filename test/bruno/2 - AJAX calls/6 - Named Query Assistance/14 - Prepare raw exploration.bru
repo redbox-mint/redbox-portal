@@ -1,0 +1,70 @@
+meta {
+  name: Named queries - Prepare raw exploration
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/from-explorer
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "exploration": {
+      "version": 1,
+      "mode": "graphql",
+      "name": "Unsaved explorer",
+      "document": "query Current($type: String!) { records(recordType: $type) { nodes { identity: oid } } }",
+      "variables": {
+        "type": "dataPublication"
+      },
+      "resultPath": [
+        "records",
+        "nodes"
+      ]
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  if (!bru.getVar("queryEditorCsrf")) {
+    test("Fails closed when the general harness cannot issue a CSRF token", () => {
+      expect(res.getStatus()).to.equal(403);
+      expect(res.getBody().error.code).to.equal("CSRF_MISMATCH");
+    });
+  } else {
+    test("Returns an unsaved detached definition with explicit ownership still required", () => {
+      expect(res.getStatus()).to.equal(200);
+      const data = res.getBody().data;
+      expect(data.definition.source).to.equal("graphql");
+      expect(data.definition.name).to.equal("");
+      expect(data.definition.graphql.variables).to.deep.equal({});
+      expect(data.definition.graphql.resultPath).to.deep.equal(["records", "nodes"]);
+      expect(data.variableValues.type).to.equal("dataPublication");
+      expect(res.getHeader("cache-control")).to.include("no-store");
+    });
+    test("Keeps the raw document aliases as candidate mappings", () => {
+      expect(res.getBody().data.definition.graphql.mappings.oid).to.deep.equal(["identity"]);
+    });
+  }
+}
+
+docs {
+  Successful preparation requires a CSRF-enabled server and token. The committed
+  general harness disables token issuance, so it must refuse the session request.
+  Mounted NamedQueryPromotion HTTP tests cover successful preparation with real CSRF.
+}

@@ -89,6 +89,24 @@ describe('RecordGridService HTTP contract', () => {
   });
   afterEach(() => http.verify());
 
+  it('prepares a detached named query using a scoped CSRF POST body and no values in the URL', fakeAsync(() => {
+    const input = { ...request().definition, name: 'Current unsaved explorer' };
+    let result: unknown;
+    service.prepareNamedQuery(input).then(value => result = value);
+    flushMicrotasks();
+    const req = http.expectOne('/context/brand/portal/api/named-query/editor/from-explorer');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.headers.get('X-CSRF-Token')).toBe('current-token');
+    expect(req.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
+    expect(req.request.body).toEqual({ exploration: input });
+    expect(req.request.body.exploration).not.toBe(input);
+    const prepared = { definition: { source: 'graphql', name: '', graphql: { document: 'query { __typename }',
+      variables: {}, resultPath: [], mappings: {} } }, variableValues: { current: [false, 0] } };
+    req.flush({ data: prepared }); flushMicrotasks();
+    expect(result).toEqual(prepared); expect(result).not.toBe(prepared);
+    http.expectNone('/context/brand/portal/app/data-grids');
+  }));
+
   for (const wrapped of [true, false]) {
     it(`discovers record types from the ${wrapped ? 'wrapped' : 'direct'} REST response with persistence and without eager field calls`, fakeAsync(() => {
       let result: GridCatalogue | undefined;
@@ -218,7 +236,6 @@ describe('RecordGridService HTTP contract', () => {
     expect(page.request.body.query).not.toContain('injected');
     expect(page.request.body.variables).toEqual({
       type: 'plan',
-      stages: undefined,
       filters: [{ field: title.id, contains: 'x" } injected {' }],
       sort: [{ field: title.id, direction: 'DESC' }],
       first: 25,
@@ -402,7 +419,7 @@ describe('Record grid protocol', () => {
       ],
     };
     const payload = collectionRequest(queryFor(definition, scoped, 'cursor'), scoped, found);
-    expect(payload.variables.filters).toEqual([
+    expect<unknown>(payload.variables.filters).toEqual([
       { field: 'number', between: { from: { number: 1 }, to: { number: 2 } } },
       { field: 'time', eq: { dateTime: '2026-01-01T00:00:00.000Z' } },
       { field: 'boolean', in: [{ boolean: true }, { boolean: false }] },
