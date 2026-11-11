@@ -10700,6 +10700,10 @@
     "category": "Named queries",
     "description": "Consumer parameter names, types, required values or defaults change."
   },
+  "named-query-breaking-bindings": {
+    "category": "Named queries",
+    "description": "Confirmation reason for any changed GraphQL variable binding, including fixed values and omitted/consumer ownership transitions."
+  },
   "named-query-breaking-document": {
     "category": "Named queries",
     "description": "Conservative confirmation reason for a changed GraphQL document or selected operation."

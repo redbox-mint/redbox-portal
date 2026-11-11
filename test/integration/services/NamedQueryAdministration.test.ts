@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import supertest from 'supertest';
 import { firstValueFrom } from 'rxjs';
 import { recordGraphql } from '@researchdatabox/redbox-core';
+import type { GraphqlNamedQueryDefinition } from '@researchdatabox/sails-ng-common';
 
 /** Real routes, policy/CSRF, Mongo persistence and confirmation binding. */
 describe('named query administration save review', function () {
@@ -34,7 +35,7 @@ describe('named query administration save review', function () {
         searchParameter: 'search',
       },
     },
-  };
+  } satisfies GraphqlNamedQueryDefinition;
   let session: supertest.Agent;
   let csrf = '';
   let adminId: string;
@@ -236,6 +237,103 @@ describe('named query administration save review', function () {
       .send(changed)
       .expect(200);
     assert.equal(JSON.parse((await NamedQuery.findOne({ name }))!.graphql!).document, changed.graphql.document);
+  });
+  it('requires bound confirmation and discovers known usage for unchanged-document fixed-scope edits', async () => {
+    const fixed: GraphqlNamedQueryDefinition = {
+      ...structuredClone(graphql),
+      source: 'graphql',
+      graphql: {
+        ...structuredClone(graphql.graphql),
+        document:
+          'query Q($search: String! = "rdmp", $stages: [String!] = ["draft"], $first: Int, $after: String) { records(recordType: "rdmp", workflowStages: $stages, filters: [{field: "title", contains: $search}], first: $first, after: $after) { nodes { oid workflowStep } hasNextPage } }',
+        variables: {
+          search: { ownership: 'consumer', parameter: 'search', inputType: 'String!', required: true },
+          stages: { ownership: 'fixed', value: ['draft'] },
+        },
+      },
+    };
+    const replaced = await review(fixed);
+    await request()
+      .put(`${prefix}/${name}`)
+      .set(auth())
+      .set('X-ReDBox-Named-Query-Confirmation', replaced.confirmation)
+      .send(fixed)
+      .expect(200);
+    const changed = structuredClone(fixed);
+    // Broaden the fixed stage scope. Envelope mappings remain compatible, but
+    // this still changes the saved binding contract and must require review.
+    changed.graphql.variables.stages = { ownership: 'fixed', value: [] };
+    assert.equal(changed.graphql.document, fixed.graphql.document);
+    assert.deepEqual(changed.graphql.mappings, fixed.graphql.mappings);
+    for (const definition of [fixed, changed]) {
+      const description = (
+        await session.post(`${prefix}/editor/describe`).set(editorAuth()).send({ definition }).expect(200)
+      ).body.data;
+      assert.equal(description.valid, true);
+      assert.equal(description.capabilities.lookup, true);
+    }
+    const brand = BrandingService.getBrand('default');
+    const reportName = `${name}_bindings_report`;
+    await RBReport.create({
+      branding: brand.id,
+      name: reportName,
+      title: 'Known binding consumer',
+      reportSource: 'database',
+      databaseQuery: { queryName: name },
+      columns: [],
+      filter: [],
+    });
+    try {
+      for (const version of ['1.0', '2.0']) {
+        const refused = await request()
+          .put(`${prefix}/${name}`)
+          .set({ ...auth(), 'X-ReDBox-Api-Version': version })
+          .send(changed)
+          .expect(409);
+        assert.equal(
+          version === '1.0' ? refused.body.message : refused.body.errors[0].code,
+          'NAMED_QUERY_CONFIRMATION_REQUIRED'
+        );
+      }
+      const row = (await NamedQuery.findOne({ name }))!;
+      assert.deepEqual(JSON.parse(row.graphql!).variables.stages, { ownership: 'fixed', value: ['draft'] });
+      const reviewed = await review(changed);
+      assert.equal(reviewed.required, true);
+      assert.deepEqual(reviewed.changes, ['bindings']);
+      assert.deepEqual(reviewed.usedBy, [
+        { type: 'report', name: 'Known binding consumer', path: `/admin/report/${reportName}` },
+      ]);
+      assert.equal(reviewed.usageComplete, false);
+      const changedAgain = structuredClone(changed);
+      changedAgain.graphql.variables.stages = { ownership: 'omitted' };
+      await request()
+        .put(`${prefix}/${name}`)
+        .set(auth())
+        .set('X-ReDBox-Named-Query-Confirmation', reviewed.confirmation)
+        .send(changedAgain)
+        .expect(409);
+      await NamedQuery.updateOne({ id: row.id }).set({ description: 'Concurrent saved edit' });
+      await request()
+        .put(`${prefix}/${name}`)
+        .set(auth())
+        .set('X-ReDBox-Named-Query-Confirmation', reviewed.confirmation)
+        .send(changed)
+        .expect(409);
+      assert.deepEqual(
+        JSON.parse((await NamedQuery.findOne({ name }))!.graphql!).variables.stages,
+        fixed.graphql.variables.stages
+      );
+      const current = await review(changed);
+      await request()
+        .put(`${prefix}/${name}`)
+        .set(auth())
+        .set('X-ReDBox-Named-Query-Confirmation', current.confirmation)
+        .send(changed)
+        .expect(200);
+      assert.deepEqual(JSON.parse((await NamedQuery.findOne({ name }))!.graphql!), changed.graphql);
+    } finally {
+      await RBReport.destroy({ key: `${brand.id}_${reportName}` });
+    }
   });
   it('applies ordinary saved database edits immediately and preserves name uniqueness/deletion', async () => {
     await request().post(prefix).set(auth()).send(database).expect(409);

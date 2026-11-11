@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
-import type { GraphqlNamedQueryDefinition } from '@researchdatabox/sails-ng-common';
+import type { GraphqlNamedQueryDefinition, GraphqlNamedQueryVariable } from '@researchdatabox/sails-ng-common';
 import { Services } from '../../src/services/NamedQueryService';
 import { Services as EditorServices } from '../../src/services/NamedQueryEditorService';
 import type { NamedQueryAttributes } from '../../src/waterline-models/NamedQuery';
 import {
   NamedQueryUpdateConfirmationError,
   NamedQueryUpdateConflictError,
+  namedQueryBreakingChanges,
 } from '../../src/services/named-query/update-review';
 import { gridContracts } from '../fixtures/record-grid.fixtures';
 import { createRecordYoga } from '../../src/record-graphql/schema';
+import { metadataTypeName } from '../../src/record-graphql/renderer';
 import { createMockSails, createQueryObject, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 
 const brand = { id: 'brand-1', name: 'brand-1', css: '', roles: [] };
@@ -40,6 +42,28 @@ const graphql: GraphqlNamedQueryDefinition = {
   },
 };
 
+const contracts = gridContracts().map(contract => ({
+  ...contract,
+  context: { ...contract.context, recordType: 'rdmp' },
+}));
+const scopedLookup = (): GraphqlNamedQueryDefinition => ({
+  ...structuredClone(graphql),
+  graphql: {
+    ...structuredClone(graphql.graphql),
+    document: `query Q($search: String! = "rdmp", $stages: [String!] = ["draft"], $first: Int, $after: String) {
+      records(recordType: "rdmp", workflowStages: $stages, filters: [{field: "title", contains: $search}], first: $first, after: $after) {
+        nodes { oid metadata {
+          ... on ${metadataTypeName(contracts[0])} { label: title }
+          ... on ${metadataTypeName(contracts[1])} { label: title @skip(if: true) }
+        } }
+        hasNextPage
+      }
+    }`,
+    variables: { ...structuredClone(graphql.graphql.variables), stages: { ownership: 'fixed', value: ['draft'] } },
+    mappings: { oid: ['oid'], title: ['metadata', 'label'] },
+  },
+});
+
 describe('named query update review', () => {
   let service: Services.NamedQueryService;
   let row: NamedQueryAttributes;
@@ -49,10 +73,7 @@ describe('named query update review', () => {
     setupServiceTestGlobals(createMockSails());
     Reflect.set(globalThis, 'RecordGraphqlService', {
       getReadSchema: async () =>
-        createRecordYoga(
-          gridContracts().map(contract => ({ ...contract, context: { ...contract.context, recordType: 'rdmp' } })),
-          { getRecord: async () => null, hasViewAccess: () => false }
-        ).schema,
+        createRecordYoga(contracts, { getRecord: async () => null, hasViewAccess: () => false }).schema,
     });
     row = {
       id: 'review-id',
@@ -98,7 +119,7 @@ describe('named query update review', () => {
     await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
     assert.equal(update.called, false);
     const review = await service.reviewUpdate(brand, 'review', next, caller);
-    assert.deepEqual(review.changes, ['parameters']);
+    assert.deepEqual(review.changes, ['parameters', 'bindings']);
     assert.equal(review.usageComplete, false);
     assert.equal(review.usedBy[0].name, 'Known form');
     assert.ok(review.confirmation);
@@ -270,6 +291,116 @@ describe('named query update review', () => {
     );
     await service.update(brand, 'review', next, caller, reviewed.confirmation);
     assert.deepEqual(JSON.parse(row.graphql!), next.graphql);
+  });
+  it('reviews fixed scope changes with unchanged document and mappings before lookup compatibility is lost', async () => {
+    const previous = scopedLookup();
+    row.graphql = JSON.stringify(previous.graphql);
+    const editor = new EditorServices.NamedQueryEditor();
+    const context = { brand, user: caller.user };
+    const before = await editor.describeDraft(brand, caller.portal, context, { definition: previous });
+    assert.equal(before.valid, true);
+    assert.equal(before.capabilities?.lookup, true);
+    const next = structuredClone(previous);
+    next.graphql.variables.stages = { ownership: 'fixed', value: ['published'] };
+    assert.equal(next.graphql.document, previous.graphql.document);
+    assert.deepEqual(next.graphql.mappings, previous.graphql.mappings);
+    const after = await editor.describeDraft(brand, caller.portal, context, { definition: next });
+    assert.equal(after.valid, true);
+    assert.equal(after.capabilities?.lookup, false);
+    assert.ok(after.capabilities?.diagnostics.some(diagnostic => diagnostic.code === 'LOOKUP_MAPPING'));
+    const reviewed = await service.reviewUpdate(brand, 'review', next, caller);
+    assert.deepEqual(reviewed.changes, ['bindings']);
+    assert.equal(reviewed.required, true);
+    assert.deepEqual(reviewed.usedBy, [{ type: 'form', name: 'Known form', path: '/record/form/known' }]);
+    assert.equal(usage.calledWith(brand), true);
+    await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
+    const changedAgain = structuredClone(next);
+    changedAgain.graphql.variables.stages = { ownership: 'omitted' };
+    await assert.rejects(
+      service.update(brand, 'review', changedAgain, caller, reviewed.confirmation),
+      NamedQueryUpdateConfirmationError
+    );
+    row.description = 'Concurrent saved edit';
+    await assert.rejects(
+      service.update(brand, 'review', next, caller, reviewed.confirmation),
+      NamedQueryUpdateConfirmationError
+    );
+    delete row.description;
+    assert.equal(update.called, false);
+    assert.deepEqual(JSON.parse(row.graphql!), previous.graphql);
+    await service.update(brand, 'review', next, caller, reviewed.confirmation);
+    assert.deepEqual(JSON.parse(row.graphql!), next.graphql);
+  });
+  const ownerships: GraphqlNamedQueryVariable[] = [
+    { ownership: 'fixed', value: ['draft'] },
+    { ownership: 'omitted' },
+    { ownership: 'consumer', parameter: 'stages', inputType: '[String!]', required: false, defaultValue: ['draft'] },
+  ];
+  for (const previousBinding of ownerships)
+    for (const nextBinding of ownerships)
+      if (previousBinding.ownership !== nextBinding.ownership)
+        it(`reviews ${previousBinding.ownership} to ${nextBinding.ownership} ownership with unchanged document`, async () => {
+          const previous = scopedLookup();
+          previous.graphql.variables.stages = structuredClone(previousBinding);
+          row.graphql = JSON.stringify(previous.graphql);
+          const next = structuredClone(previous);
+          next.graphql.variables.stages = structuredClone(nextBinding);
+          const reviewed = await service.reviewUpdate(brand, 'review', next, caller);
+          assert.ok(reviewed.changes.includes('bindings'));
+          assert.equal(reviewed.required, true);
+          assert.equal(reviewed.usedBy[0].name, 'Known form');
+          await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
+          assert.equal(update.called, false);
+          await service.update(brand, 'review', next, caller, reviewed.confirmation);
+          assert.deepEqual(JSON.parse(row.graphql!), next.graphql);
+        });
+  for (const [label, defaultValue] of [
+    ['adding', ['draft']],
+    ['removing', undefined],
+    ['clearing to null', null],
+    ['changing', []],
+  ] as const)
+    it(`reviews ${label} a consumer default without changing ownership or document`, async () => {
+      const previous = scopedLookup();
+      previous.graphql.variables.stages = {
+        ownership: 'consumer',
+        parameter: 'stages',
+        inputType: '[String!]',
+        required: false,
+        ...(label === 'adding' ? {} : { defaultValue: ['draft'] }),
+      };
+      row.graphql = JSON.stringify(previous.graphql);
+      const next = structuredClone(previous);
+      const binding = next.graphql.variables.stages;
+      assert.equal(binding.ownership, 'consumer');
+      if (binding.ownership !== 'consumer') throw new Error('Consumer fixture required');
+      if (defaultValue === undefined) delete binding.defaultValue;
+      else binding.defaultValue = defaultValue === null ? null : [...defaultValue];
+      const reviewed = await service.reviewUpdate(brand, 'review', next, caller);
+      assert.deepEqual(reviewed.changes, ['parameters', 'bindings']);
+      assert.equal(reviewed.usedBy[0].name, 'Known form');
+      await assert.rejects(service.update(brand, 'review', next, caller), NamedQueryUpdateConfirmationError);
+      assert.equal(update.called, false);
+      await service.update(brand, 'review', next, caller, reviewed.confirmation);
+      assert.deepEqual(JSON.parse(row.graphql!), next.graphql);
+    });
+  it('compares complete bindings without treating object-key ordering as a change', () => {
+    const previous = scopedLookup();
+    const next = structuredClone(previous);
+    next.graphql.variables = Object.fromEntries(Object.entries(next.graphql.variables).reverse());
+    assert.deepEqual(namedQueryBreakingChanges(previous, next), []);
+    // Presence and JSON values belong to the binding contract as well.
+    for (const binding of [
+      undefined,
+      { ownership: 'fixed', value: null },
+      { ownership: 'fixed', value: [] },
+      { ownership: 'fixed', value: ['draft', 'published'] },
+    ] satisfies Array<GraphqlNamedQueryVariable | undefined>) {
+      const changed = structuredClone(previous);
+      if (binding === undefined) delete changed.graphql.variables.stages;
+      else changed.graphql.variables.stages = structuredClone(binding);
+      assert.deepEqual(namedQueryBreakingChanges(previous, changed), ['bindings']);
+    }
   });
   it('also reviews a selected-operation edit when document text and paths stay unchanged', async () => {
     const next = structuredClone(graphql);

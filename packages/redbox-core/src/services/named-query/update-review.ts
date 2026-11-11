@@ -67,6 +67,9 @@ export function namedQueryBreakingChanges(
   )
     changes.push('parameters');
   if (previous.source === 'graphql' && next.source === 'graphql') {
+    // Fixed/omitted values and ownership narrow the effective selection scope too.
+    // Compare the entire binding map, including optional consumer additions.
+    if (!equal(previous.graphql?.variables, next.graphql.variables)) changes.push('bindings');
     // Selections, aliases, fragments and directives can change effective mapped
     // output without changing the stored paths. Review any document/operation edit.
     if (
