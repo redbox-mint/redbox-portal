@@ -9,6 +9,7 @@ export class GraphqlNamedQueryInputError extends Error {
 }
 
 const numeric = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$/;
+const integer = /^-?(?:0|[1-9][0-9]*)$/;
 const ownObject = (value: unknown): value is Record<string, unknown> =>
   value !== null &&
   typeof value === 'object' &&
@@ -59,7 +60,7 @@ export function convertGraphqlInput(type: GraphQLInputType, value: unknown, fiel
   let converted = value;
   if (type.name === 'Int' || type.name === 'Float') {
     if (typeof value === 'string') {
-      if (!numeric.test(value)) return fail();
+      if (!(type.name === 'Int' ? integer : numeric).test(value)) return fail();
       converted = Number(value);
     }
     if (typeof converted !== 'number' || !Number.isFinite(converted)) return fail();

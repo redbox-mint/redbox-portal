@@ -4,7 +4,7 @@ import { buildSchema, GraphQLScalarType, getVariableValues, GraphQLSchema, execu
 import type { GraphqlNamedQueryDefinition, GraphqlNamedQueryVariable } from '@researchdatabox/sails-ng-common';
 import { createRecordYoga } from '../../src/record-graphql/schema';
 import { metadataTypeName } from '../../src/record-graphql/renderer';
-import { gridHarness, gridRecord } from '../fixtures/record-grid.fixtures';
+import { gridContracts, gridHarness, gridRecord } from '../fixtures/record-grid.fixtures';
 import { RecordContractContributorRegistry, createCoreRecordContractContributors } from '../../src/record-contract';
 import { recordGraphql } from '../../src/config/recordGraphql.config';
 import { Services as GraphqlServices } from '../../src/services/RecordGraphqlService';
@@ -12,6 +12,7 @@ import { Services as QueryServices } from '../../src/services/NamedQueryService'
 import { Services as EditorServices } from '../../src/services/NamedQueryEditorService';
 import {
   validateGraphqlNamedQuery,
+  inspectGraphqlNamedQuery,
   bindGraphqlNamedQuery,
   graphqlPath,
   GraphqlNamedQueryValidationError,
@@ -21,7 +22,10 @@ import type { ReadCaller } from '../../src/record-graphql/read-record';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals, createQueryObject } from './testHelper';
 
-const schema = createRecordYoga([], { getRecord: async () => null, hasViewAccess: () => false }).schema;
+const schema = createRecordYoga(
+  gridContracts().map(contract => ({ ...contract, context: { ...contract.context, recordType: 'rdmp' } })),
+  { getRecord: async () => null, hasViewAccess: () => false }
+).schema;
 const brand = { id: 'brand', name: 'default', css: '', roles: [] };
 const caller: ReadCaller = { brand, portal: 'rdmp', user: { username: 'author' }, roles: [] };
 const editorCaller: FormRecordAccessContext = {
@@ -164,6 +168,8 @@ describe('GraphQL named query validation and binding', () => {
     ['Int', ' 1'],
     ['Int', '01'],
     ['Int', '0x10'],
+    ['Int', '1.0'],
+    ['Int', '1e2'],
     ['Int', 1.2],
     ['Int', 2147483648],
     ['Int', Infinity],
@@ -185,6 +191,26 @@ describe('GraphQL named query validation and binding', () => {
   ] as const)
     it(`rejects ambiguous ${type} input ${JSON.stringify(value)}`, () =>
       assert.throws(() => bound(type, value), GraphqlNamedQueryInputError));
+  it('accepts integer string spelling only for Int while Float retains decimal/exponent inputs', () => {
+    for (const text of ['0', '-0', '-12', '2147483647']) assert.equal(bound('Int', text), Number(text));
+    for (const text of ['1.0', '1e2', '-2E1']) {
+      assert.throws(() => bound('Int', text), GraphqlNamedQueryInputError);
+      assert.equal(bound('Float', text), Number(text));
+    }
+  });
+  it('retains structural definition field locations without exposing input or budget exceptions', () => {
+    const missing = variable('Int');
+    Reflect.deleteProperty(missing.graphql.variables.value, 'required');
+    const validation = validateGraphqlNamedQuery(missing, schema).validation;
+    assert.equal(validation.valid, false);
+    assert.equal(validation.diagnostics[0].field, 'graphql.variables.value.required');
+    assert.equal(validation.diagnostics[0].code, 'INVALID_DEFINITION');
+    const oversized = { ...definition(), privateInput: 'PRIVATE_VALUE'.repeat(100000) };
+    const budget = validateGraphqlNamedQuery(oversized, schema).validation;
+    assert.equal(budget.valid, false);
+    assert.equal(budget.diagnostics[0].field, 'graphql');
+    assert.ok(!JSON.stringify(budget).includes('PRIVATE_VALUE'));
+  });
   it('keeps nullable named defaults distinct from explicit null and falsy values', () => {
     for (const [type, value] of [
       ['String', ''],
@@ -599,6 +625,92 @@ describe('GraphQL named query validation and binding', () => {
     };
     assert.equal(validateGraphqlNamedQuery(input, scoped).validation.valid, false);
   });
+  for (const scope of ['literal', 'fixed', 'omitted'] as const)
+    for (const metadata of [false, true])
+      it(`diagnoses an unknown ${scope} record type before ${metadata ? 'metadata mapping' : 'envelope-only'} validation`, () => {
+        const input: GraphqlNamedQueryDefinition = {
+          source: 'graphql',
+          graphql: {
+            document: `query${scope === 'literal' ? '' : `($type: String!${scope === 'omitted' ? ' = "PRIVATE_UNKNOWN_TYPE"' : ''})`} {
+              records(recordType: ${scope === 'literal' ? '"PRIVATE_UNKNOWN_TYPE"' : '$type'}) {
+                nodes { oid ${metadata ? `metadata { ... on ${metadataTypeName(gridContracts()[0])} { label: title } }` : ''} }
+              }
+            }`,
+            variables:
+              scope === 'literal'
+                ? {}
+                : {
+                    type:
+                      scope === 'fixed'
+                        ? { ownership: 'fixed', value: 'PRIVATE_UNKNOWN_TYPE' }
+                        : { ownership: 'omitted' },
+                  },
+            resultPath: ['records', 'nodes'],
+            ...(metadata ? { mappings: { title: ['metadata', 'label'] } } : {}),
+          },
+        };
+        const actual = gridHarness().schema;
+        const validation = validateGraphqlNamedQuery(input, actual).validation;
+        assert.equal(validation.valid, false);
+        assert.deepEqual(
+          validation.diagnostics.map(d => d.code),
+          ['UNKNOWN_RECORD_TYPE']
+        );
+        assert.equal(
+          validation.diagnostics[0].field,
+          scope === 'literal' ? 'graphql.document' : 'graphql.variables.type'
+        );
+        assert.ok(!JSON.stringify(validation).includes('PRIVATE_UNKNOWN_TYPE'));
+      });
+  it('checks statically unknown record types behind aliases and root fragments', () => {
+    const input: GraphqlNamedQueryDefinition = {
+      source: 'graphql',
+      graphql: {
+        document:
+          'query { ...Root } fragment Root on Query { matches: records(recordType: "PRIVATE_UNKNOWN_TYPE") { items: nodes { oid } } }',
+        variables: {},
+        resultPath: ['matches', 'items'],
+      },
+    };
+    const validation = validateGraphqlNamedQuery(input, schema).validation;
+    assert.equal(validation.valid, false);
+    assert.deepEqual(
+      validation.diagnostics.map(d => d.code),
+      ['UNKNOWN_RECORD_TYPE']
+    );
+    assert.equal(validation.diagnostics[0].field, 'graphql.document');
+  });
+  it('does not reject dynamic consumer record types or narrow them using their defaults', () => {
+    const input = variable('String!', {
+      ownership: 'consumer',
+      parameter: 'type',
+      inputType: 'String!',
+      required: true,
+      defaultValue: 'not-a-static-type',
+    });
+    assert.equal(validateGraphqlNamedQuery(input, schema).validation.valid, true);
+    const empty = createRecordYoga([], { getRecord: async () => null, hasViewAccess: () => false }).schema;
+    assert.equal(validateGraphqlNamedQuery(input, empty).validation.valid, true);
+    assert.equal(validateGraphqlNamedQuery(variable('Int'), empty).validation.valid, false);
+  });
+  it('checks static collection scope even when the mapped list belongs to another selected root', () => {
+    const input: GraphqlNamedQueryDefinition = {
+      source: 'graphql',
+      graphql: {
+        document: `{ records(recordType: "PRIVATE_UNKNOWN_TYPE") { nodes { oid } }
+          record(oid: "r") { metadata { ... on ${metadataTypeName(gridContracts()[0])} { people { name } } } } }`,
+        variables: {},
+        resultPath: ['record', 'metadata', 'people'],
+        mappings: { title: ['name'] },
+      },
+    };
+    const validation = validateGraphqlNamedQuery(input, gridHarness().schema).validation;
+    assert.equal(validation.valid, false);
+    assert.deepEqual(
+      validation.diagnostics.map(d => d.code),
+      ['UNKNOWN_RECORD_TYPE']
+    );
+  });
   it('leaves omitted nested fixed input-field defaults for GraphQL to apply', () => {
     const nested = buildSchema(
       'input Options { count: Int! = 4 flag: Boolean = false } type Query { rows(options: Options): [String] }'
@@ -645,6 +757,40 @@ describe('GraphQL named query validation and binding', () => {
     const result = JSON.stringify(validateGraphqlNamedQuery(input, schema).validation);
     assert.ok(!/PRIVATE|SECRET|missingPrivateField/.test(result));
     assert.match(result, /GRAPHQL_SCHEMA/);
+  });
+});
+
+describe('GraphQL named query schema inspection', () => {
+  let previous: unknown;
+  let getReadSchema: sinon.SinonStub;
+  beforeEach(() => {
+    previous = Reflect.get(globalThis, 'RecordGraphqlService');
+    getReadSchema = sinon.stub().resolves(schema);
+    Reflect.set(globalThis, 'RecordGraphqlService', { getReadSchema });
+  });
+  afterEach(() => {
+    sinon.restore();
+    Reflect.set(globalThis, 'RecordGraphqlService', previous);
+  });
+  it('reports safe schema retrieval failures without leaking the exception', async () => {
+    getReadSchema.rejects(new Error('PRIVATE_SCHEMA_CONFIG'));
+    const result = await inspectGraphqlNamedQuery(definition(), caller, brand.id);
+    assert.equal(result.validation.diagnostics[0].code, 'GRAPHQL_SCHEMA_UNAVAILABLE');
+    assert.ok(!JSON.stringify(result).includes('PRIVATE_SCHEMA_CONFIG'));
+  });
+  it('distinguishes an explicitly disabled schema using its stable error code', async () => {
+    getReadSchema.rejects(Object.assign(new Error('PRIVATE_SCHEMA_CONFIG'), { code: 'GRAPHQL_DISABLED' }));
+    const result = await inspectGraphqlNamedQuery(definition(), caller, brand.id);
+    assert.equal(result.validation.diagnostics[0].code, 'GRAPHQL_DISABLED');
+    assert.ok(!JSON.stringify(result).includes('PRIVATE_SCHEMA_CONFIG'));
+  });
+  it('lets internal validator failures propagate instead of misreporting schema availability', async () => {
+    const broken = new GraphQLSchema(schema.toConfig());
+    const internal = new Error('PRIVATE_VALIDATOR_BUG');
+    sinon.stub(broken, 'getQueryType').throws(internal);
+    getReadSchema.resolves(broken);
+    await assert.rejects(inspectGraphqlNamedQuery(definition(), caller, brand.id), error => error === internal);
+    assert.equal(getReadSchema.callCount, 1);
   });
 });
 
@@ -740,7 +886,14 @@ describe('GraphQL named query server boundaries', () => {
       getCandidates: async scope => {
         assert.deepEqual(scope.user, {});
         assert.deepEqual(scope.roles, []);
-        return [];
+        return [
+          {
+            recordType: 'rdmp',
+            workflowStep: 'draft',
+            form: 'rdmp-draft',
+            configuration: { name: 'rdmp-draft', type: 'rdmp', componentDefinitions: [] },
+          },
+        ];
       },
       getReusableDefinitions: () => ({}),
       getRecord: read,

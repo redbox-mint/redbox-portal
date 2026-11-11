@@ -2,6 +2,7 @@ import {
   Kind,
   GraphQLError,
   TypeNameMetaFieldDef,
+  TypeInfo,
   getNamedType,
   getOperationAST,
   isAbstractType,
@@ -16,6 +17,7 @@ import {
   typeFromAST,
   validate,
   visit,
+  visitWithTypeInfo,
   valueFromAST,
   type DocumentNode,
   type FieldNode,
@@ -36,7 +38,7 @@ import type {
 import type { ReadCaller } from '../../record-graphql/read-record';
 import { boundedQueryRule, QUERY_LIMITS } from '../../record-graphql/schema';
 import { checkDraftBudget, boundedJsonBytes } from '../../utilities/NamedQueryPreview';
-import { assertNamedQueryDefinition } from './definition';
+import { assertNamedQueryDefinition, NamedQueryDefinitionError } from './definition';
 import { consumerInput, convertGraphqlInput, GraphqlNamedQueryInputError, safeSegment } from './graphql-input';
 
 export function graphqlDiagnostic(code: string, field: string, reason: string, lookup = false): EditorDiagnostic {
@@ -164,6 +166,75 @@ function selectedPath(
   return path.length ? walk(start, selections, 0) : undefined;
 }
 
+/** Resolve only immutable operation inputs. Supplied JSON keeps strict conversion;
+ * literals/defaults use GraphQL's input coercion, including singleton lists.
+ */
+function staticArgument(
+  schema: GraphQLSchema,
+  operation: OperationDefinitionNode,
+  definition: GraphqlNamedQueryDefinition,
+  collection: FieldNode,
+  name: string
+): unknown {
+  const field = schema.getQueryType()?.getFields()[collection.name.value];
+  const argumentType = field?.args.find(arg => arg.name === name)?.type;
+  const value = collection.arguments?.find(arg => arg.name.value === name)?.value;
+  if (!value || !argumentType) return undefined;
+  if (value.kind !== Kind.VARIABLE) return valueFromAST(value, argumentType);
+  const declaration = operation.variableDefinitions?.find(v => v.variable.name.value === value.name.value);
+  const inputType = declaration && typeFromAST(schema, declaration.type);
+  if (!inputType || !isInputType(inputType)) return undefined;
+  const binding = definition.graphql.variables[value.name.value];
+  if (binding?.ownership === 'fixed') {
+    try {
+      return convertGraphqlInput(inputType, binding.value, value.name.value, true);
+    } catch {
+      return undefined; // The ownership validation already reports this input.
+    }
+  }
+  if (binding?.ownership === 'omitted' && declaration?.defaultValue)
+    return valueFromAST(declaration.defaultValue, inputType);
+}
+
+/** Check every selected collection, including fragments and collections outside
+ * the mapped result path. Consumer-controlled record types are checked at runtime.
+ */
+function unknownCollectionTypes(
+  schema: GraphQLSchema,
+  document: DocumentNode,
+  operation: OperationDefinitionNode,
+  definition: GraphqlNamedQueryDefinition
+): EditorDiagnostic[] {
+  const variants: unknown = schema.extensions.recordReadVariants;
+  if (!Array.isArray(variants)) return [];
+  const known = new Set(
+    variants.flatMap(variant =>
+      variant && typeof variant === 'object' && typeof variant.recordType === 'string' ? [variant.recordType] : []
+    )
+  );
+  const diagnostics: EditorDiagnostic[] = [];
+  const info = new TypeInfo(schema);
+  visit(
+    document,
+    visitWithTypeInfo(info, {
+      Field(node) {
+        if (info.getParentType() !== schema.getQueryType() || node.name.value !== 'records') return;
+        const type = staticArgument(schema, operation, definition, node, 'recordType');
+        if (typeof type !== 'string' || known.has(type)) return;
+        const value = node.arguments?.find(arg => arg.name.value === 'recordType')?.value;
+        diagnostics.push(
+          graphqlDiagnostic(
+            'UNKNOWN_RECORD_TYPE',
+            value?.kind === Kind.VARIABLE ? `graphql.variables.${value.name.value}` : 'graphql.document',
+            'Choose a record type available in the current read schema.'
+          )
+        );
+      },
+    })
+  );
+  return diagnostics;
+}
+
 /** The read schema records variant identities when compiling contracts. Narrow
  * only a literal/fixed/default-omitted collection scope, never a consumer default
  * that a caller can replace. No generated type-name guessing or record reads.
@@ -182,27 +253,7 @@ function collectionMetadataTypes(
       : undefined;
   const collection = selected?.find(field => field.node.name.value === 'records')?.node;
   if (!root || !collection) return;
-  const argument = (name: string): unknown => {
-    const argumentType = root.getFields()[collection.name.value]?.args.find(arg => arg.name === name)?.type;
-    const value = collection.arguments?.find(arg => arg.name.value === name)?.value;
-    if (!value || !argumentType) return undefined;
-    if (value.kind !== Kind.VARIABLE) return valueFromAST(value, argumentType);
-    const declaration = operation.variableDefinitions?.find(v => v.variable.name.value === value.name.value);
-    const inputType = declaration && typeFromAST(schema, declaration.type);
-    if (!inputType || !isInputType(inputType)) return undefined;
-    const binding = definition.graphql.variables[value.name.value];
-    if (binding?.ownership === 'fixed') {
-      try {
-        // Supplied JSON retains the explicit-array rule; only AST literals and
-        // operation defaults receive GraphQL's singleton list coercion.
-        return convertGraphqlInput(inputType, binding.value, value.name.value, true);
-      } catch {
-        return undefined; // The ownership validation already reports this input.
-      }
-    }
-    if (binding?.ownership === 'omitted' && declaration?.defaultValue)
-      return valueFromAST(declaration.defaultValue, inputType);
-  };
+  const argument = (name: string) => staticArgument(schema, operation, definition, collection, name);
   const type = argument('recordType');
   const stages = argument('workflowStages');
   // A variable-controlled stage list without fixed/omitted ownership cannot
@@ -249,10 +300,10 @@ export function validateGraphqlNamedQuery(
   try {
     checkDraftBudget(input);
     assertNamedQueryDefinition(input);
-  } catch {
+  } catch (error) {
     issue(
       'INVALID_DEFINITION',
-      'graphql',
+      error instanceof NamedQueryDefinitionError ? error.field : 'graphql',
       'Provide a source-specific GraphQL definition with valid ownership and segment paths.'
     );
     return result();
@@ -401,6 +452,11 @@ export function validateGraphqlNamedQuery(
       issue('PAGE_VARIABLE', 'graphql.lookup', 'Declare both server-owned paging variables in the selected operation.');
 
   const root = schema.getQueryType();
+  const unknownTypes = unknownCollectionTypes(schema, document, operation, input);
+  if (unknownTypes.length) {
+    diagnostics.push(...unknownTypes);
+    return result();
+  }
   const metadataTypes = collectionMetadataTypes(schema, document, operation, input);
   const at = (path: NamedQueryPath) =>
     root &&
@@ -574,23 +630,28 @@ export async function inspectGraphqlNamedQuery(
         ],
       },
     };
+  let schema: GraphQLSchema;
   try {
-    return validateGraphqlNamedQuery(input, await RecordGraphqlService.getReadSchema(caller));
-  } catch {
+    schema = await RecordGraphqlService.getReadSchema(caller);
+  } catch (error) {
+    const disabled = error instanceof Error && 'code' in error && error.code === 'GRAPHQL_DISABLED';
     return {
       validation: {
         source: 'graphql',
         valid: false,
         diagnostics: [
           graphqlDiagnostic(
-            'GRAPHQL_SCHEMA_UNAVAILABLE',
+            disabled ? 'GRAPHQL_DISABLED' : 'GRAPHQL_SCHEMA_UNAVAILABLE',
             'graphql.document',
-            'The current read schema is unavailable; retry validation after configuration is repaired.'
+            disabled
+              ? 'Record GraphQL is disabled; enable it before caller-scoped validation.'
+              : 'The current read schema is unavailable; retry validation after configuration is repaired.'
           ),
         ],
       },
     };
   }
+  return validateGraphqlNamedQuery(input, schema);
 }
 
 /** queryName/start/rows are established REST transport fields, never variable bindings.
