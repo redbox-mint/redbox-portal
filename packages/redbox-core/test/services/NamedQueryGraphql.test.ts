@@ -3,6 +3,8 @@ import * as sinon from 'sinon';
 import { buildSchema, GraphQLScalarType, getVariableValues, GraphQLSchema, executeSync, parse } from 'graphql';
 import type { GraphqlNamedQueryDefinition, GraphqlNamedQueryVariable } from '@researchdatabox/sails-ng-common';
 import { createRecordYoga } from '../../src/record-graphql/schema';
+import { metadataTypeName } from '../../src/record-graphql/renderer';
+import { gridHarness, gridRecord } from '../fixtures/record-grid.fixtures';
 import { RecordContractContributorRegistry, createCoreRecordContractContributors } from '../../src/record-contract';
 import { recordGraphql } from '../../src/config/recordGraphql.config';
 import { Services as GraphqlServices } from '../../src/services/RecordGraphqlService';
@@ -454,6 +456,44 @@ describe('GraphQL named query validation and binding', () => {
     );
     assert.equal(validateGraphqlNamedQuery(input, nested).validation.valid, false);
   });
+  for (const missing of ['draft', 'published'])
+    it(`rejects a result-list mapping missing from the ${missing} metadata variant in the real read schema`, async () => {
+      const h = gridHarness(['draft', 'published']);
+      for (const stage of ['draft', 'published']) {
+        const record = gridRecord(stage, stage);
+        record.metadata.people = [{ name: `${stage} person` }];
+        h.records.set(stage, record);
+      }
+      const branches = h.contracts.map(contract => {
+        const stage = contract.context.workflowStep;
+        return `... on ${metadataTypeName(contract)} { rows: people { ${stage === missing ? 'other' : 'label'}: name } }`;
+      });
+      const input: GraphqlNamedQueryDefinition = {
+        source: 'graphql',
+        graphql: {
+          document: `query($oid: ID!) { record(oid: $oid) { metadata { ${branches.join(' ')} } } }`,
+          variables: { oid: { ownership: 'consumer', parameter: 'recordId', inputType: 'ID!', required: true } },
+          resultPath: ['record', 'metadata', 'rows'],
+          mappings: { title: ['label'] },
+        },
+      };
+      for (const stage of ['draft', 'published']) {
+        const result = await h.query(input.graphql.document, { oid: stage });
+        assert.equal(result.body.errors, undefined);
+        assert.deepEqual(graphqlPath(result.body.data, input.graphql.resultPath), [
+          { [stage === missing ? 'other' : 'label']: `${stage} person` },
+        ]);
+      }
+      const validation = validateGraphqlNamedQuery(input, h.schema).validation;
+      assert.equal(validation.valid, false);
+      assert.ok(validation.diagnostics.some(d => d.code === 'MAPPING_PATH' && d.field === 'graphql.mappings.title'));
+      // Duplicates within this variant still merge; another variant cannot supply them.
+      input.graphql.document = input.graphql.document.replace(
+        'rows: people { other: name }',
+        'rows: people { other: name } rows: people { label: name }'
+      );
+      assert.ok(prepare(input, h.schema));
+    });
   it('narrows known metadata variants for a fixed collection scope without trusting consumer defaults', () => {
     const base = buildSchema(`
       type Query { records(recordType: String!): Page }

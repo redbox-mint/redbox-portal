@@ -9,6 +9,12 @@ import { namedQueryMutationCsrf } from '../../../src/policies/namedQueryMutation
 import { checkAuth } from '../../../src/policies/checkAuth';
 import { NamedQueryAssistanceError, NAMED_QUERY_PREVIEW_LIMITS } from '../../../src/utilities/NamedQueryPreview';
 import { GraphqlNamedQueryInputError } from '../../../src/services/named-query/graphql-input';
+import {
+  GraphqlNamedQueryValidationError,
+  graphqlDiagnostic,
+  validateGraphqlNamedQuery,
+} from '../../../src/services/named-query/graphql-validation';
+import { createRecordYoga } from '../../../src/record-graphql/schema';
 import { FieldDescriptionError } from '../../../src/services/FieldDescriptionsService';
 import { Services as PathServices } from '../../../src/services/PathRulesService';
 import { Services as EditorServices } from '../../../src/services/NamedQueryEditorService';
@@ -295,6 +301,78 @@ describe('Named query assistance HTTP boundary', () => {
       }
       assert.ok(!JSON.stringify(response).includes('PRIVATE_INPUT'));
     }
+  });
+  for (const action of ['previewDraft', 'createQuery', 'updateQuery'] as const)
+    it(`${action} retains safe definition diagnostics through both API response versions`, async () => {
+      const definition = {
+        name: 'query-a',
+        source: 'graphql',
+        graphql: {
+          document: 'query($count: Int) { records(recordType: "rdmp", first: $count) { nodes { oid } } }',
+          variables: { count: { ownership: 'fixed', value: 'PRIVATE_INPUT' } },
+          resultPath: ['records', 'nodes'],
+        },
+      };
+      const schema = createRecordYoga([], { getRecord: async () => null, hasViewAccess: () => false }).schema;
+      const validation = validateGraphqlNamedQuery(definition, schema).validation;
+      assert.equal(validation.valid, false);
+      const diagnostic = validation.diagnostics[0];
+      assert.equal(diagnostic.code, 'INVALID_DEFAULT');
+      const error = new GraphqlNamedQueryValidationError(validation.diagnostics);
+      service.previewDraft.rejects(error);
+      const queriesBefore = Reflect.get(globalThis, 'NamedQueryService');
+      Reflect.set(globalThis, 'NamedQueryService', {
+        create: sinon.stub().rejects(error),
+        update: sinon.stub().rejects(error),
+      });
+      try {
+        for (const version of ['1.0', '2.0']) {
+          const res = {
+            status: sinon.stub().returnsThis(),
+            set: sinon.stub().returnsThis(),
+            json: sinon.stub().returnsThis(),
+          };
+          const req = {
+            ...request(),
+            headers: { 'x-redbox-api-version': version },
+            body: action === 'previewDraft' ? { definition } : definition,
+          };
+          await controller[action](req as unknown as Sails.Req, res as unknown as Sails.Res);
+          assert.equal(res.status.lastCall.args[0], action === 'previewDraft' ? 422 : 400);
+          const response = res.json.lastCall.args[0];
+          const expected = `${diagnostic.field}: ${diagnostic.reason}`;
+          if (version === '2.0') {
+            assert.deepEqual(response.meta.diagnostics, validation.diagnostics);
+            assert.equal(response.errors[0].code, error.code);
+            assert.equal(response.errors[0].detail, expected);
+          } else {
+            assert.equal(response.message, error.code);
+            assert.equal(response.details, expected);
+          }
+          assert.ok(!JSON.stringify(response).includes('PRIVATE_INPUT'));
+        }
+      } finally {
+        Reflect.set(globalThis, 'NamedQueryService', queriesBefore);
+      }
+    });
+  it('bounds the definition diagnostic description independently of diagnostic count and text length', async () => {
+    service.previewDraft.rejects(
+      new GraphqlNamedQueryValidationError(
+        Array.from({ length: 50 }, () =>
+          graphqlDiagnostic('INVALID_DEFAULT', 'graphql.' + 'x'.repeat(1000), 'Repair input. '.repeat(1000))
+        )
+      )
+    );
+    const res = {
+      status: sinon.stub().returnsThis(),
+      set: sinon.stub().returnsThis(),
+      json: sinon.stub().returnsThis(),
+    };
+    await controller.previewDraft(request() as unknown as Sails.Req, res as unknown as Sails.Res);
+    const response = res.json.lastCall.args[0];
+    assert.equal(res.status.lastCall.args[0], 422);
+    assert.match(response.details, /^graphql\./);
+    assert.ok(response.details.length <= 770);
   });
   it('maps guidance denial, missing saved query, size and timeout failures', async () => {
     const send = sinon.stub(controller, 'sendResp');

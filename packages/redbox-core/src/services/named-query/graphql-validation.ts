@@ -431,14 +431,7 @@ export function validateGraphqlNamedQuery(
           path.length === 0
             ? [{ ...row, type: list.ofType }]
             : isCompositeType(item) && row.selections.length
-              ? selectedPath(
-                  schema,
-                  document,
-                  item,
-                  rows.flatMap(r => r.selections),
-                  path,
-                  metadataTypes
-                )
+              ? selectedPath(schema, document, item, row.selections, path, metadataTypes)
               : undefined;
         if (!selection) {
           issue(

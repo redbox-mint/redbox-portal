@@ -3,6 +3,7 @@ import type {
   NamedQueryDraftRequest,
   NamedQueryPreviewRequest,
   NamedQueryGuidance,
+  EditorDiagnostic,
 } from '@researchdatabox/sails-ng-common';
 import type { FormRecordAccessContext } from '../../services/FormsService';
 import {
@@ -89,9 +90,7 @@ export namespace Controllers {
             {
               code,
               status: String(status),
-              ...(error instanceof GraphqlNamedQueryInputError && diagnostics
-                ? { detail: `${diagnostics[0].field}: ${diagnostics[0].reason}` }
-                : {}),
+              ...(diagnostics ? { detail: this.graphqlDiagnosticDetail(diagnostics) } : {}),
             },
           ],
           ...(diagnostics ? { meta: { diagnostics } } : {}),
@@ -178,12 +177,21 @@ export namespace Controllers {
       };
     }
 
+    private graphqlDiagnosticDetail(diagnostics: readonly EditorDiagnostic[]): string {
+      const diagnostic = diagnostics[0];
+      // These diagnostics contain curated correction text, never GraphQL's raw
+      // input errors. Keep one bounded description for the v1 error envelope.
+      return diagnostic
+        ? `${diagnostic.field.slice(0, 256)}: ${diagnostic.reason.slice(0, 512)}`
+        : 'Repair the GraphQL named query definition using current schema assistance.';
+    }
+
     private sendError(req: Sails.Req, res: Sails.Res, error: unknown) {
       if (error instanceof GraphqlNamedQueryValidationError) {
         return this.sendResp(req, res, {
           status: 400,
           meta: { diagnostics: error.diagnostics },
-          displayErrors: [{ code: error.code, detail: error.message, status: '400' }],
+          displayErrors: [{ code: error.code, detail: this.graphqlDiagnosticDetail(error.diagnostics), status: '400' }],
           headers: this.getNoCacheHeaders(),
         });
       }
