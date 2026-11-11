@@ -190,7 +190,7 @@ describe('Shared Handlebars Helpers', async function () {
 
   describe('dateModify', function () {
     const when = '2023-05-18T01:30:00.000Z';
-    const whenDt = DateTime.fromISO(when);
+    const whenDt = DateTime.fromISO(when, { zone: 'utc' });
     it('should accept plus operation', function () {
       expect(handlebarsCompile(`{{dateModify when 'plus' 'days' 3 'months' 1}}`)({ when })).to.equal(
         whenDt.plus({ months: 1, days: 3 }).toUTC().toISO()
@@ -265,7 +265,7 @@ describe('Shared Handlebars Helpers', async function () {
           'adds 7 months in same DST Date',
           `'months' 7`,
           'UTC',
-          new Date(2027, 0, 1, 0, 1, 0),
+          new Date('2027-01-01T00:01:00.000Z'),
           '2027-08-01T00:01:00.000Z',
         ],
         [
@@ -1150,7 +1150,7 @@ describe('Shared Handlebars Helpers', async function () {
         <li>workspaceIds: {{join (sort (filterArray (trimArray (pluck (asArray (get record 'metadata.workspaces')) 'id')))) ', '}}</li>
         <li>projectStart: {{formatDate (get record "metadata['dc:coverage_vivo:DateTimeInterval_vivo:start']") "dd/MM/yyyy hh:mm a" "Australia/Sydney"}}</li>
         <li>lastSaveDate: {{formatDateLocale (get record "lastSaveDate") "DATE_SHORT" "UTC"}}</li>
-        <li>reviewDate: {{formatDate (dateModify (get record 'lastSaveDate') 'days' 14)}}</li>
+        <li>reviewDate: {{formatDate (dateModify (get record 'lastSaveDate') 'days' 14) "dd/MM/yyyy hh:mm a" "UTC"}}</li>
         <li>scu_entered_retention_end_date: {{formatDate (get record "metadata.scu_entered_retention_end_date") "dd/MM/yyyy" "Australia/Sydney"}}</li>
         <li>retentionReasons: {{join (sort (filterArray (trimArray (asArray (get record 'metadata.["redbox:retentionPeriod_dc:date_skos:note"]'))))) ', '}}</li>
         <li>countries: {{join (sort (pluck (flattenArray (get record "metadata['dc:coverage_dc:identifier']")) 'basic_name')) ', '}}</li>
