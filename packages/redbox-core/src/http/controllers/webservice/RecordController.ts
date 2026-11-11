@@ -8,13 +8,12 @@ import {
   type RecordMetadataInput,
   type RecordActionResponse,
 } from '../../actions/recordMetadata';
-import { sendApiErrors } from '../../fastify/responses';
+import { sendApiErrors, sendSerializedJson } from '../../fastify/responses';
 import { resolvedRequestContract } from '../../fastify/validation';
 
 /** Selected production domain ports. Constructors borrow; they acquire nothing. */
 export interface RecordControllerInput extends RecordMetadataInput {}
 type MetadataRequest = FastifyRequest<{ Params: { oid: string }; Querystring: Record<string, unknown> }>;
-const fresh: (request: Record<string, unknown>, response: Record<string, unknown>) => boolean = require('fresh');
 
 /** Express res.json applies HTTP freshness and HEAD handling after the action.
  * Apply the same fresh@2 semantics; no domain option or envelope lives here. */
@@ -23,19 +22,7 @@ function send(request: MetadataRequest, reply: FastifyReply, result: RecordActio
   // Express serializes before freshness and HEAD handling, within its action guard.
   // Send those exact bytes so a stateful toJSON is never evaluated a second time.
   const json = JSON.stringify(result.body);
-  if (
-    (request.method === 'GET' || request.method === 'HEAD') &&
-    result.status >= 200 &&
-    result.status < 300 &&
-    fresh(
-      request.headers,
-      Object.fromEntries(Object.entries(result.headers).map(([name, value]) => [name.toLowerCase(), value]))
-    )
-  ) {
-    reply.removeHeader('Content-Type').removeHeader('Content-Length').removeHeader('Transfer-Encoding');
-    return reply.code(304).send();
-  }
-  return reply.type('application/json; charset=utf-8').send(json === undefined ? undefined : Buffer.from(json));
+  return sendSerializedJson(request, reply, { ...result, json });
 }
 /** Existing validation position: policies and CSRF precede the envelope check. */
 export function recordMetadataBodyPrelude(request: FastifyRequest, reply: FastifyReply) {

@@ -1,3 +1,6 @@
+import { referenceReadDeclarations } from '../../http/referenceRoutes';
+import { coreRouteName } from '../../http/fastify/routes';
+import type { RouteBinding } from '../../http/fastify/routes';
 import type { Application } from '../Application';
 import { portalHostSettings, portalHttpSettings, type PortalMetadataContext } from './httpPlan';
 import type { PersistenceOwner } from '../../persistence/owner';
@@ -141,6 +144,40 @@ export async function createPortalFastifyHost(
         flatFormPrefixes: resolved.raw?.companion ? [rootContext + portal.config.companion.route] : [],
       },
       prepare: async (app: FastifyPreparation) => {
+        // Preserve the configured HTTPS header for the FM-023 routes, including
+        // policy/parser denials. Full page/asset header conversion stays scoped
+        // to its later task. Route identities come from executable declarations.
+        const referenceNames = new Set(referenceReadDeclarations.map(route => coreRouteName(route.method, route.path)));
+        const selectedReferenceNames = new Set(
+          resolved.routePlan.routes
+            .filter(route => referenceNames.has(route.declaration.name))
+            .map(route => route.declaration.name)
+        );
+        if (selectedReferenceNames.size) {
+          const referenceRequest = (request: import('fastify').FastifyRequest) => {
+            const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
+            return !!binding && selectedReferenceNames.has(binding.route.declaration.name);
+          };
+          if (new URL(portal.config.server.publicUrl).protocol === 'https:')
+            app.addHook('onRequest', async (request, reply) => {
+              if (referenceRequest(request)) reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+            });
+          app.addHook('onSend', async (request, reply, payload) => {
+            // Match production Express only for this conversion scope. The owned
+            // empty stream still reaches send hooks as an absent entity, and a
+            // replacement payload retains Fastify's ordinary length handling.
+            if (
+              referenceRequest(request) &&
+              request.method !== 'HEAD' &&
+              reply.statusCode >= 400 &&
+              payload === undefined
+            ) {
+              reply.removeHeader('Transfer-Encoding');
+              reply.header('Content-Length', '0');
+            }
+            return payload;
+          });
+        }
         await input.prepare?.();
         const sessions = await prepareNativeSessions(app, owner, settings.session);
         resolved.raw?.bindAuthentication(async credential => {

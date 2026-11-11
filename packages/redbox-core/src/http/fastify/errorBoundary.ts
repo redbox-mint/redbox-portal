@@ -2,8 +2,7 @@ import { STATUS_CODES } from 'node:http';
 import type { Socket } from 'node:net';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { Readable } from 'node:stream';
-import { apiVersion } from '../apiResponses';
-import { requestStrings } from '../requestValues';
+import { apiVersion, apiVersionInput } from '../apiResponses';
 
 export const nativeClientErrors = Object.freeze({
   FST_ERR_NOT_FOUND: 404,
@@ -83,6 +82,8 @@ const publicHeaders = new Set([
   'x-content-type-options',
   'content-security-policy',
   'cross-origin-opener-policy',
+  // Configuration reads retain this public source marker if JSON encoding fails.
+  'x-redbox-config-source',
   // Companion's public provider responses retain their canonical CORS contract.
   'access-control-allow-origin',
   'access-control-allow-credentials',
@@ -152,9 +153,8 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
     }
     if (target.publicResponse) {
       try {
-        // Express ends an empty denial without a representation
-        // length. An empty native stream preserves that framing while still
-        // running Fastify's session writes, send hooks and completion tracking.
+        // Retain the helper's chunked empty entity and owned send pipeline.
+        // Production composition selects framing for qualified route families.
         const emptyEnd = target.publicResponse.payload === undefined && request && request.method !== 'HEAD';
         let payload = target.publicResponse.payload;
         if (emptyEnd) {
@@ -176,12 +176,7 @@ export function writeHttpError(error: unknown, target: ResponseTarget): void {
       if (target.opaque) body = status === 500 ? '{"error":"internal-server-error"}' : '{"error":"invalid-request"}';
       else if (status === 404) body = '{"error":"not-found"}';
       else {
-        const extract = (value: unknown) => requestStrings(value) ?? (value == null ? undefined : 'invalid');
-        const query = request?.query as Record<string, unknown> | undefined;
-        const version = apiVersion({
-          headers: { 'x-redbox-api-version': extract(request?.headers?.['x-redbox-api-version']) },
-          query: { apiVersion: extract(query?.apiVersion), apiversion: extract(query?.apiversion) },
-        });
+        const version = apiVersion(apiVersionInput(request ?? {}));
         const detail = status === 500 ? 'Internal server error' : 'Invalid request';
         body = JSON.stringify(
           version === '2.0' ? { errors: [{ detail }], meta: {} } : { message: detail, details: '' }

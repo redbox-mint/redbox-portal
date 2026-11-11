@@ -1,3 +1,4 @@
+import { portalReferenceHttpInputs } from './referenceHttpPlan';
 import { companionOptions } from '../../http/integrations/companion/uploads';
 import path from 'node:path';
 import express from 'express';
@@ -15,7 +16,6 @@ import { RecordAuditViews } from '../../queries/RecordAuditViews';
 import { SiemReads } from '../../queries/SiemReads';
 import { summarizeFigshareStatus } from '../../queries/FigshareStatus';
 import { ContextVariables } from '../../forms/ContextVariables';
-import { Services as Prehydrate } from '../../forms/FormPayloadPrehydrate';
 import { Services as Logos } from '../../branding/BrandingLogo';
 import { Services as Templates } from '../../pages/Templates';
 import * as persistence from '../../persistence/runtime';
@@ -358,29 +358,11 @@ export class PortalHttp implements ApplicationModule {
       templateConfig: { ...config, appUrl: this.origin, rootContext },
     };
     http.mountPageRoot(router, rootContext, config.page.landingPath);
-    http.mountRecordTypeRoutes(router, {
-      ...shared,
-      recordTypes: ref.types.get(),
-      recordSchema: config.recordSchema,
-      rootContext,
-    });
-    http.mountMetadataReadRoutes(router, {
-      ...shared,
-      recordTypes: ref.types.get(),
-      workflowSteps: ref.workflows.get(),
-      workspaceTypes: ref.workspaceTypes.get(),
-      dashboardTypes: ref.dashboards.get(),
-      dashboardConfig: ref.dashboardConfig.get(),
-      translations: ref.entries.get(),
-    });
+    const referenceInputs = portalReferenceHttpInputs(this.portal);
+    http.mountRecordTypeRoutes(router, { ...shared, ...referenceInputs.recordTypes });
+    http.mountMetadataReadRoutes(router, { ...shared, ...referenceInputs.metadata });
     http.mountPageRoutes(router, pages);
-    http.mountConfigurationReadRoutes(router, {
-      ...shared,
-      appConfigs: ref.appConfigs.get(),
-      translations: ref.entries.get(),
-      forms: ref.forms.get(),
-      loadRecord,
-    });
+    http.mountConfigurationReadRoutes(router, { ...shared, ...referenceInputs.configuration });
     http.mountConfigurationWriteRoutes(router, {
       ...shared,
       appConfigs: ref.appConfigs.get(),
@@ -388,39 +370,7 @@ export class PortalHttp implements ApplicationModule {
       dashboardConfig: ref.dashboardConfig.get(),
       reloadTranslations: id => ref.translation.get().reloadResources(id),
     });
-    http.mountFormDeliveryRoutes(router, {
-      ...shared,
-      contextVariables,
-      delivery: {
-        forms: ref.forms.get(),
-        recordTypes: ref.types.get(),
-        workflowSteps: ref.workflows.get(),
-        prehydrate: new Prehydrate.FormPayloadPrehydrateService({
-          config: { form: config.form },
-          vocabulary: ref.vocabulary.get(),
-          log,
-        }),
-        loadRecord,
-        canView: async (brand, user, record) =>
-          !!user &&
-          data.records.get().hasViewAccess(
-            brand,
-            user,
-            user.roles.map(role => ({ ...role })),
-            record
-          ),
-        canEdit: async (brand, user, record) =>
-          !!user &&
-          data.records.get().hasEditAccess(
-            brand,
-            user,
-            user.roles.map(role => ({ ...role })),
-            record
-          ),
-        fingerprint: (...args) => data.records.get().getRecordFormFingerprint(...args),
-        reusableFormDefinitions: config.reusableFormDefinitions,
-      },
-    });
+    http.mountFormDeliveryRoutes(router, { ...shared, ...referenceInputs.form });
     const recordAudit = new RecordAuditViews({
       records: data.records.get(),
       forms: ref.forms.get(),

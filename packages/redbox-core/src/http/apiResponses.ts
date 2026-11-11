@@ -1,4 +1,5 @@
 import type { ApiRequestInput } from '../api-routes/types';
+import { requestStrings } from './requestValues';
 
 export const apiNoCacheHeaders = { 'Cache-Control': 'no-cache, private', Pragma: 'no-cache', Expires: '0' };
 
@@ -16,4 +17,35 @@ export function validationApiVersion(input: ApiRequestInput): '1.0' | '2.0' {
   return (text(input.headers?.['x-redbox-api-version']) || text(input.query?.apiVersion) || '1.0') === '2.0'
     ? '2.0'
     : '1.0';
+}
+
+// Present invalid values remain unknown versions, preserving the legacy v1
+// fallback on conflicts. Never invoke a request object's conversion methods.
+type VersionRequest = { readonly query?: unknown; readonly headers?: ApiRequestInput['headers'] };
+export function apiVersionInput(input: VersionRequest, validation = false): ApiRequestInput {
+  const extract = (value: unknown) => requestStrings(value) ?? (validation || value == null ? undefined : 'invalid');
+  const query = input.query as Record<string, unknown> | undefined;
+  return {
+    headers: {
+      'x-redbox-api-version': extract(
+        input.headers?.['x-redbox-api-version'] ?? input.headers?.['X-ReDBox-Api-Version']
+      ),
+    },
+    query: { apiVersion: extract(query?.apiVersion), apiversion: extract(query?.apiversion) },
+  };
+}
+/** Also safe while constructing a fallback error, even for throwing accessors. */
+export function safeApiVersion(input: VersionRequest): '1.0' | '2.0' {
+  try {
+    return apiVersion(apiVersionInput(input));
+  } catch {
+    return '1.0';
+  }
+}
+export function safeValidationApiVersion(input: VersionRequest): '1.0' | '2.0' {
+  try {
+    return validationApiVersion(apiVersionInput(input, true));
+  } catch {
+    return '1.0';
+  }
 }

@@ -33,3 +33,6 @@ export {
 } from './controllers/webservice/DatastreamController';
 export { ProgressController, progressController } from './controllers/ProgressController';
 export type { ProgressGrantInput } from './actions/progressGrant';
+
+export * from './controllers/ReferenceControllers';
+export { referenceReadDeclarations } from './referenceRoutes';

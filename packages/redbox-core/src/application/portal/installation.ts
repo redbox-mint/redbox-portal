@@ -15,6 +15,7 @@ import { updateMetaRoute } from '../../api-routes/groups/records';
 import type { ExtensionFactory } from '../../extensions';
 import type { PortalApplicationContext } from './application';
 import { portalHttpPlan, portalHttpSettings } from './httpPlan';
+import { portalReferenceControllers } from './referenceHttpPlan';
 import { coreFallbackReservedPrefixes } from '../../http/fastify/registry';
 import { z } from 'zod';
 import type {
@@ -63,6 +64,7 @@ export async function resolvePortalInstallation(
           create: () => raw!,
         }
       : undefined;
+  const reference = portalReferenceControllers(context, new Set(input.declarations.map(route => route.controller)));
   const recordFactory = upload ? datastreamController : recordController;
   const coreRoutes = apiRouteRegistrations({
     declarations: [...input.declarations, ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : [])],
@@ -117,6 +119,7 @@ export async function resolvePortalInstallation(
           }),
         ]
       : []),
+    ...reference.bindings,
     ...(input.bindings?.(context) ?? []),
   ]);
   const selected = new Set(coreRoutes.map(route => route.declaration.name));
@@ -144,7 +147,7 @@ export async function resolvePortalInstallation(
         declaration: {
           apiVersion: 2,
           modules: [...context.plans.map(plan => plan.declaration), ...(rawDeclaration ? [rawDeclaration] : [])],
-          controllers: [recordFactory, ...(input.progress ? [progressController] : [])],
+          controllers: [recordFactory, ...reference.controllers, ...(input.progress ? [progressController] : [])],
         },
       },
       ...installed.providers,

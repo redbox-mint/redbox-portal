@@ -216,6 +216,7 @@ function collectInventory() {
     http + 'policies.ts',
     prefix + 'application/portal/httpPolicies.ts',
     prefix + 'application/portal/http.ts',
+    prefix + 'application/portal/host.ts',
     prefix + 'extensions/contract.ts',
     prefix + 'extensions/resolution.ts',
     prefix + 'extensions/composition.ts',
@@ -255,6 +256,24 @@ function collectInventory() {
     }
   }
   for (const file of trackedSources) if (file.startsWith(prefix + 'api-routes/schemas/')) inputs.add(file);
+  const referenceDeclarations = fromSource(prefix + 'http/referenceRoutes.ts').referenceReadDeclarations;
+  const referenceFactories = Object.values(fromSource(prefix + 'http/controllers/ReferenceControllers.ts')).filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
+  for (const file of [
+    'http/referenceRoutes.ts',
+    'http/controllers/ReferenceControllers.ts',
+    'http/actions/reference.ts',
+    'http/actions/configurationReads.ts',
+    'http/actions/metadataReads.ts',
+    'http/actions/recordTypeReads.ts',
+    'http/actions/formDelivery.ts',
+    'http/fastify/referenceReads.ts',
+    'http/express/referenceReads.ts',
+    'application/portal/referenceHttpPlan.ts',
+    'application/portal/installation.ts',
+  ])
+    inputs.add(prefix + file);
   const configuration = portalHttpPolicies();
   const routes = collections.flatMap(collection => {
     assert(owners[collection.export], 'Unassigned source collection: ' + collection.export);
@@ -270,6 +289,25 @@ function collectInventory() {
         `${reference.file}#${reference.export}${referenceIndex === undefined ? '' : `[${referenceIndex}]`}`
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
+      let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-023') {
+        const bindings = referenceDeclarations.filter(
+          item => identity(item.method, item.path) === identity(route.method, route.path)
+        );
+        assert.equal(bindings.length, 1, 'Exactly one FM-023 declaration: ' + route.path);
+        const factories = referenceFactories.filter(
+          factory => factory.name === route.controller && factory.actions.includes(route.action)
+        );
+        assert.equal(factories.length, 1, 'Exactly one FM-023 factory/action: ' + route.path);
+        nativeBinding = {
+          count: bindings.length,
+          factory: factories[0].name,
+          action: route.action,
+          file: prefix + 'http/controllers/ReferenceControllers.ts',
+          productionBinding: prefix + 'application/portal/referenceHttpPlan.ts',
+          differential: test('http/fastify/ReferenceDifferentialMongo.test.ts'),
+        };
+      }
       return {
         name: identity(route.method, route.path),
         kind: api.includes(route) ? 'api' : collection.export === 'pageRoutes' ? 'page' : 'browser-or-integration',
@@ -282,7 +320,8 @@ function collectInventory() {
         deploymentPath: '${rootContext}' + runtimePath(route.path),
         controller: route.controller ?? null,
         action: route.action ?? null,
-        selectedFactory: null,
+        selectedFactory: nativeBinding?.factory ?? null,
+        ...(nativeBinding ? { nativeBinding } : {}),
         implementation: {
           file:
             route.controller === 'webservice/RecordSchemaController'
@@ -290,7 +329,9 @@ function collectInventory() {
               : collection.export === 'recordTypeApiRoutes'
                 ? http + 'recordTypes.ts'
                 : collection.file,
-          kind: 'explicit Express adapter; no controller factory exists at this revision',
+          kind: nativeBinding
+            ? 'shared transport-neutral named action; Express and native production adapters'
+            : 'explicit Express adapter; no controller factory exists at this revision',
         },
         access: {
           declaredPolicy: route.policy ?? null,

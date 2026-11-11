@@ -200,7 +200,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P3 — API controller families
 
-- [ ] **FM-023 — Migrate configuration/reference reads.**
+- [x] **FM-023 — Migrate configuration/reference reads.**
   - Dependencies: G2.
   - Work: extract named actions for configuration, record types and other reference
     reads using selected domain inputs and declaration-derived bindings.

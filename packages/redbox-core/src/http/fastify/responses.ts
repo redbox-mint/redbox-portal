@@ -1,22 +1,37 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { ApiValidationIssue } from '../../api-routes/validation';
-import { apiNoCacheHeaders, apiVersion, validationApiVersion } from '../apiResponses';
+import { apiNoCacheHeaders, safeApiVersion, safeValidationApiVersion } from '../apiResponses';
 import type { FastifyPreparation } from './preparation';
 import accepts from 'accepts';
-import { requestStrings, requestText } from '../requestValues';
+import { requestText } from '../requestValues';
 import { safeHttpErrorStatus } from './errorBoundary';
 export { safeHttpErrorStatus, nativeClientErrors } from './errorBoundary';
 
-// Present invalid values remain unknown versions, preserving Express's v1
-// fallback on header/query conflicts without invoking object coercion.
-const versionValue = (value: unknown) => requestStrings(value) ?? (value == null ? undefined : 'invalid');
-const versionInput = (request: FastifyRequest, extract = versionValue) => ({
-  headers: { 'x-redbox-api-version': extract(request.headers['x-redbox-api-version']) },
-  query: {
-    apiVersion: extract((request.query as Record<string, unknown> | undefined)?.apiVersion),
-    apiversion: extract((request.query as Record<string, unknown> | undefined)?.apiversion),
-  },
-});
+const fresh: (request: Record<string, unknown>, response: Record<string, unknown>) => boolean = require('fresh');
+
+/** JSON is serialized by the caller's action guard before freshness/HEAD handling. */
+export function sendSerializedJson(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  result: {
+    readonly status: number;
+    readonly headers: Readonly<Record<string, string>>;
+    readonly json: string | undefined;
+  }
+) {
+  reply.headers(result.headers).code(result.status);
+  if (
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    ((result.status >= 200 && result.status < 300) || result.status === 304) &&
+    fresh(request.headers, reply.getHeaders())
+  ) {
+    reply.removeHeader('Content-Type').removeHeader('Content-Length').removeHeader('Transfer-Encoding');
+    return reply.code(304).send();
+  }
+  return reply
+    .type('application/json; charset=utf-8')
+    .send(result.json === undefined ? undefined : Buffer.from(result.json));
+}
 
 export const requestAccepts = (request: FastifyRequest) =>
   accepts({ headers: { accept: requestText(request.headers.accept) } } as Parameters<typeof accepts>[0]);
@@ -48,7 +63,7 @@ export function sendApiData(request: FastifyRequest, reply: FastifyReply, value:
   return reply
     .headers(apiNoCacheHeaders)
     .code(status)
-    .send(apiVersion(versionInput(request)) === '2.0' ? { data: value, meta: {} } : value);
+    .send(safeApiVersion(request) === '2.0' ? { data: value, meta: {} } : value);
 }
 
 /** Callers supply only their own public diagnostics, never a caught provider error. */
@@ -57,7 +72,7 @@ export function sendApiErrors(
   reply: FastifyReply,
   status: number,
   errors: readonly { title?: string; detail?: string; code?: string }[],
-  version = apiVersion(versionInput(request))
+  version = safeApiVersion(request)
 ) {
   const only = errors[0] ?? {};
   return reply
@@ -85,7 +100,7 @@ export function sendApiValidationErrors(
     reply,
     400,
     issues.map(issue => ({ title: issue.path, detail: issue.message })),
-    validationApiVersion(versionInput(request, requestStrings))
+    safeValidationApiVersion(request)
   );
 }
 
