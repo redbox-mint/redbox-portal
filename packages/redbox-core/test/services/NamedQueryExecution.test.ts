@@ -6,11 +6,15 @@ import { metadataTypeName } from '../../src/record-graphql/renderer';
 import { namedQueryExecutionResultSchema } from '../../src/api-routes/schemas/named-query';
 import { Services } from '../../src/services/NamedQueryService';
 import { Services as EditorServices } from '../../src/services/NamedQueryEditorService';
+import { Services as GraphqlServices, RecordGraphqlDisabledError } from '../../src/services/RecordGraphqlService';
+import { recordGraphql } from '../../src/config/recordGraphql.config';
+import { Controllers } from '../../src/controllers/webservice/NamedQueryController';
 import {
   executeGraphqlNamedQuery,
   GraphqlNamedQueryExecutionError,
 } from '../../src/services/named-query/graphql-execution';
 import { NamedQueryExecutionBudget } from '../../src/utilities/NamedQueryPreview';
+import { GraphqlNamedQueryValidationError } from '../../src/services/named-query/graphql-validation';
 import type { ReadCaller } from '../../src/record-graphql/read-record';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
@@ -47,8 +51,10 @@ const definition = (): GraphqlNamedQueryDefinition => ({
 const validData = (items: unknown[] = [{ id: 'a', label: 'A' }]) => ({
   data: { matches: { items, more: false, cursor: null } },
 });
-const code = (expected: string) => (error: unknown) =>
-  error instanceof GraphqlNamedQueryExecutionError && error.code === expected;
+const code = (expected: string, status?: number) => (error: unknown) =>
+  error instanceof GraphqlNamedQueryExecutionError &&
+  error.code === expected &&
+  (status === undefined || error.status === status);
 
 describe('GraphQL named query execution boundary', () => {
   let previous: Record<string, unknown>;
@@ -56,7 +62,13 @@ describe('GraphQL named query execution boundary', () => {
   let engine: { getReadSchema: sinon.SinonStub; execute: sinon.SinonStub };
   beforeEach(() => {
     previous = Object.fromEntries(
-      ['RecordGraphqlService', 'NamedQueryService'].map(k => [k, Reflect.get(globalThis, k)])
+      [
+        'RecordGraphqlService',
+        'NamedQueryService',
+        'NamedQueryEditorService',
+        'BrandingService',
+        'TranslationService',
+      ].map(k => [k, Reflect.get(globalThis, k)])
     );
     setupServiceTestGlobals(createMockSails());
     h = gridHarness(Array.from({ length: 26 }, (_, i) => `a-${i}`));
@@ -279,9 +291,82 @@ describe('GraphQL named query execution boundary', () => {
     assert.equal(engine.execute.called, false);
   });
   it('conceals unexpected validator/engine exceptions from ordinary consumers', async () => {
-    engine.execute.rejects(new Error('PRIVATE engine detail'));
-    await assert.rejects(run(), error => code('GRAPHQL_EXECUTION_FAILED')(error) && !String(error).includes('PRIVATE'));
+    engine.execute.rejects(new Error('PRIVATE GRAPHQL_DISABLED engine detail'));
+    await assert.rejects(
+      run(),
+      error => code('GRAPHQL_EXECUTION_FAILED', 422)(error) && !String(error).includes('PRIVATE')
+    );
   });
+  it('returns unavailable when the real record read service is disabled before schema inspection', async () => {
+    const disabled = new GraphqlServices.RecordGraphql({ getConfig: () => ({ ...recordGraphql, enabled: false }) });
+    const execute = sinon.spy(disabled, 'execute');
+    Reflect.set(globalThis, 'RecordGraphqlService', disabled);
+    await assert.rejects(run(), code('GRAPHQL_DISABLED', 503));
+    assert.equal(execute.called, false);
+  });
+  it('returns unavailable for a coded disabled error after validation without reflecting its message', async () => {
+    const disabled = new RecordGraphqlDisabledError();
+    disabled.message = 'PRIVATE engine detail';
+    engine.execute.rejects(disabled);
+    await assert.rejects(run(), error => code('GRAPHQL_DISABLED', 503)(error) && !String(error).includes('PRIVATE'));
+    assert.equal(engine.execute.calledOnce, true);
+  });
+  it('preserves ordinary schema-unavailable validation diagnostics', async () => {
+    engine.getReadSchema.rejects(new Error('PRIVATE GRAPHQL_DISABLED schema detail'));
+    await assert.rejects(
+      run(),
+      error =>
+        error instanceof GraphqlNamedQueryValidationError &&
+        error.diagnostics[0].code === 'GRAPHQL_SCHEMA_UNAVAILABLE' &&
+        !JSON.stringify(error).includes('PRIVATE')
+    );
+    assert.equal(engine.execute.called, false);
+  });
+  for (const stage of ['disabled schema', 'disabled execution', 'unexpected execution'] as const)
+    it(`preserves the safe ${stage} status/code through both preview response versions`, async () => {
+      if (stage === 'disabled schema')
+        Reflect.set(
+          globalThis,
+          'RecordGraphqlService',
+          new GraphqlServices.RecordGraphql({ getConfig: () => ({ ...recordGraphql, enabled: false }) })
+        );
+      else {
+        const error = stage === 'disabled execution' ? new RecordGraphqlDisabledError() : new Error();
+        error.message = 'PRIVATE engine detail';
+        engine.execute.rejects(error);
+      }
+      Object.assign(globalThis, {
+        BrandingService: { getBrand: () => gridCaller.brand },
+        NamedQueryEditorService: new EditorServices.NamedQueryEditor(),
+        TranslationService: { t: (value: string) => value },
+      });
+      const controller = new Controllers.NamedQuery();
+      const status = stage === 'unexpected execution' ? 422 : 503;
+      const expected = stage === 'unexpected execution' ? 'GRAPHQL_EXECUTION_FAILED' : 'GRAPHQL_DISABLED';
+      for (const version of ['1.0', '2.0']) {
+        const session: Partial<Sails.Req['session']> = { branding: gridCaller.brand.name, portal: gridCaller.portal };
+        const req: Partial<Sails.Req> = {
+          method: 'POST',
+          session: session as Sails.Req['session'],
+          user: { ...gridCaller.user, roles: gridCaller.roles },
+          body: { definition: definition() },
+          headers: { 'x-redbox-api-version': version },
+          param: () => gridCaller.portal,
+        };
+        const res = {
+          status: sinon.stub().returnsThis(),
+          set: sinon.stub().returnsThis(),
+          json: sinon.stub().returnsThis(),
+        };
+        const response: Partial<Sails.Res> = res;
+        await controller.previewDraft(req as Sails.Req, response as Sails.Res);
+        assert.equal(res.status.lastCall.args[0], status);
+        const body = res.json.lastCall.args[0];
+        assert.equal(version === '2.0' ? body.errors[0].code : body.message, expected);
+        assert.ok(!JSON.stringify(body).includes('PRIVATE'));
+        assert.equal(res.set.lastCall.args[0]['Cache-Control'], 'no-store');
+      }
+    });
   it('previews through the same first-page adapter and real caller context', async () => {
     const editor = new EditorServices.NamedQueryEditor();
     const caller: FormRecordAccessContext = {

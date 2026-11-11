@@ -186,6 +186,12 @@ export async function executeGraphqlNamedQuery(
     budget.remaining();
     return result;
   } catch (error) {
+    if (
+      (error instanceof Error && 'code' in error && error.code === 'GRAPHQL_DISABLED') ||
+      (error instanceof GraphqlNamedQueryValidationError &&
+        error.diagnostics.some(diagnostic => diagnostic.code === 'GRAPHQL_DISABLED'))
+    )
+      throw new GraphqlNamedQueryExecutionError('GRAPHQL_DISABLED', 503);
     if (error instanceof NamedQueryAssistanceError && error.code === 'PREVIEW_TIMEOUT')
       throw new GraphqlNamedQueryExecutionError('QUERY_TIMEOUT', 503);
     if (
