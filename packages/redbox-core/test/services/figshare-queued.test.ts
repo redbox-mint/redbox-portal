@@ -123,6 +123,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     const agenda: Agenda = await Reflect.get(queue, 'createAgendaForBackend').call(queue, 'mongodb', { collection: 'agendaJobs' }, db);
     await agenda.ready;
     Reflect.set(queue, 'agendas', { mongodb: agenda });
+    Reflect.set(queue, 'queueInitialized', true);
     Reflect.set(queue, 'jobBackendByName', new Map([['Figshare-SyncRecord', 'mongodb']]));
     assignGlobals({ AgendaQueueService: queue.exports() });
     agenda.define('Figshare-SyncRecord', delivery => runFigshareWorker(service, delivery, store));
