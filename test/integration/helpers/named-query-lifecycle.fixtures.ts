@@ -4,7 +4,7 @@ import type { GraphqlNamedQueryDefinition, DatabaseNamedQueryDefinition } from '
 export const lifecycleOid = 'named-query-cold-lifecycle-record';
 export const lifecycleTitle = 'Persisted cold bootstrap title';
 
-export function lifecycleDefinitions() {
+export function lifecycleDefinitions(oid = lifecycleOid) {
   // The fragment must exist BEFORE the import. An envelope-only query could
   // validate against an empty catalogue and conceal an incorrect bootstrap order.
   const suffix = createHash('sha256')
@@ -43,7 +43,7 @@ export function lifecycleDefinitions() {
     description: 'Imported legacy definition',
     collectionName: 'record',
     brandIdFieldPath: 'metaMetadata.brandId',
-    mongoQuery: { redboxOid: lifecycleOid },
+    mongoQuery: { redboxOid: oid },
     queryParams: {},
     resultObjectMapping: {},
   };

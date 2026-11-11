@@ -6,15 +6,28 @@ import supertest from 'supertest';
 import axios from 'axios';
 import { generateAllShims, recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
 import type { NamedQueryAttributes } from '@researchdatabox/redbox-core/dist/waterline-models/NamedQuery';
-import { lifecycleDefinitions, lifecycleOid, lifecycleTitle } from './named-query-lifecycle.fixtures';
+import {
+  lifecycleDefinitions,
+  lifecycleOid as lifecycleOidPrefix,
+  lifecycleTitle,
+} from './named-query-lifecycle.fixtures';
 
 async function main() {
   const [phase, root] = process.argv.slice(2);
   assert.ok(phase === 'cold' || phase === 'restart');
   const mongoUrl = process.env.NAMED_QUERY_LIFECYCLE_MONGO_URL;
   const storageUrl = process.env.NAMED_QUERY_LIFECYCLE_STORAGE_URL;
+  const lifecycleOid = process.env.NAMED_QUERY_LIFECYCLE_OID;
   assert.ok(mongoUrl && new URL(mongoUrl).pathname.startsWith('/named_query_lifecycle_'));
   assert.equal(new URL(storageUrl).pathname, `${new URL(mongoUrl).pathname}_storage`);
+  assert.equal(
+    lifecycleOid,
+    `${lifecycleOidPrefix}-${new URL(mongoUrl).pathname.slice('/named_query_lifecycle_'.length)}`
+  );
+  console.log(
+    'NAMED_QUERY_LIFECYCLE_RUNTIME',
+    JSON.stringify({ node: process.version, execArgv: process.execArgv, uid: process.getuid?.(), root, lifecycleOid })
+  );
   const { recordContractContributorState } = await generateAllShims(process.cwd());
   // Run the generated bootstrap unchanged, including migrations and coreBootstrap.
   // Its data-path property is configuration, not a replacement bootstrap callback.
@@ -40,9 +53,10 @@ async function main() {
       error => (error ? reject(error) : resolve())
     )
   );
+  let failed = false;
   try {
     const brand = BrandingService.getDefault();
-    const definitions = lifecycleDefinitions();
+    const definitions = lifecycleDefinitions(lifecycleOid);
     const storedRows = () =>
       NamedQuery.find({ branding: brand.id, name: ['coldGraphql', 'coldLegacy', 'aInvalid'] }) as Promise<
         NamedQueryAttributes[]
@@ -145,8 +159,16 @@ async function main() {
       assert.equal(row.description, 'Saved edit survives process restart');
     }
     console.log(`NAMED_QUERY_LIFECYCLE_${phase.toUpperCase()}_PASS`);
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    await new Promise<void>((resolve, reject) => sails.lower(error => (error ? reject(error) : resolve())));
+    try {
+      await new Promise<void>((resolve, reject) => sails.lower(error => (error ? reject(error) : resolve())));
+    } catch (error) {
+      if (!failed) throw error;
+      console.error('Lifecycle shutdown also failed; preserving the original failure:', error);
+    }
   }
 }
 
