@@ -2,7 +2,7 @@ import { APP_BASE_HREF } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Inject, Injectable } from '@angular/core';
 import { ConfigService, HttpClientService, UtilityService } from '@researchdatabox/portal-ng-common';
-import { ExportJobDto, ExportJobRequest } from '@researchdatabox/sails-ng-common';
+import { ExportJobDto, ExportJobRequest } from '@researchdatabox/sails-ng-common/runtime';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()

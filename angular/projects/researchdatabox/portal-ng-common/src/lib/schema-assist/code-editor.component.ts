@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { AutocompleteComponent } from './autocomplete.component';
 import type { CompletionSource } from './template-completion';
 
@@ -12,6 +12,7 @@ const LINE_HEIGHT_PX = 20;
  * control, so keyboard and assistive-technology behaviour is the browser's.
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   selector: 'rb-template-editor, email-templates-code-editor',
   standalone: true,
   imports: [AutocompleteComponent],

@@ -174,7 +174,9 @@ describe('Expression runtime context integration', () => {
         urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/',
         callable: async (_keyString, key, context) => {
           const property = String(key[key.length - 1]);
-          evaluations.push(property);
+          // UI-attribute notifications may also evaluate an unconditional rule.
+          // This assertion tracks only initialization by the form-ready event.
+          if (context.event?.type === 'form.definition.ready') evaluations.push(property);
           return jsonataCompile(property === 'condition' ? scenario.condition! : 'true').evaluate(context);
         },
       }] });

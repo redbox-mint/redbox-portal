@@ -18,7 +18,7 @@ export class AdminAutoFilterDirective implements OnDestroy {
 
   @HostListener('change', ['$event.target'])
   onChange(element: EventTarget | null): void {
-    if (!(element instanceof HTMLInputElement)) return;
+    if (!(element instanceof HTMLElement)) return;
     const target = element;
     // Datepickers emit ngModelChange, including calendar selections, in the template.
     if (!this.isText(target) && !target.hasAttribute('bsDatepicker')) this.apply();
@@ -45,8 +45,8 @@ export class AdminAutoFilterDirective implements OnDestroy {
     if (target.closest('button')) this.cancel();
   }
 
-  private isText(target: HTMLInputElement): boolean {
-    return target.tagName === 'INPUT' && ['text', 'search', 'email'].includes(target.type)
+  private isText(target: HTMLElement): boolean {
+    return target instanceof HTMLInputElement && ['text', 'search', 'email'].includes(target.type)
       && !target.hasAttribute('bsDatepicker');
   }
 

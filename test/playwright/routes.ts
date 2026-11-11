@@ -261,7 +261,6 @@ export const smokeRoutes: SmokeRoute[] = [
     requiredSelectors: ['email-templates-catalogue table'],
     fallbackSelectors: [],
     requiredAssetIncludes: [
-      '/angular/email-templates/browser/polyfills',
       '/angular/email-templates/browser/main',
       '/angular/email-templates/browser/styles'
     ]

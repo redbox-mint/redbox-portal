@@ -1,3 +1,4 @@
+import { rejects } from 'node:assert/strict';
 import { expect } from 'chai';
 import * as lodash from 'lodash';
 import * as sinon from 'sinon';
@@ -121,7 +122,7 @@ describe('SIEM capture and privacy regression boundaries', () => {
     expect(queued).to.have.length(1);
     expect(queued[0].event.brandId).to.equal('other-id');
     persist.resolves({ isSuccessful: () => false });
-    await records.storeRecordAudit({ attrs: { data: { action: 'updated' } } });
+    await rejects(records.storeRecordAudit({ attrs: { data: { action: 'updated' } } }), /unsuccessful record audit/);
     expect(queued).to.have.length(1);
   });
 
@@ -313,6 +314,7 @@ describe('SIEM capture and privacy regression boundaries', () => {
 
   it('emits successful login/logout only after session success and keeps their request brands', async () => {
     const users = new UserServices.Users();
+    sinon.stub(users, 'recordSuccessfulLogin').resolves();
     const user = { id: 'u1', username: 'someone', email: 'private@example.test' };
     const mockSails = createMockSails({
       config: {

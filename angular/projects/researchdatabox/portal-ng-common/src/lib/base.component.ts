@@ -183,6 +183,7 @@ export abstract class BaseComponent implements Initable {
               return result;
             }
 
+            this.requestRender();
             return Promise.resolve(result).finally(() => {
               this.requestRender();
             });

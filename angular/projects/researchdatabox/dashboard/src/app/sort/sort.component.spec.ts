@@ -36,7 +36,7 @@ describe('SortComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.fa-sort')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[aria-sort]')).toBeNull();
-    fixture.componentInstance.adminPresentation = true;
+    fixture.componentRef.setInput('adminPresentation', true);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('button .fa-sort')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('[aria-sort]')).toBeNull();

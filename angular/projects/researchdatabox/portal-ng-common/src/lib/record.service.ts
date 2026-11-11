@@ -43,8 +43,7 @@ import {
   isNumber as _isNumber,
 } from 'lodash-es';
 import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
-// Use the packaged modules directly: the CommonJS root eagerly loads the
-// server template/compiler stack even when an admin app only needs contracts.
+// Focused exports select browser ESM without loading the server compiler stack.
 import {
   emptyRecordSaveCompletion,
   isRecordSaveComplete,
@@ -56,7 +55,7 @@ import {
   type RecordSaveProblem,
   type RecordSaveResult,
   sanitizeRecordSaveIssue,
-} from '@researchdatabox/sails-ng-common/dist/src/record-save.model';
+} from '@researchdatabox/sails-ng-common/record-save.model';
 import {
   isRecordConcurrencyProblemCode,
   isRecordConcurrencyResolution,
@@ -68,7 +67,7 @@ import {
   type RecordConcurrencyMetadata,
   type RecordConcurrencyResolution,
   sanitizeRecordConcurrencyMetadata,
-} from '@researchdatabox/sails-ng-common/dist/src/record-concurrency.model';
+} from '@researchdatabox/sails-ng-common/record-concurrency.model';
 import {
   type RecordAttachment,
 } from '@researchdatabox/sails-ng-common/dist/src/config/component/pdf-list.outline';

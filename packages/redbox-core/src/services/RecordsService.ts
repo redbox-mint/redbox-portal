@@ -7307,8 +7307,8 @@ export namespace Services {
       if (typeof this.storageService?.createRecordAudit !== 'function') {
         throw new Error('Storage service does not support createRecordAudit');
       }
-      const response = await this.storageService.createRecordAudit(data);
-      if (response.success !== true) {
+      const response = await this.createRecordAudit(data);
+      if (!this.auditPersistenceSucceeded(response)) {
         const message = response.message || 'Storage service returned an unsuccessful record audit response';
         throw response.retryable === false ? new PermanentAuditWriteError(message) : new Error(message);
       }
@@ -7436,16 +7436,23 @@ export namespace Services {
 
     /** Drain audit jobs queued before direct persistence was introduced, preserving their original payloads. */
     public async storeRecordAudit(job: AnyRecord): Promise<void> {
-      const jobAttrs = job.attrs ?? {};
-      const data = _.get(jobAttrs, 'data') ?? jobAttrs;
+      const jobAttrs = job.attrs;
+      if (typeof jobAttrs !== 'object' || jobAttrs === null || Array.isArray(jobAttrs)) {
+        throw new Error('Invalid legacy record audit job');
+      }
+      const payload = ('data' in jobAttrs ? jobAttrs.data : undefined) ?? jobAttrs;
+      if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+        throw new Error('Invalid legacy record audit payload');
+      }
+      const data = payload as AnyRecord;
       try {
         sails.log.verbose(`${this.logHeader} Storing legacy record audit entry: `);
         sails.log.verbose(JSON.stringify(data));
         if (typeof this.storageService?.createRecordAudit !== 'function') {
           throw new Error('Storage service does not support createRecordAudit');
         }
-        const response = await this.storageService.createRecordAudit(data);
-        if (response.success !== true) {
+        const response = await this.createRecordAudit(data);
+        if (!this.auditPersistenceSucceeded(response)) {
           throw new Error(response.message || 'Storage service returned an unsuccessful record audit response');
         }
         sails.log.verbose(`${this.logHeader} Record audit stored successfully`);

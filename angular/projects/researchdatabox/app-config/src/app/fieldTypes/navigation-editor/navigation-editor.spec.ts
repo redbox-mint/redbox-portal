@@ -96,14 +96,16 @@ describe('Navigation row and detail controls', () => {
     const actions: string[] = [];
     fixture.componentInstance.action.subscribe(action => actions.push(action));
     fixture.componentInstance.run('remove');
-    fixture.detectChanges();
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(actions).toEqual([]);
     expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).not.toBeNull();
     fixture.nativeElement.querySelector('.modal-footer .btn-outline-secondary').click();
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(actions).toEqual([]);
     fixture.componentInstance.run('remove');
-    fixture.detectChanges();
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     fixture.nativeElement.querySelector('.rb-admin-danger-confirm').click();
     expect(actions).toEqual(['remove']);
   });
@@ -111,6 +113,7 @@ describe('Navigation row and detail controls', () => {
     const fixture = TestBed.createComponent(NavigationRowComponent);
     fixture.componentInstance.label = 'Records & reporting <img>';
     fixture.componentInstance.run('remove');
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.modal-title').textContent).toBe('Remove “Records & reporting <img>”?');
     expect(fixture.nativeElement.querySelector('.modal-title img')).toBeNull();

@@ -1,10 +1,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type Page, type Locator } from '@playwright/test';
-import { adminStorageStatePath } from './helpers';
+import { loginWithCsrf } from './fixtures/auth';
+import { installExternalAssetStubs } from './fixtures/stubs';
 import { MongoClient } from 'mongodb';
 import { Readable } from 'node:stream';
 import csvParser from 'csv-parser';
+
+test.beforeEach(async ({ page }) => {
+  await installExternalAssetStubs(page.context());
+  await loginWithCsrf(page);
+});
+
 
 const api = '/default/rdmp/api';
 const queryPage = '/default/rdmp/admin/named-query';
@@ -56,16 +63,13 @@ async function noHorizontalOverflow(page: Page) {
 }
 
 test.describe('schema-assisted editor release workflows', () => {
-  test.use({ storageState: adminStorageStatePath });
-  test.skip(
-    !process.env.SCHEMA_ASSIST_MONGO_URL,
-    'Requires an isolated disposable portal Mongo database for advisory hook fixtures.'
-  );
   let fixtureClient: MongoClient;
   let fixtureForms: any;
   let fixtureForm: any;
   let fixtureOriginal: any;
   test.beforeAll(async () => {
+    if (!process.env.SCHEMA_ASSIST_MONGO_URL)
+      throw new Error('SCHEMA_ASSIST_MONGO_URL must point to the disposable Playwright portal database.');
     fixtureClient = new MongoClient(process.env.SCHEMA_ASSIST_MONGO_URL!);
     await fixtureClient.connect();
     fixtureForms = fixtureClient.db('redbox-portal').collection('form');

@@ -251,7 +251,6 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
       items: [
         { id: 'users', labelKey: 'admin-nav-users', href: '/admin/users' },
         { id: 'roles', labelKey: 'admin-nav-roles', href: '/admin/roles' },
-        { id: 'siem', labelKey: 'menu-siem', href: '/admin/appconfig/edit/siem' },
         { id: 'domains', labelKey: 'admin-nav-domains', href: '/admin/appconfig/edit/authorizedDomainsEmails' },
       ]
     },
@@ -264,6 +263,7 @@ export const DEFAULT_ADMIN_SIDEBAR_CONFIG: AdminSidebarConfigData = {
         { id: 'menu', labelKey: 'admin-nav-menu', href: '/admin/appconfig/edit/menu' },
         { id: 'homepanels', labelKey: 'admin-nav-homepanels', href: '/admin/appconfig/edit/homePanels' },
         { id: 'adminsidebar', labelKey: 'admin-nav-adminsidebar', href: '/admin/appconfig/edit/adminSidebar' },
+        { id: 'siem', labelKey: 'menu-siemconfiguration', href: '/admin/siem' },
         { id: 'dashboard-config', labelKey: 'admin-nav-dashboard-config', href: '/admin/dashboard-config' },
         { id: 'branding', labelKey: 'admin-nav-branding', href: '/admin/branding' },
         { id: 'translation', labelKey: 'admin-nav-translation', href: '/admin/translation' },

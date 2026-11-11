@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -145,24 +146,24 @@ describe('BrandingAdminComponent typography experience', () => {
   it('uses roving tabs and supports wrapping, Home and End with focus following selection', async () => {
     await initWith(adminState());
     component.activeTab = 'colours';
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     const tabs: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]'));
     expect(tabs.length).toBe(4);
     expect(tabs.map(tab => tab.tabIndex)).toEqual([0, -1, -1, -1]);
     tabs[0].focus();
     tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(component.activeTab).toBe('history');
     expect(document.activeElement).toBe(tabs[3]);
     expect(tabs[3].getAttribute('aria-selected')).toBe('true');
     tabs[3].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(component.activeTab).toBe('colours');
     tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(component.activeTab).toBe('assets');
     tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(component.activeTab).toBe('history');
     expect(tabs.map(tab => tab.tabIndex)).toEqual([-1, -1, -1, 0]);
   });
@@ -290,7 +291,7 @@ describe('BrandingAdminComponent typography experience', () => {
     await Promise.resolve();
     expect(logo).not.toHaveBeenCalled();
     finish(adminState());
-    await uploadAction.calls.first().returnValue;
+    await upload.calls.first().returnValue;
     await fixture.whenStable();
     expect(inputs.every(input => !input.disabled)).toBeTrue();
   });
@@ -298,7 +299,7 @@ describe('BrandingAdminComponent typography experience', () => {
   it('keeps conflict controls disabled until a successful reload', async () => {
     await initWith(adminState());
     component.conflict = true;
-    fixture.changeDetectorRef.markForCheck();
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
     const input = fixture.nativeElement.querySelector('input[accept=".woff2,font/woff2"]') as HTMLInputElement;
     expect(input.disabled).toBeTrue();
@@ -321,16 +322,18 @@ describe('BrandingAdminComponent typography experience', () => {
   async function initWith(state: BrandingAdminState) {
     serviceStub.loadConfig = () => Promise.resolve(state);
     fixture.detectChanges();
+    await component.waitForInit();
     await fixture.whenStable();
     component.activeTab = 'typography';
     component.selectedGroup = 8;
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
     await fixture.whenStable();
   }
 
   async function settled() {
     // These assertions also follow direct test mutations of ordinary properties.
-    fixture.changeDetectorRef.markForCheck();
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
     await fixture.whenStable();
   }
 
@@ -364,9 +367,13 @@ describe('BrandingAdminComponent typography experience', () => {
     await settled();
 
     component.selectedGroup = 6;
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     const picker: HTMLInputElement = fixture.nativeElement.querySelector('#admin-sidebar-text-color');
     const text: HTMLInputElement = picker.parentElement!.querySelector('input[type="text"]')!;
+    const sidebarInputs = () => {
+      const picker = fixture.nativeElement.querySelector('#admin-sidebar-text-color') as HTMLInputElement;
+      return { picker, text: picker.parentElement!.querySelector('input[type="text"]') as HTMLInputElement };
+    };
     expect(picker.value).toBe('#b1101a');
     expect(text.value).toBe('#b1101a');
 
@@ -375,9 +382,7 @@ describe('BrandingAdminComponent typography experience', () => {
       'admin-sidebar-text-color': '#abcdef',
     };
     const changePanelColour = async (value: string) => {
-      const input = fixture.nativeElement.querySelector('#panel-branding-background-color') as HTMLInputElement;
-      input.value = value;
-      input.dispatchEvent(new Event('input'));
+      component.updateVariable('panel-branding-background-color', { target: { value } } as unknown as Event);
       await settled();
     };
     expect(sidebarInputs().picker.value).toBe('#b1101a');
@@ -400,7 +405,7 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(sidebarInputs().text.value).toBe('#123456');
 
     component.updateVariable('panel-branding-background-color', { target: { value: '#654321' } } as unknown as Event);
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(picker.value).toBe('#654321');
     expect(text.value).toBe('#654321');
   });
@@ -653,13 +658,13 @@ describe('BrandingAdminComponent typography experience', () => {
     await initWith(adminState());
     component.activeTab = 'colours';
     component.selectedGroup = 1;
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('#site-branding-area-background-color')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#primary')).toBeNull();
     const input = fixture.nativeElement.querySelector('#logo-heading-text-color-hex') as HTMLInputElement;
     input.value = '#b1101a';
     input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(component.contrastChecks[0].ratio).toBe(1);
     expect(component.localChangeCount).toBe(1);
     expect(component.draftChangeCount).toBe(1);
@@ -678,7 +683,7 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.hasDraft).toBeTrue();
     const reset = spyOn(serviceStub, 'resetDraft').and.resolveTo(adminState());
     component.pendingAction = 'reset';
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alertdialog"]').textContent).toContain('admin-branding-reset-all-help');
     expect(reset).not.toHaveBeenCalled();
     await component.confirmAction();
@@ -722,7 +727,7 @@ describe('BrandingAdminComponent typography experience', () => {
   it('marks invalid hex and disables save, generate and publish', async () => {
     await initWith(adminState());
     component.draftConfig['primary'] = '#oops';
-    fixture.detectChanges();
+    fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(component.invalidColours).toBeTrue();
     expect(fixture.nativeElement.querySelector('.branding-publish').disabled).toBeTrue();
     expect(fixture.nativeElement.querySelector('.branding-generate').disabled).toBeTrue();

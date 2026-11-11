@@ -15,7 +15,7 @@ describe('Interactive sign-in lastLogin boundary', () => {
       recordSuccessfulLogin: sinon.stub().resolves(),
       addUserAuditEvent: sinon.stub().resolves(),
     };
-    (global as any).BrandingService = { getBrandNameFromReq: () => 'brand' };
+    (global as any).BrandingService = { getBrandNameFromReq: () => 'brand', getBrandFromReq: () => ({ id: 'brand-id' }), getPortalFromReq: () => 'rdmp' };
     (global as any).ConfigService = { getBrand: () => ({ oidc: {} }) };
   });
   afterEach(() => {

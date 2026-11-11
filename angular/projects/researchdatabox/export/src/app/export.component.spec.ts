@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { AdminCountPipe, AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CommonModule } from '@angular/common';
@@ -81,7 +82,7 @@ describe('ExportComponent', () => {
 
   it('confirms cancellation, shows the terminal badge, and enables deletion immediately', fakeAsync(() => {
     service.list.and.resolveTo([job({ status: 'running' })]);
-    initialize(); component.isAdmin = true; fixture.detectChanges();
+    initialize(); component.isAdmin = true; fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     service.cancel.and.resolveTo(job({ status: 'cancelled' }));
     const cancel = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find((b) => b.textContent?.trim() === 'export-cancel') as HTMLButtonElement;
     cancel.click(); fixture.detectChanges();

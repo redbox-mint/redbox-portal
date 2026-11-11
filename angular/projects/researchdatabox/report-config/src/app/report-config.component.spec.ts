@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { Pipe, PipeTransform } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick, flush } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
@@ -161,7 +162,7 @@ describe('Report configuration workspace', () => {
     await Promise.resolve();
     await Promise.resolve();
   };
-  const render = () => fixture.detectChanges();
+  const render = () => { fixture.detectChanges(); fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges(); };
   const query = (selector: string) => fixture.nativeElement.querySelector(selector) as HTMLElement;
   const text = () => fixture.nativeElement.textContent as string;
   const edit = async (value = report()) => {

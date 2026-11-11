@@ -1,4 +1,6 @@
-@if (isReady && dataSource) {
+@if (templatesUnavailable) {
+  <div class="alert alert-danger" role="alert">Unable to load record templates. Reload the page to retry.</div>
+} @else if (isReady && dataSource) {
   @if (dataSource.getCurrentPage(); as currentPage) {
     <div [class.table-responsive]="adminPresentation" [class.row]="!adminPresentation">
       @if (columnConfig && (!adminPresentation || currentPage.records.length)) {

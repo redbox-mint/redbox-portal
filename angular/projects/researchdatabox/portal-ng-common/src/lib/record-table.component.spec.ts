@@ -157,6 +157,7 @@ describe('RecordTableComponent', () => {
     expect(fixture.nativeElement.querySelector('.card-footer')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('pagination')).toBeNull();
     currentPage = { records: [], total: 0, pageNum: 1 };
+    fixture.componentRef.setInput('dataSource', { ...source });
     await settle();
     expect(fixture.nativeElement.querySelector('.card-footer')).toBeNull();
   });
@@ -172,7 +173,7 @@ describe('RecordTableComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('06/11/2026 09:36');
     expect(fixture.nativeElement.textContent).not.toContain(timestamp);
     format.calls.reset();
-    component.adminPresentation = false;
+    fixture.componentRef.setInput('adminPresentation', false);
     expect(component.getEntryValue(currentPage.records[0], component.columnConfig[0])).toBe(timestamp);
     expect(format).not.toHaveBeenCalled();
     component.adminPresentation = true;
@@ -318,7 +319,7 @@ describe('RecordTableComponent', () => {
     component.adminPresentation = true;
     await render();
     expect(fixture.nativeElement.querySelector('thead')).toBeNull();
-    component.adminPresentation = false;
+    fixture.componentRef.setInput('adminPresentation', false);
     await settle();
     expect(fixture.nativeElement.querySelector('thead')).toBeTruthy();
   });

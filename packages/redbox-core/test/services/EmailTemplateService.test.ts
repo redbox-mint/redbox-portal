@@ -17,6 +17,7 @@ import { Services as NotificationServices, EmailChannel } from '../../src/servic
 import { Controllers as EmailControllers } from '../../src/controllers/EmailController';
 import { EmailTemplateWLDef } from '../../src/waterline-models/EmailTemplate';
 import { coreBootstrap } from '../../src/bootstrap';
+import * as siemDeliveryStore from '../../src/services/siem/SiemDeliveryStore';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
 
 // This fake models the DB's conditional write and unique constraint. The real
@@ -906,7 +907,12 @@ describe('Email template overrides', () => {
         emailservice: { validateExposedConfig: sinon.stub().throws(new Error('bad allowlist')) },
         brandingservice: { bootstrap: brandingBootstrap },
       };
-      await assert.rejects(coreBootstrap(), /bad allowlist/);
+      const ensureStorage = sinon.stub(siemDeliveryStore, 'ensureSiemDeliveryStorage').resolves();
+      try {
+        await assert.rejects(coreBootstrap(), /bad allowlist/);
+      } finally {
+        ensureStorage.restore();
+      }
       assert.equal(mockSails.services.emailservice.validateExposedConfig.callCount, 1);
       assert.equal(brandingBootstrap.callCount, 0);
     });

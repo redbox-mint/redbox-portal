@@ -1,12 +1,12 @@
 import { By } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { LOCALE_ID, inject as inject_1, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
+import { ChangeDetectorRef, LOCALE_ID, inject as inject_1, provideAppInitializer, provideZonelessChangeDetection } from '@angular/core';
 import { fakeAsync, flushMicrotasks, tick, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
 import {
-  RedboxPortalCoreServicesModule, RedboxPortalRecordsModule, RedboxPortalRecordTableModule,
+  RedboxPortalAdminModule, RedboxPortalCoreServicesModule, RedboxPortalRecordsModule, RedboxPortalRecordTableModule,
   UtilityService,
   LoggerService,
   TranslationService,
@@ -106,7 +106,7 @@ describe('DeletedRecordsComponent', () => {
         BsDatepickerModule,
         PaginationModule,
         A11yModule,
-        RedboxPortalCoreModule
+        RedboxPortalAdminModule, RedboxPortalCoreServicesModule, RedboxPortalRecordTableModule, RedboxPortalRecordsModule
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -135,13 +135,13 @@ describe('DeletedRecordsComponent', () => {
 
   it('hides filters when empty and retains them for a filtered empty result', async () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit(); await settleView(fixture);
     const component = fixture.componentInstance;
     component.deletedRecordsResult = { ...component.deletedRecordsResult, records: [], total: 0 };
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('form.rb-admin-filter-bar')).toBeNull();
     component.filterParams.title = 'no match';
-    fixture.detectChanges();
+    fixture.debugElement.injector.get(ChangeDetectorRef).detectChanges();
     expect(fixture.nativeElement.querySelector('form.rb-admin-filter-bar')).not.toBeNull();
     fixture.destroy();
   });
@@ -149,7 +149,7 @@ describe('DeletedRecordsComponent', () => {
   it('selects only the current page, confirms the count, reports partial failures and clears selection after refresh', async () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const component = fixture.componentInstance;
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit(); await settleView(fixture);
     const bulk = recordService.bulkDeletedRecords = jasmine.createSpy().and.resolveTo({ results: [
       { oid: 'rdmp-record-1', status: 'succeeded', reason: 'completed' },
       { oid: 'dataRecord-record-2', status: 'failed', reason: 'record-changed' },
@@ -176,7 +176,7 @@ describe('DeletedRecordsComponent', () => {
   it('bulk restores selected rows and prevents repeated submissions while pending', async () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const component = fixture.componentInstance;
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit(); await settleView(fixture);
     let complete: any;
     const bulk = recordService.bulkDeletedRecords = jasmine.createSpy().and.returnValue(new Promise(resolve => complete = resolve));
     component.togglePage(true);
@@ -191,7 +191,7 @@ describe('DeletedRecordsComponent', () => {
   it('passes deletion period and actor to server filtering and clears page selection', async () => {
     const fixture = TestBed.createComponent(DeletedRecordsComponent);
     const component = fixture.componentInstance;
-    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    fixture.detectChanges(); await fixture.componentInstance.waitForInit(); await settleView(fixture);
     component.togglePage(true);
     const read = spyOn(recordService, 'getDeletedRecords').and.callThrough();
     component.filterParams.deletedWithin = '7'; component.filterParams.deletedBy = 'alice';
@@ -610,11 +610,11 @@ describe('DeletedRecordsComponent', () => {
     const headers: NodeListOf<HTMLButtonElement> = fixture.nativeElement.querySelectorAll('header-sort button');
     headers[0].click();
     await settleView(fixture);
-    expect(headers[0].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th')!.getAttribute('aria-sort')).toBe('ascending');
     headers[1].click();
     await settleView(fixture);
-    expect(headers[1].getAttribute('aria-sort')).toBe('ascending');
-    expect(headers[0].hasAttribute('aria-sort')).toBeFalse();
+    expect(headers[1].closest('th')!.getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th')!.hasAttribute('aria-sort')).toBeFalse();
   });
 
   it('should restore a deleted record', async function () {

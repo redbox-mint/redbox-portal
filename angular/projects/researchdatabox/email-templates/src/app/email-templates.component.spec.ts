@@ -35,6 +35,8 @@ describe('EmailTemplatesComponent', () => {
     await component.waitForInit();
     await fixture.whenStable();
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
   }
 
   it('shows the catalogue with the route brand by default', async () => {

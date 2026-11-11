@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, inject, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from '@researchdatabox/portal-ng-common';
 import { EmailTemplateAdminService } from './email-template-admin.service';
@@ -11,6 +11,7 @@ const SEARCH_DEBOUNCE_MS = 300;
  * records the admin can view, so this component never filters by itself.
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   selector: 'email-templates-record-picker',
   standalone: true,
   imports: [FormsModule, I18NextPipe],
@@ -18,6 +19,7 @@ const SEARCH_DEBOUNCE_MS = 300;
   styleUrls: ['./email-templates.shared.scss', './record-picker.component.scss'],
 })
 export class RecordPickerComponent implements OnDestroy {
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   @Input() selected: EmailPreviewRecord | null = null;
   @Input() loadingContext = false;
   @Output() choose = new EventEmitter<EmailPreviewRecord>();
@@ -114,6 +116,7 @@ export class RecordPickerComponent implements OnDestroy {
         this.failed = true;
       }
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (seq === this.requestSeq) {
         this.busy = false;
       }

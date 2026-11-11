@@ -22,7 +22,7 @@ import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined, set as _
 import { DateTime } from 'luxon';
 import { Initable } from './initable.interface';
 import { LoggerService } from './logger.service';
-import { guessType } from "@researchdatabox/sails-ng-common/dist/src/config/helpers";
+import { guessType } from "@researchdatabox/sails-ng-common/runtime";
 /**
  * Utility service...
  *

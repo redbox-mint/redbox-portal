@@ -17,8 +17,7 @@ import type {
   FormExpressionsConfigOutline,
   FormFieldComponentOrLayoutDefinition,
 } from '@researchdatabox/sails-ng-common';
-import { FormFieldComponentStatus } from '@researchdatabox/sails-ng-common/dist/src/status.model';
-import { toBoolean } from '@researchdatabox/sails-ng-common/dist/src/config/helpers';
+import { FormFieldComponentStatus, toBoolean } from '@researchdatabox/sails-ng-common/runtime';
 
 export interface FormFieldFocusRequestOptions {
   scroll?: boolean;

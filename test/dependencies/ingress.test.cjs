@@ -117,7 +117,7 @@ for (const [name, consumer] of [['portal', root], ['storage', storage]]) {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'redbox-upload-'));
     try {
       const skipper = consumer('skipper')();
-      const app = root('express')();
+      const app = core('express')();
       app.use(skipper);
       app.post('/', (req, res) => {
         req.file('attachment').upload({ dirname: directory }, async (uploadError, files) => {

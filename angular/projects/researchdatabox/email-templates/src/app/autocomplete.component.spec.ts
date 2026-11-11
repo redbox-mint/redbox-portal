@@ -1,5 +1,5 @@
 import { blockHelperScaffold } from './helper-usage';
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { AutocompleteComponent } from './autocomplete.component';
@@ -9,6 +9,7 @@ import { contextSchemaFixture } from './schema.fixture';
 import { CompletionSource } from './template-completion';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   standalone: true,
   imports: [AutocompleteComponent],
   template: `

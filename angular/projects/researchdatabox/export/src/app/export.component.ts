@@ -23,7 +23,7 @@ import { AdminDateService } from '@researchdatabox/portal-ng-common';
 import { DOCUMENT } from '@angular/common';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
-import { ExportJobDto, ExportJobRequest, ExportJobStatus } from '@researchdatabox/sails-ng-common';
+import { ExportJobDto, ExportJobRequest, ExportJobStatus } from '@researchdatabox/sails-ng-common/runtime';
 import { ExportService } from './export.service';
 
 interface ExportFormatOption {
