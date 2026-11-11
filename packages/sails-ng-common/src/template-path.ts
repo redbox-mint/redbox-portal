@@ -17,10 +17,26 @@ export interface PathSegment {
 /** Keeps literal dots inside brackets and ignores parent/array presentation markers. */
 export function pathSegments(path: string): PathSegment[] {
   const result: PathSegment[] = [];
-  const pattern = /\.\.\/|\[([^\]]*)\]|([^.[\]/]+)/g;
-  for (let match = pattern.exec(path); match; match = pattern.exec(path)) {
-    if (match[0] === '../' || match[0] === '[]') continue;
-    result.push({ name: match[1] ?? match[2], start: match.index, end: pattern.lastIndex });
+  // A failed bracket match must not rescan the remaining suffix at every '['.
+  const lastClose = path.lastIndexOf(']');
+  let index = 0;
+  while (index < path.length) {
+    if (path.startsWith('../', index)) {
+      index += 3;
+      continue;
+    }
+    const start = index;
+    const char = path[index++];
+    if (char === '[') {
+      if (start < lastClose) {
+        const close = path.indexOf(']', index);
+        if (close > index) result.push({ name: path.slice(index, close), start, end: close + 1 });
+        index = close + 1;
+      }
+    } else if (char !== '.' && char !== ']' && char !== '/') {
+      while (index < path.length && !'.[]/'.includes(path[index])) index++;
+      result.push({ name: path.slice(start, index), start, end: index });
+    }
   }
   return result;
 }
