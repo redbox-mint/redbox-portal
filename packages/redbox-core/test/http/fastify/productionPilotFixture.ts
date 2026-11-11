@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { MongoClient } from 'mongodb';
 import { nothingLogger } from '@researchdatabox/sails-ng-common';
 import { createPortalFastifyApplication, createPortalFastifyHost } from '../../../src/application/portal';
-import { getMetaRoute, updateMetaRoute } from '../../../src/api-routes/groups/records';
+import { getMetaRoute, updateMetaRoute, addDataStreamsRoute } from '../../../src/api-routes/groups/records';
 import { prepareSelectedPersistenceIndexes } from '../../../src/persistence/maintenance';
 import { selectedAgendaMongoOptions } from '../../../src/queues/indexes';
 import { initializeBrandingPersistence, getBrandingRepository } from '../../../src/persistence/branding/runtime';
@@ -16,7 +16,7 @@ import { HttpIdentity } from '../../../src/http/express/identity';
 import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import type { AuthBrandConfig } from '../../../src/authentication/Accounts';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
-import type { RecordControllerInput, BoundControllerFactory } from '../../../src/http';
+import type { RecordControllerInput, DatastreamControllerInput, BoundControllerFactory } from '../../../src/http';
 import type { ApplicationModule } from '../../../src/application';
 
 type Config = Awaited<ReturnType<typeof createPortalFastifyApplication>>['config'];
@@ -27,10 +27,12 @@ export interface ProductionPilotOptions {
   readonly auth?: Partial<Config['auth']>;
   readonly portals?: readonly string[];
   readonly providerConfiguration?: AuthBrandConfig;
-  readonly companion?: {
-    readonly route: string;
-    readonly server: { readonly path: string };
-    readonly enabled?: boolean;
+  readonly companion?: Omit<Partial<Config['companion']>, 'server'> & {
+    readonly server?: Partial<Config['companion']['server']>;
+  };
+  readonly raw?: {
+    prepare(portal: Awaited<ReturnType<typeof createPortalFastifyApplication>>): Promise<void>;
+    beforeActivate(host: Awaited<ReturnType<typeof createPortalFastifyHost>>['host']): Promise<void>;
   };
 }
 export interface PilotExtension {
@@ -40,6 +42,7 @@ export interface PilotExtension {
   ): readonly BoundControllerFactory[];
   createPilotModule(): ApplicationModule;
   bindOrder(): readonly BoundControllerFactory[];
+  bindRaw(input: DatastreamControllerInput & { institution: { name(): string } }): readonly BoundControllerFactory[];
   pilotModuleInitialized(): boolean;
 }
 let counter = 0;
@@ -144,42 +147,72 @@ export async function productionPilotFixture(
         },
       },
       http: {
-        declarations: [getMetaRoute, updateMetaRoute],
-        progress: false,
+        declarations: [getMetaRoute, updateMetaRoute, ...(options.raw ? [addDataStreamsRoute] : [])],
+        progress: !!options.raw,
         policyConfiguration: options.policyConfiguration,
         portals: options.portals,
         bindings: context => [
           ...extension.bindOrder(),
-          ...extension.bindPilot(
-            {
-              get records() {
-                return context.data.records.get();
-              },
-              get storage() {
-                return context.data.storage();
-              },
-              get recordTypes() {
-                return context.data.reference.types.get();
-              },
-              get workflows() {
-                return context.data.reference.workflows.get();
-              },
-              get schemas() {
-                return context.data.reference.schema.get();
-              },
-              log: nothingLogger,
-              rootContext,
-              institution: { name: () => 'Installed institution' },
-            },
-            {
-              catalogue: {
-                publish: async actor => {
-                  await native.db().collection('institutionPublication').insertOne({ actor, title: 'Published' });
-                  return actor;
+          ...extension
+            .bindPilot(
+              {
+                get records() {
+                  return context.data.records.get();
                 },
+                get storage() {
+                  return context.data.storage();
+                },
+                get recordTypes() {
+                  return context.data.reference.types.get();
+                },
+                get workflows() {
+                  return context.data.reference.workflows.get();
+                },
+                get schemas() {
+                  return context.data.reference.schema.get();
+                },
+                log: nothingLogger,
+                rootContext,
+                institution: { name: () => 'Installed institution' },
               },
-            }
-          ),
+              {
+                catalogue: {
+                  publish: async actor => {
+                    await native.db().collection('institutionPublication').insertOne({ actor, title: 'Published' });
+                    return actor;
+                  },
+                },
+              }
+            )
+            .filter(binding => !options.raw || binding.factory.name !== 'webservice/RecordController'),
+          ...(options.raw
+            ? extension.bindRaw({
+                get records() {
+                  return context.data.records.get();
+                },
+                get storage() {
+                  return context.data.storage();
+                },
+                get recordTypes() {
+                  return context.data.reference.types.get();
+                },
+                get workflows() {
+                  return context.data.reference.workflows.get();
+                },
+                get schemas() {
+                  return context.data.reference.schema.get();
+                },
+                get datastream() {
+                  return context.data.datastream.get();
+                },
+                get multipart() {
+                  return portal!.installation.raw!.multipart;
+                },
+                log: nothingLogger,
+                rootContext,
+                institution: { name: () => 'Installed institution' },
+              })
+            : []),
         ],
       },
     });
@@ -248,12 +281,12 @@ export async function productionPilotFixture(
     });
     const identity = new HttpIdentity(identities);
     nativePlan = await createPortalFastifyHost(portal, {
-      prepare: undefined,
+      prepare: options.raw ? () => options.raw!.prepare(portal!) : undefined,
       authentication: () => ({
         identity,
         accounts: data.accounts.get(),
         config: providerConfiguration,
-        brand: () => Object.assign(new BrandingModel(), brand),
+        brand: () => data.reference.branding.get().getBrand('default'),
       }),
       login: {
         credentialFields: [
@@ -270,7 +303,9 @@ export async function productionPilotFixture(
           '/' +
           (options.auth?.defaultPortal ?? 'rdmp') +
           '/home',
-        audit: async () => {},
+        audit: async (action, actor) => {
+          await data.users.get().addUserAuditEvent({ ...actor }, action, { brandId: brand.id });
+        },
         loginFailure: async () => {},
       },
       policies: {
@@ -282,6 +317,7 @@ export async function productionPilotFixture(
     });
     assert.strictEqual(nativePlan.resolved, portal.installation);
     await nativePlan.host.initialize();
+    await options.raw?.beforeActivate(nativePlan.host);
     await nativePlan.host.activate();
     await data.storage().create(
       Object.assign(new BrandingModel(), brand),

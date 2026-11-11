@@ -11,6 +11,7 @@ module.exports = {
     'test/http/fastify/companionMongo.test.ts',
     'test/http/fastify/rawRouteReplacementsMongo.test.ts',
     'test/http/fastify/PilotMongo.test.ts',
+    'test/http/fastify/G2Mongo.test.ts',
     'test/http/fastify/MetadataDifferentialMongo.test.ts',
     'test/http/PagesMongo.test.ts',
     'test/http/NotificationHooksMongo.test.ts',

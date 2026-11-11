@@ -22,11 +22,13 @@ export function createPilotModule() {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   RecordController,
+  DatastreamController,
   recordController,
   defineController,
   bindControllerFactory,
   requestContext,
   type RecordControllerInput,
+  type DatastreamControllerInput,
   type BoundControllerFactory,
 } from '@researchdatabox/redbox-core/http';
 import type { PersistenceOwner } from '@researchdatabox/redbox-core/extensions/storage';
@@ -62,6 +64,33 @@ export const replacement = defineController({
   replaces: true,
   create: (input: ReplacementInput) => new InstitutionRecordController(input),
 });
+// The combined pilot replaces the complete selected controller. Inherited raw
+// actions remain explicit; replacing the metadata-only factory would omit them.
+export interface RawReplacementInput extends DatastreamControllerInput {
+  readonly institution: { name(): string };
+}
+class InstitutionDatastreamController extends DatastreamController {
+  constructor(private readonly institutionInput: RawReplacementInput) {
+    super(institutionInput);
+  }
+  override async getMeta(request: Parameters<RecordController['getMeta']>[0], reply: FastifyReply): Promise<unknown> {
+    reply.header('X-Institution', this.institutionInput.institution.name());
+    return super.getMeta(request, reply);
+  }
+}
+const rawReplacement = defineController({
+  name: recordController.name,
+  actions: ['getMeta', 'updateMeta', 'addDataStreams'],
+  requires: ['portal-raw-http'],
+  replaces: true,
+  create: (input: RawReplacementInput) => new InstitutionDatastreamController(input),
+});
+export const bindRaw = (input: RawReplacementInput): readonly BoundControllerFactory[] => [
+  bindControllerFactory(rawReplacement, input),
+];
+export function registerIntegrated(): RedboxExtensionV2 {
+  return { ...registerRedboxExtension(), controllers: [rawReplacement, catalogue, probe] };
+}
 export const catalogue = defineController({
   name: 'CatalogueController',
   requires: ['PilotModule'],

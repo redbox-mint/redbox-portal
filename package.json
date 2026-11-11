@@ -116,6 +116,7 @@
   "author": "QCIF Engineering",
   "license": "GPL2",
   "overrides": {
+    "engine.io": "6.6.11",
     "axios": "1.20.0",
     "@aws-sdk/xml-builder": "3.972.16",
     "@aws-sdk/s3-request-presigner": {

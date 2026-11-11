@@ -191,7 +191,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
     optional disabled mode works; remaining Express dependencies and process-
     restart limitation are documented with ownership proof.
 
-- [ ] **FM-022 — Freeze the proven pattern and close G2.**
+- [x] **FM-022 — Freeze the proven pattern and close G2.**
   - Dependencies: FM-019–FM-021.
   - Work: integrate security/extension/raw/Companion pilots, compile target public
     contracts and examples, record exact plugin pins and retry semantics.

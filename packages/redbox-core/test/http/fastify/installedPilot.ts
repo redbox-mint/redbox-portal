@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import ts from 'typescript';
 import { createHash } from 'node:crypto';
+import { assertResolvedPilotPins, pilotPins } from './pilotPins';
 
 /** Reject consumer-side type erasure independently of tsc, including suppression comments. */
 export function checkConsumerSource(source: string) {
@@ -21,7 +22,7 @@ export function checkConsumerSource(source: string) {
   };
   visit(file);
 }
-export async function installedPilot() {
+export async function installedPilot(options: { integrated?: boolean } = {}) {
   const directory = await mkdtemp(path.join(tmpdir(), 'fm019-consumer-'));
   const root = path.resolve(__dirname, '../../../../..');
   const run = (cmd: string, args: string[], cwd = directory) =>
@@ -53,7 +54,7 @@ export async function installedPilot() {
         private: true,
         version: '1.0.0',
         dependencies,
-        overrides: Object.fromEntries(Object.entries(dependencies)),
+        overrides: { ...dependencies, 'engine.io': pilotPins['engine.io'] },
       })
     );
     run('npm', ['install', '--ignore-scripts', '--prefer-offline', '--no-audit', '--no-fund', '--package-lock=false']);
@@ -66,6 +67,16 @@ export async function installedPilot() {
       path.join(author, 'package.json'),
       await readFile(path.join(__dirname, 'fixtures/api2-pilot/package.json'))
     );
+    if (options.integrated) {
+      const manifest = JSON.parse(await readFile(path.join(author, 'package.json'), 'utf8'));
+      manifest.redbox.extension = './integrated.cjs';
+      manifest.files.push('integrated.cjs');
+      await writeFile(path.join(author, 'package.json'), JSON.stringify(manifest));
+      await writeFile(
+        path.join(author, 'integrated.cjs'),
+        "const pilot = require('./index.js');\nexports.registerRedboxExtension = pilot.registerIntegrated;\nexports.inspectPrismaStagedStorage = pilot.inspectPrismaStagedStorage;\nexports.ensurePrismaStagedStorageIndexes = pilot.ensurePrismaStagedStorageIndexes;\n"
+      );
+    }
     const compiler = path.join(root, 'packages/redbox-core/node_modules/.bin/tsc');
     run(
       compiler,
@@ -156,6 +167,23 @@ export async function installedPilot() {
       '--types',
       'node',
       'consumer.ts',
+    ]);
+    const contracts = await readFile(path.join(__dirname, 'fixtures/pilot-contracts.types.ts'), 'utf8');
+    checkConsumerSource(contracts);
+    await writeFile(path.join(directory, 'pilot-contracts.ts'), contracts);
+    run(compiler, [
+      '--noEmit',
+      '--strict',
+      '--skipLibCheck',
+      '--target',
+      'ES2024',
+      '--module',
+      'NodeNext',
+      '--moduleResolution',
+      'NodeNext',
+      '--types',
+      'node',
+      'pilot-contracts.ts',
     ]);
     // These are the exact stricter types used at the production call sites.
     // Missing security/order/namespace selections must be compiler errors for an
@@ -258,9 +286,16 @@ declare const host: ProductionControllerHostOptions;
       JSON.stringify({
         name: 'fm019-application',
         private: true,
-        dependencies: { 'fm019-api2-pilot': '1.0.0', 'z-base': '1.0.0', 'a-replacement': '1.0.0' },
+        dependencies: {
+          'fm019-api2-pilot': '1.0.0',
+          'z-base': '1.0.0',
+          'a-replacement': '1.0.0',
+        },
         hookLoadPriority: ['a-replacement'],
       })
+    );
+    const resolvedPins = assertResolvedPilotPins(
+      path.join(directory, 'node_modules/@researchdatabox/redbox-core/package.json')
     );
     const hashes: Record<string, string> = {};
     for (const [name, filename] of Object.entries({
@@ -275,6 +310,7 @@ declare const host: ProductionControllerHostOptions;
       application,
       installed,
       hashes,
+      resolvedPins,
       nativeProductionFixture: require(path.join(harness, 'fastify/productionPilotFixture.js'))
         .productionPilotFixture as typeof import('./productionPilotFixture').productionPilotFixture,
       module: require(installed) as import('./productionPilotFixture').PilotExtension,
