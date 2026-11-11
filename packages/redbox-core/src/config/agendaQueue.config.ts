@@ -232,6 +232,7 @@ export const agendaQueue: AgendaQueueConfig = {
         },
         'Figshare-SyncRecord': {
             fnName: 'figshareservice.syncRecordJob',
+            backend: 'mongodb',
             options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
         },
         'Figshare-Dispatch': {
