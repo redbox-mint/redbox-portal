@@ -242,6 +242,42 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.equal(await db.collection('agendaJobs').countDocuments({ name: 'Figshare-SyncRecord' }), 1);
     assert.equal((await store.get('record-1')).work.sync.processed, 0);
   });
+  it('coalesces out-of-order dispatch enqueues after the first dispatch claim expires', async () => {
+    const agenda = await useMongoQueue();
+    const saveJob = agenda.db.saveJob.bind(agenda.db);
+    let first = true;
+    let firstRunAt: Date | undefined;
+    let entered!: () => void;
+    let release!: () => void;
+    const blocked = new Promise<void>(resolve => { entered = resolve; });
+    const resume = new Promise<void>(resolve => { release = resolve; });
+    agenda.db.saveJob = async (...args) => {
+      if (first) {
+        first = false; firstRunAt = args[0].nextRunAt ?? undefined;
+        entered(); await resume;
+      }
+      return saveJob(...args);
+    };
+    const firstDispatch = dispatchFigshare();
+    try {
+      await Promise.race([blocked, firstDispatch.then(() => assert.fail('Dispatcher completed before its enqueue was blocked'))]);
+      // The cooldown expires while the original enqueue is still waiting for Mongo.
+      await store.change('record-1', (s: FigshareSyncModel) => { s.dispatchUntil = 0; });
+      await dispatchFigshare();
+      const winner = await db.collection('agendaJobs').findOne({ 'data.oid': 'record-1' });
+      assert.ok(winner); assert.ok(firstRunAt);
+      assert.ok(winner.nextRunAt.getTime() >= firstRunAt.getTime());
+      release(); await firstDispatch;
+      const after = await db.collection('agendaJobs').findOne({ _id: winner._id });
+      assert.ok(after); assert.equal(after.nextRunAt.getTime(), firstRunAt.getTime());
+      assert.deepEqual(after.data, winner.data);
+      assert.equal(await db.collection('agendaJobs').countDocuments({}), 1);
+      assert.equal((await store.get('record-1')).work.sync.processed, 0);
+      await (await pendingDelivery(agenda)).run();
+      assert.equal((await store.get('record-1')).work.sync.processed, 1);
+      assert.equal(articles.length, 1);
+    } finally { release(); await firstDispatch; agenda.db.saveJob = saveJob; }
+  });
   it('advances a delayed save delivery when the dispatcher finds durable work due', async () => {
     const agenda = await useMongoQueue();
     config.processing!.coalesceMs = 900000;
@@ -354,6 +390,20 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     await Promise.all(Array.from({ length: 10 }, () => scheduleFigshareDelivery('record-1', 'brand-1')));
     assert.equal(await db.collection('agendaJobs').countDocuments({ 'data.deliveryKey': { $type: 'string' } }), 1);
     assert.equal(await db.collection('agendaJobs').countDocuments({ 'data.deliveryKey': { $exists: false } }), 3);
+  });
+  it('allows concurrent Mongo queue initialisation with the same required index', async () => {
+    await Promise.all(Array.from({ length: 3 }, () => useMongoQueue()));
+    const indexes = await db.collection('agendaJobs').listIndexes().toArray();
+    const pendingIndex = indexes.find(index => index.name === 'agenda_pending_delivery');
+    assert.ok(pendingIndex); assert.equal(pendingIndex.unique, true);
+    assert.deepEqual(pendingIndex.key, { name: 1, 'data.deliveryKey': 1 });
+    assert.deepEqual(pendingIndex.partialFilterExpression, { 'data.deliveryKey': { $type: 'string' }, nextRunAt: { $type: 'date' } });
+  });
+  it('fails Mongo queue initialisation when existing keyed pending deliveries conflict', async () => {
+    await db.collection('agendaJobs').insertMany(Array.from({ length: 2 }, () => ({ name: 'Figshare-SyncRecord', type: 'normal',
+      data: { oid: 'record-1', brandId: 'brand-1', deliveryKey: JSON.stringify(['brand-1', 'record-1']) }, nextRunAt: new Date() })));
+    await assert.rejects(useMongoQueue(), (error: unknown) => error instanceof Error && 'code' in error && error.code === 11000);
+    assert.equal(await db.collection('agendaJobs').countDocuments({}), 2);
   });
   it('retains newer work when an older delivery runs between dispatch claim and enqueue', async () => {
     const agenda = await useMongoQueue();

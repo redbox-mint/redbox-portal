@@ -560,7 +560,12 @@ export namespace Services {
       return this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
     }
 
-    /** Keep one pending delivery per key at the earliest requested time, allowing a successor once execution starts. */
+    /**
+     * MongoDB only: coalesce wake-ups per job name/key at the earliest requested time.
+     * Preserve an existing pending job's original payload and lock. Callers must keep
+     * changing work in durable state; later data does not replace the pending payload.
+     * Running and completed deliveries allow a successor to be queued.
+     */
     public async scheduleUnique(jobName: string, schedule: string | Date, data: Record<string, unknown>, deliveryKey: string): Promise<unknown> {
       await this.ensureQueueInitialized();
       if (this.getBackendForJobName(jobName) !== 'mongodb') {

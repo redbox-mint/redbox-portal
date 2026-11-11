@@ -24,6 +24,12 @@
 export interface QueueService {
   every(jobName: string, interval: string, data: unknown, options: unknown): void;
   schedule(jobName: string, schedule: string, data: unknown): Promise<unknown>;
+  /**
+   * MongoDB only: keep one pending delivery per job name and delivery key at the
+   * earliest requested time. An existing pending job retains its original data
+   * and lock; later data does not replace its payload. Running and completed jobs
+   * do not suppress a successor. Intended for wake-ups backed by durable work.
+   */
   scheduleUnique(jobName: string, schedule: string | Date, data: Record<string, unknown>, deliveryKey: string): Promise<unknown>;
   now(jobName: string, data: unknown): Promise<unknown>;
 }
