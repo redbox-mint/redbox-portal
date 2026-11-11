@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ViewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { CodeEditorComponent } from './code-editor.component';
@@ -6,6 +6,7 @@ import { TranslationStub } from './email-templates.testing';
 import type { CompletionSource } from './template-completion';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   standalone: true,
   imports: [CodeEditorComponent],
   template: `
@@ -81,7 +82,7 @@ describe('CodeEditorComponent', () => {
     textarea().dispatchEvent(new Event('scroll'));
     fixture.detectChanges();
     const inner = fixture.nativeElement.querySelector('.et-code-gutter-inner') as HTMLElement;
-    expect(inner.style.transform).toBe(`translateY(-${textarea().scrollTop}px)`);
+    expect(inner.style.transform).toBe(`translateY(${-textarea().scrollTop}px)`);
   });
 
   it('moves the caret to a line and column', () => {

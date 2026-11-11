@@ -13,7 +13,7 @@ import {
   handlebarsInstance,
   reportCsvTemplateFields,
   reportDisplayTemplateFields,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/runtime';
 
 @Component({
   selector: 'report-diagnostics',

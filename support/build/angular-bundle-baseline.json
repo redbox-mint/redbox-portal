@@ -380,5 +380,245 @@
     ],
     "measuredAtUtc": "2026-10-18T12:37:21Z",
     "note": "Form-only production --stats-json --delete-output-path=true rebuild after the F20 DST fix. The exact date-input source hash identifies uncommitted source over sourceBaseCommit at build time. Supersedes only the form measurements above; finalSourceCommit and measuredAtUtc retain the preceding all-20 build provenance. No shared source, dependency locks or budget limits changed."
+  },
+  "branchSyncFollowUp": {
+    "sourceBase": "b316513c0af799ff039b12773e97c5de2da83c9c",
+    "measuredAt": "2026-11-11T07:44:23.662Z",
+    "angularDiffSha256": "f8622e4c69fdb741feece4598ec339fae87228d9a885edcc1b7ce82357787f68",
+    "node": "v24.22.1",
+    "reason": "Merged record-save/concurrency contracts, schema assistance and date-picker UI require a new production baseline. Legacy CommonJS helper imports now select browser ESM. Email templates now uses production script optimisation and a measured budget. Existing warning targets and passing error limits are retained; exceeded error limits allow 10% measured growth rounded up to 10 kB. Email templates uses 5%/10% measured warning/error margins.",
+    "applications": {
+      "local-auth": {
+        "initialBytes": 527553,
+        "initialJsBytes": 527553,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 161900,
+        "lazyBytes": 43805,
+        "previousMaximumError": "540kb",
+        "maximumWarning": "500kb",
+        "maximumError": "540kb",
+        "warning": true
+      },
+      "export": {
+        "initialBytes": 900203,
+        "initialJsBytes": 881230,
+        "initialCssBytes": 18973,
+        "initialGzipBytes": 254221,
+        "lazyBytes": 43805,
+        "previousMaximumError": "880kb",
+        "maximumWarning": "840kb",
+        "maximumError": "1000kb",
+        "warning": true
+      },
+      "dashboard": {
+        "initialBytes": 588470,
+        "initialJsBytes": 588470,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 180808,
+        "lazyBytes": 43805,
+        "previousMaximumError": "570kb",
+        "maximumWarning": "540kb",
+        "maximumError": "650kb",
+        "warning": true
+      },
+      "report": {
+        "initialBytes": 914880,
+        "initialJsBytes": 896210,
+        "initialCssBytes": 18670,
+        "initialGzipBytes": 259957,
+        "lazyBytes": 43805,
+        "previousMaximumError": "950kb",
+        "maximumWarning": "900kb",
+        "maximumError": "950kb",
+        "warning": true
+      },
+      "report-config": {
+        "initialBytes": 628012,
+        "initialJsBytes": 615702,
+        "initialCssBytes": 12310,
+        "initialGzipBytes": 189188,
+        "lazyBytes": 43805,
+        "previousMaximumError": "470kb",
+        "maximumWarning": "450kb",
+        "maximumError": "700kb",
+        "warning": true
+      },
+      "manage-users": {
+        "initialBytes": 732275,
+        "initialJsBytes": 730646,
+        "initialCssBytes": 1629,
+        "initialGzipBytes": 224047,
+        "lazyBytes": 43805,
+        "previousMaximumError": "720kb",
+        "maximumWarning": "500kb",
+        "maximumError": "810kb",
+        "warning": true
+      },
+      "record-audit": {
+        "initialBytes": 572477,
+        "initialJsBytes": 572438,
+        "initialCssBytes": 39,
+        "initialGzipBytes": 173762,
+        "lazyBytes": 43805,
+        "previousMaximumError": "580kb",
+        "maximumWarning": "500kb",
+        "maximumError": "580kb",
+        "warning": true
+      },
+      "admin-vocabulary": {
+        "initialBytes": 534035,
+        "initialJsBytes": 534035,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 162003,
+        "lazyBytes": 43805,
+        "previousMaximumError": "530kb",
+        "maximumWarning": "500kb",
+        "maximumError": "590kb",
+        "warning": true
+      },
+      "admin-figshare-vocabulary": {
+        "initialBytes": 585079,
+        "initialJsBytes": 584438,
+        "initialCssBytes": 641,
+        "initialGzipBytes": 172355,
+        "lazyBytes": 43805,
+        "previousMaximumError": "550kb",
+        "maximumWarning": "500kb",
+        "maximumError": "650kb",
+        "warning": true
+      },
+      "dashboard-config-editor": {
+        "initialBytes": 617642,
+        "initialJsBytes": 588772,
+        "initialCssBytes": 28870,
+        "initialGzipBytes": 178654,
+        "lazyBytes": 43805,
+        "previousMaximumError": "590kb",
+        "maximumWarning": "500kb",
+        "maximumError": "680kb",
+        "warning": true
+      },
+      "named-query-editor": {
+        "initialBytes": 634060,
+        "initialJsBytes": 622908,
+        "initialCssBytes": 11152,
+        "initialGzipBytes": 185500,
+        "lazyBytes": 43805,
+        "previousMaximumError": "530kb",
+        "maximumWarning": "500kb",
+        "maximumError": "700kb",
+        "warning": true
+      },
+      "manage-roles": {
+        "initialBytes": 589562,
+        "initialJsBytes": 589562,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 182398,
+        "lazyBytes": 43805,
+        "previousMaximumError": "650kb",
+        "maximumWarning": "500kb",
+        "maximumError": "650kb",
+        "warning": true
+      },
+      "form": {
+        "initialBytes": 1710653,
+        "initialJsBytes": 1609065,
+        "initialCssBytes": 101588,
+        "initialGzipBytes": 454896,
+        "lazyBytes": 1542024,
+        "previousMaximumError": "1840kb",
+        "maximumWarning": "1760kb",
+        "maximumError": "1840kb",
+        "warning": false
+      },
+      "app-config": {
+        "initialBytes": 842861,
+        "initialJsBytes": 841258,
+        "initialCssBytes": 1603,
+        "initialGzipBytes": 243684,
+        "lazyBytes": 43805,
+        "previousMaximumError": "840kb",
+        "maximumWarning": "810kb",
+        "maximumError": "930kb",
+        "warning": true
+      },
+      "deleted-records": {
+        "initialBytes": 958360,
+        "initialJsBytes": 939690,
+        "initialCssBytes": 18670,
+        "initialGzipBytes": 270782,
+        "lazyBytes": 43805,
+        "previousMaximumError": "990kb",
+        "maximumWarning": "940kb",
+        "maximumError": "990kb",
+        "warning": true
+      },
+      "harvest-runs": {
+        "initialBytes": 914862,
+        "initialJsBytes": 914862,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 258276,
+        "lazyBytes": 43805,
+        "previousMaximumError": "580kb",
+        "maximumWarning": "550kb",
+        "maximumError": "1010kb",
+        "warning": true
+      },
+      "branding": {
+        "initialBytes": 900414,
+        "initialJsBytes": 900414,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 254398,
+        "lazyBytes": 43805,
+        "previousMaximumError": "890kb",
+        "maximumWarning": "850kb",
+        "maximumError": "1000kb",
+        "warning": true
+      },
+      "email-templates": {
+        "initialBytes": 716699,
+        "initialJsBytes": 709027,
+        "initialCssBytes": 7672,
+        "initialGzipBytes": 212017,
+        "lazyBytes": 43805,
+        "previousMaximumError": "10mb",
+        "maximumWarning": "760kb",
+        "maximumError": "790kb",
+        "warning": false
+      },
+      "translation": {
+        "initialBytes": 1012199,
+        "initialJsBytes": 1012199,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 317199,
+        "lazyBytes": 43805,
+        "previousMaximumError": "1050kb",
+        "maximumWarning": "1000kb",
+        "maximumError": "1050kb",
+        "warning": true
+      },
+      "record-search": {
+        "initialBytes": 482401,
+        "initialJsBytes": 482401,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 151106,
+        "lazyBytes": 43805,
+        "previousMaximumError": "490kb",
+        "maximumWarning": "470kb",
+        "maximumError": "490kb",
+        "warning": true
+      },
+      "siem-admin": {
+        "initialBytes": 591377,
+        "initialJsBytes": 591377,
+        "initialCssBytes": 0,
+        "initialGzipBytes": 178266,
+        "lazyBytes": 43805,
+        "previousMaximumError": "590kb",
+        "maximumWarning": "560kb",
+        "maximumError": "660kb",
+        "warning": true
+      }
+    }
   }
 }

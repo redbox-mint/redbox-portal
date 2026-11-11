@@ -1,4 +1,4 @@
-import { Component, Inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, inject, Component, Inject, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { I18NextPipe } from '../i18next.pipe';
 import { TranslationService } from '../translation.service';
 import { caretCoordinates } from './caret-coordinates';
@@ -28,6 +28,7 @@ let nextId = 0;
  * typing. Options are referenced with `aria-activedescendant`.
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   selector: 'rb-field-autocomplete, email-templates-autocomplete',
   standalone: true,
   imports: [I18NextPipe],
@@ -81,6 +82,7 @@ let nextId = 0;
   styleUrls: ['./autocomplete.component.scss'],
 })
 export class AutocompleteComponent implements OnChanges, OnDestroy {
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   @Input({ required: true }) target!: TextControl;
   @Input() mode: 'template' | 'path' = 'template';
   @Input() translationPrefix = 'schema-assist';
@@ -284,6 +286,7 @@ export class AutocompleteComponent implements OnChanges, OnDestroy {
   }
 
   private sync(): void {
+    this.changeDetectorRef.markForCheck();
     const control = this.attached;
     if (!control) return;
     const set = (name: string, value: string | null) =>

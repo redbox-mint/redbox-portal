@@ -1,5 +1,5 @@
-import type { ContextSchemaField } from '@researchdatabox/sails-ng-common';
-import { pathParent, pathSegments, templateSegment } from '@researchdatabox/sails-ng-common';
+import type { ContextSchemaField } from '@researchdatabox/sails-ng-common/runtime';
+import { pathParent, pathSegments, templateSegment } from '@researchdatabox/sails-ng-common/runtime';
 
 export interface FieldNode extends ContextSchemaField {
   name: string;

@@ -1,4 +1,4 @@
-import { afterNextRender, Component, ElementRef, EventEmitter, Inject, Injector, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, inject, afterNextRender, Component, ElementRef, EventEmitter, Inject, Injector, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe, LoggerService } from '@researchdatabox/portal-ng-common';
 import { EmailTemplateAdminService } from './email-template-admin.service';
@@ -19,6 +19,7 @@ const FILTERS: Record<CatalogueFilter, (entry: EmailAdminCatalogueEntry) => bool
 };
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   selector: 'email-templates-catalogue',
   standalone: true,
   imports: [FormsModule, I18NextPipe, WhenPipe],
@@ -26,6 +27,7 @@ const FILTERS: Record<CatalogueFilter, (entry: EmailAdminCatalogueEntry) => bool
   styleUrls: ['./email-templates.shared.scss', './catalogue.component.scss'],
 })
 export class CatalogueComponent implements OnInit, OnDestroy {
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   @Input() returnFocus: { templateId: string; action: string } | null = null;
   @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
   openingAction = 'open';
@@ -62,6 +64,7 @@ export class CatalogueComponent implements OnInit, OnDestroy {
       this.loadFailed = true;
       this.logger.error('Email template catalogue failed to load', error);
     } finally {
+      this.changeDetectorRef.markForCheck();
       this.loading = false;
       afterNextRender(() => {
         if (this.destroyed || !this.returnFocus) return;

@@ -25,7 +25,7 @@ import { LoggerService } from './logger.service';
 import { isArray as _isArray } from 'lodash-es';
 import { UtilityService } from './utility.service';
 import { HttpClientService } from './httpClient.service';
-import {buildKeyString, handlebarsTemplate, loadMarkdownParser} from '@researchdatabox/sails-ng-common';
+import {buildKeyString, handlebarsTemplate, loadMarkdownParser} from '@researchdatabox/sails-ng-common/runtime';
 
 export type DashboardTemplateTarget =
     | { kind: 'workflow'; recordType: string; stage: string }

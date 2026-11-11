@@ -1,7 +1,6 @@
 # Angular production bundle checks
 
-`angular/angular.json` sets an initial bundle budget for each of the 20 embedded
-apps. Angular enforces these in every production build, including Docker image
+`angular/angular.json` sets an initial bundle budget for each embedded app. Angular enforces these in every production build, including Docker image
 builds. Budgets count raw initial JavaScript and CSS, with statically imported
 chunks counted once; lazy features do not count toward the initial budget.
 Component style budgets remain unchanged.
@@ -114,3 +113,28 @@ build commands, module tests, stats tests, final sizes and remaining concerns fo
 independent review. All 20 final error limits pass. The original 500 kB warning
 targets remain exceeded by manage-users, record-audit, dashboard-config-editor
 and manage-roles.
+
+## Branch synchronization follow-up (2026-11-11)
+
+`branchSyncFollowUp` in the baseline JSON records fresh production measurements
+for all 21 applications after the master/develop/next synchronization. The
+original `applications` measurements above remain historical evidence.
+
+The merged record-save/concurrency contracts and schema assistance increase
+shared code. Harvest runs also adds the date-picker UI, and report configuration
+adds template assistance. Browser code now selects the shared package's ESM
+runtime and focused contract exports instead of legacy CommonJS helpers; the
+export app falls from 984,430 to approximately 900,200 initial bytes.
+
+Error limits exceeded by these merged features are remeasured with the existing
+10% margin, rounded up to 10 kB. Passing error limits and existing warning
+thresholds are preserved. Email templates, which was absent from the original
+baseline, now enables production script optimisation and uses measured 5%/10%
+warning/error margins (760/790 kB). Its optimised initial bundle is approximately
+716,700 bytes. Component style limits and mandatory stats checks are unchanged.
+
+All 22 Angular test projects, including email templates and Figshare vocabulary,
+are included in each CircleCI workflow matrix. The local full-suite pass is
+2,911 tests; shared, dashboard, report configuration and export suites also pass
+after the browser-import changes. Full image and integration verification remains
+with CircleCI.

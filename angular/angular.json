@@ -181,7 +181,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "840kb",
-                  "maximumError": "880kb"
+                  "maximumError": "1000kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -267,7 +267,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "540kb",
-                  "maximumError": "570kb"
+                  "maximumError": "650kb"
                 }
               ],
               "optimization": {
@@ -439,7 +439,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "450kb",
-                  "maximumError": "470kb"
+                  "maximumError": "700kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -524,7 +524,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "720kb"
+                  "maximumError": "810kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -695,7 +695,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "530kb"
+                  "maximumError": "590kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -776,7 +776,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "550kb"
+                  "maximumError": "650kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -857,7 +857,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "590kb"
+                  "maximumError": "680kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -938,7 +938,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "530kb"
+                  "maximumError": "700kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -1208,7 +1208,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "810kb",
-                  "maximumError": "840kb"
+                  "maximumError": "930kb"
                 }
               ],
               "optimization": {
@@ -1398,7 +1398,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "550kb",
-                  "maximumError": "580kb"
+                  "maximumError": "1010kb"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -1486,7 +1486,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "850kb",
-                  "maximumError": "890kb"
+                  "maximumError": "1000kb"
                 }
               ],
               "optimization": {
@@ -1574,12 +1574,12 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "6mb",
-                  "maximumError": "10mb"
+                  "maximumWarning": "760kb",
+                  "maximumError": "790kb"
                 }
               ],
               "optimization": {
-                "scripts": false,
+                "scripts": true,
                 "styles": true,
                 "fonts": true
               },
@@ -1842,7 +1842,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "560kb",
-                  "maximumError": "590kb"
+                  "maximumError": "660kb"
                 },
                 {
                   "type": "anyComponentStyle",

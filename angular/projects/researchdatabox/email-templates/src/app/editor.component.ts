@@ -3,6 +3,9 @@ import { fieldInsertion } from './field-tree';
 import { diagnosticExpressionAt } from './diagnostic-expression';
 import { blockHelperScaffold, helperInsertion, helperUsage } from './helper-usage';
 import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
   Component,
   AfterViewInit,
   ElementRef,
@@ -97,6 +100,7 @@ export interface DiagnosticFix {
 export const CONTEXT_ERRORS_SHOWN = 5;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.Default,
   selector: 'email-templates-editor',
   standalone: true,
   imports: [
@@ -117,6 +121,7 @@ export const CONTEXT_ERRORS_SHOWN = 5;
   styleUrls: ['./email-templates.shared.scss', './editor.component.scss'],
 })
 export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   @Input({ required: true }) templateId = '';
   @Input() brandName = '';
   /** Record picked in an earlier editor, so moving between templates keeps the preview data. */
@@ -448,6 +453,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       if (!this.destroyed && seq === this.loadSeq) this.loadError = this.errorKey(error);
       this.logger.error('Email template editor failed to load');
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (!this.destroyed && seq === this.loadSeq) this.loading = false;
     }
     return false;
@@ -812,6 +818,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       }
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (seq === this.validateSeq) {
         this.validating = false;
       }
@@ -893,6 +900,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.showError(error);
       }
     } finally {
+      this.changeDetectorRef.markForCheck();
       this.saving = false;
     }
   }
@@ -984,6 +992,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.errorMessage = { key: this.loadError };
       }
     } finally {
+      this.changeDetectorRef.markForCheck();
       this.busy = null;
     }
   }
@@ -1104,6 +1113,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.previewErrorCode = isApiError(error) ? error.code : 'UNAVAILABLE';
       }
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (seq === this.previewSeq) {
         this.previewing = false;
       }
@@ -1211,6 +1221,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.contextLoadError =
           isApiError(error) && error.code === 'FORBIDDEN' ? 'email-templates-record-unavailable' : this.errorKey(error);
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (!this.destroyed && seq === this.contextSeq) this.loadingContext = false;
     }
   }
@@ -1247,6 +1258,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch {
       if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaError = true;
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaLoading = false;
     }
   }
@@ -1294,6 +1306,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
     } catch {
       if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaError = true;
     } finally {
+      this.changeDetectorRef.markForCheck();
       if (!this.destroyed && this.schemaRequests.isCurrent(seq)) this.schemaLoading = false;
     }
   }
@@ -1391,6 +1404,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.historyFailed = true;
       this.logger.error('Email template history failed to load');
     } finally {
+      this.changeDetectorRef.markForCheck();
       this.historyLoading = false;
     }
   }
@@ -1583,6 +1597,7 @@ export class EditorComponent implements OnInit, OnDestroy, AfterViewInit {
         this.showError(error);
       }
     } finally {
+      this.changeDetectorRef.markForCheck();
       this.busy = null;
     }
   }

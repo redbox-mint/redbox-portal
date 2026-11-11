@@ -25,7 +25,7 @@ import {
   DashboardModeContext,
   DashboardRuntimeSettings
 } from '@researchdatabox/portal-ng-common';
-import { handlebarsInstance } from '@researchdatabox/sails-ng-common';
+import { handlebarsInstance } from '@researchdatabox/sails-ng-common/runtime';
 import { escape as _escape, get as _get, set as _set, isEmpty as _isEmpty, isUndefined as _isUndefined, trim as _trim, isNull as _isNull, orderBy as _orderBy, find as _find, indexOf as _indexOf, isArray as _isArray, forEach as _forEach, join as _join, has as _has } from 'lodash-es';
 
 /**

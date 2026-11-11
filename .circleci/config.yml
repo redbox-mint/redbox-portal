@@ -1378,6 +1378,7 @@ workflows:
                 - manage-users
                 - record-audit
                 - admin-vocabulary
+                - admin-figshare-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
                 - manage-roles
@@ -1387,6 +1388,7 @@ workflows:
                 - deleted-records
                 - harvest-runs
                 - branding
+                - email-templates
                 - translation
                 - record-search
           filters: *normalBranchFilters
@@ -1553,6 +1555,7 @@ workflows:
                 - manage-users
                 - record-audit
                 - admin-vocabulary
+                - admin-figshare-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
                 - manage-roles
@@ -1562,6 +1565,7 @@ workflows:
                 - deleted-records
                 - harvest-runs
                 - branding
+                - email-templates
                 - translation
                 - record-search
           requires:
@@ -1708,6 +1712,7 @@ workflows:
                 - manage-users
                 - record-audit
                 - admin-vocabulary
+                - admin-figshare-vocabulary
                 - dashboard-config-editor
                 - named-query-editor
                 - manage-roles
@@ -1717,6 +1722,7 @@ workflows:
                 - deleted-records
                 - harvest-runs
                 - branding
+                - email-templates
                 - translation
                 - record-search
           filters:

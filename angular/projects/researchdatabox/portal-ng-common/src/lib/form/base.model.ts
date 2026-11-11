@@ -1,7 +1,7 @@
 import {cloneDeep as _cloneDeep} from 'lodash-es';
 import {AbstractControl, FormControl} from '@angular/forms';
 import type { FieldModelDefinitionFrame, FormValidatorConfig } from "@researchdatabox/sails-ng-common";
-import { guessType } from "@researchdatabox/sails-ng-common/dist/src/config/helpers";
+import { guessType } from "@researchdatabox/sails-ng-common/runtime";
 
 
 /**
