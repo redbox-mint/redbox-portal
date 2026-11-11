@@ -703,6 +703,28 @@ describe('Construct Visitor', async () => {
       });
     });
 
+    for (const config of [{ deferErrorsOnNewRecord: true }, undefined]) {
+      it(`should construct validation summary deferErrorsOnNewRecord as ${config?.deferErrorsOnNewRecord ?? false}`, async () => {
+        const visitor = new ConstructFormConfigVisitor(consoleLogger);
+        const actual = await visitor.start({
+          formMode: 'edit',
+          data: {
+            name: 'test',
+            componentDefinitions: [
+              {
+                name: 'summary',
+                component: { class: 'ValidationSummaryComponent', ...(config ? { config } : {}) },
+              },
+            ],
+          },
+        });
+
+        expect(actual.componentDefinitions?.[0]?.component?.class).to.equal('ValidationSummaryComponent');
+        expect(actual.componentDefinitions?.[0]?.component?.config)
+          .to.have.property('deferErrorsOnNewRecord', config?.deferErrorsOnNewRecord ?? false);
+      });
+    }
+
     it('should include save status message properties', async function () {
       const visitor = new ConstructFormConfigVisitor(consoleLogger);
       const expectedConfig = {

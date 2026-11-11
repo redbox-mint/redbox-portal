@@ -2,7 +2,7 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 // Load the form registry before a component that the registry itself imports.
 import { createFormAndWaitForReady, createTestbedModule } from "../helpers.spec";
 import { ValidationSummaryFieldComponent } from "./validation-summary.component";
-import { FormConfigFrame, TabFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, TabFieldComponentConfigFrame, ValidationSummaryFieldComponentConfigFrame } from '@researchdatabox/sails-ng-common';
 import { SimpleInputComponent } from "./simple-input.component";
 import { GroupFieldComponent } from './group.component';
 import { RepeatableComponent, RepeatableElementLayoutComponent } from './repeatable.component';
@@ -34,6 +34,190 @@ describe('ValidationSummaryFieldComponent', () => {
     let fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
     let component = fixture.componentInstance;
     expect(component).toBeDefined();
+  });
+
+  describe('deferErrorsOnNewRecord', () => {
+    async function createDeferredForm(
+      config: ValidationSummaryFieldComponentConfigFrame = { deferErrorsOnNewRecord: true },
+      props: { oid?: string } = { oid: '' },
+      required = true,
+    ) {
+      return createFormAndWaitForReady({
+        name: 'defer-new-record',
+        componentDefinitions: [
+          {
+            name: 'title',
+            model: { class: 'SimpleInputModel', config: { value: '', validators: required ? [{ class: 'required' }] : [] } },
+            component: { class: 'SimpleInputComponent' },
+            layout: { class: 'DefaultLayout', config: { label: 'Title' } },
+          },
+          {
+            name: 'optional',
+            model: { class: 'SimpleInputModel', config: { value: '' } },
+            component: { class: 'SimpleInputComponent' },
+          },
+          {
+            name: 'summary',
+            component: { class: 'ValidationSummaryComponent', config },
+          },
+        ],
+      }, { editMode: true, ...props });
+    }
+
+    function expectTitleError(root: HTMLElement): void {
+      expect(root.querySelector('.validation-summary')).not.toBeNull();
+      expect(root.querySelector('.validation-summary-item a')?.textContent).toBe('Title');
+      expect(root.querySelector('[data-validation-error-class="required"]')).not.toBeNull();
+    }
+
+    it('T1: hides an untouched new record summary while retaining its validation errors', async () => {
+      const { fixture, formComponent } = await createDeferredForm();
+      expect(formComponent.form!.pristine).toBeTrue();
+      expect(formComponent.form!.untouched).toBeTrue();
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+      const summary = formComponent.componentDefArr[2].component as ValidationSummaryFieldComponent;
+      const errors = await summary.allValidationErrorsDisplay();
+      expect(errors.length).toBe(1);
+      expect(errors[0].errors.some(error => error.class === 'required')).toBeTrue();
+    });
+
+    it('T2: reveals the required field after a control is touched without a value change', async () => {
+      const { fixture, formComponent } = await createDeferredForm();
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+      formComponent.form!.get('title')!.markAsTouched();
+      await fixture.whenStable();
+      expectTitleError(fixture.nativeElement);
+    });
+
+    it('T3: reveals the required field after editing a different, optional field', async () => {
+      const { fixture, formComponent } = await createDeferredForm();
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+      const optional = formComponent.form!.get('optional')!;
+      optional.setValue('An edit');
+      optional.markAsDirty();
+      await fixture.whenStable();
+      expectTitleError(fixture.nativeElement);
+    });
+
+    for (const [testId, eventType] of [
+      ['T4', FormComponentEventType.FORM_SAVE_REQUESTED],
+      ['T5', FormComponentEventType.FORM_SAVE_FAILURE],
+    ] as const) {
+      it(`${testId}: reveals errors on ${eventType}`, async () => {
+        const { fixture, formComponent } = await createDeferredForm();
+        // A requested save must reveal errors even if no failure event follows.
+        spyOn(formComponent, 'saveForm').and.resolveTo();
+        expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+        TestBed.inject(FormComponentEventBus).publish({ type: eventType });
+        await fixture.whenStable();
+        expectTitleError(fixture.nativeElement);
+      });
+    }
+
+    for (const eventType of [
+      FormComponentEventType.FORM_SAVE_REQUESTED,
+      FormComponentEventType.FORM_SAVE_FAILURE,
+    ] as const) {
+      it(`ignores ${eventType} from another form and accepts its own scope`, async () => {
+        const { fixture, formComponent } = await createDeferredForm();
+        spyOn(formComponent, 'saveForm').and.resolveTo();
+        const bus = TestBed.inject(FormComponentEventBus);
+        bus.publish({ type: eventType, formScopeId: 'another-form' });
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+        expect(formComponent.form!.pristine).toBeTrue();
+        expect(formComponent.form!.untouched).toBeTrue();
+
+        bus.publish({ type: eventType, formScopeId: formComponent.eventScopeId });
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expectTitleError(fixture.nativeElement);
+      });
+    }
+
+    it('T6: shows errors on load for an existing record with the flag enabled', async () => {
+      const { fixture, formComponent } = await createDeferredForm({ deferErrorsOnNewRecord: true }, {});
+      expect(formComponent.trimmedParams.oid()).not.toBe('');
+      expectTitleError(fixture.nativeElement);
+    });
+
+    it('T7: shows errors on load for a new record without the flag', async () => {
+      const { fixture } = await createDeferredForm({});
+      expectTitleError(fixture.nativeElement);
+    });
+
+    it('T8: defers the valid info box until a field is touched', async () => {
+      const { fixture, formComponent } = await createDeferredForm({
+        deferErrorsOnNewRecord: true, showWhenValid: true,
+      }, { oid: '' }, false);
+      expect(fixture.nativeElement.querySelector('.alert-info')).toBeNull();
+      formComponent.form!.get('title')!.markAsTouched();
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('.alert-info')?.textContent.trim()).toBe('The form is valid.');
+    });
+
+    const deferredStateCases: Array<[ValidationSummaryFieldComponentConfigFrame, string, boolean]> = [
+      [{ deferErrorsOnNewRecord: true, showWhenValid: true }, '', true],
+      [{ deferErrorsOnNewRecord: true, showWhenValid: true }, 'existing-record', false],
+      [{ showWhenValid: true }, '', false],
+    ];
+    for (const [config, oid, expected] of deferredStateCases) {
+      it(`sets the deferred state to ${expected} before the first refresh (flag ${config.deferErrorsOnNewRecord === true}, oid '${oid}')`, () => {
+        const fixture = TestBed.createComponent(ValidationSummaryFieldComponent);
+        const component = fixture.componentInstance as any;
+        spyOnProperty(component, 'formComponent', 'get').and.returnValue({
+          trimmedParams: { oid: () => oid },
+          form: undefined,
+        });
+        component.setPropertiesFromComponentMapEntry({
+          compConfigJson: { name: 'summary', component: { class: 'ValidationSummaryComponent', config } },
+        });
+        expect(component.errorDisplayDeferred).toBe(expected);
+      });
+    }
+
+    it('T9: keeps errors visible after the form becomes pristine and untouched again', async () => {
+      const { fixture, formComponent } = await createDeferredForm();
+      formComponent.form!.get('title')!.markAsTouched();
+      await fixture.whenStable();
+      expectTitleError(fixture.nativeElement);
+      formComponent.form!.markAsPristine();
+      formComponent.form!.markAsUntouched();
+      await fixture.whenStable();
+      expectTitleError(fixture.nativeElement);
+    });
+
+    for (const interaction of ['touch', 'edit'] as const) {
+      it(`latches a ${interaction} even when the form is reset before the queued refresh`, async () => {
+        const { fixture, formComponent } = await createDeferredForm();
+        const control = formComponent.form!.get('optional')!;
+        if (interaction === 'touch') {
+          control.markAsTouched();
+        } else {
+          control.setValue('An edit');
+          control.markAsDirty();
+        }
+        formComponent.form!.markAsPristine();
+        formComponent.form!.markAsUntouched();
+        await fixture.whenStable();
+        expectTitleError(fixture.nativeElement);
+      });
+    }
+
+    it('shows errors on load for a new record with the flag explicitly false', async () => {
+      const { fixture } = await createDeferredForm({ deferErrorsOnNewRecord: false });
+      expectTitleError(fixture.nativeElement);
+    });
+
+    it('shows errors after a new record receives its first saved oid', async () => {
+      const { fixture, formComponent } = await createDeferredForm();
+      expect(fixture.nativeElement.querySelector('.validation-summary')).toBeNull();
+      formComponent.oid.set('first-saved-record');
+      formComponent.form!.updateValueAndValidity();
+      await fixture.whenStable();
+      expectTitleError(fixture.nativeElement);
+    });
   });
 
   it('renders translated HTML labels as text inside the summary link, retaining raw metadata and error text', async () => {
