@@ -1,748 +1,718 @@
-<div id="explorer-promotion-status" aria-live="polite" aria-atomic="true">
-@if (promotionOpening) { <p role="status">{{ text('promotion-opening') }}</p> }
-@if (promotionError) { <p class="alert alert-danger" role="alert">{{ text(promotionError) }}</p> }
-@if (promotionSaved) { <p class="alert alert-success" role="status">{{ text('promotion-saved') }}</p> }
-</div>
-<div id="explorer-workspace" [hidden]="!!promotion" [attr.inert]="promotion || promotionOpening ? '' : null" [attr.aria-hidden]="promotion ? 'true' : null">
-@if (loadError) {
-  <div class="alert alert-danger" role="alert">
-    {{ loadError }} <button class="btn btn-outline-secondary" (click)="retryLoad()">{{ text('retry') }}</button>
-  </div>
-}
-<nav class="rb-admin-crumbs" [attr.aria-label]="text('breadcrumbs')">
-  <ol>
-    <li>{{ 'menu-admin' | i18next }}</li>
-    <li aria-current="page">{{ text('title') }}</li>
-  </ol>
-</nav>
-<header class="rb-admin-page-header">
-  <div>
-    <h1 #catalogueHeading tabindex="-1">{{ text('title') }}</h1>
-    <p>{{ text('intro') }}</p>
-  </div>
-  <div class="grid-actions">
-    <button
-      type="button"
-      class="btn btn-outline-secondary"
-      [disabled]="!catalogue || saving || busy"
-      [attr.aria-expanded]="pickerOpen"
-      aria-controls="saved-query-picker"
-      (click)="pickerOpen = !pickerOpen"
-    >
-      {{ text('saved-queries') }}
-    </button>
-    @if (canPromote || promotionOpening) {
-      <button #promotionButton type="button" class="btn btn-outline-secondary" [disabled]="!canPromote" (click)="createNamedQuery()">{{ text('create-named-query') }}</button>
-    }
-    <button type="button" class="btn btn-outline-secondary" [disabled]="!catalogue || saving || busy" (click)="open()">
-      {{ text('new') }}
-    </button>
-  </div>
-</header>
-@if (busy) {
-  <p role="status">{{ text('loading') }}</p>
-}
-@if (unavailable) {
-  <div class="alert alert-info" role="status">
-    <h2>{{ text('unavailable-heading') }}</h2>
-    <p>{{ text('unavailable') }}</p>
-  </div>
-}
-@if (error) {
-  <div class="alert alert-danger" role="alert">
-    {{ text(error) }} <button class="btn btn-sm btn-outline-secondary" (click)="load()">{{ text('retry') }}</button>
-  </div>
-}
-@if (notice) {
-  <div class="alert alert-success" role="status">{{ text(notice) }}</div>
-}
-@if (pickerOpen) {
-  <section id="saved-query-picker" class="card explorer-picker" aria-labelledby="saved-query-heading">
-    <div class="card-header grid-preview-heading">
-      <h2 id="saved-query-heading">{{ text('saved-queries') }}</h2>
-      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="pickerOpen = false">
-        {{ text('close') }}
+<div id="explorer-workspace" [attr.inert]="promotion || columnsOpen ? '' : null">
+  <nav class="rb-admin-crumbs" [attr.aria-label]="text('breadcrumbs')">
+    <ol>
+      <li>
+        <a [href]="adminUrl">{{ 'menu-admin' | i18next }}</a>
+      </li>
+      <li>{{ text('records-reporting') }}</li>
+      <li aria-current="page">{{ text('title') }}</li>
+    </ol>
+  </nav>
+  <header class="rb-admin-page-header">
+    <div>
+      <h1 #catalogueHeading tabindex="-1">{{ text('title') }}</h1>
+      <p>{{ text('intro') }}</p>
+    </div>
+    <div class="rb-admin-page-actions">
+      <button type="button" class="btn btn-primary" [disabled]="!catalogue || saving || busy" (click)="open()">
+        {{ text('new') }}
       </button>
     </div>
-    <div class="card-body">
-      <label for="grid-search">{{ text('find-grid') }}</label
-      ><input id="grid-search" type="search" class="form-control" [(ngModel)]="search" />
-      <p class="rb-ws-lede">{{ text('loaded-search-help') }}</p>
-      @for (grid of visibleGrids; track grid.id) {
-        <div class="saved-query-item">
-          <div>
-            <button class="rb-admin-list-name" [disabled]="busy || saving" (click)="reopen(grid, true)">
-              {{ grid.name }}</button
-            ><small>{{
-              grid.mode === 'graphql'
-                ? text('graphql')
-                : grid.recordType + ' / ' + (grid.workflowStage || text('all-stages'))
-            }}</small>
-          </div>
+  </header>
+  <div aria-live="polite" aria-atomic="true">
+    @if (busy) {
+      <p role="status" class="visually-hidden">{{ text('loading') }}</p>
+    }
+    @if (promotionOpening) {
+      <p role="status">{{ text('promotion-opening') }}</p>
+    }
+    @if (promotionSaved) {
+      <p class="alert alert-success" role="status">{{ text('promotion-saved') }}</p>
+    }
+    @if (notice) {
+      <p class="alert alert-success" role="status">{{ text(notice) }}</p>
+    }
+  </div>
+  @if (loadError) {
+    <p class="alert alert-danger" role="alert">
+      {{ loadError }} <button class="btn btn-outline-secondary" (click)="retryLoad()">{{ text('retry') }}</button>
+    </p>
+  }
+  @if (unavailable) {
+    <div class="alert alert-info" role="status">
+      <h2>{{ text('unavailable-heading') }}</h2>
+      <p>{{ text('unavailable') }}</p>
+    </div>
+  }
+  @if (error || promotionError) {
+    <p class="alert alert-danger" role="alert">{{ text(error || promotionError) }}</p>
+  }
+  <div class="rb-admin-split explorer-layout" [hidden]="!catalogue">
+    <nav
+      id="saved-query-picker"
+      class="rb-admin-section-rail explorer-saved-rail"
+      [attr.aria-label]="text('saved-queries')"
+    >
+      <div class="explorer-rail-search">
+        <h2>{{ text('saved-queries') }}</h2>
+        <label class="visually-hidden" for="grid-search">{{ text('find-grid') }}</label>
+        <input id="grid-search" type="search" class="form-control" [(ngModel)]="search" />
+      </div>
+      <div class="explorer-saved-items">
+        @for (grid of visibleGrids; track grid.id) {
           <button
-            class="btn btn-sm btn-outline-danger"
-            [disabled]="busy"
-            [attr.aria-label]="text('delete') + ': ' + grid.name"
-            (click)="remove(grid)"
+            type="button"
+            class="explorer-saved-query"
+            [disabled]="busy || saving"
+            [attr.aria-current]="activeDefinition?.id === grid.id ? 'page' : null"
+            (click)="reopen(grid, true)"
           >
-            {{ text('delete') }}
+            <span>{{ grid.name }}</span
+            ><small>{{
+              grid.mode === 'graphql' ? text('graphql') : recordTypeLabel(grid.recordType) + ' · ' + text('visual')
+            }}</small>
+            @if (grid.publishedAs?.length) {
+              <span class="badge rb-admin-badge-primary">{{ text('published') }}</span>
+            }
           </button>
-        </div>
-      } @empty {
-        <p class="rb-ws-empty">{{ text(search ? 'no-matches' : 'no-grids') }}</p>
-      }
+        } @empty {
+          <p class="explorer-rail-search rb-admin-hint">{{ text(search ? 'no-matches' : 'no-grids') }}</p>
+        }
+      </div>
       @if (nextSaved) {
         <button class="btn btn-outline-secondary" [disabled]="busy" (click)="loadMore()">
           {{ text('load-more') }}
         </button>
       }
-    </div>
-  </section>
-}
-@if (activeDefinition; as active) {
-  <section class="card explorer-workspace" aria-labelledby="query-title">
-    <header class="card-header rb-ws-header">
-      <h2 #editorHeading id="query-title" tabindex="-1">{{ active.name || text('untitled') }}</h2>
-      <span role="status">{{
-        text(saving ? 'saving' : dirty ? 'unsaved' : active.id ? 'saved-config' : 'not-saved')
-      }}</span>
-      @if (active.id) {
-        <details class="explorer-management">
-          <summary>{{ text('query-actions') }}</summary>
-          <div class="grid-actions">
-            <button class="btn btn-sm btn-outline-secondary" [disabled]="saving" (click)="beginSave()">
-              {{ text('rename') }}</button
-            ><button class="btn btn-sm btn-outline-secondary" [disabled]="saving" (click)="beginSave(true)">
-              {{ text('save-as') }}</button
-            ><button class="btn btn-sm btn-outline-danger" [disabled]="busy || saving" (click)="remove(active)">
-              {{ text('delete') }}
-            </button>
-          </div>
-        </details>
-      }
-    </header>
-    @if (!editorOpen) {
-      <div class="explorer-summary">
-        <div>
-          <strong>{{ mode === 'graphql' ? text('graphql') : scope?.label }}</strong>
-          <p>{{ definitionSummary(active) }}</p>
-        </div>
-        <button class="btn btn-outline-secondary" (click)="editorOpen = true">{{ text('edit-query') }}</button>
-      </div>
-    } @else {
-      <nav class="explorer-modes" [attr.aria-label]="text('query-mode')">
-        <button
-          class="btn"
-          [disabled]="saving || loadingFields"
-          [class.active]="mode === 'visual'"
-          [attr.aria-pressed]="mode === 'visual'"
-          (click)="switchMode('visual')"
-        >
-          {{ text('visual') }}</button
-        ><button
-          class="btn"
-          [disabled]="saving || loadingFields"
-          [class.active]="mode === 'graphql'"
-          [attr.aria-pressed]="mode === 'graphql'"
-          (click)="switchMode('graphql')"
-        >
-          {{ text('graphql') }}
-        </button>
-      </nav>
-      @if (mode === 'visual' && draft) {
-        <div class="explorer-query">
-          <div class="grid-basics">
-            <div>
-              <label class="rb-ws-label" for="grid-type">{{ text('record-type') }}</label
-              ><select
-                id="grid-type"
-                class="form-select"
-                [ngModel]="draft.recordType"
-                (ngModelChange)="chooseRecordType($event)"
+      <a class="explorer-rail-footer" [href]="namedQueryUrl()">{{ text('named-queries') }}</a>
+    </nav>
+    <div class="rb-admin-split-main">
+      @if (activeDefinition; as active) {
+        <section class="card explorer-query-card" aria-labelledby="query-title">
+          <header class="card-header explorer-card-heading">
+            <h2 #editorHeading id="query-title" tabindex="-1">{{ active.name || text('untitled') }}</h2>
+            <span
+              class="badge"
+              [class.rb-admin-badge-warning]="dirty || !active.id"
+              [class.rb-admin-badge-success]="!dirty && !!active.id"
+              role="status"
+              >{{ text(saving ? 'saving' : dirty ? 'unsaved' : active.id ? 'saved-config' : 'not-saved') }}</span
+            >
+            @for (link of publications; track link.name) {
+              <a class="badge rb-admin-badge-primary" [href]="namedQueryUrl(link.name)"
+                >{{ text('published-as') }} {{ link.name }}</a
               >
-                <option value="" disabled>{{ text('choose-scope') }}</option>
-                @for (type of recordTypes; track type) {
-                  <option [value]="type">{{ type }}</option>
-                }
-              </select>
-            </div>
-            <div>
-              <label class="rb-ws-label" for="grid-stage">{{ text('workflow-stage') }}</label
-              ><select
-                id="grid-stage"
-                class="form-select"
-                [ngModel]="scope?.id || ''"
-                (ngModelChange)="chooseScope($event)"
+            }
+            <div class="grid-actions explorer-header-actions">
+              <button
+                class="btn btn-outline-secondary"
+                [disabled]="!canSave"
+                (click)="active.id ? save() : beginSave()"
               >
-                <option value="" disabled>{{ text('choose-scope') }}</option>
-                @for (option of typeScopes; track option.id) {
-                  <option [value]="option.id">{{ option.workflowStage || text('all-stages') }}</option>
-                }
-              </select>
+                {{ text('save') }}
+              </button>
+              @if (publications.length > 1) {
+                <label class="explorer-publication-target"
+                  ><span class="visually-hidden">{{ text('publication-target') }}</span
+                  ><select
+                    class="form-select"
+                    [ngModel]="publicationTarget || publications[0].name"
+                    (ngModelChange)="publicationTarget = $event"
+                  >
+                    @for (link of publications; track link.name) {
+                      <option [value]="link.name">{{ link.name }}</option>
+                    }
+                  </select></label
+                >
+              }
+              @if (canPromote || promotionOpening) {
+                <button
+                  #promotionButton
+                  class="btn btn-outline-secondary"
+                  [disabled]="!canPromote"
+                  (click)="createNamedQuery()"
+                >
+                  {{ text(publications.length ? 'update-named-query' : 'publish-named-query') }}
+                </button>
+              }
+              <details rbAdminOverflow class="rb-admin-overflow">
+                <summary [attr.aria-label]="text('query-actions')">⋯</summary>
+                <div>
+                  <button class="btn" [disabled]="!canSave" (click)="beginSave(true)">{{ text('save-as') }}</button>
+                  <button class="btn" [disabled]="!active.id || saving" (click)="beginSave()">
+                    {{ text('rename') }}
+                  </button>
+                  <button class="btn" [disabled]="!active.id || busy || saving" (click)="remove(active)">
+                    {{ text('delete') }}
+                  </button>
+                </div>
+              </details>
             </div>
+          </header>
+          <div class="nav nav-tabs explorer-tabs" role="tablist" rbAdminTabs [attr.aria-label]="text('query-mode')">
+            @for (tab of ['visual', 'graphql']; track tab) {
+              <button
+                class="nav-link"
+                type="button"
+                role="tab"
+                [id]="'query-tab-' + tab"
+                [attr.aria-controls]="'query-panel-' + tab"
+                [attr.aria-selected]="mode === tab"
+                [attr.tabindex]="mode === tab ? 0 : -1"
+                [class.active]="mode === tab"
+                [disabled]="saving"
+                (click)="switchMode(tab === 'visual' ? 'visual' : 'graphql')"
+              >
+                {{ text(tab) }}
+              </button>
+            }
           </div>
-          @if (scope) {
-            <button class="btn btn-link btn-sm" [disabled]="loadingFields" (click)="chooseScope(scope.id)">
-              {{ text('refresh-fields') }}
-            </button>
-          }
-          @if (loadingFields) {
-            <p role="status">{{ text('loading-fields') }}</p>
-          }
-
-          <p class="rb-ws-lede">{{ text('match-all') }}</p>
-          @for (filter of draft.filters; track filter; let index = $index) {
-            <div class="rb-ws-item grid-filter">
-              <div>
-                <label class="rb-ws-label" [for]="'filter-field-' + index">{{ text('field') }}</label
-                ><select
-                  class="form-select"
-                  [id]="'filter-field-' + index"
-                  [ngModel]="filter.fieldId"
-                  (ngModelChange)="chooseFilterField(filter, $event)"
-                >
-                  @if (!field(filter.fieldId)?.operators?.length) {
-                    <option [value]="filter.fieldId">{{ filter.fieldId }} ({{ text('unavailable-field') }})</option>
-                  }
-                  @for (field of filterFields; track field.id) {
-                    <option [value]="field.id">{{ fieldLabel(field.id) }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                <label class="rb-ws-label" [for]="'filter-op-' + index">{{ text('condition') }}</label
-                ><select
-                  class="form-select"
-                  [id]="'filter-op-' + index"
-                  [ngModel]="filter.operator"
-                  (ngModelChange)="chooseOperator(filter, $event)"
-                >
-                  @if (!field(filter.fieldId)?.operators?.includes(filter.operator)) {
-                    <option [value]="filter.operator">
-                      {{ text('op-' + filter.operator) }} ({{ text('unavailable-field') }})
-                    </option>
-                  }
-                  @for (op of field(filter.fieldId)?.operators ?? []; track op) {
-                    <option [value]="op">{{ text('op-' + op) }}</option>
-                  }
-                </select>
-              </div>
-              <div class="grid-values">
-                @if (filter.operator !== 'exists' && field(filter.fieldId)?.type === 'datetime') {
-                  <p class="rb-ws-lede">{{ text('datetime-help') }}</p>
-                }
-                @if (filterTypeChanged(filter)) {
-                  <div class="alert alert-warning" role="alert">
-                    {{ text('filter-type-changed') }}
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary btn-sm"
-                      (click)="chooseFilterField(filter, filter.fieldId)"
+          <div role="tabpanel" id="query-panel-visual" aria-labelledby="query-tab-visual" [hidden]="mode !== 'visual'">
+            @if (draft) {
+              @if (unlinked) {
+                <p class="alert alert-info explorer-readonly" role="status">{{ text('visual-readonly') }}</p>
+              }
+              <fieldset class="explorer-visual" [disabled]="unlinked || saving">
+                <legend class="visually-hidden">{{ text('visual') }}</legend>
+                <div class="rb-admin-filter-bar">
+                  <label class="rb-admin-field"
+                    >{{ text('record-type')
+                    }}<select
+                      id="grid-type"
+                      class="form-select"
+                      [ngModel]="draft.recordType"
+                      (ngModelChange)="chooseRecordType($event)"
                     >
-                      {{ text('repair-filter-type') }}
+                      <option value="" disabled>{{ text('choose-scope') }}</option>
+                      @for (type of recordTypes; track type) {
+                        <option [value]="type">{{ recordTypeLabel(type) }}</option>
+                      }
+                    </select></label
+                  >
+                  <label class="rb-admin-field"
+                    >{{ text('workflow-stage')
+                    }}<select
+                      id="grid-stage"
+                      class="form-select"
+                      [ngModel]="scope?.id || ''"
+                      (ngModelChange)="chooseScope($event)"
+                    >
+                      <option value="" disabled>{{ text('choose-scope') }}</option>
+                      @for (option of typeScopes; track option.id) {
+                        <option [value]="option.id">{{ option.workflowStage || text('all-stages') }}</option>
+                      }
+                    </select></label
+                  >
+                  <label class="rb-admin-field"
+                    >{{ text('sort-by')
+                    }}<select
+                      id="grid-sort"
+                      class="form-select"
+                      [ngModel]="draft.sort?.fieldId || ''"
+                      (ngModelChange)="chooseSort($event)"
+                    >
+                      <option value="">{{ text('default-order') }}</option>
+                      @if (draft.sort && !field(draft.sort.fieldId)?.sortable) {
+                        <option [value]="draft.sort.fieldId">
+                          {{ draft.sort.fieldId }} ({{ text('unavailable-field') }})
+                        </option>
+                      }
+                      @for (f of sortFields; track f.id) {
+                        <option [value]="f.id">{{ fieldLabel(f.id) }}</option>
+                      }
+                    </select></label
+                  >
+                  @if (draft.sort) {
+                    <label class="rb-admin-field explorer-direction"
+                      >{{ text('direction')
+                      }}<select
+                        id="grid-direction"
+                        class="form-select"
+                        [(ngModel)]="draft.sort.direction"
+                        (ngModelChange)="changed()"
+                      >
+                        <option value="asc">{{ text('ascending') }}</option>
+                        <option value="desc">{{ text('descending') }}</option>
+                      </select></label
+                    >
+                  }
+                  <label class="rb-admin-field explorer-rows"
+                    >{{ text('rows-per-page')
+                    }}<select
+                      id="grid-page-size"
+                      class="form-select"
+                      [(ngModel)]="draft.pageSize"
+                      (ngModelChange)="changed()"
+                    >
+                      @for (size of pageSizes; track size) {
+                        <option [ngValue]="size">{{ size }}</option>
+                      }
+                    </select></label
+                  >
+                </div>
+                <div class="card-body explorer-controls">
+                  @if (loadingFields) {
+                    <p role="status">{{ text('loading-fields') }}</p>
+                  }
+                  <div class="explorer-chip-row">
+                    <strong>{{ text('conditions') }}</strong>
+                    @for (filter of draft.filters; track filter; let index = $index) {
+                      <span class="rb-admin-chip"
+                        ><button
+                          type="button"
+                          class="btn explorer-chip-label"
+                          [attr.aria-expanded]="filterEditor === index"
+                          (click)="filterEditor = filterEditor === index ? null : index"
+                        >
+                          {{ conditionLabel(filter) }}</button
+                        ><button
+                          type="button"
+                          class="btn explorer-chip-remove"
+                          [attr.aria-label]="text('remove-filter') + ': ' + conditionLabel(filter)"
+                          (click)="removeFilter(index)"
+                        >
+                          ×
+                        </button></span
+                      >
+                    }
+                    <button
+                      class="btn btn-outline-secondary"
+                      [disabled]="!filterFields.length || draft.filters.length >= limits.filters"
+                      (click)="addFilter()"
+                    >
+                      {{ text('add-filter') }}
                     </button>
                   </div>
-                }
-                @if (filter.operator === 'in') {
-                  <label class="rb-ws-label" [for]="'filter-list-' + index">{{ text('list-values') }}</label
-                  ><textarea
-                    class="form-control"
-                    [id]="'filter-list-' + index"
-                    [ngModel]="filter.values.join('\n')"
-                    (ngModelChange)="filter.values = $event.split('\n'); changed()"
-                    rows="3"
-                  ></textarea>
-                } @else {
-                  @for (value of filter.values; track $index; let vi = $index) {
-                    <div>
-                      <label class="rb-ws-label" [for]="'filter-value-' + index + '-' + vi">{{
-                        text(filter.operator === 'between' ? (vi === 0 ? 'from' : 'to') : 'value')
-                      }}</label>
-                      @if (filter.operator === 'exists' || field(filter.fieldId)?.type === 'boolean') {
-                        <select
-                          class="form-select"
-                          [id]="'filter-value-' + index + '-' + vi"
-                          [(ngModel)]="filter.values[vi]"
-                          (ngModelChange)="changed()"
-                        >
-                          <option value="" disabled>{{ text('choose-value') }}</option>
-                          <option value="true">{{ text('yes') }}</option>
-                          <option value="false">{{ text('no') }}</option>
-                        </select>
-                      } @else if (field(filter.fieldId)?.type === 'choice') {
-                        <select
-                          class="form-select"
-                          [id]="'filter-value-' + index + '-' + vi"
-                          [(ngModel)]="filter.values[vi]"
-                          (ngModelChange)="changed()"
-                        >
-                          <option value="" disabled>{{ text('choose-value') }}</option>
-                          @for (choice of field(filter.fieldId)?.choices ?? []; track choice.value) {
-                            <option [value]="choice.value">{{ choice.label }}</option>
+                  @for (filter of draft.filters; track filter; let index = $index) {
+                    @if (filterEditor === index) {
+                      <div class="grid-filter">
+                        <div>
+                          <label class="rb-ws-label" [for]="'filter-field-' + index">{{ text('field') }}</label
+                          ><select
+                            class="form-select"
+                            [id]="'filter-field-' + index"
+                            [ngModel]="filter.fieldId"
+                            (ngModelChange)="chooseFilterField(filter, $event)"
+                          >
+                            @if (!field(filter.fieldId)?.operators?.length) {
+                              <option [value]="filter.fieldId">
+                                {{ filter.fieldId }} ({{ text('unavailable-field') }})
+                              </option>
+                            }
+                            @for (field of filterFields; track field.id) {
+                              <option [value]="field.id">{{ fieldLabel(field.id) }}</option>
+                            }
+                          </select>
+                        </div>
+                        <div>
+                          <label class="rb-ws-label" [for]="'filter-op-' + index">{{ text('condition') }}</label
+                          ><select
+                            class="form-select"
+                            [id]="'filter-op-' + index"
+                            [ngModel]="filter.operator"
+                            (ngModelChange)="chooseOperator(filter, $event)"
+                          >
+                            @if (!field(filter.fieldId)?.operators?.includes(filter.operator)) {
+                              <option [value]="filter.operator">
+                                {{ text('op-' + filter.operator) }} ({{ text('unavailable-field') }})
+                              </option>
+                            }
+                            @for (op of field(filter.fieldId)?.operators ?? []; track op) {
+                              <option [value]="op">{{ text('op-' + op) }}</option>
+                            }
+                          </select>
+                        </div>
+                        <div class="grid-values">
+                          @if (filter.operator !== 'exists' && field(filter.fieldId)?.type === 'datetime') {
+                            <p class="rb-ws-lede">{{ text('datetime-help') }}</p>
                           }
-                        </select>
-                      } @else {
-                        <input
-                          class="form-control"
-                          [id]="'filter-value-' + index + '-' + vi"
-                          type="text"
-                          [attr.inputmode]="field(filter.fieldId)?.type === 'number' ? 'decimal' : null"
-                          [attr.list]="'filter-hints-' + index + '-' + vi"
-                          [maxlength]="limits.valueLength"
-                          [(ngModel)]="filter.values[vi]"
-                          (ngModelChange)="changed()"
-                        />
-                        <datalist [id]="'filter-hints-' + index + '-' + vi">
-                          @for (choice of field(filter.fieldId)?.choices ?? []; track choice.value) {
-                            <option [value]="choice.value">{{ choice.label }}</option>
+                          @if (filterTypeChanged(filter)) {
+                            <div class="alert alert-warning" role="alert">
+                              {{ text('filter-type-changed') }}
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                (click)="chooseFilterField(filter, filter.fieldId)"
+                              >
+                                {{ text('repair-filter-type') }}
+                              </button>
+                            </div>
                           }
-                        </datalist>
+                          @if (filter.operator === 'in') {
+                            <label class="rb-ws-label" [for]="'filter-list-' + index">{{ text('list-values') }}</label
+                            ><textarea
+                              class="form-control"
+                              [id]="'filter-list-' + index"
+                              [ngModel]="filter.values.join('\n')"
+                              (ngModelChange)="filter.values = $event.split('\n'); changed()"
+                              rows="3"
+                            ></textarea>
+                          } @else {
+                            @for (value of filter.values; track $index; let vi = $index) {
+                              <div>
+                                <label class="rb-ws-label" [for]="'filter-value-' + index + '-' + vi">{{
+                                  text(filter.operator === 'between' ? (vi === 0 ? 'from' : 'to') : 'value')
+                                }}</label>
+                                @if (filter.operator === 'exists' || field(filter.fieldId)?.type === 'boolean') {
+                                  <select
+                                    class="form-select"
+                                    [id]="'filter-value-' + index + '-' + vi"
+                                    [(ngModel)]="filter.values[vi]"
+                                    (ngModelChange)="changed()"
+                                  >
+                                    <option value="" disabled>{{ text('choose-value') }}</option>
+                                    <option value="true">{{ text('yes') }}</option>
+                                    <option value="false">{{ text('no') }}</option>
+                                  </select>
+                                } @else if (field(filter.fieldId)?.type === 'choice') {
+                                  <select
+                                    class="form-select"
+                                    [id]="'filter-value-' + index + '-' + vi"
+                                    [(ngModel)]="filter.values[vi]"
+                                    (ngModelChange)="changed()"
+                                  >
+                                    <option value="" disabled>{{ text('choose-value') }}</option>
+                                    @for (choice of field(filter.fieldId)?.choices ?? []; track choice.value) {
+                                      <option [value]="choice.value">{{ choice.label }}</option>
+                                    }
+                                  </select>
+                                } @else {
+                                  <input
+                                    class="form-control"
+                                    [id]="'filter-value-' + index + '-' + vi"
+                                    type="text"
+                                    [attr.inputmode]="field(filter.fieldId)?.type === 'number' ? 'decimal' : null"
+                                    [attr.list]="'filter-hints-' + index + '-' + vi"
+                                    [maxlength]="limits.valueLength"
+                                    [(ngModel)]="filter.values[vi]"
+                                    (ngModelChange)="changed()"
+                                  />
+                                  <datalist [id]="'filter-hints-' + index + '-' + vi">
+                                    @for (choice of field(filter.fieldId)?.choices ?? []; track choice.value) {
+                                      <option [value]="choice.value">{{ choice.label }}</option>
+                                    }
+                                  </datalist>
+                                }
+                              </div>
+                            }
+                          }
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary"
+                          [attr.aria-label]="text('remove-filter') + ' ' + (index + 1)"
+                          (click)="removeFilter(index)"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <button class="btn btn-outline-secondary" (click)="filterEditor = null">
+                        {{ text('done') }}
+                      </button>
+                    }
+                  }
+                  <div class="explorer-chip-row explorer-chips">
+                    <strong>{{ text('columns') }}</strong>
+                    @for (id of draft.columns; track id) {
+                      <span class="rb-admin-chip">{{ fieldLabel(id) }}</span>
+                    }
+                    <button
+                      #columnsButton
+                      class="btn btn-outline-secondary"
+                      [disabled]="!scope || loadingFields"
+                      [attr.aria-expanded]="columnsOpen"
+                      aria-controls="columns-panel"
+                      (click)="columnsOpen = true"
+                    >
+                      {{ text('edit-columns') }}
+                    </button>
+                  </div>
+                  @if (issues.length && draft.recordType) {
+                    <div aria-live="polite">
+                      @for (issue of issues; track $index) {
+                        <p class="text-danger">{{ text(issue.key) }} {{ issue.field || '' }}</p>
                       }
                     </div>
                   }
+                  @if (scope) {
+                    <details>
+                      <summary>{{ text('field-options') }}</summary>
+                      <button
+                        class="btn btn-outline-secondary"
+                        [disabled]="loadingFields"
+                        (click)="chooseScope(scope.id)"
+                      >
+                        {{ text('refresh-fields') }}
+                      </button>
+                    </details>
+                  }
+                </div>
+              </fieldset>
+            }
+          </div>
+          @if (mode === 'graphql') {
+            <div
+              role="tabpanel"
+              id="query-panel-graphql"
+              aria-labelledby="query-tab-graphql"
+              class="card-body explorer-graphql"
+            >
+              <div class="alert alert-info explorer-linked-alert" role="status">
+                <span>{{ text(unlinked ? 'graphql-unlinked' : 'graphql-linked') }}</span>
+                @if (!unlinked) {
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    [disabled]="loadingFields || !draft?.recordType || !!error"
+                    (click)="unlink()"
+                  >
+                    {{ text('unlink-edit') }}
+                  </button>
                 }
               </div>
-              <button
-                type="button"
-                class="btn btn-outline-secondary"
-                [attr.aria-label]="text('remove-filter') + ' ' + (index + 1)"
-                (click)="removeFilter(index)"
-              >
-                ×
-              </button>
-            </div>
-          } @empty {
-            <p class="rb-ws-empty">{{ text('no-filters') }}</p>
-          }
-          <button
-            type="button"
-            class="btn btn-outline-secondary rb-ws-add"
-            [disabled]="!filterFields.length || draft.filters.length >= limits.filters"
-            (click)="addFilter()"
-          >
-            {{ text('add-filter') }}
-          </button>
-          <div class="rb-ws-section mt-4">
-            <h2 class="rb-ws-pane-title">{{ text('sorting') }}</h2>
-            @if (sortTypeChanged && draft.sort) {
-              <div class="alert alert-warning" role="alert">
-                {{ text('sort-type-changed') }}
-                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="chooseSort(draft.sort.fieldId)">
-                  {{ text('repair-sort-type') }}
-                </button>
-              </div>
-            }
-            <div class="grid-basics mt-3">
-              <div>
-                <label for="grid-sort" class="rb-ws-label">{{ text('sort-by') }}</label
-                ><select
-                  id="grid-sort"
-                  class="form-select"
-                  [ngModel]="draft.sort?.fieldId || ''"
-                  (ngModelChange)="chooseSort($event)"
-                >
-                  <option value="">{{ text('default-order') }}</option>
-                  @if (draft.sort && !field(draft.sort.fieldId)?.sortable) {
-                    <option [value]="draft.sort.fieldId">
-                      {{ draft.sort.fieldId }} ({{ text('unavailable-field') }})
-                    </option>
-                  }
-                  @for (field of sortFields; track field.id) {
-                    <option [value]="field.id">{{ fieldLabel(field.id) }}</option>
-                  }
-                </select>
-              </div>
-              @if (draft.sort) {
-                <div>
-                  <label for="grid-direction" class="rb-ws-label">{{ text('direction') }}</label
-                  ><select
-                    id="grid-direction"
-                    class="form-select"
-                    [(ngModel)]="draft.sort.direction"
-                    (ngModelChange)="changed()"
-                  >
-                    <option value="asc">{{ text('ascending') }}</option>
-                    <option value="desc">{{ text('descending') }}</option>
-                  </select>
-                </div>
-              }
-            </div>
-          </div>
-          <div class="rb-ws-section mt-4">
-            <label for="grid-page-size" class="rb-ws-label">{{ text('rows-per-page') }}</label
-            ><select
-              id="grid-page-size"
-              class="form-select grid-page-size"
-              [(ngModel)]="draft.pageSize"
-              (ngModelChange)="changed()"
-            >
-              @for (size of pageSizes; track size) {
-                <option [ngValue]="size">{{ size }}</option>
-              }
-            </select>
-          </div>
-        </div>
-      }
-      @if (mode === 'graphql') {
-        <div class="explorer-query">
-          <p class="rb-ws-lede">{{ text('switch-help') }}</p>
-          <div class="explorer-code-split">
-            <div>
-              <label for="graphql-document">{{ text('document') }}</label
-              ><textarea
-                #queryEditor
-                id="graphql-document"
-                class="form-control explorer-code"
-                rows="14"
-                spellcheck="false"
-                [(ngModel)]="rawDraft.document"
-                (ngModelChange)="rawChanged()"
-                (keydown)="completeAtCursor(queryEditor, $event)"
-              ></textarea>
-            </div>
-            <div>
-              <label for="graphql-variables">{{ text('variables') }}</label
-              ><textarea
-                id="graphql-variables"
-                class="form-control explorer-code"
-                rows="9"
-                spellcheck="false"
-                [(ngModel)]="variablesText"
-                (ngModelChange)="rawChanged()"
-              ></textarea>
-              <p class="rb-ws-lede">{{ text('graphql-limits') }}</p>
-            </div>
-          </div>
-          <details #schemaDetails class="schema-assistance">
-            <summary>{{ text('schema-assistance') }}</summary>
-            <p>{{ text('schema-help') }}</p>
-            <button class="btn btn-sm btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
-              {{ text('refresh-schema') }}
-            </button>
-            @if (schemaLoading) {
-              <p role="status">{{ text('loading-fields') }}</p>
-            }
-            @if (schemaError) {
-              <p class="text-danger" role="alert">{{ text(schemaError) }}</p>
-            }
-            <div class="grid-basics">
-              <div>
-                <label for="schema-type">{{ text('schema-type') }}</label
-                ><select id="schema-type" class="form-select" [(ngModel)]="schemaType">
-                  @for (type of schemaTypes; track type) {
-                    <option [value]="type">{{ type }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                <label for="schema-search">{{ text('complete-field') }}</label
-                ><input id="schema-search" class="form-control" type="search" [(ngModel)]="schemaSearch" />
-              </div>
-            </div>
-            <ul class="schema-fields">
-              @for (field of assistFields; track field.name) {
-                <li>
-                  <button class="btn btn-link" (click)="insertCompletion(queryEditor, field.name)">
-                    {{ field.name }}</button
-                  ><code>{{ field.signature }}: {{ field.type }}</code>
-                  <p>{{ field.description }}</p>
-                </li>
-              }
-            </ul>
-          </details>
-          @if (rawErrors.length) {
-            <ul class="explorer-diagnostics" aria-live="polite">
-              @for (diagnostic of rawErrors; track $index) {
-                <li>{{ diagnostic }}</li>
-              }
-            </ul>
-          }
-        </div>
-      }
-      <div class="explorer-runrow">
-        <div class="grid-actions">
-          @if (mode === 'visual') {
-            <button class="btn btn-outline-secondary btn-sm" [disabled]="!canPreview" (click)="generateGraphql()">
-              {{ text('generate-graphql') }}
-            </button>
-          }
-        </div>
-        <div class="grid-actions">
-          <button class="btn btn-outline-secondary" [disabled]="!canSave" (click)="beginSave()">
-            {{ text('save') }}
-          </button>
-          @if (active.id) {
-            <button class="btn btn-outline-secondary" [disabled]="saving" (click)="beginSave(true)">
-              {{ text('save-as') }}
-            </button>
-          }
-          <button class="btn btn-primary" [disabled]="!canPreview" (click)="preview()">{{ text('run') }}</button>
-        </div>
-      </div>
-    }
-    @if (mode === 'visual' && issues.length && editorOpen && draft?.recordType) {
-      <div class="grid-validation" aria-live="polite">
-        @for (issue of issues; track $index) {
-          <p class="rb-ws-diagnostic rb-ws-diagnostic-warning">{{ text(issue.key) }} {{ issue.field || '' }}</p>
-        }
-      </div>
-    }
-    @if (resultsStale) {
-      <div class="explorer-stale" role="status">{{ text('results-stale') }}</div>
-    }
-    <section aria-labelledby="results-heading" [attr.aria-busy]="loadingPage">
-      <div class="explorer-toolbar">
-        <div>
-          <h2 id="results-heading">{{ text('results') }}</h2>
-          <p class="rb-ws-lede">{{ text('results-help') }}</p>
-          @if (lastExecuted) {
-            <p class="explorer-last-summary">{{ definitionSummary(lastExecuted) }}</p>
-          }
-        </div>
-        <div class="grid-actions">
-          @if (mode === 'visual') {
-            <button
-              #columnsButton
-              class="btn btn-outline-secondary"
-              [disabled]="!scope || loadingFields"
-              [attr.aria-expanded]="columnsOpen"
-              aria-controls="columns-panel"
-              (click)="columnsOpen = !columnsOpen"
-            >
-              {{ text('add-columns') }}
-            </button>
-          }
-          @if (!editorOpen) {
-            <button class="btn btn-primary" [disabled]="!canPreview" (click)="preview()">{{ text('run') }}</button>
-          }
-          @if (mode === 'graphql') {
-            <button
-              class="btn btn-outline-secondary"
-              [attr.aria-pressed]="responseView === 'grid'"
-              (click)="responseView = 'grid'"
-            >
-              {{ text('grid-view') }}</button
-            ><button
-              class="btn btn-outline-secondary"
-              [attr.aria-pressed]="responseView === 'json'"
-              (click)="responseView = 'json'"
-            >
-              JSON
-            </button>
-          }
-        </div>
-      </div>
-      @if (mode === 'visual' && draft) {
-        <div class="explorer-chips">
-          @for (id of draft.columns; track id) {
-            <span>{{ fieldLabel(id) }}</span>
-          }
-        </div>
-      }
-      @if (columnsOpen && mode === 'visual' && draft) {
-        <section id="columns-panel" class="explorer-columns" aria-labelledby="columns-heading">
-          <div class="grid-preview-heading">
-            <h3 id="columns-heading">{{ text('selected-columns') }} ({{ draft.columns.length }})</h3>
-            <button class="btn btn-sm btn-outline-secondary" (click)="columnsOpen = false">{{ text('close') }}</button>
-          </div>
-          <p>{{ text('columns-apply-help') }}</p>
-          <div class="grid-columns">
-            <section class="card rb-ws-pane" aria-labelledby="available-fields-title">
-              <div class="card-header">
-                <h2 id="available-fields-title" class="rb-ws-pane-title">{{ text('available-fields') }}</h2>
-              </div>
-              <div class="card-body">
-                <label class="rb-ws-label" for="field-search">{{ text('find-field') }}</label
-                ><input id="field-search" class="form-control" type="search" [(ngModel)]="fieldSearch" />
-                @for (field of visibleFields; track field.id) {
-                  <div class="grid-field">
-                    <input
-                      type="checkbox"
-                      [id]="'field-' + $index"
-                      [checked]="draft.columns.includes(field.id)"
-                      [disabled]="
-                        !field.selectable ||
-                        (!draft.columns.includes(field.id) && draft.columns.length >= limits.columns)
-                      "
-                      (change)="toggleColumn(field.id)"
-                    /><label [for]="'field-' + $index"
-                      ><span>{{ fieldLabel(field.id) }}</span>
-                      @if (field.path) {
-                        <small>{{ field.path }}</small>
-                      }
-                      <small
-                        >{{ text('type-' + field.type) }} ·
-                        {{
-                          text(
-                            field.repeating
-                              ? field.selectable
-                                ? 'repeating'
-                                : 'repeating-unavailable'
-                              : field.operators.length
-                                ? 'filterable'
-                                : 'display-only'
-                          )
-                        }}
-                        @if (field.sortable && !field.repeating) {
-                          · {{ text('sortable') }}
-                        }
-                        @if (field.partial) {
-                          · {{ text('partial-field') }}
-                        }
-                      </small></label
+              <div class="explorer-code-split">
+                <div class="explorer-editor">
+                  <div class="grid-preview-heading">
+                    <label for="graphql-document">{{ text('document') }}</label
+                    ><span
+                      class="badge"
+                      [class.rb-admin-badge-success]="!rawErrors.length"
+                      [class.rb-admin-badge-warning]="!!rawErrors.length"
+                      >{{ text(schemaLoading ? 'checking' : rawErrors.length ? 'needs-attention' : 'valid') }}</span
                     >
                   </div>
-                } @empty {
-                  <p class="rb-ws-empty mt-3">{{ text(scope ? 'no-fields' : 'choose-scope') }}</p>
-                }
-              </div>
-            </section>
-            <section class="card rb-ws-pane" aria-labelledby="selected-fields-title">
-              <div class="card-header">
-                <h2 id="selected-fields-title" class="rb-ws-pane-title">{{ text('selected-columns') }}</h2>
-                <span class="rb-ws-count">{{ draft.columns.length }}</span>
-              </div>
-              <div class="card-body">
-                <p class="rb-ws-lede">{{ text('column-order-help') }}</p>
-                @for (id of draft.columns; track id; let index = $index) {
-                  <div class="grid-selected">
-                    <span class="grid-position">{{ index + 1 }}</span>
-                    <div class="grid-selected-label">
-                      {{ fieldLabel(id) }}
-                      @if (!field(id)?.selectable) {
-                        <span class="text-danger">{{ text('unavailable-field') }}</span>
-                      }
-                    </div>
-                    <div class="grid-actions">
+                  <textarea
+                    #queryEditor
+                    id="graphql-document"
+                    class="form-control explorer-code"
+                    rows="12"
+                    spellcheck="false"
+                    [readOnly]="!unlinked"
+                    [(ngModel)]="rawDraft.document"
+                    (ngModelChange)="rawChanged()"
+                  ></textarea>
+                  <details class="mt-2">
+                    <summary>{{ text('variables') }}</summary>
+                    <label class="visually-hidden" for="graphql-variables">{{ text('variables') }}</label
+                    ><textarea
+                      id="graphql-variables"
+                      class="form-control explorer-code"
+                      rows="5"
+                      spellcheck="false"
+                      [readOnly]="!unlinked"
+                      [(ngModel)]="variablesText"
+                      (ngModelChange)="rawChanged()"
+                    ></textarea>
+                  </details>
+                  @if (unlinked && resultPaths.length) {
+                    <label class="rb-admin-field mt-2"
+                      >{{ text('result-path') }}
+                      <select
+                        id="graphql-result-path"
+                        class="form-select"
+                        [ngModel]="rawDraft.resultPath.join('.')"
+                        (ngModelChange)="selectResultPath($event)"
+                      >
+                        @for (path of resultPaths; track path.join('.')) {
+                          <option [value]="path.join('.')">{{ path.join('.') }}</option>
+                        }
+                      </select>
+                    </label>
+                  }
+                  <details #schemaDetails class="mt-2">
+                    <summary>{{ text('full-schema') }}</summary>
+                    <pre class="explorer-json">{{ schemaSdl }}</pre>
+                    <p class="rb-admin-hint">{{ text('graphql-limits') }}</p>
+                    <button class="btn btn-outline-secondary" [disabled]="schemaLoading" (click)="loadSchema()">
+                      {{ text('refresh-schema') }}
+                    </button>
+                    @if (schemaError) {
+                      <p class="text-danger">{{ text(schemaError) }}</p>
+                    }
+                    @if (rawErrors.length) {
+                      <p>{{ text('query-check-help') }}</p>
+                    }
+                  </details>
+                </div>
+                <aside class="explorer-field-list" [attr.aria-label]="text('available-fields')">
+                  <label class="rb-admin-field"
+                    >{{ recordTypeLabel(draft?.recordType || '') }} {{ text('available-fields')
+                    }}<input class="form-control" type="search" [(ngModel)]="schemaSearch"
+                  /></label>
+                  <div class="explorer-field-list-items" tabindex="0" [attr.aria-label]="text('available-fields')">
+                    @for (field of graphqlFields; track field.id) {
                       <button
                         type="button"
-                        class="btn btn-sm btn-outline-secondary"
-                        [disabled]="index === 0"
-                        [attr.aria-label]="text('move-up') + ': ' + fieldLabel(id)"
-                        (click)="moveColumn(index, -1)"
+                        class="explorer-insert-field"
+                        [disabled]="!unlinked"
+                        (click)="insertField(queryEditor, field.id)"
                       >
-                        ↑</button
-                      ><button
-                        type="button"
-                        class="btn btn-sm btn-outline-secondary"
-                        [disabled]="index === draft.columns.length - 1"
-                        [attr.aria-label]="text('move-down') + ': ' + fieldLabel(id)"
-                        (click)="moveColumn(index, 1)"
-                      >
-                        ↓</button
-                      ><button
-                        type="button"
-                        class="btn btn-sm btn-outline-secondary"
-                        [attr.aria-label]="text('remove-column') + ': ' + fieldLabel(id)"
-                        (click)="toggleColumn(id)"
-                      >
-                        ×
+                        <span>{{ fieldLabel(field.id) }}</span
+                        ><code>{{ field.path || field.id }}</code>
                       </button>
-                    </div>
+                    }
                   </div>
-                } @empty {
-                  <p class="rb-ws-empty">{{ text('choose-columns') }}</p>
-                }
+                  <p class="rb-admin-hint">{{ text('insert-field-help') }}</p>
+                </aside>
               </div>
-            </section>
-          </div>
+            </div>
+          }
+          <footer class="card-footer explorer-panel-footer">
+            <span role="status">{{ text(resultsStale ? 'results-stale' : 'run-query-help') }}</span>
+            <button class="btn btn-primary" [disabled]="!canPreview" (click)="preview()">{{ text('run') }}</button>
+          </footer>
+        </section>
+        <section class="card explorer-results" aria-labelledby="results-heading" [attr.aria-busy]="loadingPage">
+          <header class="card-header explorer-card-heading">
+            <h2 id="results-heading">{{ text('results') }}</h2>
+            <span role="status">
+              @if (hasPreview) {
+                {{ rows.length }} {{ text('rows-shown') }}
+                @if (hasNext) {
+                  · {{ text('more-available') }}
+                }
+              }
+            </span>
+            <div
+              class="rb-admin-segmented explorer-header-actions"
+              role="group"
+              [attr.aria-label]="text('result-view')"
+            >
+              <button
+                class="btn btn-outline-secondary"
+                [attr.aria-pressed]="responseView === 'grid'"
+                (click)="responseView = 'grid'"
+              >
+                {{ text('grid-view') }}</button
+              ><button
+                class="btn btn-outline-secondary"
+                [attr.aria-pressed]="responseView === 'json'"
+                (click)="responseView = 'json'"
+              >
+                {{ text('json-view') }}
+              </button>
+            </div>
+          </header>
+          @if (loadingPage) {
+            <p class="explorer-message" role="status">{{ text('loading-results') }}</p>
+          }
+          @if (previewError) {
+            <p class="alert alert-danger" role="alert">{{ text(previewError) }}</p>
+          }
+          @if (hasPreview) {
+            @if (responseView === 'json') {
+              <pre class="explorer-json">{{ jsonResponse | json }}</pre>
+            } @else {
+              @defer (when hasPreview) {
+                <rb-explorer-results-grid
+                  [rows]="rows"
+                  [columns]="columnDefs"
+                  [defaults]="defaultColDef"
+                  [label]="text('results')"
+                ></rb-explorer-results-grid>
+              } @placeholder {
+                <div class="grid-results" role="status">{{ text('loading-results') }}</div>
+              }
+              @if (!rows.length && !previewError) {
+                <p class="explorer-message" role="status">{{ text('no-results') }}</p>
+              }
+            }
+            @if (unlinked && jsonResponse) {
+              <details class="explorer-path">
+                <summary>{{ text('result-path') }}</summary>
+                <label for="result-path">{{ text('result-path') }}</label
+                ><select
+                  id="result-path"
+                  class="form-select"
+                  [ngModel]="rawDraft.resultPath.join('.')"
+                  (ngModelChange)="selectResultPath($event)"
+                >
+                  <option value="">{{ text('choose-result-path') }}</option>
+                  @for (path of resultPaths; track path.join('.')) {
+                    <option [value]="path.join('.')">{{ path.join('.') }}</option>
+                  }
+                </select>
+              </details>
+            }
+          } @else if (!loadingPage && !previewError) {
+            <div class="rb-admin-empty explorer-message">
+              {{ text(draft?.recordType || unlinked ? 'run-query-help' : 'choose-scope') }}
+            </div>
+          }
+          <footer class="card-footer grid-pagination">
+            <span>{{ text('page') }} {{ page + 1 }}</span>
+            <div class="grid-actions">
+              <button
+                class="btn btn-outline-secondary"
+                [disabled]="!hasPreview || page === 0 || loadingPage || resultsStale"
+                (click)="preview(page - 1)"
+              >
+                {{ text('previous') }}</button
+              ><button
+                class="btn btn-outline-secondary"
+                [disabled]="!hasNext || loadingPage || resultsStale"
+                (click)="preview(page + 1)"
+              >
+                {{ text('next') }}
+              </button>
+            </div>
+          </footer>
         </section>
       }
-      @if (mode === 'graphql' && jsonResponse) {
-        <div class="explorer-path">
-          <label for="result-path">{{ text('result-path') }}</label
-          ><select
-            id="result-path"
-            class="form-select"
-            [ngModel]="rawDraft.resultPath.join('.')"
-            (ngModelChange)="selectResultPath($event)"
-          >
-            <option value="">{{ text('choose-result-path') }}</option>
-            @for (path of resultPaths; track path.join('.')) {
-              <option [value]="path.join('.')">{{ path.join('.') }}</option>
-            }</select
-          ><small>{{ text('mapping-help') }}</small>
-        </div>
-      }
-      @if (loadingPage) {
-        <p class="explorer-message" role="status">{{ text('loading-results') }}</p>
-      }
-      @if (previewError) {
-        <div class="alert alert-danger" role="alert">{{ text(previewError) }}</div>
-      }
-      @if (hasPreview) {
-        @if (mode === 'graphql' && responseView === 'json') {
-          <pre class="explorer-json">{{ jsonResponse | json }}</pre>
-        } @else {
-          <ag-grid-angular
-            class="ag-theme-quartz grid-results"
-            theme="legacy"
-            [rowData]="rows"
-            [columnDefs]="columnDefs"
-            [defaultColDef]="defaultColDef"
-            [getRowId]="getRowId"
-            [pagination]="false"
-            [animateRows]="false"
-            [suppressNoRowsOverlay]="true"
-            [attr.aria-label]="text('results')"
-          ></ag-grid-angular>
-          @if (!rows.length && !previewError) {
-            <p class="rb-ws-empty" role="status">{{ text('no-results') }}</p>
-          }
-        }
-        <div class="grid-pagination">
-          <span role="status">{{ text('page') }} {{ page + 1 }} · {{ rows.length }} {{ text('rows-shown') }}</span>
-          <div class="grid-actions">
-            <button
-              class="btn btn-outline-secondary"
-              [disabled]="page === 0 || loadingPage || resultsStale"
-              (click)="preview(page - 1)"
-            >
-              {{ text('previous') }}</button
-            ><button
-              class="btn btn-outline-secondary"
-              [disabled]="!hasNext || loadingPage || resultsStale"
-              (click)="preview(page + 1)"
-            >
-              {{ text('next') }}
-            </button>
-          </div>
-        </div>
-        @if (mode === 'graphql' && !rawPaginated) {
-          <p class="explorer-message">{{ text('nonpaginated') }}</p>
-        }
-      } @else if (!loadingPage && !previewError) {
-        <p class="explorer-message">
-          {{ text(draft?.recordType || mode === 'graphql' ? 'run-query-help' : 'choose-scope') }}
-        </p>
-      }
-    </section>
-  </section>
-}
-<dialog
-  #saveDialog
-  class="explorer-save"
-  (close)="saveOpen = false"
-  (cancel)="saveOpen = false"
-  aria-labelledby="save-query-heading"
->
-  <h2 id="save-query-heading">{{ text(savingAs ? 'save-as' : 'save') }}</h2>
-  <form (ngSubmit)="confirmSave()">
-    <label for="grid-name">{{ text('name') }}</label
-    ><input id="grid-name" class="form-control" name="queryName" maxlength="120" [(ngModel)]="saveName" required />
-    <p>{{ text('save-help') }}</p>
-    @if (error) {
-      <p class="text-danger" role="alert">{{ text(error) }}</p>
-    }
-    <div class="grid-actions">
-      <button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="saveDialog.close()">
-        {{ text('cancel') }}</button
-      ><button type="submit" class="btn btn-primary" [disabled]="saving || !saveName.trim()">{{ text('save') }}</button>
     </div>
-  </form>
-</dialog>
-
+  </div>
+  <dialog
+    #saveDialog
+    class="explorer-save"
+    (close)="saveOpen = false"
+    (cancel)="saveOpen = false; publishAfterSave = false"
+    aria-labelledby="save-query-heading"
+  >
+    <h2 id="save-query-heading">{{ text(savingAs ? 'save-as' : 'save') }}</h2>
+    <form (ngSubmit)="confirmSave()">
+      <label for="grid-name">{{ text('name') }}</label
+      ><input id="grid-name" class="form-control" name="queryName" maxlength="120" [(ngModel)]="saveName" required />
+      <p>{{ text(publishAfterSave ? 'save-before-publish' : 'save-help') }}</p>
+      @if (error) {
+        <p class="text-danger" role="alert">{{ text(error) }}</p>
+      }
+      <div class="grid-actions">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          [disabled]="saving"
+          (click)="publishAfterSave = false; saveDialog.close()"
+        >
+          {{ text('cancel') }}</button
+        ><button type="submit" class="btn btn-primary" [disabled]="saving || !saveName.trim()">
+          {{ text('save') }}
+        </button>
+      </div>
+    </form>
+  </dialog>
 </div>
-@if (promotion; as prepared) {
-  <rb-explorer-named-query [prepared]="prepared" (closed)="closePromotion()" (saved)="closePromotion(true)"></rb-explorer-named-query>
+@defer (when columnsOpen) {
+  @if (columnsOpen && draft) {
+    <rb-explorer-columns
+      [fields]="scope?.fields || []"
+      [selected]="draft.columns"
+      [subtitle]="recordTypeLabel(draft.recordType) + ' · ' + (draft.workflowStage || text('all-stages'))"
+      (closed)="columnsOpen = false"
+      (applied)="applyColumns($event)"
+    ></rb-explorer-columns>
+  }
+}
+@defer (when promotion) {
+  @if (promotion; as prepared) {
+    <rb-explorer-named-query
+      [prepared]="prepared"
+      [exploration]="promotionOrigin"
+      [fieldLabels]="fieldLabels"
+      [resultFields]="publicationFields"
+      [updateName]="publicationTarget || publications[0]?.name || ''"
+      (closed)="closePromotion()"
+      (saved)="closePromotion(true)"
+    ></rb-explorer-named-query>
+  }
 }

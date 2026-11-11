@@ -12,6 +12,11 @@ export type Scalar = RecordGridScalar;
 export type FieldType = 'text' | 'number' | 'datetime' | 'boolean' | 'choice' | 'structured' | 'unavailable';
 export type Operator = RecordGridOperator;
 export interface GridField {
+  group?: string;
+  groupPath?: string[];
+  repeatingSubfield?: boolean;
+  repeatingGroupId?: string;
+  selections?: { variant: string; selection: string; responsePath: string[] }[];
   id: string;
   label: string;
   path?: string;
@@ -28,6 +33,7 @@ export interface GridScope {
   id: string;
   label: string;
   recordType: string;
+  recordTypeLabel?: string;
   workflowStage?: string;
   fields: GridField[];
   revision?: string;
@@ -47,7 +53,12 @@ export interface GridFilter {
   operator: Operator;
   values: string[];
 }
-export interface GridDefinition {
+export interface SavedQueryPresentation {
+  publishedAs?: import('@researchdatabox/sails-ng-common').PublishedExplorerQuery[];
+  updatedAt?: string | null;
+  updatedBy?: import('@researchdatabox/sails-ng-common').ExplorerQueryAuthor | null;
+}
+export interface GridDefinition extends SavedQueryPresentation {
   mode?: 'visual';
   version: 1;
   id?: string;
@@ -61,7 +72,7 @@ export interface GridDefinition {
   pageSize: number;
 }
 export type JsonValue = null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
-export interface RawDefinition {
+export interface RawDefinition extends SavedQueryPresentation {
   version: 1;
   mode: 'graphql';
   id?: string;
@@ -209,4 +220,20 @@ export function validCellValue(value: unknown, depth = 0): value is JsonValue {
   if (typeof value === 'number') return Number.isFinite(value);
   if (Array.isArray(value)) return value.every(item => validCellValue(item, depth + 1));
   return !!value && typeof value === 'object' && Object.values(value).every(item => validCellValue(item, depth + 1));
+}
+
+/** Prefer common record columns, retaining the catalogue order only as a last resort. */
+export function defaultColumns(fields: GridField[]): string[] {
+  const available = fields.filter(field => field.selectable && !field.repeating && !field.repeatingSubfield);
+  const title =
+    available.find(field => field.id === 'metadata:/title') ??
+    available.find(field => /(^|[:/])title$/i.test(field.id));
+  const ids = [title?.id, 'record:workflowStep', 'record:lastModified', 'record:oid'].filter(
+    (id): id is string => !!id && available.some(f => f.id === id)
+  );
+  return ids.length ? [...new Set(ids)] : available.slice(0, 4).map(field => field.id);
+}
+export function editableQuery(query: SavedQuery): SavedQuery {
+  const { publishedAs, updatedAt, updatedBy, ...definition } = query;
+  return definition;
 }

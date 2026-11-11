@@ -52,14 +52,13 @@ function described(valid: boolean): GraphqlNamedQueryDescription {
   };
 }
 
-describe('Explorer detached named-query promotion', () => {
+describe('Explorer publishing workspace', () => {
   let fixture: ComponentFixture<DataGridsComponent>;
   let explorer: DataGridsComponent;
   let source: jasmine.SpyObj<Required<DataGridSource>>;
   let api: jasmine.SpyObj<NamedQueryApiService>;
-  let handoff: NamedQueryPromotionDraft;
+  const id = '0123456789abcdef01234567';
   beforeEach(async () => {
-    handoff = prepared();
     source = jasmine.createSpyObj<Required<DataGridSource>>('explorer', [
       'catalogue',
       'list',
@@ -72,20 +71,22 @@ describe('Explorer detached named-query promotion', () => {
     ]);
     source.catalogue.and.resolveTo({ scopes: [structuredClone(scope)], persistence: true });
     source.list.and.resolveTo({ grids: [], next: null });
-    source.prepareNamedQuery!.and.resolveTo(handoff);
+    source.prepareNamedQuery.and.resolveTo(prepared());
+    source.save.and.callFake(async definition => ({ ...definition, id, revision: 5 }));
     api = jasmine.createSpyObj<NamedQueryApiService>('named queries', [
       'waitForInit',
-      'graphqlSchema',
       'describe',
       'create',
+      'get',
+      'reviewUpdate',
+      'update',
+      'preview',
     ]);
     api.waitForInit.and.resolveTo(api);
-    api.graphqlSchema.and.resolveTo({ sdl: testSdl });
-    api.describe.and.resolveTo(described(false));
-    api.create.and.resolveTo({ name: 'independent' });
+    api.describe.and.resolveTo(described(true));
+    api.create.and.resolveTo({ name: 'Current' });
     await TestBed.configureTestingModule({
-      declarations: [DataGridsComponent],
-      imports: [CommonModule, FormsModule, AgGridAngular, I18NextPipe, AdminTabsDirective, ExplorerNamedQueryComponent],
+      imports: [DataGridsComponent],
       providers: [
         { provide: DATA_GRID_SOURCE, useValue: source },
         { provide: NamedQueryApiService, useValue: api },
@@ -105,24 +106,13 @@ describe('Explorer detached named-query promotion', () => {
     fixture.nativeElement.setAttribute('can-create-named-query', 'true');
     await explorer.load();
     spyOn(explorer, 'ngOnInit');
-    explorer.open({ ...validGrid(), id: '0123456789abcdef01234567', revision: 4 });
-    explorer.draft!.name = 'Current unsaved name';
-    fixture.detectChanges();
-    await fixture.whenStable();
+    explorer.open({ ...validGrid(), name: 'Current', id, revision: 4 }, false);
+    await render();
   });
   afterEach(() => {
     fixture.destroy();
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
   });
-  function origin() {
-    return JSON.stringify({
-      draft: explorer.draft,
-      raw: explorer.rawDraft,
-      values: explorer.variablesText,
-      mode: explorer.mode,
-      url: window.location.href,
-    });
-  }
   async function render() {
     fixture.detectChanges();
     await fixture.whenStable();
@@ -131,320 +121,191 @@ describe('Explorer detached named-query promotion', () => {
   async function open() {
     await explorer.createNamedQuery();
     await render();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    await render();
     return fixture.debugElement.query(By.directive(ExplorerNamedQueryComponent))
       .componentInstance as ExplorerNamedQueryComponent;
   }
-  function editor() {
-    return fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent))
-      .componentInstance as GraphqlDraftEditorComponent;
-  }
-  async function ready(child: ExplorerNamedQueryComponent) {
-    const input = fixture.nativeElement.querySelector('#nq-graphql-name') as HTMLInputElement;
-    input.value = 'independent';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    await render();
-    editor().tab = 'variables';
-    await render();
-    for (const key of ['type', 'first']) {
-      const select = fixture.nativeElement.querySelector('#nq-owner-' + key) as HTMLSelectElement;
-      select.value = 'fixed';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-    api.describe.and.resolveTo(described(true));
-    await child.validate();
-    await render();
-  }
-  for (const mode of ['visual', 'graphql'] as const) {
-    it(`uses current unsaved ${mode} values and cancels without changing the explorer or URL`, async () => {
-      if (mode === 'graphql') {
-        explorer.mode = 'graphql';
-        explorer.schema = editorSchema(testSdl);
-        explorer.rawDraft = {
-          version: 1,
-          mode: 'graphql',
-          id: '0123456789abcdef01234567',
-          revision: 4,
-          name: 'Current raw name',
-          document: 'query Current($type: String!) { records(recordType: $type) { nodes { oid } } }',
-          variables: { type: 'STALE_PARSED_VALUE' },
-          resultPath: ['records', 'nodes'],
-        };
-        explorer.variablesText = '{"type":"CURRENT_UNSAVED_VALUE"}';
-      } else {
-        explorer.draft!.columns.push('budget');
-        explorer.draft!.pageSize = 50;
-        explorer.draft!.filters = [
-          { fieldId: 'title', expectedScalarType: 'STRING', operator: 'contains', values: ['CURRENT_UNSAVED_VALUE'] },
-        ];
-      }
-      const before = origin();
-      const child = await open();
-      const sent = source.prepareNamedQuery!.calls.mostRecent().args[0];
-      expect(sent === explorer.activeDefinition).toBeFalse();
-      if (sent.mode === 'graphql') expect<unknown>(sent.variables['type']).toBe('CURRENT_UNSAVED_VALUE');
-      else {
-        expect(sent.columns).toEqual(['title', 'budget']);
-        expect(sent.filters[0].values).toEqual(['CURRENT_UNSAVED_VALUE']);
-      }
-      expect(child.draft.name).toBe('');
-      expect(child.draft.graphql.variables).toEqual({});
-      expect(fixture.nativeElement.querySelector('#promotion-save').disabled).toBeTrue();
-      expect(fixture.nativeElement.querySelector('#explorer-workspace').hidden).toBeTrue();
-      expect(fixture.nativeElement.querySelector('#explorer-workspace').hasAttribute('inert')).toBeTrue();
-      expect(document.activeElement).toBe(fixture.nativeElement.querySelector('rb-explorer-named-query h2'));
-      child.draft.description = 'Detached edits';
-      child.changed();
-      await render();
-      child.cancel();
-      await render();
-      const dialog = fixture.nativeElement.querySelector('[role="alertdialog"]') as HTMLElement;
-      expect(dialog.getAttribute('aria-modal')).toBe('true');
-      expect(dialog.textContent).toContain('data-grids-promotion-discard-help');
-      expect(dialog.contains(document.activeElement)).toBeTrue();
-      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      await render();
-      expect(child.confirmCancel).toBeFalse();
-      expect(explorer.promotion).not.toBeNull();
-      child.cancel();
-      await render();
-      child.discard();
-      await render();
-      expect(explorer.promotion).toBeNull();
-      expect(origin()).toBe(before);
-      expect(source.save).not.toHaveBeenCalled();
-      expect(source.query).not.toHaveBeenCalled();
-      expect(source.raw).not.toHaveBeenCalled();
-      expect(api.create).not.toHaveBeenCalled();
-      expect(document.activeElement?.textContent).toContain('data-grids-create-named-query');
-    });
-  }
-  it('checks the destination permission independently and preserves the origin on denied or failed preparation', async () => {
-    fixture.nativeElement.setAttribute('can-create-named-query', 'false');
-    const before = origin();
-    expect(explorer.canPreview).toBeTrue();
-    expect(explorer.canPromote).toBeFalse();
-    await explorer.createNamedQuery();
-    expect(source.prepareNamedQuery).not.toHaveBeenCalled();
-    fixture.nativeElement.setAttribute('can-create-named-query', 'true');
-    for (const status of [403, 500]) {
-      source.prepareNamedQuery!.and.rejectWith(new HttpErrorResponse({ status }));
-      await explorer.createNamedQuery();
-      await render();
-      expect(explorer.promotion).toBeNull();
-      expect(origin()).toBe(before);
-      expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(
-        status === 403 ? 'promotion-denied' : 'promotion-open-failed'
-      );
-    }
-    expect(source.save).not.toHaveBeenCalled();
-    expect(api.create).not.toHaveBeenCalled();
-  });
-  for (const status of [403, 500])
-    it(`announces deferred preparation outside inert controls and restores focus after ${status}`, fakeAsync(() => {
-      const before = origin();
-      let reject!: (reason: unknown) => void;
-      source.prepareNamedQuery.and.returnValue(
-        new Promise((_, fail) => {
-          reject = fail;
-        })
-      );
-      const trigger = explorer.promotionButton!.nativeElement;
-      trigger.focus();
-      void explorer.createNamedQuery();
-      fixture.detectChanges();
-      const progress = fixture.nativeElement.querySelector('#explorer-promotion-status [role="status"]') as HTMLElement;
-      expect(progress.textContent).toContain('data-grids-promotion-opening');
-      expect(progress.closest('[inert], [hidden], [aria-hidden="true"]')).toBeNull();
-      expect(fixture.nativeElement.querySelector('#explorer-workspace').hasAttribute('inert')).toBeTrue();
-      expect(trigger.disabled).toBeTrue();
-      trigger.blur();
-      reject(new HttpErrorResponse({ status }));
-      flushMicrotasks();
-      tick(0);
-      fixture.detectChanges();
-      const error = fixture.nativeElement.querySelector('#explorer-promotion-status [role="alert"]') as HTMLElement;
-      expect(error.textContent).toContain(status === 403 ? 'promotion-denied' : 'promotion-open-failed');
-      expect(error.closest('[inert], [hidden], [aria-hidden="true"]')).toBeNull();
-      expect(fixture.nativeElement.querySelector('#explorer-workspace').hasAttribute('inert')).toBeFalse();
-      expect(document.activeElement).toBe(trigger);
-      expect(origin()).toBe(before);
-      expect(source.save).not.toHaveBeenCalled();
-      expect(api.create).not.toHaveBeenCalled();
-    }));
-  it('blocks invalid current raw JSON without falling back to previously parsed variables', async () => {
-    explorer.mode = 'graphql';
-    explorer.schema = editorSchema(testSdl);
-    explorer.rawDraft.document = 'query { records(recordType: "plan") { nodes { oid } } }';
-    explorer.variablesText = '{unfinished';
-    expect(explorer.canPromote).toBeFalse();
-    await explorer.createNamedQuery();
-    expect(source.prepareNamedQuery).not.toHaveBeenCalled();
-    expect(source.save).not.toHaveBeenCalled();
-  });
-  it('deep copies candidate mappings and fixed values while leaving consumer defaults explicit', async () => {
-    handoff.variableValues['first'] = { nested: [false, 0] };
+  it('keeps the explorer and breadcrumb mounted under a focused, cancellable side panel', async () => {
+    const origin = JSON.stringify(explorer.activeDefinition),
+      url = window.location.href;
+    fixture.nativeElement.querySelector('.explorer-header-actions button:nth-child(2)').focus();
     const child = await open();
-    const draftEditor = editor();
-    expect(draftEditor.ownership('first')).toBe('');
-    draftEditor.classify('first', 'consumer');
-    expect(Object.hasOwn(draftEditor.binding('first')!, 'defaultValue')).toBeFalse();
-    draftEditor.classify('first', 'fixed');
-    expect(draftEditor.fixed('first') === handoff.variableValues['first']).toBeFalse();
-    handoff.variableValues['first'] = { nested: ['origin edited'] };
-    handoff.definition.graphql.mappings!.oid!.push('origin changed');
-    expect(JSON.stringify(draftEditor.fixed('first'))).toBe('{"nested":[false,0]}');
-    expect(child.draft.graphql.mappings!.oid).toEqual(['oid']);
-    child.draft.graphql.mappings!.title!.push('detached changed');
-    expect(handoff.definition.graphql.mappings!.title).toEqual(['title']);
-  });
-  for (const status of [403, 409, 500])
-    it(`keeps the detached editor and explorer intact after save ${status}`, async () => {
-      const before = origin();
-      const child = await open();
-      await ready(child);
-      expect(child.canSave).toBeTrue();
-      let reject!: (error: HttpErrorResponse) => void;
-      api.create.and.returnValue(
-        new Promise((_resolve, no) => {
-          reject = no;
-        })
-      );
-      const candidate = JSON.stringify(child.draft);
-      const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
-      save.focus();
-      const saving = child.save();
-      await render();
-      expect(save.disabled).toBeTrue();
-      save.blur();
-      await new Promise(resolve => setTimeout(resolve, 0));
-      expect(document.activeElement).not.toBe(save);
-      reject(new HttpErrorResponse({ status }));
-      await saving;
-      await render();
-      await new Promise(resolve => setTimeout(resolve, 0));
-      expect(save.disabled).toBeFalse();
-      expect(document.activeElement).toBe(save);
-      expect(JSON.stringify(child.draft)).toBe(candidate);
-      expect(explorer.promotion).not.toBeNull();
-      expect(origin()).toBe(before);
-      const key = status === 403 ? 'denied' : status === 409 ? 'name-exists' : 'save-failed';
-      expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(
-        'data-grids-promotion-' + key
-      );
-      expect(source.save).not.toHaveBeenCalled();
-    });
-  it('returns focus to the heading after deferred validation invalidates Save', async () => {
-    const before = origin();
-    const child = await open();
-    await ready(child);
-    let resolve!: (description: GraphqlNamedQueryDescription) => void;
-    api.describe.and.returnValue(
-      new Promise(yes => {
-        resolve = yes;
-      })
-    );
-    const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
-    save.focus();
-    const saving = child.save();
+    const workspace = fixture.nativeElement.querySelector('#explorer-workspace');
+    expect(workspace.hidden).toBeFalse();
+    expect(workspace.hasAttribute('inert')).toBeTrue();
+    expect(workspace.querySelector('.rb-admin-crumbs')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]').contains(document.activeElement)).toBeTrue();
+    expect(child.draft.graphql.provenance?.explorerId).toBe(id);
+    child.cancel();
     await render();
-    save.blur();
-    expect(save.disabled).toBeTrue();
-    resolve(described(false));
-    await saving;
-    await render();
-    await new Promise(yes => setTimeout(yes, 0));
-    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#promotion-heading'));
-    expect(save.disabled).toBeTrue();
-    expect(api.create).not.toHaveBeenCalled();
-    expect(origin()).toBe(before);
-  });
-  it('does not restore focus or persist after destruction during validation', async () => {
-    const child = await open();
-    await ready(child);
-    let resolve!: (description: GraphqlNamedQueryDescription) => void;
-    api.describe.and.returnValue(
-      new Promise(yes => {
-        resolve = yes;
-      })
-    );
-    const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
-    save.focus();
-    const saving = child.save();
-    await render();
-    const focus = spyOn(save, 'focus').and.callThrough();
-    explorer.closePromotion();
-    await render();
-    resolve(described(true));
-    await saving;
-    await new Promise(yes => setTimeout(yes, 0));
-    expect(focus).not.toHaveBeenCalled();
-    expect(api.create).not.toHaveBeenCalled();
-  });
-  for (const [status, code, expected] of [
-    [503, 'GRAPHQL_DISABLED', 'disabled'],
-    [503, 'UNAVAILABLE', 'unavailable'],
-    [503, 'QUERY_TIMEOUT', 'timeout'],
-    [504, 'QUERY_TIMEOUT', 'timeout'],
-    [400, 'schema-changed', 'schema-changed'],
-    [503, 'PRIVATE_CODE', 'unavailable'],
-  ] as const)
-    it(`announces safe preparation ${status}/${code} and preserves the exploration`, async () => {
-      const before = origin();
-      // v2 and legacy v1 envelopes must give the same useful, translated error.
-      for (const body of [
-        { errors: [{ code, detail: 'PRIVATE QUERY' }] },
-        { error: { code, title: 'PRIVATE QUERY' } },
-      ]) {
-        source.prepareNamedQuery.and.rejectWith(new HttpErrorResponse({ status, error: body }));
-        const trigger = explorer.promotionButton!.nativeElement;
-        await explorer.createNamedQuery();
-        await render();
-        await new Promise(yes => setTimeout(yes, 0));
-        expect(explorer.promotionError).toBe('promotion-' + expected);
-        const live = fixture.nativeElement.querySelector('#explorer-promotion-status') as HTMLElement;
-        expect(live.textContent).toContain('data-grids-promotion-' + expected);
-        expect(live.textContent).not.toContain('PRIVATE');
-        expect(origin()).toBe(before);
-        expect(explorer.promotion).toBeNull();
-        expect(api.create).not.toHaveBeenCalled();
-        expect(source.save).not.toHaveBeenCalled();
-        expect(document.activeElement).toBe(trigger);
-      }
-    });
-  it('permits a valid nonlookup save, leaving the original exploration unchanged', async () => {
-    const before = origin();
-    const child = await open();
-    await ready(child);
-    expect(child.description?.capabilities?.lookup).toBeFalse();
-    expect(child.canSave).toBeTrue();
-    expect(fixture.nativeElement.querySelector('rb-explorer-named-query main')).toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="region"][aria-labelledby="promotion-heading"]')).not.toBeNull();
-    const save = fixture.nativeElement.querySelector('#promotion-save') as HTMLButtonElement;
-    const focus = spyOn(save, 'focus').and.callThrough();
-    await child.save();
-    await new Promise(yes => setTimeout(yes, 0));
-    expect(focus).not.toHaveBeenCalled();
-    await render();
-    expect(api.create).toHaveBeenCalledTimes(1);
-    expect(api.create.calls.mostRecent().args[0].source).toBe('graphql');
     expect(explorer.promotion).toBeNull();
-    expect(explorer.promotionSaved).toBeTrue();
-    expect(origin()).toBe(before);
+    expect(JSON.stringify(explorer.activeDefinition)).toBe(origin);
+    expect(window.location.href).toBe(url);
     expect(source.save).not.toHaveBeenCalled();
   });
-  it('keeps malformed detached path text pending and blocks persistence', async () => {
+  it('prefills saved values as fixed parameters and paging without errors on open', async () => {
     const child = await open();
-    await ready(child);
-    editor().tab = 'mappings';
+    expect(child.draft.name).toBe('Current');
+    expect(child.error).toBe('');
+    expect<unknown>(child.draft.graphql.variables['type']).toEqual({ ownership: 'fixed', value: 'plan' });
+    expect(child.parameterRows.find(row => row.variable === 'first')?.paging).toBeTrue();
+    expect(fixture.nativeElement.textContent).not.toContain('Blocking error');
+    expect(child.canSave).toBeTrue();
+  });
+  it('saves dirty queries before preparing an exact linked revision', async () => {
+    explorer.draft!.name = 'Changed';
+    await explorer.createNamedQuery();
     await render();
-    const textarea = fixture.nativeElement.querySelector('#nq-graphql-panel-mappings textarea') as HTMLTextAreaElement;
-    textarea.value = '["unfinished"';
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(explorer.saveOpen).toBeTrue();
+    expect(source.prepareNamedQuery).not.toHaveBeenCalled();
+    explorer.saveName = 'Changed';
+    await explorer.confirmSave();
     await render();
-    expect(child.pendingInput).toBeTrue();
-    expect(child.canSave).toBeFalse();
+    expect(source.save.calls.mostRecent().args[0].name).toBe('Changed');
+    expect(source.prepareNamedQuery.calls.mostRecent().args[0].revision).toBe(5);
+    expect(explorer.promotion).not.toBeNull();
+  });
+  it('does not publish after a revision-conflict save', async () => {
+    explorer.draft!.name = 'Changed';
+    source.save.and.rejectWith(new Error('conflict'));
+    await explorer.createNamedQuery();
+    explorer.saveName = 'Changed';
+    await explorer.confirmSave();
+    expect(explorer.saveOpen).toBeTrue();
+    expect(source.prepareNamedQuery).not.toHaveBeenCalled();
+    expect(explorer.dirty).toBeTrue();
+  });
+  for (const status of [401, 403, 500, 503, 504])
+    it(`keeps origin on preparation failure ${status}`, async () => {
+      const origin = JSON.stringify(explorer.activeDefinition);
+      source.prepareNamedQuery.and.rejectWith(new HttpErrorResponse({ status }));
+      await explorer.createNamedQuery();
+      expect(explorer.promotion).toBeNull();
+      expect(explorer.promotionError).not.toBe('');
+      expect(JSON.stringify(explorer.activeDefinition)).toBe(origin);
+    });
+  it('ignores prepared state after destruction', async () => {
+    let resolve!: (value: NamedQueryPromotionDraft) => void;
+    source.prepareNamedQuery.and.returnValue(new Promise(yes => (resolve = yes)));
+    const work = explorer.createNamedQuery();
+    fixture.destroy();
+    resolve(prepared());
+    await work;
+    expect(explorer.promotion).toBeNull();
+  });
+  it('rejects a prepared handoff if the query changed while it was loading', async () => {
+    let resolve!: (value: NamedQueryPromotionDraft) => void;
+    source.prepareNamedQuery.and.returnValue(new Promise(yes => (resolve = yes)));
+    const work = explorer.createNamedQuery();
+    explorer.draft!.name = 'Later';
+    resolve(prepared());
+    await work;
+    expect(explorer.promotion).toBeNull();
+    expect(explorer.promotionError).toBe('promotion-query-changed');
+  });
+  it('confirms discarding panel edits without mutating the saved query', async () => {
+    const child = await open(),
+      origin = JSON.stringify(explorer.activeDefinition);
+    child.draft.description = 'Detached';
+    child.changed();
+    child.cancel();
+    await render();
+    expect(child.confirmCancel).toBeTrue();
+    child.keepEditing();
+    expect(explorer.promotion).not.toBeNull();
+    child.cancel();
+    child.discard();
+    await render();
+    expect(explorer.promotion).toBeNull();
+    expect(JSON.stringify(explorer.activeDefinition)).toBe(origin);
+  });
+  it('creates through the existing API and refreshes publication badges', async () => {
+    const child = await open();
     await child.save();
+    await render();
+    expect(api.create).toHaveBeenCalled();
+    expect(explorer.promotionSaved).toBeTrue();
+    expect(source.list.calls.count()).toBeGreaterThan(1);
+  });
+  it('previews general queries through the scoped explorer reader and lookup queries through the named-query API', async () => {
+    const child = await open();
+    source.raw.and.resolveTo({ records: { nodes: [{ oid: 'first', title: 'Title' }] } });
+    await child.preview();
+    expect(source.raw).toHaveBeenCalledWith(child.draft.graphql.document, { type: 'plan', first: 50 });
+    expect(child.previewResult).toEqual([{ 'data-grids-oid': 'first', Title: 'Title' }]);
+    expect(api.preview).not.toHaveBeenCalled();
+    child.draft.graphql.lookup = {
+      mode: 'firstPage',
+      collectionPath: ['records'],
+      hasNextPagePath: ['records', 'hasNextPage'],
+      firstVariable: 'first',
+      afterVariable: 'after',
+      searchParameter: 'search',
+    };
+    api.preview.and.resolveTo({ valid: true, records: [{ oid: 'second', title: 'Mapped' }] } as any);
+    await child.preview();
+    expect(api.preview).toHaveBeenCalled();
+    expect(child.previewResult).toEqual([{ oid: 'second', title: 'Mapped' }]);
+  });
+  it('ignores a stale preview after a binding changes and keeps transport errors safe', async () => {
+    const child = await open();
+    let resolve!: (data: Record<string, unknown>) => void;
+    source.raw.and.returnValue(new Promise(yes => (resolve = yes)));
+    const work = child.preview();
+    child.changed();
+    resolve({ records: { nodes: [{ oid: 'stale' }] } });
+    await work;
+    expect(child.previewResult).toBeNull();
+    await child.validate();
+    source.raw.and.rejectWith(Error('private transport data'));
+    await child.preview();
+    expect(child.previewError).toBe('nq-section-preview-failed');
+  });
+  it('requires the reviewed breaking-update token for an existing named query', async () => {
+    explorer.draft!.publishedAs = [{ name: 'linked', publishedRevision: 3, changedSincePublished: true }];
+    // Publication metadata is read-only and does not constitute an unsaved definition edit.
+    spyOn(window, 'confirm').and.returnValue(true);
+    explorer.open({ ...explorer.draft! }, false);
+    api.get.and.resolveTo({ ...prepared().definition, name: 'linked' });
+    api.reviewUpdate.and.resolveTo({ required: true, confirmation: 'review-token', usedBy: [] } as any);
+    api.update.and.resolveTo({ name: 'linked' });
+    const child = await open();
+    expect(child.updateName).toBe('linked');
+    expect(child.canSave)
+      .withContext(JSON.stringify({ error: child.error, description: child.description, init: child.initializing }))
+      .toBeTrue();
+    await child.save();
+    expect(child.pendingUpdate).not.toBeNull();
+    expect(api.update).not.toHaveBeenCalled();
+    await child.confirmUpdate();
+    expect(api.update).toHaveBeenCalledWith('linked', jasmine.any(Object), 'review-token');
+  });
+  it('invalidates reviewed changes and ignores validation responses after destruction', async () => {
+    const child = await open();
+    let resolve!: (value: GraphqlNamedQueryDescription) => void;
+    api.describe.and.returnValue(new Promise(yes => (resolve = yes)));
+    const validation = child.validate();
+    child.changed();
+    resolve(described(true));
+    await validation;
+    expect(child.description).toBeNull();
+    expect(child.canSave).toBeFalse();
+    const validation2 = child.validate();
+    fixture.destroy();
+    resolve(described(true));
+    await validation2;
     expect(api.create).not.toHaveBeenCalled();
+  });
+  it('retains the panel and renders safe messages on denied or duplicate writes', async () => {
+    const child = await open();
+    api.create.and.rejectWith(new HttpErrorResponse({ status: 403, error: 'secret' }));
+    await child.save();
+    expect(child.error).toBe('data-grids-promotion-denied');
+    expect(explorer.promotion).not.toBeNull();
+    api.create.and.rejectWith(new HttpErrorResponse({ status: 409 }));
+    await child.save();
+    expect(child.error).toBe('data-grids-promotion-name-exists');
   });
 });
 
@@ -513,14 +374,11 @@ describe('Fresh promotion with real API initialization and CSRF', () => {
     expect(component.canSave).toBeFalse();
     expect(component.initializing).toBeTrue();
     finishConfig();
-    const schema = http.expectOne(`${base}/editor/graphql-schema`);
     const description = http.expectOne(`${base}/editor/describe`);
-    expect(schema.request.headers.get('X-CSRF-Token')).toBe('page-session-token');
     expect(description.request.method).toBe('POST');
     expect(description.request.headers.get('X-CSRF-Token')).toBe('page-session-token');
     expect(description.request.headers.get('X-Source')).toBe('jsclient');
     expect(description.request.body.definition.name).toBe('latest_unsaved');
-    schema.flush({ data: { sdl: testSdl } });
     description.flush({ data: described(false) });
     flushMicrotasks();
     component.draft.graphql.variables = {

@@ -18,6 +18,7 @@ import {
   GridQuery,
   GridScope,
   SavedQuery,
+  editableQuery,
 } from './data-grid.model';
 import {
   array,
@@ -62,7 +63,12 @@ export class RecordGridService extends HttpClientService implements DataGridSour
         const type = object(value);
         const name = string(type['name']);
         if (!name) throw new GridRequestError('invalid-response');
-        return { id: scopeId(name), label: name, recordType: name, fields: [] };
+        const labels = type['labels'] && typeof type['labels'] === 'object' ? object(type['labels']) : {};
+        const configured = typeof labels['name'] === 'string' ? labels['name'] : name;
+        const translated = configured.startsWith('@') ? (this.i18n.t(configured) as string) : configured;
+        const label =
+          translated && translated !== configured.replace(/^@/, '') ? translated : configured.replace(/^@/, '');
+        return { id: scopeId(name), label, recordTypeLabel: label, recordType: name, fields: [] };
       });
       if (new Set(scopes.map(scope => scope.id)).size !== scopes.length) throw new GridRequestError('invalid-response');
       return { scopes, persistence: true };
@@ -95,7 +101,21 @@ export class RecordGridService extends HttpClientService implements DataGridSour
   }
   async fields(scope: GridScope): Promise<GridScope[]> {
     const discovery = await this.discover(scope);
-    return [{ ...scope, fields: discovery.fields, revision: discovery.revision }];
+    return [
+      {
+        ...scope,
+        recordTypeLabel: discovery.recordTypeLabel ?? scope.recordTypeLabel,
+        fields: discovery.fields,
+        revision: discovery.revision,
+      },
+    ];
+  }
+
+  async selection(scope: GridScope, id: string) {
+    const discovery = await this.discover(scope, [id]);
+    const field = discovery.fields.find(f => f.id === id);
+    if (!field) throw new GridRequestError('schema-changed');
+    return field;
   }
 
   async query(request: GridQuery): Promise<GridPage> {
@@ -122,11 +142,13 @@ export class RecordGridService extends HttpClientService implements DataGridSour
 
   async prepareNamedQuery(definition: SavedQuery): Promise<NamedQueryPromotionDraft> {
     await this.waitForInit();
-    const response = await firstValueFrom(this.http.post<{ data: NamedQueryPromotionDraft }>(
-      `${this.brandingAndPortalUrl}/api/named-query/editor/from-explorer`,
-      { exploration: structuredClone(definition) },
-      { context: this.httpContext, headers: { 'X-ReDBox-Api-Version': '2.0' } }
-    ));
+    const response = await firstValueFrom(
+      this.http.post<{ data: NamedQueryPromotionDraft }>(
+        `${this.brandingAndPortalUrl}/api/named-query/editor/from-explorer`,
+        { exploration: structuredClone(editableQuery(definition)) },
+        { context: this.httpContext, headers: { 'X-ReDBox-Api-Version': '2.0' } }
+      )
+    );
     return structuredClone(response.data);
   }
   async schema(): Promise<string> {
@@ -210,7 +232,7 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     return parseSavedQuery(await this.persistence('GET', `/${encodeURIComponent(id)}`));
   }
   async save(definition: SavedQuery): Promise<SavedQuery> {
-    const { id, revision, ...stored } = definition;
+    const { id, revision, ...stored } = editableQuery(definition);
     return parseSavedQuery(
       await this.persistence(
         id ? 'PUT' : 'POST',

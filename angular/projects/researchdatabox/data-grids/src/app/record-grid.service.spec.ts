@@ -125,7 +125,7 @@ describe('RecordGridService HTTP contract', () => {
       const data = { records: [{ name: 'plan' }] };
       req.flush(wrapped ? { data } : data);
       flushMicrotasks();
-      expect(result).toEqual({ scopes: [scope], persistence: true });
+      expect(result).toEqual({ scopes: [{ ...scope, recordTypeLabel: 'plan' }], persistence: true });
       http.expectNone(url);
     }));
   }
@@ -204,11 +204,24 @@ describe('RecordGridService HTTP contract', () => {
     expect(result).toEqual({ grids: [parseSavedQuery(saved)], next: null });
   }));
   it('accepts read-only publication metadata without allowing it into editable definitions', () => {
-    const saved = { version: 1, mode: 'graphql', id: '123456789012345678901234', revision: 2,
-      name: 'Published query', document: '{ __typename }', variables: {}, resultPath: [] };
-    expect(parseSavedQuery({ ...saved, updatedAt: '2026-11-12T00:00:00Z',
-      updatedBy: { username: 'admin', displayName: 'Local Admin' },
-      publishedAs: [{ name: 'public_query', publishedRevision: 1, changedSincePublished: true }] })).toEqual(parseSavedQuery(saved));
+    const saved = {
+      version: 1,
+      mode: 'graphql',
+      id: '123456789012345678901234',
+      revision: 2,
+      name: 'Published query',
+      document: '{ __typename }',
+      variables: {},
+      resultPath: [],
+    };
+    expect(
+      parseSavedQuery({
+        ...saved,
+        updatedAt: '2026-11-12T00:00:00Z',
+        updatedBy: { username: 'admin', displayName: 'Local Admin' },
+        publishedAs: [{ name: 'public_query', publishedRevision: 1, changedSincePublished: true }],
+      })?.publishedAs
+    ).toEqual([{ name: 'public_query', publishedRevision: 1, changedSincePublished: true }]);
     expect(() => parseSavedQuery({ ...saved, executionOptions: { bypassAcl: true } })).toThrow();
   });
   it('requests bounded later catalogue pages', fakeAsync(() => {

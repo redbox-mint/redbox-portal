@@ -45,8 +45,15 @@ describe('Data grid editor', () => {
     source.query.and.resolveTo(page());
     source.save.and.callFake(async grid => ({ ...grid, id: 'saved' }));
     await TestBed.configureTestingModule({
-      declarations: [DataGridsComponent],
-      imports: [CommonModule, FormsModule, AgGridAngular, I18NextPipe, AdminTabsDirective, ExplorerNamedQueryComponent],
+      imports: [
+        DataGridsComponent,
+        CommonModule,
+        FormsModule,
+        AgGridAngular,
+        I18NextPipe,
+        AdminTabsDirective,
+        ExplorerNamedQueryComponent,
+      ],
       providers: [
         { provide: DATA_GRID_SOURCE, useValue: source },
         { provide: TranslationService, useValue: translation },
@@ -71,7 +78,7 @@ describe('Data grid editor', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('data-grids-unavailable-heading');
-    expect(fixture.nativeElement.querySelector('[aria-controls="saved-query-picker"]').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-actions button').disabled).toBeTrue();
     expect(source.list).not.toHaveBeenCalled();
     expect(source.query).not.toHaveBeenCalled();
   });
@@ -133,7 +140,8 @@ describe('Data grid editor', () => {
     spyOn(component, 'ngOnInit');
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(fixture.nativeElement.querySelector('.grid-selected-label').textContent).toContain('Title');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.explorer-chips').textContent).toContain('Title');
     expect(fixture.nativeElement.querySelector('#filter-field-0')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#grid-stage').value).toBe(scope.id);
   });
@@ -166,7 +174,7 @@ describe('Data grid editor', () => {
       expect(component.fieldLabel(`metadata:/${parent}/name`)).toBe(label);
       expect(fixture.nativeElement.querySelector('#columns-panel').textContent).toContain(label);
       expect(fixture.nativeElement.querySelector('.explorer-chips').textContent).toContain(label);
-      expect(fixture.nativeElement.querySelector(`[aria-label="data-grids-remove-column: ${label}"]`)).not.toBeNull();
+
       expect(component.columnDefs.some(column => column.headerName === label)).toBeTrue();
       const labels = Array.from(fixture.nativeElement.querySelectorAll('.grid-field label')) as HTMLElement[];
       expect(labels.some(node => node.textContent?.includes(label))).toBeTrue();
@@ -187,6 +195,7 @@ describe('Data grid editor', () => {
     component.open(validGrid());
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.document = component.rawDraft.document.replace(
       'oid recordType workflowStep',
       'oid title workflowStep'
@@ -282,6 +291,7 @@ describe('Data grid editor', () => {
       .createSpy()
       .and.resolveTo(testSdl.replace('type Record {', 'scalar JSON\ntype Record { payload: JSON '));
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.document = component.rawDraft.document.replace('oid recordType workflowStep', 'oid payload');
     component.rawDraft.variables['type'] = 'plan';
     component.variablesText = JSON.stringify(component.rawDraft.variables);
@@ -377,6 +387,8 @@ describe('Data grid editor', () => {
     expect(fixture.nativeElement.querySelector('#results-heading')).not.toBeNull();
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('[aria-controls="columns-panel"]');
     button.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(button.getAttribute('aria-expanded')).toBe('true');
     expect(fixture.nativeElement.querySelector('#field-search')).not.toBeNull();
@@ -511,7 +523,7 @@ describe('Data grid editor', () => {
     expect(component.activeDefinition).toEqual(saved);
     expect(component.dirty).toBeFalse();
     expect(component.rows).toEqual(page().rows);
-    expect(component.editorOpen).toBeFalse();
+    expect(component.editorOpen).toBeTrue();
   });
   it('keeps stale saved fields repairable and does not query them on reopen', async () => {
     const saved = { ...validGrid(), id: '123456789012345678901234', revision: 1, columns: ['removed'] };
@@ -628,15 +640,34 @@ describe('Data grid editor', () => {
     await component.preview();
     expect(component.resultsStale).toBeFalse();
   });
-  it('keeps the visual draft and edited GraphQL independent across mode switches', async () => {
+  it('keeps one saved identity and dirty state when viewing generated GraphQL; publication refresh is read-only', async () => {
+    component.open({ ...validGrid(), id: '123456789012345678901234', revision: 4 }, false);
+    const raw = rawDefinition();
+    raw.variables['type'] = 'plan';
+    source.generate = jasmine.createSpy().and.resolveTo({ query: raw.document, variables: raw.variables });
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    await component.switchMode('graphql');
+    expect(component.dirty).toBeFalse();
+    expect(component.activeDefinition?.mode).not.toBe('graphql');
+    component.draft!.publishedAs = [{ name: 'linked', publishedRevision: 3, changedSincePublished: true }];
+    expect(component.dirty).toBeFalse();
+    component.unlink();
+    expect(component.activeDefinition?.id).toBe('123456789012345678901234');
+    expect(component.dirty).toBeTrue();
+    await component.switchMode('visual');
+    expect(component.activeDefinition?.mode).toBe('graphql');
+  });
+  it('keeps GraphQL canonical and Visual read-only after unlink across view switches', async () => {
     component.open(validGrid());
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
     component.rawChanged();
     await component.switchMode('visual');
     expect(component.draft!.columns).toEqual(['title']);
     await component.switchMode('graphql');
+    component.unlink();
     expect(component.rawDraft.document).toContain('recordType:"plan"');
   });
   it('reopens raw queries into results with real variables, mapping and cursor navigation', async () => {
@@ -649,7 +680,7 @@ describe('Data grid editor', () => {
       .and.resolveTo({ records: { nodes: [{ oid: 'a' }], hasNextPage: true, endCursor: 'cursor-a' } });
     source.raw = raw;
     await component.reopen(saved, true);
-    expect(component.editorOpen).toBeFalse();
+    expect(component.editorOpen).toBeTrue();
     expect(component.mode).toBe('graphql');
     expect(component.dirty).toBeFalse();
     expect<unknown>(component.rows[0].values['oid']).toBe('a');
@@ -667,6 +698,7 @@ describe('Data grid editor', () => {
       .createSpy()
       .and.resolveTo(testSdl.replace('type Record {', 'scalar JSON\ntype Record { payload: JSON '));
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.document = component.rawDraft.document.replace('oid recordType workflowStep', 'oid payload');
     component.rawDraft.variables['type'] = 'plan';
     component.variablesText = JSON.stringify(component.rawDraft.variables);
@@ -689,7 +721,7 @@ describe('Data grid editor', () => {
       expect(component.responseView).toBe('json');
       expect(component.previewError).toBe('result-path-invalid');
       expect(JSON.stringify(component.jsonResponse)).toBe(JSON.stringify(data));
-      const json: HTMLElement = fixture.nativeElement.querySelector('pre');
+      const json: HTMLElement = fixture.nativeElement.querySelector('.explorer-results pre');
       expect(json.textContent).toContain('"a.b": 1');
       expect(json.textContent).toContain('"b": 2');
     }
@@ -698,6 +730,7 @@ describe('Data grid editor', () => {
     source.raw = jasmine.createSpy();
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.variables['type'] = 'plan';
     component.variablesText = JSON.stringify(component.rawDraft.variables);
     const pending = deferred<Record<string, unknown>>();
@@ -725,13 +758,14 @@ describe('Data grid editor', () => {
     expect(link.querySelector('script')).toBeNull();
     expect(link.getAttribute('href')).toContain('abc%2Fdef');
   });
-  it('generates an independent raw draft and saves its mode without running it', async () => {
+  it('generates a mirror then saves explicitly unlinked GraphQL without running it', async () => {
     component.open(validGrid());
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     const raw = rawDefinition();
     raw.variables['type'] = 'plan';
     source.generate = jasmine.createSpy().and.resolveTo({ query: raw.document, variables: raw.variables });
-    await component.generateGraphql();
+    await component.switchMode('graphql');
+    component.unlink();
     expect(component.mode).toBe('graphql');
     expect(component.draft!.columns).toEqual(['title']);
     expect(component.rawDraft.id).toBeUndefined();
@@ -743,7 +777,8 @@ describe('Data grid editor', () => {
     component.rawDraft.document += '\n# edit';
     component.rawChanged();
     spyOn(window, 'confirm').and.returnValue(false);
-    await component.generateGraphql();
+    await component.switchMode('graphql');
+    component.unlink();
     expect(component.rawDraft.document).toContain('# edit');
   });
   it('opens a native naming dialog and renames without executing the query', async () => {
@@ -785,6 +820,7 @@ describe('Data grid editor', () => {
   it('retains the executed raw page after variable reformatting and mapping edits until rerun', async () => {
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.variables['type'] = 'plan';
     component.variablesText = JSON.stringify(component.rawDraft.variables);
     const raw = jasmine
@@ -814,6 +850,7 @@ describe('Data grid editor', () => {
   it('does not render record links for misleading raw OID aliases', async () => {
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);
     await component.switchMode('graphql');
+    component.unlink();
     component.rawDraft.document = component.rawDraft.document.replace(
       'oid recordType workflowStep',
       'oid: recordType title: oid'

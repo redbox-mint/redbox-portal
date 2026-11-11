@@ -515,6 +515,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
     await Promise.all([this.loadQueries(), this.loadCollections()]);
+    const name = new URLSearchParams(window.location.hash.slice(1)).get('query');
+    if (name && /^[A-Za-z0-9_-]{1,120}$/.test(name)) await this.openQuery(name);
   }
 
   async loadCollections(): Promise<void> {

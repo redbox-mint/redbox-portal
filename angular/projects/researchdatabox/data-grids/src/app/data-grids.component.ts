@@ -3,19 +3,21 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { parseQueryVariables } from './record-grid.protocol';
 import { inspectCell, detailKeyboard, CellText, displayScalar } from './cell-detail';
 import type { GraphQLSchema } from 'graphql';
+import { rawDefinition } from './raw-definition';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
-  cursorBinding,
-  editorErrors,
-  editorSchema,
-  rawDefinition,
-  rawRows,
-  recordIdentityKey,
-  resultArrays,
-  schemaFields,
-} from './graphql-query';
+  AdminTabsDirective,
+  AdminOverflowDirective,
+  I18NextPipe,
+  type NamedQueryResultField,
+} from '@researchdatabox/portal-ng-common';
+import { ColumnsPanelComponent } from './columns-panel.component';
+import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
+import { ResultsGridComponent } from './results-grid.component';
 import { Component, ElementRef, HostListener, Inject, OnDestroy, ViewChild } from '@angular/core';
 import { BaseComponent, TranslationService } from '@researchdatabox/portal-ng-common';
-import { ClientSideRowModelModule, ColDef, GetRowIdParams, ModuleRegistry } from 'ag-grid-community';
+import type { ColDef, GetRowIdParams } from 'ag-grid-community';
 import { DATA_GRID_SOURCE, DataGridSource, GridRequestError, GridSourceUnavailable } from './data-grid-source';
 import {
   SavedQuery,
@@ -37,15 +39,25 @@ import {
   scalarTypeFor,
   validateGrid,
   validatePage,
+  defaultColumns,
+  editableQuery,
 } from './data-grid.model';
-
-ModuleRegistry.registerModules([ClientSideRowModelModule]);
 
 @Component({
   selector: 'data-grids',
   templateUrl: './data-grids.component.html',
   styleUrls: ['./data-grids.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    I18NextPipe,
+    AdminTabsDirective,
+    AdminOverflowDirective,
+    ColumnsPanelComponent,
+    ExplorerNamedQueryComponent,
+    ResultsGridComponent,
+  ],
 })
 export class DataGridsComponent extends BaseComponent implements OnDestroy {
   @ViewChild('schemaDetails') schemaDetails?: ElementRef<HTMLDetailsElement>;
@@ -54,6 +66,13 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   @ViewChild('catalogueHeading') catalogueHeading?: ElementRef<HTMLElement>;
   @ViewChild('promotionButton') promotionButton?: ElementRef<HTMLButtonElement>;
   promotion: NamedQueryPromotionDraft | null = null;
+  promotionOrigin: SavedQuery | null = null;
+  publicationFields: NamedQueryResultField[] = [];
+  publicationTarget = '';
+  publishAfterSave = false;
+  unlinked = false;
+  filterEditor: number | null = null;
+  private graphqlEngine: typeof import('./graphql-query') | null = null;
   promotionOpening = false;
   promotionError = '';
   promotionSaved = false;
@@ -68,6 +87,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   schemaLoading = false;
   schemaError = '';
   schemaType = 'Query';
+  schemaSdl = '';
   schemaSearch = '';
   editorOpen = true;
   pickerOpen = false;
@@ -81,7 +101,6 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   lastExecuted: SavedQuery | null = null;
   resultsStale = false;
   private rawBaseline = '';
-  private rawInitialized = false;
   private schemaSequence = 0;
   private modeSequence = 0;
   busy = false;
@@ -113,10 +132,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   readonly getRowId = (params: GetRowIdParams<GridRow>): string => params.data.oid;
   private baseline = '';
   private hasUnsavedDrafts(): boolean {
-    return (
-      (!!this.draft && JSON.stringify(this.draft) !== this.baseline) ||
-      (this.rawInitialized && this.rawState() !== this.rawBaseline)
-    );
+    return this.dirty;
   }
   private sequence = 0;
   private loadSequence = 0;
@@ -192,9 +208,9 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       : [];
   }
   get dirty(): boolean {
-    return this.mode === 'graphql'
+    return this.unlinked
       ? this.rawState() !== this.rawBaseline
-      : !!this.draft && JSON.stringify(this.draft) !== this.baseline;
+      : !!this.draft && JSON.stringify(editableQuery(this.draft)) !== this.baseline;
   }
   get visibleFields(): GridField[] {
     return (this.scope?.fields ?? []).filter(field =>
@@ -210,41 +226,92 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   get canPreview(): boolean {
     return (
       !!this.catalogue &&
-      (this.mode === 'graphql' ? !!this.source.raw && !this.rawErrors.length : !!this.draft && !this.issues.length) &&
+      (this.unlinked ? !!this.source.raw && !this.rawErrors.length : !!this.draft && !this.issues.length) &&
       !this.loadingPage &&
       !this.loadingFields
     );
   }
   get canPromote(): boolean {
-    return this.host.nativeElement.getAttribute('can-create-named-query') === 'true' && !!this.source.prepareNamedQuery &&
-      !!this.activeDefinition && !this.promotionOpening && !this.promotion && !this.busy && !this.saving && !this.loadingFields &&
-      (this.mode === 'graphql' ? !this.rawErrors.length : !this.issues.length);
+    return (
+      this.host.nativeElement.getAttribute('can-create-named-query') === 'true' &&
+      !!this.source.prepareNamedQuery &&
+      !!this.activeDefinition &&
+      !this.promotionOpening &&
+      !this.promotion &&
+      !this.busy &&
+      !this.saving &&
+      !this.loadingFields &&
+      (this.unlinked ? !this.rawErrors.length : !this.issues.length)
+    );
   }
   async createNamedQuery(): Promise<void> {
     if (!this.canPromote || !this.activeDefinition || !this.source.prepareNamedQuery) return;
-    const snapshot = structuredClone(this.activeDefinition);
+    if (!this.activeDefinition.id || this.dirty) {
+      this.publishAfterSave = true;
+      this.beginSave();
+      return;
+    }
+    const snapshot = structuredClone(editableQuery(this.activeDefinition));
+    const original = JSON.stringify(this.activeDefinition);
+    const originalScope = this.scope;
+    this.promotionOrigin = structuredClone(snapshot);
     if (snapshot.mode === 'graphql') {
-      try { snapshot.variables = parseQueryVariables(JSON.parse(this.variablesText)); }
-      catch { this.promotionError = 'promotion-invalid-values'; return; }
+      try {
+        snapshot.variables = parseQueryVariables(JSON.parse(this.variablesText));
+      } catch {
+        this.promotionError = 'promotion-invalid-values';
+        return;
+      }
     }
     const trigger = this.promotionButton?.nativeElement;
     this.promotionOpening = true;
     this.promotionError = '';
     this.promotionSaved = false;
     try {
-      const prepared = await this.source.prepareNamedQuery(snapshot);
-      if (!this.disposed) this.promotion = structuredClone(prepared);
+      // Fetch the detached definition, field selections and lazy panel together
+      // after the user opens Publish, avoiding sequential mobile round trips.
+      const [prepared, selections, { visualPublicationProjection }] = await Promise.all([
+        this.source.prepareNamedQuery(snapshot),
+        snapshot.mode !== 'graphql' && originalScope && this.source.selection
+          ? Promise.all(snapshot.columns.map(id => this.source.selection!(originalScope, id)))
+          : Promise.resolve(null),
+        import('./publish-query'),
+        import('./explorer-named-query.component'),
+      ]);
+      if (this.disposed) return;
+      if (selections) {
+        const projection = visualPublicationProjection(prepared.definition.graphql.document, selections);
+        prepared.definition.graphql.document = projection.document;
+        this.publicationFields = [
+          { label: this.text('oid'), path: ['oid'], type: 'text' },
+          ...projection.fields,
+          { label: this.text('field-group-metadata'), path: ['metadata'], type: 'object' },
+        ].filter((field, i, all) => all.findIndex(f => JSON.stringify(f.path) === JSON.stringify(field.path)) === i);
+      } else this.publicationFields = this.publishFields;
+      if (!this.disposed && original === JSON.stringify(this.activeDefinition))
+        this.promotion = structuredClone(prepared);
+      else if (!this.disposed) this.promotionError = 'promotion-query-changed';
     } catch (error) {
       if (!this.disposed) {
-        const code: unknown = error instanceof HttpErrorResponse
-          ? error.error?.errors?.[0]?.code ?? error.error?.data?.error?.code ?? error.error?.error?.code : undefined;
-        this.promotionError = error instanceof HttpErrorResponse && [401, 403].includes(error.status)
-          ? 'promotion-denied'
-          : error instanceof HttpErrorResponse && [503, 504].includes(error.status)
-            ? code === 'GRAPHQL_DISABLED' ? 'promotion-disabled' : code === 'QUERY_TIMEOUT' ? 'promotion-timeout' : 'promotion-unavailable'
-            : error instanceof HttpErrorResponse && error.status === 400 &&
-              typeof code === 'string' && ['schema-changed', 'filter-type-changed', 'sort-type-changed'].includes(code)
-              ? 'promotion-schema-changed' : 'promotion-open-failed';
+        const code: unknown =
+          error instanceof HttpErrorResponse
+            ? (error.error?.errors?.[0]?.code ?? error.error?.data?.error?.code ?? error.error?.error?.code)
+            : undefined;
+        this.promotionError =
+          error instanceof HttpErrorResponse && [401, 403].includes(error.status)
+            ? 'promotion-denied'
+            : error instanceof HttpErrorResponse && [503, 504].includes(error.status)
+              ? code === 'GRAPHQL_DISABLED'
+                ? 'promotion-disabled'
+                : code === 'QUERY_TIMEOUT'
+                  ? 'promotion-timeout'
+                  : 'promotion-unavailable'
+              : error instanceof HttpErrorResponse &&
+                  error.status === 400 &&
+                  typeof code === 'string' &&
+                  ['schema-changed', 'filter-type-changed', 'sort-type-changed'].includes(code)
+                ? 'promotion-schema-changed'
+                : 'promotion-open-failed';
         setTimeout(() => {
           if (!this.disposed) (trigger?.isConnected ? trigger : this.promotionButton?.nativeElement)?.focus();
         });
@@ -259,22 +326,29 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   closePromotion(saved = false): void {
     this.promotion = null;
     this.promotionSaved = saved;
-    setTimeout(() => { if (!this.disposed) this.promotionButton?.nativeElement.focus(); });
+    if (saved) void this.refreshSaved();
+    setTimeout(() => {
+      if (!this.disposed) this.promotionButton?.nativeElement.focus();
+    });
   }
   get canSave(): boolean {
     return (
       !!this.catalogue?.persistence &&
       !!this.activeDefinition &&
-      (this.mode === 'graphql' ? !this.rawErrors.length : !this.issues.length) &&
+      (this.unlinked ? !this.rawErrors.length : !this.issues.length) &&
       !this.saving &&
       !this.loadingFields
     );
   }
   get activeDefinition(): SavedQuery | null {
-    return this.mode === 'graphql' ? this.rawDraft : this.draft;
+    return this.unlinked ? this.rawDraft : this.draft;
   }
   get rawErrors(): string[] {
-    return editorErrors(this.schema, this.rawDraft.document, this.variablesText);
+    return (
+      this.graphqlEngine?.editorErrors(this.schema, this.rawDraft.document, this.variablesText) ?? [
+        this.text('loading-fields'),
+      ]
+    );
   }
   get recordTypes(): string[] {
     return [...new Set(this.catalogue?.scopes.map(scope => scope.recordType) ?? [])];
@@ -289,28 +363,28 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (scope) void this.chooseScope(scope.id);
   }
   get rawPaginated(): boolean {
-    return !!cursorBinding(this.rawDraft.document, this.rawDraft.variables, this.rawDraft.resultPath);
-  }
-  get assistFields() {
-    return schemaFields(this.schema, this.schemaType, this.schemaSearch);
-  }
-  get schemaTypes(): string[] {
-    return Object.keys(this.schema?.getTypeMap() ?? {})
-      .filter(name => !name.startsWith('__'))
-      .sort();
+    return !!this.graphqlEngine?.cursorBinding(
+      this.rawDraft.document,
+      this.rawDraft.variables,
+      this.rawDraft.resultPath
+    );
   }
   private rawState(): string {
-    return JSON.stringify([this.rawDraft, this.variablesText]);
+    return JSON.stringify([editableQuery(this.rawDraft), this.variablesText]);
   }
 
   readonly cellText: CellText = key => this.text('cell-' + key);
 
   text(key: string): string {
-    return this.i18n.t(`data-grids-${key}`) as string;
+    const translated = this.i18n.t(`data-grids-${key}`) as string;
+    if (translated === `data-grids-${key}` && ['title', 'intro', 'loading'].includes(key))
+      return this.host.nativeElement.getAttribute('initial-' + key) || translated;
+    return translated;
   }
   fieldLabel(id: string, fields: GridField[] = this.scope?.fields ?? []): string {
     const field = fields.find(field => field.id === id);
     if (!field) return id;
+    if (field.id === 'metadata:/title' && field.label.toLocaleLowerCase() === 'title') return this.text('title-column');
     const ambiguous = fields.some(
       other => other.id !== id && other.label.trim().toLocaleLowerCase() === field.label.trim().toLocaleLowerCase()
     );
@@ -328,10 +402,12 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.rawDraft = rawDefinition();
     this.variablesText = JSON.stringify(this.rawDraft.variables, null, 2);
     this.rawBaseline = '';
-    this.rawInitialized = false;
+    this.unlinked = false;
+    this.filterEditor = null;
+    this.publicationTarget = '';
     this.draft = grid ? copyGrid(grid) : emptyGrid();
     if (!grid) this.setSavedUrl();
-    this.baseline = JSON.stringify(this.draft);
+    this.baseline = JSON.stringify(editableQuery(this.draft));
     this.mode = 'visual';
     this.editorOpen = true;
     this.pickerOpen = false;
@@ -365,18 +441,19 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         this.loadingFields = false;
         this.modeSequence++;
         this.draft = emptyGrid();
-        this.baseline = JSON.stringify(this.draft);
+        this.baseline = JSON.stringify(editableQuery(this.draft));
+        this.unlinked = true;
         this.rawDraft = structuredClone(saved);
         this.variablesText = JSON.stringify(saved.variables, null, 2);
         this.rawBaseline = this.rawState();
-        this.rawInitialized = true;
         this.mode = 'graphql';
-        this.editorOpen = !results;
+        this.editorOpen = true;
         this.pickerOpen = false;
         this.columnsOpen = false;
         this.resetResults();
         this.setSavedUrl(saved.id);
         await this.loadSchema();
+        await this.discoverRawFields();
         if (this.rawErrors.length) this.editorOpen = true;
         if (
           seq === this.loadSequence &&
@@ -402,8 +479,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       this.setSavedUrl(saved.id);
       if (this.scope) await this.chooseScope(this.scope.id);
       if (this.disposed || seq !== this.loadSequence || this.draft?.id !== saved.id) return;
-      this.baseline = JSON.stringify(saved);
-      this.editorOpen = !results || !this.canPreview;
+      this.baseline = JSON.stringify(editableQuery(saved));
+      this.editorOpen = true;
       if (results && this.canPreview) await this.preview();
     } catch (error) {
       if (!this.disposed && seq === this.loadSequence)
@@ -421,7 +498,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (!this.disposed) {
         this.saved = this.saved.filter(item => item.id !== grid.id);
         if (this.activeDefinition?.id === grid.id) {
-          if (this.mode === 'graphql') {
+          if (this.unlinked) {
             delete this.rawDraft.id;
             delete this.rawDraft.revision;
           } else if (this.draft) {
@@ -497,11 +574,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         else this.catalogue.scopes[index] = discovered;
       }
       if (scopeChanged && this.draft && this.scope) {
-        const eligible = this.scope.fields.filter(field => field.selectable && !field.repeating);
-        const defaults = eligible.filter(
-          field => /title/i.test(field.label) || ['record:oid', 'record:workflowStep'].includes(field.id)
-        );
-        this.draft.columns = (defaults.length ? defaults : eligible).slice(0, 3).map(field => field.id);
+        this.draft.columns = defaultColumns(this.scope.fields);
       }
     } catch (error) {
       if (seq === this.fieldSequence && !this.disposed)
@@ -533,6 +606,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       values: [''],
     };
     this.draft.filters.push(filter);
+    this.filterEditor = this.draft.filters.length - 1;
     this.chooseOperator(filter, field.operators[0]);
     this.changed();
   }
@@ -554,6 +628,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   }
   removeFilter(index: number): void {
     this.draft?.filters.splice(index, 1);
+    this.filterEditor = null;
     this.changed();
   }
   get sortTypeChanged(): boolean {
@@ -599,7 +674,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.page = 0;
   }
   async preview(page = 0): Promise<void> {
-    if (this.mode === 'graphql') {
+    if (this.unlinked) {
       await this.runRaw(page);
       return;
     }
@@ -630,6 +705,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (seq !== this.sequence || this.disposed) return;
       validatePage(result, request.definition.pageSize, request.after);
       this.rows = result.rows;
+      this.jsonResponse = { rows: result.rows, pageInfo: result.pageInfo };
       this.columnDefs = request.definition.columns.map(id => ({
         colId: id,
         headerName: this.fieldLabel(id, fields),
@@ -699,15 +775,16 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         draft.id = saved.id;
         draft.revision = saved.revision;
         this.setSavedUrl(saved.id);
-        if (saved.mode !== 'graphql') this.baseline = JSON.stringify(saved);
+        if (saved.mode !== 'graphql') this.baseline = JSON.stringify(editableQuery(saved));
         // Never mark edits made during a save as saved.
         if (unchanged) {
           if (saved.mode === 'graphql') {
+            this.unlinked = true;
             this.rawDraft = structuredClone(saved);
             this.rawBaseline = this.rawState();
           } else {
             this.draft = copyGrid(saved);
-            this.baseline = JSON.stringify(this.draft);
+            this.baseline = JSON.stringify(editableQuery(this.draft));
           }
           this.notice = 'saved';
         }
@@ -758,7 +835,11 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (!this.source.schema) throw new GridRequestError('schema-unavailable');
       const sdl = await this.source.schema();
       if (seq === this.schemaSequence && !this.disposed) {
-        this.schema = editorSchema(sdl);
+        const engine = await import('./graphql-query');
+        if (seq !== this.schemaSequence || this.disposed) return;
+        this.graphqlEngine = engine;
+        this.schemaSdl = sdl;
+        this.schema = this.graphqlEngine.editorSchema(sdl);
         this.schemaType = this.schema.getQueryType()?.name ?? 'Query';
       }
     } catch {
@@ -768,54 +849,40 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     }
   }
   async switchMode(mode: 'visual' | 'graphql'): Promise<void> {
-    if (mode === this.mode || this.saving || this.loadingFields) return;
-    this.modeSequence++;
+    if (mode === this.mode || this.saving) return;
     this.mode = mode;
     this.editorOpen = true;
-    this.resetResults();
-    this.changed();
     if (mode === 'graphql') {
-      if (!this.rawInitialized) {
-        this.rawInitialized = true;
-        this.rawDraft = rawDefinition();
-        this.rawDraft.variables['type'] = this.draft?.recordType ?? '';
-        this.variablesText = JSON.stringify(this.rawDraft.variables, null, 2);
-        this.rawBaseline = this.rawState();
-      }
-      await this.loadSchema();
+      if (!this.unlinked) await this.syncGraphql();
+      if (!this.schema) await this.loadSchema();
     }
-    this.setSavedUrl(this.activeDefinition?.id);
   }
-  async generateGraphql(): Promise<void> {
-    if (!this.draft || !this.scope || this.issues.length || !this.source.generate || this.loadingFields) return;
+  /** Generated GraphQL is a view of the visual definition until the explicit unlink action. */
+  async syncGraphql(): Promise<void> {
     if (
-      this.rawInitialized &&
-      this.rawState() !== this.rawBaseline &&
-      !window.confirm(this.text('replace-graphql-confirm'))
+      this.unlinked ||
+      !this.draft ||
+      !this.scope ||
+      this.issues.length ||
+      !this.source.generate ||
+      this.loadingFields
     )
       return;
-    const seq = ++this.modeSequence;
-    const snapshot = JSON.stringify(this.draft);
-    this.error = '';
+    const seq = ++this.modeSequence,
+      snapshot = JSON.stringify(this.draft);
     this.loadingFields = true;
+    this.error = '';
     try {
       const generated = await this.source.generate(
         queryFor({ ...this.draft, name: this.draft.name || this.text('untitled') }, this.scope, null)
       );
-      if (this.disposed || seq !== this.modeSequence || JSON.stringify(this.draft) !== snapshot) return;
+      if (this.disposed || seq !== this.modeSequence || snapshot !== JSON.stringify(this.draft)) return;
       this.rawDraft = {
         ...rawDefinition(this.draft.name),
         document: generated.query,
         variables: JSON.parse(JSON.stringify(generated.variables)),
       };
       this.variablesText = JSON.stringify(this.rawDraft.variables, null, 2);
-      this.rawBaseline = '';
-      this.rawInitialized = true;
-      this.mode = 'graphql';
-      this.setSavedUrl();
-      this.resetResults();
-      this.changed();
-      await this.loadSchema();
     } catch (error) {
       if (!this.disposed && seq === this.modeSequence)
         this.error = error instanceof GridRequestError ? error.key : 'query-unavailable';
@@ -823,26 +890,17 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (!this.disposed && seq === this.modeSequence) this.loadingFields = false;
     }
   }
-  insertCompletion(editor: HTMLTextAreaElement, name: string): void {
-    const start = editor.selectionStart,
-      end = editor.selectionEnd;
-    const prefix = this.rawDraft.document.slice(0, start).match(/[_A-Za-z][_0-9A-Za-z]*$/)?.[0] ?? '';
-    this.rawDraft.document =
-      this.rawDraft.document.slice(0, start - prefix.length) + name + this.rawDraft.document.slice(end);
-    this.schemaSearch = '';
+  unlink(): void {
+    if (this.unlinked || this.loadingFields || this.saving) return;
+    const origin = this.draft;
+    this.rawDraft = {
+      ...this.rawDraft,
+      name: origin?.name ?? this.rawDraft.name,
+      ...(origin?.id ? { id: origin.id, revision: origin.revision, publishedAs: origin.publishedAs } : {}),
+    };
+    this.rawBaseline = '';
+    this.unlinked = true;
     this.changed();
-    setTimeout(() => {
-      editor.focus();
-      editor.setSelectionRange(start - prefix.length + name.length, start - prefix.length + name.length);
-    });
-  }
-  completeAtCursor(editor: HTMLTextAreaElement, event: KeyboardEvent): void {
-    if (event.ctrlKey && event.code === 'Space') {
-      event.preventDefault();
-      if (this.schemaDetails) this.schemaDetails.nativeElement.open = true;
-      this.schemaSearch =
-        this.rawDraft.document.slice(0, editor.selectionStart).match(/[_A-Za-z][_0-9A-Za-z]*$/)?.[0] ?? '';
-    }
   }
   rawChanged(): void {
     try {
@@ -870,20 +928,21 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (!this.jsonResponse) return;
     try {
       const identityKey = this.rawPaginated
-        ? recordIdentityKey(this.rawDraft.document, this.rawDraft.resultPath)
+        ? (this.graphqlEngine?.recordIdentityKey(this.rawDraft.document, this.rawDraft.resultPath) ?? null)
         : null;
-      const mapped = rawRows(this.jsonResponse, this.rawDraft.resultPath, identityKey);
+      const mapped = this.graphqlEngine!.rawRows(this.jsonResponse, this.rawDraft.resultPath, identityKey);
       this.rows = mapped.rows;
+      const labels = new Map(this.publishFields.map(field => [field.path.join('.'), field.label]));
       this.columnDefs = mapped.columns.map(key => ({
         colId: key,
-        headerName: key,
+        headerName: labels.get(key) ?? key,
         cellRenderer: (params: { value: GridRow['values'][string] }) =>
-          inspectCell(params.value, key, undefined, this.cellText),
+          inspectCell(params.value, labels.get(key) ?? key, undefined, this.cellText),
         valueGetter: p => p.data?.values[key],
-        ...(identityKey && (/(^|\.)title$/i.test(key) || key === 'oid')
+        ...(identityKey && (/(^|\.)title$/i.test(key) || labels.get(key) === this.text('title-column') || key === 'oid')
           ? {
               cellRenderer: (params: { value: GridRow['values'][string] | undefined; data?: GridRow }) =>
-                this.recordLink(params.value, params.data?.recordOid, key),
+                this.recordLink(params.value, params.data?.recordOid, labels.get(key) ?? key),
             }
           : {}),
       }));
@@ -901,7 +960,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       return;
     const snapshot = structuredClone(this.rawDraft);
     snapshot.variables = JSON.parse(this.variablesText);
-    const binding = cursorBinding(snapshot.document, snapshot.variables, snapshot.resultPath);
+    const binding = this.graphqlEngine!.cursorBinding(snapshot.document, snapshot.variables, snapshot.resultPath);
     if (page > 0 && (!binding || this.resultsStale)) return;
     const after =
       page === this.page + 1
@@ -918,7 +977,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       const data = await this.source.raw(snapshot.document, variables);
       if (seq !== this.sequence || this.disposed) return;
       this.jsonResponse = data;
-      this.resultPaths = resultArrays(data);
+      this.resultPaths = this.graphqlEngine!.resultArrays(data);
       this.lastExecuted = snapshot;
       this.hasPreview = true;
       this.resultsStale = false;
@@ -953,6 +1012,128 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       if (seq === this.sequence && !this.disposed) this.loadingPage = false;
     }
   }
+  get publications() {
+    return this.activeDefinition?.publishedAs ?? [];
+  }
+  get fieldLabels(): Record<string, string> {
+    return Object.fromEntries((this.scope?.fields ?? []).map(f => [f.id, this.fieldLabel(f.id)]));
+  }
+  get publishFields(): NamedQueryResultField[] {
+    const fields = this.scope?.fields ?? [];
+    if (!this.unlinked && this.draft)
+      return [
+        { label: this.text('oid'), path: ['oid'], type: 'string' },
+        ...this.draft.columns.flatMap(id => {
+          const field = fields.find(f => f.id === id);
+          return !field
+            ? []
+            : field.selections?.length
+              ? field.selections.map(selection => ({
+                  label: this.fieldLabel(id),
+                  path: selection.responsePath,
+                  type: field.type,
+                }))
+              : [{ label: this.fieldLabel(id), path: [id.replace(/^record:/, '')], type: field.type }];
+        }),
+        { label: this.text('field-group-metadata'), path: ['metadata'], type: 'object' },
+      ].filter((f, i, all) => all.findIndex(other => JSON.stringify(other.path) === JSON.stringify(f.path)) === i);
+    return (
+      this.graphqlEngine?.selectedResultFields(this.schema, this.rawDraft.document, this.rawDraft.resultPath) ?? []
+    ).map(result => {
+      const field = fields.find(
+        f =>
+          f.id === 'record:' + result.path.join('.') ||
+          (result.path[0] === 'metadata' && f.path === (result.sourcePath ?? '/' + result.path.slice(1).join('/')))
+      );
+      return {
+        ...result,
+        label: field
+          ? this.fieldLabel(field.id)
+          : result.path.length === 1 && result.path[0] === 'metadata'
+            ? this.text('field-group-metadata')
+            : result.label,
+      };
+    });
+  }
+  recordTypeLabel(type: string): string {
+    return this.catalogue?.scopes.find(s => s.recordType === type && s.recordTypeLabel)?.recordTypeLabel ?? type;
+  }
+  get adminUrl(): string {
+    return window.location.pathname.replace(/\/data-grids\/?$/, '');
+  }
+  namedQueryUrl(name = ''): string {
+    return (
+      window.location.pathname.replace(/\/data-grids\/?$/, '/named-query') +
+      (name ? '#query=' + encodeURIComponent(name) : '')
+    );
+  }
+  get graphqlFields(): GridField[] {
+    const q = this.schemaSearch.trim().toLocaleLowerCase();
+    return (this.scope?.fields ?? []).filter(
+      f => f.selectable && !f.repeatingSubfield && (!q || [f.label, f.path].join(' ').toLocaleLowerCase().includes(q))
+    );
+  }
+  async discoverRawFields(): Promise<void> {
+    const original = this.rawDraft;
+    const seq = ++this.fieldSequence;
+    const type = this.graphqlEngine?.queryRecordType(this.rawDraft.document, this.rawDraft.variables);
+    if (!type || !this.catalogue) return;
+    const scope =
+      this.catalogue.scopes.find(s => s.recordType === type && !s.workflowStage) ??
+      this.catalogue.scopes.find(s => s.recordType === type);
+    if (!scope) return;
+    this.draft = { ...emptyGrid(), recordType: type, workflowStage: scope.workflowStage };
+    if (this.source.fields) {
+      const discovered = await this.source.fields(scope);
+      if (this.disposed || original !== this.rawDraft || seq !== this.fieldSequence) return;
+      for (const fieldScope of discovered) {
+        const index = this.catalogue.scopes.findIndex(s => s.id === fieldScope.id);
+        if (index >= 0) this.catalogue.scopes[index] = fieldScope;
+        else this.catalogue.scopes.push(fieldScope);
+      }
+    }
+  }
+  async insertField(editor: HTMLTextAreaElement, id: string): Promise<void> {
+    if (!this.unlinked || !this.scope || !this.source.selection) return;
+    const original = this.rawDraft,
+      document = original.document;
+    try {
+      const field = await this.source.selection(this.scope, id);
+      if (this.disposed || !this.unlinked || original !== this.rawDraft || document !== this.rawDraft.document) return;
+      this.rawDraft.document = this.graphqlEngine!.insertRecordField(
+        this.rawDraft.document,
+        field.selections ?? [],
+        id.startsWith('metadata')
+      );
+      this.rawChanged();
+      editor.focus();
+    } catch {
+      this.error = 'schema-changed';
+    }
+  }
+  applyColumns(columns: string[]): void {
+    if (!this.draft || this.unlinked) return;
+    this.draft.columns = [...columns];
+    this.columnsOpen = false;
+    this.changed();
+    void this.preview();
+  }
+  conditionLabel(filter: GridFilter): string {
+    return this.fieldLabel(filter.fieldId) + ' ' + this.text('op-' + filter.operator) + ' ' + filter.values.join(', ');
+  }
+  async refreshSaved(): Promise<void> {
+    try {
+      const page = await this.source.list();
+      if (this.disposed) return;
+      this.saved = page.grids;
+      this.nextSaved = page.next;
+      const active = this.activeDefinition;
+      const current = this.saved.find(s => s.id === active?.id);
+      if (active && current) active.publishedAs = current.publishedAs;
+    } catch {
+      if (!this.disposed) this.error = 'load-failed';
+    }
+  }
   beginSave(asNew = false): void {
     if (!this.activeDefinition) return;
     this.saveName = this.activeDefinition.name;
@@ -963,7 +1144,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   }
   async confirmSave(): Promise<void> {
     if (!this.activeDefinition || !this.saveName.trim() || this.saveName.length > 120) return;
-    if (this.mode === 'graphql' ? this.rawErrors.length : this.issues.length) {
+    if (this.unlinked ? this.rawErrors.length : this.issues.length) {
       this.error = 'invalid-definition';
       return;
     }
@@ -971,6 +1152,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (!this.error) {
       this.saveOpen = false;
       this.saveDialog?.nativeElement.close();
+      if (this.publishAfterSave) {
+        this.publishAfterSave = false;
+        await this.createNamedQuery();
+      }
     }
   }
   @HostListener('window:beforeunload', ['$event'])

@@ -1,0 +1,90 @@
+<rb-admin-side-panel [title]="'data-grids-columns' | i18next" [subtitle]="subtitle" (closed)="closed.emit()">
+  <section class="explorer-shown" aria-labelledby="columns-heading" id="columns-panel">
+    <div class="grid-preview-heading">
+      <h3 id="columns-heading">{{ 'data-grids-shown-in-order' | i18next }}</h3>
+      <button class="btn btn-outline-secondary" (click)="reset()">{{ 'data-grids-reset' | i18next }}</button>
+    </div>
+    <div class="explorer-chips" role="list" [attr.aria-label]="'data-grids-column-order-help' | i18next">
+      @for (id of columns; track id; let index = $index) {
+        <span
+          class="rb-admin-chip"
+          role="listitem"
+          draggable="true"
+          (dragstart)="dragIndex = index"
+          (dragend)="dragIndex = null"
+          (dragover)="$event.preventDefault()"
+          (drop)="drop($event, index)"
+        >
+          <button
+            class="btn explorer-reorder grid-selected-label"
+            [attr.data-column-id]="id"
+            (keydown)="reorder($event, index)"
+            [attr.aria-describedby]="'column-reorder-help'"
+          >
+            ↕ {{ label(id) }}
+          </button>
+          <button
+            class="btn explorer-chip-remove"
+            [attr.aria-label]="('data-grids-remove-column' | i18next) + ': ' + label(id)"
+            (click)="toggle(id)"
+          >
+            ×
+          </button>
+        </span>
+      }
+    </div>
+    <p class="rb-admin-hint" id="column-reorder-help">{{ 'data-grids-keyboard-column-help' | i18next }}</p>
+    <span role="status" aria-live="polite">{{ announcement }}</span>
+  </section>
+  <label class="rb-admin-field explorer-field-search"
+    >{{ 'data-grids-find-field' | i18next }}
+    <input id="field-search" class="form-control" type="search" [(ngModel)]="search" />
+  </label>
+  @for (group of groups; track group.label; let gi = $index) {
+    <details class="rb-admin-form-section explorer-field-group" [open]="!!search || gi < 2">
+      <summary class="rb-admin-form-section-header">
+        {{ group.label }} <span class="badge">{{ group.fields.length }}</span>
+      </summary>
+      @for (field of group.fields; track field.id; let fi = $index) {
+        <div class="grid-field">
+          <input
+            type="checkbox"
+            [id]="'column-field-' + gi + '-' + fi"
+            [checked]="columns.includes(field.id)"
+            [disabled]="!field.selectable || (!columns.includes(field.id) && columns.length >= limit)"
+            (change)="toggle(field.id)"
+          />
+          <label [for]="'column-field-' + gi + '-' + fi"
+            ><span
+              >{{ label(field.id) }} <small>· {{ 'data-grids-type-' + field.type | i18next }}</small></span
+            >
+            <code>{{ field.path || field.id }}</code>
+            @if (!field.selectable) {
+              <small>{{ 'data-grids-unavailable-field' | i18next }}</small>
+            }
+          </label>
+        </div>
+      }
+    </details>
+  } @empty {
+    <p class="rb-admin-empty">{{ 'data-grids-no-fields' | i18next }}</p>
+  }
+  @if (repeatingCount) {
+    <div class="alert alert-info" role="note">
+      {{ repeatingCount }} {{ 'data-grids-repeating-note' | i18next }}
+      <button
+        class="btn btn-outline-secondary"
+        [attr.aria-expanded]="showRepeating"
+        (click)="showRepeating = !showRepeating"
+      >
+        {{ (showRepeating ? 'data-grids-hide-them' : 'data-grids-show-them') | i18next }}
+      </button>
+    </div>
+  }
+  <div panelFooter class="grid-actions">
+    <button class="btn btn-outline-secondary" (click)="closed.emit()">{{ 'data-grids-cancel' | i18next }}</button>
+    <button class="btn btn-primary" [disabled]="!columns.length" (click)="applied.emit(columns)">
+      {{ 'data-grids-apply-and-run' | i18next }}
+    </button>
+  </div>
+</rb-admin-side-panel>

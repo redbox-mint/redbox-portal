@@ -27,6 +27,7 @@ export interface DiscoveredField extends GridField {
 }
 export interface Discovery {
   revision: string;
+  recordTypeLabel?: string;
   stages: string[];
   fields: DiscoveredField[];
 }
@@ -51,12 +52,12 @@ export function scopeId(type: string, stage?: string): string {
   return JSON.stringify([type, stage ?? null]);
 }
 
-export const FIELD_PROPERTIES = `id path label labelKey scalarType repeating selectable availableInAllVariants
+export const FIELD_PROPERTIES = `id path label labelKey displayLabel displayLabelKey group groupKey groupPath repeatingSubfield repeatingGroupId scalarType repeating selectable availableInAllVariants
   filterable operators sortable choices { label value }`;
 export function discoveryQuery(selections: boolean): string {
   return `query GridFields($type: String!, $stages: [String!], $ids: [ID!]) {
     recordFields(recordType: $type, workflowStages: $stages, ids: $ids) {
-      revision variants { workflowStage }
+      revision recordTypeLabel recordTypeLabelKey variants { workflowStage }
       fields { ${FIELD_PROPERTIES} ${selections ? 'selections { variant selection responsePath }' : ''} }
     }
   }`;
@@ -78,14 +79,34 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
               : (boolean(field['repeating']) || scalar === 'OBJECT') && boolean(field['selectable'])
                 ? 'structured'
                 : 'unavailable';
-    const label = string(field['label']);
-    const key = field['labelKey'];
+    const label = typeof field['displayLabel'] === 'string' ? field['displayLabel'] : string(field['label']);
+    const key = field['displayLabelKey'] ?? field['labelKey'];
     const translated = typeof key === 'string' && key ? translate(key) : '';
+    const resolvedLabel =
+      translated && translated !== key && translated !== String(key).replace(/^@/, '') ? translated : label;
+    const leaf = typeof field['path'] === 'string' ? (field['path'].split('/').at(-1)?.split(':').at(-1) ?? '') : '';
+    const shortLabel =
+      resolvedLabel.length > 90 && leaf
+        ? leaf
+            .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+            .replace(/[_-]+/g, ' ')
+            .replace(/^./, c => c.toLocaleUpperCase())
+        : resolvedLabel;
     const allVariants = boolean(field['availableInAllVariants']);
     return {
       id: string(field['id']),
       path: typeof field['path'] === 'string' ? field['path'] : undefined,
-      label: translated && translated !== key && translated !== String(key).replace(/^@/, '') ? translated : label,
+      label: shortLabel,
+      group: typeof field['group'] === 'string' ? field['group'] : undefined,
+      groupPath: Array.isArray(field['groupPath'])
+        ? field['groupPath'].map(g => {
+            const k = string(g);
+            const t = k.startsWith('@') ? translate(k) : k;
+            return t && t !== k.replace(/^@/, '') && t !== k ? t : k.replace(/^@/, '');
+          })
+        : [],
+      repeatingSubfield: field['repeatingSubfield'] === true,
+      repeatingGroupId: typeof field['repeatingGroupId'] === 'string' ? field['repeatingGroupId'] : undefined,
       type,
       integer: scalar === 'INTEGER',
       partial: !allVariants,
@@ -130,6 +151,12 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
   if (new Set(fields.map(field => field.id)).size !== fields.length) return invalid();
   return {
     revision: string(data['revision']),
+    recordTypeLabel: (() => {
+      const key = data['recordTypeLabelKey'];
+      const label = data['recordTypeLabel'];
+      const t = typeof key === 'string' ? translate(key) : '';
+      return t && t !== key && t !== String(key).replace(/^@/, '') ? t : typeof label === 'string' ? label : undefined;
+    })(),
     fields,
     stages: [...new Set(array(data['variants']).map(value => string(object(value)['workflowStage'])))],
   };
@@ -358,7 +385,7 @@ export function parseSavedDefinition(value: unknown): GridDefinition {
   };
 }
 
-export function parseSavedQuery(value: unknown): SavedQuery {
+function parseEditableSavedQuery(value: unknown): SavedQuery {
   // Read-only catalogue metadata must not enter editable/persisted definitions.
   const { updatedAt: _updatedAt, updatedBy: _updatedBy, publishedAs: _publishedAs, ...grid } = object(value);
   if (grid['mode'] !== 'graphql') return parseSavedDefinition(grid);
@@ -407,4 +434,27 @@ export function parseQueryVariables(value: unknown): { [key: string]: JsonValue 
   const result: { [key: string]: JsonValue } = Object.create(null);
   for (const [key, entry] of Object.entries(object(value))) result[key] = json(entry);
   return result;
+}
+
+/** Presentation properties are response-only and are removed at every write boundary. */
+export function parseSavedQuery(value: unknown): SavedQuery {
+  const row = object(value);
+  const definition = parseEditableSavedQuery(value);
+  const presentation: import('./data-grid.model').SavedQueryPresentation = {};
+  if (row['publishedAs'] !== undefined)
+    presentation.publishedAs = array(row['publishedAs']).map(item => {
+      const link = object(item);
+      if (
+        typeof link['publishedRevision'] !== 'number' ||
+        !Number.isSafeInteger(link['publishedRevision']) ||
+        link['publishedRevision'] < 1
+      )
+        return invalid();
+      return {
+        name: string(link['name']),
+        publishedRevision: link['publishedRevision'],
+        changedSincePublished: boolean(link['changedSincePublished']),
+      };
+    });
+  return { ...definition, ...presentation };
 }
