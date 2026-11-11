@@ -27,6 +27,7 @@ import {
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
   StorageService,
+  type RecordQueryOptions,
   StorageServiceResponse,
   StorageMutationResponse,
   RBValidationError,
@@ -2883,11 +2884,20 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode: string = 'regex',
-      secondarySort = undefined
+      secondarySort = undefined,
+      deletionFilters: { deletedWithin?: string; deletedBy?: string } = {}
     ) {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      if (deletionFilters.deletedWithin && deletionFilters.deletedWithin !== 'any') {
+        if (!['7', '30'].includes(deletionFilters.deletedWithin)) throw new TypeError('Invalid deletion period');
+        query['dateDeleted'] = { $gte: new Date(Date.now() - Number(deletionFilters.deletedWithin) * 86400000).toISOString() };
+      }
+      if (deletionFilters.deletedBy) {
+        query['deletedBy.brandId'] = String(brand.id);
+        query['deletedBy.username'] = deletionFilters.deletedBy;
+      }
       const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
       const sortAliases = new Map([
         ['title', 'deletedRecordMetadata.metadata.title'],
@@ -2979,21 +2989,77 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode = undefined,
-      secondarySort = undefined
+      secondarySort = undefined,
+      queryOptions?: RecordQueryOptions
     ) {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
       }
+      // Legacy callers pass a one-element array; never accept query operators as paths.
+      const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
+      if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
+      const validField = (field: unknown): field is string =>
+        typeof field === 'string' &&
+        /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
+        !field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment));
+      if (
+        filterFields != null &&
+        (!Array.isArray(filterFields) || filterFields.length > 20 || filterFields.some(field => !validField(field)))
+      ) {
+        throw new Error('Invalid filter fields');
+      }
+      if (
+        queryOptions !== undefined &&
+        (!queryOptions ||
+          typeof queryOptions !== 'object' ||
+          Array.isArray(queryOptions) ||
+          Object.keys(queryOptions).some(key => !['anyOf', 'afterOid', 'count', 'authorization'].includes(key)) ||
+          (queryOptions.count !== undefined && typeof queryOptions.count !== 'boolean') ||
+          (queryOptions.authorization !== undefined && queryOptions.authorization !== 'record-view') ||
+          (queryOptions.afterOid !== undefined &&
+            queryOptions.afterOid !== null &&
+            (typeof queryOptions.afterOid !== 'string' || queryOptions.afterOid.length > 1024)) ||
+          (queryOptions.anyOf !== undefined &&
+            (!Array.isArray(queryOptions.anyOf) ||
+              queryOptions.anyOf.length > 20 ||
+              queryOptions.anyOf.some(
+                term =>
+                  !term ||
+                  typeof term !== 'object' ||
+                  Object.keys(term).some(key => !['field', 'value', 'match'].includes(key)) ||
+                  !validField(term.field) ||
+                  !['contains', 'exact'].includes(term.match) ||
+                  typeof term.value !== 'string' ||
+                  term.value.length > 1024
+              ))))
+      )
+        throw new Error('Invalid record query options');
+      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024))
+        throw new Error('Invalid filter');
       const query = {
         'metaMetadata.brandId': brand.id,
       };
-      const options = {
+      const options: FindOptions = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
         sort: this.getRecordSort(sort, secondarySort),
       };
 
-      const roleNames = this.getRoleNames(roles, brand);
+      const cursorBatch = queryOptions?.afterOid !== undefined;
+      if (cursorBatch) {
+        if (!Number.isSafeInteger(rows) || rows < 1 || rows > 100 || start !== 0) {
+          throw new Error('OID cursor batches require zero offset and 1 to 100 rows');
+        }
+        query['redboxOid'] = { $type: 'string', $gt: queryOptions.afterOid ?? '' };
+        options.sort = { redboxOid: 1 };
+        options.collation = { locale: 'simple' };
+        options.projection = { _id: 0 };
+        options.maxTimeMS = 5000;
+      }
+      const roleNames =
+        queryOptions?.authorization === 'record-view'
+          ? (brand.roles ?? []).filter(role => roles.some(held => held.id === role.id)).map(role => role.name)
+          : this.getRoleNames(roles, brand);
       const andArray = [];
       const permissions = {
         $or: [
@@ -3003,7 +3069,23 @@ export namespace Services {
           { 'authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (queryOptions?.authorization === 'record-view') {
+        // The legacy flat representation applies only without nested authorization.
+        andArray.push({
+          $or: [
+            permissions,
+            {
+              authorization: null,
+              $or: [
+                { authorization_view: username },
+                { authorization_edit: username },
+                { authorization_editRoles: { $in: roleNames } },
+                { authorization_viewRoles: { $in: roleNames } },
+              ],
+            },
+          ],
+        });
+      } else andArray.push(permissions);
       if (_.isArray(recordType)) {
         if (recordType.length > 1) {
           const typeArray = [];
@@ -3040,23 +3122,32 @@ export namespace Services {
         query['workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
-        const escapedFilterString = this.escapeRegExp(filterString);
-        sails.log.verbose('escapedFilterString ' + escapedFilterString);
-        for (const filterField of filterFields) {
-          if (filterMode == 'equal') {
-            query[filterField] = filterString;
-          } else if (filterMode == 'regex') {
-            query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
-          }
+        const value = mode === 'equal' ? filterString : new RegExp(this.escapeRegExp(filterString), 'i');
+        if (mode === 'any') {
+          // Keep search OR separate from the type and authorization OR clauses.
+          andArray.push({ $or: filterFields.map(field => ({ [field]: value })) });
+        } else {
+          // Field filters must narrow, never replace, brand/type/workflow scope.
+          for (const field of filterFields) andArray.push({ [field]: value });
         }
       }
 
+      if (queryOptions?.anyOf?.length) {
+        andArray.push({
+          $or: queryOptions.anyOf.map(term => ({
+            [term.field]: term.match === 'exact' ? term.value : new RegExp(this.escapeRegExp(term.value), 'i'),
+          })),
+        });
+      }
       query['$and'] = andArray;
 
       sails.log.verbose(query);
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
-      const { items, totalItems } = await this.runRecordQuery(Record.tableName, query, options);
+      const { items, totalItems } =
+        queryOptions?.count === false
+          ? await this.runRecordQuery(Record.tableName, query, options, false)
+          : await this.runRecordQuery(Record.tableName, query, options);
       const response = new StorageServiceResponse();
       response.success = true;
       response.items = items;
@@ -3068,10 +3159,10 @@ export namespace Services {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    protected async runRecordQuery(colName, query, options) {
+    protected async runRecordQuery(colName, query, options, includeCount = true) {
       return {
         items: await this.recordCol.find(query, options).toArray(),
-        totalItems: await this.recordCol.count(query),
+        totalItems: includeCount ? await this.recordCol.count(query) : 0,
       };
     }
 
@@ -3082,13 +3173,15 @@ export namespace Services {
       };
     }
 
-    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false) {
+    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false, checkpoint?: () => Promise<void>) {
       let skip = 0;
       const limit = options.limit;
       options.skip = skip;
+      await checkpoint?.();
       let result = await this.recordCol.find(query, options).toArray();
 
       while (result.length > 0) {
+        await checkpoint?.();
         for (const record of result) {
           if (stringifyJSON) {
             yield JSON.stringify(record);
@@ -3098,11 +3191,12 @@ export namespace Services {
         }
         skip = skip + limit;
         options.skip = skip;
+        await checkpoint?.();
         result = await this.recordCol.find(query, options).toArray();
       }
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint?: () => Promise<void>): stream.Readable {
       const andArray = [];
       const query = {
         'metaMetadata.brandId': brand.id,
@@ -3152,7 +3246,7 @@ export namespace Services {
             // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
             // bail out when it is no longer writable.
             const isCancelled = () => passThrough.destroyed;
-            const fields = await this.collectCsvFields(query, options, isCancelled);
+            const fields = await this.collectCsvFields(query, options, isCancelled, checkpoint);
             if (isCancelled()) {
               return;
             }
@@ -3172,7 +3266,10 @@ export namespace Services {
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(
-              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              stream.Readable.from(this.fetchAllRecords(query, { ...options }, false, async () => {
+                if (isCancelled()) throw new Error('Export stream closed.');
+                await checkpoint?.();
+              })),
               sanitize,
               json2csv,
               passThrough
@@ -3193,10 +3290,10 @@ export namespace Services {
     // First export pass: iterate every matching record and accumulate the union of flattened column
     // keys (first-seen order) so the CSV header covers every record. A clone of options is used
     // because fetchAllRecords mutates options.skip while paging.
-    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
+    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false, checkpoint?: () => Promise<void>): Promise<string[]> {
       const flattener = flatten();
       const fields = new Set<string>();
-      for await (const record of this.fetchAllRecords(query, { ...options })) {
+      for await (const record of this.fetchAllRecords(query, { ...options }, false, checkpoint)) {
         // Stop paging Mongo if the consumer has disconnected so cancelled exports don't keep
         // scanning every matching record.
         if (isCancelled()) {

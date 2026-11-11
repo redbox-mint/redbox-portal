@@ -18,15 +18,131 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import {
-  Observable, from, firstValueFrom, lastValueFrom
+  Observable, defer, from, firstValueFrom, lastValueFrom
 } from 'rxjs';
 import { Services as services } from '../CoreService';
 // removed deprecated rxjs/add/operator imports; use firstValueFrom instead
 import { type TemplateDelegate as HandlebarsTemplateDelegate } from 'handlebars';
 import * as fs from 'graceful-fs';
+import { join } from 'node:path';
+import { EmailTemplateError, readEmailTemplateDefault, safeEmailTemplateError, validateEmailTemplate, emailTemplateContextRoots, validateEmailLength, hardenEmailSubject } from './EmailTemplateService';
 import * as nodemailer from 'nodemailer';
 import {isObservable} from "rxjs";
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import { compileEmailTemplatePreview } from '../utilities/EmailTemplatePreview';
+import { emailSyntaxSourcePosition } from '../utilities/EmailTemplateSyntax';
+
+
+/** Trusted delivery context; never inferred from template data or request bodies. */
+export interface EmailRenderContext {
+  brandId?: string;
+  /** Explicit caller overrides take precedence over the resolved template. */
+  subject?: string;
+  /** Runtime default for integration notifications; DB subjects still take priority. */
+  defaultSubject?: string;
+  format?: string;
+}
+
+export function emailRecordUrl(brandUrl: unknown, oid: unknown, action: 'view' | 'edit'): string | undefined {
+  return typeof brandUrl === 'string' && brandUrl && typeof oid === 'string' && oid
+    ? `${brandUrl}/record/${action}/${encodeURIComponent(oid)}` : undefined;
+}
+
+export function curateEmailRecordData(data: Record<string, unknown>): Record<string, unknown> {
+  const prepared = { ...data };
+  const raw = data.record as Record<string, unknown> | undefined;
+  if (raw && typeof raw === 'object') {
+    // Explicitly construct display data: no authorization, storage, version or form internals.
+    const meta = (raw.metaMetadata ?? {}) as Record<string, unknown>;
+    const workflow = (raw.workflow ?? {}) as Record<string, unknown>;
+    prepared['record'] = {
+      oid: data.oid ?? raw.oid ?? raw.redboxOid ?? '',
+      metadata: _.cloneDeep(raw.metadata ?? {}),
+      lastSaveDate: raw.lastSaveDate,
+      dateCreated: raw.dateCreated,
+      workflow: _.pick(workflow, ['stage', 'stageLabel']),
+      metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
+    };
+    const record = prepared['record'] as Record<string, unknown>;
+    record.redboxOid = record.oid;
+    prepared['oid'] = record.oid;
+    // Conventional display values are defaults, not aliases: caller edits always win.
+    const title = _.get(prepared, 'record.metadata.title');
+    if (!Object.hasOwn(data, 'title') && typeof title === 'string') prepared['title'] = title;
+    const brandUrl = _.get(data, 'portal.brandUrl');
+    const oid = prepared['oid'];
+    for (const [key, action] of [['viewUrl', 'view'], ['editUrl', 'edit']] as const) {
+      if (typeof raw[key] === 'string') record[key] = raw[key];
+      else {
+        const url = emailRecordUrl(brandUrl, oid, action);
+        if (url !== undefined) record[key] = url;
+      }
+    }
+  }
+  // Retain the legacy alias without leaving a second copy of the full record reachable.
+  if (data.imports) prepared['imports'] = { record: prepared['record'], oid: prepared['oid'] };
+  return prepared;
+}
+
+// Content/context overrides exist only for response objects created by this internal
+// admin helper. No data/context property, send argument or notification input can select them.
+interface EmailAdminPreviewRequest {
+  content: { subject: string; body: string; format: 'html' | 'text' }; data: Record<string, unknown>;
+  suppliedDefault?: boolean;
+  failure?: Pick<EmailTemplateError, 'code' | 'message' | 'diagnostic'>;
+  // Content-free markers of which field, and where in it, rendering failed.
+  failedField?: 'subject' | 'body';
+  failedLine?: number;
+  failedColumn?: number;
+}
+// Mounted hooks can import core through a different package path, just as source
+// and compiled copies can coexist. The admin helper and hook's base class must
+// share the same response-object registry across those module instances.
+const adminPreviewKey = Symbol.for('@researchdatabox/redbox-core/emailAdminPreviewRequests');
+const previewState = globalThis as typeof globalThis & {
+  [adminPreviewKey]?: WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>;
+};
+const adminPreviewRequests = (previewState[adminPreviewKey] ??= new WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>());
+
+const adminPreviewBuildKey = Symbol.for('@researchdatabox/redbox-core/emailAdminPreviewBuildRequests');
+const previewBuildState = globalThis as typeof globalThis & {
+  [adminPreviewBuildKey]?: WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>;
+};
+const adminPreviewBuildRequests = (previewBuildState[adminPreviewBuildKey] ??= new WeakMap<Record<string, unknown>, EmailAdminPreviewRequest>());
+
+/** Internal service-to-service preview seam, deliberately absent from EmailService.exports(). */
+export async function renderEmailAdminPreview(email: Pick<Services.Email, 'buildFromTemplateAsync' | 'buildFromTemplate'>,
+  templateId: string, content: { subject: string; body: string; format: 'html' | 'text' }, data: Record<string, unknown>,
+  integration?: { context: EmailRenderContext; suppliedDefault: boolean }) {
+  const response: Record<string, unknown> = {};
+  // Preserve the filtered null-prototype context and use preview-local helpers.
+  const request: EmailAdminPreviewRequest = { content: { ...content }, data, suppliedDefault: integration?.suppliedDefault };
+  if (integration) adminPreviewBuildRequests.set(data, request);
+  else adminPreviewRequests.set(response, request);
+  try {
+    // Hooks still run, including post-render processing. Their pre-render additions
+    // cannot replace edited display values or widen the filtered submitted context.
+    const result = integration
+      ? await firstValueFrom(email.buildFromTemplate(templateId, data, integration.context))
+      : await email.buildFromTemplateAsync(templateId, structuredClone(data), response);
+    if (result['status'] !== 200 || typeof result['subject'] !== 'string' || typeof result['body'] !== 'string') {
+      // Recreate safe typed failures locally: the hook's core module can have a
+      // distinct EmailTemplateError constructor. Only our private registry can
+      // supply this marker, never caller-controlled data or an arbitrary error.
+      const failure = request.failure
+        ? new EmailTemplateError(request.failure.code, request.failure.message, undefined, request.failure.diagnostic)
+        : result['ex'] instanceof EmailTemplateError ? result['ex']
+        : new EmailTemplateError('RENDER_FAILED', 'Unable to render email preview.');
+      if (failure.code === 'RENDER_FAILED' && request.failedField) {
+        throw new EmailTemplateError('RENDER_FAILED', failure.message, undefined,
+          { field: request.failedField, reason: 'INVALID_SYNTAX',
+            line: request.failedLine ?? 1, column: request.failedColumn ?? 1 });
+      }
+      throw failure;
+    }
+    return result;
+  } finally { adminPreviewRequests.delete(response); adminPreviewBuildRequests.delete(data); }
+}
 
 export namespace Services {
   /**
@@ -39,11 +155,130 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'sendMessage',
       'buildFromTemplate',
+      'buildFromTemplateAsync',
+      'validateExposedConfig',
+      'buildPreviewContext',
       'sendTemplate',
       'sendRecordNotification',
       'evaluateProperties',
       'runTemplate',
     ];
+
+    // Keep the three-argument async hook seam intact. Hooks (including SCU) pass
+    // the response object to super after adding display values to data.
+    private previewContextRequests = new WeakMap<Record<string, unknown>, EmailRenderContext>();
+
+    private renderContexts = new WeakMap<Record<string, unknown>, EmailRenderContext>();
+
+    // Preserve trusted brand display context during address/string rendering,
+    // without reading tenant identifiers from caller-controlled display fields.
+    private renderDataContexts = new WeakMap<Record<string, unknown>, EmailRenderContext>();
+    private missingExposedPaths = new Set<string>();
+
+    /**
+     * Validate emailnotification.settings.exposedConfigPaths eagerly (called at
+     * bootstrap), so a bad allowlist fails startup instead of every send.
+     */
+    public validateExposedConfig(): void {
+      emailTemplateContextRoots();
+      validateEmailLength('', 'subject');
+      validateEmailLength('', 'body');
+      this.createRenderData({});
+    }
+
+    /** Construct reserved display values; never merge caller data into these objects. */
+    private createRenderData(data: Record<string, unknown>, context = this.renderDataContexts.get(data) ?? {}, curateRecord = true): Record<string, unknown> {
+      // Minimal hook/test apps may lift without email settings; use the default allowlist.
+      const configuredPaths = sails.config.emailnotification?.settings?.exposedConfigPaths;
+      const paths = configuredPaths === undefined ? ['appUrl'] : configuredPaths;
+      const unsafeSegment = (segment: string) => ['__proto__', 'constructor', 'prototype'].includes(segment);
+      if (!Array.isArray(paths)) {
+        throw new Error('emailnotification.settings.exposedConfigPaths must be an array of dotted paths.');
+      }
+      paths.forEach((path: unknown, index: number) => {
+        if (typeof path !== 'string' ||
+          path.split('.').some(segment => !segment.trim() || segment !== segment.trim() || unsafeSegment(segment))) {
+          throw new Error(`emailnotification.settings.exposedConfigPaths entry ${index} (${JSON.stringify(path)}) ` +
+            'must be a non-empty dotted path without prototype segments.');
+        }
+      });
+
+      // Only plain, acyclic data may cross this boundary. Do not retain functions,
+      // accessors, class instances or references to any live configuration object.
+      const clone = (value: unknown, ancestors = new Set<object>()): unknown => {
+        if (value === null || ['string', 'number', 'boolean', 'undefined'].includes(typeof value)) return value;
+        if ((!Array.isArray(value) && !_.isPlainObject(value)) || ancestors.has(value as object)) {
+          throw new Error('Email exposed config values must be plain, acyclic data.');
+        }
+        const nextAncestors = new Set(ancestors).add(value as object);
+        const copy: Record<string, unknown> | unknown[] = Array.isArray(value) ? new Array(value.length) : {};
+        for (const key of Object.keys(value as object)) {
+          const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+          if (unsafeSegment(key) || !Object.hasOwn(descriptor, 'value')) {
+            throw new Error('Email exposed config values must not contain prototype keys or accessors.');
+          }
+          Object.defineProperty(copy, key, {
+            value: clone(descriptor.value, nextAncestors), enumerable: true, writable: true, configurable: true,
+          });
+        }
+        return copy;
+      };
+
+      const appUrl = typeof sails.config.appUrl === 'string' ? sails.config.appUrl : '';
+      const sailsConfig: Record<string, unknown> = { appUrl };
+      for (const path of paths) {
+        // appUrl is always present as a string, even on installations without a configured URL.
+        if (path === 'appUrl') continue;
+        try {
+          const segments = path.split('.');
+          let value: unknown = sails.config;
+          for (const segment of segments) {
+            const descriptor = value != null ? Object.getOwnPropertyDescriptor(value, segment) : undefined;
+            if (descriptor && !Object.hasOwn(descriptor, 'value')) {
+              throw new Error('Email exposed config paths must not reference accessors.');
+            }
+            value = descriptor?.value;
+          }
+          if (value === undefined) {
+            if (!this.missingExposedPaths.has(path)) {
+              this.missingExposedPaths.add(path);
+              this.updateChronicle({ emailMissingExposedConfigPath: path }, [], 'warn');
+            }
+            continue;
+          }
+          let target = sailsConfig;
+          for (const segment of segments.slice(0, -1)) {
+            if (!Object.hasOwn(target, segment)) target[segment] = {};
+            if (!_.isPlainObject(target[segment]) && !Array.isArray(target[segment])) {
+              throw new Error('Conflicting email exposed config paths.');
+            }
+            target = target[segment] as Record<string, unknown>;
+          }
+          target[segments[segments.length - 1]] = clone(value);
+        } catch (error) {
+          throw new Error(`emailnotification.settings.exposedConfigPaths entry '${path}': ${(error as Error).message}`, { cause: error });
+        }
+      }
+
+      const brand = context.brandId !== undefined && typeof BrandingService !== 'undefined'
+        ? BrandingService.getBrandById?.(context.brandId) : undefined;
+      const brandName = typeof brand?.name === 'string' ? brand.name : '';
+      const portalName = typeof sails.config.auth?.defaultPortal === 'string' ? sails.config.auth.defaultPortal : '';
+      const rootContext = sails.config.http?.rootContext;
+      // Same shape as BrandingService.getFullPath: appUrl[/rootContext]/brand/portal.
+      const brandPath = [typeof rootContext === 'string' ? rootContext.replace(/^\/+|\/+$/g, '') : '', brandName, portalName]
+        .filter(Boolean).join('/');
+      const portal = {
+        appUrl,
+        brandName,
+        brandUrl: appUrl && brandName && portalName ? `${appUrl.replace(/\/+$/, '')}/${brandPath}` : '',
+        portalName,
+      };
+      const prepared: Record<string, unknown> = { ...data, sailsConfig, portal };
+      if (curateRecord) Object.assign(prepared, curateEmailRecordData({ ...data, sailsConfig, portal }));
+      this.renderDataContexts.set(prepared, { ...context });
+      return prepared;
+    }
 
     private compiledTemplates: Map<string, HandlebarsTemplateDelegate> = new Map();
 
@@ -55,7 +290,7 @@ export namespace Services {
      */
     private getCompiledTemplate(templateName: string): HandlebarsTemplateDelegate {
       if (!this.compiledTemplates.has(templateName)) {
-        const filePath = sails.config.emailnotification.settings.templateDir + templateName + '.hbs';
+        const filePath = join(sails.config.emailnotification.settings.templateDir, templateName + '.hbs');
         const source = fs.readFileSync(filePath, 'utf-8') || '';
         this.compiledTemplates.set(templateName, handlebarsCompile(source, { strict: true }));
       }
@@ -132,11 +367,37 @@ export namespace Services {
       }
       this.updateChronicle({ emailSendOutcome: 'processing' });
 
+      // This also covers callers supplying already-rendered strings to sendMessage.
+      try {
+        msgSubject = hardenEmailSubject(msgSubject);
+        validateEmailLength(msgBody, 'body');
+        if (!['html', 'text'].includes(msgFormat)) throw new EmailTemplateError('INVALID_TEMPLATE', 'Invalid email format.');
+        if (msgFormat === 'html') {
+          // Never let getDOMPurifyConfig silently fall back to a different profile.
+          if (!sails.config.dompurify?.profiles?.email) {
+            throw new EmailTemplateError('SANITISATION_FAILED', 'DOMPurify email profile is required.');
+          }
+          try {
+            const result = DomSanitizerService.sanitizeEmail(msgBody);
+            msgBody = result.sanitized;
+            if (result.removed) this.updateChronicle({ emailSanitisationRemovedMarkup: true });
+          } catch {
+            // Do not retain sanitizer exceptions: they can embed the email content.
+            throw new EmailTemplateError('SANITISATION_FAILED', 'Unable to sanitise email HTML.');
+          }
+          validateEmailLength(msgBody, 'body');
+        }
+      } catch (error) {
+        this.updateChronicle({ emailSendOutcome: 'validation-failed',
+          emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' });
+        throw error;
+      }
+
       let transport;
       try {
         transport = nodemailer.createTransport(sails.config.emailnotification.settings.serverOptions);
-      } catch (err) {
-        this.updateChronicle({ emailSendOutcome: 'transport-failed' }, [err]);
+      } catch {
+        this.updateChronicle({ emailSendOutcome: 'transport-failed' }, [new Error('Email transport creation failed.')]);
         return {
           'success': false,
           'msg': 'Failed to establish mail transport connection.'
@@ -162,10 +423,10 @@ export namespace Services {
         response.msg = `Email sent successfully. Message Id: ${sendResult.messageId}`;
         response.success = true;
         this.updateChronicle({ emailSendOutcome: 'sent' }, [], 'info');
-      } catch (err) {
+      } catch {
         response.msg = 'Email unable to be submitted';
         response.success = false;
-        this.updateChronicle({ emailSendOutcome: 'failed' }, [err]);
+        this.updateChronicle({ emailSendOutcome: 'failed' }, [new Error('Email transport submission failed.')]);
       }
 
       return response;
@@ -182,16 +443,63 @@ export namespace Services {
      */
     public async buildFromTemplateAsync(templateName: string, data: Record<string, unknown> = {}, res: Record<string, unknown> = {}) {
       try {
-        const renderedTemplate = this.getCompiledTemplate(templateName)(data);
+        const preview = adminPreviewRequests.get(res);
+        const capture = this.previewContextRequests.get(res);
+        const context = capture ?? this.renderContexts.get(res);
+        data = preview ? preview.data : this.createRenderData(data, context);
+        if (capture) {
+          // This branch runs AFTER hook overrides inject display values, before any compile or send.
+          res['context'] = data;
+          res['status'] = 200;
+          return res;
+        }
+        const template = preview ? { ...preview.content, source: preview.suppliedDefault ? 'default' as const : 'override' as const, fileName: undefined, revision: undefined } : context?.brandId !== undefined
+          ? await EmailTemplateService.resolve(templateName, context.brandId)
+          : readEmailTemplateDefault(templateName);
+        const selected = {
+          ...template,
+          subject: context?.subject ?? (template.source === 'default' ? context?.defaultSubject : undefined) ?? template.subject,
+          format: context?.format ?? template.format,
+        };
+        validateEmailTemplate(selected as Parameters<typeof validateEmailTemplate>[0], false);
+        // DB compilation is deliberately uncached. Every send queries storage;
+        // revision updates and delete/recreate cycles are visible on all workers.
+        if (preview) preview.failedField = 'body';
+        const body = preview ? compileEmailTemplatePreview(template.body)(data) : template.source === 'override'
+          ? handlebarsCompile(template.body, { strict: true })(data)
+          : this.getCompiledTemplate(template.fileName ?? templateName)(data);
 
+        validateEmailLength(body, 'body');
         res['status'] = 200;
-        res['body'] = renderedTemplate;
+        res['body'] = body;
+        // Direct legacy body-only calls need not supply subject display values.
+        if (preview) preview.failedField = 'subject';
+        if (context || preview) res['subject'] = hardenEmailSubject(preview ? compileEmailTemplatePreview(selected.subject)(data) : this.runTemplate(selected.subject, data));
+        if (preview) preview.failedField = undefined;
+        res['format'] = selected.format;
+        res['source'] = template.source;
+        res['revision'] = template.revision;
         return res;
       } catch (err) {
-        this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed' }, [err]);
+        const preview = adminPreviewRequests.get(res);
+        if (preview?.failedField) {
+          const at = (err ?? {}) as { lineNumber?: unknown; column?: unknown };
+          const position = emailSyntaxSourcePosition(preview.content[preview.failedField], {
+            line: Number.isSafeInteger(at.lineNumber) && Number(at.lineNumber) >= 1 ? Number(at.lineNumber) : 1,
+            column: Number.isSafeInteger(at.column) && Number(at.column) >= 0 ? Number(at.column) + 1 : 1,
+          });
+          preview.failedLine = position.line;
+          preview.failedColumn = position.column;
+        }
+        // Record and propagate one safe typed instance; render errors may quote template text.
+        const failure = err instanceof EmailTemplateError ? err
+          : safeEmailTemplateError('RENDER_FAILED', `Unable to render email template '${templateName}'.`, err);
+        if (preview) preview.failure = { code: failure.code, message: failure.message, diagnostic: failure.diagnostic };
+        this.updateChronicle({ emailTemplate: templateName, emailTemplateOutcome: 'failed', emailErrorCode: failure.code },
+          [failure]);
         res['status'] = 500;
         res['body'] = 'Templating error.';
-        res['ex'] = err;
+        res['ex'] = failure;
         return res;
       }
     }
@@ -204,8 +512,33 @@ export namespace Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
-    public buildFromTemplate(template: string, data: Record<string, unknown> = {}): Observable<Record<string, unknown>> {
-  return from(this.buildFromTemplateAsync(template, data));
+    public async buildPreviewContext(templateName: string, data: Record<string, unknown>, brandId: string): Promise<Record<string, unknown>> {
+      const response: Record<string, unknown> = {};
+      this.previewContextRequests.set(response, { brandId });
+      // Same virtual method dispatch and pre-curation as buildFromTemplate; SCU's override runs here.
+      const result = await this.buildFromTemplateAsync(templateName, this.createRenderData(data, { brandId }), response);
+      if (result['status'] !== 200) throw result['ex'] ?? new EmailTemplateError('RENDER_FAILED', 'Unable to prepare preview context.');
+      return result['context'] as Record<string, unknown>;
+    }
+
+    public buildFromTemplate(template: string, data: Record<string, unknown> = {}, context?: EmailRenderContext): Observable<Record<string, unknown>> {
+      // Deferred so render-data errors surface through the Observable, not
+      // synchronously. Each subscription renders into its own response object.
+      return defer(() => {
+        const response: Record<string, unknown> = {};
+        // Legacy two-argument callers get body-only rendering (defaults only), as
+        // before; supplying a context opts into coherent subject/body/format output.
+        if (context !== undefined) this.renderContexts.set(response, { ...context });
+        const prepared = this.createRenderData(data, context);
+        const preview = adminPreviewBuildRequests.get(data);
+        if (preview) {
+          preview.data = prepared;
+          adminPreviewRequests.set(response, preview);
+        }
+        // Hooks may mutate their input in place. Keep the submitted preview snapshot independent.
+        return this.buildFromTemplateAsync(template, preview ? structuredClone(prepared) : prepared, response)
+          .finally(() => adminPreviewRequests.delete(response));
+      });
     }
 
     /**
@@ -224,15 +557,15 @@ export namespace Services {
      * complete. Rejects on build/delivery errors, non-200 build status, or an
      * unsuccessful delivery result. Disabled email retains sendMessage's success result.
      */
-    public sendTemplate(to: string, subject: string, template: string, data: Record<string, unknown>): Promise<{ success: boolean, msg: string }> {
+    public sendTemplate(to: string, subject: string | undefined, template: string, data: Record<string, unknown>, context: EmailRenderContext = {}): Promise<{ success: boolean, msg: string }> {
       this.updateChronicle({ emailTemplate: template });
       const delivery = (async () => {
-        const buildResult = await lastValueFrom(this.buildFromTemplate(template, data));
+        const buildResult = await lastValueFrom(this.buildFromTemplate(template, data, { ...context, subject: subject ?? context.subject }));
         if (buildResult['status'] !== 200) {
           throw buildResult['ex'] ?? new Error(`Unable to build email template '${template}' (status ${buildResult['status']}).`);
         }
 
-        const sendResult = await lastValueFrom(this.sendMessage(to, buildResult['body'] as string, subject));
+        const sendResult = await lastValueFrom(this.sendMessage(to, buildResult['body'] as string, buildResult['subject'] as string, undefined, buildResult['format'] as string));
         if (!sendResult.success) {
           throw new Error(sendResult.msg);
         }
@@ -256,9 +589,14 @@ export namespace Services {
     public runTemplate(template: string, variables: Record<string, unknown>) {
       if (template && template.indexOf('{{') !== -1) {
         const compiled = handlebarsCompile(template, { strict: true })
-        return compiled(variables);
+        return compiled(this.createRenderData(variables));
       }
       return template;
+    }
+
+    private runAddressTemplate(template: string, variables: Record<string, unknown>) {
+      return template?.includes('{{')
+        ? handlebarsCompile(template, { strict: true })(this.createRenderData(variables, undefined, false)) : template;
     }
 
     /**
@@ -292,7 +630,9 @@ export namespace Services {
         };
         this.updateChronicle({ emailNotificationOutcome: 'processing' });
         // send record notification
-        const optionsEvaluated = this.evaluateProperties(options, {}, variables);
+        const optionsEvaluated = this.evaluateProperties(options, {}, variables, {
+          brandId: _.get(record, 'metaMetadata.brandId') as string | undefined,
+        });
 
         if (!optionsEvaluated.toRendered) {
           const error = new Error('Invalid email address.');
@@ -304,16 +644,17 @@ export namespace Services {
         const buildResult: Record<string, unknown> = await firstValueFrom(templateRendered);
 
         if (buildResult['status'] != 200) {
-          const error = new Error('Invalid email body.');
-          this.updateChronicle({ emailNotificationOutcome: 'invalid-body' }, [error]);
+          const error = (buildResult['ex'] as Error | undefined) ?? new EmailTemplateError('RENDER_FAILED', 'Invalid email body.');
+          this.updateChronicle({ emailNotificationOutcome: 'invalid-body',
+            emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' });
           throw error;
         }
         const sendResult = await firstValueFrom(this.sendMessage(
           optionsEvaluated.toRendered,
           buildResult['body'] as string,
-          optionsEvaluated.subjectRendered,
+          (buildResult['subject'] as string | undefined) ?? optionsEvaluated.subjectRendered,
           optionsEvaluated.fromRendered,
-          optionsEvaluated.formatRendered,
+          (buildResult['format'] as string | undefined) ?? optionsEvaluated.formatRendered,
           optionsEvaluated.ccRendered,
           optionsEvaluated.bccRendered,
           _.get(options, 'otherSendOptions', {}) as Record<string, unknown>,
@@ -323,7 +664,7 @@ export namespace Services {
           this.updateChronicle({ emailNotificationOutcome: 'sent' });
           const postSendHooks = _.get(options, "onNotifySuccess", null);
           if (Array.isArray(postSendHooks)) {
-            sails.log.verbose(`Processing onNotifySuccess hooks`);
+            this.updateChronicle({ emailNotificationHookOutcome: 'processing' });
             for (const postSendHook of postSendHooks) {
               const postSendHookFnName = _.get(postSendHook, 'function', null);
               if (typeof postSendHookFnName === 'string' && postSendHookFnName.length > 0) {
@@ -341,8 +682,8 @@ export namespace Services {
                 try {
                   await postSendHookResult;
                   this.updateChronicle({ emailNotificationHookOutcome: 'success' });
-                } catch (error) {
-                  this.updateChronicle({ emailNotificationHookOutcome: 'failure' }, [error]);
+                } catch {
+                  this.updateChronicle({ emailNotificationHookOutcome: 'failure' }, [new Error('Email notification hook failed.')]);
                 }
               }
             }
@@ -371,7 +712,7 @@ export namespace Services {
      * @param config
      * @param templateData
      */
-    public evaluateProperties(options: Record<string, unknown>, config: Record<string, unknown> = {}, templateData: Record<string, unknown> = {}): {
+    public evaluateProperties(options: Record<string, unknown>, config: Record<string, unknown> = {}, templateData: Record<string, unknown> = {}, context: EmailRenderContext = {}): {
       format: string, formatRendered: string,
       from: string, fromRendered: string,
       to: string, toRendered: string,
@@ -399,40 +740,44 @@ export namespace Services {
         format: {
           names: ["msgFormat", "format",],
           defaultKey: "format",
+          templatesKey: "format",
         },
         from: {
           names: ["msgFrom", "from"],
           defaultKey: "from",
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         to: {
           names: ["msgTo", "to"],
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         cc: {
           names: ["cc"],
           defaultKey: "cc",
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         bcc: {
           names: ["bcc"],
           defaultKey: "bcc",
-          templateFunc: this.runTemplate,
+          templateFunc: this.runAddressTemplate,
         },
         subject: {
           names: ["subject"],
           defaultKey: "subject",
           templatesKey: "subject",
-          templateFunc: this.runTemplate,
+          templateFunc: (value: string, data: Record<string, unknown>) => hardenEmailSubject(this.runTemplate(value, data)),
         },
         template: {
           names: ["template"],
-          templateFunc: this.buildFromTemplate,
+          templateFunc: (name: string, data: Record<string, unknown>) => this.buildFromTemplate(name, data, {
+            ...context,
+            subject: options.subject as string | undefined,
+            format: (options.msgFormat ?? options.format) as string | undefined,
+          }),
         }
       }, config) as Record<string, Record<string, unknown>>;
 
-      // Add the sails config to the template data.
-      templateData['sailsConfig'] = sails.config;
+      templateData = this.createRenderData(templateData, context, false);
 
       // Get the template name first, so it is available for the other properties.
       let templateName = null;
@@ -441,7 +786,10 @@ export namespace Services {
 
       // Evaluate each property.
       for (const prop in mergedConfig) {
-        const propConfig = mergedConfig[prop] as Record<string, unknown>;
+        const propConfig = { ...mergedConfig[prop] } as Record<string, unknown>;
+        // A default subject may require data absent from an override. Render the
+        // selected subject inside the async hook seam, after source resolution.
+        if (prop === 'subject' && context.brandId !== undefined) delete propConfig.templateFunc;
 
         result = _.merge(
           result,

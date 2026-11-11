@@ -1,4 +1,13 @@
+import { AdminSaveShortcutComponent } from './admin-save-shortcut.component';
+import { AdminPagerComponent } from './admin-pager.component';
+import { AdminListFooterComponent } from './admin-list-footer.component';
+import { AdminDiscardDialogComponent } from './admin-discard-dialog.component';
+import { AdminOverflowDirective } from './admin-overflow.directive';
+import { AdminModalDirective } from './admin-modal.directive';
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
+import { AdminAutoFilterDirective } from './admin-auto-filter.directive';
+import { AdminTabsDirective } from './admin-tabs.directive';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
@@ -20,6 +29,8 @@ import { ReportService } from './report.service';
 import { HeaderSortComponent } from "./header-sort.component";
 import { I18NextPipe } from './i18next.pipe';
 import { PlainTextLabelPipe } from './plain-text-label.pipe';
+import { AdminCountPipe } from './admin-count.pipe';
+import { AdminDatePipe } from './admin-date.pipe';
 export function trimLastSlashFromUrl(baseUrl: string) {
   if (!_isEmpty(baseUrl) && (baseUrl[baseUrl.length - 1] == '/')) {
     var trimmedUrl = baseUrl.substring(0, baseUrl.length - 1);
@@ -57,16 +68,38 @@ export function trimLastSlashFromUrl(baseUrl: string) {
     ReportService
   ],
   imports: [
+    AdminSaveShortcutComponent,
+    AdminListFooterComponent,
+    AdminPagerComponent,
+    AdminModalDirective,
+    AdminOverflowDirective,
+    AdminDiscardDialogComponent,
+    A11yModule,
     BrowserModule,
     HttpClientModule,
     FormsModule,
+    AdminTabsDirective,
+    AdminAutoFilterDirective,
     I18NextPipe,
     PlainTextLabelPipe,
+    AdminDatePipe,
+    AdminCountPipe,
     PaginationModule.forRoot()
   ],
   exports: [
+    AdminSaveShortcutComponent,
+    AdminListFooterComponent,
+    AdminPagerComponent,
+    AdminModalDirective,
+    AdminOverflowDirective,
+    AdminDiscardDialogComponent,
+    A11yModule,
+    AdminTabsDirective,
+    AdminAutoFilterDirective,
     I18NextPipe,
     PlainTextLabelPipe,
+    AdminDatePipe,
+    AdminCountPipe,
     PaginationModule,
     RecordTableComponent,
     HeaderSortComponent,

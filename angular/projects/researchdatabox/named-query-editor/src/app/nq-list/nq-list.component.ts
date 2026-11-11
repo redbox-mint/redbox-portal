@@ -3,6 +3,7 @@ import { NamedQueryDefinition } from '../named-query-api.service';
 
 export type NamedQueryListQueryState = {
   searchTerm: string;
+  collection?: string;
 };
 
 @Component({
@@ -12,7 +13,10 @@ export type NamedQueryListQueryState = {
   standalone: false
 })
 export class NqListComponent implements OnChanges, OnDestroy {
+  @Input() brandingAndPortalUrl = '';
   @Input() queries: NamedQueryDefinition[] = [];
+  @Input() total = 0;
+  @Input() collections: string[] = [];
   @Input() selectedName: string | null = null;
   @Input() query: NamedQueryListQueryState = { searchTerm: '' };
 
@@ -48,6 +52,16 @@ export class NqListComponent implements OnChanges, OnDestroy {
     }
   }
 
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.setCollection('');
+  }
+
+  setCollection(collection: string): void {
+    if (this.searchDebounceTimer) { clearTimeout(this.searchDebounceTimer); this.searchDebounceTimer = null; }
+    this.queryChanged.emit({ searchTerm: this.searchTerm, collection });
+  }
+
   onSearchTermChanged(value: string): void {
     this.searchTerm = value;
     if (this.searchDebounceTimer) {
@@ -55,7 +69,7 @@ export class NqListComponent implements OnChanges, OnDestroy {
     }
     this.searchDebounceTimer = setTimeout(() => {
       this.searchDebounceTimer = null;
-      this.queryChanged.emit({ searchTerm: this.searchTerm });
+      this.queryChanged.emit({ searchTerm: this.searchTerm, ...(this.query.collection ? { collection: this.query.collection } : {}) });
     }, 250);
   }
 

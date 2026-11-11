@@ -1,8 +1,10 @@
+import { AdminPagerComponent } from './admin-pager.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NgModel, FormsModule } from '@angular/forms';
 import { PaginationModule } from 'ngx-bootstrap/pagination';
 import { RecordPageDto, RecordPropViewMetaDto } from '@researchdatabox/sails-ng-common';
+import { AdminDateService } from './admin-date.service';
 import { RecordTableComponent } from './record-table.component';
 import { RecordSource } from './record.model';
 import { HeaderSortComponent } from './header-sort.component';
@@ -27,7 +29,7 @@ describe('RecordTableComponent', () => {
     renderTemplate = jasmine.createSpy('compileAndRunTemplate').and.returnValue('<strong>Rendered title</strong>');
     await TestBed.configureTestingModule({
       declarations: [RecordTableComponent, HeaderSortComponent],
-      imports: [FormsModule, PaginationModule.forRoot(), I18NextPipe],
+      imports: [AdminPagerComponent, FormsModule, PaginationModule.forRoot(), I18NextPipe],
       providers: [
         { provide: LoggerService, useValue: { error: jasmine.createSpy('error') } },
         { provide: UtilityService, useValue: {} },
@@ -52,6 +54,14 @@ describe('RecordTableComponent', () => {
     component.columnConfig = [{ property: 'title', label: 'Title' }] as RecordPropViewMetaDto[];
   });
 
+  it('renders opted-in data columns as literal text while retaining configured HTML templates', async () => {
+    (currentPage.records[0] as any).title = '<img src=x onerror=alert(1)>Hello';
+    component.plainTextColumns = true;
+    await render();
+    expect(fixture.nativeElement.querySelector('tbody td').textContent).toBe((currentPage.records[0] as any).title);
+    expect(fixture.nativeElement.querySelector('tbody img')).toBeNull();
+  });
+
   afterEach(() => fixture.destroy());
 
   async function render() {
@@ -74,6 +84,47 @@ describe('RecordTableComponent', () => {
   function activePage() {
     return fixture.nativeElement.querySelector('pagination .pagination-page.active')?.textContent.trim();
   }
+
+  it('uses previous/next links and caps the last admin page range at the result total', async () => {
+    component.adminPresentation = true;
+    component.paginationItemsPerPage = 10;
+    currentPage = { records: [{ title: 'Last' }], total: 21, pageNum: 3 };
+    await render();
+    expect(component.adminPageEnd).toBe(21);
+    expect(fixture.nativeElement.querySelector('rb-admin-pager .page-link').textContent.trim()).toBe('‹');
+    expect(fixture.nativeElement.querySelector('.pagination-first')).toBeNull();
+  });
+
+  it('keeps counts without a pager for one admin page and hides an empty footer', async () => {
+    component.adminPresentation = true;
+    currentPage = { records: [{ title: 'Only row' }], total: 1, pageNum: 1 };
+    await render();
+    expect(fixture.nativeElement.querySelector('.card-footer')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('pagination')).toBeNull();
+    currentPage = { records: [], total: 0, pageNum: 1 };
+    await settle();
+    expect(fixture.nativeElement.querySelector('.card-footer')).toBeNull();
+  });
+
+  it('formats the named-query modified-date envelope using the shared admin locale', async () => {
+    const timestamp = '2026-11-05T23:06:12.085Z';
+    const format = spyOn(TestBed.inject(AdminDateService), 'format').and.returnValue('06/11/2026 09:36');
+    component.adminPresentation = true;
+    component.columnConfig = [{ property: 'lastSaveDate', label: 'Date Modified' }] as RecordPropViewMetaDto[];
+    currentPage.records = [{ lastSaveDate: timestamp }];
+    await render();
+    expect(format).toHaveBeenCalledWith(timestamp);
+    expect(fixture.nativeElement.textContent).toContain('06/11/2026 09:36');
+    expect(fixture.nativeElement.textContent).not.toContain(timestamp);
+    format.calls.reset();
+    component.adminPresentation = false;
+    expect(component.getEntryValue(currentPage.records[0], component.columnConfig[0])).toBe(timestamp);
+    expect(format).not.toHaveBeenCalled();
+    component.adminPresentation = true;
+    component.columnConfig[0].template = '{{lastSaveDate}}';
+    expect(component.getEntryValue(currentPage.records[0], component.columnConfig[0])).toContain('Rendered title');
+    expect(format).not.toHaveBeenCalled();
+  });
 
   it('restores the loaded selection after a failed request, permits retry, and blocks paging while pending or disabled', async () => {
     await render();
@@ -167,6 +218,19 @@ describe('RecordTableComponent', () => {
     expect(fixture.nativeElement.querySelector('td strong').textContent).toBe('Rendered title');
   });
 
+  it('renders unsupported server-sort columns as plain headers', async () => {
+    component.columnConfig = [
+      { label: 'Sortable', property: 'title', sortable: true },
+      { label: 'Computed', property: 'computed', sortable: false },
+    ] as any;
+    component.enableSort = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('header-sort').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.record-table-heading-no-sort').textContent).toContain('Computed');
+  });
+
   it('renders multivalue columns and routes row actions and sorting to the source', async () => {
     currentPage.records = [{ title: 'First', tags: ['One', 'Two'] }];
     component.columnConfig = [
@@ -183,13 +247,62 @@ describe('RecordTableComponent', () => {
     fixture.nativeElement.querySelector('.view-record').click();
     expect(source.recordTableAction).toHaveBeenCalledWith(jasmine.anything(), currentPage.records[0], 'view');
     const headers = fixture.nativeElement.querySelectorAll('header-sort button');
+    expect(headers[0].hasAttribute('aria-sort')).toBeFalse();
+    expect(headers[0].querySelector('.fa-sort')).toBeTruthy();
     headers[0].click();
     await settle();
-    expect(headers[0].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th').getAttribute('aria-sort')).toBe('ascending');
     headers[1].click();
     await settle();
-    expect(headers[0].getAttribute('aria-sort')).toBeNull();
-    expect(headers[1].getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0].closest('th').getAttribute('aria-sort')).toBeNull();
+    expect(headers[1].closest('th').getAttribute('aria-sort')).toBe('ascending');
     expect(source.headerSortChanged).toHaveBeenCalledWith(jasmine.objectContaining({ variable: 'tags', sort: 'asc' }), component.columnConfig[1]);
+  });
+  it('omits empty admin tables while preserving ordinary portal table headers', async () => {
+    currentPage = { records: [], total: 0, pageNum: 1 };
+    component.adminPresentation = true;
+    await render();
+    expect(fixture.nativeElement.querySelector('thead')).toBeNull();
+    component.adminPresentation = false;
+    await settle();
+    expect(fixture.nativeElement.querySelector('thead')).toBeTruthy();
+  });
+
+});
+
+describe('RecordTableComponent multivalue columns', () => {
+  let component: RecordTableComponent;
+  const column = { property: 'metadata.funders', multivalue: true } as RecordPropViewMetaDto;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      declarations: [RecordTableComponent],
+      providers: [
+        { provide: TranslationService, useValue: { t: (key: string) => key } },
+        { provide: LoggerService, useValue: {} },
+        { provide: UtilityService, useValue: {} },
+        { provide: HandlebarsTemplateService, useValue: {} },
+      ],
+    }).overrideComponent(RecordTableComponent, { set: { template: '' } });
+    component = TestBed.createComponent(RecordTableComponent).componentInstance;
+  });
+
+  for (const value of [undefined, null, {}, 42, []]) {
+    it(`renders an empty cell for ${JSON.stringify(value)} so later report rows can render`, () => {
+      expect(component.getColValue({ metadata: { funders: value } }, column)).toBe('');
+      spyOn(component, 'getEntryValue').and.callFake((_row, _col, entry) => entry);
+      expect(component.getColValue({ metadata: { funders: ['ARC'] } }, column)).toBe('ARC');
+    });
+  }
+
+  it('renders each array item with its template context', () => {
+    spyOn(component, 'getEntryValue').and.callFake((_row, _col, value) => `${value.title}; `);
+    expect(component.getColValue({ metadata: { funders: [{ title: 'ARC' }, { title: 'NHMRC' }] } }, column))
+      .toBe('ARC; NHMRC; ');
+  });
+
+  it('preserves legacy character iteration for string values', () => {
+    spyOn(component, 'getEntryValue').and.callFake((_row, _col, value) => `[${value}]`);
+    expect(component.getColValue({ metadata: { funders: 'AB' } }, column)).toBe('[A][B]');
   });
 });

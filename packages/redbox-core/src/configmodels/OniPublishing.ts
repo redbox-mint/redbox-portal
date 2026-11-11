@@ -1,3 +1,4 @@
+import { text, flag, number, list, object, dictionary } from './IntegrationSchemas';
 import { AppConfig } from './AppConfig.interface';
 
 export interface OniPublishingLicense {
@@ -444,31 +445,68 @@ export class OniPublishing extends AppConfig implements OniPublishingConfigData 
   }
 }
 
-export const ONI_PUBLISHING_SCHEMA = {
-  type: 'object',
-  title: 'Oni Publishing',
-  properties: {
-    enabled: { type: 'boolean', title: 'Enabled', default: true },
-    defaultSite: { type: 'string', title: 'Default Site', default: 'public' },
-    rootCollection: { type: 'object', title: 'Root Collection' },
-    metadata: { type: 'object', title: 'RO-Crate Metadata Mapping' },
-    mapping: { type: 'object', title: 'RO-Crate Dataset Mapping' },
-    selection: { type: 'object', title: 'Attachment Selection' },
-    writeBack: { type: 'object', title: 'Record Write-back' },
-    sites: {
-      type: 'object',
-      title: 'Publishing Sites',
-      additionalProperties: {
-        type: 'object',
-        properties: {
-          enabled: { type: 'boolean', title: 'Enabled' },
-          label: { type: 'string', title: 'Label' },
-          publicUrl: { type: 'string', title: 'Public URL' },
-          useCleanUrl: { type: 'boolean', title: 'Use Clean URL' },
-          storage: { type: 'object', title: 'Storage' },
-        },
-      },
-    },
-  },
-  required: ['enabled', 'defaultSite', 'rootCollection', 'metadata', 'mapping', 'selection', 'writeBack', 'sites'],
-};
+// Bindings retain their union fields and arbitrary defaults. No new defaults are injected by the editor.
+const oniBindingSchema = object('value-binding', {
+  kind: text('binding-kind', ['path', 'handlebars', 'jsonata']),
+  path: text('path'), template: text('template'), expression: text('expression'), defaultValue: {},
+}, ['kind']);
+const oniFieldSchema = object('dataset-field', {
+  property: text('property'), value: oniBindingSchema, omitEmpty: flag('omit-empty'),
+  arrayMode: text('array-mode', ['preserve', 'wrap', 'first']),
+}, ['property', 'value']);
+
+export const ONI_PUBLISHING_SCHEMA = object('oni-publishing', {
+  enabled: flag('enabled'), defaultSite: text('default-site'),
+  rootCollection: object('root-collection', {
+    targetRepoNamespace: text('target-repo-namespace'), rootCollectionId: text('root-collection-id'),
+    targetRepoColId: text('target-repo-collection-id'), targetRepoColName: text('target-repo-collection-name'),
+    targetRepoColDescription: text('target-repo-collection-description'), dsType: list('dataset-types', text('type')),
+    enableDatasetToUseDefaultLicense: flag('use-default-license'),
+    defaultLicense: object('default-license', {
+      '@id': text('id'), '@type': text('type'), name: text('name'), description: text('description'),
+    }),
+  }),
+  metadata: object('ro-crate-metadata-mapping', {
+    jsonldFilename: text('jsonld-filename'),
+    organization: object('organization', {
+      '@id': text('id'), '@type': text('type'), identifier: text('identifier'), name: text('name'),
+    }),
+    defaultIriPrefs: object('default-iri-prefixes', {
+      about: dictionary('about', text('iri-prefix')),
+      spatialCoverage: text('spatial-coverage'), funder: text('funder'), license: text('license'),
+      citation: text('citation'), contact: text('contact'), location: text('location'),
+    }),
+  }),
+  mapping: object('ro-crate-dataset-mapping', {
+    rootDataset: list('root-dataset', oniFieldSchema),
+    graphEntities: list('graph-entities', object('graph-entity', {
+      id: { ...oniBindingSchema, title: 'admin-config-label-id' }, type: { ...oniBindingSchema, title: 'admin-config-label-type' }, sourcePath: text('source-path'),
+      itemMode: text('item-mode', ['single', 'array']), fields: list('fields', oniFieldSchema),
+      linkToDataset: object('link-to-dataset', { property: text('property'), mode: text('mode', ['append', 'set']) }),
+      omitIfEmpty: flag('omit-if-empty'),
+    }, ['id', 'type', 'fields'])),
+    context: dictionary('context', {}),
+    validation: object('validation', { requiredRootFields: list('required-root-fields', text('field')) }),
+  }),
+  selection: object('attachment-selection', {
+    dataRecordOidPath: text('data-record-oid-path'), dataLocationsPath: text('data-locations-path'),
+    metadataOnlyPath: text('metadata-only-path'), selectedFlagPath: text('selected-flag-path'),
+    attachmentMode: text('attachment-mode', ['selectedOnly', 'all']), logicalPathTemplate: text('logical-path-template'),
+  }),
+  writeBack: object('record-write-back', {
+    citationUrlPath: text('citation-url-path'), citationDoiPath: text('citation-doi-path'),
+    publicationErrorPath: text('publication-error-path'), doiUrlPlaceholder: text('doi-url-placeholder'),
+  }),
+  sites: dictionary('publishing-sites', object('publishing-site', {
+    enabled: flag('enabled'), label: text('label'), publicUrl: text('public-url'), useCleanUrl: flag('use-clean-url'),
+    storage: object('storage', {
+      driver: text('driver', ['flydrive']), diskName: text('disk-name'), prefix: text('prefix'),
+      rootPath: text('root-path'), workspacePath: text('workspace-path'), tempDir: text('temp-dir'),
+      keyEncoding: text('key-encoding', ['flydrive', 'raw']),
+    }),
+    ingestion: object('ingestion', {
+      enabled: flag('enabled'), apiUrl: text('api-url'), adminToken: text('admin-token'),
+      forceReindex: flag('force-reindex'), pollIntervalMs: number('poll-interval-ms'), timeoutMs: number('timeout-ms'),
+    }),
+  })),
+}, ['enabled', 'defaultSite', 'rootCollection', 'metadata', 'mapping', 'selection', 'writeBack', 'sites']);

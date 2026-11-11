@@ -37,22 +37,22 @@ export class WebAnalytics extends AppConfig {
 
 export const WEB_ANALYTICS_SCHEMA = {
     type: 'object',
-    title: 'Web Analytics',
+    title: 'admin-config-label-web-analytics',
     properties: {
         enabled: {
             type: 'boolean',
-            title: 'Enabled',
+            title: 'admin-config-label-enabled',
             default: false
         },
         provider: {
             type: 'string',
-            title: 'Provider',
+            title: 'admin-config-label-provider',
             default: 'googleAnalytics',
             enum: ['googleAnalytics', 'googleTagManager']
         },
         trackingId: {
             type: 'string',
-            title: 'Tracking / Measurement / Container ID',
+            title: 'admin-config-label-tracking-measurement-container-id',
             default: '',
             description: 'GA4 measurement ID (G-XXXXXXXXXX) or GTM container ID (GTM-XXXXXXX).'
         }

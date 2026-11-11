@@ -1,3 +1,5 @@
+import { TranslationService } from '@researchdatabox/portal-ng-common';
+import { AdminCountPipe } from '@researchdatabox/portal-ng-common';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -18,11 +20,21 @@ describe('NqListComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [NqListComponent, I18NextPipeStub],
-      imports: [FormsModule]
+      imports: [AdminCountPipe, FormsModule],
+      providers: [{ provide: TranslationService, useValue: { t: (key: string) => key } }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(NqListComponent);
     component = fixture.componentInstance;
+  });
+
+  it('opens the editor with a native list-name button', () => {
+    component.queries = [{ name: 'q1', collectionName: 'record', resultObjectMapping: {}, mongoQuery: {}, queryParams: {} }];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-list-name').type).toBe('button');
+    const selected = spyOn(component.selected, 'emit');
+    fixture.nativeElement.querySelector('.rb-admin-list-name').click();
+    expect(selected).toHaveBeenCalledWith('q1');
   });
 
   it('emits selected and deleted actions', () => {
@@ -61,6 +73,19 @@ describe('NqListComponent', () => {
 
     tick(250);
     expect(query).toEqual({ searchTerm: 'search' });
+  }));
+
+  it('keeps collection when searching and uses the latest text when switching collection', fakeAsync(() => {
+    component.query = { searchTerm: '', collection: 'record' };
+    const emit = spyOn(component.queryChanged, 'emit');
+    component.onSearchTermChanged('alpha');
+    tick(250);
+    expect(emit).toHaveBeenCalledWith({ searchTerm: 'alpha', collection: 'record' });
+    component.onSearchTermChanged('beta');
+    component.setCollection('user');
+    tick(250);
+    expect(emit.calls.count()).toBe(2);
+    expect(emit).toHaveBeenCalledWith({ searchTerm: 'beta', collection: 'user' });
   }));
 
   it('clears debounce timer on destroy', fakeAsync(() => {
@@ -107,4 +132,15 @@ describe('NqListComponent', () => {
     expect(component.trackByName(0, q)).toBe('q1');
     expect(component.trackByName(0, { ...q, name: undefined })).toBe('named-query-0');
   });
+  it('renders linked consumers and a muted empty state in Used by', () => {
+    component.brandingAndPortalUrl = '/brand/portal';
+    const query = { name: 'q1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.queries = [{ ...query, usedBy: [{ type: 'report', name: 'Report title', path: '/admin/report/report' }] }, { ...query, name: 'q2', usedBy: [] }];
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.querySelector('thead')?.textContent).toContain('named-query-used-by');
+    expect(element.querySelector('a[href="/brand/portal/admin/report/report"]')?.textContent).toContain('Report title');
+    expect(element.querySelector('tbody .text-muted')?.textContent).toContain('named-query-not-used');
+  });
+
 });

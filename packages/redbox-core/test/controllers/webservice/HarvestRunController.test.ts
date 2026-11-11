@@ -30,6 +30,7 @@ describe('Webservice HarvestRunController', () => {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),
     };
     (global as any).HarvestRunService = {
+      getStatistics: sinon.stub().resolves({ runsLast7Days: 8, failedLast7Days: 2, runningNow: 1, lastSuccessfulRun: null }),
       listRuns: sinon.stub().resolves({ rows: [{ id: 'run-1', sourceRunId: 'run-a', status: 'running' }], total: 1 }),
       getRun: sinon.stub().resolves({
         run: { id: 'run-1', sourceRunId: 'run-a', status: 'running' },
@@ -61,6 +62,24 @@ describe('Webservice HarvestRunController', () => {
     (global as any).BrandingService = originalBrandingService;
     (global as any).HarvestRunService = originalHarvestRunService;
     (global as any)._ = originalLodash;
+  });
+
+  it('returns global statistics using only the authenticated brand, ignoring list filters', async () => {
+    const req = { session: { branding: 'default' }, query: { brandId: 'other', status: 'running', page: '99' } } as unknown as Sails.Req;
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.getStatistics(req, {} as Sails.Res);
+    expect((global as any).HarvestRunService.getStatistics.firstCall.args).to.deep.equal([{ id: 'brand-1', name: 'default' }]);
+    expect(send.firstCall.args[2]).to.include({ status: 200 });
+    expect(send.firstCall.args[2].data.runsLast7Days).to.equal(8);
+    expect(send.firstCall.args[2].headers).to.have.property('Cache-control');
+  });
+
+  it('does not expose database errors in the statistics response', async () => {
+    (global as any).HarvestRunService.getStatistics.rejects(new Error('private database details'));
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.getStatistics({ session: { branding: 'default' } } as Sails.Req, {} as Sails.Res);
+    expect(send.firstCall.args[2]).to.include({ status: 500 });
+    expect(JSON.stringify(send.firstCall.args[2])).not.to.contain('private database details');
   });
 
   it('returns paginated runs', async () => {

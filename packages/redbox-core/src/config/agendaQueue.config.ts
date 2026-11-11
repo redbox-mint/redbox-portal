@@ -1,5 +1,4 @@
 import type { BackoffStrategy } from 'agenda';
-import { PermanentAuditWriteError } from '../services/record-audit/writer';
 
 /**
  * Agenda Queue Config Interface
@@ -180,8 +179,9 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLifetime: 30 * 1000,
                 lockLimit: 1,
                 concurrency: 1,
+                // Sails may reload the worker module, so constructor identity is not stable here.
                 // Permanent failures are paused by the worker; transient failures keep retrying.
-                backoff: ({ attempt, error }) => error instanceof PermanentAuditWriteError ? null
+                backoff: ({ attempt, error }) => error.name === 'PermanentAuditWriteError' ? null
                     : Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
             }
         },
@@ -225,6 +225,11 @@ export const agendaQueue: AgendaQueueConfig = {
                 intervalOrSchedule: '5 minutes'
             }
         },
+        'Figshare-Vocabulary-Schedules': {
+            fnName: 'figsharevocabularyservice.scheduledSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '5 minutes', opts: { skipImmediate: true } },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 30 * 60 * 1000 }
+        },
         'Figshare-SyncRecord': {
             fnName: 'figshareservice.syncRecordJob',
             options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
@@ -249,6 +254,12 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLimit: 1,
                 concurrency: 1
             }
+        },
+        'Branding-Images-Reconcile': {
+            fnName: 'brandinglogoservice.reconcileAssets',
+            backend: 'mongodb',
+            options: { lockLifetime: 10 * 60 * 1000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '1 day', opts: { skipImmediate: true } }
         },
         [BRANDING_TYPEFACE_RECONCILE_JOB_NAME]: {
             fnName: 'brandingtypefaceservice.reconcileAssets',

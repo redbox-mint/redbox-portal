@@ -1,3 +1,4 @@
+import { PartyImportComponent } from './party-import.component';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +16,7 @@ import { SortComponent } from './sort/sort.component';
   ],
   imports: [
     BrowserModule,
+    PartyImportComponent,
     FormsModule,
     RedboxPortalCoreModule,
     PaginationModule.forRoot(), 

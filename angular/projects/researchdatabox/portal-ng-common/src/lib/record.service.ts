@@ -43,29 +43,35 @@ import {
   isNumber as _isNumber,
 } from 'lodash-es';
 import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
+// Use the packaged modules directly: the CommonJS root eagerly loads the
+// server template/compiler stack even when an admin app only needs contracts.
 import {
   emptyRecordSaveCompletion,
+  isRecordSaveComplete,
+  isRecordSaveOutcome,
+  isRecordSaveProblemKind,
+  isRecordSaveRequestId,
+  type RecordSaveLifecyclePhase,
+  type RecordSaveIssue,
+  type RecordSaveProblem,
+  type RecordSaveResult,
+  sanitizeRecordSaveIssue,
+} from '@researchdatabox/sails-ng-common/dist/src/record-save.model';
+import {
   isRecordConcurrencyProblemCode,
   isRecordConcurrencyResolution,
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
-  isRecordSaveComplete,
-  isRecordSaveOutcome,
-  isRecordSaveProblemKind,
-  isRecordSaveRequestId,
   recordEntityTagRevision,
-  RecordAttachment,
-  RecordConcurrentModificationConfig,
-  RecordConcurrencyMetadata,
-  RecordConcurrencyResolution,
-  RecordSaveLifecyclePhase,
-  RecordSaveIssue,
-  RecordSaveProblem,
-  RecordSaveResult,
+  type RecordConcurrentModificationConfig,
+  type RecordConcurrencyMetadata,
+  type RecordConcurrencyResolution,
   sanitizeRecordConcurrencyMetadata,
-  sanitizeRecordSaveIssue,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/dist/src/record-concurrency.model';
+import {
+  type RecordAttachment,
+} from '@researchdatabox/sails-ng-common/dist/src/config/component/pdf-list.outline';
 
 /** Per-request options for a record save. */
 interface SaveRequestOptions {
@@ -627,9 +633,9 @@ export class RecordService extends HttpClientService {
     filterFields: string = '',
     filterString: string = '',
     filterMode: string = '',
-    secondarySort: string = ''
+    secondarySort: string = '',
+    rows: number = 10
   ) {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {
@@ -672,7 +678,9 @@ export class RecordService extends HttpClientService {
     filterFields: string = '',
     filterString: string = '',
     filterMode: string = '',
-    rows: number = 10
+    rows: number = 10,
+    deletedWithin: string = '',
+    deletedBy: string = ''
   ): Promise<RecordResponseTable> {
     let start = (pageNumber - 1) * rows;
 
@@ -686,6 +694,8 @@ export class RecordService extends HttpClientService {
       filterMode: filterMode,
       start: start,
       rows: rows,
+      deletedWithin,
+      deletedBy,
     };
 
     const listDeletedRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listDeletedRecords`);
@@ -706,6 +716,40 @@ export class RecordService extends HttpClientService {
     const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(timeout(30_000), map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
+  }
+
+  public async bulkDeletedRecords(action: 'restore' | 'destroy', records: { oid: string; revision: number }[]): Promise<any> {
+    const results: { oid: string; status: string; reason: string }[] = [];
+    const items: { oid: string; entityTag: string }[] = [];
+    if (!records.length || records.length > 100) throw new TypeError('Invalid batch size');
+    for (const record of records) {
+      try {
+        const resolved = await this.resolveListMutationConcurrency(record.oid, 'deleted', { revision: record.revision }, createSaveRequestId());
+        if (resolved instanceof RecordActionResult || !resolved.entityTag) {
+          results.push({ oid: record.oid, status: 'failed', reason: 'record-changed' });
+        } else {
+          items.push({ oid: record.oid, entityTag: resolved.entityTag });
+        }
+      } catch {
+        results.push({ oid: record.oid, status: 'failed', reason: 'preflight-failed' });
+      }
+    }
+    if (items.length) {
+      try {
+        const options = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+        const response = await firstValueFrom(this.http.post<any>(`${this.brandingAndPortalUrl}/admin/deletedRecords/bulk`, { action, items }, { headers: options.headers, context: options.context, observe: 'body', responseType: 'json' }).pipe(timeout(120_000)));
+        const body = response?.data ?? response;
+        for (const item of items) {
+          const result = Array.isArray(body?.results) ? body.results.find((result: any) => result.oid === item.oid) : undefined;
+          results.push(result && ['succeeded', 'failed', 'unknown'].includes(result.status)
+            ? result : { oid: item.oid, status: 'unknown', reason: 'outcome-unknown' });
+        }
+      } catch (error) {
+        const refused = error instanceof HttpErrorResponse && [400, 401, 403].includes(error.status);
+        results.push(...items.map(item => ({ oid: item.oid, status: refused ? 'failed' : 'unknown', reason: refused ? 'request-refused' : 'outcome-unknown' })));
+      }
+    }
+    return { results };
   }
 
   public async restoreDeletedRecord(

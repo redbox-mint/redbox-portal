@@ -1,3 +1,4 @@
+import { z } from '../zod-openapi';
 import { apiRoute } from '../route-factory';
 import { anyField, arrayField, booleanField, integerField, objectField, responseField, stringField } from '../schemas/common';
 
@@ -18,6 +19,7 @@ const targetField = objectField(
 
 const settingsField = objectField(
   {
+    rowsPerPage: z.union([z.literal(10), z.literal(25), z.literal(50), z.literal(100)]).openapi({ description: 'Rows per page for this target. Omit to preserve the legacy 10 rows per page.' }),
     searchable: booleanField('Show the search box (workflow stage dashboards)'),
     showStageTitle: booleanField('Show the stage title heading'),
     tableConfig: objectField(

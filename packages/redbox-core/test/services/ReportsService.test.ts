@@ -5,6 +5,8 @@ import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 import { of } from 'rxjs';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { DateTime } from 'luxon';
 import { Readable } from 'node:stream';
 import csvParser = require('csv-parser');
@@ -55,7 +57,8 @@ describe('ReportsService', function () {
       getFullPath: sinon.stub().returns('http://portal'),
     };
     (global as any).NamedQueryService = {
-      getNamedQueryConfig: sinon.stub().resolves({}),
+      getNamedQueryConfig: sinon.stub().resolves({ collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} }),
+      resolveBrandScope: sinon.stub().returns({}),
       performNamedQueryFromConfig: sinon.stub().resolves({
         summary: { numFound: 1, start: 0, page: 1 },
         records: [{ title: 'Record 1', id: '1' }],
@@ -64,6 +67,9 @@ describe('ReportsService', function () {
 
     const { Services } = require('../../src/services/ReportsService');
     ReportsService = new Services.Reports();
+    const { Services: EditorServices } = require('../../src/services/NamedQueryEditorService');
+    Reflect.set(globalThis, 'NamedQueryEditorService', new EditorServices.NamedQueryEditor());
+    Reflect.set(globalThis, 'DomSanitizerService', { sanitizeWithProfile: (value: string) => value });
     ReportsService.searchService = mockSails.services.solrsearchservice;
   });
 
@@ -72,6 +78,8 @@ describe('ReportsService', function () {
     delete (global as any).RBReport;
     delete (global as any).BrandingService;
     delete (global as any).NamedQueryService;
+    Reflect.deleteProperty(globalThis, 'NamedQueryEditorService');
+    Reflect.deleteProperty(globalThis, 'DomSanitizerService');
     sinon.restore();
   });
 
@@ -129,6 +137,40 @@ describe('ReportsService', function () {
 
       expect(createStub.called).to.be.false;
     });
+
+    it('repairs an unchanged stock RDMP report through bootstrap, guarded against concurrent edits', async function () {
+      const definition = JSON.parse(readFileSync(resolve(__dirname, '../../../../bootstrap-data/reports/rdmpRecords.json'), 'utf8'));
+      stubFileOps({ readdir: sinon.stub().resolves([{ name: 'rdmpRecords.json', isFile: () => true }]),
+        readFile: sinon.stub().resolves(JSON.stringify(definition)) });
+      const existing = { ...definition, name: 'rdmpRecords', key: 'brand-1_rdmpRecords', updatedAt: new Date('2026-01-01'),
+        columns: definition.columns.map(column => column.property === 'lastSaveDate' ? { ...column, property: 'dateModified' } : column) };
+      mockReport.findOne.resolves(existing);
+      await ReportsService.bootstrapData({ id: 'brand-1' });
+      sinon.assert.calledOnceWithExactly(mockReport.updateOne, { key: existing.key, updatedAt: existing.updatedAt });
+      sinon.assert.calledOnceWithExactly(mockReport.updateOne.firstCall.returnValue.set, { columns: definition.columns });
+      expect(existing.columns.find(column => column.label === 'Date Modified').property).to.equal('dateModified');
+      mockReport.updateOne.resetHistory();
+      mockReport.findOne.resolves({ ...existing, columns: definition.columns });
+      await ReportsService.bootstrapData({ id: 'brand-1' });
+      sinon.assert.notCalled(mockReport.updateOne);
+    });
+
+    for (const customisation of ['title', 'column', 'filter', 'query']) {
+      it(`preserves a customized stock RDMP report (${customisation})`, async function () {
+        const definition = JSON.parse(readFileSync(resolve(__dirname, '../../../../bootstrap-data/reports/rdmpRecords.json'), 'utf8'));
+        stubFileOps({ readdir: sinon.stub().resolves([{ name: 'rdmpRecords.json', isFile: () => true }]),
+          readFile: sinon.stub().resolves(JSON.stringify(definition)) });
+        const existing = { ...definition, name: 'rdmpRecords', key: 'brand-1_rdmpRecords', updatedAt: new Date(),
+          columns: definition.columns.map(column => column.property === 'lastSaveDate' ? { ...column, property: 'dateModified' } : column) };
+        if (customisation === 'title') existing.title = 'Custom report';
+        if (customisation === 'column') existing.columns[0].label = 'Custom column';
+        if (customisation === 'filter') existing.filter = [];
+        if (customisation === 'query') existing.databaseQuery = { queryName: 'customQuery' };
+        mockReport.findOne.resolves(existing);
+        await ReportsService.bootstrapData({ id: 'brand-1' });
+        sinon.assert.notCalled(mockReport.updateOne);
+      });
+    }
 
     it('should be a no-op when the bootstrap data directory is missing', async function () {
       const defBrand = { id: 'brand-1' };
@@ -235,6 +277,20 @@ describe('ReportsService', function () {
       expect(result[1].readOnlyReason).to.equal('Solr reports are read-only in this version');
     });
 
+    it('does not write normalized optional properties during a no-op report save', async function () {
+      const existing = { ...databaseConfig, name: 'scu-rdmps',
+        filter: [{ type: 'text', paramName: 'title', message: 'Filter by title' }],
+        columns: [{ label: 'Title', property: 'title', customHookOption: 'retain' }],
+      };
+      mockReport.findOne.returns(createQueryObject(existing));
+      const draft = await ReportsService.getConfig(brand, existing.name);
+      const result = await ReportsService.updateConfig(brand, existing.name, draft);
+      expect(result).to.deep.equal(draft);
+      expect(mockReport.updateOne.called).to.be.false;
+      expect(existing.columns[0]).not.to.have.property('hide');
+      expect(existing.filter[0]).not.to.have.property('database');
+    });
+
     it('should normalize the legacy filter message typo', async function () {
       mockReport.find.returns(
         createQueryObject([
@@ -285,6 +341,23 @@ describe('ReportsService', function () {
       } catch (error: any) {
         expect(error.status).to.equal(409);
       }
+    });
+
+    it('preserves legacy saves with invalid templates, unknown columns and stale parameter bindings', async function () {
+      const legacy = {
+        ...databaseConfig,
+        filter: [{ type: 'date-range', paramName: 'dates', property: '', message: '',
+          database: { fromProperty: 'deletedParameter', toProperty: 'dateCreated' } }],
+        columns: [{ label: 'Hook output', property: 'metadata.hookOutput', template: '{{#each missing}}', exportTemplate: '{{broken' }],
+      };
+      const before = JSON.stringify(legacy);
+      mockReport.create.returns(createQueryObject({ id: 'legacy', ...legacy }));
+      await ReportsService.createConfig(brand, legacy);
+      mockReport.findOne.returns(createQueryObject({ id: 'legacy', ...legacy }));
+      await ReportsService.updateConfig(brand, legacy.name, { ...legacy, title: 'Updated legacy report' });
+      expect(mockReport.create.firstCall.args[0].columns[0]).to.deep.include(legacy.columns[0]);
+      expect(mockReport.updateOne.lastCall.returnValue.set.firstCall.args[0].filter).to.deep.equal(legacy.filter);
+      expect(JSON.stringify(legacy)).to.equal(before);
     });
 
     it('should validate required fields and named query existence before persisting', async function () {
@@ -404,7 +477,7 @@ describe('ReportsService', function () {
       req.param.withArgs('dateRange_toDate').returns('2024-01-31T23:59:59.999Z');
       req.param.withArgs('title').returns('Test title');
 
-      const result = await ReportsService.previewConfig(brand, databaseConfig, req);
+      const result = await ReportsService.previewConfig(brand, databaseConfig, req, { portal: 'rdmp', caller: { brand, user: { username: 'author' } } });
 
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.calledOnce).to.be.true;
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[1]).to.deep.equal({

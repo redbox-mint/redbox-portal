@@ -1,3 +1,34 @@
+@if (adminPartyImport) { <party-csv-import></party-csv-import> } @else {
+@if (adminParties) {
+  @if (loadError) {<div class="alert alert-danger" role="alert">{{ loadError }} <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending || isProcessingPageChange" (click)="retryLoad()">{{ 'admin-parties-retry' | i18next }}</button></div>}
+  @if (settingsUnavailable) {<div class="alert alert-warning" role="alert">{{ 'dashboard-settings-unavailable' | i18next }}</div>}
+  @if (isReady) {
+    @for (workflowStep of workflowSteps; track getStepKey(workflowStep)) {
+      <div class="card rb-parties-panel" [attr.aria-busy]="getIsSearching(getStepKey(workflowStep))">
+        <div class="card-header"><h2>{{ 'admin-parties-records' | i18next }}</h2><span role="status" aria-live="polite">{{ (records[getStepKey(workflowStep)]?.totalItems || 0) | adminCount: 'party' }}</span></div>
+        @if (isSearchEnabled(getStepKey(workflowStep))) {
+          <form class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filterChanged(getStepKey(workflowStep))" (ngSubmit)="filterChanged(getStepKey(workflowStep))">
+            <div class="rb-admin-field rb-admin-field-grow"><label [for]="'party-search-' + getStepKey(workflowStep)">{{ 'admin-vocabulary-search' | i18next }}</label><input [id]="'party-search-' + getStepKey(workflowStep)" type="search" class="form-control" [name]="'search-' + getStepKey(workflowStep)" [(ngModel)]="filterSearchString[getStepKey(workflowStep)]" [placeholder]="'admin-parties-search-placeholder' | i18next" /></div>
+            <div class="rb-admin-field"><label [for]="'party-search-in-' + getStepKey(workflowStep)">{{ 'admin-parties-search-in' | i18next }}</label><select [id]="'party-search-in-' + getStepKey(workflowStep)" class="form-select" [name]="'field-' + getStepKey(workflowStep)" [ngModel]="getFilterFieldPath(getStepKey(workflowStep))" (ngModelChange)="selectAdminFilter(getStepKey(workflowStep), $event)">@for (filter of getTextFilters(getStepKey(workflowStep)); track filter.path) {<option [value]="filter.path">{{ filter.name | i18next }}</option>}</select></div>
+            @if (getFilterSearchDisplayed(getStepKey(workflowStep)) || filterSearchString[getStepKey(workflowStep)] || getFilterFieldPath(getStepKey(workflowStep)) !== getTextFilters(getStepKey(workflowStep))[0]?.path) {<button class="btn rb-admin-ghost" type="button" (click)="resetFilterAndSearch(getStepKey(workflowStep), $event)">{{ 'admin-report-clear' | i18next }}</button>}
+          </form>
+        }
+        @if (records[getStepKey(workflowStep)]; as page) {
+          @if (page.totalItems > 0 && tableConfig[getStepKey(workflowStep)].length > 0) {
+            <div class="table-responsive"><table class="table table-hover"><thead><tr>
+              @for (rowConfig of tableConfig[getStepKey(workflowStep)]; track $index) {
+                <th scope="col" [attr.aria-sort]="enableSort ? sortAria(workflowStep, rowConfig) : null">@if (enableSort) {<sort [adminPresentation]="adminParties" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="getStepKey(workflowStep)" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"></sort>} @else { {{ rowConfig.title | i18next }} }</th>
+              }
+            <th class="rb-admin-actions-col text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead><tbody>@for (plan of page.items; track $index) {<tr>@for (rowConfig of tableConfig[getStepKey(workflowStep)]; track $index) {<td>@if (rowConfig.variable === 'metadata.fullName' && plan.adminRecordUrl) {<a [href]="plan.adminRecordUrl" [innerHtml]="plan[rowConfig.variable]"></a>} @else {<span [innerHtml]="plan[rowConfig.variable]"></span>}</td>}<td class="rb-admin-actions-col text-end"><a *ngIf="plan.adminRecordUrl" class="btn btn-sm btn-outline-secondary" [href]="plan.adminRecordUrl">{{ 'admin-parties-view' | i18next }}</a></td></tr>}</tbody></table></div>
+          } @else {<div class="rb-admin-empty"><i class="fa fa-users fa-3x" aria-hidden="true"></i><h3>{{ 'admin-parties-empty-title' | i18next }}</h3><p>{{ 'admin-parties-empty-help' | i18next }}</p></div>}
+          <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: partyPageStart(getStepKey(workflowStep)), end: partyPageEnd(getStepKey(workflowStep)), total: page.totalItems } }}</span>
+            <pagination [itemsPerPage]="getRowsPerPage(getStepKey(workflowStep))" #paginator #pageModel="ngModel" [disabled]="loadPending || isProcessingPageChange" [directionLinks]="true" [boundaryLinks]="false" [previousText]="'admin-vocabulary-pagination-previous' | i18next" [nextText]="'admin-vocabulary-pagination-next' | i18next" [totalItems]="page.totalItems" [ngModel]="page.currentPage" (ngModelChange)="pageChanged({page: $event, itemsPerPage: paginator.itemsPerPage}, getStepKey(workflowStep), pageModel)" [maxSize]="5"></pagination>
+          </div>
+        }
+      </div>
+    }
+  }
+} @else {
 @if (loadError) {
   <div class="alert alert-danger" role="alert">
     {{ loadError }}
@@ -57,9 +88,9 @@
                       <thead>
                         <tr>
                           @for (rowConfig of tableConfig[getStepKey(workflowStep)]; track $index) {
-                            <th>
+                            <th scope="col" [attr.aria-sort]="enableSort ? sortAria(workflowStep, rowConfig) : null">
                               @if (enableSort) {
-                                <sort [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="getStepKey(workflowStep)" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
+                                <sort [adminPresentation]="adminParties" [title]="rowConfig.title | i18next" [variable]="rowConfig.variable" [step]="getStepKey(workflowStep)" [sort]="getSortStateFromSortMap(sortMap,workflowStep,rowConfig)" [secondarySort]="getSecondarySortStateFromSortMap(sortMap,workflowStep,rowConfig)" (sortChanged)="sortChanged($event)"> </sort>
                               }
                               @if (!enableSort) {
                                 <span class="dashboard-heading-no-sort">{{rowConfig.title | i18next}}</span>
@@ -77,7 +108,10 @@
                       }
                     </table>
                   }
-                  <pagination #paginator #pageModel="ngModel" [disabled]="loadPending || isProcessingPageChange" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
+                  @if (stepState[getStepKey(workflowStep)]?.settings?.rowsPerPage) {
+                    <p class="text-muted small">{{ 'dashboard-rows-per-page' | i18next: { count: getRowsPerPage(getStepKey(workflowStep)) } }}</p>
+                  }
+                  <pagination [itemsPerPage]="getRowsPerPage(getStepKey(workflowStep))" #paginator #pageModel="ngModel" [disabled]="loadPending || isProcessingPageChange" [directionLinks]="false" [boundaryLinks]="true" [totalItems]="records[getStepKey(workflowStep)].totalItems"
                   [ngModel]="records[getStepKey(workflowStep)].currentPage" (ngModelChange)="pageChanged({page: $event, itemsPerPage: paginator.itemsPerPage}, getStepKey(workflowStep), pageModel)" class="pagination-sm" [maxSize]="10"></pagination>
                 </div>
               }
@@ -87,4 +121,8 @@
       }
     </ng-container>
   </div>
+}
+
+}
+
 }

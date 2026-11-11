@@ -17,7 +17,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, ElementRef, Inject, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
@@ -37,6 +38,13 @@ interface ExportFormatOption {
   standalone: false
 })
 export class ExportComponent extends BaseComponent {
+  readonly adminDates = inject(AdminDateService);
+  isAdmin = inject(ElementRef).nativeElement.getAttribute('is-admin') === 'true';
+  pendingCancel: ExportJobDto | null = null;
+  cancelPendingId: string | null = null;
+  cancelErrorKey = '';
+  pendingDelete: ExportJobDto | null = null;
+  private modalTrigger: HTMLElement | null = null;
   datePickerPlaceHolder = '';
   modBefore: Date | string | null | undefined = null;
   modAfter: Date | string | null | undefined = null;
@@ -55,7 +63,7 @@ export class ExportComponent extends BaseComponent {
   deleteErrorKey = '';
 
   private static readonly statusTones: Record<ExportJobStatus, string> = {
-    queued: 'secondary', running: 'info', ready: 'success', failed: 'danger', expired: 'secondary'
+    queued: 'info', running: 'info', ready: 'success', failed: 'danger', expired: 'warning', cancelled: 'secondary'
   };
   private readonly pollIntervalMs = 3000;
   private refreshPromise: Promise<void> | null = null;
@@ -78,11 +86,13 @@ export class ExportComponent extends BaseComponent {
 
   protected override async initComponent(): Promise<void> {
     const sysConfig = await this.configService.getConfig();
+    this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
     const appName = 'export';
     this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerOpts', {
       dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue'
     });
-    this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerPlaceHolder', 'dd/mm/yyyy');
+    this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
+    this.datePickerPlaceHolder = this.adminDates.placeholder;
     this.exportFormatTypes = ConfigService._getAppConfigProperty(sysConfig, appName, 'exportFormatTypes', [
       { name: 'CSV', id: 'csv', checked: 'true' }, { name: 'JSON', id: 'json', checked: null }
     ]);
@@ -146,12 +156,80 @@ export class ExportComponent extends BaseComponent {
   }
 
   get mutationPending(): boolean {
-    return this.createPending || this.deletePendingId !== null;
+    return this.createPending || this.deletePendingId !== null || this.cancelPendingId !== null;
   }
 
   canDelete(job: ExportJobDto): boolean {
     const status = this.getStatus(job);
-    return status === 'ready' || status === 'failed' || status === 'expired';
+    return status === 'ready' || status === 'failed' || status === 'expired' || status === 'cancelled';
+  }
+
+  canCancel(job: ExportJobDto): boolean {
+    return this.isAdmin && (job.status === 'queued' || job.status === 'running');
+  }
+
+  requestCancel(job: ExportJobDto): void {
+    if (this.mutationPending || !this.canCancel(job)) { return; }
+    this.modalTrigger = document.activeElement as HTMLElement;
+    this.cancelErrorKey = '';
+    this.pendingCancel = job;
+  }
+
+  dismissCancel(): void {
+    if (this.mutationPending) { return; }
+    this.pendingCancel = null;
+    this.restoreDeleteFocus();
+  }
+
+  async cancelJob(job: ExportJobDto): Promise<void> {
+    if (this.disposed || this.mutationPending || !this.canCancel(job)) { return; }
+    this.cancelPendingId = job.id;
+    this.cancelErrorKey = '';
+    this.clearRefreshTimer();
+    try {
+      // Drain an older list request so it cannot overwrite the cancellation response.
+      await this.refreshPromise;
+      if (this.disposed) { return; }
+      const cancelled = await this.exportService.cancel(job.id);
+      if (!this.disposed) {
+        this.jobs = this.jobs.map(existing => existing.id === job.id ? cancelled : existing);
+        this.pendingCancel = null;
+        this.restoreDeleteFocus();
+        this.pollingBlocked = false;
+      }
+    } catch (error: unknown) {
+      if (!this.disposed) {
+        this.cancelErrorKey = this.isAccessError(error) ? 'export-session-error' : 'export-cancel-error';
+      }
+    } finally {
+      this.cancelPendingId = null;
+      // Refresh immediately, including when completion won the race and cancellation returned 409.
+      if (!this.disposed) { await this.refreshJobs(); }
+    }
+  }
+
+  requestDelete(job: ExportJobDto): void {
+    if (this.mutationPending || !this.canDelete(job)) { return; }
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
+    this.deleteErrorKey = '';
+    this.pendingDelete = job;
+  }
+
+  cancelDelete(): void {
+    if (this.mutationPending) { return; }
+    this.pendingDelete = null;
+    this.restoreDeleteFocus();
+  }
+
+  private restoreDeleteFocus(): void {
+    const trigger = this.modalTrigger;
+    this.modalTrigger = null;
+    setTimeout(() => {
+      if (this.disposed) { return; }
+      const target = trigger?.isConnected ? trigger : document.querySelector<HTMLElement>('.export-app button[type="submit"]');
+      target?.focus();
+    }, 0);
   }
 
   async deleteJob(job: ExportJobDto): Promise<void> {
@@ -170,6 +248,8 @@ export class ExportComponent extends BaseComponent {
       await this.exportService.remove(job.id);
       if (!this.disposed) {
         this.jobs = this.jobs.filter(existing => existing.id !== job.id);
+        this.pendingDelete = null;
+        this.restoreDeleteFocus();
         this.pollingBlocked = false;
       }
     } catch (error: unknown) {
@@ -196,7 +276,7 @@ export class ExportComponent extends BaseComponent {
 
   getStatusBadgeClass(status: ExportJobStatus): string {
     const tone = ExportComponent.statusTones[status] ?? 'secondary';
-    return `badge rounded-pill ex-badge bg-${tone}-subtle text-${tone}-emphasis border border-${tone}-subtle`;
+    return `badge rb-admin-badge-${tone}`;
   }
 
   formatSize(bytes: number | null): string {

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System messages</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="sysmsg" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Site &amp; content</span><span>/</span><span>System messages</span></nav>
+      <header class="ph">
+        <div><h1>System messages</h1><p>Show a banner to every signed-in user, for example for planned outages or new features.</p></div>
+        <div class="ph-actions"><span class="badge">Not showing</span></div>
+      </header>
+
+      <div class="split">
+        <div class="split-main">
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>Banner</h3><p>Users can dismiss it; it reappears after the dismissal period.</p></div><label class="switch on"><i></i>Show banner</label></div>
+            <div class="fsec-b" style="display: flex; flex-direction: column; gap: 16px">
+              <div class="field"><label for="sm-t">Title <span style="color: #b02a37">*</span></label><input id="sm-t" class="inp" value="Scheduled maintenance"></div>
+              <div class="field"><label for="sm-b">Message <span style="color: #b02a37">*</span></label><textarea id="sm-b" class="inp">ReDBox will be unavailable on Saturday 14 November from 8–10am AEST while we upgrade storage.</textarea><span class="hint">Plain text. Links are made clickable automatically.</span></div>
+              <div class="fgrid">
+                <div class="field"><label for="sm-d">Show again after (hours)</label><input id="sm-d" class="inp" type="number" value="8"></div>
+                <div class="field"><label for="sm-l">Style</label><select id="sm-l" class="inp"><option>Information</option><option>Warning</option><option>Critical</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="savebar"><span class="state"><span class="dot" style="color: #ffc107"></span>Unsaved changes</span><div class="row"><button class="btn btn-ghost" type="button">Discard</button><button class="btn btn-primary" type="button">Save &amp; publish</button></div></div>
+        </div>
+        <aside class="split-side" style="max-width: 420px; flex-basis: 380px">
+          <span class="lbl">Live preview</span>
+          <div style="margin-top: 8px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden">
+            <div style="height: 10px; background: #b1101a"></div>
+            <div style="height: 14px; background: #500005"></div>
+            <div style="padding: 12px">
+              <div class="alert info" style="margin: 0"><div style="flex: 1"><b>Scheduled maintenance</b>ReDBox will be unavailable on Saturday 14 November from 8–10am AEST while we upgrade storage.</div><button class="btn btn-ghost btn-sm" type="button" aria-label="Dismiss preview banner">×</button></div>
+              <div style="height: 120px; margin-top: 12px; border-radius: 4px; background: repeating-linear-gradient(0deg, #f4f4f4 0 12px, #fff 12px 22px)"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="note" style="margin-top: 24px">The same layout covers every short app-config page, Web analytics included: one section card per schema group, a switch in the card header for any “enabled” flag, a sticky save bar instead of uppercase SUBMIT, and a preview panel where the setting has visible output. The repeated H1/H2 title is gone. The “Style” field is a proposed addition.</div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

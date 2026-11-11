@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Figshare publishing</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="figpub" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Integrations</span><span>/</span><span>Figshare publishing</span></nav>
+      <header class="ph">
+        <div><h1>Figshare publishing</h1><p>Publish data records to Figshare as articles, with files, metadata, categories and embargoes.</p></div>
+        <div class="ph-actions"><label class="switch on" style="align-self: center; margin-right: 8px"><i></i>Enabled</label><button class="btn btn-secondary" type="button">Test connection</button><button class="btn btn-secondary" type="button">View JSON</button></div>
+      </header>
+
+      <div class="alert ok"><div><b>Connection OK</b>Tested [time] · Figshare API responded in [n] ms</div></div>
+
+      <div class="split">
+        <nav class="split-nav" aria-label="Settings sections" style="position: sticky; top: 16px">
+          <div class="grp">Setup</div>
+          <a href="#" class="on"><span>Connection</span><span class="badge warn">1</span></a>
+          <a href="#"><span>Ownership</span></a>
+          <a href="#"><span>Background processing</span></a>
+          <div class="grp">Mapping</div>
+          <a href="#"><span>Article &amp; record</span></a>
+          <a href="#"><span>Authors</span></a>
+          <a href="#"><span>Metadata &amp; licence</span></a>
+          <a href="#"><span>Categories</span></a>
+          <div class="grp">Files &amp; workflow</div>
+          <a href="#"><span>Files &amp; staging</span></a>
+          <a href="#"><span>Embargo</span></a>
+          <a href="#"><span>Workflow &amp; write-back</span></a>
+          <div class="grp">Advanced</div>
+          <a href="#"><span>Timeouts &amp; retries</span></a>
+          <a href="#"><span>Custom fields</span></a>
+        </nav>
+        <div class="split-main">
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>Connection</h3><p>Figshare API endpoint and the service account ReDBox publishes as.</p></div></div>
+            <div class="fsec-b" style="display: flex; flex-direction: column; gap: 16px">
+              <div class="fgrid">
+                <div class="field"><label for="ic-b">API base URL <span style="color: #b02a37">*</span></label><input id="ic-b" class="inp mono" value="https://api.figsharetest.example/v2"></div>
+                <div class="field"><label for="ic-f">Front-end URL</label><input id="ic-f" class="inp mono" value="https://figsharetest.example"><span class="hint">Used to build links to published articles.</span></div>
+              </div>
+              <div class="field"><label for="ic-k">API token <span style="color: #b02a37">*</span></label><input id="ic-k" class="inp" type="password" value="" placeholder="Not set" style="border-color: #f2d27a"><span class="hint" style="color: #6b4e00">Required before publishing. Stored as a secret (<span class="mono">redbox/appconfig/…</span>). Leave blank to keep the current value.</span></div>
+              <div class="fgrid">
+                <div class="field"><label for="ic-u">Service username</label><input id="ic-u" class="inp" placeholder="e.g. redbox-service"></div>
+                <div class="field"><label for="ic-ut">Service user type</label><select id="ic-ut" class="inp"><option>institutional</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Ownership</h3><p>How record owners map to Figshare accounts · 2 rules</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Background processing</h3><p>Queue, lease and heartbeat timings · defaults</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Article &amp; record</h3><p>Item type dataset · republish on metadata and asset change</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="fsec collapsed"><div class="fsec-h"><div><h3>Timeouts &amp; retries</h3><p>3 attempts · retry on 408, 429, 500, 502, 503, 504</p></div><button class="btn btn-ghost btn-sm" type="button">Expand</button></div></div>
+          <div class="savebar"><span class="state"><span class="dot" style="color: #ffc107"></span>1 required field missing</span><div class="row"><button class="btn btn-ghost" type="button">Discard</button><button class="btn btn-primary" type="button">Save changes</button></div></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top: 20px">This one layout serves Figshare (today about 8,900px), DOI (about 8,100px) and Oni publishing. The 25 raw schema groups fold into about 12 named sections in a sticky rail. Collapsed sections show a one-line summary of their current values, and the rail flags sections with problems. Secrets render as password fields with a stored-secret hint (DOI’s password is plaintext today). Arrays such as status codes and methods become chip inputs rather than rows of number fields with red × buttons.</div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

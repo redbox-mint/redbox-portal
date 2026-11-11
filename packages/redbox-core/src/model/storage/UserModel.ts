@@ -10,7 +10,7 @@ export class UserModel {
     name: string = ''
     email: string = ''
     token?: string
-    lastLogin: Date = new Date()
+    lastLogin?: string | Date
     additionalAttributes: Record<string, unknown> = {};
     linkedPrimaryUserId?: string
     accountLinkState?: 'active' | 'linked-alias' = 'active'

@@ -2083,7 +2083,22 @@ describe('MongoStorageService', function () {
     await expectRejects(() => service.getDeletedRecordMeta(''), 'refusing to search using an empty OID');
   });
 
-  it('queries deleted records through the collection helper', async function () {
+  for (const period of ['7', '30', 'any']) {
+    it(`filters deleted records by ${period} days and original actor before pagination`, async () => {
+      const run = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: [], totalItems: 0 });
+      const now = Date.now();
+      await service.getDeletedRecords(undefined, ['rdmp'], 20, 10, 'admin', [], { id: 'brand-1' }, undefined, undefined, undefined, undefined, undefined, 'regex', undefined, { deletedWithin: period, deletedBy: 'alice' });
+      const query = run.firstCall.args[1];
+      expect(query['deletedRecordMetadata.metaMetadata.brandId']).to.equal('brand-1');
+      expect(query['deletedBy.brandId']).to.equal('brand-1');
+      expect(query['deletedBy.username']).to.equal('alice');
+      if (period === 'any') expect(query).not.to.have.property('dateDeleted');
+      else expect(Date.parse(query.dateDeleted.$gte)).to.be.within(now - Number(period) * 86400000, Date.now() - Number(period) * 86400000);
+      expect(run.firstCall.args[2]).to.include({ skip: 20, limit: 10 });
+    });
+  }
+
+  it('queries deleted records through the collection helper' , async function () {
     const runStub = sandbox.stub(service, 'runDeletedRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 
     const response = await service.getDeletedRecords('draft', ['rdmp'], 0, 10, 'user', [], { id: 'brand-1' });
@@ -2512,6 +2527,190 @@ describe('MongoStorageService', function () {
     expect(options.sort.redboxOid).to.equal(-1);
   });
 
+  it('keeps AND as default and groups opt-in literal OR behind brand, type and permissions', async function () {
+    const run = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
+    const fields = ['metadata.fullName', 'metadata.email'];
+    const args = ['', ['party', 'rdmp'], 0, 10, 'user', [], { id: 'brand-a' }, undefined, undefined, undefined, fields, 'a+.*(b)'];
+    await service.getRecords(...args);
+    const all = run.lastCall.args[1];
+    expect(all.$and[1]['metadata.fullName'].test('a+.*(b)')).to.equal(true);
+    expect(all.$and[2]['metadata.email'].test('aaaaab')).to.equal(false);
+    await service.getRecords(...args.slice(0, 10), ['metaMetadata.brandId', 'workflow.stage'], 'other-brand');
+    const scoped = run.lastCall.args[1];
+    expect(scoped['metaMetadata.brandId']).to.equal('brand-a');
+    expect(scoped.$and[1]['metaMetadata.brandId'].test('other-brand')).to.equal(true);
+    await service.getRecords(...args, ['any']);
+    const any = run.lastCall.args[1];
+    expect(any['metaMetadata.brandId']).to.equal('brand-a');
+    expect(any.$or).to.have.length(2);
+    expect(any.$and).to.have.length(2);
+    expect(any.$and[0].$or).to.have.length(4);
+    expect(any.$and[1].$or.map(row => Object.keys(row)[0])).to.deep.equal(fields);
+    expect(any.$and[1].$or[1]['metadata.email'].test('a+.*(b)')).to.equal(true);
+    expect(any.$and[1].$or[1]['metadata.email'].test('aaaaab')).to.equal(false);
+    for (const mode of ['bogus', ['$where']]) await expectRejects(() => service.getRecords(...args, mode), 'Invalid filter mode');
+    for (const field of ['$where', 'metadata.$ne', '__proto__.x']) {
+      await expectRejects(() => service.getRecords(...args.slice(0, 10), [field], 'x', 'any'), 'Invalid filter fields');
+    }
+  });
+
+  it('preserves legacy getRecords query, sorting, offsets and counting with omitted or empty options', async function () {
+    service.recordCol = {
+      find: sandbox.stub().returns({ toArray: sandbox.stub().resolves([{ redboxOid: 'record-a' }]) }),
+      count: sandbox.stub().resolves(17),
+    };
+    const run = sandbox.spy(service, 'runRecordQuery');
+    const args = [
+      'draft',
+      'rdmp',
+      7,
+      25,
+      'user',
+      [{ name: 'Reader', branding: 'brand-a' }],
+      { id: 'brand-a', roles: [{ id: 'different', name: 'Canonical' }] },
+      undefined,
+      undefined,
+      undefined,
+      ['metadata.title'],
+      'water',
+      undefined,
+      undefined,
+    ];
+    const expectedQuery = {
+      'metaMetadata.brandId': 'brand-a',
+      'metaMetadata.type': 'rdmp',
+      'workflow.stage': 'draft',
+      $and: [
+        {
+          $or: [
+            { 'authorization.view': 'user' },
+            { 'authorization.edit': 'user' },
+            { 'authorization.editRoles': { $in: ['Reader'] } },
+            { 'authorization.viewRoles': { $in: ['Reader'] } },
+          ],
+        },
+        { 'metadata.title': /water/i },
+      ],
+    };
+    const expectedOptions = { limit: 25, skip: 7, sort: { lastSaveDate: -1, _id: 1 } };
+    for (const extra of [[], [{}], [{ count: true }]]) {
+      const response = await service.getRecords(...args, ...extra);
+      expect(response.totalItems).to.equal(17);
+      expect(service.recordCol.find.lastCall.args).to.deep.equal([expectedQuery, expectedOptions]);
+      expect(service.recordCol.count.lastCall.args).to.deep.equal([expectedQuery]);
+      expect(run.lastCall.args).to.have.length(3);
+    }
+    expect(service.recordCol.count.callCount).to.equal(3);
+  });
+
+  it('combines opt-in mixed literal predicates with existing scope and filters, skipping only the requested count', async function () {
+    service.recordCol = {
+      find: sandbox.stub().returns({ toArray: sandbox.stub().resolves([]) }),
+      count: sandbox.stub().throws(new Error('count must not run')),
+    };
+    const run = sandbox.spy(service, 'runRecordQuery');
+    const response = await service.getRecords(
+      'draft',
+      ['rdmp', 'publication'],
+      0,
+      50,
+      'user',
+      [{ id: 'reader-id' }],
+      { id: 'brand-a', roles: [{ id: 'reader-id', name: 'Reader' }] },
+      undefined,
+      'data',
+      'metadata.title:-1',
+      ['workflow.stage'],
+      'draft',
+      'equal',
+      undefined,
+      {
+        anyOf: [
+          { field: 'metadata.title', value: 'water.* (plan)', match: 'contains' },
+          { field: 'redboxOid', value: 'water.* (plan)', match: 'exact' },
+        ],
+        afterOid: 'last-oid',
+        count: false,
+        authorization: 'record-view',
+      }
+    );
+    const [query, options] = service.recordCol.find.firstCall.args;
+    expect(query['metaMetadata.brandId']).to.equal('brand-a');
+    expect(query['metaMetadata.packageType']).to.equal('data');
+    expect(query['workflow.stage']).to.equal('draft');
+    expect(query.$or).to.deep.equal([{ 'metaMetadata.type': 'rdmp' }, { 'metaMetadata.type': 'publication' }]);
+    expect(query.$and[0].$or[0].$or[2]).to.deep.equal({ 'authorization.editRoles': { $in: ['Reader'] } });
+    expect(query.$and[0].$or[1].authorization).to.equal(null);
+    expect(query.$and[1]).to.deep.equal({ 'workflow.stage': 'draft' });
+    expect(query.$and[2].$or[0]['metadata.title'].test('A water.* (plan) title')).to.equal(true);
+    expect(query.$and[2].$or[0]['metadata.title'].test('waterAAA plan')).to.equal(false);
+    expect(query.$and[2].$or[1]).to.deep.equal({ redboxOid: 'water.* (plan)' });
+    expect(query.redboxOid).to.deep.equal({ $type: 'string', $gt: 'last-oid' });
+    expect(options).to.deep.equal({
+      limit: 50,
+      skip: 0,
+      sort: { redboxOid: 1 },
+      collation: { locale: 'simple' },
+      projection: { _id: 0 },
+      maxTimeMS: 5000,
+    });
+    expect(run.firstCall.args[3]).to.equal(false);
+    expect(response.totalItems).to.equal(0);
+    expect(service.recordCol.count.callCount).to.equal(0);
+  });
+
+  it('rejects unsafe or unbounded record query options before querying storage', async function () {
+    const run = sandbox.stub(service, 'runRecordQuery').resolves({ items: [], totalItems: 0 });
+    const args = [
+      '',
+      undefined,
+      0,
+      10,
+      'user',
+      [],
+      { id: 'brand-a' },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ];
+    const valid = { field: 'metadata.title', value: 'x', match: 'contains' };
+    for (const options of [
+      null,
+      [],
+      { $where: 'evil' },
+      { count: 'false' },
+      { authorization: 'admin' },
+      { afterOid: {} },
+      { afterOid: 'x'.repeat(1025) },
+      { anyOf: {} },
+      { anyOf: [null] },
+      { anyOf: Array(21).fill(valid) },
+      { anyOf: [{ ...valid, value: 'x'.repeat(1025) }] },
+      { anyOf: [{ ...valid, value: { $ne: 'x' } }] },
+      { anyOf: [{ ...valid, match: 'regex' }] },
+      { anyOf: [{ ...valid, $where: 'evil' }] },
+      ...['$where', 'metadata.$ne', '__proto__.x', 'metadata.constructor', 'metadata.prototype.x'].map(field => ({
+        anyOf: [{ ...valid, field }],
+      })),
+    ])
+      await expectRejects(() => service.getRecords(...args, options), 'Invalid record query options');
+    for (const rows of [0, -1, 101, 1.5, '10']) {
+      await expectRejects(
+        () => service.getRecords(...args.slice(0, 3), rows, ...args.slice(4), { afterOid: null }),
+        'OID cursor batches'
+      );
+    }
+    await expectRejects(
+      () => service.getRecords(...args.slice(0, 2), 1, ...args.slice(3), { afterOid: null }),
+      'OID cursor batches'
+    );
+    expect(run.callCount).to.equal(0);
+  });
+
   it('queries records with escaped regex filters', async function () {
     const runStub = sandbox.stub(service, 'runRecordQuery').resolves({ items: ['x'], totalItems: 1 });
 
@@ -2533,7 +2732,7 @@ describe('MongoStorageService', function () {
 
     expect(response.items).to.deep.equal(['x']);
     const query = runStub.firstCall.args[1];
-    expect(`${query['metadata.title']}`).to.include('a\\+b');
+    expect(`${query.$and[1]['metadata.title']}`).to.include('a\\+b');
   });
 
   it('builds record queries for array filters, package types, workflow, and equal matching', async function () {
@@ -2561,7 +2760,7 @@ describe('MongoStorageService', function () {
     expect(query.$or).to.have.length(2);
     expect(query['metaMetadata.packageType'].$or).to.have.length(2);
     expect(query['workflow.stage']).to.equal('review');
-    expect(query['metadata.title']).to.equal('Exact title');
+    expect(query.$and[1]['metadata.title']).to.equal('Exact title');
     expect(options.sort.lastSaveDate).to.equal(1);
     expect(options.sort.redboxOid).to.equal(-1);
   });
@@ -2605,6 +2804,37 @@ describe('MongoStorageService', function () {
     sandbox.stub().callsFake((_query: any, opts: any) => ({
       toArray: async () => pagesBySkip[opts.skip ?? 0] ?? [],
     }));
+
+  it('checks cancellation between CSV discovery pages and before the writing pass', async function () {
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'one' } }]) };
+    let calls = 0;
+    const checkpoint = async () => { if (++calls === 3) throw new Error('cancelled at page boundary'); };
+    const source = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp', checkpoint);
+    try {
+      for await (const _chunk of source) { /* consume */ }
+      expect.fail('Expected cancellation');
+    } catch (error) {
+      expect((error as Error).message).to.equal('cancelled at page boundary');
+    }
+    expect(service.recordCol.find.callCount).to.equal(1);
+    expect(source.destroyed).to.equal(true);
+  });
+
+  it('checks cancellation between CSV writing pages', async function () {
+    service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'one' } }]) };
+    const checkpoint = async () => {
+      if (service.recordCol.find.callCount === 3) throw new Error('cancelled while writing');
+    };
+    const source = service.exportAllPlans('user', [], { id: 'brand-1' }, 'csv', null, null, 'rdmp', checkpoint);
+    try {
+      for await (const _chunk of source) { /* consume */ }
+      expect.fail('Expected cancellation');
+    } catch (error) {
+      expect((error as Error).message).to.equal('cancelled while writing');
+    }
+    expect(service.recordCol.find.callCount).to.equal(3);
+    expect(source.destroyed).to.equal(true);
+  });
 
   it('exports plans as UTF-8 BOM csv using streamed records', async function () {
     service.recordCol = { find: pagedFind([{ redboxOid: '1', metadata: { title: 'Waldenström' } }]) };

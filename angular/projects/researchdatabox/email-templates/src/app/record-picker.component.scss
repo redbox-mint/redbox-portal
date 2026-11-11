@@ -1,0 +1,110 @@
+.et-picker {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-body-bg);
+}
+
+.et-picker-selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.et-picker-icon {
+  color: var(--bs-secondary-color);
+}
+
+.et-picker-record {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.et-picker-title {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.et-picker-search {
+  padding: 10px;
+}
+
+.et-picker-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.et-picker-field {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+
+  .form-control {
+    padding-left: 32px;
+    font-size: 14px;
+  }
+}
+
+.et-picker-field-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.et-picker-results {
+  margin-top: 8px;
+}
+
+.et-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 224px;
+  overflow-y: auto;
+}
+
+.et-picker-option {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: calc(var(--bs-border-radius) - 2px);
+  background: transparent;
+  text-align: left;
+  color: inherit;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--bs-tertiary-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: -2px;
+  }
+
+  &.et-picker-option-current {
+    box-shadow: inset 3px 0 0 var(--bs-primary);
+  }
+
+  .et-sub {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.et-picker-note {
+  padding: 6px 8px;
+  color: var(--bs-secondary-color);
+  font-size: 13px;
+}

@@ -4,70 +4,68 @@
   [class.has-default-only]="!isConfigured && hasDefault"
 >
   <!-- Clickable header row: collapse toggle + field label + summary -->
-  <div
+  <button
+    type="button"
+    [attr.aria-expanded]="!collapsed"
+    [attr.aria-controls]="id + '-body'"
     class="binding-header d-flex align-items-center py-2 px-3"
-    role="button"
-    tabindex="0"
     (click)="toggleCollapsed()"
-    (keydown.enter)="toggleCollapsed()"
-    (keydown.space)="$event.preventDefault(); toggleCollapsed()"
   >
-    <i class="fa fa-fw me-1" [class.fa-chevron-right]="collapsed" [class.fa-chevron-down]="!collapsed"></i>
-    <div class="d-flex flex-column">
-      <span class="fw-semibold">{{ fieldLabel }}</span>
-      <span class="small text-muted text-uppercase">Field Key: {{ fieldKey }}</span>
-    </div>
+    <i aria-hidden="true" class="fa fa-fw me-1" [class.fa-chevron-right]="collapsed" [class.fa-chevron-down]="!collapsed"></i>
+    <span class="d-flex flex-column">
+      <span class="fw-semibold">{{ fieldLabel | i18next }}</span>
+      <span class="small text-muted">{{ 'admin-config-binding-field-key' | i18next }} <span class="rb-admin-mono">{{ fieldKey }}</span></span>
+    </span>
     @if (collapsed) { @if (isConfigured) {
-    <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
+    <span class="binding-source rb-admin-mono text-muted ms-auto d-flex align-items-center gap-2">
       <span class="text-truncate binding-summary">&larr; {{ summarySource }}</span>
       @if (kind !== 'path') {
-      <span class="badge bg-secondary binding-badge">{{ kind }}</span>
+      <span class="badge rb-admin-badge-primary binding-badge">{{ ('admin-config-enum-' + kind) | i18next }}</span>
       } @if (hasDefault) {
-      <span class="badge bg-info binding-badge text-dark">default: {{ value.defaultValue }}</span>
+      <span class="badge rb-admin-badge-info binding-badge">{{ 'admin-config-binding-default-badge' | i18next: { value: value.defaultValue } }}</span>
       }
     </span>
     } @else { @if (hasDefault) {
-    <span class="binding-source text-muted ms-auto d-flex align-items-center gap-2">
-      <span class="badge bg-info binding-badge text-dark">default: {{ value.defaultValue }}</span>
+    <span class="binding-source rb-admin-mono text-muted ms-auto d-flex align-items-center gap-2">
+      <span class="badge rb-admin-badge-info binding-badge">{{ 'admin-config-binding-default-badge' | i18next: { value: value.defaultValue } }}</span>
     </span>
     } @else {
-    <span class="text-muted ms-auto fst-italic small">not mapped</span>
+    <span class="text-muted ms-auto fst-italic small">{{ 'admin-config-binding-not-mapped' | i18next }}</span>
     } } }
-  </div>
+  </button>
 
   <!-- Expanded editor body -->
-  @if (!collapsed) {
-  <div class="card-body pt-2 pb-3 px-3 border-top">
+  <div [hidden]="collapsed" [id]="id + '-body'" class="card-body pt-2 pb-3 px-3 border-top">
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-kind'">Binding Type</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-kind'">{{ 'admin-config-binding-kind' | i18next }}</label>
       <select
         class="form-select form-select-sm"
-        [attr.id]="fieldKey + '-kind'"
+        [attr.id]="id + '-kind'"
         (change)="updateField('kind', $any($event.target).value)"
       >
         @for (bindingKind of bindingKinds; track bindingKind) {
-        <option [value]="bindingKind" [selected]="bindingKind === kind">{{ bindingKind }}</option>
+        <option [value]="bindingKind" [selected]="bindingKind === kind">{{ ('admin-config-enum-' + bindingKind) | i18next }}</option>
         }
       </select>
     </div>
     @if (kind === 'path') {
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-path'">Record Path</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-path'">{{ 'admin-config-binding-path' | i18next }}</label>
       <input
-        [attr.id]="fieldKey + '-path'"
-        class="form-control form-control-sm"
+        [attr.id]="id + '-path'"
+        class="rb-admin-mono form-control form-control-sm"
         type="text"
         [value]="value.path || ''"
         (input)="updateField('path', $any($event.target).value)"
-        placeholder="e.g. record.metadata.field_name"
+        [placeholder]="'admin-config-binding-path-placeholder' | i18next"
       />
     </div>
     } @if (kind === 'handlebars') {
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-template'">Handlebars Template</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-template'">{{ 'admin-config-binding-template' | i18next }}</label>
       <textarea
-        [attr.id]="fieldKey + '-template'"
-        class="form-control form-control-sm"
+        [attr.id]="id + '-template'"
+        class="rb-admin-mono form-control form-control-sm"
         rows="2"
         [value]="value.template || ''"
         (input)="updateField('template', $any($event.target).value)"
@@ -75,10 +73,10 @@
     </div>
     } @if (kind === 'jsonata') {
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-expression'">JSONata Expression</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-expression'">{{ 'admin-config-binding-expression' | i18next }}</label>
       <textarea
-        [attr.id]="fieldKey + '-expression'"
-        class="form-control form-control-sm"
+        [attr.id]="id + '-expression'"
+        class="rb-admin-mono form-control form-control-sm"
         rows="2"
         [value]="value.expression || ''"
         (input)="updateField('expression', $any($event.target).value)"
@@ -86,37 +84,37 @@
     </div>
     } @if (kind === 'crosswalk') {
     <div class="border rounded p-2 mb-2 bg-light">
-      <div class="small text-muted fw-semibold mb-2">Source Binding</div>
+      <div class="small text-muted fw-semibold mb-2">{{ 'admin-config-binding-source-binding' | i18next }}</div>
       <div class="mb-2">
-        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-kind'">Source Type</label>
+        <label class="form-label small text-muted mb-1" [attr.for]="id + '-source-kind'">{{ 'admin-config-binding-source-kind' | i18next }}</label>
         <select
           class="form-select form-select-sm"
-          [attr.id]="fieldKey + '-source-kind'"
+          [attr.id]="id + '-source-kind'"
           (change)="updateSourceField('kind', $any($event.target).value)"
         >
           @for (simpleKind of simpleKinds; track simpleKind) {
-          <option [value]="simpleKind" [selected]="simpleKind === sourceKind">{{ simpleKind }}</option>
+          <option [value]="simpleKind" [selected]="simpleKind === sourceKind">{{ ('admin-config-enum-' + simpleKind) | i18next }}</option>
           }
         </select>
       </div>
       @if (sourceKind === 'path') {
       <div class="mb-0">
-        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-path'">Record Path</label>
+        <label class="form-label small text-muted mb-1" [attr.for]="id + '-source-path'">{{ 'admin-config-binding-path' | i18next }}</label>
         <input
-          [attr.id]="fieldKey + '-source-path'"
-          class="form-control form-control-sm"
+          [attr.id]="id + '-source-path'"
+          class="rb-admin-mono form-control form-control-sm"
           type="text"
           [value]="value.source?.path || ''"
           (input)="updateSourceField('path', $any($event.target).value)"
-          placeholder="e.g. metadata.forCodes"
+          [placeholder]="'admin-config-binding-source-path-placeholder' | i18next"
         />
       </div>
       } @if (sourceKind === 'handlebars') {
       <div class="mb-0">
-        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-template'">Handlebars Template</label>
+        <label class="form-label small text-muted mb-1" [attr.for]="id + '-source-template'">{{ 'admin-config-binding-template' | i18next }}</label>
         <textarea
-          [attr.id]="fieldKey + '-source-template'"
-          class="form-control form-control-sm"
+          [attr.id]="id + '-source-template'"
+          class="rb-admin-mono form-control form-control-sm"
           rows="2"
           [value]="value.source?.template || ''"
           (input)="updateSourceField('template', $any($event.target).value)"
@@ -124,10 +122,10 @@
       </div>
       } @if (sourceKind === 'jsonata') {
       <div class="mb-0">
-        <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-expression'">JSONata Expression</label>
+        <label class="form-label small text-muted mb-1" [attr.for]="id + '-source-expression'">{{ 'admin-config-binding-expression' | i18next }}</label>
         <textarea
-          [attr.id]="fieldKey + '-source-expression'"
-          class="form-control form-control-sm"
+          [attr.id]="id + '-source-expression'"
+          class="rb-admin-mono form-control form-control-sm"
           rows="2"
           [value]="value.source?.expression || ''"
           (input)="updateSourceField('expression', $any($event.target).value)"
@@ -137,80 +135,77 @@
     </div>
 
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-source-vocabulary'">Source Vocabulary</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-source-vocabulary'">{{ 'admin-config-binding-source-vocabulary' | i18next }}</label>
       <select
         class="form-select form-select-sm"
-        [attr.id]="fieldKey + '-source-vocabulary'"
+        [attr.id]="id + '-source-vocabulary'"
         [disabled]="crosswalksLoading"
         (change)="updateField('sourceVocabularyId', $any($event.target).value)"
       >
-        <option value="" [selected]="!value.sourceVocabularyId">-- select --</option>
+        <option value="" [selected]="!value.sourceVocabularyId">{{ 'admin-config-binding-select' | i18next }}</option>
         @for (vocabulary of vocabularies; track vocabulary.id) {
         <option [value]="vocabulary.id" [selected]="vocabulary.id === value.sourceVocabularyId">
           {{ vocabulary.name }} ({{ vocabulary.source }})
         </option>
         }
       </select>
-      <div class="form-text small">Record codes are resolved against entries of exactly this vocabulary.</div>
+      <div class="form-text small">{{ 'admin-config-binding-vocabulary-help' | i18next }}</div>
     </div>
 
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-crosswalk'">Approved Figshare Crosswalk</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-crosswalk'">{{ 'admin-config-binding-crosswalk' | i18next }}</label>
       <select
         class="form-select form-select-sm"
-        [attr.id]="fieldKey + '-crosswalk'"
+        [attr.id]="id + '-crosswalk'"
         [disabled]="crosswalksLoading"
         (change)="updateField('crosswalkId', $any($event.target).value)"
       >
-        <option value="" [selected]="!value.crosswalkId">-- select --</option>
+        <option value="" [selected]="!value.crosswalkId">{{ 'admin-config-binding-select' | i18next }}</option>
         @for (crosswalk of crosswalkOptions; track crosswalk.id) {
         <option [value]="crosswalk.id" [selected]="crosswalk.id === value.crosswalkId">{{ crosswalk.name }}</option>
         }
       </select>
       @if (crosswalksLoading) {
-      <div class="form-text small">Loading crosswalks…</div>
+      <div class="form-text small">{{ 'admin-config-binding-crosswalks-loading' | i18next }}</div>
       } @if (crosswalksLoadError) {
-      <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalksLoadError }}</div>
+      <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalksLoadError | i18next }}</div>
       } @if (selectedCrosswalk) {
       <div class="form-text small">
-        {{ selectedCrosswalk.figshareSourceName }} · approved revision {{ selectedCrosswalk.approvedRevision }} ·
-        {{ selectedCrosswalk.approvedMappingCount }} mappings
+        {{ 'admin-config-binding-crosswalk-summary' | i18next: { source: selectedCrosswalk.figshareSourceName, revision: selectedCrosswalk.approvedRevision, count: selectedCrosswalk.approvedMappingCount } }}
       </div>
       } @if (crosswalkValidationMessage) {
-      <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalkValidationMessage }}</div>
+      <div class="alert alert-warning py-1 px-2 mt-1 mb-0 small">{{ crosswalkValidationMessage | i18next }}</div>
       } @if (adminUrl) {
-      <a class="small" [href]="adminUrl" target="_blank" rel="noopener">Open Figshare crosswalks &#8599;</a>
+      <a class="small" [href]="adminUrl" target="_blank" rel="noopener">{{ 'admin-config-binding-open-crosswalks' | i18next }}</a>
       }
     </div>
 
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-outputs'">Output</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-outputs'">{{ 'admin-config-binding-output' | i18next }}</label>
       <select
         class="form-select form-select-sm"
-        [attr.id]="fieldKey + '-outputs'"
+        [attr.id]="id + '-outputs'"
         (change)="updateField('outputs', $any($event.target).value)"
       >
         @for (output of crosswalkOutputs; track output) {
-        <option [value]="output" [selected]="output === (value.outputs || 'categoryId')">{{ output }}</option>
+        <option [value]="output" [selected]="output === (value.outputs || 'categoryId')">{{ ('admin-config-enum-' + output) | i18next }}</option>
         }
       </select>
       <div class="form-text small">
-        The Categories binding must use <code>categoryId</code>. Use <code>label</code> or <code>sourceId</code> for
-        string fields such as keywords or custom fields.
+        {{ 'admin-config-binding-output-help' | i18next }}
       </div>
     </div>
     }
 
     <div class="mb-2">
-      <label class="form-label small text-muted mb-1" [attr.for]="fieldKey + '-default-value'">Default Value</label>
+      <label class="form-label small text-muted mb-1" [attr.for]="id + '-default-value'">{{ 'admin-config-binding-default-value' | i18next }}</label>
       <input
-        [attr.id]="fieldKey + '-default-value'"
-        class="form-control form-control-sm"
+        [attr.id]="id + '-default-value'"
+        class="rb-admin-mono form-control form-control-sm"
         type="text"
         [value]="value.defaultValue || ''"
         (input)="updateField('defaultValue', $any($event.target).value)"
       />
     </div>
   </div>
-  }
 </div>

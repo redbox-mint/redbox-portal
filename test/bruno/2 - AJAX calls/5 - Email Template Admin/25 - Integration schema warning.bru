@@ -1,0 +1,35 @@
+meta {
+  name: Email templates - Integration schema warning
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/integrationFailure/validate
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+  Content-Type: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  {
+    "content": { "subject": "Alert", "body": "{{recordUrl}}", "format": "text" }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Lints optional integration fields without a record selector", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().diagnostics.some(item => item.code === "OPTIONAL_UNGUARDED" && item.severity === "warning")).to.equal(true);
+  });
+}

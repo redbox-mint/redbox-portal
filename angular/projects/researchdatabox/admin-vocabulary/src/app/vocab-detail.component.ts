@@ -30,6 +30,8 @@ export class VocabDetailComponent implements OnChanges {
     entries: []
   };
 
+  @Input() readOnly = false;
+
   @Input() selectedVocabularyId: string | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -52,6 +54,7 @@ export class VocabDetailComponent implements OnChanges {
   }
 
   addEntry(): void {
+    if (this.readOnly) return;
     if (!this.draft.entries) {
       this.draft.entries = [];
     }
@@ -66,6 +69,7 @@ export class VocabDetailComponent implements OnChanges {
   }
 
   requestRemoveEntry(index: number): void {
+    if (this.readOnly) return;
     if (!this.draft.entries || index < 0 || index >= this.draft.entries.length) {
       return;
     }
@@ -114,6 +118,7 @@ export class VocabDetailComponent implements OnChanges {
   }
 
   moveEntryUp(index: number): void {
+    if (this.readOnly) return;
     if (!this.draft.entries || index <= 0) {
       return;
     }
@@ -124,6 +129,7 @@ export class VocabDetailComponent implements OnChanges {
   }
 
   moveEntryDown(index: number): void {
+    if (this.readOnly) return;
     if (!this.draft.entries || index >= this.draft.entries.length - 1) {
       return;
     }

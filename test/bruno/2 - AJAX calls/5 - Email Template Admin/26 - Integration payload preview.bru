@@ -1,0 +1,39 @@
+meta {
+  name: Email templates - Integration payload preview
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{host}}/default/rdmp/app/email-templates/templates/integrationFailure/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Accept: application/json
+  Content-Type: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+body:json {
+  {
+    "content": { "subject": "{{title}}", "body": "{{summary}} {{redboxOid}}", "format": "text" },
+    "context": "{\"title\":\"Preview integration\",\"summary\":\"Preview summary\",\"redboxOid\":\"sample-record-oid\"}",
+    "source": "override"
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+}
+
+tests {
+  test("Renders a flat integration payload without a record", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().subject).to.equal("Preview integration");
+    expect(res.getBody().text).to.equal("Preview summary sample-record-oid");
+    expect(res.getBody().diagnostics).to.deep.equal([]);
+  });
+}

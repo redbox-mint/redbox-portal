@@ -1,0 +1,34 @@
+meta {
+  name: Validate Structural Errors
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{host}}/default/rdmp/api/report-config/validate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  X-CSRF-Token: {{reportEditorCsrf}}
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "reportEditorCookie" });
+}
+
+tests {
+  test("Returns structured required-field blockers", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().data.valid).to.equal(false);
+    expect(res.getBody().data.diagnostics.some(d => d.severity === "error")).to.equal(true);
+  });
+}

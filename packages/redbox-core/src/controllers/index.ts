@@ -1,3 +1,4 @@
+import * as PartyImportControllerModule from './PartyImportController';
 /**
  * Controllers index - exports all controller classes
  */
@@ -7,6 +8,7 @@ import * as ActionControllerModule from './ActionController';
 import * as AdminControllerModule from './AdminController';
 import * as AppConfigControllerModule from './AppConfigController';
 import * as AsynchControllerModule from './AsynchController';
+import * as EmailTemplateAdminControllerModule from './EmailTemplateAdminController';
 import * as BrandingAppControllerModule from './BrandingAppController';
 import * as BrandingControllerModule from './BrandingController';
 import * as DynamicAssetControllerModule from './DynamicAssetController';
@@ -56,10 +58,12 @@ function getOrCreate(name: string, factory: () => unknown): unknown {
 
 // API Controllers export
 export const ControllerExports: Record<string, unknown> = {
+    get PartyImportController() { return getOrCreate('PartyImportController', () => new PartyImportControllerModule.Controllers.PartyImport().exports()); },
     get ActionController() { return getOrCreate('ActionController', () => new ActionControllerModule.Controllers.Action().exports()); },
     get AdminController() { return getOrCreate('AdminController', () => new AdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('AppConfigController', () => new AppConfigControllerModule.Controllers.AppConfig().exports()); },
     get AsynchController() { return getOrCreate('AsynchController', () => new AsynchControllerModule.Controllers.Asynch().exports()); },
+    get EmailTemplateAdminController() { return getOrCreate('EmailTemplateAdminController', () => new EmailTemplateAdminControllerModule.Controllers.EmailTemplateAdmin().exports()); },
     get BrandingAppController() { return getOrCreate('BrandingAppController', () => new BrandingAppControllerModule.Controllers.BrandingApp().exports()); },
     get BrandingController() { return getOrCreate('BrandingController', () => new BrandingControllerModule.Controllers.Branding().exports()); },
     get DynamicAssetController() { return getOrCreate('DynamicAssetController', () => new DynamicAssetControllerModule.Controllers.DynamicAsset().exports()); },
@@ -105,11 +109,13 @@ export const WebserviceControllerExports: Record<string, unknown> = {
 
 // Export controller names without instantiating (used by the redbox-core loader shim generation)
 export const ControllerNames = [
+    'PartyImportController',
     'ActionController',
     'AdminController',
     'AppConfigController',
     'AsynchController',
     'BrandingAppController',
+    'EmailTemplateAdminController',
     'BrandingController',
     'DashboardConfigController',
     'DynamicAssetController',
