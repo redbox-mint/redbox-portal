@@ -661,6 +661,7 @@ describe('The RecordsService', function () {
     const audits = await RecordAudit.find({ redboxOid: oid, action: 'restored' });
     expect(audits).to.have.length(1);
     expect(audits[0].record).to.deep.equal({
+      metaMetadata: { brandId: brand.id },
       revision: response.concurrency.revision,
       resolution: response.concurrency.resolution,
     });
