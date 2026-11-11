@@ -19,7 +19,7 @@ export const GRID_LIMITS = Object.freeze({
   cursorAgeMs: 3_600_000,
 });
 export type GridScalar = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME' | 'OBJECT' | 'JSON' | 'MIXED';
-export type GridOperator = 'EQ' | 'CONTAINS' | 'IN' | 'GT' | 'LT' | 'BETWEEN' | 'EXISTS';
+export type GridOperator = 'EQ' | 'CONTAINS' | 'IPREFIX' | 'IN' | 'GT' | 'LT' | 'BETWEEN' | 'EXISTS';
 export interface GridValue {
   text?: string;
   number?: number;
@@ -30,6 +30,7 @@ export interface GridFilter {
   field: string;
   eq?: GridValue;
   contains?: string;
+  iprefix?: string;
   in?: GridValue[];
   gt?: GridValue;
   lt?: GridValue;

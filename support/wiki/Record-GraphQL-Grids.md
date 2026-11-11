@@ -36,7 +36,7 @@ preIndex: {
 }
 ```
 
-This version accepts identifier-style source path segments only (`metadata.details.note`), with no arrays or ambiguous dots inside a stored key. A mapped GraphQL name such as `dc:title` is still selectable but cannot be given index capabilities by this adapter. Targets must be safe non-reserved index names. The mapping must have exactly one matching copy source. The indexer snapshots the original scalar and restores that copy after templates and flattening; objects, arrays and null are omitted. Mapping an existing derived search field changes that destination's meaning to the original scalar, so use dedicated grid fields. Live Solr schema classes and properties, rather than name conventions, determine capabilities.
+This version accepts identifier-style source path segments, including colons (`metadata.details.note`, `metadata.dc:identifier`), with no arrays or ambiguous dots inside a stored key. The ID `metadata:/dc:identifier` names one literal metadata key, not a nested `dc.identifier` path. Targets must be safe non-reserved index names. The mapping must have exactly one matching copy source. The indexer snapshots the original scalar and restores that copy after templates and flattening; objects, arrays and null are omitted. Mapping an existing derived search field changes that destination's meaning to the original scalar, so use dedicated grid fields. Live Solr schema classes and properties, rather than name conventions, determine capabilities.
 
 ## Discover columns and capabilities
 
@@ -143,11 +143,12 @@ Only non-repeating scalar fields are grid columns. Nested scalar leaves are supp
 
 ## Filters and sorting
 
-Filters are an AND-only list. Each input has `field` and exactly one operator. `eq`, `in`, `gt`, `lt`, and `between` take typed values containing exactly one of `text`, `number`, `boolean`, or `dateTime`. `contains` takes a literal string; `exists` takes a boolean. Never send null as a typed value; use `exists: false` for missing/null indexed values.
+Filters are an AND-only list. Each input has `field` and exactly one operator. `eq`, `in`, `gt`, `lt`, and `between` take typed values containing exactly one of `text`, `number`, `boolean`, or `dateTime`. `contains` and `iprefix` take literal strings; `exists` takes a boolean. Never send null as a typed value; use `exists: false` for missing/null indexed values.
 
 | Verified index type | Metadata type | Operators | Sort |
 | --- | --- | --- | --- |
 | `StrField` | STRING | EQ, CONTAINS, IN, EXISTS | Single-valued + DocValues |
+| `StrField` with verified opt-in companion below | STRING | Also IPREFIX | Raw binding's sort capability is unchanged |
 | `BoolField` | BOOLEAN | EQ, IN, EXISTS | Single-valued + DocValues |
 | Numeric point fields | NUMBER / INTEGER | EQ, IN, GT, LT, BETWEEN, EXISTS | Single-valued + DocValues |
 | `DatePointField` | STRING / DATETIME (catalogue reports DATETIME) | EQ, IN, GT, LT, BETWEEN, EXISTS | Single-valued + DocValues |
@@ -160,6 +161,46 @@ Timestamp inputs require RFC 3339 with seconds, a timezone and at most three fra
 The protected index copies omit null/missing/non-scalar values. `exists: true` tests indexed presence; `exists: false` tests absence. Empty strings are values for exact string fields. An analyzed text field may produce no terms for an empty or stopword-only value; its EXISTS describes indexed terms, not storage-key presence. Other comparisons exclude missing values. Sorting follows the live Solr field's missing-value rules (`sortMissingFirst`/`sortMissingLast`, or the field type's default); clients must not infer SQL null ordering. Ascending strings use Solr's exact lexicographic ordering. Explicit sorts accept ASC/DESC, and the unique index key is always appended ascending as a deterministic tie-breaker. With no explicit sort the server uses OID ascending, then unique key ascending.
 
 Unknown IDs, unknown input properties, unsupported operators/sorts, repeated sort fields, invalid types and oversize values return errors. No requested operation is silently ignored. A readable field can remain a column while having `filterable: false` and `sortable: false`.
+
+### Literal prefix with ASCII case folding
+
+`{field: "metadata:/dc:identifier", iprefix: "uOn-"}` matches the start of the full stored string, ignoring **ASCII A–Z case only**. For stored string S and prefix P, the contract is `foldAsciiCase(S).startsWith(foldAsciiCase(P))`; the fold replaces A–Z with a–z one code unit at a time. Every other UTF-16 code unit is unchanged. There is no trimming, tokenization, accent removal, Unicode case folding or Unicode normalization. For example, `UON-ΟΣΑ` matches `uon-ΟΣ` but not `uon-οσ` or `uon-ος`; `École` matches `É` but not `é` or decomposed `E\u0301`. Turkish İ/ı, ß/ẞ and fullwidth letters retain their exact distinctions. Spaces, punctuation, controls and supplementary characters are literal text.
+
+Queries must be nonempty, well-formed UTF-16 strings of at most 256 UTF-8 bytes; empty, null, malformed or oversized values return `INVALID_FILTER_VALUE` before searching. Non-ASCII text is accepted, including ordinary successful no-match results. A one-character prefix is valid. The backend passes the folded value as a separate parameter to Solr's `prefix` parser: `*`, `?`, backslashes, quotes, brackets, `OR *:*` and local-parameter-looking text are literal characters. Clients must not escape them or add wildcards. CONTAINS keeps its existing case-sensitive substring semantics.
+
+Merge these additions into the actual search core used by the record type, retaining existing schema and pre-index rules:
+
+```javascript
+recordGraphqlFields: { 'metadata:/dc:identifier': 'uon_grid_project_id' },
+recordGraphqlCaseInsensitivePrefixFields: {
+  'metadata:/dc:identifier': 'uon_grid_project_id_iprefix_v1'
+},
+schema: {
+  'add-field': [
+    { name: 'uon_grid_project_id', type: 'string',
+      indexed: true, stored: true, multiValued: false, docValues: true },
+    { name: 'uon_grid_project_id_iprefix_v1', type: 'string',
+      indexed: true, stored: false, multiValued: false, docValues: false }
+  ]
+},
+preIndex: {
+  copy: [{ source: 'metadata.dc:identifier', dest: 'uon_grid_project_id' }]
+}
+```
+
+Use a fresh versioned companion field. Do not add a `preIndex.copy` or Solr `copyField` to populate the companion, and do not use a lowercase TextField analyzer. The core indexer derives it from the original string using the same fold as the query planner and restores it after configurable transformations. Every source string is accepted, including empty strings and Unicode/control-containing strings; missing/null/non-string sources omit only the companion. No character-domain preflight or index-time character rejection is introduced. Displayed metadata and the raw index copy retain their original value.
+
+Discovery adds IPREFIX only for a readable non-repeating STRING present in every selected variant, with an unambiguous primary scalar copy and a distinct, unshared, safe companion. The companion must be explicitly configured and verified live as an indexed single-valued `StrField` with the configured type. Dynamic-only fields, analyzed fields, shared/reserved destinations and incoming exact or wildcard Solr copy rules do not qualify. Ordinary string bindings without the opt-in retain their existing operators. Unsupported bindings return `UNSUPPORTED_FILTER`; the adapter never falls back to CONTAINS or filters a loaded page. The visual explorer currently uses its existing operator list; author this filter in GraphQL mode until visual IPREFIX authoring is implemented.
+
+Deployment order and rollback:
+
+1. Build/deploy this core layer after the GraphQL/explorer dependencies and rebuild any hook consuming its config types. Use the hook's normal `registerRedboxConfig`/loader registration for institutional configuration; no new shim or service registration is required by this operator.
+2. Add the primary mapping/copy if absent and append the new companion definition/map in the effective per-core hook or environment overlay. Reconcile the schema, inspect effective live field defaults and copy rules, and verify discovery. Schema verification certifies the binding, **not reindex completion**.
+3. Index-only reprocess the selected existing records through the deployed SolrSearchService. The authenticated `POST /:branding/:portal/api/search/index?oid=<OID>` queues one existing record; wait for successful queue completion. It does not require saving metadata or changing workflow/ACLs. Do not delete/recreate source records or clear the whole index. The broader `indexAll` route queues all visible records and is unnecessary for a selected fixture set.
+4. Verify the companion values/counts in Solr, discovery IPREFIX and actual mixed-case/prefix/literal queries with admin and ordinary authorized callers. Merely adding the schema/map leaves old documents without companions. Enable the named-query/form reference only after reindex completion and these checks; existing grid version `1` does not certify companion backfill. Runtime record ACL, stage/form checks and existing scan/time/page bounds still apply.
+5. Roll back by disabling the new lookup/form reference and companion mapping, then deploying the previous application if needed. Leave raw metadata, primary mappings, records and index fields intact; the unused fresh companion can remain. Changed indexing semantics require a new versioned companion and another reindex.
+
+For the UON demonstration, T02 verified `metadata:/dc:identifier` → `uon_grid_project_id`, 60 synthetic RDMP project IDs and stable OIDs. Its effective mappings are in the separate runtime overlay `/home/andrew/.t3/redbox-uon-explorer/docker.js`/`mappings.js`, rather than the UON hook's tracked Solr configuration. Apply the additions there only during a separately authorized deployment, preserving the overlay's existing mappings and per-core copy rules. Do not assume the generic development Compose file owns that environment. Map the lookup label from the searched project ID and the identifier from `oid`; retain title separately in metadata. Optional title search requires its own companion and separate lookup with title as its label. Live deployment, reindex and form verification remain separate prerequisites; implementing this operator does not perform them or require starting UON.
 
 ## Pagination, permissions and consistency
 

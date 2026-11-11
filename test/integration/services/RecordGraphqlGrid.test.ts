@@ -6,7 +6,7 @@ import supertest from 'supertest';
 import { recordGraphql, SOLR_RECORD_GRID_FIELDS } from '@researchdatabox/redbox-core';
 
 describe('GraphQL grid over Sails and Solr', function () {
-  this.timeout(90_000);
+  this.timeout(180_000);
   const suffix = randomUUID().replace(/-/g, '');
   const path = '/default/rdmp/api/graphql';
   const username = `grid-${suffix}`;
@@ -29,6 +29,50 @@ describe('GraphQL grid over Sails and Solr', function () {
     active: `grid_active_${suffix}`,
     eventDate: `grid_date_${suffix}`,
   };
+  const prefixField = {
+    name: `grid_title_iprefix_v1_${suffix}`,
+    type: 'string',
+    indexed: true,
+    stored: false,
+    multiValued: false,
+    docValues: false,
+  };
+  const prefixRows: Array<{ oid: string; title: unknown; visible: boolean }> = [];
+  const unicodeCases: Array<[string, string[], string[]]> = [
+    ['ΟΣΑ', ['ΟΣ'], ['οσ', 'ος']],
+    ['UON-ΟΣΑ', ['uon-ΟΣ'], ['uon-οσ', 'uon-ος']],
+    ['École', ['É'], ['é', 'E\u0301']],
+    ['İSTANBUL', ['İs'], ['is', 'i\u0307']],
+    ['ıSTANBUL', ['ıs'], ['is', 'İ']],
+    ['ßeta', ['ßE'], ['ss', 'ẞ']],
+    ['ẞeta', ['ẞE'], ['ss', 'ß']],
+    ['SSeta', ['ss', 'SS'], ['ß', 'ẞ']],
+    ['E\u0301cole', ['e\u0301'], ['é', 'É']],
+    ['ＡBc', ['Ａb'], ['ａ', 'Ab']],
+    ['A—B\u00a0C', ['a—b\u00a0'], ['a-b', 'a—b ']],
+    ['\t\n\0\x7fAb', ['\t\n\0\x7fa'], [' Ab']],
+    ['😀Ab', ['😀a'], ['😁']],
+  ];
+  const literalPrefixes = ['*', '?', '\\', '"', '[brackets]', ':', '/', ' ', 'OR *:*', '{!prefix f=id v=*}'];
+  const prefixPage = (p: unknown, first = 25, extra: object[] = []) =>
+    send(page, {
+      first,
+      filters: [{ field: 'metadata:/title', iprefix: p }, ...extra],
+    });
+  function prefixRow(title: unknown, visible = true) {
+    const row = { oid: `grid-prefix-${String(prefixRows.length).padStart(3, '0')}-${suffix}`, title, visible };
+    prefixRows.push(row);
+    return row;
+  }
+  const unicodeRows = unicodeCases.map(([stored]) => prefixRow(stored));
+  const literalRows = literalPrefixes.map(p => prefixRow(`${p}Tail`));
+  const boundaryRows = Array.from({ length: 26 }, (_, i) =>
+    prefixRow(`Boundary-${i < 25 ? 'Exact25' : 'Other'}-${suffix}`)
+  );
+  prefixRow(`Boundary-Exact25-${suffix}`, false);
+  const sparsePrefix = `Sparse-${suffix}`;
+  for (let i = 0; i < 201; i++) prefixRow(sparsePrefix, false);
+  const emptyRows = ['', null, 42, { nested: 'text' }].map(value => prefixRow(value));
   const send = (query: string, variables: object = {}, bearer = token) =>
     supertest(app)
       .post(path)
@@ -50,6 +94,8 @@ describe('GraphQL grid over Sails and Solr', function () {
       recordGraphqlFields: Object.fromEntries(
         Object.entries(fields).map(([path, field]) => [`metadata:/${path}`, field])
       ),
+      recordGraphqlCaseInsensitivePrefixFields: { 'metadata:/title': prefixField.name },
+      schema: { ...coreBefore.schema, 'add-field': [...coreBefore.schema['add-field'], prefixField] },
       preIndex: {
         ...coreBefore.preIndex,
         copy: [
@@ -63,6 +109,7 @@ describe('GraphQL grid over Sails and Solr', function () {
     const live = (await axios.get(`${url}/schema`)).data.schema;
     const definitions = [
       ...SOLR_RECORD_GRID_FIELDS,
+      prefixField,
       ...Object.entries(fields).map(([key, name]) => ({
         name,
         type: key === 'amount' ? 'pdouble' : key === 'eventDate' ? 'pdate' : key === 'active' ? 'boolean' : 'string',
@@ -131,12 +178,32 @@ describe('GraphQL grid over Sails and Solr', function () {
       });
       await sails.services.solrsearchservice.solrAddOrUpdate({ attrs: { data: await RecordsService.getMeta(oid) } });
     }
+    // Use the real protected pre-index pipeline and one bulk Solr commit for these
+    // isolated fixtures; repeated per-document commits obscure the bounded-query tests.
+    const created = await Record.createEach(
+      prefixRows.map(row => ({
+        redboxOid: row.oid,
+        metadata: { title: row.title },
+        metaMetadata: {
+          brandId: brand.id,
+          type: 'dataPublication',
+          form: 'dataPublication-1.0-draft',
+          searchCore: 'default',
+        },
+        workflow: { stage: 'draft' },
+        authorization: { view: row.visible ? [username] : [], edit: [], viewRoles: [], editRoles: [] },
+      }))
+    ).fetch();
+    const documents = created.map(record =>
+      sails.services.solrsearchservice.preIndex({ ...record, storage_id: record.id })
+    );
+    await axios.post(`${url}/update`, documents, { params: { commit: true } });
   });
   after(async () => {
     if (url) {
       await axios.post(`${url}/update`, { delete: { query: `redbox_grid_oid:*${suffix}` }, commit: {} });
     }
-    await Record.destroy({ redboxOid: oids });
+    await Record.destroy({ redboxOid: [...oids, ...prefixRows.map(row => row.oid)] });
     if (formId && formBefore) await Form.updateOne({ id: formId }).set({ configuration: formBefore });
     if (userId) await User.destroy({ id: userId });
     if (ruleId) await PathRule.destroy({ id: ruleId });
@@ -174,6 +241,8 @@ describe('GraphQL grid over Sails and Solr', function () {
     assert.equal(title.sortable, true);
     assert.equal(title.labelKey, '@title');
     assert.ok(title.operators.includes('EQ'));
+    assert.ok(title.operators.includes('IPREFIX'));
+    assert.ok(!entries.find(field => field.id === 'metadata:/amount').operators.includes('IPREFIX'));
     assert.equal(entries.find(field => field.id === 'metadata:/eventDate').scalarType, 'DATETIME');
     const result = await send(
       `query($filters:[RecordFilterInput!]) { records(recordType:"dataPublication",workflowStages:["draft"],filters:$filters,first:1) { nodes { oid metadata { ${title.selections[0].selection} } } } }`,
@@ -185,6 +254,131 @@ describe('GraphQL grid over Sails and Solr', function () {
       result.body.data.records.nodes[0]
     );
     assert.equal(value, `Equal-${suffix}`);
+  });
+  it('executes ASCII-insensitive prefix rather than substring and retains current caller visibility', async () => {
+    for (const p of [`EQUAL-${suffix}`, `eQuAl-${suffix}`, 'e']) {
+      const result = await prefixPage(p, 50);
+      assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
+      const ids = result.body.data.records.nodes.map(row => row.oid);
+      assert.ok(ids.includes(oids[0]) && ids.includes(oids[2]));
+      for (const excluded of [oids[1], oids[3], oids[6], oids[7], oids[8]]) assert.ok(!ids.includes(excluded));
+    }
+    const substring = await prefixPage(`qual-${suffix}`);
+    assert.equal(substring.body.errors, undefined, JSON.stringify(substring.body));
+    assert.deepEqual(substring.body.data.records.nodes, []);
+    // Indexed permissions remain hints: revoke storage access without reindexing.
+    const authorization = (await RecordsService.getMeta(oids[0])).authorization;
+    await Record.updateOne({ redboxOid: oids[0] }).set({ authorization: { ...authorization, view: [] } });
+    try {
+      const result = await prefixPage(`equal-${suffix}`, 50);
+      assert.equal(result.body.errors, undefined, JSON.stringify(result.body));
+      assert.ok(!result.body.data.records.nodes.some(row => row.oid === oids[0]));
+    } finally {
+      await Record.updateOne({ redboxOid: oids[0] }).set({ authorization });
+    }
+  });
+  it('withdraws discovery and rejects execution when the opt-in or live copy-rule guarantee is absent', async () => {
+    const core = sails.config.solr.cores.default;
+    const mapping = core.recordGraphqlCaseInsensitivePrefixFields;
+    const assertUnsupported = async () => {
+      const discovery = await send(catalogue);
+      assert.equal(discovery.body.errors, undefined, JSON.stringify(discovery.body));
+      const title = discovery.body.data.recordFields.fields.find(field => field.id === 'metadata:/title');
+      assert.ok(title.operators.includes('EQ'));
+      assert.ok(!title.operators.includes('IPREFIX'));
+      const response = await prefixPage('equal-');
+      assert.equal(response.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(response.body));
+      assert.equal(response.body.data.records, null);
+    };
+    delete core.recordGraphqlCaseInsensitivePrefixFields;
+    try {
+      await assertUnsupported();
+    } finally {
+      core.recordGraphqlCaseInsensitivePrefixFields = mapping;
+    }
+    const copy = { source: fields.title, dest: prefixField.name };
+    await axios.post(`${url}/schema`, { 'add-copy-field': copy });
+    try {
+      await assertUnsupported();
+    } finally {
+      await axios.post(`${url}/schema`, { 'delete-copy-field': copy });
+    }
+    const restored = await send(catalogue);
+    assert.equal(restored.body.errors, undefined, JSON.stringify(restored.body));
+    assert.ok(
+      restored.body.data.recordFields.fields.find(field => field.id === 'metadata:/title').operators.includes('IPREFIX')
+    );
+  });
+  it('matches positive literal wildcard, quote, backslash, bracket and search-syntax prefixes in real Solr', async () => {
+    for (const [i, p] of literalPrefixes.entries()) {
+      const response = await prefixPage(p, 50);
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      assert.deepEqual(
+        response.body.data.records.nodes.map(row => row.oid),
+        [literalRows[i].oid],
+        JSON.stringify(p)
+      );
+    }
+    for (const p of [`Equal-${suffix}*`, `Equal-${suffix}?`, '" OR *:*', '{!lucene}*:*']) {
+      const response = await prefixPage(p);
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      assert.deepEqual(response.body.data.records.nodes, []);
+    }
+  });
+  it('preserves exact non-ASCII case, combining sequences, supplementary characters and controls', async () => {
+    for (const [i, [, matches, misses]] of unicodeCases.entries()) {
+      const scope = [{ field: 'record:oid', eq: { text: unicodeRows[i].oid } }];
+      for (const p of [...matches, ...misses]) {
+        const response = await prefixPage(p, 25, scope);
+        assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+        assert.deepEqual(
+          response.body.data.records.nodes.map(row => row.oid),
+          matches.includes(p) ? [unicodeRows[i].oid] : [],
+          JSON.stringify(p)
+        );
+      }
+    }
+    for (const row of emptyRows) {
+      const response = await prefixPage('a', 25, [{ field: 'record:oid', eq: { text: row.oid } }]);
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      assert.deepEqual(response.body.data.records.nodes, []);
+    }
+  });
+  it('proves 25 versus 26 visible prefix matches and keeps sparse ACL failure explicit', async () => {
+    const exact = await prefixPage(`boundary-exact25-${suffix}`);
+    assert.equal(exact.body.errors, undefined, JSON.stringify(exact.body));
+    assert.deepEqual(
+      exact.body.data.records.nodes.map(row => row.oid),
+      boundaryRows.slice(0, 25).map(row => row.oid)
+    );
+    assert.equal(exact.body.data.records.hasNextPage, false);
+    assert.equal(exact.body.data.records.endCursor, null);
+    const more = await prefixPage('boundary-');
+    assert.equal(more.body.errors, undefined, JSON.stringify(more.body));
+    assert.equal(more.body.data.records.nodes.length, 25);
+    assert.equal(more.body.data.records.hasNextPage, true);
+    assert.ok(more.body.data.records.endCursor);
+    assert.ok(!JSON.stringify(more.body).includes('total'));
+    const sparse = await prefixPage(sparsePrefix);
+    assert.equal(sparse.body.errors?.[0].extensions.code, 'COLLECTION_LIMIT', JSON.stringify(sparse.body));
+    assert.equal(sparse.body.data.records, null);
+  });
+  it('rejects empty, malformed and oversized query prefixes and unsupported bindings through HTTP', async () => {
+    for (const p of ['', '\ud800', '\udfff', 'x\ud800y', 'a'.repeat(257), 'é'.repeat(129), null]) {
+      const response = await prefixPage(p);
+      assert.equal(response.body.errors?.[0].extensions.code, 'INVALID_FILTER_VALUE', JSON.stringify(response.body));
+      assert.equal(response.body.data.records, null);
+    }
+    for (const p of ['a'.repeat(256), 'é'.repeat(128), '😀'.repeat(64)]) {
+      const response = await prefixPage(p);
+      assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
+      assert.deepEqual(response.body.data.records.nodes, []);
+    }
+    for (const field of ['record:oid', 'metadata:/amount', 'metadata:/active', 'metadata:/eventDate']) {
+      const response = await send(page, { filters: [{ field, iprefix: 'a' }] });
+      assert.equal(response.body.errors?.[0].extensions.code, 'UNSUPPORTED_FILTER', JSON.stringify(response.body));
+      assert.equal(response.body.data.records, null);
+    }
   });
   it('fills stable pages across inaccessible equal-sort hits without exposing counts', async () => {
     const variables = { filters: onlyOurRows, sort: [{ field: 'metadata:/title', direction: 'ASC' }] };
@@ -224,7 +418,7 @@ describe('GraphQL grid over Sails and Solr', function () {
       { field: 'metadata:/title', contains: suffix.slice(0, 10) },
       { field: 'metadata:/title', in: [{ text: `Equal-${suffix}` }, { text: 'other' }] },
     ]) {
-      const response = await send(page, { filters: [filter], first: 50 });
+      const response = await send(page, { filters: [...onlyOurRows, filter], first: 50 });
       assert.equal(response.body.errors, undefined, JSON.stringify(response.body));
       assert.equal(response.body.data.records.nodes.length, 4);
     }

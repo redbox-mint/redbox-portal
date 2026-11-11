@@ -76,6 +76,12 @@ export interface SolrCoreSchema {
 export interface SolrCoreConfig {
     /** Stable metadata field IDs to indexed fields, backed by explicit preIndex.copy rules. */
     recordGraphqlFields?: Record<string, string>;
+    /**
+     * Opt-in metadata IDs to dedicated, explicit single-valued StrField companions.
+     * IPREFIX folds ASCII A-Z only, preserving all other UTF-16 code units exactly.
+     * Requires the primary scalar copy, schema reconciliation and a complete reindex.
+     */
+    recordGraphqlCaseInsensitivePrefixFields?: Record<string, string>;
     options: SolrCoreOptions;
     schema: SolrCoreSchema;
     preIndex?: SolrPreIndexConfig;

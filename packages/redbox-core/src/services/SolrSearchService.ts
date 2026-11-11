@@ -21,7 +21,7 @@ import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
 import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition, SolrCopyFieldDefinition } from '../config/solr.config';
 import { SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION, SOLR_RECORD_GRID_FIELDS, SOLR_RECORD_GRID_VERSION } from '../config/solr.config';
-import { gridIndexBindings, gridSourceValue } from '../record-graphql/index-bindings';
+import { foldAsciiCase, gridIndexBindings, gridPrefixIndexBindings, gridSourceValue } from '../record-graphql/index-bindings';
 import type { GridIndexSchema, GridIndexPage } from '../record-graphql/grid-types';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
@@ -673,6 +673,12 @@ export namespace Services {
           const definition = gridCore.schema['add-field']?.find(field => field.name === binding.field);
           const value = definition?.type === 'pdate' || binding.field.startsWith('date_') ? normalizeSolrDateValue(original) : original;
           gridCopies.set(binding.field, value);
+        }
+      }
+      if (gridCore) {
+        for (const binding of gridPrefixIndexBindings(gridCore).values()) {
+          const original = gridSourceValue(data.metadata ?? {}, binding.tokens);
+          gridCopies.set(binding.field, typeof original === 'string' ? foldAsciiCase(original) : undefined);
         }
       }
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
