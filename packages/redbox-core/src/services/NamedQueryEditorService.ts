@@ -18,11 +18,11 @@ import {
   type NamedQueryPreviewRequest,
   type NamedQueryValidation,
 } from '@researchdatabox/sails-ng-common';
+import { requireDatabaseNamedQuery } from './named-query/definition';
 import { Services as CoreServices } from '../CoreService';
 import type { BrandingModel } from '../model';
 import type { FormRecordAccessContext } from './FormsService';
 import { Services as FieldServices } from './FieldDescriptionsService';
-import type { NamedQueryDefinition } from '../config/namedQuery.config';
 import { NamedQueryResponseRecord } from './NamedQueryService';
 import {
   checkDraftBudget,
@@ -357,6 +357,7 @@ export namespace Services {
             diagnostic('INVALID_DEFINITION', 'definition', 'A query definition object is required.', 'error'),
           ],
         };
+      requireDatabaseNamedQuery(definition);
       const collection = definition.collectionName;
       try {
         if (typeof collection !== 'string') throw new Error('collection');
@@ -486,6 +487,7 @@ export namespace Services {
       const stored = collectionName === 'record' ? storedRecordFields(source.fields) : [];
       return {
         ...validation,
+        source: definition.source === 'database' ? 'database' : undefined,
         ...(typeof definition.name === 'string' ? { name: definition.name } : {}),
         collectionName,
         parameters: entries(definition.queryParams).map(([key, value]) => {
@@ -638,7 +640,7 @@ export namespace Services {
       // Only this service creates the budget. No draft property can opt out or raise a limit.
       const result = await budget.wait(
         NamedQueryService.performNamedQueryFromConfig(
-          definition as unknown as NamedQueryDefinition,
+          definition,
           request.parameters ?? {},
           brand,
           0,

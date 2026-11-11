@@ -20,7 +20,7 @@
 import { Services as services } from '../CoreService';
 import { normalizeRelatedReferences } from '../related-records/references';
 import { buildNamedQueryUsage, NamedQueryInUseError, NamedQueryUsage } from './named-query/usage';
-import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery.config';
+import type { NamedQueryDefinition, NamedQueryParam, DatabaseNamedQueryDefinition } from '../config/namedQuery.config';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { DateTime } from 'luxon';
@@ -33,6 +33,8 @@ import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
 import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError, previewDeadlineIssue } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import type { GraphqlNamedQueryOperation } from '@researchdatabox/sails-ng-common';
+import { assertNamedQueryDefinition, NamedQueryDefinitionError, namedQuerySource, requireDatabaseNamedQuery } from './named-query/definition';
 import { NamedQueryPreviewOutputLimitError, renderNamedQueryPreviewTemplate } from '../utilities/NamedQueryPreviewTemplate';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
@@ -188,7 +190,8 @@ export namespace Services {
           }
 
           const name = fileName.replace(/\.json$/, '');
-          if (!name || typeof definition.collectionName !== 'string' || definition.collectionName.length === 0) {
+          assertNamedQueryDefinition(definition);
+          if (!name || (namedQuerySource(definition) === 'database' && (!definition.collectionName || typeof definition.collectionName !== 'string'))) {
             sails.log.error(`Skipping named query bootstrap file with missing name or collectionName: ${fileName}`);
             continue;
           }
@@ -461,44 +464,81 @@ export namespace Services {
       });
     }
 
-    public async create(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
-      const key = `${brand.id}_${name}`;
-      const existing = await NamedQuery.findOne({ key });
-      if (existing) {
-        throw new Error(`Named query '${name}' already exists`);
+    /** Persist only the selected source, preserving untouched database JSON bytes. */
+    private serializeDefinition(brand: BrandingModel, name: string, config: NamedQueryDefinition, existing?: NamedQueryAttributes): Partial<NamedQueryAttributes> {
+      const common: Partial<NamedQueryAttributes> = {
+        name, branding: brand.id,
+        description: config.description ?? existing?.description ?? null,
+      };
+      if (config.source === 'graphql') {
+        return {
+          ...common, source: 'graphql', graphql: JSON.stringify(config.graphql),
+          collectionName: null, mongoQuery: null, queryParams: null,
+          resultObjectMapping: null, brandIdFieldPath: null, sort: null,
+          relatedRecordFilters: null, expandRelations: false,
+        };
       }
+      // GraphQL has brand ownership through the association, not a database scope path.
       const brandScope = this.resolveBrandScope(config.collectionName);
-      return firstValueFrom(super.getObservable(NamedQuery.create({
-        name: name,
-        branding: brand.id,
-        mongoQuery: JSON.stringify(config.mongoQuery),
-        queryParams: JSON.stringify(config.queryParams),
+      if (existing?.source === 'graphql') {
+        for (const field of ['mongoQuery', 'queryParams', 'resultObjectMapping'] as const) {
+          if (config[field] === undefined) throw new NamedQueryDefinitionError(field);
+        }
+      }
+      const serialize = (stored: string | null | undefined, value: unknown, changed = JSON.stringify(value)) =>
+        stored && _.isEqual(parseSerializedValue(stored, undefined), value) ? stored : changed;
+      const brandIdFieldPath = existing?.collectionName === config.collectionName &&
+        existing?.brandIdFieldPath === config.brandIdFieldPath ? existing.brandIdFieldPath : brandScope.fieldPath;
+      return {
+        ...common,
+        // Preserve an explicit database source when a legacy editor omits it.
+        ...(config.source !== undefined ? { source: config.source } :
+          existing?.source === 'database' ? { source: 'database' } : existing?.source === 'graphql' ? { source: null } : {}),
+        ...(existing?.source === 'graphql' ? { graphql: null } : {}),
         collectionName: config.collectionName,
-        resultObjectMapping: JSON.stringify(config.resultObjectMapping),
-        brandIdFieldPath: brandScope.fieldPath,
-        sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
+        mongoQuery: serialize(existing?.mongoQuery, config.mongoQuery),
+        queryParams: serialize(existing?.queryParams, config.queryParams),
+        resultObjectMapping: serialize(existing?.resultObjectMapping, config.resultObjectMapping),
+        brandIdFieldPath,
+        sort: serialize(existing?.sort, config.sort ?? [], Array.isArray(config.sort) && config.sort.length > 0 ? JSON.stringify(config.sort) : ''),
         expandRelations: config.expandRelations === true,
-        relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
-          ? JSON.stringify(config.relatedRecordFilters)
-          : "",
-      })));
+        relatedRecordFilters: serialize(existing?.relatedRecordFilters, config.relatedRecordFilters ?? [],
+          Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0 ? JSON.stringify(config.relatedRecordFilters) : ''),
+      };
     }
 
-    public async list(brand: BrandingModel): Promise<NamedQueryDefinition[]> {
-      const records = (await NamedQuery.find({
-        branding: brand.id
-      })) as NamedQueryAttributes[];
-      return records.map((r) => ({
-        name: r.name,
-        collectionName: r.collectionName,
-        mongoQuery: parseSerializedValue<Record<string, unknown>>(r.mongoQuery, {}),
-        queryParams: parseSerializedValue<Record<string, NamedQueryParam>>(r.queryParams, {}),
-        resultObjectMapping: parseSerializedValue<Record<string, string>>(r.resultObjectMapping, {}),
-        brandIdFieldPath: r.brandIdFieldPath || undefined,
-        sort: r.sort ? parseSerializedValue<Array<Record<string, 'ASC' | 'DESC'>>>(r.sort, []) as Array<Record<string, 'ASC' | 'DESC'>> : undefined,
-        expandRelations: r.expandRelations || false,
-        relatedRecordFilters: r.relatedRecordFilters ? parseSerializedValue<RelatedRecordFilter[]>(r.relatedRecordFilters, []) : undefined,
-      })) as unknown as NamedQueryDefinition[];
+    public async create(brand: BrandingModel, name: string, input: unknown) {
+      assertNamedQueryDefinition(input);
+      const key = `${brand.id}_${name}`;
+      const existing = await NamedQuery.findOne({ key });
+      if (existing) throw new Error(`Named query '${name}' already exists`);
+      return firstValueFrom(super.getObservable(NamedQuery.create(this.serializeDefinition(brand, name, input))));
+    }
+
+    public async list(brand: BrandingModel) {
+      const records = await NamedQuery.find({ branding: brand.id }) as NamedQueryAttributes[];
+      return records.map(r => {
+        if (r.source === 'graphql') return {
+          name: r.name, source: 'graphql' as const,
+          ...(r.description != null ? { description: r.description } : {}),
+          graphql: parseSerializedValue<GraphqlNamedQueryOperation | undefined>(r.graphql, undefined),
+        };
+        // Validate persisted source names rather than treating unknown sources as database.
+        namedQuerySource({ source: r.source ?? undefined });
+        return {
+          name: r.name,
+          ...(r.source === 'database' ? { source: 'database' as const } : {}),
+          ...(r.description != null ? { description: r.description } : {}),
+          collectionName: r.collectionName ?? '',
+          mongoQuery: parseSerializedValue<Record<string, unknown>>(r.mongoQuery, {}),
+          queryParams: parseSerializedValue<Record<string, NamedQueryParam>>(r.queryParams, {}),
+          resultObjectMapping: parseSerializedValue<Record<string, string>>(r.resultObjectMapping, {}),
+          brandIdFieldPath: r.brandIdFieldPath || undefined,
+          sort: r.sort ? parseSerializedValue<Array<Record<string, 'ASC' | 'DESC'>>>(r.sort, []) : undefined,
+          expandRelations: r.expandRelations || false,
+          relatedRecordFilters: r.relatedRecordFilters ? parseSerializedValue<RelatedRecordFilter[]>(r.relatedRecordFilters, []) : undefined,
+        };
+      });
     }
 
     /** Constant number of brand-scoped reads, shared by the whole list. */
@@ -520,39 +560,14 @@ export namespace Services {
         views: sails.config.dashboardview ?? {}, vocabularies: sails.config.vocab?.queries ?? {} });
     }
 
-    public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
+    public async update(brand: BrandingModel, name: string, input: unknown) {
+      assertNamedQueryDefinition(input);
       const key = `${brand.id}_${name}`;
       const existing = await NamedQuery.findOne({ key });
-      if (!existing) {
-        throw new Error(`Named query '${name}' not found`);
-      }
-      const brandScope = this.resolveBrandScope(config.collectionName);
-      // The editor reads parsed JSON. Retain untouched source bytes, including
-      // bootstrap empty arrays and whitespace, when serializing that draft back.
-      const serialize = (stored: string | undefined, value: unknown, changed = JSON.stringify(value)) =>
-        stored && _.isEqual(parseSerializedValue(stored, undefined), value) ? stored : changed;
-      // Legacy user queries may store "branding", although execution resolves
-      // access through roles. Preserve an untouched value without accepting a
-      // client-selected scope or carrying it across a collection change.
-      const brandIdFieldPath = existing.collectionName === config.collectionName &&
-        existing.brandIdFieldPath === config.brandIdFieldPath ? existing.brandIdFieldPath : brandScope.fieldPath;
-      const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set({
-        name: name,
-        branding: brand.id,
-        mongoQuery: serialize(existing.mongoQuery, config.mongoQuery),
-        queryParams: serialize(existing.queryParams, config.queryParams),
-        collectionName: config.collectionName,
-        resultObjectMapping: serialize(existing.resultObjectMapping, config.resultObjectMapping),
-        brandIdFieldPath,
-        sort: serialize(existing.sort, config.sort ?? [], (Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : ""),
-        expandRelations: config.expandRelations === true,
-        relatedRecordFilters: serialize(existing.relatedRecordFilters, config.relatedRecordFilters ?? [], (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
-          ? JSON.stringify(config.relatedRecordFilters)
-          : ""),
-      })));
-      if (!updated) {
-        throw new Error(`Named query '${name}' not found`);
-      }
+      if (!existing) throw new Error(`Named query '${name}' not found`);
+      const serialized = this.serializeDefinition(brand, name, input, existing);
+      const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set(serialized)));
+      if (!updated) throw new Error(`Named query '${name}' not found`);
       return updated;
     }
 
@@ -567,12 +582,12 @@ export namespace Services {
       return firstValueFrom(super.getObservable(NamedQuery.destroyOne({ key })));
     }
 
-    async getNamedQueryConfig(brand: BrandingModel, namedQuery: string): Promise<NamedQueryConfig | null> {
+    async getNamedQueryConfig(brand: BrandingModel, namedQuery: string): Promise<ResolvedNamedQueryConfig | null> {
       const nQDBEntry = await NamedQuery.findOne({
         key: brand.id + "_" + namedQuery
       });
       if (nQDBEntry) {
-        return new NamedQueryConfig(nQDBEntry)
+        return readNamedQueryConfig(nQDBEntry)
       }
 
       return null;
@@ -1002,7 +1017,7 @@ export namespace Services {
           }
         }
 
-        if (!_.isEmpty(queryParam.template)) {
+        if (queryParam.template !== undefined && !_.isEmpty(queryParam.template)) {
           value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap }, budget);
           if (budget?.outputTruncated) return mongoQuery;
         }
@@ -1074,7 +1089,7 @@ export namespace Services {
 
         if (
           queryParam.type != DataType.Date &&
-          !_.isEmpty(queryParam.queryType)
+          queryParam.queryType !== undefined && !_.isEmpty(queryParam.queryType)
         ) {
           const query: Record<string, unknown> = {}
           if (value != undefined || (value == undefined && queryParam.whenUndefined != NamedQueryWhenUndefinedOptions.ignore)) {
@@ -1084,7 +1099,7 @@ export namespace Services {
         }
 
         if (queryParam.type == DataType.Date) {
-          if (!_.isEmpty(queryParam.queryType)) {
+          if (queryParam.queryType !== undefined && !_.isEmpty(queryParam.queryType)) {
             const query: Record<string, unknown> = {};
             if (queryParam.format == NamedQueryFormatOptions.days && !_.isUndefined(value)) {
               let days = _.toInteger(value);
@@ -1139,7 +1154,8 @@ export namespace Services {
       return _.get(templateVars, templateOrPath);
     }
 
-    public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget) {
+    public async performNamedQueryFromConfig(config: unknown, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget) {
+      requireDatabaseNamedQuery(config);
       this.updateChronicle({ namedQueryBrandId: brand.id, namedQueryParameterCount: _.size(paramMap) });
       const collectionName = _.get(config, 'collectionName', '') ?? '';
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
@@ -1151,7 +1167,8 @@ export namespace Services {
       return await this.performNamedQuery('', resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters, budget);
     }
 
-    public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
+    public async performNamedQueryFromConfigResults(config: unknown, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
+      requireDatabaseNamedQuery(config);
       const records = [];
       let requestCount = 0;
       this.updateChronicle({ namedQueryName: queryName, namedQueryMaxRecords: maxRecords });
@@ -1220,16 +1237,7 @@ enum NamedQueryFormatOptions {
 
 type NamedQuerySortConfig = Record<string, "ASC" | "DESC">[];
 
-class QueryParameterDefinition {
-  required: boolean = false;
-  type: DataType = DataType.String;
-  defaultValue: unknown = null;
-  queryType: string = '';
-  whenUndefined: NamedQueryWhenUndefinedOptions = NamedQueryWhenUndefinedOptions.ignore;
-  format: NamedQueryFormatOptions = NamedQueryFormatOptions.days;
-  path: string = '';
-  template: string = '';
-}
+type QueryParameterDefinition = NamedQueryParam;
 
 export class RelatedRecordFilter {
   rootRecordType?: string;
@@ -1240,8 +1248,9 @@ export class RelatedRecordFilter {
   foreignField: string = '';
 }
 
-type NamedQueryConfigInput = Omit<Partial<NamedQueryAttributes>, 'branding' | 'queryParams' | 'mongoQuery' | 'resultObjectMapping' | 'sort' | 'expandRelations' | 'relatedRecordFilters'> & {
+type NamedQueryConfigInput = Omit<Partial<NamedQueryAttributes>, 'branding' | 'queryParams' | 'mongoQuery' | 'resultObjectMapping' | 'sort' | 'expandRelations' | 'relatedRecordFilters' | 'graphql'> & {
   branding?: unknown;
+  graphql?: unknown;
   metadata?: unknown;
   createdAt?: string;
   updatedAt?: string;
@@ -1253,7 +1262,9 @@ type NamedQueryConfigInput = Omit<Partial<NamedQueryAttributes>, 'branding' | 'q
   resultObjectMapping?: unknown;
 };
 
-export class NamedQueryConfig {
+export class NamedQueryConfig implements DatabaseNamedQueryDefinition {
+  source?: 'database';
+  description?: string;
   name: string;
   branding: string;
   metadata: unknown;
@@ -1263,13 +1274,16 @@ export class NamedQueryConfig {
   queryParams: Record<string, QueryParameterDefinition>;
   mongoQuery: Record<string, unknown>;
   collectionName: string;
-  resultObjectMapping: Record<string, unknown>;
+  resultObjectMapping: Record<string, string>;
   brandIdFieldPath: string;
   sort: NamedQuerySortConfig | undefined;
   expandRelations: boolean;
   relatedRecordFilters: RelatedRecordFilter[];
 
   constructor(values: NamedQueryConfigInput | null | undefined) {
+    requireDatabaseNamedQuery({ source: values?.source ?? undefined });
+    if (values?.source === 'database') this.source = 'database';
+    if (values?.description != null) this.description = values.description;
     this.name = values?.name ?? '';
     this.branding = values?.branding != null ? String(values.branding) : '';
     this.metadata = values?.metadata;
@@ -1279,12 +1293,37 @@ export class NamedQueryConfig {
     this.queryParams = parseSerializedValue<Record<string, QueryParameterDefinition>>(values?.queryParams, {});
     this.mongoQuery = parseSerializedValue<Record<string, unknown>>(values?.mongoQuery, {});
     this.collectionName = values?.collectionName ?? '';
-    this.resultObjectMapping = parseSerializedValue<Record<string, unknown>>(values?.resultObjectMapping, {});
+    this.resultObjectMapping = parseSerializedValue<Record<string, string>>(values?.resultObjectMapping, {});
     this.brandIdFieldPath = values?.brandIdFieldPath ?? '';
     this.sort = parseSerializedValue<NamedQuerySortConfig>(values?.sort, []);
     this.expandRelations = values?.expandRelations === true || values?.expandRelations === 'true';
     this.relatedRecordFilters = parseSerializedValue<RelatedRecordFilter[]>(values?.relatedRecordFilters, []);
   }
+}
+
+/** A schema-drifted GraphQL record is still readable; T04 validates before save/use. */
+export class GraphqlNamedQueryConfig {
+  readonly source = 'graphql';
+  name: string;
+  branding: string;
+  key: string;
+  description?: string;
+  graphql: GraphqlNamedQueryOperation;
+  constructor(values: NamedQueryConfigInput) {
+    this.name = values.name ?? '';
+    this.branding = values.branding != null ? String(values.branding) : '';
+    this.key = values.key ?? '';
+    if (values.description != null) this.description = values.description;
+    // Keep the saved document editable without asking the current schema to accept it.
+    this.graphql = parseSerializedValue<GraphqlNamedQueryOperation>(values.graphql, {
+      document: '', variables: {}, resultPath: [],
+    });
+  }
+}
+export type ResolvedNamedQueryConfig = NamedQueryConfig | GraphqlNamedQueryConfig;
+export function readNamedQueryConfig(values: NamedQueryConfigInput): ResolvedNamedQueryConfig {
+  return namedQuerySource({ source: values.source ?? undefined }) === 'graphql'
+    ? new GraphqlNamedQueryConfig(values) : new NamedQueryConfig(values);
 }
 
 export class NamedQueryResponseRecord {

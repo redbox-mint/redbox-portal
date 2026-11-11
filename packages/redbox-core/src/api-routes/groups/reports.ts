@@ -1,3 +1,4 @@
+import { namedQueryExecutionResultSchema } from '../schemas/named-query';
 import { apiRoute } from '../route-factory';
 import {
   anyField,
@@ -5,8 +6,6 @@ import {
   numberField,
   apiErrorResponseSchema,
   arrayField,
-  listApiResponseSchema,
-  namedQueryResponseRecordSchema,
   objectField,
   responseField,
   stringField,
@@ -53,7 +52,7 @@ export const executeNamedQueryRoute = apiRoute(
     description:
       'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
     responses: {
-      200: responseField(listApiResponseSchema(namedQueryResponseRecordSchema), 'Named query results'),
+      200: responseField(namedQueryExecutionResultSchema, 'Source-specific named query results; GraphQL exact totals are unknown'),
       400: badRequestResponse,
       500: internalServerErrorResponse,
     },

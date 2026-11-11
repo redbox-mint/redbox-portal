@@ -1,3 +1,4 @@
+import { namedQueryDefinitionSchema, namedQueryDraftSchema } from '../schemas/named-query';
 import { apiRoute } from '../route-factory';
 import { anyField, arrayField, objectField, responseField, stringField } from '../schemas/common';
 
@@ -19,7 +20,7 @@ const inUseResponse = responseField(objectField({
   errors: arrayField(anyField('Error explaining that configured references must be removed first')),
 }, ['meta', 'errors']), 'Query is in use; deletion refused');
 
-const namedQueryBody = objectField({}, [], 'Named query payload', true);
+const namedQueryBody = namedQueryDefinitionSchema;
 
 const nameParam = objectField(
   {
@@ -80,6 +81,7 @@ export const createNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Create a new named query',
+    description: 'Missing source selects database. GraphQL definitions use source:graphql and a graphql operation block; database execution fields are forbidden. Structural validation does not execute the document.',
     responses: { 201: namedQueryResponse },
   }
 );
@@ -96,6 +98,7 @@ export const updateNamedQueryRoute = apiRoute(
   {
     tags: ['NamedQuery'],
     summary: 'Update an existing named query',
+    description: 'Replaces the selected source definition. Unknown sources and contradictory fields are rejected. Legacy database JSON and omitted source are preserved on unchanged saves.',
     responses: { 200: namedQueryResponse },
   }
 );
@@ -162,7 +165,7 @@ export const namedQueryEditorRoutes = [
       'webservice/NamedQueryController',
       `${operation}Draft`,
       {
-        body: { required: true, content: { 'application/json': { schema: namedQueryBody } } },
+        body: { required: true, content: { 'application/json': { schema: namedQueryDraftSchema } } },
       },
       {
         tags: ['NamedQuery'],

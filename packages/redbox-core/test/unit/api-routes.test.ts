@@ -1590,7 +1590,10 @@ describe('API routes contract layer', function () {
 
     const reportRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/report/namedQuery']?.get);
     const reportSchema = asOpenApiSchema(reportRoute.responses?.['200']?.content?.['application/json']?.schema);
-    expect(asOpenApiSchema(reportSchema.properties?.records).items?.properties).to.have.property('metadata');
+    const namedQueryVariants = (reportSchema.anyOf ?? reportSchema.oneOf ?? []) as OpenApiSchema[];
+    expect(namedQueryVariants).to.have.length(2);
+    for (const variant of namedQueryVariants)
+      expect(asOpenApiSchema(variant.properties?.records).items?.properties).to.have.property('metadata');
 
     const integrationAuditRoute = asOpenApiOperation(
       document.paths['/{branding}/{portal}/api/integration-audit/{oid}']?.get

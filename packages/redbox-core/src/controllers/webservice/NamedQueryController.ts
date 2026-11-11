@@ -12,7 +12,7 @@ import {
 } from '../../utilities/NamedQueryPreview';
 import { FieldDescriptionError } from '../../services/FieldDescriptionsService';
 import { Controllers as controllers } from '../../CoreController';
-import type { NamedQueryDefinition } from '../../config/namedQuery.config';
+import { NamedQueryDefinitionError } from '../../services/named-query/definition';
 import { BrandingModel } from '../../model/storage/BrandingModel';
 
 export namespace Controllers {
@@ -127,6 +127,7 @@ export namespace Controllers {
 
     private statusForError(error: unknown): number {
       if (error instanceof NamedQueryInUseError) return 409;
+      if (error instanceof NamedQueryDefinitionError) return 400;
       const message = this.asError(error).message;
       if (/Named query .*not found/i.test(message)) {
         return 404;
@@ -217,7 +218,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.create(brand, name, body as unknown as NamedQueryDefinition);
+        await NamedQueryService.create(brand, name, body);
         return this.sendResp(req, res, { status: 201, data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);
@@ -243,7 +244,7 @@ export namespace Controllers {
             headers: this.getNoCacheHeaders(),
           });
         }
-        await NamedQueryService.update(brand, name, body as unknown as NamedQueryDefinition);
+        await NamedQueryService.update(brand, name, body);
         return this.sendResp(req, res, { data: { name }, headers: this.getNoCacheHeaders() });
       } catch (error) {
         return this.sendError(req, res, error);

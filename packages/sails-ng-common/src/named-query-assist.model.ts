@@ -1,3 +1,4 @@
+import type { GraphqlNamedQueryBinding, GraphqlNamedQueryResult, NamedQuerySource } from './named-query.model';
 import type { ContextSchemaField, EditorDiagnostic, FieldDescription, SchemaSelection } from './schema-assist.model';
 
 /** Guidance is ephemeral: selecting a schema never adds a query constraint. */
@@ -25,6 +26,8 @@ export interface NamedQueryDraftRequest {
 }
 
 export interface NamedQueryValidation {
+  source?: NamedQuerySource;
+  capabilities?: { lookup: boolean; diagnostics: EditorDiagnostic[] };
   valid: boolean;
   diagnostics: EditorDiagnostic[];
 }
@@ -42,6 +45,7 @@ export interface NamedQueryParameterDescription {
 }
 
 export interface NamedQueryDescription extends NamedQueryValidation {
+  source?: 'database';
   name?: string;
   collectionName: string;
   parameters: NamedQueryParameterDescription[];
@@ -54,6 +58,7 @@ export interface NamedQueryPreviewRequest extends NamedQueryDraftRequest {
 
 /** Data records use the existing NamedQueryResponseRecord wrapper, also consumed by reports. */
 export interface NamedQueryPreview<T = unknown> extends NamedQueryValidation {
+  source?: 'database';
   records: T[];
   summary: { numFound: number; start: number; page: number };
   truncated: boolean;
@@ -69,3 +74,18 @@ export interface NamedQueryPreview<T = unknown> extends NamedQueryValidation {
     mappings: number;
   };
 }
+
+/** Existing description/preview names remain database DTOs for legacy consumers. */
+export interface GraphqlNamedQueryDescription extends NamedQueryValidation {
+  source: 'graphql';
+  name?: string;
+  operationName?: string;
+  parameters: Array<GraphqlNamedQueryBinding & { variable: string }>;
+  result: FieldDescription;
+}
+export type NamedQuerySourceDescription = NamedQueryDescription | GraphqlNamedQueryDescription;
+
+export type GraphqlNamedQueryPreview<T = unknown> = NamedQueryValidation &
+  GraphqlNamedQueryResult<T> &
+  Pick<NamedQueryPreview<T>, 'truncated' | 'truncationReasons' | 'limits'>;
+export type NamedQuerySourcePreview<T = unknown> = NamedQueryPreview<T> | GraphqlNamedQueryPreview<T>;

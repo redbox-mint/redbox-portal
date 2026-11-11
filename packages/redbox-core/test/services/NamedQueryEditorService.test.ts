@@ -144,6 +144,20 @@ describe('NamedQueryEditorService', () => {
     });
   });
 
+  it('refuses GraphQL, unknown sources and mixed definitions before database inspection or preview', async () => {
+    for (const definition of [
+      { source: 'graphql', graphql: { document: 'query { records }', variables: {}, resultPath: [] } },
+      draft({ source: 'unknown' }),
+      draft({ graphql: { document: 'query { records }' } }),
+    ]) {
+      await assert.rejects(validate(definition));
+      await assert.rejects(editor.describeDraft(brand, 'rdmp', caller, { definition }));
+      await assert.rejects(editor.previewDraft(brand, 'rdmp', caller, { definition }));
+    }
+    assert.equal(collection.countDocuments.called, false);
+    assert.equal(collection.find.called, false);
+  });
+
   it('discovers targets under the feature caller, without an email Admin role', async () => {
     assert.equal((await editor.schemaTargets(brand, caller)).recordTypes[0].id, 'rdmp');
     assert.equal(fields.schemaTargets.firstCall.args[1], caller);
