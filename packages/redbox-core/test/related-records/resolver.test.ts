@@ -13,6 +13,7 @@ import {
 } from '../../src/related-records/resolver';
 import { normalizeRelatedReferences } from '../../src/related-records/references';
 import { projectRelatedMetadata } from '../../src/related-records/projection';
+import { relatedOutputBytes } from '../../src/related-records/output-size';
 import { projectRelatedSource } from '../../src/related-records/source-projection';
 import { Services } from '../../src/services/RecordsService';
 import type { RelatedRecordReadContext } from '../../src/related-records/types';
@@ -20,6 +21,26 @@ import type { RecordModel } from '../../src/model';
 import type { RecordRelation } from '../../src/config/recordtype.config';
 
 const asRecord = (value: unknown) => value as RecordModel;
+describe('related output byte accounting', () => {
+  it('counts serialized UTF-8, escaped keys/values, repeated objects and array holes exactly', () => {
+    const shared = { value: 'é\n\u0000"\\', absent: undefined };
+    const values = [{}, [], { first: shared, second: shared }, [null, undefined, NaN, Infinity, true],
+      { 'é"': shared, date: new Date('2026-01-01T00:00:00Z') }, [Object('escaped\ntext'), Object(7), Object(false)], new Array(5)];
+    for (const value of values) {
+      const bytes = Buffer.byteLength(JSON.stringify(value));
+      assert.equal(relatedOutputBytes(value, bytes), bytes);
+      assert.throws(() => relatedOutputBytes(value, bytes - 1), RangeError);
+    }
+  });
+  it('detaches overlapping projection paths without mutating borrowed ancestors', () => {
+    const nested = Object.freeze({ title: 'Current', hidden: 'Retained' });
+    const metadata = Object.freeze({ nested });
+    const projection = projectRelatedMetadata(metadata, ['/nested', '/nested/title']);
+    assert.deepEqual(projection.metadata, metadata);
+    assert.notEqual(projection.metadata.nested, nested);
+  });
+});
+
 describe('shared related metadata resolver', () => {
   let fixture: ReturnType<typeof createRelatedRecordsFixtures>;
   let context: RelatedRecordReadContext;
@@ -167,6 +188,47 @@ describe('shared related metadata resolver', () => {
     );
     assert.equal(getMeta.callCount, 0);
   });
+  it('rejects a large declared source projection before cloning or invoking source preparation', async () => {
+    fixture.activityA.metadata.title = 'large'.repeat(256 * 1024);
+    const prepare = sinon.spy(dependencies, 'sourceMetadata');
+    assert.deepEqual((await run())['primary-activity'], {
+      status: 'failed', records: [], issues: [{ code: 'limit-exceeded' }],
+    });
+    assert.equal(prepare.callCount, 0);
+  });
+  it('bounds large nested array projections and UTF-8 output bytes', async () => {
+    relations[0].resolution!.metadataFields = ['/large'];
+    Object.assign(fixture.activityA.metadata, { large: Array.from({ length: 600 }, () => ({ text: 'é'.repeat(1000) })) });
+    assert.equal((await run())['primary-activity'].issues[0]?.code, 'limit-exceeded');
+  });
+  it('checks oversized source-preparer output before cloning its projection', async () => {
+    dependencies.sourceMetadata = async () => ({ title: 'x'.repeat(1024 * 1024 + 1) });
+    assert.deepEqual((await run())['primary-activity'], {
+      status: 'failed', records: [], issues: [{ code: 'limit-exceeded' }],
+    });
+  });
+  it('charges repeated cached projections against the cumulative output budget', async () => {
+    fixture.activityA.metadata.title = 'x'.repeat(600 * 1024);
+    const prepare = sinon.spy(dependencies, 'sourceMetadata');
+    relations = Array.from({ length: 8 }, (_, index) => ({ ...relations[0], id: `copy-${index}` }));
+    const selected = { relations: relations.map(relation => ({ relationId: relation.id! })) };
+    const result = await run(undefined, selected);
+    assert.equal(Object.values(result).filter(entry => entry.status === 'resolved').length, 6);
+    for (const index of [6, 7]) assert.deepEqual(result[`copy-${index}`], {
+      status: 'failed', records: [], issues: [{ code: 'limit-exceeded' }],
+    });
+    assert.ok(Buffer.byteLength(JSON.stringify(result)) <= 4 * 1024 * 1024);
+    assert.equal(getMeta.callCount, 1);
+    assert.equal(prepare.callCount, 1);
+    await assert.rejects(run(undefined, { relations: selected.relations.map(relation => ({ ...relation, required: true })) }),
+      RequiredRelatedMetadataError);
+  });
+  it('does not spend the projection budget on unselected large metadata', async () => {
+    Object.assign(fixture.activityA.metadata, { unselected: 'x'.repeat(2 * 1024 * 1024) });
+    const result = await run();
+    assert.equal(result['primary-activity'].status, 'resolved');
+    assert.deepEqual(result['primary-activity'].records[0].metadata, { title: 'Activity A' });
+  });
   it('fails closed for unauthorized or cross-tenant roots before reading sources', async () => {
     dependencies.authorizeRoot = async () => false;
     await assert.rejects(run(), /Record unavailable/);
@@ -277,6 +339,23 @@ describe('shared related metadata resolver', () => {
       finish(fixture.activityA);
       await clock.tickAsync(1);
       assert.equal(result['primary-activity'].records.length, 0);
+    } finally {
+      clock.restore();
+    }
+  });
+  it('does not inspect or clone prepared metadata arriving after the deadline', async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      let finish!: (metadata: unknown) => void;
+      dependencies.sourceMetadata = () => new Promise(resolve => { finish = resolve; });
+      const pending = run();
+      await clock.tickAsync(RELATED_RESOLUTION_LIMITS.deadlineMs);
+      const result = await pending;
+      let inspected = false;
+      finish({ get title() { inspected = true; return 'Late title'; } });
+      await clock.tickAsync(1);
+      assert.equal(result['primary-activity'].issues[0].code, 'limit-exceeded');
+      assert.equal(inspected, false);
     } finally {
       clock.restore();
     }

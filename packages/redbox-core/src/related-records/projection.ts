@@ -1,4 +1,5 @@
 import { cloneDeep } from 'lodash';
+import { relatedOutputBytes } from './output-size';
 import { recordContractPointer, recordContractPointerTokens } from '../record-contract/json-pointer';
 
 export function projectionTokens(pointer: string): string[] {
@@ -7,8 +8,8 @@ export function projectionTokens(pointer: string): string[] {
   return tokens;
 }
 
-/** Own-property, presence-aware projection. Define properties so literal prototype keys are safe too. */
-export function projectRelatedMetadata(
+/** Borrow selected values for size checks; callers must detach before publishing or mutating. */
+export function selectRelatedMetadata(
   metadata: unknown,
   fields: readonly string[]
 ): {
@@ -17,6 +18,7 @@ export function projectRelatedMetadata(
 } {
   const result: Record<string, unknown> = {};
   const absent: string[] = [];
+  const selectedPaths: string[][] = [];
   for (const pointer of fields) {
     const tokens = projectionTokens(pointer);
     let value: unknown = metadata;
@@ -32,12 +34,15 @@ export function projectRelatedMetadata(
       absent.push(pointer);
       continue;
     }
+    // An already selected ancestor includes this value; never write through its borrowed object.
+    if (selectedPaths.some(path => path.length <= tokens.length && path.every((token, index) => token === tokens[index]))) continue;
+    selectedPaths.push(tokens);
     let target = result;
     let sourceContainer: unknown = metadata;
     tokens.forEach((token, index) => {
       if (index === tokens.length - 1) {
         Object.defineProperty(target, token, {
-          value: cloneDeep(value),
+          value,
           enumerable: true,
           configurable: true,
           writable: true,
@@ -57,4 +62,14 @@ export function projectRelatedMetadata(
     });
   }
   return { metadata: result, absent };
+}
+
+/** Own-property projection, bounded before selected values are cloned. */
+export function projectRelatedMetadata(metadata: unknown, fields: readonly string[], maxBytes?: number): {
+  metadata: Record<string, unknown>;
+  absent: string[];
+} {
+  const selected = selectRelatedMetadata(metadata, fields);
+  if (maxBytes !== undefined) relatedOutputBytes(selected.metadata, maxBytes);
+  return { metadata: cloneDeep(selected.metadata), absent: selected.absent };
 }

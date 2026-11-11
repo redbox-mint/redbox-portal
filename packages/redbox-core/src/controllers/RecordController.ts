@@ -1,5 +1,6 @@
 import { RBValidationError } from '../model/RBValidationError';
 import { relatedHttpCandidate, RelatedHttpError } from '../related-records/http';
+import { withinRelatedResolutionDeadline } from '../related-records/resolver';
 import { relatedRefreshBodySchema, relatedMetadataSchema } from '../api-routes/groups/related-records';
 import { getEffectiveRelatedClientForm } from '../related-records/effective-form';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
@@ -695,6 +696,7 @@ export namespace Controllers {
     }
 
     public async resolveRelatedMetadata(req: Sails.Req, res: Sails.Res) {
+      const startedAt = Date.now();
       const headers = { 'Cache-Control': 'private, no-store' };
       if (!req.isAuthenticated()) return this.sendResp(req, res, { status: 403, headers, displayErrors: [{ detail: 'Authentication is required.' }] });
       try {
@@ -702,10 +704,11 @@ export namespace Controllers {
         const parsed = relatedRefreshBodySchema.safeParse(req.body);
         if (!parsed.success) throw new RelatedHttpError(400);
         const context = { brand: this.getReqBrand(req), user: req.user as unknown as UserModel, audience: 'browser' as const };
-        const root = await relatedHttpCandidate(parsed.data, context, this.recordsService);
-        const relatedMetadata = relatedMetadataSchema.parse(await this.recordsService.resolveRelatedMetadata(root, context, {
-          relations: parsed.data.relations.map(relationId => ({ relationId })),
-        }));
+        const { root, options } = await relatedHttpCandidate(parsed.data, context, this.recordsService, startedAt);
+        const relatedMetadata = relatedMetadataSchema.parse(await withinRelatedResolutionDeadline(() =>
+          this.recordsService.resolveRelatedMetadata(root, context, {
+            relations: parsed.data.relations.map(relationId => ({ relationId })),
+          }, options), startedAt));
         if (Object.values(relatedMetadata).some(entry => entry.issues.some(issue => issue.code === 'configuration-error')))
           throw new RelatedHttpError(500);
         const data = { relatedMetadata };

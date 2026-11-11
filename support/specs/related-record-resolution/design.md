@@ -285,6 +285,10 @@ relation query, implemented by Mongo. The query contains server-derived tenant,
 record type, foreign field, normalized values, principal/ACL constraints and limit.
 Named-query source filtering uses its own bounded native Mongo queries with
 tenant and read ACL constraints before root counting and pagination.
+Declared source materialisation applies MongoDB `maxTimeMS: 10000` as well as
+its 1,000-source cap. A timeout aborts before root counting and pagination. Configure
+indexes for source brand/type and the configured predicate/foreign-field paths,
+and for root local-reference paths; inspect explain plans for each configured query.
 Return records plus a completeness/overflow indicator. Fetch at most limit + 1 to
 detect overflow; never silently truncate and report success.
 
@@ -298,10 +302,23 @@ for direct OID references. Other relation shapes return `unsupported-relation`.
 This is an additive read capability, not a new storage concurrency protocol.
 
 Initial bounds: 8 relations/request, 50 records/relation, 200 records/operation,
-6 concurrent direct reads, 10-second operation deadline and 64 KiB HTTP reference
-payload. Keep constants together and document configuration only if a real
-deployment needs overrides. A late underlying read may finish, but its expired
+6 concurrent direct reads, 10-second operation deadline, 64 KiB HTTP reference
+payload, 1 MiB per projected source envelope and 4 MiB cumulative resolved output.
+Count UTF-8 JSON bytes, including repeated cached sources, statuses and issues.
+Inspect declared source fields before cloning or browser preparation, and bound the
+prepared projection before copying it. Oversized relations return `limit-exceeded`
+with no partial source records; required relations still block. The operation-local
+projection cache also has the 4 MiB budget. Keep constants together and document
+configuration only if a real deployment needs overrides. A late underlying read may finish, but its expired
 result cannot be published or start a dependent external operation.
+
+HTTP related handlers start this shared deadline at controller entry, including
+initial root, workflow/form and relation configuration lookups. They pass a
+server-owned `loadedRoot`/`startedAt` operation-options object to resolution;
+request parameters cannot select it. Reference overrides affect only a detached
+candidate, and resolution rechecks the authoritative root's ACL, brand, type and
+OID. Expiry returns a safe generic error and prevents late reads from starting
+further resolution; it does not cancel the underlying storage operation.
 
 ## 6. HTTP and client contracts
 

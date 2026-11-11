@@ -650,7 +650,7 @@ export namespace Services {
         });
         const sources = await native.find({ $and: [
           { 'metaMetadata.brandId': brand.id, 'metaMetadata.type': relation.recordType }, acl, ...predicates
-        ] }).limit(1001).toArray();
+        ] }, { maxTimeMS: 10_000 }).limit(1001).toArray();
         if (sources.length > 1000) throw new Error('Declared relation source ID limit exceeded');
         const ids = _.uniq(sources.flatMap(source => {
           // Mongo dotted paths traverse object arrays; Lodash get alone does not.

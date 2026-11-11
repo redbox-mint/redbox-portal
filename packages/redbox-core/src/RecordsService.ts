@@ -183,6 +183,14 @@ export function createRecordMetadataDelta(
   return delta;
 }
 
+/** Trusted server lifecycle facts; never populated from HTTP request parameters. */
+export interface RelatedMetadataOperationOptions {
+  /** Previously loaded authoritative root; its ACL is checked again during resolution. */
+  readonly loadedRoot?: RecordModel;
+  /** Shared operation start, including root/configuration lookups before resolution. */
+  readonly startedAt?: number;
+}
+
 /**
  * Service interface for Records operations.
  * Note: This interface uses `unknown` types extensively for backward compatibility.
@@ -190,7 +198,7 @@ export function createRecordMetadataDelta(
  */
 export interface RecordsService {
   /** Explicit fresh resolution from the supplied candidate, including unsaved references. */
-  resolveRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RelatedMetadata>;
+  resolveRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest, options?: RelatedMetadataOperationOptions): Promise<RelatedMetadata>;
   /** Return a detached enriched view without mutating the candidate. */
   enrichWithRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RecordModel>;
   /** Load the root once and explicitly enrich it; ordinary getMeta remains raw. */

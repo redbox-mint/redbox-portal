@@ -1,5 +1,6 @@
 import { RBValidationError } from '../../model/RBValidationError';
 import { relatedHttpCandidate, RelatedHttpError } from '../../related-records/http';
+import { withinRelatedResolutionDeadline } from '../../related-records/resolver';
 import { relatedMetadataSchema } from '../../api-routes/groups/related-records';
 // Copyright(c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -815,16 +816,18 @@ export namespace Controllers {
     }
 
     public async getResolved(req: Sails.Req, res: Sails.Res) {
+      const startedAt = Date.now();
       const headers = { 'Cache-Control': 'private, no-store' };
       try {
         if (!req.user) throw new RelatedHttpError(403);
         const validated = getValidatedApiRequest(req);
         const context = { brand: BrandingService.getBrand(req.session.branding!), user: req.user as unknown as UserModel, audience: 'api' as const };
         const relations = String(validated.query.relations).split(',').map(value => value.trim());
-        const root = await relatedHttpCandidate({ oid: validated.params.oid as string, relations }, context, this.RecordsService);
-        const relatedMetadata = relatedMetadataSchema.parse(await this.RecordsService.resolveRelatedMetadata(root, context, {
-          relations: relations.map(relationId => ({ relationId })),
-        }));
+        const { root, options } = await relatedHttpCandidate({ oid: validated.params.oid as string, relations }, context, this.RecordsService, startedAt);
+        const relatedMetadata = relatedMetadataSchema.parse(await withinRelatedResolutionDeadline(() =>
+          this.RecordsService.resolveRelatedMetadata(root, context, {
+            relations: relations.map(relationId => ({ relationId })),
+          }, options), startedAt));
         if (Object.values(relatedMetadata).some(entry => entry.issues.some(issue => issue.code === 'configuration-error')))
           throw new RelatedHttpError(500);
         const data = { redboxOid: root.redboxOid, metadata: root.metadata,

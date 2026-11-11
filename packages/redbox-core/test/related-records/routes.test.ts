@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { once } from 'node:events';
 import { createServer, type Server } from 'node:http';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import * as sinon from 'sinon';
 import { Controllers as Browser } from '../../src/controllers/RecordController';
 import { Controllers as Api } from '../../src/controllers/webservice/RecordController';
@@ -13,6 +13,8 @@ import { isAuthenticated } from '../../src/policies/isAuthenticated';
 import { checkAuth } from '../../src/policies/checkAuth';
 import { isWebServiceAuthenticated } from '../../src/policies/isWebServiceAuthenticated';
 import { createMockSails } from '../services/testHelper';
+import { Services as RecordServices } from '../../src/services/RecordsService';
+import { RELATED_RESOLUTION_LIMITS } from '../../src/related-records/resolver';
 
 const { Sails } = require('sails');
 const csurf = require('@sailshq/csurf');
@@ -144,6 +146,136 @@ describe('related metadata HTTP routes', () => {
       },
       body: JSON.stringify(body),
     });
+  function useRealResolver() {
+    const service = new RecordServices.Records();
+    service.storageService = { getMeta: records.getMeta } as never;
+    service.hasViewAccess = records.hasViewAccess;
+    service.hasCreateAccess = records.hasCreateAccess;
+    records.resolveRelatedMetadata.callsFake(service.resolveRelatedMetadata.bind(service));
+    records.getMeta.withArgs('old').resolves({
+      redboxOid: 'old', metadata: { title: 'Existing activity' },
+      metaMetadata: { type: 'activity', brandId: 'brand', form: '' },
+    });
+    records.getMeta.withArgs('new').resolves({
+      redboxOid: 'new', metadata: { title: 'Selected activity' },
+      metaMetadata: { type: 'activity', brandId: 'brand', form: '' },
+    });
+  }
+  for (const kind of ['browser', 'api'] as const) {
+    const request = () => kind === 'browser'
+      ? post({ oid: 'root', relations: ['activity'], references: { activity: 'new' } })
+      : fetch(base + '/default/rdmp/api/records/resolved/root?relations=activity', {
+        headers: { 'x-redbox-api-version': '2.0' },
+      });
+    it(`loads the authoritative ${kind} root once with the real resolver`, async () => {
+      useRealResolver();
+      const response = await request();
+      assert.equal(response.status, 200, await response.clone().text());
+      const result = ((await response.json()) as any).data.relatedMetadata.activity;
+      assert.equal(result.records[0].metadata.title, kind === 'browser' ? 'Selected activity' : 'Existing activity');
+      assert.equal(records.getMeta.getCalls().filter((call: sinon.SinonSpyCall) => call.args[0] === 'root').length, 1);
+      assert.equal(root.metadata.activity, 'old');
+    });
+    it(`includes the initial ${kind} root lookup in the HTTP deadline and stops late resolution`, async () => {
+      useRealResolver();
+      const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+      let finish!: (value: unknown) => void;
+      let entered!: () => void;
+      const started = new Promise<void>(resolve => { entered = resolve; });
+      records.getMeta.withArgs('root').onFirstCall().callsFake(() => {
+        entered();
+        return new Promise(resolve => { finish = resolve; });
+      });
+      try {
+        const pending = request();
+        await started;
+        await clock.tickAsync(RELATED_RESOLUTION_LIMITS.deadlineMs);
+        const response = await pending;
+        assert.equal(response.status, 500, await response.clone().text());
+        finish(root);
+        await clock.tickAsync(1);
+        sinon.assert.notCalled(records.resolveRelatedMetadata);
+        assert.equal(records.getMeta.callCount, 1);
+      } finally {
+        clock.restore();
+      }
+    });
+    it(`includes ${kind} relation configuration lookup in the HTTP deadline`, async () => {
+      useRealResolver();
+      const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+      const configuration = new Subject<{ name: string; relatedTo: typeof relation[] }>();
+      let entered!: () => void;
+      const started = new Promise<void>(resolve => { entered = resolve; });
+      const get = sinon.stub().callsFake(() => { entered(); return configuration; });
+      Reflect.set(globalThis, 'RecordTypesService', { get });
+      try {
+        const pending = request();
+        await started;
+        await clock.tickAsync(RELATED_RESOLUTION_LIMITS.deadlineMs);
+        const response = await pending;
+        assert.equal(response.status, 500, await response.clone().text());
+        configuration.next({ name: 'plan', relatedTo: [relation] });
+        configuration.complete();
+        await clock.tickAsync(1);
+        sinon.assert.notCalled(records.resolveRelatedMetadata);
+        assert.equal(records.getMeta.callCount, 1);
+        assert.equal(get.callCount, 1);
+      } finally {
+        clock.restore();
+      }
+    });
+    it(`shares the remaining ${kind} HTTP budget with source resolution`, async () => {
+      useRealResolver();
+      const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+      let finishRoot!: (value: unknown) => void;
+      let finishSource!: (value: unknown) => void;
+      let rootEntered!: () => void;
+      let sourceEntered!: () => void;
+      const rootStarted = new Promise<void>(resolve => { rootEntered = resolve; });
+      const sourceStarted = new Promise<void>(resolve => { sourceEntered = resolve; });
+      records.getMeta.withArgs('root').onFirstCall().callsFake(() => {
+        rootEntered();
+        return new Promise(resolve => { finishRoot = resolve; });
+      });
+      records.getMeta.withArgs(kind === 'browser' ? 'new' : 'old').callsFake(() => {
+        sourceEntered();
+        return new Promise(resolve => { finishSource = resolve; });
+      });
+      try {
+        const pending = request();
+        await rootStarted;
+        await clock.tickAsync(RELATED_RESOLUTION_LIMITS.deadlineMs - 1000);
+        finishRoot(root);
+        await sourceStarted;
+        await clock.tickAsync(1000);
+        const response = await pending;
+        assert.equal(response.status, 500, await response.clone().text());
+        finishSource({ redboxOid: 'late-source', metadata: { title: 'Late source' },
+          metaMetadata: { type: 'activity', brandId: 'brand', form: '' } });
+        await clock.tickAsync(1);
+        assert.equal(records.getMeta.callCount, 2);
+      } finally {
+        clock.restore();
+      }
+    });
+  }
+
+  it('rechecks the authoritative loaded root ACL before following its unsaved selection', async () => {
+    useRealResolver();
+    records.hasViewAccess.onSecondCall().returns(false);
+    const response = await post({ oid: 'root', relations: ['activity'], references: { activity: 'new' } });
+    assert.equal(response.status, 500);
+    assert.equal(records.getMeta.callCount, 1);
+    assert.equal(records.hasViewAccess.callCount, 2);
+  });
+  it('rejects a server-loaded root for a different candidate OID without reading sources', async () => {
+    useRealResolver();
+    await assert.rejects(records.resolveRelatedMetadata({ ...root, redboxOid: 'different-root' }, {
+      brand: { id: 'brand' }, user: { username: 'reader', roles: [] }, audience: 'api',
+    }, { relations: [{ relationId: 'activity' }] }, { loadedRoot: root, startedAt: Date.now() }), /Record unavailable/);
+    sinon.assert.notCalled(records.getMeta);
+  });
+
   it('follows an existing root unsaved selection without mutating storage and strips internal output', async () => {
     const response = await post({ oid: 'root', relations: ['activity'], references: { activity: 'new' } });
     assert.equal(response.status, 200, await response.clone().text());

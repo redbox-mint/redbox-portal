@@ -570,6 +570,46 @@ describe('NamedQueryService', function() {
   });
 
   describe('performNamedQuery', function() {
+    const declaredRelationQuery = () => {
+      mockRecordsService.getRecordTypeSummary = sinon.stub().resolves({ relatedTo: [{
+        id: 'activities', recordType: 'activity', localField: 'metadata.activityOid',
+        foreignField: 'redboxOid', cardinality: 'one', direction: 'outbound',
+      }] });
+      return NamedQueryService.performNamedQueryFromConfig({
+        collectionName: 'record', mongoQuery: {}, resultObjectMapping: {},
+        relatedRecordFilters: [{ rootRecordType: 'rdmp', relationId: 'activities',
+          mongoQuery: { 'metadata.active': true } }],
+      }, {}, { id: 'brand-1' }, 0, 10, { username: 'reader', roles: [] });
+    };
+
+    it('bounds declared relation source lookup execution as well as result count', async function() {
+      mockRecordNativeCollection.cursor.toArray.resolves([{ redboxOid: 'activity-1' }]);
+
+      await declaredRelationQuery();
+
+      expect(mockRecordNativeCollection.find.firstCall.args[1]).to.deep.equal({ maxTimeMS: 10_000 });
+      expect(mockRecordNativeCollection.cursor.limit.calledOnceWithExactly(1001)).to.equal(true);
+      expect(mockRecordNativeCollection.countDocuments.calledOnce).to.equal(true);
+    });
+
+    it('stops before root count or paging when declared relation source lookup times out', async function() {
+      const timeout = Object.assign(new Error('operation exceeded time limit'), { code: 50, codeName: 'MaxTimeMSExpired' });
+      mockRecordNativeCollection.cursor.toArray.rejects(timeout);
+
+      let failure: unknown;
+      try {
+        await declaredRelationQuery();
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.equal(timeout);
+      expect(mockRecordNativeCollection.find.firstCall.args[1]).to.deep.equal({ maxTimeMS: 10_000 });
+      expect(mockRecordNativeCollection.find.calledOnce).to.equal(true);
+      expect(mockRecordNativeCollection.countDocuments.notCalled).to.equal(true);
+      expect(mockRecordNativeCollection.cursor.skip.notCalled).to.equal(true);
+    });
+
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };

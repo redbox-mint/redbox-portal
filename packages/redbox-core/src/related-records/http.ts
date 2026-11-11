@@ -2,9 +2,10 @@ import { normalizeRelatedReferences } from './references';
 import { cloneDeep, set, toPath } from 'lodash';
 import { firstValueFrom } from 'rxjs';
 import type { RecordModel } from '../model';
-import type { RecordsService } from '../RecordsService';
+import type { RecordsService, RelatedMetadataOperationOptions } from '../RecordsService';
 import type { RelatedRecordReadContext } from './types';
 import { normalizeRecordRelations } from '../config/recordtype.config';
+import { withinRelatedResolutionDeadline } from './resolver';
 
 export class RelatedHttpError extends Error {
   constructor(public readonly status: number) {
@@ -16,33 +17,39 @@ export class RelatedHttpError extends Error {
 export async function relatedHttpCandidate(
   input: { oid?: string; recordType?: string; relations: string[]; references?: Record<string, unknown> },
   context: RelatedRecordReadContext,
-  service: RecordsService
-): Promise<RecordModel> {
+  service: RecordsService,
+  startedAt = Date.now()
+): Promise<{ root: RecordModel; options: RelatedMetadataOperationOptions }> {
+  const bounded = <T>(work: () => Promise<T>) => withinRelatedResolutionDeadline(work, startedAt);
+  let loadedRoot: RecordModel | undefined;
   const { brand, user } = context;
   const roles = (user.roles ?? []) as unknown as Record<string, unknown>[];
   let root: RecordModel;
-  if (input.oid) {
-    root = await service.getMeta(input.oid);
+  const oid = input.oid;
+  if (oid) {
+    root = await bounded(() => service.getMeta(oid));
     if (!root || !root.redboxOid || String(root.metaMetadata?.brandId) !== String(brand.id))
       throw new RelatedHttpError(404);
-    if (!service.hasViewAccess(brand, user, roles, root)) throw new RelatedHttpError(403);
+    if (!(await bounded(async () => service.hasViewAccess(brand, user, roles, root)))) throw new RelatedHttpError(403);
+    loadedRoot = root;
     root = cloneDeep(root);
   } else {
-    const type = await firstValueFrom(RecordTypesService.get(brand, input.recordType!));
+    const type = await bounded(() => firstValueFrom(RecordTypesService.get(brand, input.recordType!)));
     if (!type) throw new RelatedHttpError(400);
-    const step = (await firstValueFrom(WorkflowStepsService.getFirst(type))) as { name?: string } | null;
-    if (!step?.name) throw new RelatedHttpError(500);
-    if (!(await service.hasCreateAccess(brand, user, roles, input.recordType!, step.name)))
+    const step = (await bounded(() => firstValueFrom(WorkflowStepsService.getFirst(type)))) as { name?: string } | null;
+    const stepName = step?.name;
+    if (!stepName) throw new RelatedHttpError(500);
+    if (!(await bounded(() => service.hasCreateAccess(brand, user, roles, input.recordType!, stepName))))
       throw new RelatedHttpError(403);
-    const form = await firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, input.recordType!, true));
+    const form = await bounded(() => firstValueFrom(FormsService.getFormByStartingWorkflowStep(brand, input.recordType!, true)));
     if (!form?.name) throw new RelatedHttpError(500);
     root = {
       metadata: {},
       metaMetadata: { type: input.recordType!, brandId: String(brand.id), form: form.name },
-      workflow: { stage: step.name },
+      workflow: { stage: stepName },
     } as RecordModel;
   }
-  const type = await firstValueFrom(RecordTypesService.get(brand, String(root.metaMetadata.type)));
+  const type = await bounded(() => firstValueFrom(RecordTypesService.get(brand, String(root.metaMetadata.type))));
   if (!type) throw new RelatedHttpError(500);
   const relations = normalizeRecordRelations(String(root.metaMetadata.type), type.relatedTo ?? []);
   for (const id of input.relations) {
@@ -63,5 +70,5 @@ export async function relatedHttpCandidate(
     if (normalizeRelatedReferences(value, relation.oidProperty).invalidIndices.length) throw new RelatedHttpError(400);
     set(root, tokens, cloneDeep(value));
   }
-  return root;
+  return bounded(async () => ({ root, options: { loadedRoot, startedAt } }));
 }

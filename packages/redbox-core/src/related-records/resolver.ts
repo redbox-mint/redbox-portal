@@ -10,7 +10,8 @@ import type { RecordRelationQueryResult, StorageService } from '../StorageServic
 import { normalizeRecordRelations, type RecordRelation } from '../config/recordtype.config';
 import type { RelatedRecordReadContext } from './types';
 import { normalizeRelatedReferences } from './references';
-import { projectRelatedMetadata, projectionTokens } from './projection';
+import { projectRelatedMetadata, projectionTokens, selectRelatedMetadata } from './projection';
+import { relatedOutputBytes } from './output-size';
 
 export const RELATED_RESOLUTION_LIMITS = Object.freeze({
   relations: 8,
@@ -19,6 +20,8 @@ export const RELATED_RESOLUTION_LIMITS = Object.freeze({
   concurrency: 6,
   deadlineMs: 10000,
   referenceBytes: 65536,
+  perSourceBytes: 1024 * 1024,
+  outputBytes: 4 * 1024 * 1024,
 });
 export interface RelatedResolverDependencies {
   /** Internal budget start, including the stored-root read when present. */
@@ -111,10 +114,28 @@ export async function resolveRelatedMetadata(
   const type = String(root.metaMetadata?.type ?? '');
   const relations = normalizeRecordRelations(type, await bounded(() => dependencies.relations(type)));
   const result: RelatedMetadata = {};
+  // Reserve a safe limit result for every relation, even after the payload budget is spent.
+  const limited = failure('limit-exceeded');
+  const fallbackBytes = relatedOutputBytes(limited, RELATED_RESOLUTION_LIMITS.outputBytes);
+  let remainingBytes = RELATED_RESOLUTION_LIMITS.outputBytes - relatedOutputBytes(
+    Object.fromEntries(request.relations.map(selection => [selection.relationId, limited])),
+    RELATED_RESOLUTION_LIMITS.outputBytes
+  );
+  let projectedBytes = 0;
+  const publishEntry = (relationId: string, entry: RelatedMetadataEntry) => {
+    // Include status/issue overhead as well as records in the exact response budget.
+    try {
+      const bytes = relatedOutputBytes(entry, remainingBytes + fallbackBytes);
+      remainingBytes += fallbackBytes - bytes;
+    } catch {
+      entry = failure('limit-exceeded');
+    }
+    Object.defineProperty(result, relationId, { value: entry, enumerable: true });
+  };
   const reads = new Map<string, Promise<RecordModel | null>>();
   const queries = new Map<string, Promise<RecordRelationQueryResult>>();
   // Never shared across operations or principals. Source OID keeps per-source permission modes separate.
-  const projected = new Map<string, Promise<RelatedMetadataRecord>>();
+  const projected = new Map<string, Promise<{ source: RelatedMetadataRecord; absent: string[]; bytes: number }>>();
   let consumed = 0;
   const directRead = (oid: string, sourceType: string): Promise<RecordModel | null> => {
     const key = dependencies.storage.findRecordsByRelation ? JSON.stringify([sourceType, oid]) : oid;
@@ -156,10 +177,7 @@ export async function resolveRelatedMetadata(
         try {
           fields.forEach(projectionTokens);
         } catch {
-          Object.defineProperty(result, selection.relationId, {
-            value: failure('configuration-error'),
-            enumerable: true,
-          });
+          publishEntry(selection.relationId, failure('configuration-error'));
           continue;
         }
         const raw = get(root, relation.localField);
@@ -232,10 +250,7 @@ export async function resolveRelatedMetadata(
                 }
                 const found = await queries.get(queryKey)!;
                 if (!found.complete || found.overflow || found.records.length > RELATED_RESOLUTION_LIMITS.perRelation) {
-                  Object.defineProperty(result, selection.relationId, {
-                    value: failure('limit-exceeded'),
-                    enumerable: true,
-                  });
+                  publishEntry(selection.relationId, failure('limit-exceeded'));
                   continue;
                 }
                 if (consumed > RELATED_RESOLUTION_LIMITS.operation) throw new RangeError('Related read limit');
@@ -247,6 +262,7 @@ export async function resolveRelatedMetadata(
               }
               if (relation.cardinality === 'one' && candidates.length > 1) entry = failure('cardinality', 'invalid');
               else {
+                let relationBytes = 0;
                 for (const record of candidates) {
                   check();
                   const key = JSON.stringify([record.redboxOid, fields]);
@@ -254,22 +270,31 @@ export async function resolveRelatedMetadata(
                     projected.set(
                       key,
                       bounded(async () => {
-                        const projection = projectRelatedMetadata(
-                          await dependencies.sourceMetadata(cloneDeep(record), fields),
-                          fields
-                        );
-                        // Missing fields are relation-specific issues, computed below from the projected metadata.
-                        return {
+                        const available = Math.min(RELATED_RESOLUTION_LIMITS.perSourceBytes,
+                          RELATED_RESOLUTION_LIMITS.outputBytes - projectedBytes, remainingBytes - relationBytes);
+                        if (available <= 0) throw new RangeError('Related output limit');
+                        // Inspect declared values before copying the source or running browser preparation.
+                        relatedOutputBytes(selectRelatedMetadata(record.metadata, fields).metadata, available);
+                        check();
+                        const prepared = await dependencies.sourceMetadata(cloneDeep(record), fields);
+                        check();
+                        const projection = projectRelatedMetadata(prepared, fields, available);
+                        const source: RelatedMetadataRecord = {
                           redboxOid: record.redboxOid,
                           metaMetadata: { type: relation.recordType, brandId: String(context.brand.id) },
                           metadata: projection.metadata,
                           ...(typeof record.revision === 'number' ? { revision: record.revision } : {}),
                         };
+                        const bytes = relatedOutputBytes(source, available);
+                        projectedBytes += bytes;
+                        return { source, absent: projection.absent, bytes };
                       })
                     );
-                  const source = await projected.get(key)!;
-                  entry.records.push(cloneDeep(source));
-                  for (const fieldPointer of projectRelatedMetadata(source.metadata, fields).absent)
+                  const projection = await projected.get(key)!;
+                  relationBytes += projection.bytes;
+                  if (relationBytes > remainingBytes) throw new RangeError('Related output limit');
+                  entry.records.push(cloneDeep(projection.source));
+                  for (const fieldPointer of projection.absent)
                     entry.issues.push({ code: 'field-absent', fieldPointer });
                 }
                 if (missing) entry.issues.push({ code: 'unavailable' });
@@ -294,7 +319,7 @@ export async function resolveRelatedMetadata(
             : 'source-read-failed'
       );
     }
-    Object.defineProperty(result, selection.relationId, { value: entry, enumerable: true });
+    publishEntry(selection.relationId, entry);
   }
   try {
     dependencies.summary?.({

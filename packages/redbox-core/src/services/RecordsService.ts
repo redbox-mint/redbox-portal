@@ -47,7 +47,7 @@ import {
   RecordAuditActionType,
   type RecordMutationAuditConcurrency,
 } from '../model/storage/RecordAuditModel';
-import { RecordsService } from '../RecordsService';
+import { RecordsService, type RelatedMetadataOperationOptions } from '../RecordsService';
 import { SearchService } from '../SearchService';
 import { Services as services } from '../CoreService';
 
@@ -524,9 +524,10 @@ export namespace Services {
     public async resolveRelatedMetadata(
       record: Readonly<RecordModel>,
       context: RelatedRecordReadContext,
-      request: RelatedMetadataRequest
+      request: RelatedMetadataRequest,
+      options?: RelatedMetadataOperationOptions
     ): Promise<RelatedMetadata> {
-      return this.resolveRelatedMetadataOperation(record, context, request);
+      return this.resolveRelatedMetadataOperation(record, context, request, options?.loadedRoot, options?.startedAt);
     }
 
     private async resolveRelatedMetadataOperation(
@@ -557,6 +558,7 @@ export namespace Services {
           const authoritative = loadedRoot ?? (await this.getMeta(candidate.redboxOid));
           return (
             !!authoritative &&
+            authoritative.redboxOid === candidate.redboxOid &&
             String(authoritative.metaMetadata?.brandId) === String(context.brand.id) &&
             authoritative.metaMetadata?.type === candidate.metaMetadata?.type &&
             canRead(authoritative)
