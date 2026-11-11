@@ -141,7 +141,7 @@ services:
       retries: 10
       start_period: '30s'
   solr:
-    image: solr:10.0.0
+    image: solr:10.1.0
     pull_policy: missing
     expose:
       - '8983'
