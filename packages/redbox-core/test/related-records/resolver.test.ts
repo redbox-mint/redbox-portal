@@ -623,6 +623,73 @@ describe('related source projection and RecordsService integration', () => {
     assert.equal(editedAgain['primary-activity'].records[0].metadata.editOnly, 'Only editors of A');
   });
 
+  for (const populated of [false, true]) {
+    it(`scopes related field visibility to the source brand with ${populated ? 'populated' : 'primitive'} role branding`, async () => {
+      const { Services: FormServices } = require('../../src/services/FormsService');
+      const { Services: ConsistencyServices } = require('../../src/services/FormRecordConsistencyService');
+      const formService = new FormServices.Forms();
+      const consistency = new ConsistencyServices.FormRecordConsistency();
+      const roleBrand = (id: string) => populated ? { id } : id;
+      const roles = [
+        { id: 'local-researcher', name: 'researcher', branding: roleBrand(fixture.tenants.primary) },
+        // Mix populated and primitive representations in the same effective user.
+        { id: 'foreign-admin', name: 'admin', branding: populated ? fixture.tenants.other : { id: fixture.tenants.other } },
+      ];
+      const user = { ...fixture.users.reader, roles };
+      const browserContext = { ...context, user: user as never };
+      fixture.activityA.authorization.edit.push(user.username);
+      const configuration = { name: 'related-activity-1.0-draft', type: 'related-activity', componentDefinitions: [
+        { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+        { name: 'researcherOnly', model: { class: 'SimpleInputModel' }, constraints: { authorization: { allowRoles: ['researcher'] } },
+          component: { class: 'SimpleInputComponent' } },
+        { name: 'adminOnly', model: { class: 'SimpleInputModel' }, constraints: { authorization: { allowRoles: ['admin'] } },
+          component: { class: 'SimpleInputComponent' } },
+      ] };
+      forms.getFormByName.returns(of({ configuration }));
+      forms.buildClientFormConfig.callsFake(formService.buildClientFormConfig.bind(formService));
+      project.callsFake(consistency.projectMetadataClientFormConfig.bind(consistency));
+      relations[0].resolution!.metadataFields = ['/title', '/researcherOnly', '/adminOnly'];
+      Object.assign(fixture.activityA.metadata, { researcherOnly: 'Local researcher field', adminOnly: 'Local admin secret' });
+      const originalUser = cloneDeep(user);
+
+      const foreignAdmin = await service.resolveRelatedMetadata(asRecord(fixture.root), browserContext, request);
+      assert.equal(foreignAdmin['primary-activity'].status, 'resolved');
+      assert.deepEqual(foreignAdmin['primary-activity'].records[0].metadata,
+        { title: 'Activity A', researcherOnly: 'Local researcher field' });
+      assert.ok(!JSON.stringify(foreignAdmin).includes('Local admin secret'));
+      assert.equal(forms.buildClientFormConfig.lastCall.args[1], 'edit');
+      assert.deepEqual(forms.buildClientFormConfig.lastCall.args[2], ['researcher']);
+      assert.deepEqual(user, originalUser);
+
+      roles.push({ id: 'local-admin', name: 'admin', branding: roleBrand(fixture.tenants.primary) });
+      const localAdmin = await service.resolveRelatedMetadata(asRecord(fixture.root), browserContext, request);
+      assert.equal(localAdmin['primary-activity'].records[0].metadata.adminOnly, 'Local admin secret');
+      assert.deepEqual(forms.buildClientFormConfig.lastCall.args[2], ['researcher', 'admin']);
+
+      roles.pop();
+      const foreignAgain = await service.resolveRelatedMetadata(asRecord(fixture.root), browserContext, request);
+      assert.ok(!Object.hasOwn(foreignAgain['primary-activity'].records[0].metadata, 'adminOnly'));
+      assert.deepEqual(user, originalUser);
+    });
+  }
+  it('ignores missing and malformed role branding when constructing related source fields', async () => {
+    const { getEffectiveRelatedClientForm } = require('../../src/related-records/effective-form');
+    const roles = [
+      { name: 'admin' }, { name: 'admin', branding: null }, { name: 'admin', branding: {} },
+      { name: 'admin', branding: { id: null } }, { name: 'admin', branding: false },
+      { name: 'researcher', branding: fixture.tenants.primary },
+    ];
+    const req = { user: { ...fixture.users.reader, roles }, session: {}, headers: {}, param: () => undefined };
+    await getEffectiveRelatedClientForm(req, context.brand, fixture.activityA, 'related-activity-1.0-draft', false, 'view', true);
+    assert.equal(forms.buildClientFormConfig.lastCall.args[1], 'view');
+    assert.deepEqual(forms.buildClientFormConfig.lastCall.args[2], ['researcher']);
+    for (const id of [undefined, null, {}, false, '']) {
+      const malformedReq = { ...req, user: { ...req.user, roles: [{ name: 'admin', branding: String(id) }] } };
+      await getEffectiveRelatedClientForm(malformedReq, { id }, fixture.activityA, 'related-activity-1.0-draft', false, 'view', true);
+      assert.deepEqual(forms.buildClientFormConfig.lastCall.args[2], []);
+    }
+  });
+
   it('selects each source permission mode independently within one deduplicated result', async () => {
     useModeConstrainedSourceForm();
     relations[0].cardinality = 'many';

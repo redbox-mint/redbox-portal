@@ -598,7 +598,7 @@ describe('RecordController getWorkflowSteps', () => {
             Object.assign(controller.recordsService, { getRecordFormFingerprint: sinon.stub().resolves('fingerprint') });
             const req = { param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
               query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
-              user: { username: 'reader', roles: roles.map(name => ({ name })) },
+              user: { username: 'reader', roles: roles.map(name => ({ name, branding: 'brand-1' })) },
             } as unknown as Sails.Req;
             const sendResp = sinon.stub(controller as any, 'sendResp');
             await controller[endpoint](req, {} as Sails.Res);
@@ -652,7 +652,7 @@ describe('RecordController getWorkflowSteps', () => {
             const req = {
               param: sinon.stub().callsFake(name => name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined),
               query: { edit: 'false', apiVersion: '2.0' }, session: { branding: 'default' },
-              user: { username: 'reader', roles: roles.map(name => ({ name })) },
+              user: { username: 'reader', roles: roles.map(name => ({ name, branding: 'brand-1' })) },
             } as unknown as Sails.Req;
             const sendResp = sinon.stub(controller as any, 'sendResp');
             await controller[endpoint](req, {} as Sails.Res);
@@ -732,7 +732,7 @@ describe('RecordController getWorkflowSteps', () => {
               .callsFake((name) => (name === 'oid' ? 'oid-1' : name === 'name' ? 'dataset' : undefined)),
             query: { edit: String(mode === 'edit'), apiVersion: '2.0' },
             session: { branding: 'default' },
-            user: { username: 'reader', roles: roles.map((name) => ({ name })) },
+            user: { username: 'reader', roles: roles.map((name) => ({ name, branding: 'brand-1' })) },
           } as unknown as Sails.Req;
           const sendResp = sinon.stub(controller as any, 'sendResp');
           await controller.getForm(req, {} as Sails.Res);
@@ -805,7 +805,7 @@ describe('RecordController getWorkflowSteps', () => {
       const req = {
         param: sinon.stub().withArgs("oid").returns("representative-data-record"),
         query: {},
-        user: { username: "researcher", roles: [{ name: "Researcher" }] },
+        user: { username: "researcher", roles: [{ name: "Researcher", branding: "brand-1" }] },
         session: { branding: "default" },
       } as unknown as Sails.Req;
       const response = {
@@ -2820,13 +2820,17 @@ describe('RecordController getWorkflowSteps', () => {
     expect((res.redirect as any).calledWith('/default/rdmp/dashboard-view/consolidated')).to.be.true;
   });
 
-  it('builds an effective client form config with the record brand and user roles', async () => {
+  it('uses the record brand for form lookup and scopes form role names to the active brand', async () => {
     const formConfig = { componentDefinitions: [] };
     const clientFormConfig = { componentDefinitions: [{ name: 'title' }] };
     (global as any).sails.config = { reusableFormDefinitions: { shared: {} } };
     (global as any).FormsService.getFormByName.returns(of({ configuration: formConfig }));
     (global as any).FormsService.buildClientFormConfig.returns(clientFormConfig);
-    const req = { user: { roles: [{ name: 'admin' }, { name: '' }, {}] } } as unknown as Sails.Req;
+    const req = { user: { roles: [
+      { name: 'researcher', branding: { id: 'fallback-brand' } },
+      { name: 'admin', branding: 'record-brand' },
+      { name: 'unscoped-admin' }, { name: '', branding: 'fallback-brand' }, {},
+    ] } } as unknown as Sails.Req;
     const record = { metaMetadata: { brandId: 'record-brand' }, metadata: { title: 'A title' } };
     const brand = { id: 'fallback-brand', name: 'fallback' };
 
@@ -2838,7 +2842,7 @@ describe('RecordController getWorkflowSteps', () => {
       (global as any).FormsService.buildClientFormConfig.calledWith(
         formConfig,
         'edit',
-        ['admin'],
+        ['researcher'],
         record.metadata,
         { shared: {} },
         'fallback',

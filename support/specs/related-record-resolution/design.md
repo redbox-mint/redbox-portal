@@ -265,6 +265,9 @@ Algorithm:
    existing caller-effective source-field projection: reuse
    `FormRecordConsistencyService.projectMetadataClientFormConfig` and the current
    effective-form selection seam rather than bypassing it with a raw source read.
+   Scope form role names to the active brand before visibility pruning. Accept
+   populated role branding objects and primitive branding IDs; roles from other
+   brands or without a matching brand never grant field access.
    Extract a reusable service helper where the selection currently lives in a
    controller. A projection failure never falls back to unrestricted metadata.
    Imported/source records without a form follow the existing no-form read rules

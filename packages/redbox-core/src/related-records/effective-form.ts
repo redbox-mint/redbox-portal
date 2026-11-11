@@ -22,7 +22,14 @@ export async function getEffectiveRelatedClientForm(
     return undefined;
   }
 
+  const activeBrandId = typeof brand?.id === 'string' || typeof brand?.id === 'number' ? String(brand.id) : '';
   const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[])
+    .filter(role => {
+      const branding = role?.['branding'];
+      const roleBrandId = branding && typeof branding === 'object' ? (branding as AnyRecord)['id'] : branding;
+      return activeBrandId !== '' && (typeof roleBrandId === 'string' || typeof roleBrandId === 'number') &&
+        String(roleBrandId) === activeBrandId;
+    })
     .map((role: AnyRecord) => String(role['name'] ?? ''))
     .filter((name: string) => !!name);
   const reusableFormDefs = sails.config.reusableFormDefinitions;
