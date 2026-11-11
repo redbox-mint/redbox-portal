@@ -97,6 +97,14 @@ module.exports.registerRedboxConfig = function() {
 
 Hook configurations are merged with core defaults using the installation's root `package.json` `hookLoadPriority` list when present. The first hook listed has the highest precedence, so config shims process lower-precedence hooks first and the first listed hook wins conflicting values. Hooks not listed in `hookLoadPriority` are processed before listed hooks and keep the previous deterministic package-name fallback behavior.
 
+Hook `auth.rules` arrays append after core rules in hook processing order, with
+exact duplicate rule objects removed. Rules with different permission flags or
+branding remain separate, even when path and role match. A hook can supply a
+complete replacement with `auth: { _dontMerge: ['rules'], rules: [...] }`; that
+list is retained exactly. Other auth settings keep their normal merge behavior.
+See [Extending authorization rules](Redbox-Loader#extending-authorization-rules)
+for examples and database seeding behavior.
+
 ## Environment variables
 
 It is possible to use environment variables to modify configuration, this is particularly useful when running the portal in a containerised environment such as Docker. Please see [Sails configuration documentation for more information](https://sailsjs.com/documentation/concepts/configuration#?setting-sailsconfig-values-directly-using-environment-variables).

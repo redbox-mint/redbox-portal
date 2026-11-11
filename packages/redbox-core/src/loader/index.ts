@@ -242,6 +242,12 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
         if (name === 'agendaQueue' && Array.isArray(source.jobs)) {
             source.jobs = normalizeAgendaJobsConfig(source.jobs);
         }
+        const appendAuthRules = name === 'auth' && Array.isArray(source.rules)
+            && !(Array.isArray(source._dontMerge) && source._dontMerge.includes('rules'));
+        const previousAuthRules = appendAuthRules && Array.isArray(merged.rules) ? merged.rules : [];
+        // Independent auth rules must not merge with, or apply nested directives to,
+        // earlier rules by array index. Explicit replacement keeps the existing path.
+        if (appendAuthRules) delete merged.rules;
         applyDontMerge(merged, source);
         if (name === 'agendaQueue') {
             merged = mergeAgendaQueueConfig(merged, source);
@@ -251,6 +257,10 @@ export function mergeRedboxConfig(name: string, ...configs: RedboxConfigMap[]): 
             }) as RedboxConfigMap;
         } else {
             _.merge(merged, source);
+        }
+        if (appendAuthRules) {
+            // Only identical grants collapse; differing flags or branding remain separate.
+            merged.rules = _.uniqWith([...previousAuthRules, ...(merged.rules as unknown[])], _.isEqual);
         }
     }
     return merged;
