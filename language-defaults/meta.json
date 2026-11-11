@@ -11080,5 +11080,415 @@
     "category": "data-grids",
     "description": "Fallback group heading for metadata without a labelled form container",
     "contentFormat": "plain"
+  },
+  "data-grids-records-reporting": {
+    "category": "Record explorer and named queries",
+    "description": "Records & reporting",
+    "contentFormat": "plain"
+  },
+  "data-grids-published": {
+    "category": "Record explorer and named queries",
+    "description": "Published",
+    "contentFormat": "plain"
+  },
+  "data-grids-published-as": {
+    "category": "Record explorer and named queries",
+    "description": "Published as",
+    "contentFormat": "plain"
+  },
+  "data-grids-named-queries": {
+    "category": "Record explorer and named queries",
+    "description": "Named queries →",
+    "contentFormat": "plain"
+  },
+  "data-grids-publish-named-query": {
+    "category": "Record explorer and named queries",
+    "description": "Publish as named query…",
+    "contentFormat": "plain"
+  },
+  "data-grids-update-named-query": {
+    "category": "Record explorer and named queries",
+    "description": "Update named query…",
+    "contentFormat": "plain"
+  },
+  "data-grids-conditions": {
+    "category": "Record explorer and named queries",
+    "description": "Conditions",
+    "contentFormat": "plain"
+  },
+  "data-grids-edit-columns": {
+    "category": "Record explorer and named queries",
+    "description": "Edit columns",
+    "contentFormat": "plain"
+  },
+  "data-grids-done": {
+    "category": "Record explorer and named queries",
+    "description": "Done",
+    "contentFormat": "plain"
+  },
+  "data-grids-field-options": {
+    "category": "Record explorer and named queries",
+    "description": "Field options",
+    "contentFormat": "plain"
+  },
+  "data-grids-json-view": {
+    "category": "Record explorer and named queries",
+    "description": "JSON",
+    "contentFormat": "plain"
+  },
+  "data-grids-result-view": {
+    "category": "Record explorer and named queries",
+    "description": "Result view",
+    "contentFormat": "plain"
+  },
+  "data-grids-more-available": {
+    "category": "Record explorer and named queries",
+    "description": "more available",
+    "contentFormat": "plain"
+  },
+  "data-grids-shown-in-order": {
+    "category": "Record explorer and named queries",
+    "description": "Shown, in order",
+    "contentFormat": "plain"
+  },
+  "data-grids-reset": {
+    "category": "Record explorer and named queries",
+    "description": "Reset",
+    "contentFormat": "plain"
+  },
+  "data-grids-keyboard-column-help": {
+    "category": "Record explorer and named queries",
+    "description": "Drag to reorder, or use arrow keys on a focused chip. Home and End move it to the beginning or end.",
+    "contentFormat": "plain"
+  },
+  "data-grids-repeating-note": {
+    "category": "Record explorer and named queries",
+    "description": "sub-fields belong to repeating groups. Add the group column and open a cell to see every value.",
+    "contentFormat": "plain"
+  },
+  "data-grids-show-them": {
+    "category": "Record explorer and named queries",
+    "description": "Show them",
+    "contentFormat": "plain"
+  },
+  "data-grids-hide-them": {
+    "category": "Record explorer and named queries",
+    "description": "Hide them",
+    "contentFormat": "plain"
+  },
+  "data-grids-apply-and-run": {
+    "category": "Record explorer and named queries",
+    "description": "Apply and run",
+    "contentFormat": "plain"
+  },
+  "data-grids-visual-readonly": {
+    "category": "Record explorer and named queries",
+    "description": "This query was unlinked for GraphQL editing. Visual controls are read-only. Run uses the GraphQL query. Start a new query to use the Visual builder again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql-linked": {
+    "category": "Record explorer and named queries",
+    "description": "Generated from the Visual tab. It updates when you change conditions or columns there. To edit it here, unlink it; the Visual tab then becomes read-only for this query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-graphql-unlinked": {
+    "category": "Record explorer and named queries",
+    "description": "You are editing this query in GraphQL. The Visual tab is read-only; both tabs run the same query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-unlink-edit": {
+    "category": "Record explorer and named queries",
+    "description": "Unlink and edit",
+    "contentFormat": "plain"
+  },
+  "data-grids-checking": {
+    "category": "Record explorer and named queries",
+    "description": "Checking…",
+    "contentFormat": "plain"
+  },
+  "data-grids-valid": {
+    "category": "Record explorer and named queries",
+    "description": "Valid",
+    "contentFormat": "plain"
+  },
+  "data-grids-needs-attention": {
+    "category": "Record explorer and named queries",
+    "description": "Needs attention",
+    "contentFormat": "plain"
+  },
+  "data-grids-query-check-help": {
+    "category": "Record explorer and named queries",
+    "description": "Check the document, variable values and current schema before running this query.",
+    "contentFormat": "plain"
+  },
+  "data-grids-insert-field-help": {
+    "category": "Record explorer and named queries",
+    "description": "After unlinking, click a field to add it to the records selection.",
+    "contentFormat": "plain"
+  },
+  "data-grids-oid": {
+    "category": "Record explorer and named queries",
+    "description": "OID",
+    "contentFormat": "plain"
+  },
+  "data-grids-paging": {
+    "category": "Record explorer and named queries",
+    "description": "Paging",
+    "contentFormat": "plain"
+  },
+  "data-grids-publish-title": {
+    "category": "Record explorer and named queries",
+    "description": "Publish as named query",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-linked-help": {
+    "category": "Record explorer and named queries",
+    "description": "The saved explorer query and this named query stay linked.",
+    "contentFormat": "plain"
+  },
+  "data-grids-save-before-publish": {
+    "category": "Record explorer and named queries",
+    "description": "Save this query first so the named query can link to its saved revision. Publishing continues after saving.",
+    "contentFormat": "plain"
+  },
+  "nq-section-basics": {
+    "category": "Record explorer and named queries",
+    "description": "Basics",
+    "contentFormat": "plain"
+  },
+  "nq-section-name": {
+    "category": "Record explorer and named queries",
+    "description": "Name",
+    "contentFormat": "plain"
+  },
+  "nq-section-name-help": {
+    "category": "Record explorer and named queries",
+    "description": "Use letters, numbers, underscores or hyphens. The name is used by forms and the API.",
+    "contentFormat": "plain"
+  },
+  "nq-section-used-for": {
+    "category": "Record explorer and named queries",
+    "description": "Used for",
+    "contentFormat": "plain"
+  },
+  "nq-section-general": {
+    "category": "Record explorer and named queries",
+    "description": "API query",
+    "contentFormat": "plain"
+  },
+  "nq-section-form-lookup": {
+    "category": "Record explorer and named queries",
+    "description": "Form lookup (typeahead)",
+    "contentFormat": "plain"
+  },
+  "nq-section-parameters": {
+    "category": "Record explorer and named queries",
+    "description": "Parameters",
+    "contentFormat": "plain"
+  },
+  "nq-section-parameters-help": {
+    "category": "Record explorer and named queries",
+    "description": "Choose what callers can change. Everything else stays as saved.",
+    "contentFormat": "plain"
+  },
+  "nq-section-condition": {
+    "category": "Record explorer and named queries",
+    "description": "Condition",
+    "contentFormat": "plain"
+  },
+  "nq-section-saved-value": {
+    "category": "Record explorer and named queries",
+    "description": "Saved value",
+    "contentFormat": "plain"
+  },
+  "nq-section-when-called": {
+    "category": "Record explorer and named queries",
+    "description": "When called",
+    "contentFormat": "plain"
+  },
+  "nq-section-paging-managed": {
+    "category": "Record explorer and named queries",
+    "description": "Handled by ReDBox",
+    "contentFormat": "plain"
+  },
+  "nq-section-keep-value": {
+    "category": "Record explorer and named queries",
+    "description": "Keep saved value",
+    "contentFormat": "plain"
+  },
+  "nq-section-caller-provides": {
+    "category": "Record explorer and named queries",
+    "description": "Caller provides",
+    "contentFormat": "plain"
+  },
+  "nq-section-leave-out": {
+    "category": "Record explorer and named queries",
+    "description": "Leave out",
+    "contentFormat": "plain"
+  },
+  "nq-section-parameter-name": {
+    "category": "Record explorer and named queries",
+    "description": "Parameter name",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-fields": {
+    "category": "Record explorer and named queries",
+    "description": "Lookup fields",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-help": {
+    "category": "Record explorer and named queries",
+    "description": "Choose what each suggestion stores and shows in the form. Also store accepts a selected object.",
+    "contentFormat": "plain"
+  },
+  "nq-section-mapping-oid": {
+    "category": "Record explorer and named queries",
+    "description": "Stored value",
+    "contentFormat": "plain"
+  },
+  "nq-section-mapping-title": {
+    "category": "Record explorer and named queries",
+    "description": "Label",
+    "contentFormat": "plain"
+  },
+  "nq-section-mapping-metadata": {
+    "category": "Record explorer and named queries",
+    "description": "Also store",
+    "contentFormat": "plain"
+  },
+  "nq-section-none": {
+    "category": "Record explorer and named queries",
+    "description": "None",
+    "contentFormat": "plain"
+  },
+  "nq-section-advanced-paths": {
+    "category": "Record explorer and named queries",
+    "description": "Advanced: response paths",
+    "contentFormat": "plain"
+  },
+  "nq-section-raw-mappings": {
+    "category": "Record explorer and named queries",
+    "description": "Mapping paths (JSON)",
+    "contentFormat": "plain"
+  },
+  "nq-section-invalid-paths": {
+    "category": "Record explorer and named queries",
+    "description": "Enter an object of mapping names and arrays of literal path segments.",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview": {
+    "category": "Record explorer and named queries",
+    "description": "Preview",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview-help": {
+    "category": "Record explorer and named queries",
+    "description": "Preview reads real records using your current access. It does not save the query.",
+    "contentFormat": "plain"
+  },
+  "nq-section-run-preview": {
+    "category": "Record explorer and named queries",
+    "description": "Run preview",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview-running": {
+    "category": "Record explorer and named queries",
+    "description": "Running preview…",
+    "contentFormat": "plain"
+  },
+  "nq-section-ready": {
+    "category": "Record explorer and named queries",
+    "description": "Ready to publish",
+    "contentFormat": "plain"
+  },
+  "nq-section-preview-failed": {
+    "category": "Record explorer and named queries",
+    "description": "Preview could not run. Check the parameters, query and your access, then try again.",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-paging-required": {
+    "category": "Record explorer and named queries",
+    "description": "A form lookup needs a records query with first and after variables, nodes and page information. Edit it in GraphQL before publishing as a lookup.",
+    "contentFormat": "plain"
+  },
+  "nq-section-search-parameter": {
+    "category": "Record explorer and named queries",
+    "description": "Text the user types",
+    "contentFormat": "plain"
+  },
+  "nq-section-choose-search": {
+    "category": "Record explorer and named queries",
+    "description": "Choose a caller-provided text parameter",
+    "contentFormat": "plain"
+  },
+  "nq-section-advanced-document": {
+    "category": "Record explorer and named queries",
+    "description": "Advanced: GraphQL document",
+    "contentFormat": "plain"
+  },
+  "nq-section-check-settings": {
+    "category": "Record explorer and named queries",
+    "description": "Check the parameter choices and mappings. Every required variable needs a saved value or a caller-provided value.",
+    "contentFormat": "plain"
+  },
+  "nq-section-lookup-check": {
+    "category": "Record explorer and named queries",
+    "description": "Choose a caller-provided search parameter, a stored value and a label to use this query in forms.",
+    "contentFormat": "plain"
+  },
+  "nq-section-caller-access": {
+    "category": "Record explorer and named queries",
+    "description": "Runs as the person calling the query. It does not grant extra record access.",
+    "contentFormat": "plain"
+  },
+  "nq-section-update": {
+    "category": "Record explorer and named queries",
+    "description": "Update named query",
+    "contentFormat": "plain"
+  },
+  "nq-section-publish": {
+    "category": "Record explorer and named queries",
+    "description": "Publish",
+    "contentFormat": "plain"
+  },
+  "nq-section-review-title": {
+    "category": "Record explorer and named queries",
+    "description": "Review named-query update",
+    "contentFormat": "plain"
+  },
+  "nq-section-review-help": {
+    "category": "Record explorer and named queries",
+    "description": "This update changes the query contract. Review the consumers below before applying it.",
+    "contentFormat": "plain"
+  },
+  "nq-section-review-limit": {
+    "category": "Record explorer and named queries",
+    "description": "Hooks and direct API callers may also use this query. ReDBox cannot list every consumer.",
+    "contentFormat": "plain"
+  },
+  "nq-section-confirm-update": {
+    "category": "Record explorer and named queries",
+    "description": "Confirm and update",
+    "contentFormat": "plain"
+  },
+  "data-grids-full-schema": {
+    "category": "Record explorer and named queries",
+    "description": "Full schema (advanced)",
+    "contentFormat": "plain"
+  },
+  "data-grids-title-column": {
+    "category": "Record explorer and named queries",
+    "description": "Title",
+    "contentFormat": "plain"
+  },
+  "data-grids-promotion-query-changed": {
+    "category": "Record explorer and named queries",
+    "description": "The query changed while publishing was opening. Save your changes and try again.",
+    "contentFormat": "plain"
+  },
+  "data-grids-publication-target": {
+    "category": "Record explorer and named queries",
+    "description": "Named query to update",
+    "contentFormat": "plain"
   }
 }

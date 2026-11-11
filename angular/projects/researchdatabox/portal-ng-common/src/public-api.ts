@@ -63,3 +63,10 @@ export * from './lib/schema-assist/caret-coordinates';
 export * from './lib/schema-assist/template-completion';
 export * from './lib/schema-assist/schema-target-selector.component';
 export * from './lib/schema-assist/latest-request';
+
+export * from './lib/admin-side-panel.component';
+export * from './lib/named-query-sections/named-query-basics-section.component';
+export * from './lib/named-query-sections/named-query-lookup-section.component';
+export * from './lib/named-query-sections/named-query-parameters-section.component';
+export * from './lib/named-query-sections/named-query-preview-section.component';
+export * from './lib/named-query-sections/named-query-sections.model';
