@@ -3,38 +3,43 @@ import { createAuthenticatedContext } from './fixtures/auth';
 
 test.describe('Angular bootstrap recovery', () => {
   for (const endpoint of ['csrfToken', 'dynamic/apiClientConfig*']) {
-    test(`renders recovery controls and retries after ${endpoint} fails`, async ({ page }) => {
-      // Hook layouts can omit page snapshots. Exercise that HTTP fallback before Angular starts.
-      const snapshotName = endpoint === 'csrfToken' ? 'rb-csrf-token' : 'rb-client-config';
-      await page.addInitScript((name) => {
-        const observer = new MutationObserver(() => {
-          const snapshot = document.querySelector(`meta[name="${name}"]`);
-          if (snapshot) {
-            snapshot.remove();
-            observer.disconnect();
+    test(`renders recovery controls and retries after ${endpoint} fails`, async ({ browser }) => {
+      const { context, page } = await createAuthenticatedContext(browser);
+      try {
+        // Hook layouts can omit page snapshots. Exercise that HTTP fallback before Angular starts.
+        const snapshotName = endpoint === 'csrfToken' ? 'rb-csrf-token' : 'rb-client-config';
+        await page.addInitScript(name => {
+          const observer = new MutationObserver(() => {
+            const snapshot = document.querySelector(`meta[name="${name}"]`);
+            if (snapshot) {
+              snapshot.remove();
+              observer.disconnect();
+            }
+          });
+          observer.observe(document, { childList: true, subtree: true });
+        }, snapshotName);
+        let attempts = 0;
+        await page.route(`**/${endpoint}`, async route => {
+          attempts += 1;
+          if (attempts === 1) {
+            await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+          } else {
+            await route.continue();
           }
         });
-        observer.observe(document, { childList: true, subtree: true });
-      }, snapshotName);
-      let attempts = 0;
-      await page.route(`**/${endpoint}`, async (route) => {
-        attempts += 1;
-        if (attempts === 1) {
-          await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
-        } else {
-          await route.continue();
-        }
-      });
 
-      await page.goto('/default/rdmp/admin/users', { waitUntil: 'domcontentloaded' });
-      await expect(page.locator(`meta[name="${snapshotName}"]`)).toHaveCount(0);
-      const error = page.locator('manage-users [role="alert"]');
-      await expect(error).toContainText('Unable to load data');
-      await expect(page.locator('#manage-users-search')).toHaveCount(0);
-      await error.getByRole('button', { name: 'Retry', exact: true }).click();
-      await expect(page.locator('#manage-users-search')).toBeVisible();
-      await expect(error).toHaveCount(0);
-      expect(attempts).toBe(2);
+        await page.goto('/default/rdmp/admin/users', { waitUntil: 'domcontentloaded' });
+        await expect(page.locator(`meta[name="${snapshotName}"]`)).toHaveCount(0);
+        const error = page.locator('manage-users [role="alert"]');
+        await expect(error).toContainText('Unable to load data');
+        await expect(page.locator('#manage-users-search')).toHaveCount(0);
+        await error.getByRole('button', { name: 'Retry', exact: true }).click();
+        await expect(page.locator('#manage-users-search')).toBeVisible();
+        await expect(error).toHaveCount(0);
+        expect(attempts).toBe(2);
+      } finally {
+        await context.close();
+      }
     });
   }
 });

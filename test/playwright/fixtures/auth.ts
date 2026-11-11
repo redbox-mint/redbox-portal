@@ -23,7 +23,7 @@ export async function csrfToken(context: BrowserContext): Promise<string> {
   ).filter(Boolean);
   const statuses: string[] = [];
   for (const path of paths) {
-    const response = await context.request.get(path);
+    const response = await context.request.get(path, { params: { branding: 'default', portal: 'rdmp' } });
     statuses.push(`${path}=${response.status()}`);
     if (response.ok()) {
       const body = (await response.json().catch(() => ({}))) as { _csrf?: string; csrfToken?: string };
@@ -37,7 +37,7 @@ export async function loginWithCsrf(page: Page, persona: Persona = adminPersona)
   const context = page.context();
   const token = await csrfToken(context);
   const response = await context.request.post('/user/login_local', {
-    form: { username: persona.username, password: persona.password, _csrf: token },
+    form: { username: persona.username, password: persona.password, _csrf: token, branding: 'default', portal: 'rdmp' },
     headers: { 'X-CSRF-Token': token, 'x-source': 'jsclient' },
   });
   if (!response.ok()) throw new Error(`Login failed (${response.status()} ${response.statusText()}).`);
