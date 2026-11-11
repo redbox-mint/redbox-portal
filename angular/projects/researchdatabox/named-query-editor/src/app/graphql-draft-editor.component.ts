@@ -88,9 +88,32 @@ export class GraphqlDraftEditorComponent implements OnChanges {
     if ([this.operation.lookup?.firstVariable, this.operation.lookup?.afterVariable].includes(name)) return 'server';
     return this.operation.variables[name]?.ownership ?? '';
   }
+  setDocument(value: string): void {
+    this.operation.document = value;
+    this.reconcileVariableValidity();
+    this.draftChange.emit();
+  }
+  private reconcileVariableValidity(): void {
+    const controls = new Set<string>();
+    for (const variable of this.variables) {
+      // Match the template, including consumer controls in a conflicting saved binding.
+      if (this.ownership(variable.name) === 'fixed') controls.add('variable:' + variable.name + ':fixed');
+      if (this.binding(variable.name)) controls.add('variable:' + variable.name + ':default');
+    }
+    let removed = false;
+    for (const key of this.invalid) {
+      if (key.startsWith('variable:') && !controls.has(key)) {
+        this.invalid.delete(key);
+        removed = true;
+      }
+    }
+    // Reconcile before Angular removes controls; retained controls keep their errors.
+    if (removed) this.validityChange.emit(!this.invalid.size);
+  }
   setOperationName(value: string): void {
     if (value.trim()) this.operation.operationName = value.trim();
     else delete this.operation.operationName;
+    this.reconcileVariableValidity();
     this.draftChange.emit();
   }
   classify(name: string, ownership: string): void {

@@ -355,6 +355,93 @@ describe('NamedQueryEditorComponent', () => {
       expect(current).not.toBe(input); expect(current.value).toBe(''); expect(current.getAttribute('aria-invalid')).toBe('false');
       expect(component.previewInputInvalid).toBeFalse(); expect(component.testParameters).toEqual({});
     });
+  for (const transition of ['parse failure', 'missing operation', 'removed declaration'])
+    it(`reconciles default validity after ${transition} destroys and recreates its GraphQL control`, async () => {
+      const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+      const api = TestBed.inject(NamedQueryApiService); const preview = spyOn(api, 'preview').and.callThrough();
+      fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.draft.name = 'lifecycle'; component.changeSource('graphql');
+      Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql); component.draftChanged(); fixture.detectChanges();
+      const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
+      editor.tab = 'variables'; editor.setDefault('search', 'stored default'); fixture.detectChanges(); await fixture.whenStable();
+      const defaultInput = () => fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
+        .find(node => node.componentInstance.label === 'named-query-graphql-default')?.nativeElement.querySelector('textarea') as HTMLTextAreaElement | undefined;
+      const input = defaultInput()!;
+      const test = fixture.nativeElement.querySelector('.nq-test-parameters textarea') as HTMLTextAreaElement;
+      test.value = '"current search"'; test.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+      input.value = '{unfinished'; input.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+      expect(component.pendingInput).toBeTrue(); await component.preview(); expect(preview).not.toHaveBeenCalled();
+      editor.tab = 'document'; fixture.detectChanges();
+      const document = fixture.nativeElement.querySelector('#nq-graphql-document') as HTMLTextAreaElement;
+      const operation = fixture.nativeElement.querySelector('#nq-graphql-operation') as HTMLInputElement;
+      const original = component.activeGraphqlBuffer.graphql.document;
+      if (transition === 'missing operation') {
+        operation.value = 'Missing'; operation.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        document.value = transition === 'parse failure' ? 'query Q(' : 'query Q { records(recordType: "rdmp") { nodes { oid } } }';
+        document.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      fixture.detectChanges(); await fixture.whenStable();
+      expect(input.isConnected).toBeFalse(); expect(defaultInput()).toBeUndefined();
+      if (transition === 'missing operation') {
+        operation.value = ''; operation.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        document.value = original; document.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      fixture.detectChanges(); await fixture.whenStable(); editor.tab = 'variables'; fixture.detectChanges();
+      const current = defaultInput()!;
+      expect(current).not.toBe(input); expect(current.value).toBe('"stored default"'); expect(current.getAttribute('aria-invalid')).toBe('false');
+      expect(fixture.nativeElement.querySelectorAll('nq-graphql-draft-editor [aria-invalid="true"]').length).toBe(0);
+      expect(component.pendingInput).toBeFalse(); expect(component.canSave).toBeTrue(); expect(component.previewInputInvalid).toBeFalse();
+      const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+        .find(button => button.textContent?.includes('named-query-preview'))!;
+      expect(button.disabled).toBeFalse(); expect(preview).not.toHaveBeenCalled();
+      button.click(); await fixture.whenStable();
+      expect(preview).toHaveBeenCalledTimes(1);
+      const request = preview.calls.mostRecent().args[0];
+      expect(request.definition).toEqual(jasmine.objectContaining({ graphql: jasmine.objectContaining({
+        document: original, variables: jasmine.objectContaining({ search: jasmine.objectContaining({ defaultValue: JSON.parse(current.value) }) }),
+      }) }));
+      expect(request.parameters).toEqual({ search: JSON.parse(test.value) });
+    });
+  it('retains other mounted GraphQL JSON errors across document, operation, source and ownership changes', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService); const preview = spyOn(api, 'preview').and.callThrough();
+    fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.draft.name = 'mounted'; component.changeSource('graphql');
+    Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql); component.draftChanged(); fixture.detectChanges();
+    const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
+    editor.tab = 'variables'; fixture.detectChanges(); await fixture.whenStable();
+    const path = fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
+      .find(node => node.componentInstance.label === 'named-query-graphql-result-path')!.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    const input = fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
+      .find(node => node.componentInstance.label === 'named-query-graphql-default')!.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    for (const control of [path, input]) { control.value = '{unfinished'; control.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges(); }
+    const document = fixture.nativeElement.querySelector('#nq-graphql-document') as HTMLTextAreaElement;
+    const operation = fixture.nativeElement.querySelector('#nq-graphql-operation') as HTMLInputElement;
+    const original = component.activeGraphqlBuffer.graphql.document;
+    // Selecting the same declared variable retains the invalid default control.
+    operation.value = 'Q'; operation.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    document.value = original + ' query Other($search: String) { records(recordType: $search) { nodes { oid } } }';
+    document.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    operation.value = 'Other'; operation.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    expect(input.isConnected).toBeTrue(); expect(input.value).toBe('{unfinished'); expect(component.pendingInput).toBeTrue();
+    component.changeSource('database'); fixture.detectChanges(); expect(component.pendingInput).toBeFalse();
+    expect(input.isConnected).toBeTrue(); expect(input.getAttribute('aria-invalid')).toBe('true');
+    component.changeSource('graphql'); fixture.detectChanges(); expect(component.pendingInput).toBeTrue();
+    expect(input.isConnected).toBeTrue(); expect(input.value).toBe('{unfinished');
+    document.value = 'query('; document.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    expect(input.isConnected).toBeFalse(); expect(path.isConnected).toBeTrue(); expect(component.pendingInput).toBeTrue();
+    document.value = original; document.dispatchEvent(new Event('input', { bubbles: true }));
+    operation.value = ''; operation.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    component.changeSource('database'); fixture.detectChanges(); expect(component.pendingInput).toBeFalse();
+    component.changeSource('graphql'); fixture.detectChanges(); expect(component.pendingInput).toBeTrue();
+    const owner = fixture.nativeElement.querySelector('#nq-owner-search') as HTMLSelectElement;
+    owner.value = 'fixed'; owner.dispatchEvent(new Event('change', { bubbles: true })); fixture.detectChanges();
+    expect(path.isConnected).toBeTrue(); expect(path.value).toBe('{unfinished'); expect(path.getAttribute('aria-invalid')).toBe('true');
+    expect(component.pendingInput).toBeTrue(); expect(component.previewInputInvalid).toBeTrue();
+    await component.preview(); expect(preview).not.toHaveBeenCalled();
+    path.value = '["records", "nodes"]'; path.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+    expect(component.pendingInput).toBeFalse(); expect(component.previewInputInvalid).toBeFalse();
+  });
   it('lists invalid catalogue rows safely without treating their source as a database query', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance; const api = TestBed.inject(NamedQueryApiService);
     spyOn(api, 'list').and.resolveTo([{ name: 'damaged', source: { untrusted: true }, valid: false, diagnostics: [] }]);

@@ -52,8 +52,8 @@
     class="form-control font-monospace"
     rows="16"
     spellcheck="false"
-    [(ngModel)]="operation.document"
-    (ngModelChange)="draftChange.emit()"
+    [ngModel]="operation.document"
+    (ngModelChange)="setDocument($event)"
   ></textarea>
   <label for="nq-graphql-operation" class="rb-ws-label mt-3">{{ 'named-query-graphql-operation' | i18next }}</label>
   <input

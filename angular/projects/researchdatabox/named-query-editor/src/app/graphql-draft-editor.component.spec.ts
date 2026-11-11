@@ -76,6 +76,30 @@ describe('detached GraphQL named-query editor', () => {
     fixture.detectChanges();
     expect(editor.fixed('search')).toBeNull();
   });
+  it('retains a mounted consumer-default error while a saved paging ownership conflict is repaired', async () => {
+    editor.classify('search', 'consumer');
+    editor.toggleLookup(true);
+    editor.operation.lookup!.firstVariable = 'search';
+    editor.tab = 'variables';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const json = fixture.debugElement
+      .queryAll(By.directive(GraphqlJsonInputComponent))
+      .map(node => node.componentInstance as GraphqlJsonInputComponent)
+      .find(control => control.label === 'named-query-graphql-default')!;
+    const input = fixture.nativeElement.querySelector('#' + json.id) as HTMLTextAreaElement;
+    const validity = jasmine.createSpy('validity');
+    editor.validityChange.subscribe(validity);
+    input.value = '{unfinished';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.setDocument(editor.operation.document + ' ');
+    fixture.detectChanges();
+    expect(input.isConnected).toBeTrue();
+    expect(input.value).toBe('{unfinished');
+    expect(json.invalid).toBeTrue();
+    expect(validity.calls.mostRecent().args[0]).toBeFalse();
+  });
   it('removes an optional operation name when the rendered input is cleared for an unnamed query', async () => {
     editor.operation.operationName = 'Q';
     editor.tab = 'document';
