@@ -642,6 +642,38 @@ describe('redbox-loader', function () {
             }
         });
 
+        it('exports the same auth rules in the pre-lift snapshot as the generated shim merges', async function () {
+            const first = 'redbox-hook-a-rules';
+            const second = 'redbox-hook-b-settings';
+            await fsPromises.writeFile(path.join(sandboxDir, 'package.json'), JSON.stringify({
+                dependencies: { [first]: '1.0.0', [second]: '1.0.0' }, hookLoadPriority: [second, first]
+            }));
+            // An explicit replacement keeps its duplicates; a later hook without rules must not collapse them.
+            await createHookModule(sandboxDir, first, { name: first, main: 'index.js', sails: { hasConfig: true } },
+                `module.exports.registerRedboxConfig = () => ({ auth: { _dontMerge: ['rules'], rules: [
+                    { path: '/a', role: 'Admin', can_read: true }, { path: '/a', role: 'Admin', can_read: true }
+                ] } });`);
+            await createHookModule(sandboxDir, second, { name: second, main: 'index.js', sails: { hasConfig: true } },
+                `module.exports.registerRedboxConfig = () => ({ auth: { defaultPortal: 'other' } });`);
+            const { hookConfigs } = await redboxLoader.findAndRegisterHookConfigs(sandboxDir);
+            expect(hookConfigs.map(hook => hook.name)).to.deep.equal([first, second]);
+            const { Config } = require('../../src');
+            const layers = hookConfigs.map(hook =>
+                require(require.resolve(hook.module, { paths: [sandboxDir] })).registerRedboxConfig().auth);
+            const runtime = redboxLoader.mergeRedboxConfig('auth', Config.auth, ...layers);
+            expect(runtime.rules).to.have.length(2);
+
+            process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = 'true';
+            const resolved = hookConfigs.map(hook => ({
+                ...hook, module: require.resolve(hook.module, { paths: [sandboxDir] })
+            }));
+            await redboxLoader.generatePreLiftSnapshot(sandboxDir, resolved);
+            const snapshot = JSON.parse(await fsPromises.readFile(
+                path.join(sandboxDir, 'support', 'debug-config', 'pre-lift-config.json'), 'utf8'));
+            expect(snapshot.auth.rules).to.deep.equal(runtime.rules);
+            expect(snapshot.auth.defaultPortal).to.equal('other');
+        });
+
         it('should sanitize package names with dots when generating config shims', async function () {
             const hookConfigs = [
                 { name: '@org/test.hook', module: '@org/test.hook' }
