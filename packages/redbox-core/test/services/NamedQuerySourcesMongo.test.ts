@@ -201,6 +201,33 @@ describe('named query source Mongo persistence', function () {
     );
   });
 
+  it('requires a complete replacement to repair an unknown source and clears inactive execution fields', async () => {
+    assert.ok(client);
+    const storedQueries = client.db(databaseName).collection('namedquery');
+    const name = 'repairUnknownSource';
+    const key = `${brand.id}_${name}`;
+    await storedQueries.insertOne({
+      key, name, branding: new ObjectId(brand.id), source: 'retired-engine',
+      mongoQuery: '{"stale":true}', queryParams: '{"stale":{}}',
+      resultObjectMapping: '{"stale":"stale"}', graphql: '{"stale":true}',
+    });
+    await assert.rejects(
+      service.update(brand, name, { source: 'database', collectionName: 'record' }),
+      NamedQueryDefinitionError
+    );
+    assert.equal((await storedQueries.findOne({ key }))?.source, 'retired-engine');
+    await service.update(brand, name, database);
+    const repaired = await storedQueries.findOne({ key });
+    assert.equal(repaired?.source, null);
+    assert.equal(repaired?.graphql, null);
+    assert.deepEqual(JSON.parse(repaired?.mongoQuery), database.mongoQuery);
+    assert.deepEqual(JSON.parse(repaired?.queryParams), database.queryParams);
+    assert.deepEqual(JSON.parse(repaired?.resultObjectMapping), database.resultObjectMapping);
+    const listed = (await service.list(brand)).find(item => item.name === name);
+    assert.ok(listed && !('valid' in listed));
+    assert.ok(await service.getNamedQueryConfig(brand, name));
+  });
+
   it('lists a natively inserted unknown source safely alongside valid rows and permits deletion without execution', async () => {
     await service.create(brand, 'catalogueDatabase', database);
     await service.create(brand, 'catalogueGraphql', graphql, caller);

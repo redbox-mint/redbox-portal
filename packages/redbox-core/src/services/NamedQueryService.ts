@@ -502,7 +502,8 @@ export namespace Services {
       }
       // GraphQL has brand ownership through the association, not a database scope path.
       const brandScope = this.resolveBrandScope(config.collectionName);
-      if (existing?.source === 'graphql') {
+      const replacing = existing?.source != null && existing.source !== 'database';
+      if (replacing) {
         for (const field of ['mongoQuery', 'queryParams', 'resultObjectMapping'] as const) {
           if (config[field] === undefined) throw new NamedQueryDefinitionError(field);
         }
@@ -515,8 +516,8 @@ export namespace Services {
         ...common,
         // Preserve an explicit database source when a legacy editor omits it.
         ...(config.source !== undefined ? { source: config.source } :
-          existing?.source === 'database' ? { source: 'database' } : existing?.source === 'graphql' ? { source: null } : {}),
-        ...(existing?.source === 'graphql' ? { graphql: null } : {}),
+          existing?.source === 'database' ? { source: 'database' } : replacing ? { source: null } : {}),
+        ...(replacing ? { graphql: null } : {}),
         collectionName: config.collectionName,
         mongoQuery: serialize(existing?.mongoQuery, config.mongoQuery),
         queryParams: serialize(existing?.queryParams, config.queryParams),
