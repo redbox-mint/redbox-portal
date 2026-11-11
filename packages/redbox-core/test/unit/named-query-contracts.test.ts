@@ -40,6 +40,22 @@ describe('source-aware named query route contracts', () => {
     ])
       assert.equal(namedQueryExecutionResultSchema.safeParse(invalid).success, false);
   });
+  it('keeps database date mappings restricted to nullable date strings', () => {
+    const record = { oid: 'a', title: 'A', metadata: {}, dateCreated: null, lastSaveDate: null };
+    const result = { source: 'database', records: [record], summary: { numFound: 1, start: 0, page: 1 } };
+    for (const target of ['dateCreated', 'lastSaveDate'] as const) {
+      for (const value of [null, '2026-01-01T00:00:00.000Z'])
+        assert.equal(
+          namedQueryExecutionResultSchema.safeParse({ ...result, records: [{ ...record, [target]: value }] }).success,
+          true
+        );
+      for (const value of [true, false, 0, [], {}])
+        assert.equal(
+          namedQueryExecutionResultSchema.safeParse({ ...result, records: [{ ...record, [target]: value }] }).success,
+          false
+        );
+    }
+  });
   it('generates CRUD and execution contracts including the source union', () => {
     const doc = buildOpenApiDocument([createNamedQueryRoute, updateNamedQueryRoute, executeNamedQueryRoute], {
       title: 'Named queries',

@@ -56,8 +56,9 @@ export const namedQueryExecutionResultSchema = z.union([
         oid: z.string().optional(),
         title: z.string().optional(),
         metadata: z.unknown().optional(),
-        dateCreated: z.string().nullable().optional(),
-        lastSaveDate: z.string().nullable().optional(),
+        // GraphQL mappings preserve selected values; these wrapper names do not coerce dates.
+        dateCreated: z.unknown().optional().describe('Optional mapped value preserved without date coercion.'),
+        lastSaveDate: z.unknown().optional().describe('Optional mapped value preserved without date coercion.'),
       })
     ),
     summary: z.object({ numFound: z.null(), start: z.literal(0), page: z.literal(1) }),

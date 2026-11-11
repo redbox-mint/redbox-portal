@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import sinon from 'sinon';
 import type { GraphqlNamedQueryDefinition } from '@researchdatabox/sails-ng-common';
 import { gridHarness, gridCaller } from '../fixtures/record-grid.fixtures';
+import { metadataTypeName } from '../../src/record-graphql/renderer';
+import { namedQueryExecutionResultSchema } from '../../src/api-routes/schemas/named-query';
 import { Services } from '../../src/services/NamedQueryService';
 import { Services as EditorServices } from '../../src/services/NamedQueryEditorService';
 import {
@@ -186,6 +188,30 @@ describe('GraphQL named query execution boundary', () => {
       assert.equal(Object.hasOwn(row, 'lastSaveDate'), false);
     }
   });
+  for (const target of ['dateCreated', 'lastSaveDate'] as const)
+    it(`round-trips real Yoga ${target} mappings through the REST response schema`, async () => {
+      const input = definition();
+      const document = input.graphql.document.replace(
+        'dateCreated:createdOn lastSaveDate:lastModified',
+        `values:metadata { ... on ${metadataTypeName(h.contracts[0])} { active } }`
+      );
+      delete input.graphql.mappings!.dateCreated;
+      delete input.graphql.mappings!.lastSaveDate;
+      input.graphql.mappings![target] = ['values', 'active'];
+      for (const value of [undefined, null, true, false]) {
+        // A conditional optional selection stays absent; selected nullable
+        // Boolean values retain their actual Yoga values on the wire.
+        input.graphql.document =
+          value === undefined ? document.replace('active }', 'active @skip(if:true) }') : document;
+        for (const record of h.records.values()) record.metadata.active = value;
+        const result = await run(input, {}, 0, 1);
+        const row = result.records[0];
+        assert.equal(Object.hasOwn(row, target), value !== undefined);
+        assert.deepEqual(row[target], value);
+        assert.deepEqual(namedQueryExecutionResultSchema.parse(result), result);
+        assert.deepEqual(namedQueryExecutionResultSchema.parse(JSON.parse(JSON.stringify(result))), result);
+      }
+    });
   it('rejects null, missing, inherited and invalid identifiers/labels as whole-result failures', async () => {
     for (const row of [
       null,
