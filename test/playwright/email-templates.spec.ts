@@ -1,7 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { adminStorageStatePath } from './helpers';
+import { loginWithCsrf } from './fixtures/auth';
+import { installExternalAssetStubs } from './fixtures/stubs';
+
+test.beforeEach(async ({ page }) => {
+  await installExternalAssetStubs(page.context());
+  await loginWithCsrf(page);
+});
 
 const api = '/default/rdmp/app/email-templates';
 const templateId = 'test';
@@ -10,9 +16,8 @@ const template = `${api}/templates/${templateId}`;
 // The normal integration configuration supplies this template and the admin
 // account. All lifecycle requests go to the real application and MongoDB.
 test.describe('email template administration', () => {
-  test.use({ storageState: adminStorageStatePath });
 
-  test('previews a record, validates, publishes, restores and preserves a conflicting edit', async ({ page }) => {
+  test('A21 previews a record, validates, publishes, restores and preserves a conflicting edit', async ({ page }) => {
     test.setTimeout(120_000);
     const pageErrors: string[] = [];
     page.on('pageerror', error => pageErrors.push(error.message));
@@ -171,7 +176,6 @@ test.describe('email template administration', () => {
 
 // Stage 4 exercises real responses delayed at the transport boundary, never mocked content.
 test.describe('stage 4 email editor regressions', () => {
-  test.use({ storageState: adminStorageStatePath });
   let headers: Record<string, string>;
   const content = (body: string) => ({ subject: 'Stage 4 regression', body, format: 'html' });
   const url = (id: string) => `${api}/templates/${id}`;
@@ -413,7 +417,7 @@ test.describe('stage 4 email editor regressions', () => {
       }
     }
     await test.info().attach('real-schema-array-probe', { body: JSON.stringify(probes, null, 2), contentType: 'application/json' });
-    test.skip(!selected, 'No real metadata array is exposed by any record type/stage in this test environment; list UI coverage uses the explicit injected fixture.');
+    expect(selected, 'The disposable portal fixtures must expose a real metadata array').toBeTruthy();
     const field = selected!;
     await open(page);
     await page.locator('#et-schema-type').selectOption(field.recordType);
@@ -547,8 +551,7 @@ test.describe('stage 4 email editor regressions', () => {
     if (alias >= 0) expect(alias).toBeGreaterThan(primary);
   });
 
-  test('schema assistance screenshots', async ({ page }) => {
-    test.skip(!process.env.EMAIL_TEMPLATE_SCREENSHOT_DIR, 'Set EMAIL_TEMPLATE_SCREENSHOT_DIR to capture screenshots.');
+  test('schema assistance remains usable across record and partial schemas', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
     await withListField(page);
     await open(page);
