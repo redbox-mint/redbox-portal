@@ -335,15 +335,15 @@ export class ReportConfigComponent extends BaseComponent {
           await this.friendlyGraphqlFields(description);
           if (!this.descriptionRequests.isCurrent(token)) return;
           void this.validateDraft();
-          if (!this.queryVersionChanged) void this.previewReport();
+          if (description.valid && !this.queryVersionChanged) void this.previewReport();
         }
 
         this.selectedOutputs = new Set(
           [...this.selectedOutputs].filter(path => description.result.fields.some(f => f.path === path))
         );
       }
-    } catch {
-      if (this.descriptionRequests.isCurrent(token)) this.assistanceError = this.t('report-assistance-unavailable');
+    } catch (error: unknown) {
+      if (this.descriptionRequests.isCurrent(token)) this.assistanceError = this.getErrorMessage(error, 'report-assistance-unavailable');
     } finally {
       if (this.descriptionRequests.isCurrent(token)) this.describing = false;
     }
@@ -652,12 +652,13 @@ export class ReportConfigComponent extends BaseComponent {
     }
   }
 
-  private getErrorMessage(error: unknown): string {
+  private getErrorMessage(error: unknown, fallback = 'report-request-failed'): string {
     const response = error as { error?: { message?: string; data?: {message?: string}; errors?: Array<{code?: string}> } };
     const message = response.error?.errors?.[0]?.code ?? response.error?.data?.message ?? response.error?.message;
     const key = 'report-graphql-error-' + message;
     const translated = this.t(key);
-    if (message && /^(REPORT_|GRAPHQL_|QUERY_|INVALID_GRAPHQL_|COLLECTION_|UNAVAILABLE$)/.test(message)) return translated !== key ? translated : this.t('report-request-failed');
-    return message ?? this.t('report-request-failed');
+    if (translated !== key) return translated;
+    if (message && /^(REPORT_|GRAPHQL_|QUERY_|INVALID_GRAPHQL_|COLLECTION_|UNAVAILABLE$)/.test(message)) return this.t(fallback);
+    return message ?? this.t(fallback);
   }
 }

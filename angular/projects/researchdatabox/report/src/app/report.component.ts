@@ -105,10 +105,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
         | { data?: { message?: string }; message?: string; errors?: Array<{ code?: string }> }
         | undefined;
       const code = response?.errors?.[0]?.code ?? response?.data?.message ?? response?.message;
-      const key =
-        code && /^(REPORT_|GRAPHQL_|QUERY_|INVALID_CURSOR|COLLECTION_)/.test(code)
-          ? 'report-graphql-error-' + code
-          : 'report-request-failed';
+      const key = code ? 'report-graphql-error-' + code : 'report-request-failed';
       const message = String(this.translationService.t(key));
       this.exportMessage =
         message === key ? String(this.translationService.t('report-graphql-export-failed')) : message;

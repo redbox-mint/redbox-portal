@@ -700,4 +700,22 @@ describe('ReportComponent', () => {
     fixture.destroy();
   });
 
+  for (const code of ['GRAPHQL_LOOKUP_UNSUPPORTED', 'GRAPHQL_REPORT_PAGING_REQUIRED', 'INVALID_GRAPHQL_NAMED_QUERY', 'INVALID_GRAPHQL_PARAMETER', 'UNAVAILABLE']) {
+    it(`shows a translated ${code} CSV failure without downloading a file`, async () => {
+      const fixture = TestBed.createComponent(ReportComponent);
+      const app = fixture.componentInstance;
+      fixture.detectChanges();
+      await app.waitForInit();
+      app.report.querySource = 'graphql';
+      translationService.t = (key: string) => key === 'report-graphql-error-' + code ? 'Specific translated explanation' : key;
+      reportService.downloadCSV = jasmine.createSpy('csv').and.rejectWith({error: new Blob([JSON.stringify({message: code})], {type: 'application/json'})});
+      const createUrl = spyOn(URL, 'createObjectURL');
+      await app.downloadCsv();
+      expect(app.exportMessage).toBe('Specific translated explanation');
+      expect(app.exportError).toBeTrue();
+      expect(createUrl).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
+
 });

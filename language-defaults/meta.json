@@ -11998,7 +11998,7 @@
   },
   "report-graphql-paging-required": {
     "category": "Reports",
-    "description": "This query needs a collection with page size, continuation cursor and next-page fields before it can run as a report.",
+    "description": "This query is missing the paging fields needed for reports. Re-publish it from the Record explorer, then select the published query.",
     "contentFormat": "plain"
   },
   "report-graphql-output-field": {
@@ -12068,22 +12068,22 @@
   },
   "report-graphql-error-GRAPHQL_REPORT_PAGING_REQUIRED": {
     "category": "Reports",
-    "description": "This query needs a collection with page size, continuation cursor and next-page fields before it can run as a report.",
+    "description": "This query is missing the paging fields needed for reports. Re-publish it from the Record explorer, then select the published query.",
     "contentFormat": "plain"
   },
   "report-graphql-error-GRAPHQL_EXECUTION_FAILED": {
     "category": "Reports",
-    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "description": "The record query failed while running this report. Try again, or ask an administrator to check the named query.",
     "contentFormat": "plain"
   },
   "report-graphql-error-GRAPHQL_RESULT_INVALID": {
     "category": "Reports",
-    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "description": "The query returned an unexpected result collection or paging fields. Re-publish it from the Record explorer and review the report columns.",
     "contentFormat": "plain"
   },
   "report-graphql-error-GRAPHQL_ROW_INVALID": {
     "category": "Reports",
-    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "description": "The query returned an unexpected record value. Re-publish it from the Record explorer and review the report columns.",
     "contentFormat": "plain"
   },
   "report-graphql-error-GRAPHQL_DISABLED": {
@@ -12124,6 +12124,46 @@
   "report-graphql-preview-help": {
     "category": "Reports",
     "description": "GraphQL report automatic first page preview guidance",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_LOOKUP_UNSUPPORTED": {
+    "category": "Reports",
+    "description": "This query cannot provide report results. Re-publish it from the Record explorer, then select the published query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_OFFSET_UNSUPPORTED": {
+    "category": "Reports",
+    "description": "This report uses Next and Previous to page through its results. Run it again from the first page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_PAGE_INVALID": {
+    "category": "Reports",
+    "description": "Choose a valid page size and run the report again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-INPUT_LIMIT": {
+    "category": "Reports",
+    "description": "The report or its filter values are too large. Use fewer columns or shorter filter values.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-COMPLEXITY_LIMIT": {
+    "category": "Reports",
+    "description": "The report configuration is too complex. Use fewer columns or simpler templates.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-MAPPING_LIMIT": {
+    "category": "Reports",
+    "description": "The report contains too many field mappings. Reduce the selected fields and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-PREVIEW_TIMEOUT": {
+    "category": "Reports",
+    "description": "The report preview took too long. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-FORBIDDEN": {
+    "category": "Reports",
+    "description": "You do not have access to preview this report. Sign in with an account that has report access.",
     "contentFormat": "plain"
   }
 }

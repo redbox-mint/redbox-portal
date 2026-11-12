@@ -22,6 +22,7 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { ReportConfigComponent } from './report-config.component';
 import { ReportConfigService } from './report-config.service';
+import { RecordGridService } from '../../../data-grids/src/app/record-grid.service';
 import { ReportDiagnosticsComponent, ReportTemplateInputComponent } from './report-assistance.component';
 
 @Pipe({ name: 'i18next', standalone: false })
@@ -155,6 +156,7 @@ describe('Report configuration workspace', () => {
   let fixture: ComponentFixture<ReportConfigComponent>;
   let component: ReportConfigComponent;
   let api: ApiStub;
+  let gridApi: { waitForInit: jasmine.Spy; read: jasmine.Spy; fields: jasmine.Spy; selections: jasmine.Spy };
   let confirm: jasmine.Spy;
   const settle = async () => {
     await Promise.resolve();
@@ -177,6 +179,8 @@ describe('Report configuration workspace', () => {
   };
   beforeEach(async () => {
     api = new ApiStub();
+    gridApi = jasmine.createSpyObj('RecordGridService', ['waitForInit', 'read', 'fields', 'selections']);
+    gridApi.waitForInit.and.resolveTo();
     await TestBed.configureTestingModule({
       declarations: [ReportConfigComponent, TranslationPipe],
       imports: [
@@ -198,6 +202,7 @@ describe('Report configuration workspace', () => {
           },
         },
         { provide: ReportConfigService, useValue: api },
+        { provide: RecordGridService, useValue: gridApi },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(ReportConfigComponent);
@@ -1095,6 +1100,96 @@ describe('Report configuration workspace', () => {
     expect(query('select[id="column-property-0"]')).not.toBeNull();
     expect(component.selectedReport!.filter.filter(filter=>filter.paramName==='titleSearch').length).toBe(1);
     expect(component.parameterLabel(component.parameters[0])).toBe('Title Search');
+  });
+
+  const graphqlReportCodes = [
+    'GRAPHQL_REPORT_PAGING_REQUIRED', 'GRAPHQL_LOOKUP_UNSUPPORTED', 'GRAPHQL_CONTEXT_REQUIRED',
+    'GRAPHQL_OFFSET_UNSUPPORTED', 'GRAPHQL_PAGE_INVALID', 'GRAPHQL_EXECUTION_FAILED',
+    'GRAPHQL_RESULT_INVALID', 'GRAPHQL_ROW_INVALID', 'GRAPHQL_DISABLED', 'UNAVAILABLE',
+    'QUERY_TIMEOUT', 'QUERY_LIMIT', 'COLLECTION_LIMIT', 'INVALID_GRAPHQL_NAMED_QUERY',
+    'INVALID_GRAPHQL_PARAMETER', 'REPORT_QUERY_CHANGED', 'REPORT_CURSOR_INVALID',
+    'REPORT_EXPORT_ROW_LIMIT', 'REPORT_EXPORT_PAGE_LIMIT', 'REPORT_EXPORT_BYTE_LIMIT',
+    'REPORT_EXPORT_TIMEOUT', 'REPORT_OFFSET_UNSUPPORTED', 'REPORT_PAGE_INVALID',
+    'REPORT_CURSOR_UNAVAILABLE', 'REPORT_LIMIT_CONFIG_INVALID', 'INPUT_LIMIT',
+    'COMPLEXITY_LIMIT', 'MAPPING_LIMIT', 'PREVIEW_TIMEOUT', 'FORBIDDEN',
+  ];
+  for (const code of graphqlReportCodes) {
+    it(`translates the known GraphQL report code ${code} in preview failures`, async () => {
+      await edit();
+      const key = 'report-graphql-error-' + code;
+      spyOn(TestBed.inject(TranslationService), 't').and.callFake((value: string) =>
+        value === key ? 'Specific translated explanation' : value);
+      api.preview.and.rejectWith({error: {message: code}});
+      await component.previewReport();
+      expect(component.errorMessage).toBe('Specific translated explanation');
+    });
+  }
+  for (const envelope of [
+    {message: 'GRAPHQL_REPORT_PAGING_REQUIRED'},
+    {data: {message: 'GRAPHQL_REPORT_PAGING_REQUIRED'}},
+    {message: 'failure', errors: [{code: 'GRAPHQL_REPORT_PAGING_REQUIRED'}]},
+  ]) {
+    it('shows the paging remedy when description fails with a known code', async () => {
+      const key = 'report-graphql-error-GRAPHQL_REPORT_PAGING_REQUIRED';
+      spyOn(TestBed.inject(TranslationService), 't').and.callFake((value: string) =>
+        value === key ? 'Re-publish this query from the Record explorer.' : value);
+      api.describeQuery.and.rejectWith({error: envelope});
+      await edit();
+      expect(component.assistanceError).toBe('Re-publish this query from the Record explorer.');
+      expect(component.errorMessage).toBe('');
+    });
+  }
+  it('does not automatically preview a GraphQL query whose description is blocked', async () => {
+    api.describeQuery.and.resolveTo({...description(), source: 'graphql', valid: false,
+      queryVersion: 'version-one', diagnostics: [{...diagnostic('databaseQuery.queryName', 'error'),
+        code: 'GRAPHQL_REPORT_PAGING_REQUIRED', reason: 'report-graphql-paging-required'}]});
+    await edit();
+    expect(api.preview).not.toHaveBeenCalled();
+    expect(component.errorMessage).toBe('');
+  });
+
+  it('labels ActivePlans repeated inline-fragment output fields from the explorer catalogue', async () => {
+    const fields = [
+      {id: 'record:oid', label: 'OID', type: 'text', selectable: true,
+        selections: [{responsePath: ['oid']}]},
+      {id: 'metadata:/title', label: 'Title', type: 'text', selectable: true,
+        selections: [{responsePath: ['metadata', 'catalogue_title']}]},
+      {id: 'metadata:/uon:ethicsApprovalStatus', label: 'Ethics approval status', type: 'text', selectable: true,
+        selections: [{responsePath: ['metadata', 'catalogue_ethics']}]},
+      {id: 'metadata:/dc:coverage_vivo:DateTimeInterval_vivo:start', label: 'Start Date', type: 'date', selectable: true,
+        selections: [{responsePath: ['metadata', 'catalogue_start']}]},
+    ];
+    gridApi.read.and.resolveTo({mode: 'visual', workflowStage: 'active', columns: fields.map(f => f.id)});
+    gridApi.fields.and.resolveTo([{fields}]);
+    gridApi.selections.and.resolveTo(fields);
+    const output = [field('oid', 'string', 'Oid'), field('metadata', 'object', 'Metadata'),
+      ...[1,2,3].map(i => field('metadata.explorer_field_' + i, 'string', 'Explorer field ' + i))];
+    api.describeQuery.and.resolveTo({...description(), source: 'graphql', queryVersion: 'version-one',
+      result: {...description().result, fields: output}});
+    component.namedQueries = [{name: 'query', source: 'graphql', sourceSavedQuery: {id: 'active-source', name: 'UON — Active research plans'},
+      graphql: {
+        document: `query($type:String!,$stages:[String!],$sort:[RecordSortInput!],$first:Int,$after:String){
+          records(recordType:$type,workflowStages:$stages,sort:$sort,first:$first,after:$after){
+            nodes{oid metadata{
+              ... on ActiveMetadata {explorer_field_1:title}
+              ... on ActiveMetadata {explorer_field_2:rb_75006f006e003a0065007400680069006300730041007000700072006f00760061006c00530074006100740075007300}
+              ... on ActiveMetadata {explorer_field_3:rb_640063003a0063006f007600650072006100670065005f007600690076006f003a004400610074006500540069006d00650049006e00740065007200760061006c005f007600690076006f003a0073007400610072007400}
+            }}hasNextPage endCursor}}`,
+        variables: {type:{ownership:'fixed',value:'rdmp'},stages:{ownership:'fixed',value:['active']},
+          sort:{ownership:'fixed',value:[{field:'metadata:/title',direction:'ASC'}]},
+          first:{ownership:'fixed',value:25},after:{ownership:'fixed',value:null}},
+        resultPath:['records','nodes'],mappings:{oid:['oid'],metadata:['metadata']},
+      }}];
+    await edit();
+    await component.refreshAssistance();
+    expect(gridApi.fields.calls.mostRecent().args[0].workflowStage).toBe('active');
+    expect(component.fields.map(f => f.title)).toEqual(['OID','Metadata','Title','Ethics approval status','Start Date']);
+    component.selectedReport!.columns = [];
+    for (const path of output.slice(2).map(f => f.path)) component.toggleOutput(path, true);
+    component.addSelectedColumns();
+    expect(component.selectedReport!.columns.map(c => [c.label, c.property])).toEqual([
+      ['Title','metadata.explorer_field_1'],['Ethics approval status','metadata.explorer_field_2'],['Start Date','metadata.explorer_field_3'],
+    ]);
   });
 
 });
