@@ -1,4 +1,8 @@
 import * as sinon from 'sinon';
+import axios, { AxiosError } from 'axios';
+import { FigsharePublishing } from '../../src/configmodels/FigsharePublishing';
+import { makeLiveClient, FigshareHttpError } from '../../src/services/figshare-v2/http';
+import { failFigshareAudit } from '../../src/services/figshare-v2/audit';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
@@ -49,6 +53,89 @@ describe('IntegrationAuditService', function () {
     cleanupServiceTestGlobals();
     delete (global as any).AgendaQueueService;
     sinon.restore();
+  });
+
+  async function auditFigshareFailure(body: unknown, status?: number) {
+    const config = new FigsharePublishing();
+    config.connection.token = 'private-figshare-token';
+    config.connection.retry.maxAttempts = 1;
+    config.processing!.enabled = false;
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.syncRecordWithFigshare);
+    const adapter = sinon.stub(axios.defaults, 'adapter').value(async (request: any) => {
+      throw new AxiosError('socket connection failed', 'ECONNRESET', request, {}, status == null ? undefined : {
+        status, data: body, headers: { authorization: 'response-secret' }, config: request, statusText: 'Failure',
+      });
+    });
+    let original: unknown;
+    try {
+      await makeLiveClient(config, { recordOid: 'oid-1' } as any).updateArticle('34989604', { title: 'request-payload-secret' });
+    } catch (error) { original = error; }
+    expect(original).to.be.instanceOf(FigshareHttpError);
+    adapter.restore();
+    (global as any).IntegrationAuditService = service;
+    try {
+      failFigshareAudit(ctx, new Error('outer wrapper', { cause: original }), {
+        message: 'Figshare sync failed.', responseSummary: { articleId: '34989604', attempts: 1, category: `http:${status ?? 'transport'}` },
+      });
+    } finally { delete (global as any).IntegrationAuditService; }
+    return mockQueueService.now.lastCall.args[1];
+  }
+
+  it('persists HTTP 404 category diagnostics through the HTTP wrapper and audit model', async function () {
+    const explanation = 'Entity not found: Not allowed to set category Other engineering in article.';
+    const entry = await auditFigshareFailure({ code: 'EntityNotFound', message: explanation }, 404);
+    expect(entry.status).to.equal('failed');
+    expect(entry.httpStatusCode).to.equal(404);
+    expect(entry.errorDetail).to.contain(explanation);
+    expect(entry.responseSummary.articleId).to.equal('34989604');
+    expect(entry.responseSummary.error).to.deep.equal({ code: 'EntityNotFound', message: explanation, method: 'put', endpoint: '/account/articles/34989604' });
+  });
+
+  it('excludes credentials, headers, unrelated payloads and oversized response content', async function () {
+    const entry = await auditFigshareFailure({
+      code: 'BadRequest' + 'c'.repeat(200),
+      message: 'Invalid category private-figshare-token Authorization: Basic abc123 password="two word secret" api_key=key-secret ' + 'x'.repeat(10000),
+      token: 'body-secret', headers: { authorization: 'header-secret' }, payload: 'payload-secret',
+    }, 400);
+    const stored = JSON.stringify(entry);
+    for (const secret of ['private-figshare-token', 'abc123', 'two word secret', 'key-secret', 'body-secret', 'header-secret', 'payload-secret', 'request-payload-secret', 'response-secret']) {
+      expect(stored).not.to.contain(secret);
+    }
+    expect(entry.responseSummary.error.message.length).to.be.at.most(1000);
+    expect(entry.responseSummary.error.code.length).to.be.at.most(100);
+    expect(entry.errorDetail.length).to.be.at.most(1000);
+    expect(stored.length).to.be.lessThan(4000);
+  });
+
+  it('retains transport diagnostics without inventing an HTTP status', async function () {
+    const entry = await auditFigshareFailure(undefined);
+    expect(entry.httpStatusCode).to.equal(undefined);
+    expect(entry.responseSummary.error.code).to.equal('ECONNRESET');
+    expect(entry.errorDetail).to.contain('socket connection failed');
+    expect(entry.errorDetail).to.contain('put /account/articles/34989604');
+  });
+
+  it('handles plain text, HTML and missing response bodies', async function () {
+    for (const body of ['Unauthorized', '<html>private-proxy-page</html>', undefined, ['unexpected'], { message: { unexpected: true } }]) {
+      const entry = await auditFigshareFailure(body, 502);
+      expect(entry.httpStatusCode).to.equal(502);
+      expect(entry.errorDetail).to.contain('put /account/articles/34989604');
+      if (body === 'Unauthorized') expect(entry.errorDetail).to.contain('Unauthorized');
+      expect(JSON.stringify(entry)).not.to.contain('private-proxy-page');
+    }
+  });
+
+  it('records ordinary exceptions and string failures without requiring a response', function () {
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.syncRecordWithFigshare);
+    (global as any).IntegrationAuditService = service;
+    try {
+      for (const error of [new Error('metadata mapping failed'), 'metadata mapping failed', null]) {
+        failFigshareAudit(ctx, error, { message: 'Figshare sync failed.' });
+        const entry = mockQueueService.now.lastCall.args[1];
+        expect(entry.httpStatusCode).to.equal(undefined);
+        expect(entry.errorDetail).to.equal(error == null ? 'Integration action failed.' : 'metadata mapping failed');
+      }
+    } finally { delete (global as any).IntegrationAuditService; }
   });
 
   it('queues a started audit using the active span context when present', function () {

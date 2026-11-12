@@ -20,16 +20,21 @@ import {
 } from './types';
 import { logEvent, withSpan } from './observability';
 import { redactObject } from '../../utilities/RedactionUtils';
+import { sanitizeFigshareResponse, sanitizeFigshareText } from './diagnostics';
 
 export class FigshareHttpError extends Error {
   statusCode?: number;
   responseBody?: unknown;
+  method?: string;
+  endpoint?: string;
 
-  constructor(message: string, options: { statusCode?: number; responseBody?: unknown; cause?: unknown } = {}) {
+  constructor(message: string, options: { statusCode?: number; responseBody?: unknown; cause?: unknown; method?: string; endpoint?: string; secrets?: string[] } = {}) {
     super(message);
     this.name = 'FigshareHttpError';
     this.statusCode = options.statusCode;
-    this.responseBody = options.responseBody;
+    this.responseBody = sanitizeFigshareResponse(options.responseBody, options.secrets);
+    this.method = options.method;
+    this.endpoint = options.endpoint;
     if (options.cause != null) {
       (this as Error & { cause?: unknown }).cause = options.cause;
     }
@@ -208,9 +213,13 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
       if (!retryable || attempt === attempts) {
         // Wrap instead of rethrowing the raw AxiosError: axios errors carry the full
         // request config (including the Authorization header) and must not propagate.
-        throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${path || url}`, {
+        const endpoint = sanitizeFigshareText((path || url).split(/[?#]/)[0], 500, [config.connection.token]);
+        throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${endpoint}`, {
           statusCode: status == null ? undefined : Number(status),
-          responseBody: axiosErr?.response?.data,
+          responseBody: axiosErr?.response?.data ?? (status == null ? { code: axiosErr?.code, message: axiosErr?.message } : undefined),
+          method,
+          endpoint,
+          secrets: [config.connection.token],
           cause: error
         });
       }

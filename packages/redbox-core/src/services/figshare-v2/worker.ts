@@ -463,7 +463,7 @@ export async function runFigshareWorker(service: QueuedFigshareService, job: Fig
         if (s.work[kind].requested === startedWork[kind].requested) s.work[kind].dueAt = terminal ? null : Date.now() + settings.retryBaseMs * 2 ** (count - 1);
       });
       if (state.error?.terminal && !state.auditClosed && state.audit) {
-        failFigshareAudit(state.audit, new Error(message), { message, responseSummary: { articleId: state.binding?.articleId, attempts: state.error.count, category } });
+        failFigshareAudit(state.audit, error, { message, responseSummary: { articleId: state.binding?.articleId, attempts: state.error.count, category } });
         await checkpoint(s => { s.auditClosed = true; });
       }
     }
