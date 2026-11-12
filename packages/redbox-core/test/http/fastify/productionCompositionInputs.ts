@@ -142,10 +142,13 @@ export function productionCompositionInputCases() {
         assert.strictEqual(resolve.firstCall.args[0][1], (await load.firstCall.returnValue).providers[0]);
         inputs<ResolvedPortalInstallation>(resolved, {
           raw: same(undefined),
+          assetCache: value => assert(value instanceof module('http/brandingDeliveryCache').BrandingDeliveryCache),
           rawDeclaration: same(undefined),
           httpOwners: equal({
             uploads: [],
             progress: [],
+            schemaReads: [],
+            identities: [],
             metadataUpdates: resolved.routePlan.routes.filter(
               route =>
                 route.declaration.controller === 'webservice/RecordController' &&

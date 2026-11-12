@@ -6,6 +6,7 @@ import type { HttpRequestContext } from '../context';
 import { Services as Dashboard } from '../../dashboards/DashboardConfig';
 
 export interface ReferenceRequest extends ApiRequestInput {
+  readonly method?: string;
   readonly context: HttpRequestContext;
   readonly params: Record<string, unknown>;
   readonly query: Record<string, unknown>;
@@ -32,6 +33,17 @@ export const jsonResult = (
 ): ReferenceResult => ({ status, headers, body });
 export const referenceData = (request: ApiRequestInput, data: unknown, headers = {}): ReferenceResult =>
   jsonResult(safeApiVersion(request) === '2.0' ? { data, meta: {} } : data, 200, { ...apiNoCacheHeaders, ...headers });
+export function referenceValidationErrors(
+  request: ApiRequestInput,
+  issues: readonly { path: string; message: string }[]
+): ReferenceResult {
+  return referenceErrors(
+    request,
+    400,
+    issues.map(issue => ({ title: issue.path, detail: issue.message })),
+    safeValidationApiVersion(request)
+  );
+}
 export function referenceErrors(
   request: ApiRequestInput,
   status: number,
@@ -112,15 +124,7 @@ export async function executeReferenceRead(
   };
   try {
     const validated = validateApiRouteRequest(request, contract);
-    if (!validated.valid)
-      return encode(
-        referenceErrors(
-          request,
-          400,
-          validated.issues.map(issue => ({ title: issue.path, detail: issue.message })),
-          safeValidationApiVersion(request)
-        )
-      );
+    if (!validated.valid) return encode(referenceValidationErrors(request, validated.issues));
     try {
       return encode(await action(validated));
     } catch (error) {

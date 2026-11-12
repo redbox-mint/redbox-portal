@@ -8,6 +8,7 @@ import type { Services as Theme } from '../../branding/BrandingThemeCss';
 import type { StaticAssetsConfig } from '../../config/static_assets.config';
 import * as crypto from 'node:crypto';
 import { buildMergedApiBlueprint, buildMergedApiOpenApiDocument } from '../../api-routes';
+import { BrandingDeliveryCache } from '../brandingDeliveryCache';
 const CleanCSS = require('clean-css');
 const yaml = require('js-yaml');
 interface DeliveryRequest {
@@ -45,14 +46,22 @@ export class BrandingDelivery {
       2: { all: false },
     },
   });
-  private readonly cssResponseCache = new Map<string, { css: string; etag: string; createdAt: number }>();
-  private readonly fontResponseCache = new Map<string, Buffer>();
-  private fontResponseCacheBytes = 0;
+  private readonly cache = new BrandingDeliveryCache();
+  private get cssResponseCache() {
+    return this.cache.cssResponseCache;
+  }
+  private get fontResponseCache() {
+    return this.cache.fontResponseCache;
+  }
+  private get fontResponseCacheBytes() {
+    return this.cache.fontResponseCacheBytes;
+  }
+  private set fontResponseCacheBytes(value: number) {
+    this.cache.fontResponseCacheBytes = value;
+  }
 
   public invalidate(): void {
-    this.cssResponseCache.clear();
-    this.fontResponseCache.clear();
-    this.fontResponseCacheBytes = 0;
+    this.cache.invalidate();
   }
 
   /**

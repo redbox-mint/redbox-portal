@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import type { AuthenticatedActor } from './identity';
 import { sendApiErrors } from './responses';
+import { administratorRefusal } from '../actors';
 
 export function requireAdministrator(
   req: Request,
@@ -8,12 +9,9 @@ export function requireAdministrator(
   actor: AuthenticatedActor | undefined,
   brandId: string
 ): actor is AuthenticatedActor {
-  if (!actor) {
-    sendApiErrors(req, res, 401, [{ detail: 'Authentication required' }]);
-    return false;
-  }
-  if (!actor.roles.some(role => role.brandId === brandId && role.name === 'Admin')) {
-    sendApiErrors(req, res, 403, [{ detail: 'Access Denied' }]);
+  const refusal = administratorRefusal(actor, brandId);
+  if (refusal) {
+    sendApiErrors(req, res, refusal.status, [{ detail: refusal.detail }]);
     return false;
   }
   return true;

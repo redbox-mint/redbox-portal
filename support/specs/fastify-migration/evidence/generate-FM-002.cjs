@@ -299,6 +299,24 @@ function collectInventory() {
   ])
     inputs.add(prefix + file);
   const configuration = portalHttpPolicies();
+  const identityDeclarations = fromSource(prefix + 'http/identityRoutes.ts').identityAdministrationDeclarations;
+  const identityFactories = Object.values(
+    fromSource(prefix + 'http/controllers/IdentityAdministrationControllers.ts')
+  ).filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
+  for (const file of [
+    'http/identityRoutes.ts',
+    'http/controllers/IdentityAdministrationControllers.ts',
+    'http/actions/identityAdministration.ts',
+    'http/actions/identityLinks.ts',
+    'http/actions/administration.ts',
+    'http/actors.ts',
+    'http/fastify/identityAdministration.ts',
+    'http/brandingDeliveryCache.ts',
+    'application/portal/identityHttpPlan.ts',
+  ])
+    inputs.add(prefix + file);
   const routes = collections.flatMap(collection => {
     assert(owners[collection.export], 'Unassigned source collection: ' + collection.export);
     inputs.add(collection.file);
@@ -314,6 +332,25 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-025') {
+        const declarations = identityDeclarations.filter(
+          item => identity(item.method, item.path) === identity(route.method, route.path)
+        );
+        const factories = identityFactories.filter(
+          factory => factory.name === route.controller && factory.actions.includes(route.action)
+        );
+        assert.equal(declarations.length, 1, 'Exactly one FM-025 declaration: ' + route.path);
+        assert.equal(factories.length, 1, 'Exactly one FM-025 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factories[0].name,
+          action: route.action,
+          file: prefix + 'http/controllers/IdentityAdministrationControllers.ts',
+          productionBinding: prefix + 'application/portal/identityHttpPlan.ts',
+          differential: test('http/fastify/IdentityAdministrationDifferentialMongo.test.ts'),
+          migratedBy: 'FM-025',
+        };
+      }
       if (owners[collection.export][0] === 'FM-023') {
         const bindings = referenceDeclarations.filter(
           item => identity(item.method, item.path) === identity(route.method, route.path)

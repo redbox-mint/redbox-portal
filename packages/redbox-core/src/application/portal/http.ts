@@ -1,4 +1,5 @@
 import { portalReadHttpInputs } from './readHttpPlan';
+import { portalIdentityHttpInputs } from './identityHttpPlan';
 import { portalReferenceHttpInputs } from './referenceHttpPlan';
 import { companionOptions } from '../../http/integrations/companion/uploads';
 import path from 'node:path';
@@ -385,13 +386,12 @@ export class PortalHttp implements ApplicationModule {
       publicUrl: config.server.publicUrl,
     });
     http.mountHarvestMutationRoutes(router, { ...shared, harvest: data.harvest.get(), recordTypes: ref.types.get() });
+    const identityInputs = portalIdentityHttpInputs(this.portal, () => invalidateAssets());
     http.mountIdentityAdministrationRoutes(router, {
       ...shared,
-      users: data.users.get(),
-      roles: ref.roles.get(),
-      hiddenRoles: config.auth.hiddenRoles,
+      ...identityInputs.users,
     });
-    http.mountIdentityLinkRoutes(router, { ...shared, users: data.users.get(), hiddenUsers: config.auth.hiddenUsers });
+    http.mountIdentityLinkRoutes(router, { ...shared, ...identityInputs.users });
     http.mountQueryWriteRoutes(router, { ...shared, audit, queries: ref.queries.get(), reports: ref.reports.get() });
     http.mountVocabularyIntegrationRoutes(router, {
       ...shared,
@@ -408,19 +408,14 @@ export class PortalHttp implements ApplicationModule {
     });
     http.mountSiemWriteRoutes(router, {
       ...shared,
-      audit,
-      forwarding: providers.siem.get(),
-      settings: ref.appConfigs.get(),
+      ...identityInputs.administration,
     });
     let invalidateAssets: () => void = () => {
       throw new Error('Branding delivery is not mounted.');
     };
     http.mountAdminOperationRoutes(router, {
       ...shared,
-      audit,
-      settings: ref.appConfigs.get(),
-      reloadTranslations: () => ref.translation.get().bootstrap(),
-      invalidateAssets: () => invalidateAssets(),
+      ...identityInputs.administration,
     });
     http.mountBrandingOperationRoutes(router, { ...shared, audit, branding: ref.branding.get() });
     http.mountFigshareAdministrationRoutes(router, {

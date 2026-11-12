@@ -1,4 +1,7 @@
 import { portalReadControllers } from './readHttpPlan';
+import { portalIdentityControllers } from './identityHttpPlan';
+import { identityAdministrationDeclarations } from '../../http/identityRoutes';
+import { BrandingDeliveryCache } from '../../http/brandingDeliveryCache';
 import { recordQueryReadDeclarations, recordSchemaReadRoutes } from '../../http/readRoutes';
 import type { ApiRouteSource } from '../../http/fastify/routes';
 import type { ApiRouteDefinition } from '../../api-routes/types';
@@ -101,7 +104,22 @@ export async function resolvePortalInstallation(
         },
       }
     : undefined;
-  const reads = portalReadControllers(context, readTargets, uploadInputs);
+  const identityTargets = new Set(
+    input.declarations
+      .filter(route =>
+        identityAdministrationDeclarations.some(
+          identity => identity.method === route.method && identity.path === route.path
+        )
+      )
+      .map(route => route.controller)
+  );
+  const assetCache = new BrandingDeliveryCache();
+  const identities = portalIdentityControllers(context, identityTargets, assetCache);
+  const reads = portalReadControllers(
+    context,
+    new Set([...readTargets].filter(name => !identityTargets.has(name))),
+    uploadInputs
+  );
   const reference = portalReferenceControllers(
     context,
     new Set(input.declarations.map(route => route.controller).filter(name => !readTargets.has(name)))
@@ -118,13 +136,25 @@ export async function resolvePortalInstallation(
         [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
       (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
         ? 'apiProtect'
-        : recordQueryReadDeclarations.some(
-              read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
+        : identityAdministrationDeclarations.some(
+              identity => route.declaration.name === coreRouteName(identity.method, identity.path)
             )
-          ? route.declaration.path.includes('/api/')
-            ? 'apiProtect'
-            : 'protect'
-          : 'none',
+          ? route.declaration.controller === 'webservice/AdminController'
+            ? route.declaration.action === 'getAppConfig'
+              ? 'none'
+              : 'apiProtect'
+            : route.declaration.method === 'get'
+              ? 'none'
+              : route.declaration.path.includes('/api/')
+                ? 'apiProtect'
+                : 'protect'
+          : recordQueryReadDeclarations.some(
+                read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
+              )
+            ? route.declaration.path.includes('/api/')
+              ? 'apiProtect'
+              : 'protect'
+            : 'none',
   }));
   const bindings = Object.freeze([
     ...(upload && !readTargets.has(recordController.name)
@@ -144,6 +174,7 @@ export async function resolvePortalInstallation(
       : []),
     ...reference.bindings,
     ...reads.bindings,
+    ...identities.bindings,
     ...(input.bindings?.(context) ?? []),
   ]);
   const selected = new Set(coreRoutes.map(route => route.declaration.name));
@@ -175,6 +206,7 @@ export async function resolvePortalInstallation(
             ...(readTargets.has(recordController.name) ? [] : [recordFactory]),
             ...reads.controllers,
             ...reference.controllers,
+            ...identities.controllers,
             ...(input.progress ? [progressController] : []),
           ],
         },
@@ -208,6 +240,7 @@ export async function resolvePortalInstallation(
     progress: routesFor(progressSocketGrantRoute),
     metadataUpdates: routesFor(updateMetaRoute),
     schemaReads: Object.freeze(recordSchemaReadRoutes.flatMap(routesFor)),
+    identities: Object.freeze([...new Set(identityAdministrationDeclarations.flatMap(routesFor))]),
   });
   if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
   // Seal declaration/plan data in place to retain exact factory identities.
@@ -234,6 +267,7 @@ export async function resolvePortalInstallation(
   return Object.freeze({
     ...resolved,
     raw,
+    assetCache,
     rawDeclaration,
     httpOwners,
     bindings,

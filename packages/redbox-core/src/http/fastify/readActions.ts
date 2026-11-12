@@ -8,14 +8,19 @@ import { resolvedRequestContract } from './validation';
 import { sendSerializedJson, sendLoginRedirect } from './responses';
 import { invalidSchemaRead } from '../actions/recordSchemaReads';
 import { sendReadStream } from './readStreams';
-function facts(request: FastifyRequest): ReferenceRequest {
+import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
+export function readRequest(request: FastifyRequest): ReferenceRequest {
   return {
+    method: request.method,
     params: request.params as Record<string, unknown>,
     query: request.query as Record<string, unknown>,
     headers: request.headers,
     body: request.body,
     session: request.session,
-    context: requestContext(request),
+    get context() {
+      return requestContext(request);
+    },
+    observe: facts => RequestChronicleHelper.existing(request)?.addInfo(facts),
     recordFailure: () => request.log.error('HTTP_REQUEST_FAILED'),
   };
 }
@@ -24,12 +29,12 @@ export async function readAction(
   reply: FastifyReply,
   action: (facts: ReferenceRequest, valid: ValidatedApiRouteRequest) => Promise<ReferenceResult>,
   failure?: (facts: ReferenceRequest, error: unknown) => ReferenceResult,
-  schema = false
+  actionValidation = false
 ) {
-  const input = facts(request);
+  const input = readRequest(request);
   const result = await executeReferenceRead(
     input,
-    schema ? {} : resolvedRequestContract(request),
+    actionValidation ? {} : resolvedRequestContract(request),
     valid => action(input, valid),
     failure ? error => failure(input, error) : undefined
   );
@@ -48,7 +53,7 @@ export async function readAction(
 }
 /** Schema validation keeps its problem media type before any extension action. */
 export function schemaReadPrelude(request: FastifyRequest, reply: FastifyReply) {
-  const input = facts(request);
+  const input = readRequest(request);
   if (!validateApiRouteRequest(input, resolvedRequestContract(request)).valid) {
     const result = invalidSchemaRead({ ...input, path: request.url.split('?')[0] });
     return sendSerializedJson(request, reply, { ...result, json: JSON.stringify(result.body) });

@@ -1,4 +1,6 @@
 import { recordQueryReadDeclarations } from '../../http/readRoutes';
+import { identityAdministrationDeclarations } from '../../http/identityRoutes';
+import { identityAdministrationGuard } from '../../http/fastify/identityAdministration';
 import { schemaReadPrelude } from '../../http/fastify/readActions';
 import { referenceReadDeclarations } from '../../http/referenceRoutes';
 import { coreRouteName } from '../../http/fastify/routes';
@@ -133,6 +135,8 @@ export async function createPortalFastifyHost(
     namespaceConfiguration: resolved.namespaceConfiguration,
     routing: resolved.routing,
     guards: async (binding, request, reply) => {
+      if (resolved.httpOwners.identities.includes(binding.route))
+        return identityAdministrationGuard(binding, request, reply);
       if (resolved.httpOwners.schemaReads.includes(binding.route)) return schemaReadPrelude(request, reply);
       if (resolved.httpOwners.metadataUpdates.includes(binding.route)) return recordMetadataBodyPrelude(request, reply);
     },
@@ -151,8 +155,8 @@ export async function createPortalFastifyHost(
         // policy/parser denials. Full page/asset header conversion stays scoped
         // to its later task. Route identities come from executable declarations.
         const referenceNames = new Set(
-          [...referenceReadDeclarations, ...recordQueryReadDeclarations].map(route =>
-            coreRouteName(route.method, route.path)
+          [...referenceReadDeclarations, ...recordQueryReadDeclarations, ...identityAdministrationDeclarations].map(
+            route => coreRouteName(route.method, route.path)
           )
         );
         const selectedReferenceNames = new Set(
@@ -170,11 +174,22 @@ export async function createPortalFastifyHost(
               if (referenceRequest(request)) reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
             });
           app.addHook('onSend', async (request, reply, payload) => {
+            const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
+            // Express's empty end is chunked while express-session awaits a
+            // save/touch. A fresh untouched session instead ends with length 0.
+            const identitySessionEnd =
+              binding &&
+              identityAdministrationDeclarations.some(
+                route => coreRouteName(route.method, route.path) === binding.route.declaration.name
+              ) &&
+              request.session &&
+              (request.session.isPersisted() || request.session.isModified() || settings.session.saveUninitialized);
             // Match production Express only for this conversion scope. The owned
             // empty stream still reaches send hooks as an absent entity, and a
             // replacement payload retains Fastify's ordinary length handling.
             if (
               referenceRequest(request) &&
+              !identitySessionEnd &&
               request.method !== 'HEAD' &&
               reply.statusCode >= 400 &&
               payload === undefined

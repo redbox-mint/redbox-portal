@@ -38,3 +38,4 @@ export * from './controllers/ReferenceControllers';
 export { referenceReadDeclarations } from './referenceRoutes';
 
 export * from './controllers/ReadControllers';
+export * from './controllers/IdentityAdministrationControllers';

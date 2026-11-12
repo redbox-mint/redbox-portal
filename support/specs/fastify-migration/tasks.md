@@ -213,7 +213,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: brand/object authorization, strong ETags/preconditions, schema
     errors, HEAD/GET headers and search contracts pass without serialization loss.
 
-- [ ] **FM-025 — Migrate identity and administration.**
+- [x] **FM-025 — Migrate identity and administration.**
   - Dependencies: FM-023.
   - Work: port user/account linking, management, disable/enable, audits and related
     administration actions, keeping browser/API identities distinct.

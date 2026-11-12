@@ -20,6 +20,7 @@ import { BrandingModel } from '../../../src/model/storage/BrandingModel';
 import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
+import { requestContext } from '../../../src/http/context';
 
 let counter = 0;
 export const referenceOrigin = 'https://portal.example.invalid';
@@ -259,7 +260,7 @@ export async function referenceProductionFixture(
         }),
         login: {
           credentialFields: ['username', 'password'],
-          validContext: (b, p) => b === 'default' && p === 'rdmp',
+          validContext: (b, p) => (b === 'default' || b === 'other') && p === 'rdmp',
           brandId: name => (name === 'other' ? otherBrand.id : brand.id),
           postLoginPath: () => '/portal/default/rdmp/home',
           audit: async (action, actor) => {
@@ -271,7 +272,17 @@ export async function referenceProductionFixture(
           branding,
           pathRules: data.reference.pathRules,
           defaultUnauthenticatedRole: () => undefined,
-          emitRequestFailure: async () => {},
+          emitRequestFailure: async (request, eventType, source) => {
+            const context = requestContext(request);
+            await portal.providers.security.get().emitSecurityEvent({
+              brandId: context.brand.id,
+              portalId: context.portal,
+              eventType,
+              source,
+              category: 'authorization',
+              requestContext: { method: request.method, path: request.url.split('?')[0].slice('/portal'.length) },
+            });
+          },
         },
       });
       assert.strictEqual(

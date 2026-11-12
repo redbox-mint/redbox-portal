@@ -15,12 +15,15 @@ export async function readAction(
   failure?: (request: ReferenceRequest, error: unknown) => ReferenceResult
 ): Promise<void> {
   const request: ReferenceRequest = {
+    method: req.method,
     params: req.params,
     query: req.query,
     headers: req.headers,
     body: req.body,
     session: req.session,
-    context: requestContext(req),
+    get context() {
+      return requestContext(req);
+    },
     observe: facts => RequestChronicleHelper.existing(req)?.addInfo(facts),
     recordFailure: () => {
       const chronicle = RequestChronicleHelper.existing(req);
