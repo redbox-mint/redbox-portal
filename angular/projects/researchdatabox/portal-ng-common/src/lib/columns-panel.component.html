@@ -21,7 +21,7 @@
             (keydown)="reorder($event, index)"
             [attr.aria-describedby]="'column-reorder-help'"
           >
-            ↕ {{ label(id) }}
+            <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i> {{ label(id) }}
           </button>
           <button
             class="btn explorer-chip-remove"
@@ -41,34 +41,45 @@
     <input id="field-search" class="form-control" type="search" [(ngModel)]="search" />
   </label>
   @for (group of groups; track group.label; let gi = $index) {
-    <details class="rb-admin-form-section explorer-field-group" [open]="!!search || gi < 2">
-      <summary class="rb-admin-form-section-header">
-        {{ group.label }} <span class="badge">{{ group.fields.length }}</span>
-      </summary>
-      @for (field of group.fields; track field.id; let fi = $index) {
-        <div class="grid-field">
-          <input
-            type="checkbox"
-            [id]="'column-field-' + gi + '-' + fi"
-            [checked]="columns.includes(field.id)"
-            [disabled]="!field.selectable || (!columns.includes(field.id) && columns.length >= limit)"
-            (change)="toggle(field.id)"
-          />
-          <label [for]="'column-field-' + gi + '-' + fi"
-            ><span
-              >{{ label(field.id) }} <small>· {{ 'data-grids-type-' + field.type | i18next }}</small></span
-            >
-            <code>{{ field.path || field.id }}</code>
-            @if (!field.selectable) {
-              <small>{{ 'data-grids-unavailable-field' | i18next }}</small>
-            }
-          </label>
-        </div>
-      }
-    </details>
+    @if (group.label) {
+      <details class="rb-admin-form-section explorer-field-group" [open]="!!search || gi < 2">
+        <summary class="rb-admin-form-section-header">
+          {{ group.label }} <span class="badge">{{ group.fields.length }}</span>
+        </summary>
+        <ng-container *ngTemplateOutlet="fieldList; context: { $implicit: group, gi: gi }"></ng-container>
+      </details>
+    } @else {
+      <div class="explorer-field-flat">
+        <ng-container *ngTemplateOutlet="fieldList; context: { $implicit: group, gi: gi }"></ng-container>
+      </div>
+    }
   } @empty {
     <p class="rb-admin-empty">{{ 'data-grids-no-fields' | i18next }}</p>
   }
+  <ng-template #fieldList let-group let-gi="gi">
+    @for (field of group.fields; track field.id; let fi = $index) {
+      <div class="grid-field">
+        <input
+          type="checkbox"
+          [id]="'column-field-' + gi + '-' + fi"
+          [checked]="columns.includes(field.id)"
+          [disabled]="!field.selectable || (!columns.includes(field.id) && columns.length >= limit)"
+          (change)="toggle(field.id)"
+        />
+        <label [for]="'column-field-' + gi + '-' + fi"
+          ><span
+            >{{ label(field.id) }} <small>· {{ 'data-grids-type-' + field.type | i18next }}</small></span
+          >
+          <span class="rb-admin-secondary"
+            ><code class="rb-admin-path">{{ field.path || field.id }}</code></span
+          >
+          @if (!field.selectable) {
+            <small>{{ 'data-grids-unavailable-field' | i18next }}</small>
+          }
+        </label>
+      </div>
+    }
+  </ng-template>
   @if (repeatingCount) {
     <div class="alert alert-info" role="note">
       {{ repeatingCount }} {{ 'data-grids-repeating-note' | i18next }}

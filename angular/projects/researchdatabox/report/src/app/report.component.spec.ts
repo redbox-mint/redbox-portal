@@ -301,7 +301,7 @@ describe('ReportComponent', () => {
     expect(app.activeFilters).toEqual([]);
   });
 
-  it('renders the safe source type and named-query name in the description', async () => {
+  it('renders the source badge and linked named-query subtitle', async () => {
     const fixture = TestBed.createComponent(ReportComponent);
     fixture.detectChanges();
     await fixture.componentInstance.waitForInit();
@@ -311,8 +311,10 @@ describe('ReportComponent', () => {
     translationService.translationMap['report-source-database'] = 'Database';
     fixture.detectChanges();
     const description = fixture.nativeElement.querySelector('.rb-admin-page-header p');
-    expect(description.textContent).toContain('Source: Database');
-    expect(description.querySelector('code').textContent).toBe('listRDMPRecords');
+    expect(fixture.nativeElement.querySelector('.report-title-line .badge').textContent).toBe('Database');
+    const query = description.querySelector('a');
+    expect(query.textContent).toBe('listRDMPRecords');
+    expect(query.getAttribute('href')).toContain('/admin/named-query#query=listRDMPRecords');
   });
 
   it('requests global sorting in both directions, resets paging and preserves applied filters and CSV order', async () => {

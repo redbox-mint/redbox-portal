@@ -5,6 +5,7 @@ import { Component, Input } from '@angular/core';
     <div class="rb-source-description">
       <div class="rb-source-title">{{ name }} <ng-content select="[sourceBadge]"></ng-content></div>
       <div class="rb-admin-hint"><ng-content></ng-content></div>
+      <div class="rb-source-origin rb-admin-hint"><ng-content select="[sourceOrigin]"></ng-content></div>
     </div>
     <div class="rb-source-actions"><ng-content select="[sourceActions]"></ng-content></div>
   </div>`,

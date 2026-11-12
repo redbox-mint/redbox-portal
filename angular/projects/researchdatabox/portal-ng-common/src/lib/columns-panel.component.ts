@@ -1,5 +1,6 @@
 import { Component, ElementRef, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NgTemplateOutlet } from '@angular/common';
 import { AdminSidePanelComponent } from './admin-side-panel.component';
 import { I18NextPipe } from './i18next.pipe';
 import { TranslationService } from './translation.service';
@@ -7,7 +8,7 @@ import { type ColumnPickerField as GridField, fieldGroups } from './column-picke
 
 @Component({
   selector: 'rb-explorer-columns',
-  imports: [FormsModule, AdminSidePanelComponent, I18NextPipe],
+  imports: [FormsModule, NgTemplateOutlet, AdminSidePanelComponent, I18NextPipe],
   templateUrl: './columns-panel.component.html',
   styleUrls: ['./columns-panel.component.scss'],
 })
@@ -36,6 +37,7 @@ export class ColumnsPanelComponent implements OnInit {
   label(id: string): string {
     const field = this.fields.find(f => f.id === id);
     if (!field) return id;
+    if (['oid', 'record:oid'].includes(field.id)) return String(this.i18n.t('data-grids-oid'));
     return field.label;
   }
   get groups(): { label: string; fields: GridField[] }[] {
@@ -44,14 +46,15 @@ export class ColumnsPanelComponent implements OnInit {
     for (const field of this.fields) {
       if (field.listed === false) continue;
       if (field.repeatingSubfield && !this.showRepeating) continue;
-      const group =
+      const candidate =
         field.groupPath?.join(' / ') ||
         field.group ||
-        String(
-          this.i18n.t(
-            field.id.startsWith('record:') ? 'data-grids-field-group-record' : 'data-grids-field-group-metadata'
-          )
-        );
+        (field.id.startsWith('record:') ? String(this.i18n.t('data-grids-field-group-record')) : '');
+      const group =
+        candidate.toLocaleLowerCase() === 'metadata' ||
+        candidate === String(this.i18n.t('data-grids-field-group-metadata'))
+          ? ''
+          : candidate;
       if (needle && ![field.label, field.path, group].join(' ').toLocaleLowerCase().includes(needle)) continue;
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group)!.push(field);

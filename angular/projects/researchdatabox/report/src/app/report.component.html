@@ -11,10 +11,10 @@
     <li><span aria-current="page">{{ report.title }}</span></li>
   </ol></nav>
   <header class="rb-admin-page-header">
-    <div><h1>{{ report.title }}</h1><p>
-      @if (!report.reportSource && !report.databaseQuery?.queryName) { {{ 'admin-report-description' | i18next }} }
-      @if (report.reportSource) { {{ 'admin-report-source-description' | i18next: { source: (graphqlReport ? 'report-graphql-source' : 'report-source-' + report.reportSource) | i18next } }} }
-      @if (report.databaseQuery?.queryName) { · {{ 'report-field-named-query' | i18next }} <code>{{ report.databaseQuery?.queryName }}</code> }
+    <div><div class="report-title-line"><h1>{{ report.title }}</h1><span class="badge rb-admin-badge-primary">{{ sourceLabelKey | i18next }}</span></div><p>
+      @if (report.databaseQuery?.queryName) {
+        {{ 'report-ux-built-on' | i18next }} <a [href]="queryUrl">{{ report.databaseQuery?.queryName }}</a>
+      } @else { {{ 'admin-report-description' | i18next }} }
     </p></div>
     <div class="rb-admin-page-actions">
     @if (graphqlReport) {

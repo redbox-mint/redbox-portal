@@ -1,0 +1,25 @@
+:host {
+  display: block;
+  margin-top: 20px;
+}
+.report-template-heading {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.report-template-heading label {
+  margin: 0;
+}
+.form-text {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.rb-ws-disclosure {
+  margin-top: 12px;
+}
+.report-template-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}

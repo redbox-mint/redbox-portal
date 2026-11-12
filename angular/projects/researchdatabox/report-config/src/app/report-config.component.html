@@ -8,7 +8,9 @@
         <li>{{ 'admin-nav-records' | i18next }}</li>
         <li>
           @if (selectedReport) {
-            <button class="btn btn-link p-0" (click)="cancelEdit()">{{ 'reports-heading' | i18next }}</button>
+            <a [href]="brandingAndPortalUrl + '/admin/reports'" (click)="reportsCrumb($event)">{{
+              'reports-heading' | i18next
+            }}</a>
           } @else {
             <span aria-current="page">{{ 'reports-heading' | i18next }}</span>
           }
@@ -53,8 +55,7 @@
         <div class="rb-admin-segmented" role="group" [attr.aria-label]="'report-col-source' | i18next">
           @for (source of ['all', 'database', 'graphql', 'solr']; track source) {
             <button
-              class="btn btn-sm"
-              [class.active]="sourceFilter === source"
+              class="btn btn-outline-secondary btn-sm"
               [attr.aria-pressed]="sourceFilter === source"
               (click)="setSourceFilter($any(source))"
             >
@@ -95,7 +96,9 @@
                 <tr>
                   <td>
                     <a [href]="openReport(report)">{{ report.title }}</a
-                    ><code class="report-path">{{ report.name }}</code>
+                    ><span class="rb-admin-secondary"
+                      ><code class="rb-admin-path">{{ report.name }}</code></span
+                    >
                   </td>
                   <td>
                     <span class="badge" [class.rb-admin-badge-primary]="reportSource(report) === 'graphql'">{{
@@ -123,10 +126,10 @@
                       >
                       <details class="rb-admin-overflow" rbAdminOverflow>
                         <summary
-                          class="btn btn-sm btn-outline-secondary"
+                          class="btn btn-outline-secondary btn-sm rb-admin-icon-button"
                           [attr.aria-label]="('report-ux-more' | i18next) + ': ' + report.title"
                         >
-                          ⋯
+                          <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
                         </summary>
                         <div class="rb-admin-overflow-menu">
                           <button
@@ -268,8 +271,10 @@
                   ><span sourceBadge class="badge rb-admin-badge-primary">{{ querySourceLabel(query) }}</span>
                   {{ sourceSummary }}
                   @if (query.sourceSavedQuery?.name) {
-                    · {{ 'report-ux-built-from' | i18next }}
-                    <a [href]="explorerUrl()">{{ query.sourceSavedQuery?.name }}</a>
+                    <span sourceOrigin
+                      >{{ 'report-ux-built-from' | i18next }}
+                      <a [href]="explorerUrl()">{{ query.sourceSavedQuery?.name }}</a></span
+                    >
                   }
                   <div sourceActions class="report-source-actions">
                     <a class="btn btn-sm btn-outline-secondary" [href]="queryUrl()">{{
@@ -353,7 +358,10 @@
                         />
                       </td>
                       <td>
-                        {{ fieldLabel(column.property) }}<code class="report-path">{{ column.property }}</code>
+                        {{ fieldLabel(column.property)
+                        }}<span class="rb-admin-secondary"
+                          ><code class="rb-admin-path">{{ column.property }}</code></span
+                        >
                       </td>
                       <td>
                         {{ formatLabel(column) }}
@@ -419,7 +427,7 @@
                     <tr>
                       <th scope="col">{{ 'report-filter-label' | i18next }}</th>
                       <th scope="col">{{ 'report-filter-type' | i18next }}</th>
-                      <th scope="col">{{ 'report-col-actions' | i18next }}</th>
+                      <th scope="col" class="text-end">{{ 'report-col-actions' | i18next }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -445,15 +453,6 @@
                   </tbody>
                 </table>
               </div>
-              @if (parameters.length) {
-                <div class="card-footer report-parameter-actions">
-                  @for (parameter of parameters; track parameter.key) {
-                    <button class="btn btn-sm btn-outline-secondary" (click)="addParameterFilter(parameter)">
-                      {{ 'report-add-parameter-filter' | i18next: { name: parameterLabel(parameter) } }}
-                    </button>
-                  }
-                </div>
-              }
             }
           </section>
           <section id="report-section-preview" class="card rb-admin-form-section">
@@ -462,15 +461,13 @@
               <div class="report-preview-actions">
                 <div class="rb-admin-segmented" role="group" [attr.aria-label]="'report-ux-preview-as' | i18next">
                   <button
-                    class="btn btn-sm"
-                    [class.active]="previewMode === 'screen'"
+                    class="btn btn-outline-secondary btn-sm"
                     [attr.aria-pressed]="previewMode === 'screen'"
                     (click)="previewMode = 'screen'"
                   >
                     {{ 'report-ux-on-screen' | i18next }}</button
                   ><button
-                    class="btn btn-sm"
-                    [class.active]="previewMode === 'csv'"
+                    class="btn btn-outline-secondary btn-sm"
                     [attr.aria-pressed]="previewMode === 'csv'"
                     (click)="previewMode = 'csv'"
                   >
@@ -488,30 +485,36 @@
               </div>
             </div>
             @if (report.filter.length) {
-              <div class="card-body rb-admin-form-grid">
+              <div class="card-body">
                 @for (filter of report.filter; track filter; let i = $index) {
                   @if (filter.type === 'date-range') {
-                    @for (bound of ['fromDate', 'toDate']; track bound) {
-                      <label class="rb-admin-field"
-                        >{{ filter.message }}
-                        {{ (bound === 'fromDate' ? 'report-filter-date-from' : 'report-filter-date-to') | i18next
-                        }}<input
-                          [id]="'preview-' + (bound === 'fromDate' ? 'from' : 'to') + '-' + i"
-                          class="form-control"
-                          type="date"
-                          [(ngModel)]="previewFilterValues[filter.paramName + '_' + bound]"
-                          (ngModelChange)="previewChanged()"
-                      /></label>
-                    }
+                    <fieldset class="rb-admin-filter-bar report-preview-filter">
+                      <legend class="rb-admin-filter-label">{{ previewFilterLabel(filter) }}</legend>
+                      @for (bound of ['fromDate', 'toDate']; track bound) {
+                        <div class="rb-admin-field">
+                          <label [for]="'preview-' + (bound === 'fromDate' ? 'from' : 'to') + '-' + i">{{
+                            (bound === 'fromDate' ? 'report-ux-from' : 'report-ux-to') | i18next
+                          }}</label>
+                          <input
+                            [id]="'preview-' + (bound === 'fromDate' ? 'from' : 'to') + '-' + i"
+                            class="form-control"
+                            type="date"
+                            [(ngModel)]="previewFilterValues[filter.paramName + '_' + bound]"
+                            (ngModelChange)="previewChanged()"
+                          />
+                        </div>
+                      }
+                    </fieldset>
                   } @else {
-                    <label class="rb-admin-field"
-                      >{{ filter.message
-                      }}<input
+                    <div class="rb-admin-field">
+                      <label [for]="'preview-text-' + i">{{ previewFilterLabel(filter) }}</label>
+                      <input
                         [id]="'preview-text-' + i"
                         class="form-control"
                         [(ngModel)]="previewFilterValues[filter.paramName]"
                         (ngModelChange)="previewChanged()"
-                    /></label>
+                      />
+                    </div>
                   }
                 }
               </div>
@@ -602,11 +605,17 @@
                 <p role="status">{{ 'report-validating' | i18next }}</p>
               }
               @if (assistanceError || validationError) {
-                <p role="status">{{ assistanceError || validationError }}</p>
+                <p class="rb-admin-check rb-admin-check-warning" role="status">
+                  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i
+                  ><span>{{ assistanceError || validationError }}</span>
+                </p>
               }
               @if (diagnostics.length) {
                 @for (d of diagnostics; track $index) {
-                  <p [class.text-danger]="d.severity === 'error'">{{ checkMessage(d) }}</p>
+                  <p class="rb-admin-check rb-admin-check-warning" [class.text-danger]="d.severity === 'error'">
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i
+                    ><span>{{ checkMessage(d) }}</span>
+                  </p>
                 }
               } @else if (
                 !validating &&
@@ -617,11 +626,20 @@
                 description?.valid &&
                 report.columns.length
               ) {
-                <p>{{ 'report-ux-ready' | i18next: { count: report.columns.length } }}</p>
+                <p class="rb-admin-check rb-admin-check-success">
+                  <i class="fa-solid fa-check" aria-hidden="true"></i
+                  ><span>{{ 'report-ux-ready' | i18next: { count: report.columns.length } }}</span>
+                </p>
               }
               @if (description?.source === 'graphql') {
-                <p>{{ 'report-ux-access-check' | i18next }}</p>
-                <p class="rb-admin-hint">{{ 'report-ux-export-check' | i18next }}</p>
+                <p class="rb-admin-check rb-admin-check-success">
+                  <i class="fa-solid fa-check" aria-hidden="true"></i
+                  ><span>{{ 'report-ux-access-check' | i18next }}</span>
+                </p>
+                <p class="rb-admin-check rb-admin-check-warning">
+                  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i
+                  ><span>{{ 'report-ux-export-check' | i18next }}</span>
+                </p>
               }
             </div>
           </section>
@@ -705,12 +723,14 @@
                   #customPath
                   id="report-column-path"
                   class="form-control font-monospace"
-                  [(ngModel)]="column.property" /><rb-field-autocomplete
+                  [(ngModel)]="column.property"
+                /><rb-field-autocomplete
                   [target]="customPath"
                   mode="path"
                   [source]="outputSource"
                 ></rb-field-autocomplete
-              ></label>
+                ><span class="rb-admin-hint">{{ 'report-ux-path-help' | i18next }}</span></label
+              >
               <p class="rb-admin-hint">{{ 'report-ux-template-help' | i18next }}</p>
               <report-template-input
                 inputId="report-display-template"
@@ -719,6 +739,7 @@
                 (valueChange)="column.template = $event"
                 [fields]="fields"
                 [property]="column.property"
+                [reportKey]="selectedReport?.name || ''"
                 [multivalue]="!!column.multivalue"
                 kind="display"
                 [diagnostics]="diagnostics"
@@ -731,6 +752,7 @@
                 (valueChange)="column.exportTemplate = $event"
                 [fields]="fields"
                 [property]="column.property"
+                [reportKey]="selectedReport?.name || ''"
                 [multivalue]="!!column.multivalue"
                 kind="csv"
                 [diagnostics]="diagnostics"
@@ -753,6 +775,20 @@
         [subtitle]="filter.message"
         (closed)="filterDraft = null"
         ><div class="report-panel-fields">
+          @if (filterIndex < 0 && parameters.length) {
+            <section aria-labelledby="report-filter-suggestions">
+              <h3 id="report-filter-suggestions" class="report-panel-subheading">
+                {{ 'report-ux-suggested' | i18next }}
+              </h3>
+              <div class="report-filter-suggestions">
+                @for (parameter of parameters; track parameter.key) {
+                  <button class="btn btn-outline-secondary btn-sm" (click)="suggestFilter(parameter)">
+                    {{ parameterLabel(parameter) }}
+                  </button>
+                }
+              </div>
+            </section>
+          }
           <label class="rb-admin-field"
             >{{ 'report-filter-label' | i18next
             }}<input [id]="'filter-label-' + filterIndex" class="form-control" [(ngModel)]="filter.message"

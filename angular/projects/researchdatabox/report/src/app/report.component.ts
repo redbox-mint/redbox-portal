@@ -49,6 +49,12 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   get graphqlReport(): boolean {
     return this.report?.querySource === 'graphql';
   }
+  get queryUrl(): string {
+    return this.brandingAndPortalUrl + '/admin/named-query#query=' + encodeURIComponent(this.report?.databaseQuery?.queryName || '');
+  }
+  get sourceLabelKey(): string {
+    return this.graphqlReport ? 'report-graphql-source' : 'report-source-' + (this.report?.reportSource || 'database');
+  }
   get rangeStart(): number {
     return this.reportResult?.records.length ? (this.reportResult.pagination?.start ?? 0) + 1 : 0;
   }

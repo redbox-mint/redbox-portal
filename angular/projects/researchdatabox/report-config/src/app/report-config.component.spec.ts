@@ -455,13 +455,14 @@ describe('Report configuration workspace', () => {
     expect(component.columnFields.some(f => f.path === 'metadata.tags')).toBeTrue();
     expect(component.columnFields.some(f => f.path === 'metadata')).toBeFalse();
   });
-  it('inserts a template field through the keyboard-operable shared field tree', async () => {
+  it('inserts a friendly field without changing the saved column until Done', async () => {
     await edit();
     component.editColumn(0);
     render();
     const editor = fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent))[0];
-    const tree = editor.query(By.directive(FieldTreeComponent));
-    tree.componentInstance.choose(tree.componentInstance.nodes.find((n: any) => n.path === 'oid'));
+    const button = editor.nativeElement.querySelector('[data-template-field="oid"]');
+    expect(button.textContent).toContain('data-grids-oid');
+    button.click();
     render();
     expect(component.columnDraft!.template).toContain('{{oid}}');
     expect(component.selectedReport!.columns[0].template).toBe('{{metadata.projectTitle}}');
@@ -1241,6 +1242,7 @@ describe('Report configuration workspace', () => {
       },
       {
         id: 'metadata:/uon:ethicsApprovalStatus',
+        groupPath: ['Ethical considerations'],
         label: 'Ethics approval status',
         type: 'text',
         selectable: true,
@@ -1296,6 +1298,10 @@ describe('Report configuration workspace', () => {
     await edit();
     await component.refreshAssistance();
     expect(gridApi.fields.calls.mostRecent().args[0].workflowStage).toBe('active');
+    expect(component.pickerFields.find(f => f.id === 'metadata.explorer_field_2')!.groupPath).toEqual([
+      'Ethical considerations',
+    ]);
+    expect(component.fieldLabel('oid')).toBe('data-grids-oid');
     expect(component.fields.map(f => f.title)).toEqual([
       'OID',
       'Metadata',
@@ -1311,6 +1317,59 @@ describe('Report configuration workspace', () => {
       ['Ethics approval status', 'metadata.explorer_field_2'],
       ['Start Date', 'metadata.explorer_field_3'],
     ]);
+  });
+  it('keeps the Reports crumb as a link and honours discard and modified clicks', async () => {
+    await edit();
+    component.selectedReport!.title = 'Unsaved';
+    render();
+    const crumb = fixture.nativeElement.querySelector('.rb-admin-crumbs a[href$="/admin/reports"]');
+    expect(crumb).not.toBeNull();
+    confirm.and.returnValue(false);
+    const event = new MouseEvent('click', { cancelable: true });
+    component.reportsCrumb(event);
+    expect(event.defaultPrevented).toBeTrue();
+    expect(component.selectedReport).not.toBeNull();
+    const modified = new MouseEvent('click', { ctrlKey: true, cancelable: true });
+    component.reportsCrumb(modified);
+    expect(modified.defaultPrevented).toBeFalse();
+    confirm.and.returnValue(true);
+    component.reportsCrumb(new MouseEvent('click'));
+    expect(component.selectedReport).toBeNull();
+  });
+  it('suggests filters inside a detached Add panel and commits them only on Done', async () => {
+    await edit();
+    const before = JSON.stringify(component.selectedReport!.filter);
+    expect(query('.report-parameter-actions')).toBeNull();
+    component.openFilter();
+    component.suggestFilter(component.parameters[1]);
+    render();
+    expect(query('#report-filter-suggestions')).not.toBeNull();
+    expect(component.filterDraft!.type).toBe('date-range');
+    expect(component.filterDraft!.database).toEqual({ fromProperty: 'createdAfter', toProperty: 'createdBefore' });
+    expect(JSON.stringify(component.selectedReport!.filter)).toBe(before);
+    component.doneFilter();
+    expect(component.selectedReport!.filter.length).toBe(2);
+    component.openFilter(0);
+    render();
+    expect(query('#report-filter-suggestions')).toBeNull();
+  });
+  it('inserts Current item and the report web address with the real template syntax', async () => {
+    await edit();
+    component.editColumn(0);
+    component.columnDraft!.multivalue = true;
+    render();
+    const editor = fixture.debugElement.queryAll(By.directive(ReportTemplateInputComponent))[0];
+    editor.nativeElement.querySelector('[data-template-field="recordTableMeta.val"]').click();
+    render();
+    editor.nativeElement.querySelector('[data-template-field="optTemplateData.brandingAndPortalUrl"]').click();
+    render();
+    expect(component.columnDraft!.template).toContain('{{recordTableMeta.val}}');
+    expect(component.columnDraft!.template).toContain('{{optTemplateData.brandingAndPortalUrl}}');
+    editor.nativeElement.querySelector('[data-template-report-url]').click();
+    render();
+    expect(component.columnDraft!.template).toContain('{{optTemplateData.brandingAndPortalUrl}}/admin/report/report');
+    expect(editor.nativeElement.querySelector('[data-template-field="recordTableMeta.col.property"]')).toBeNull();
+    expect(component.dirty).toBeFalse();
   });
 });
 
@@ -1353,7 +1412,7 @@ describe('WP7 shared report interactions', () => {
     c.applyColumns(['oid', column.property]);
     expect(c.selectedReport!.columns[1]).toBe(column);
     expect(c.columnFields.some(f => f.path === 'metadata')).toBeFalse();
-    expect(c.selectedReport!.columns[0].label).toBe('Oid');
+    expect(c.selectedReport!.columns[0].label).toBe('data-grids-oid');
   });
   it('announces keyboard reordering and prevents moving outside the table', fakeAsync(() => {
     c.selectedReport!.columns.push({ label: 'OID', property: 'oid' });

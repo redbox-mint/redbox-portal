@@ -73,7 +73,10 @@ export class ReportConfigComponent extends BaseComponent {
   dragColumnIndex: number | null = null;
   sourceSummary = '';
   private previewTimer: ReturnType<typeof setTimeout> | null = null;
-  private fieldDetails = new Map<string, { type: string; choices?: { value: string; label: string }[] }>();
+  private fieldDetails = new Map<
+    string,
+    { type: string; group?: string; groupPath?: string[]; choices?: { value: string; label: string }[] }
+  >();
   private validationTimer: ReturnType<typeof setTimeout> | null = null;
 
   get totalReports(): number {
@@ -272,6 +275,11 @@ export class ReportConfigComponent extends BaseComponent {
   }
   cancelEdit(): void {
     if (this.confirmDiscard()) this.closeDraft();
+  }
+  reportsCrumb(event: MouseEvent): void {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    this.cancelEdit();
   }
   private closeDraft(): void {
     this.itemRequests.invalidate();
@@ -774,6 +782,7 @@ export class ReportConfigComponent extends BaseComponent {
     );
   }
   fieldLabel(property: string): string {
+    if (property === 'oid') return this.t('data-grids-oid');
     return (
       this.fields.find(f => lookupPath(f.path) === property)?.title ||
       property
@@ -788,8 +797,14 @@ export class ReportConfigComponent extends BaseComponent {
   get pickerFields(): ColumnPickerField[] {
     const fields: ColumnPickerField[] = this.columnFields.map(f => ({
       id: lookupPath(f.path)!,
-      label: f.title || this.fieldLabel(f.path),
+      label: this.fieldLabel(lookupPath(f.path)!),
       path: lookupPath(f.path)!,
+      group:
+        this.fieldDetails.get(lookupPath(f.path)!)?.group ||
+        (['oid', 'workflowStep', 'lastModified', 'createdOn', 'recordType', 'form'].includes(f.path)
+          ? this.t('data-grids-field-group-record')
+          : undefined),
+      groupPath: this.fieldDetails.get(lookupPath(f.path)!)?.groupPath,
       type:
         (this.fieldDetails.get(lookupPath(f.path)!)?.choices?.length
           ? 'choice'
@@ -901,6 +916,23 @@ export class ReportConfigComponent extends BaseComponent {
       index < 0
         ? { type: 'text', paramName: '', property: '', message: '' }
         : this.clone(this.selectedReport!.filter[index]);
+  }
+  suggestFilter(parameter: NamedQueryParameterDescription): void {
+    if (!this.filterDraft || this.filterIndex >= 0) return;
+    this.filterDraft = {
+      type: 'text',
+      paramName: parameter.key,
+      property: '',
+      message: this.parameterLabel(parameter),
+    };
+    const pair = this.datePair();
+    if (pair && [pair.from.key, pair.to.key].includes(parameter.key)) {
+      this.filterDraft.type = 'date-range';
+      this.filterDraft.database = { fromProperty: pair.from.key, toProperty: pair.to.key };
+    }
+  }
+  previewFilterLabel(filter: ReportConfigFilterDto): string {
+    return this.t(filter.message).replace(/:\s*$/, '');
   }
   doneFilter(): void {
     if (!this.filterDraft || !this.selectedReport) return;

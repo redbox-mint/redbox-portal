@@ -6,12 +6,13 @@
   border-radius: var(--admin-radius);
   padding: 12px 14px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
 .rb-source-description {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 36ch;
 }
 .rb-source-title {
   display: flex;
@@ -25,6 +26,9 @@
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+}
+.rb-source-origin:not(:empty) {
+  margin-top: 4px;
 }
 @media (max-width: 1199px) {
   .rb-source-card {

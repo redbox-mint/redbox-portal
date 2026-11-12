@@ -31,11 +31,21 @@
   display: inline-flex;
   align-items: center;
   padding: 0 6px;
+  min-height: 30px;
 }
-.explorer-reorder,
-.explorer-chip-remove {
-  min-height: 40px;
+:host .rb-admin-chip .btn {
+  min-height: 24px;
+  padding: 0 3px;
   font-size: 13px;
+  line-height: 24px;
+}
+.explorer-reorder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.explorer-field-flat {
+  margin-bottom: 16px;
 }
 .explorer-field-search {
   display: flex;

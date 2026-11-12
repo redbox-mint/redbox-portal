@@ -11228,7 +11228,7 @@
   },
   "data-grids-oid": {
     "category": "Record explorer and named queries",
-    "description": "OID",
+    "description": "Record ID (OID)",
     "contentFormat": "plain"
   },
   "data-grids-paging": {
@@ -12253,7 +12253,7 @@
   },
   "report-ux-built-from": {
     "category": "reports",
-    "description": "built from",
+    "description": "Built from",
     "contentFormat": "plain"
   },
   "report-ux-choose-columns": {
@@ -12468,12 +12468,12 @@
   },
   "report-display-context-help": {
     "category": "reports",
-    "description": "Use the field names below in double braces. For a list, recordTableMeta.val is the current item. The full row and portal web address are also available.",
+    "description": "In a column with several values, insert Current item to show each one. Insert a field by its label below.",
     "contentFormat": "plain"
   },
   "report-csv-context-help": {
     "category": "reports",
-    "description": "Use a separate template for CSV values. Leave empty to reuse the display template. The original row and current list item are available.",
+    "description": "Set the value to export for this column. Leave empty to reuse the display template, or the full original value when there is no display template.",
     "contentFormat": "plain"
   },
   "report-insert-template-field": {
@@ -12483,7 +12483,7 @@
   },
   "report-ux-custom-path": {
     "category": "reports",
-    "description": "Custom field path",
+    "description": "Field path (advanced)",
     "contentFormat": "plain"
   },
   "report-ux-preview-bounded": {
@@ -12584,6 +12584,41 @@
   "report-ux-this-setting": {
     "category": "reports",
     "description": "this setting",
+    "contentFormat": "plain"
+  },
+  "report-ux-path-help": {
+    "category": "reports",
+    "description": "Use this only when the field you need is not in Shows. Enter the exact path returned by the named query.",
+    "contentFormat": "plain"
+  },
+  "report-ux-current-item": {
+    "category": "reports",
+    "description": "Current item",
+    "contentFormat": "plain"
+  },
+  "report-ux-web-address": {
+    "category": "reports",
+    "description": "Portal web address",
+    "contentFormat": "plain"
+  },
+  "report-ux-from": {
+    "category": "reports",
+    "description": "From",
+    "contentFormat": "plain"
+  },
+  "report-ux-to": {
+    "category": "reports",
+    "description": "To",
+    "contentFormat": "plain"
+  },
+  "report-ux-suggested": {
+    "category": "reports",
+    "description": "Suggested filters",
+    "contentFormat": "plain"
+  },
+  "report-ux-report-address": {
+    "category": "reports",
+    "description": "Report web address",
     "contentFormat": "plain"
   }
 }

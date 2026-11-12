@@ -32,24 +32,6 @@
   font-size: 16px;
   margin: 0;
 }
-.report-config-app .card-header .btn-outline-secondary {
-  color: var(--admin-panel-text);
-  border-color: currentColor;
-}
-.report-config-app .card-header .rb-admin-segmented .btn {
-  color: var(--admin-panel-text);
-}
-.report-config-app .card-header .rb-admin-segmented .btn.active {
-  color: var(--admin-panel);
-  background: var(--admin-panel-text);
-}
-.report-path {
-  display: block;
-  color: var(--admin-muted);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-  margin-top: 2px;
-}
 .report-row-actions {
   justify-content: flex-end;
   white-space: nowrap;
@@ -139,10 +121,26 @@
   white-space: pre-wrap;
   overflow: auto;
 }
-.report-parameter-actions {
+.report-filter-suggestions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+.report-panel-subheading {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.report-preview-filter {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+}
+.report-preview-filter legend {
+  float: none;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 .report-config-app :is(button, a, input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--admin-primary);
