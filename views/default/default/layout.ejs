@@ -20,6 +20,11 @@
 
   <% /* Brand Typeface: preload Regular once for an active custom typeface, else the self-hosted default faces. */ %>
   <% const __modernAdmin = typeof body === 'string' && body.includes('id="rb-admin-main"'); %>
+  <% /* Start the workspace module graph before render-blocking theme CSS completes. Lazy editors stay lazy. */ %>
+  <% const __queryApp = __modernAdmin && (body.includes('<data-grids') ? 'data-grids' : body.includes('<named-query-editor') ? 'named-query-editor' : null); %>
+  <% if (__queryApp) { %>
+  <link rel="modulepreload" href="<%= BrandingService.getRootContext() %>/angular/<%= __queryApp %>/browser/main<%= CacheService.getNgAppFileHash(__queryApp, 'main', '-') %>.js">
+  <% } %>
   <% if (__modernAdmin && body.includes('/angular/')) { %>
   <%- include('layout/client-config.ejs') %>
   <% } %>
