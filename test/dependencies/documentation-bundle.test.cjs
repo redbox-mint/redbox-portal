@@ -99,7 +99,6 @@ test('ReDoc wrapper reuses roots and cancels deferred hydration during teardown'
   const modules = {
     react: { createElement: (...args) => args },
     'react-dom/client': { createRoot: makeRoot, hydrateRoot: () => { hydrated++; return makeRoot(); } },
-    mobx: { configure() {} },
     'react-router': { HashRouter: function HashRouter() {} },
     redoc: { prepareApiDocs: async () => ({}), logoFromSpec: () => undefined },
     'redoc/package.json': { version: '3.0.1' },

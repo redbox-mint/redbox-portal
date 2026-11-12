@@ -260,7 +260,7 @@ describe('admin API docs', function () {
             const modules: Record<string, any> = {
                 react: { createElement: (type: any, props: any, ...children: any[]) => ({ type, props, children }) },
                 'react-dom/client': { createRoot: () => ({ render }) },
-                mobx: { configure() {} }, 'react-router': { HashRouter: 'router' },
+                'react-router': { HashRouter: 'router' },
                 redoc: { RedocStandalone: 'reference' }, 'redoc/package.json': { version: '3.0.1' }
             };
             const context: any = { require: (name: string) => modules[name], exports: {},

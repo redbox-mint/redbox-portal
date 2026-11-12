@@ -28,12 +28,9 @@ __webpack_nonce__ = window.__redboxApiDocsNonce || '';
 
 const React = require('react');
 const { createRoot, hydrateRoot } = require('react-dom/client');
-const { configure } = require('mobx');
 const { HashRouter } = require('react-router');
 const { RedocStandalone, RedoclyApiDocsStandalone, prepareApiDocs, logoFromSpec } = require('redoc');
 const metadata = require('redoc/package.json');
-
-configure({ useProxies: 'ifavailable' });
 
 const roots = new WeakMap();
 const hydrationTimers = new WeakMap();

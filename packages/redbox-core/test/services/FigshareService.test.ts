@@ -800,6 +800,7 @@ describe('FigshareService', function () {
         sourceVocabularyId: 'vocab-1',
         codes: ['0101', '0102'],
         outputs: 'categoryId',
+        selectableOnly: true,
       });
     });
 
@@ -894,7 +895,7 @@ describe('FigshareService', function () {
         await buildMetadataPayload(config, buildRecord());
         expect.fail('Expected a validation error');
       } catch (error) {
-        expect((error as Error).message).to.equal('No Figshare categories mapped for selected record categories');
+        expect((error as Error).message).to.match(/Choose at least one selectable category/);
       }
     });
 
@@ -1255,6 +1256,8 @@ describe('FigshareService', function () {
       publishArticle: async () => ({}),
       listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
       searchInstitutionAccounts,
+      listAccountCategories: async () => [],
+      listPublicCategories: async () => [],
     };
 
     const payload = await buildMetadataPayload(config, record, client);
@@ -1344,6 +1347,8 @@ describe('FigshareService', function () {
       publishArticle: async () => ({}),
       listLicenses: async () => [{ value: 1, name: 'CC-BY' }],
       searchInstitutionAccounts: async () => [],
+      listAccountCategories: async () => [],
+      listPublicCategories: async () => [],
     };
 
     const article = await syncMetadataPhase(client, config, record, {
