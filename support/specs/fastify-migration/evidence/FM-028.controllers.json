@@ -1,0 +1,1419 @@
+{
+  "numericLimit": null,
+  "rule": "Design sections 4/5/10 and P3 require concrete borrowed inputs, resource-free constructors, explicit actions, separate browser/API identities, and responsibility-based splits; no numeric line/action/dependency threshold is specified.",
+  "controllers": [
+    {
+      "factory": "webservice/ExportController",
+      "input": "ApiExportReadControllerInput",
+      "inputFields": [
+        "audit",
+        "contextVariables",
+        "forms",
+        "log",
+        "maxRows",
+        "maxSearchRows",
+        "recordTypes",
+        "returnFields",
+        "reusableFormDefinitions",
+        "rootContext",
+        "schemas",
+        "search",
+        "storage",
+        "translate"
+      ],
+      "exposedActions": [
+        "downloadRecs"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiExportReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 12,
+          "methods": [
+            "downloadRecs"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "ExportController",
+      "input": "ExportReadControllerInput",
+      "inputFields": [
+        "audit",
+        "contextVariables",
+        "forms",
+        "log",
+        "maxRows",
+        "maxSearchRows",
+        "recordTypes",
+        "returnFields",
+        "reusableFormDefinitions",
+        "rootContext",
+        "schemas",
+        "search",
+        "storage",
+        "translate"
+      ],
+      "exposedActions": [
+        "downloadRecs"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ExportReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 12,
+          "methods": [
+            "downloadRecs"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/RecordSchemaController",
+      "input": "ApiRecordSchemaReadControllerInput",
+      "inputFields": [
+        "rootContext",
+        "schemas"
+      ],
+      "exposedActions": [
+        "create",
+        "update",
+        "immutable"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiRecordSchemaReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 33,
+          "methods": [
+            "create",
+            "update",
+            "immutable"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/HarvestRunController",
+      "input": "ApiHarvestRunReadControllerInput",
+      "inputFields": [
+        "harvest"
+      ],
+      "exposedActions": [
+        "listRuns",
+        "getRun",
+        "listRunEvents"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiHarvestRunReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 30,
+          "methods": [
+            "listRuns",
+            "getRun",
+            "listRunEvents"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/IntegrationAuditController",
+      "input": "ApiIntegrationAuditReadControllerInput",
+      "inputFields": [
+        "audit"
+      ],
+      "exposedActions": [
+        "getAuditLog"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiIntegrationAuditReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 12,
+          "methods": [
+            "getAuditLog"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "RecordAuditController",
+      "input": "RecordAuditReadControllerInput",
+      "inputFields": [
+        "audit"
+      ],
+      "exposedActions": [
+        "getAuditData",
+        "getPermissionsData",
+        "getIntegrationAuditData",
+        "getIntegrationStatusData"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "RecordAuditReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 39,
+          "methods": [
+            "getAuditData",
+            "getPermissionsData",
+            "getIntegrationAuditData",
+            "getIntegrationStatusData"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/RecordTypeController",
+      "input": "RecordTypeControllerInput",
+      "inputFields": [
+        "recordSchema",
+        "recordTypes",
+        "rootContext"
+      ],
+      "exposedActions": [
+        "getRecordType",
+        "listRecordTypes"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "RecordTypeController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 9,
+          "methods": [
+            "getRecordType",
+            "listRecordTypes"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/FormManagementController",
+      "input": "FormManagementControllerInput",
+      "inputFields": [
+        "forms",
+        "loadRecord"
+      ],
+      "exposedActions": [
+        "listForms",
+        "getForm"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "FormManagementController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 9,
+          "methods": [
+            "listForms",
+            "getForm"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "WorkspaceTypesController",
+      "input": "WorkspaceTypesControllerInput",
+      "inputFields": [
+        "workspaceTypes"
+      ],
+      "exposedActions": [
+        "get",
+        "getOne"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "WorkspaceTypesController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 9,
+          "methods": [
+            "get",
+            "getOne"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/UserManagementController",
+      "input": "ApiUserManagementControllerInput",
+      "inputFields": [
+        "hiddenRoles",
+        "hiddenUsers",
+        "log",
+        "roles",
+        "users"
+      ],
+      "exposedActions": [
+        "createUser",
+        "updateUser",
+        "disableUser",
+        "enableUser",
+        "generateAPIToken",
+        "revokeAPIToken",
+        "listSystemRoles",
+        "createSystemRole",
+        "listUsers",
+        "getUser",
+        "searchLinkCandidates",
+        "getUserLinks",
+        "getUserAudit",
+        "linkAccounts"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiUserManagementController",
+          "file": "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts",
+          "lines": 143,
+          "methods": [
+            "createUser",
+            "updateUser",
+            "disableUser",
+            "enableUser",
+            "generateAPIToken",
+            "revokeAPIToken",
+            "listSystemRoles",
+            "createSystemRole",
+            "listUsers",
+            "getUser",
+            "searchLinkCandidates",
+            "getUserLinks",
+            "getUserAudit",
+            "linkAccounts"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "AdminController",
+      "input": "AdminIdentityControllerInput",
+      "inputFields": [
+        "hiddenRoles",
+        "hiddenUsers",
+        "log",
+        "roles",
+        "users"
+      ],
+      "exposedActions": [
+        "disableUser",
+        "enableUser",
+        "generateUserKey",
+        "revokeUserKey",
+        "addLocalUser",
+        "updateUserDetails",
+        "getBrandRoles",
+        "updateUserRoles",
+        "getUsers",
+        "searchLinkCandidates",
+        "getUserLinks",
+        "getUserAudit",
+        "linkAccounts"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "AdminIdentityController",
+          "file": "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts",
+          "lines": 133,
+          "methods": [
+            "disableUser",
+            "enableUser",
+            "generateUserKey",
+            "revokeUserKey",
+            "addLocalUser",
+            "updateUserDetails",
+            "getBrandRoles",
+            "updateUserRoles",
+            "getUsers",
+            "searchLinkCandidates",
+            "getUserLinks",
+            "getUserAudit",
+            "linkAccounts"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/AdminController",
+      "input": "ApiAdminOperationsControllerInput",
+      "inputFields": [
+        "audit",
+        "invalidateAssets",
+        "log",
+        "reloadTranslations",
+        "settings"
+      ],
+      "exposedActions": [
+        "getAppConfig",
+        "refreshCachedResources",
+        "setAppConfig"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiAdminOperationsController",
+          "file": "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts",
+          "lines": 33,
+          "methods": [
+            "getAppConfig",
+            "refreshCachedResources",
+            "setAppConfig"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/SiemController",
+      "input": "ApiSiemAdministrationControllerInput",
+      "inputFields": [
+        "audit",
+        "forwarding",
+        "log",
+        "settings",
+        "siem",
+        "siemConfig"
+      ],
+      "exposedActions": [
+        "getConfig",
+        "getEvents",
+        "getDeliveryStatus",
+        "saveConfig",
+        "testDestination"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiSiemAdministrationController",
+          "file": "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts",
+          "lines": 25,
+          "methods": [
+            "saveConfig",
+            "testDestination"
+          ]
+        },
+        {
+          "name": "ApiSiemReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 30,
+          "methods": [
+            "getConfig",
+            "getEvents",
+            "getDeliveryStatus"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/RecordController",
+      "input": "ApiRecordMutationControllerInput",
+      "inputFields": [
+        "audit",
+        "contextVariables",
+        "forms",
+        "harvest",
+        "log",
+        "maxRows",
+        "maxSearchRows",
+        "publicUrl",
+        "recordTypes",
+        "records",
+        "returnFields",
+        "returnMetadataOnSave",
+        "reusableFormDefinitions",
+        "rootContext",
+        "schemaEnabled",
+        "schemas",
+        "search",
+        "storage",
+        "translate",
+        "workflows"
+      ],
+      "exposedActions": [
+        "getMeta",
+        "updateMeta",
+        "listRecords",
+        "listDeletedRecords",
+        "getRecordAudit",
+        "getDeletedRecord",
+        "getObjectMeta",
+        "getPermissions",
+        "create",
+        "updateObjectMeta",
+        "deleteRecord",
+        "restoreRecord",
+        "destroyDeletedRecord",
+        "transitionWorkflow",
+        "addUserEdit",
+        "removeUserEdit",
+        "addUserView",
+        "removeUserView",
+        "addRoleEdit",
+        "removeRoleEdit",
+        "addRoleView",
+        "removeRoleView",
+        "harvest",
+        "legacyHarvest"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiRecordMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 165,
+          "methods": [
+            "create",
+            "updateObjectMeta",
+            "deleteRecord",
+            "restoreRecord",
+            "destroyDeletedRecord",
+            "transitionWorkflow",
+            "addUserEdit",
+            "removeUserEdit",
+            "addUserView",
+            "removeUserView",
+            "addRoleEdit",
+            "removeRoleEdit",
+            "addRoleView",
+            "removeRoleView",
+            "harvest",
+            "legacyHarvest"
+          ]
+        },
+        {
+          "name": "ApiRecordReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 59,
+          "methods": [
+            "listRecords",
+            "listDeletedRecords",
+            "getRecordAudit",
+            "getDeletedRecord",
+            "getObjectMeta",
+            "getPermissions"
+          ]
+        },
+        {
+          "name": "RecordController",
+          "file": "packages/redbox-core/src/http/controllers/webservice/RecordController.ts",
+          "lines": 37,
+          "methods": [
+            "execute",
+            "getMeta",
+            "updateMeta"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "RecordController",
+      "input": "RecordMutationControllerInput",
+      "inputFields": [
+        "audit",
+        "contextVariables",
+        "dashboardConfig",
+        "dashboardTypes",
+        "delivery",
+        "forms",
+        "log",
+        "maxRows",
+        "maxSearchRows",
+        "publicUrl",
+        "recordTypes",
+        "records",
+        "returnFields",
+        "returnMetadataOnSave",
+        "reusableFormDefinitions",
+        "rootContext",
+        "schemaEnabled",
+        "schemas",
+        "search",
+        "storage",
+        "translate",
+        "workflowSteps",
+        "workflows"
+      ],
+      "exposedActions": [
+        "getAllTypes",
+        "getType",
+        "getWorkflowSteps",
+        "getAllDashboardTypes",
+        "getDashboardType",
+        "getDashboardView",
+        "getDashboardWorkflowSettings",
+        "getDashboardViewSettings",
+        "getForm",
+        "getRecordList",
+        "getDeletedRecordList",
+        "getMeta",
+        "getMetaDefault",
+        "getDeletedRecord",
+        "getPermissions",
+        "getRelatedRecords",
+        "search",
+        "listWorkspaces",
+        "create",
+        "update",
+        "delete",
+        "restoreRecord",
+        "destroyDeletedRecord",
+        "stepTo"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "RecordMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 65,
+          "methods": [
+            "create",
+            "update",
+            "delete",
+            "restoreRecord",
+            "destroyDeletedRecord",
+            "stepTo"
+          ]
+        },
+        {
+          "name": "RecordReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 86,
+          "methods": [
+            "getRecordList",
+            "getDeletedRecordList",
+            "getMeta",
+            "getMetaDefault",
+            "getDeletedRecord",
+            "getPermissions",
+            "getRelatedRecords",
+            "search",
+            "listWorkspaces"
+          ]
+        },
+        {
+          "name": "RecordReferenceController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 45,
+          "methods": [
+            "getAllTypes",
+            "getType",
+            "getWorkflowSteps",
+            "getAllDashboardTypes",
+            "getDashboardType",
+            "getDashboardView",
+            "getDashboardWorkflowSettings",
+            "getDashboardViewSettings",
+            "getForm"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/AppConfigController",
+      "input": "ApiAppConfigMutationControllerInput",
+      "inputFields": [
+        "appConfigs"
+      ],
+      "exposedActions": [
+        "getAppConfig",
+        "saveAppConfig",
+        "resetAppConfig"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiAppConfigMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 25,
+          "methods": [
+            "saveAppConfig",
+            "resetAppConfig"
+          ]
+        },
+        {
+          "name": "AppConfigController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 6,
+          "methods": [
+            "getAppConfig"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "AppConfigController",
+      "input": "AppConfigMutationControllerInput",
+      "inputFields": [
+        "appConfigs"
+      ],
+      "exposedActions": [
+        "getAppConfigForm",
+        "saveAppConfig"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "AppConfigMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 15,
+          "methods": [
+            "saveAppConfig"
+          ]
+        },
+        {
+          "name": "AppConfigFormController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 6,
+          "methods": [
+            "getAppConfigForm"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/TranslationController",
+      "input": "ApiTranslationMutationControllerInput",
+      "inputFields": [
+        "reloadTranslations",
+        "translations"
+      ],
+      "exposedActions": [
+        "listEntries",
+        "getEntry",
+        "getBundle",
+        "setEntry",
+        "deleteEntry",
+        "setBundle",
+        "updateBundleEnabled"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiTranslationMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 45,
+          "methods": [
+            "setEntry",
+            "deleteEntry",
+            "setBundle",
+            "updateBundleEnabled"
+          ]
+        },
+        {
+          "name": "TranslationController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 12,
+          "methods": [
+            "listEntries",
+            "getEntry",
+            "getBundle"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "TranslationController",
+      "input": "TranslationMutationControllerInput",
+      "inputFields": [
+        "reloadTranslations",
+        "translations"
+      ],
+      "exposedActions": [
+        "getLanguages",
+        "getNamespace",
+        "listEntriesApp",
+        "getBundleApp",
+        "setEntryApp",
+        "setBundleApp"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "TranslationMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 25,
+          "methods": [
+            "setEntryApp",
+            "setBundleApp"
+          ]
+        },
+        {
+          "name": "BrowserTranslationController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 15,
+          "methods": [
+            "getLanguages",
+            "getNamespace",
+            "listEntriesApp",
+            "getBundleApp"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/DashboardConfigController",
+      "input": "ApiDashboardMutationControllerInput",
+      "inputFields": [
+        "dashboardConfig"
+      ],
+      "exposedActions": [
+        "listTargets",
+        "getWorkflowTarget",
+        "getViewTarget",
+        "getWorkflowFields",
+        "getViewFields",
+        "migrationPreflight",
+        "retiredOperation",
+        "saveWorkflowTarget",
+        "saveViewTarget",
+        "validateSettings",
+        "previewCopy",
+        "applyCopy"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiDashboardMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 64,
+          "methods": [
+            "saveWorkflowTarget",
+            "saveViewTarget",
+            "validateSettings",
+            "previewCopy",
+            "applyCopy",
+            "retiredOperation"
+          ]
+        },
+        {
+          "name": "DashboardConfigController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 24,
+          "methods": [
+            "listTargets",
+            "getWorkflowTarget",
+            "getViewTarget",
+            "getWorkflowFields",
+            "getViewFields",
+            "migrationPreflight",
+            "retiredOperation"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "DashboardConfigController",
+      "input": "DashboardMutationControllerInput",
+      "inputFields": [
+        "dashboardConfig"
+      ],
+      "exposedActions": [
+        "listTargets",
+        "getWorkflowTarget",
+        "getViewTarget",
+        "getWorkflowFields",
+        "getViewFields",
+        "saveWorkflowTarget",
+        "saveViewTarget",
+        "validateSettings",
+        "previewCopy",
+        "applyCopy"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "DashboardMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 55,
+          "methods": [
+            "saveWorkflowTarget",
+            "saveViewTarget",
+            "validateSettings",
+            "previewCopy",
+            "applyCopy"
+          ]
+        },
+        {
+          "name": "DashboardConfigController",
+          "file": "packages/redbox-core/src/http/controllers/ReferenceControllers.ts",
+          "lines": 24,
+          "methods": [
+            "listTargets",
+            "getWorkflowTarget",
+            "getViewTarget",
+            "getWorkflowFields",
+            "getViewFields",
+            "migrationPreflight",
+            "retiredOperation"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/NamedQueryController",
+      "input": "ApiNamedQueryMutationControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "queries",
+        "reports"
+      ],
+      "exposedActions": [
+        "listQueries",
+        "getCollections",
+        "getQuery",
+        "createQuery",
+        "updateQuery",
+        "deleteQuery"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiNamedQueryMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 35,
+          "methods": [
+            "createQuery",
+            "updateQuery",
+            "deleteQuery"
+          ]
+        },
+        {
+          "name": "ApiNamedQueryReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 30,
+          "methods": [
+            "listQueries",
+            "getCollections",
+            "getQuery"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/ReportController",
+      "input": "ApiReportMutationControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "queries",
+        "reports"
+      ],
+      "exposedActions": [
+        "executeNamedQuery",
+        "listConfigs",
+        "previewConfig",
+        "getConfig",
+        "createConfig",
+        "updateConfig",
+        "deleteConfig"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiReportMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 35,
+          "methods": [
+            "createConfig",
+            "updateConfig",
+            "deleteConfig"
+          ]
+        },
+        {
+          "name": "ApiReportReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 39,
+          "methods": [
+            "executeNamedQuery",
+            "listConfigs",
+            "previewConfig",
+            "getConfig"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "ReportController",
+      "input": "ReportMutationControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "queries",
+        "reports"
+      ],
+      "exposedActions": [
+        "listConfigs",
+        "previewConfig",
+        "getConfig",
+        "get",
+        "getResults",
+        "downloadCSV",
+        "createConfig",
+        "updateConfig",
+        "deleteConfig"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ReportMutationController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 35,
+          "methods": [
+            "createConfig",
+            "updateConfig",
+            "deleteConfig"
+          ]
+        },
+        {
+          "name": "ReportReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 57,
+          "methods": [
+            "listConfigs",
+            "previewConfig",
+            "getConfig",
+            "get",
+            "getResults",
+            "downloadCSV"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "ActionController",
+      "input": "ActionControllerInput",
+      "inputFields": [
+        "actions",
+        "audit",
+        "log"
+      ],
+      "exposedActions": [
+        "callService"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ActionController",
+          "file": "packages/redbox-core/src/http/controllers/MutationControllers.ts",
+          "lines": 12,
+          "methods": [
+            "callService"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/VocabularyController",
+      "input": "ApiVocabularyControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "rva",
+        "vocabulary"
+      ],
+      "exposedActions": [
+        "import",
+        "sync",
+        "list",
+        "get",
+        "create",
+        "update",
+        "reorder",
+        "delete"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiVocabularyController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 83,
+          "methods": [
+            "import",
+            "sync",
+            "list",
+            "get",
+            "create",
+            "update",
+            "reorder",
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "VocabularyController",
+      "input": "VocabularyControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "rva",
+        "vocabulary"
+      ],
+      "exposedActions": [
+        "import",
+        "sync",
+        "list",
+        "get",
+        "create",
+        "update",
+        "delete"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "VocabularyController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 73,
+          "methods": [
+            "import",
+            "sync",
+            "list",
+            "get",
+            "create",
+            "update",
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/BrandingController",
+      "input": "ApiBrandingControllerInput",
+      "inputFields": [
+        "audit",
+        "branding",
+        "log"
+      ],
+      "exposedActions": [
+        "config",
+        "draft",
+        "deleteFace",
+        "useDefault",
+        "revert",
+        "preview",
+        "versions",
+        "versionPreview",
+        "publish",
+        "restore",
+        "rollback",
+        "history"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiBrandingController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 123,
+          "methods": [
+            "config",
+            "draft",
+            "deleteFace",
+            "useDefault",
+            "revert",
+            "preview",
+            "versions",
+            "versionPreview",
+            "publish",
+            "restore",
+            "rollback",
+            "history"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "BrandingAppController",
+      "input": "BrandingAppControllerInput",
+      "inputFields": [
+        "audit",
+        "branding",
+        "log"
+      ],
+      "exposedActions": [
+        "config",
+        "draft",
+        "deleteFace",
+        "useDefault",
+        "revert",
+        "preview",
+        "versions",
+        "versionPreview",
+        "publish",
+        "restore",
+        "rollback"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "BrandingAppController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 113,
+          "methods": [
+            "config",
+            "draft",
+            "deleteFace",
+            "useDefault",
+            "revert",
+            "preview",
+            "versions",
+            "versionPreview",
+            "publish",
+            "restore",
+            "rollback"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "BrandingController",
+      "input": "BrandingControllerInput",
+      "inputFields": [
+        "audit",
+        "branding",
+        "log"
+      ],
+      "exposedActions": [
+        "createPreview"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "BrandingController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 13,
+          "methods": [
+            "createPreview"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/FigshareCrosswalkController",
+      "input": "ApiFigshareCrosswalkControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "vocabulary"
+      ],
+      "exposedActions": [
+        "list",
+        "create",
+        "usage",
+        "listLocalEntries",
+        "listMappings",
+        "saveMappings",
+        "approve",
+        "get",
+        "delete"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiFigshareCrosswalkController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 93,
+          "methods": [
+            "list",
+            "create",
+            "usage",
+            "listLocalEntries",
+            "listMappings",
+            "saveMappings",
+            "approve",
+            "get",
+            "delete"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/FigshareVocabularyController",
+      "input": "ApiFigshareVocabularyControllerInput",
+      "inputFields": [
+        "audit",
+        "log",
+        "vocabulary"
+      ],
+      "exposedActions": [
+        "listCatalogues",
+        "listSources",
+        "getSource",
+        "listSourceCategories",
+        "createSourcePreview",
+        "cloneSource",
+        "listSyncRuns",
+        "createPreview",
+        "getPreview",
+        "applyPreview"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiFigshareVocabularyController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 103,
+          "methods": [
+            "listCatalogues",
+            "listSources",
+            "getSource",
+            "listSourceCategories",
+            "createSourcePreview",
+            "cloneSource",
+            "listSyncRuns",
+            "createPreview",
+            "getPreview",
+            "applyPreview"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "webservice/SearchController",
+      "input": "ApiSearchControllerInput",
+      "inputFields": [
+        "audit",
+        "email",
+        "log",
+        "recordTypes",
+        "records",
+        "returnFields",
+        "search"
+      ],
+      "exposedActions": [
+        "search",
+        "index",
+        "indexAll",
+        "removeAll"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "ApiSearchController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 35,
+          "methods": [
+            "index",
+            "indexAll",
+            "removeAll"
+          ]
+        },
+        {
+          "name": "ApiSearchReadController",
+          "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+          "lines": 12,
+          "methods": [
+            "search"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "EmailController",
+      "input": "EmailControllerInput",
+      "inputFields": [
+        "audit",
+        "email",
+        "log",
+        "records",
+        "search"
+      ],
+      "exposedActions": [
+        "sendNotification"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "EmailController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 13,
+          "methods": [
+            "sendNotification"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "FormVocabularyController",
+      "input": "FormVocabularyControllerInput",
+      "inputFields": [
+        "log",
+        "lookups",
+        "users",
+        "vocabulary"
+      ],
+      "exposedActions": [
+        "get",
+        "entries",
+        "children",
+        "expandPath",
+        "getRecords",
+        "externalEntries",
+        "serviceEntries"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "FormVocabularyController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 66,
+          "methods": [
+            "get",
+            "entries",
+            "children",
+            "expandPath",
+            "getRecords",
+            "externalEntries",
+            "serviceEntries"
+          ]
+        }
+      ]
+    },
+    {
+      "factory": "UserController",
+      "input": "UserControllerInput",
+      "inputFields": [
+        "hiddenRoles",
+        "log",
+        "lookups",
+        "roles",
+        "users",
+        "vocabulary"
+      ],
+      "exposedActions": [
+        "generateUserKey",
+        "revokeUserKey",
+        "update",
+        "find"
+      ],
+      "moduleRequirements": [],
+      "classes": [
+        {
+          "name": "UserController",
+          "file": "packages/redbox-core/src/http/controllers/IntegrationControllers.ts",
+          "lines": 14,
+          "methods": [
+            "find"
+          ]
+        },
+        {
+          "name": "UserIdentityController",
+          "file": "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts",
+          "lines": 33,
+          "methods": [
+            "generateUserKey",
+            "revokeUserKey",
+            "update"
+          ]
+        }
+      ]
+    }
+  ]
+}

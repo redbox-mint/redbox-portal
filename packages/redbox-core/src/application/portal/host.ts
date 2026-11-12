@@ -151,7 +151,7 @@ export async function createPortalFastifyHost(
       policies,
       csrf,
       observers: { observe: undefined, log: undefined },
-      // Selected policies resolve brand/actor; this pilot has no raw mounts.
+      // Selected policies resolve brand/actor; raw owners prepare their context separately.
       resolveContext: undefined,
       parsers: {
         parserExclusions: [],

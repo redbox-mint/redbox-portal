@@ -158,6 +158,10 @@ export async function resolvePortalInstallation(
     )
   );
   const recordFactory = upload ? datastreamController : recordController;
+  const metadataOnly =
+    input.declarations.some(route => route.controller === recordController.name) &&
+    !readTargets.has(recordController.name) &&
+    !mutationTargets.has(recordController.name);
   const coreRoutes = apiRouteRegistrations({
     declarations: [...input.declarations, ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : [])],
     configuration: plan.policyConfiguration,
@@ -200,11 +204,13 @@ export async function resolvePortalInstallation(
                 : 'none',
   }));
   const bindings = Object.freeze([
-    ...(!mutationTargets.has(recordController.name) && upload && !readTargets.has(recordController.name)
-      ? [bindControllerFactory(datastreamController, uploadInputs!)]
-      : readTargets.has(recordController.name) || mutationTargets.has(recordController.name)
-        ? []
-        : [bindControllerFactory(recordController, plan.metadata)]),
+    ...(metadataOnly
+      ? [
+          upload
+            ? bindControllerFactory(datastreamController, uploadInputs!)
+            : bindControllerFactory(recordController, plan.metadata),
+        ]
+      : []),
     ...(input.progress
       ? [
           bindControllerFactory(progressController, {
@@ -248,9 +254,7 @@ export async function resolvePortalInstallation(
           apiVersion: 2,
           modules: [...context.plans.map(plan => plan.declaration), ...(rawDeclaration ? [rawDeclaration] : [])],
           controllers: [
-            ...(readTargets.has(recordController.name) || mutationTargets.has(recordController.name)
-              ? []
-              : [recordFactory]),
+            ...(metadataOnly ? [recordFactory] : []),
             ...reads.controllers,
             ...reference.controllers,
             ...identities.controllers,

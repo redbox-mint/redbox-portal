@@ -234,7 +234,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: no unsupported silent omission, copied handwritten API table or
     unreviewed response-field/status change; relevant Bruno profiles pass.
 
-- [ ] **FM-028 — Reconcile APIs and close G3.**
+- [x] **FM-028 — Reconcile APIs and close G3.**
   - Dependencies: FM-024–FM-027.
   - Work: reconcile declaration/runtime/docs coverage and intentional overrides;
     inspect controller dependency/class-size boundaries and remove replaced

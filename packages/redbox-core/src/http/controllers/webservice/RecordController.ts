@@ -39,9 +39,14 @@ export function recordMetadataBodyPrelude(request: FastifyRequest, reply: Fastif
 /** Only native request/response adaptation. Both hosts execute the same actions. */
 export class RecordController {
   constructor(protected readonly input: RecordControllerInput) {}
-  private async execute(request: MetadataRequest, reply: FastifyReply, mutation: boolean): Promise<unknown> {
+  private async execute(
+    request: MetadataRequest,
+    reply: FastifyReply,
+    action: typeof readRecordMetadata | typeof updateRecordMetadata,
+    failure: string,
+    detail = failure
+  ): Promise<unknown> {
     try {
-      const action = mutation ? updateRecordMetadata : readRecordMetadata;
       return send(
         request,
         reply,
@@ -58,17 +63,15 @@ export class RecordController {
         )
       );
     } catch {
-      this.input.log.error(mutation ? 'Record mutation failed' : 'Record read failed');
-      return sendApiErrors(request, reply, 500, [
-        { detail: mutation ? 'Record mutation failed' : 'Record read failed.' },
-      ]);
+      this.input.log.error(failure);
+      return sendApiErrors(request, reply, 500, [{ detail }]);
     }
   }
   async getMeta(request: MetadataRequest, reply: FastifyReply): Promise<unknown> {
-    return this.execute(request, reply, false);
+    return this.execute(request, reply, readRecordMetadata, 'Record read failed', 'Record read failed.');
   }
   async updateMeta(request: MetadataRequest, reply: FastifyReply): Promise<unknown> {
-    return this.execute(request, reply, true);
+    return this.execute(request, reply, updateRecordMetadata, 'Record mutation failed');
   }
 }
 export const recordController = defineController({
