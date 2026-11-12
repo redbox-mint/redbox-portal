@@ -100,6 +100,7 @@
                       *ngFor="let published of row.publishedAs"
                       class="badge rb-admin-badge-primary"
                       [href]="api.brandingAndPortalUrl + '/admin/named-query#query=' + published.name"
+                      (click)="$event.preventDefault(); publishedSelected.emit(published.name)"
                       >{{ 'nq-ux-published-as' | i18next: { name: published.name } }}</a
                     ><span *ngIf="!row.publishedAs.length">{{ 'nq-ux-not-published' | i18next }}</span>
                   </td>

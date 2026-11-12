@@ -1,3 +1,4 @@
+import { NamedQueryBasicsSectionComponent } from './named-query-basics-section.component';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { TranslationService } from '../translation.service';
@@ -6,6 +7,32 @@ import { NamedQueryParametersSectionComponent } from './named-query-parameters-s
 import { NamedQueryLookupSectionComponent } from './named-query-lookup-section.component';
 
 describe('Shared named-query sections', () => {
+  it('keeps the short publishing basics and allows the full editor to retain descriptions', async () => {
+    TestBed.configureTestingModule({
+      imports: [NamedQueryBasicsSectionComponent],
+      providers: [
+        {
+          provide: TranslationService,
+          useValue: { translationChanges$: of(), isInitializing: () => false, t: (key: string) => key },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(NamedQueryBasicsSectionComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
+    fixture.componentInstance.showDescription = true;
+    fixture.componentInstance.description = 'Existing description';
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('Existing description');
+    const edited = spyOn(fixture.componentInstance.descriptionChange, 'emit');
+    textarea.value = 'Edited description';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(edited).toHaveBeenCalledWith('Edited description');
+    fixture.destroy();
+  });
   it('retains false, zero and empty saved values and excludes server paging from consumer choices', () => {
     const c = new NamedQueryParametersSectionComponent(),
       changed = jasmine.createSpy();

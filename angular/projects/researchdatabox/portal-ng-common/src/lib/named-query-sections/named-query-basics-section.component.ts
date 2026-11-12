@@ -32,6 +32,18 @@ import { I18NextPipe } from '../i18next.pipe';
           <option value="lookup">{{ 'nq-section-form-lookup' | i18next }}</option>
         </select>
       </label>
+      @if (showDescription) {
+        <label class="rb-admin-field"
+          >{{ 'named-query-graphql-description' | i18next }}
+          <textarea
+            class="form-control"
+            rows="3"
+            [ngModel]="description"
+            (ngModelChange)="descriptionChange.emit($event)"
+            [disabled]="disabled"
+          ></textarea>
+        </label>
+      }
     </div>
   </section>`,
 })
@@ -39,6 +51,9 @@ export class NamedQueryBasicsSectionComponent {
   /** Page editors use level 2; publishing panels retain level 3. */
   @Input() headingLevel: 2 | 3 = 3;
   @Input() name = '';
+  @Input() showDescription = false;
+  @Input() description = '';
+  @Output() descriptionChange = new EventEmitter<string>();
   @Input() use: 'general' | 'lookup' = 'general';
   @Input() isNew = true;
   @Input() disabled = false;

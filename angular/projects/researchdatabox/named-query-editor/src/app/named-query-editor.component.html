@@ -162,6 +162,9 @@
     <div class="rb-admin-split-main">
       <div id="nq-section-basics" tabindex="-1">
         <rb-named-query-basics
+          [showDescription]="true"
+          [description]="activeGraphqlBuffer.description || ''"
+          (descriptionChange)="activeGraphqlBuffer.description = $event; draftChanged()"
           [headingLevel]="2"
           [name]="activeGraphqlBuffer.name || ''"
           [isNew]="isNew"
@@ -367,6 +370,7 @@
     [selectedId]="chooserReplacing ? linkedSource?.id || '' : ''"
     (closed)="chooserOpen = false"
     (database)="createDatabase()"
+    (publishedSelected)="chooserOpen = false; openQuery($event)"
     (chosen)="chooseSavedSource($event)"
   ></nq-saved-query-chooser>
 }

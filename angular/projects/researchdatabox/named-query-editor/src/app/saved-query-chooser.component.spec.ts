@@ -155,6 +155,9 @@ describe('Saved query chooser', () => {
       '/brand/portal/admin/named-query#query=published_plans'
     );
     const c = f.componentInstance;
+    const published = spyOn(c.publishedSelected, 'emit');
+    f.nativeElement.querySelector('tbody a').click();
+    expect(published).toHaveBeenCalledWith('published_plans');
     const emit = spyOn(c.database, 'emit');
     c.start = 'database';
     await c.continue();

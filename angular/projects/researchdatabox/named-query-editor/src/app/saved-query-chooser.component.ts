@@ -21,6 +21,7 @@ export class SavedQueryChooserComponent implements OnInit, OnDestroy {
   @Input() selectedId = '';
   @Output() closed = new EventEmitter<void>();
   @Output() chosen = new EventEmitter<SavedQueryChoice>();
+  @Output() publishedSelected = new EventEmitter<string>();
   @Output() database = new EventEmitter<void>();
   start: 'saved' | 'graphql' | 'database' = 'saved';
   search = '';
