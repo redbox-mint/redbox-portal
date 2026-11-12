@@ -1,5 +1,7 @@
 import { SavedQueryChooserComponent } from './saved-query-chooser.component';
 import {
+  validateNamedQueryName,
+  NamedQueryNameFieldComponent,
   NamedQueryBasicsSectionComponent,
   NamedQueryParametersSectionComponent,
   NamedQueryLookupSectionComponent,
@@ -122,7 +124,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub,
       ],
-      imports: [SavedQueryChooserComponent, NamedQueryBasicsSectionComponent, NamedQueryParametersSectionComponent, NamedQueryLookupSectionComponent, NamedQueryPreviewSectionComponent, GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
+      imports: [NamedQueryNameFieldComponent, SavedQueryChooserComponent, NamedQueryBasicsSectionComponent, NamedQueryParametersSectionComponent, NamedQueryLookupSectionComponent, NamedQueryPreviewSectionComponent, GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },
@@ -132,6 +134,37 @@ describe('NamedQueryEditorComponent', () => {
     }).compileComponents();
   });
 
+  for (const source of ['database', 'graphql'] as const) {
+    for (const [name, reason] of [['active research plans', 'spaces'], ['collections', 'reserved'], ['a'.repeat(121), 'long'], ['', 'required']]) {
+      it(`focuses ${source} name on Save for ${reason} and keeps untouched required quiet`, async () => {
+        const fixture = TestBed.createComponent(NamedQueryEditorComponent), component = fixture.componentInstance;
+        fixture.detectChanges(); await component.waitForInit(); component.newQuery();
+        if (source === 'graphql') component.changeSource('graphql');
+        component.draft.name = name; fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+        const input = Array.from(fixture.nativeElement.querySelectorAll('[data-named-query-name]')).find((e: any) => e.getClientRects().length) as HTMLInputElement;
+        if (!name) expect(input.getAttribute('aria-invalid')).toBeNull();
+        const button = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
+        expect(button.disabled).toBeFalse(); button.click(); fixture.detectChanges();
+        await fixture.whenStable(); fixture.detectChanges();
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+        expect(document.activeElement).toBe(input);
+        expect(input.closest('rb-named-query-name')!.querySelector('.invalid-feedback')!.textContent).toContain(reason);
+        if (name) {
+          (input.closest('rb-named-query-name')!.querySelector('button') as HTMLButtonElement).click(); fixture.detectChanges();
+          expect(validateNamedQueryName(component.draft.name)).toBeNull();
+          expect(component.draft.name).not.toBe(name);
+        }
+        fixture.destroy();
+      });
+    }
+  }
+  it('uses local name feedback without scheduling remote validation for an invalid new name', fakeAsync(() => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent), c = f.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService), validate = spyOn(api, 'validate').and.callThrough();
+    c.isEditing = true; c.isNew = true; c.draft.name = 'has spaces'; c.scheduleValidation(); tick(500);
+    expect(validate).not.toHaveBeenCalled(); expect(c.validating).toBeFalse();
+    f.destroy();
+  }));
   function deferred<T>() {
     let resolve!: (value: T) => void;
     let reject!: (reason: unknown) => void;
@@ -212,7 +245,7 @@ describe('NamedQueryEditorComponent', () => {
       expect(textarea.value).toBe('["unfinished"');
       expect(component.pendingInput).toBeTrue();
       expect(component.canSave).toBeFalse();
-      expect((fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement).disabled).toBeTrue();
+      expect((fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement).disabled).toBeFalse();
     });
   it('retains pending database JSON while editing the independent GraphQL buffer', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
@@ -305,7 +338,7 @@ describe('NamedQueryEditorComponent', () => {
         expect(update).not.toHaveBeenCalled();
         expect(component.pendingReview).toBeNull();
         if (change === 'pendingInput')
-          expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
+          expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#nq-save-blocker'));
         else expect(document.activeElement).toBe(save);
         if (phase === 'validation') expect(reviewSpy).not.toHaveBeenCalled();
       });
@@ -329,7 +362,8 @@ describe('NamedQueryEditorComponent', () => {
     expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save);
     await component.save(); fixture.detectChanges(); await fixture.whenStable();
     const update = deferred<{ name: string }>(); spyOn(api, 'update').and.returnValue(update.promise);
-    const confirming = component.confirmSaveReview(); fixture.detectChanges(); expect(save.disabled).toBeTrue(); document.body.focus();
+    const confirming = component.confirmSaveReview(); fixture.detectChanges(); expect(save.disabled).toBeTrue();
+    document.body.focus();
     await new Promise(resolve => setTimeout(resolve, 0)); expect(document.activeElement).not.toBe(save);
     update.reject(new Error('Save rejected')); await confirming; fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
     expect(component.error).toContain('Save rejected'); expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save);
@@ -388,10 +422,11 @@ describe('NamedQueryEditorComponent', () => {
       await new Promise(yes => setTimeout(yes, 0));
       expect(component.isEditing).toBeTrue();
       if (phase === 'validation') {
-        expect(save.disabled).toBeTrue();
+        expect(save.disabled).toBeFalse();
+        expect(component.canSave).toBeFalse();
         expect(create).not.toHaveBeenCalled();
         expect(update).not.toHaveBeenCalled();
-        expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
+        expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#nq-save-blocker'));
       } else {
         expect(save.disabled).toBeFalse();
         expect(document.activeElement).toBe(save);
@@ -985,7 +1020,7 @@ describe('NamedQueryEditorComponent', () => {
     component.draft = { name: '', collectionName: '', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
     await component.save();
 
-    expect(component.error).toContain('name is required');
+    expect(component.error).toBe('named-query-error-name-required');
   });
 
   it('shows validation error when saving with reserved name', async () => {
@@ -1025,7 +1060,7 @@ describe('NamedQueryEditorComponent', () => {
     };
     await component.save();
 
-    expect(component.error).toContain('URL safe');
+    expect(component.error).toBe('named-query-error-name-invalid');
   });
 
   it('shows backend error on save failure', async () => {
@@ -1271,7 +1306,7 @@ describe('NamedQueryEditorComponent', () => {
     };
     await component.save();
 
-    expect(component.error).toContain('Collection name is required');
+    expect(component.error).toBe('named-query-error-collection-required');
   });
 
   it('filters by collection name', async () => {
@@ -1573,7 +1608,7 @@ describe('NamedQueryEditorComponent', () => {
       summary: {
         id: 'a'.repeat(24),
         revision: 4,
-        name: 'Plans',
+        name: 'active research plans',
         recordType: null,
         recordTypeLabel: null,
         mode: 'graphql',
@@ -1600,6 +1635,7 @@ describe('NamedQueryEditorComponent', () => {
     expect(JSON.stringify(c.activeGraphqlBuffer.graphql.variables['count'])).toBe(
       JSON.stringify({ ownership: 'fixed', value: 0 })
     );
+    expect(c.activeGraphqlBuffer.name).toBe('active_research_plans');
     expect(c.linkedSource?.publishedRevision).toBe(4);
     expect(c.dirty).toBeTrue();
     expect(c.isNew).toBeTrue();

@@ -144,6 +144,30 @@ describe('Explorer publishing workspace', () => {
     expect(window.location.href).toBe(url);
     expect(source.save).not.toHaveBeenCalled();
   });
+  for (const [name, reason] of [['active research plans', 'spaces'], ['collections', 'reserved'], ['a'.repeat(121), 'long'], ['', 'required']]) {
+    it(`explains ${reason}, focuses Name on publish and applies a valid suggestion`, async () => {
+      const child = await open(); child.draft.name = name; child.changed(); await render();
+      const input: HTMLInputElement = fixture.nativeElement.querySelector('[data-named-query-name]');
+      if (!name) expect(input.getAttribute('aria-invalid')).toBeNull();
+      expect(child.saveButton!.nativeElement.disabled).toBeFalse();
+      child.saveButton!.nativeElement.click(); await render();
+      expect(input.getAttribute('aria-invalid')).toBe('true');
+      expect(document.activeElement).toBe(input);
+      expect(fixture.nativeElement.querySelector('.invalid-feedback').textContent).toContain(reason);
+      expect(api.create).not.toHaveBeenCalled();
+      if (name) {
+        fixture.nativeElement.querySelector('rb-named-query-name button').click(); await render();
+        expect(child.draft.name).not.toBe(name);
+        expect(input.getAttribute('aria-invalid')).toBeNull();
+      }
+    });
+  }
+  it('keeps name errors local instead of issuing another GraphQL description request', async () => {
+    const child = await open(); api.describe.calls.reset(); child.draft.name = 'has spaces'; child.changed();
+    await new Promise(resolve => setTimeout(resolve, 300)); await render();
+    expect(api.describe).not.toHaveBeenCalled();
+    expect(child.saveBlockReason).toBe('named-query-error-name-spaces');
+  });
   it('prefills saved values as fixed parameters and paging without errors on open', async () => {
     const child = await open();
     expect(child.draft.name).toBe('Current');
@@ -157,7 +181,8 @@ describe('Explorer publishing workspace', () => {
     let resolve!: (value: GraphqlNamedQueryDescription) => void;
     api.describe.and.returnValue(new Promise(yes => (resolve = yes)));
     const child = await open();
-    expect(child.saveButton!.nativeElement.disabled).toBeTrue();
+    expect(child.saveButton!.nativeElement.disabled).toBeFalse();
+    expect(child.saveBlockReason).toBe('data-grids-promotion-opening');
     resolve(described(true));
     await render();
     expect(child.saveButton!.nativeElement.disabled).toBeFalse();

@@ -1,3 +1,4 @@
+import { suggestNamedQueryName } from './named-query-name';
 import {
   Kind,
   parse,
@@ -52,11 +53,12 @@ const literal = (value: unknown): ValueNode =>
 /** Expand generated filter inputs into readable, individually bindable conditions. Raw documents are retained verbatim. */
 export function initializePublish(
   prepared: NamedQueryPromotionDraft,
-  exploration: { mode?: string } | null,
+  exploration: { mode?: string; name?: string } | null,
   labels: Record<string, string>,
   text: (key: string) => string
 ): { draft: GraphqlNamedQueryDefinition; variables: PublishVariable[] } {
   const draft = structuredClone(prepared.definition);
+  draft.name = suggestNamedQueryName(exploration?.name ?? draft.name ?? '');
   const values = structuredClone(prepared.variableValues);
   const ast = parse(draft.graphql.document, { maxTokens: 2000 });
   let operation = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION) as OperationDefinitionNode;

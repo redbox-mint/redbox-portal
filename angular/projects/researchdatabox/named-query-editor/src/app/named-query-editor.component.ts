@@ -1,4 +1,4 @@
-import { Component, Inject, Injector, Type, OnDestroy, HostListener, DestroyRef, inject } from '@angular/core';
+import { Component, Inject, Injector, Type, OnDestroy, HostListener, DestroyRef, inject, ViewChild } from '@angular/core';
 import type {
   NamedQueryJson,
   NamedQueryExplorerSource,
@@ -16,7 +16,7 @@ import type {
   SchemaTarget,
 } from '@researchdatabox/sails-ng-common';
 import { storedRecordPath } from '@researchdatabox/sails-ng-common/dist/src/query-report-context';
-import { formatNamedQuerySort, LatestRequest, type FieldNode } from '@researchdatabox/portal-ng-common';
+import { validateNamedQueryName, formatNamedQuerySort, LatestRequest, type FieldNode } from '@researchdatabox/portal-ng-common';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
 import {
   NamedQueryApiService,
@@ -32,6 +32,7 @@ import type {
 } from '@researchdatabox/portal-ng-common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NamedQueryListQueryState } from './nq-list/nq-list.component';
+import type { NqDetailComponent } from './nq-detail/nq-detail.component';
 
 @Component({
   selector: 'named-query-editor',
@@ -40,6 +41,30 @@ import { NamedQueryListQueryState } from './nq-list/nq-list.component';
   standalone: false,
 })
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {
+  saveAttempted = false;
+  @ViewChild('databaseDetail') databaseDetail?: NqDetailComponent;
+  get saveBlockReason(): string | null {
+    const nameError = this.isNew ? validateNamedQueryName(this.draft.name) : null;
+    if (nameError && (this.draft.name || this.saveAttempted)) return nameError;
+    if (this.saving) return 'data-grids-saving';
+    if (this.pendingReview) return 'nq-section-review-help';
+    if (this.pendingInput) return 'named-query-pending-input';
+    if (this.source === 'database' && !this.draft.collectionName?.trim()) return 'named-query-error-collection-required';
+    if (this.validating) return 'named-query-validating';
+    if (this.validationBlocking || (this.source === 'graphql' && !this.activeGraphqlBuffer.graphql.document.trim()))
+      return this.source === 'graphql' ? 'named-query-graphql-correct-before-save' : 'nq-section-check-settings';
+    return null;
+  }
+  private focusSaveBlocker(): void {
+    const nameInvalid = this.isNew && !!validateNamedQueryName(this.draft.name);
+    if (this.source === 'database' && (nameInvalid || !this.draft.collectionName?.trim()) && this.databaseDetail)
+      this.databaseDetail.setTab('basics');
+    setTimeout(() => {
+      const selector = nameInvalid ? '[data-named-query-name]' : this.source === 'database' && !this.draft.collectionName?.trim() ? '#nq-collection' : '#nq-save-blocker';
+      const field = Array.from(document.querySelectorAll<HTMLElement>(selector)).find(element => element.getClientRects().length > 0);
+      field?.focus();
+    });
+  }
   chooserOpen = false;
   chooserReplacing = false;
   sourcePreparing = false;
@@ -213,7 +238,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     if (!this.itemRequests.isCurrent(token) || this.editorDestroyed) return;
     const initialized = initializePublish(
       choice.prepared,
-      { mode: choice.summary.mode },
+      { mode: choice.summary.mode, name: choice.summary.name },
       {},
       key => this.translationService.t('data-grids-' + key) as string
     );
@@ -549,7 +574,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       if (!this.editorDestroyed) this.saveError(error);
     } finally {
       this.saving = false;
-      if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger);
+      if (!saved && !this.editorDestroyed) {
+        if (!this.canSave) this.focusSaveBlocker();
+        else this.restoreReviewFocus(trigger);
+      }
     }
   }
 
@@ -685,6 +713,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private startDraft(loadSource = true): void {
+    this.saveAttempted = false;
     this.databaseWorkspaceOpened = this.source === 'database';
     ++this.sourceFieldsSequence;
     this.sourcePreparing = false;
@@ -887,6 +916,11 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   scheduleValidation(): void {
     if (this.validationTimer) clearTimeout(this.validationTimer);
     if (!this.isEditing) return;
+    // Local name feedback is immediate; avoid describing a draft that cannot be created yet.
+    if (this.isNew && validateNamedQueryName(this.draft.name)) {
+      this.validating = false;
+      return;
+    }
     this.validationTimer = setTimeout(() => {
       this.validationTimer = null;
       void this.validateDraft();
@@ -1057,12 +1091,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   get canSave(): boolean {
     if (!this.isEditing || this.pendingInput || this.saving || !!this.pendingReview || this.validationBlocking)
       return false;
-    if (this.isNew) {
-      const trimmed = this.draft.name?.trim();
-      if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
-      if (trimmed === 'collections') return false;
-    }
-    return this.draft.source === 'graphql' ? !!this.draft.graphql.document.trim() : !!this.draft.collectionName?.trim();
+    if (this.isNew && validateNamedQueryName(this.draft.name)) return false;
+    return this.draft.source === 'graphql' ? !!this.activeGraphqlBuffer.graphql.document.trim() : !!this.draft.collectionName?.trim();
   }
 
   get pendingDeleteDisplayName(): string {
@@ -1176,28 +1206,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       document.activeElement instanceof HTMLElement && document.activeElement !== document.body
         ? document.activeElement
         : document.getElementById('named-query-save');
+    this.saveAttempted = true;
     if (!this.canSave) {
-      if (this.isNew) {
-        const trimmed = this.draft.name?.trim();
-        if (!trimmed) {
-          this.error = this.t('named-query-error-name-required', 'Named query name is required');
-        } else if (!/^[A-Za-z0-9_-]+$/.test(trimmed)) {
-          this.error = this.t(
-            'named-query-error-name-invalid',
-            'Named query name must be URL safe (letters, numbers, underscores, hyphens only)'
-          );
-        } else if (trimmed === 'collections') {
-          this.error = this.t('named-query-error-name-reserved', "'collections' is a reserved name and cannot be used");
-        }
-      } else if (this.source === 'graphql') {
-        this.error = this.t(
-          'named-query-graphql-correct-before-save',
-          'Correct the GraphQL document and variable diagnostics before saving.'
-        );
-      } else {
-        this.error = this.t('named-query-error-collection-required', 'Collection name is required');
-      }
-      this.restoreReviewFocus(trigger);
+      this.error = this.saveBlockReason ? this.translationService.t(this.saveBlockReason) as string : '';
+      this.focusSaveBlocker();
       return;
     }
     this.error = '';
@@ -1217,7 +1229,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
         );
         return;
       }
-      if (this.validationBlocking) return;
+      if (this.validationBlocking) {
+        this.focusSaveBlocker();
+        return;
+      }
       if (!this.isNew) {
         const review = await this.api.reviewUpdate(payload.name as string, payload);
         if (this.editorDestroyed) return;
@@ -1240,7 +1255,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       if (!this.editorDestroyed) this.saveError(err);
     } finally {
       this.saving = false;
-      if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger);
+      if (!saved && !this.editorDestroyed) {
+        if (!this.canSave) this.focusSaveBlocker();
+        else this.restoreReviewFocus(trigger);
+      }
     }
   }
 

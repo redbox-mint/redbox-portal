@@ -1,6 +1,7 @@
 import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
 import { SavedQueryChooserComponent } from './saved-query-chooser.component';
 import {
+  NamedQueryNameFieldComponent,
   NamedQueryBasicsSectionComponent,
   NamedQueryParametersSectionComponent,
   NamedQueryLookupSectionComponent,
@@ -182,6 +183,7 @@ describe('Schema-assisted named query workspace behaviours', () => {
       ],
       imports: [
         SavedQueryChooserComponent,
+        NamedQueryNameFieldComponent,
         NamedQueryBasicsSectionComponent,
         NamedQueryParametersSectionComponent,
         NamedQueryLookupSectionComponent,

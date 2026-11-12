@@ -1166,7 +1166,7 @@
   "named-query-error-update": "Failed to update named query: {{error}}",
   "named-query-error-delete": "Failed to delete named query: {{error}}",
   "named-query-error-name-required": "Named query name is required",
-  "named-query-error-collection-required": "Collection name is required",
+  "named-query-error-collection-required": "Choose a collection in Basics before saving.",
   "named-query-message-created": "Named query \"{{name}}\" created",
   "named-query-message-updated": "Named query \"{{name}}\" updated",
   "named-query-message-deleted": "Named query \"{{name}}\" deleted",
@@ -4458,7 +4458,7 @@
   "data-grids-save-before-publish": "Save this query first so the named query can link to its saved revision. Publishing continues after saving.",
   "nq-section-basics": "Basics",
   "nq-section-name": "Name",
-  "nq-section-name-help": "Use letters, numbers, underscores or hyphens. The name is used by forms and the API.",
+  "nq-section-name-help": "Use letters, numbers, underscores or hyphens, with no spaces and at most 120 characters — for example active_research_plans. The name collections is reserved.",
   "nq-section-used-for": "Used for",
   "nq-section-general": "API query",
   "nq-section-form-lookup": "Form lookup (typeahead)",
@@ -4602,5 +4602,10 @@
   "nq-ux-diagnostic-GRAPHQL_DISABLED": "Record queries are disabled. Ask an administrator to enable GraphQL.",
   "nq-ux-diagnostic-GRAPHQL_SCHEMA_UNAVAILABLE": "The current schema could not be loaded. Your draft is kept; try again.",
   "nq-ux-updated-by": "Updated {{date}} by {{user}}",
-  "nq-ux-updated-at": "Updated {{date}}"
+  "nq-ux-updated-at": "Updated {{date}}",
+  "named-query-error-name-spaces": "Names can't contain spaces. Use letters, numbers, underscores or hyphens — for example active_research_plans.",
+  "named-query-error-name-invalid": "Names can only contain letters, numbers, underscores or hyphens — for example active_research_plans.",
+  "named-query-error-name-long": "Names must be 120 characters or fewer.",
+  "named-query-name-use-suggestion": "Use {{suggestion}}",
+  "named-query-error-name-reserved": "The name collections is reserved. Choose a different name."
 }

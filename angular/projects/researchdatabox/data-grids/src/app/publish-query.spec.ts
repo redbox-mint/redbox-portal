@@ -22,6 +22,11 @@ describe('Publishing condition defaults and selected result paths', () => {
       ],
     },
   });
+  it('prefills a valid slug from a saved query without modifying the saved name', () => {
+    const input = prepared(); input.definition.name = 'active research plans';
+    expect(initializePublish(input, { ...validGrid(), name: 'active research plans' }, {}, k => k).draft.name).toBe('active_research_plans');
+    expect(input.definition.name).toBe('active research plans');
+  });
   it('turns visual scalar conditions into labelled parameters with fixed saved values and valid GraphQL', () => {
     const original = prepared();
     const result = initializePublish(original, validGrid(), { title: 'Project title', active: 'Active' }, k => k);

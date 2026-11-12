@@ -17,7 +17,7 @@
     <fieldset [disabled]="saving || initializing" class="explorer-publish-fields">
       <div class="rb-admin-split">
         <div class="rb-admin-split-main">
-          <rb-named-query-basics
+          <rb-named-query-basics [attempted]="saveAttempted"
             [name]="draft.name || ''"
             [isNew]="!updateName"
             [use]="use"
@@ -85,11 +85,12 @@
   </div>
   <div panelFooter class="explorer-panel-footer" [attr.inert]="confirmCancel || pendingUpdate ? '' : null">
     <span class="rb-admin-hint">{{ 'data-grids-promotion-save-help' | i18next }}</span>
+    <p #blocker id="promotion-save-blocker" tabindex="-1" class="rb-admin-hint" role="status">{{ (saveBlockReason || '') | i18next }}</p>
     <div class="grid-actions">
       <button #cancelButton class="btn btn-outline-secondary" [disabled]="saving" (click)="cancel()">
         {{ 'data-grids-cancel' | i18next }}
       </button>
-      <button #saveButton id="promotion-save" class="btn btn-primary" [disabled]="!canSave" (click)="save()">
+      <button #saveButton id="promotion-save" class="btn btn-primary" [disabled]="saving || !!pendingUpdate" aria-describedby="promotion-save-blocker" (click)="save()">
         {{ (updateName ? 'nq-section-update' : 'nq-section-publish') | i18next }}
       </button>
     </div>

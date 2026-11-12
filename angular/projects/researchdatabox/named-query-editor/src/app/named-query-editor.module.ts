@@ -1,6 +1,7 @@
 import { SavedQueryChooserComponent } from './saved-query-chooser.component';
 import {
   NamedQueryBasicsSectionComponent,
+  NamedQueryNameFieldComponent,
   NamedQueryParametersSectionComponent,
   NamedQueryLookupSectionComponent,
   NamedQueryPreviewSectionComponent,
@@ -54,6 +55,7 @@ import { RelatedFilterEditorComponent } from './related-filter-editor/related-fi
     BrowserModule,
     SavedQueryChooserComponent,
     NamedQueryBasicsSectionComponent,
+    NamedQueryNameFieldComponent,
     NamedQueryParametersSectionComponent,
     NamedQueryLookupSectionComponent,
     NamedQueryPreviewSectionComponent,

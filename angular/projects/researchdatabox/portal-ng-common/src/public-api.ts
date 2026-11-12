@@ -72,3 +72,6 @@ export * from './lib/named-query-sections/named-query-preview-section.component'
 export * from './lib/named-query-sections/named-query-sections.model';
 
 export * from './lib/named-query-sections/named-query-publication';
+
+export * from './lib/named-query-sections/named-query-name';
+export * from './lib/named-query-sections/named-query-name-field.component';

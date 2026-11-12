@@ -18,6 +18,8 @@ import {
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  validateNamedQueryName,
+  suggestNamedQueryName,
   formatNamedQuerySort,
   AdminModalDirective,
   AdminSidePanelComponent,
@@ -71,6 +73,21 @@ export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy
   @Input() updateName = '';
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<string>();
+  @ViewChild(NamedQueryBasicsSectionComponent, { read: ElementRef }) basics?: ElementRef<HTMLElement>;
+  @ViewChild('blocker') blocker?: ElementRef<HTMLElement>;
+  saveAttempted = false;
+  get saveBlockReason(): string | null {
+    const nameError = !this.updateName ? validateNamedQueryName(this.draft.name) : null;
+    if (nameError && (this.draft.name || this.saveAttempted)) return nameError;
+    if (this.initializing) return 'data-grids-promotion-opening';
+    if (this.saving) return 'data-grids-saving';
+    if (this.pendingUpdate) return 'nq-section-review-help';
+    if (this.pendingInput) return 'named-query-pending-input';
+    if (this.validating) return 'named-query-validating';
+    if (!this.description?.valid) return 'named-query-graphql-correct-before-save';
+    if (this.use === 'lookup' && !this.description.capabilities?.lookup) return 'nq-section-lookup-check';
+    return null;
+  }
   @ViewChild('saveButton') saveButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('cancelButton') cancelButton?: ElementRef<HTMLButtonElement>;
   draft: GraphqlNamedQueryDefinition = {
@@ -137,7 +154,7 @@ export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy
     void this.initialize();
   }
   private defaultName(): string {
-    return (this.exploration?.name ?? '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+    return suggestNamedQueryName(this.exploration?.name ?? '');
   }
   text(key: string): string {
     return this.i18n.t(key) as string;
@@ -179,12 +196,10 @@ export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy
     return this.initialized && JSON.stringify(this.draft) !== this.baseline;
   }
   get canSave(): boolean {
-    const name = this.draft?.name?.trim();
+    const nameError = !this.updateName && validateNamedQueryName(this.draft?.name);
     return (
       this.initialized &&
-      !!name &&
-      /^[A-Za-z0-9_-]+$/.test(name) &&
-      name !== 'collections' &&
+      !nameError &&
       !this.pendingInput &&
       !this.saving &&
       !this.validating &&
@@ -294,7 +309,8 @@ export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy
     this.validating = false;
     this.pendingUpdate = null;
     clearTimeout(this.timer);
-    if (this.initialized) this.timer = setTimeout(() => void this.validate(), 250);
+    if (this.initialized && !validateNamedQueryName(this.draft.name))
+      this.timer = setTimeout(() => void this.validate(), 250);
   }
   async validate(): Promise<boolean> {
     clearTimeout(this.timer);
@@ -375,7 +391,15 @@ export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy
     }
   }
   async save(): Promise<void> {
-    if (!this.canSave) return;
+    if (this.saving || this.pendingUpdate) return;
+    this.saveAttempted = true;
+    if (!this.canSave) {
+      this.cdr.detectChanges();
+      if (!this.updateName && validateNamedQueryName(this.draft.name))
+        this.basics?.nativeElement.querySelector<HTMLInputElement>('[data-named-query-name]')?.focus();
+      else this.blocker?.nativeElement.focus();
+      return;
+    }
     const snapshot = JSON.stringify(this.draft),
       candidate = JSON.parse(snapshot) as GraphqlNamedQueryDefinition;
     candidate.name = candidate.name?.trim();

@@ -11263,7 +11263,7 @@
   },
   "nq-section-name-help": {
     "category": "Record explorer and named queries",
-    "description": "Use letters, numbers, underscores or hyphens. The name is used by forms and the API.",
+    "description": "Use letters, numbers, underscores or hyphens, with no spaces and at most 120 characters — for example active_research_plans. The name collections is reserved.",
     "contentFormat": "plain"
   },
   "nq-section-used-for": {
@@ -11890,5 +11890,35 @@
   "nq-ux-updated-at": {
     "category": "Named queries",
     "description": "Updated {{date}}"
+  },
+  "named-query-error-name-spaces": {
+    "category": "Named queries",
+    "description": "Names can't contain spaces. Use letters, numbers, underscores or hyphens — for example active_research_plans.",
+    "contentFormat": "plain"
+  },
+  "named-query-error-name-invalid": {
+    "category": "Named queries",
+    "description": "Names can only contain letters, numbers, underscores or hyphens — for example active_research_plans.",
+    "contentFormat": "plain"
+  },
+  "named-query-error-name-long": {
+    "category": "Named queries",
+    "description": "Names must be 120 characters or fewer.",
+    "contentFormat": "plain"
+  },
+  "named-query-name-use-suggestion": {
+    "category": "Named queries",
+    "description": "Use {{suggestion}}",
+    "contentFormat": "plain"
+  },
+  "named-query-error-name-reserved": {
+    "category": "Named queries",
+    "description": "The name collections is reserved. Choose a different name.",
+    "contentFormat": "plain"
+  },
+  "named-query-error-collection-required": {
+    "category": "Named queries",
+    "description": "Choose a collection in Basics before saving.",
+    "contentFormat": "plain"
   }
 }

@@ -164,7 +164,7 @@
     </nav>
     <div class="rb-admin-split-main">
       <div id="nq-section-basics" tabindex="-1">
-        <rb-named-query-basics
+        <rb-named-query-basics [attempted]="saveAttempted"
           [showDescription]="true"
           [description]="activeGraphqlBuffer.description || ''"
           (descriptionChange)="activeGraphqlBuffer.description = $event; draftChanged()"
@@ -352,6 +352,7 @@
       </section>
     </aside>
   </div>
+  <p *ngIf="saveBlockReason" [attr.id]="source === 'graphql' ? 'nq-save-blocker' : null" tabindex="-1" class="alert alert-warning" role="status">{{ saveBlockReason | i18next }}</p>
   <footer class="rb-admin-save-bar">
     <span class="rb-admin-save-state">{{
       (saving ? 'data-grids-saving' : dirty ? 'named-query-unsaved' : 'named-query-immediate-save') | i18next
@@ -363,7 +364,8 @@
         [attr.id]="source === 'graphql' ? 'named-query-save' : null"
         type="button"
         class="btn btn-primary"
-        [disabled]="!canSave"
+        [disabled]="saving || !!pendingReview"
+        aria-describedby="nq-save-blocker"
         (click)="save()"
       >
         {{ 'named-query-save' | i18next }}
@@ -446,7 +448,7 @@
             <p class="rb-ws-lede mt-2">{{ 'named-query-source-buffers-help' | i18next }}</p>
             <p *ngIf="!isNew" class="rb-ws-lede">{{ 'named-query-immediate-save' | i18next }}</p>
           </div>
-          <nq-detail
+          <nq-detail #databaseDetail [attempted]="saveAttempted"
             [brandingAndPortalUrl]="brandingAndPortalUrl"
             *ngFor="let current of [activeDatabaseBuffer]"
             [hidden]="source !== 'database'"
@@ -681,6 +683,7 @@
       </div>
     </section>
 
+    <p *ngIf="saveBlockReason" [attr.id]="source === 'database' ? 'nq-save-blocker' : null" tabindex="-1" class="alert alert-warning" role="status">{{ saveBlockReason | i18next }}</p>
     <div class="rb-ws-footer">
       <div class="rb-ws-footer-status">
         <span *ngIf="dirty">{{ 'named-query-unsaved' | i18next }}</span>
@@ -702,7 +705,8 @@
           type="button"
           class="btn btn-primary"
           (click)="save()"
-          [disabled]="!canSave"
+          [disabled]="saving || !!pendingReview"
+          aria-describedby="nq-save-blocker"
         >
           {{ 'named-query-save' | i18next }}
         </button>

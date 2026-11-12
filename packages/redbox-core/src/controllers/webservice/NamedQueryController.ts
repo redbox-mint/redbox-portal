@@ -339,10 +339,10 @@ export namespace Controllers {
         }
         const body = (req.body as Record<string, unknown>) || {};
         const name = body['name'] as string;
-        if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {
+        if (typeof name !== 'string' || !name || name.length > 120 || !/^[A-Za-z0-9_-]+$/.test(name)) {
           return this.sendResp(req, res, {
             status: 400,
-            displayErrors: [{ detail: 'name is required and must be URL safe', status: '400' }],
+            displayErrors: [{ detail: 'name is required, must be URL safe and at most 120 characters', status: '400' }],
             headers: this.getNoCacheHeaders(),
           });
         }
