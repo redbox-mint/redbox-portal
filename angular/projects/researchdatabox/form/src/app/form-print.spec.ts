@@ -14,7 +14,7 @@ describe('Form printing', () => {
     await createTestbedModule({
       declarations: { ActionRowLayoutComponent, RepeatableComponent, RepeatableElementLayoutComponent,
         SimpleInputComponent, TypeaheadInputComponent, DateInputComponent },
-      imports: { TypeaheadModule: TypeaheadModule.forRoot(), BsDatepickerModule: BsDatepickerModule.forRoot(),
+      imports: { TypeaheadModule: TypeaheadModule, BsDatepickerModule: BsDatepickerModule,
         NoopAnimationsModule },
     });
   });
