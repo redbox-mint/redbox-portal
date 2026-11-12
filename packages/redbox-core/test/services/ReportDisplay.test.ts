@@ -5,6 +5,15 @@ import { reportStructure } from '../../src/utilities/ReportConfigAssistance';
 
 describe('Report screen formatting across sources', () => {
   const reports = new Services.Reports();
+  it('uses fixed English short month names for every screen date', () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    months.forEach((month, index) => {
+      const value = `2025-${String(index + 1).padStart(2, '0')}-01T00:00:00.000Z`;
+      assert.equal(reportDisplayValue(value, { format: 'date' }), `1 ${month} 2025`);
+      assert.match(String(reportDisplayValue(value, { format: 'datetime' })), new RegExp(`1 ${month} 2025`));
+      assert.equal(reportDisplayValue(value, {}), value);
+    });
+  });
   it('formats ISO dates consistently without changing full CSV values', () => {
     const date = '2025-03-01T00:00:00.000Z';
     assert.equal(reportDisplayValue(date, { format: 'date' }), '1 Mar 2025');

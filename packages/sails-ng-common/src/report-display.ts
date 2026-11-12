@@ -24,11 +24,18 @@ export function reportDisplayValue(value: unknown, column: ReportDisplayOptions,
     return labelled;
   const date = value instanceof Date ? value : new Date(value as string);
   if (!Number.isFinite(date.getTime())) return labelled;
-  return new Intl.DateTimeFormat(locale, {
+  const formatter = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
     ...(column.format === 'datetime' ? { hour: '2-digit', minute: '2-digit' } : {}),
-  }).format(date);
+  });
+  // English locales disagree on Jun/June, Jul/July and Sep/Sept. Use fixed short
+  // month names while retaining the locale's date order, time and punctuation.
+  const month = new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(date);
+  return formatter
+    .formatToParts(date)
+    .map(part => (part.type === 'month' && /^en(?:-|$)/i.test(locale) ? month : part.value))
+    .join('');
 }
