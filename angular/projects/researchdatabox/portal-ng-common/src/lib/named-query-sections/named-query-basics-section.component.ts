@@ -8,7 +8,7 @@ import { I18NextPipe } from '../i18next.pipe';
   styleUrls: ['./named-query-sections.scss'],
   template: ` <section class="rb-admin-form-section" aria-labelledby="nq-basics-title">
     <header class="rb-admin-form-section-header">
-      <h3 id="nq-basics-title">{{ 'nq-section-basics' | i18next }}</h3>
+      <h3 [attr.aria-level]="headingLevel" id="nq-basics-title">{{ 'nq-section-basics' | i18next }}</h3>
     </header>
     <div class="rb-admin-form-section-body rb-admin-form-grid">
       <label class="rb-admin-field"
@@ -36,6 +36,8 @@ import { I18NextPipe } from '../i18next.pipe';
   </section>`,
 })
 export class NamedQueryBasicsSectionComponent {
+  /** Page editors use level 2; publishing panels retain level 3. */
+  @Input() headingLevel: 2 | 3 = 3;
   @Input() name = '';
   @Input() use: 'general' | 'lookup' = 'general';
   @Input() isNew = true;

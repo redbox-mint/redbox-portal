@@ -11,7 +11,7 @@ import { NamedQueryResultField } from './named-query-sections.model';
   template: ` <section class="rb-admin-form-section" aria-labelledby="nq-lookup-title">
     <header class="rb-admin-form-section-header">
       <div>
-        <h3 id="nq-lookup-title">{{ 'nq-section-lookup-fields' | i18next }}</h3>
+        <h3 [attr.aria-level]="headingLevel" id="nq-lookup-title">{{ 'nq-section-lookup-fields' | i18next }}</h3>
         <p>{{ 'nq-section-lookup-help' | i18next }}</p>
       </div>
     </header>
@@ -58,6 +58,8 @@ import { NamedQueryResultField } from './named-query-sections.model';
   </section>`,
 })
 export class NamedQueryLookupSectionComponent implements OnChanges {
+  /** Page editors use level 2; publishing panels retain level 3. */
+  @Input() headingLevel: 2 | 3 = 3;
   @Input() mappings: GraphqlNamedQueryMappings = {};
   @Input() fields: NamedQueryResultField[] = [];
   @Input() disabled = false;

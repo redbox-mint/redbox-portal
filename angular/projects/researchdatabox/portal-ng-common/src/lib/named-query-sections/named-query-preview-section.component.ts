@@ -9,7 +9,7 @@ import { I18NextPipe } from '../i18next.pipe';
   styleUrls: ['./named-query-sections.scss'],
   template: ` <section class="card" aria-labelledby="nq-preview-title" [attr.aria-busy]="busy">
     <header class="card-header">
-      <h3 id="nq-preview-title">{{ 'nq-section-preview' | i18next }}</h3>
+      <h3 [attr.aria-level]="headingLevel" id="nq-preview-title">{{ 'nq-section-preview' | i18next }}</h3>
     </header>
     <div class="card-body">
       <p class="rb-admin-hint">{{ 'nq-section-preview-help' | i18next }}</p>
@@ -52,6 +52,8 @@ import { I18NextPipe } from '../i18next.pipe';
   </section>`,
 })
 export class NamedQueryPreviewSectionComponent {
+  /** Page editors use level 2; publishing panels retain level 3. */
+  @Input() headingLevel: 2 | 3 = 3;
   @Input() parameters: { name: string; label: string }[] = [];
   @Input() values: Record<string, string> = {};
   @Input() result: unknown = null;

@@ -11,7 +11,7 @@ import { NamedQueryBindingChange, NamedQueryParameterRow } from './named-query-s
   template: ` <section class="rb-admin-form-section" aria-labelledby="nq-parameters-title">
     <header class="rb-admin-form-section-header">
       <div>
-        <h3 id="nq-parameters-title">{{ 'nq-section-parameters' | i18next }}</h3>
+        <h3 [attr.aria-level]="headingLevel" id="nq-parameters-title">{{ 'nq-section-parameters' | i18next }}</h3>
         <p>{{ 'nq-section-parameters-help' | i18next }}</p>
       </div>
     </header>
@@ -77,6 +77,8 @@ import { NamedQueryBindingChange, NamedQueryParameterRow } from './named-query-s
   </section>`,
 })
 export class NamedQueryParametersSectionComponent {
+  /** Page editors use level 2; publishing panels retain level 3. */
+  @Input() headingLevel: 2 | 3 = 3;
   @Input() rows: NamedQueryParameterRow[] = [];
   @Input() disabled = false;
   @Output() bindingChange = new EventEmitter<NamedQueryBindingChange>();
