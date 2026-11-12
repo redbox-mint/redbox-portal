@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import type { Response } from 'express';
 import type { BuildResponseType } from '../../src/model';
 import sinon from 'sinon';
@@ -10,12 +11,14 @@ import {
   graphqlReportPage,
   graphqlReportCsv,
   GraphqlReportError,
+  graphqlQueryVersionMatches,
 } from '../../src/services/reports/graphql';
 import { Services } from '../../src/services/ReportsService';
 import { Controllers } from '../../src/controllers/ReportController';
 import { ReportSource } from '../../src/model/config/ReportConfig';
 import type { ReadCaller } from '../../src/record-graphql/read-record';
 import type { RecordGraphqlResponse } from '../../src/services/RecordGraphqlService';
+import { GraphqlNamedQueryConfig } from '../../src/services/NamedQueryService';
 
 class ReportControllerHarness extends Controllers.Report {
   public override sendResp(req: Sails.Req, res: Sails.Res, options?: BuildResponseType): Response {
@@ -46,6 +49,188 @@ const definition = (): GraphqlNamedQueryDefinition => ({
 });
 const code = (expected: string) => (error: unknown) =>
   error instanceof Error && 'code' in error && error.code === expected;
+
+const executionChanges: Array<[string, (query: GraphqlNamedQueryDefinition & { branding?: string }) => void]> = [
+  [
+    'name',
+    query => {
+      query.name = 'renamed';
+    },
+  ],
+  [
+    'branding',
+    query => {
+      query.branding = 'other';
+    },
+  ],
+  [
+    'document',
+    query => {
+      query.graphql.document = query.graphql.document.replace('oid workflowStep', 'oid');
+    },
+  ],
+  [
+    'operation name',
+    query => {
+      query.graphql.operationName = 'Other';
+    },
+  ],
+  [
+    'variable binding',
+    query => {
+      query.graphql.variables.search = {
+        ownership: 'consumer',
+        parameter: 'title',
+        inputType: 'String',
+        required: false,
+      };
+    },
+  ],
+  [
+    'variable default',
+    query => {
+      query.graphql.variables.search = {
+        ownership: 'consumer',
+        parameter: 'search',
+        inputType: 'String',
+        required: false,
+        defaultValue: 'other',
+      };
+    },
+  ],
+  [
+    'variable ownership',
+    query => {
+      query.graphql.variables.search = { ownership: 'fixed', value: 'fixture' };
+    },
+  ],
+  [
+    'fixed variable value',
+    query => {
+      query.graphql.variables.first = { ownership: 'fixed', value: 10 };
+    },
+  ],
+  [
+    'variable type',
+    query => {
+      query.graphql.variables.search = { ownership: 'consumer', parameter: 'search', inputType: 'ID', required: false };
+    },
+  ],
+  [
+    'required variable',
+    query => {
+      query.graphql.variables.search = {
+        ownership: 'consumer',
+        parameter: 'search',
+        inputType: 'String',
+        required: true,
+      };
+    },
+  ],
+  [
+    'mapping',
+    query => {
+      query.graphql.mappings!.title = ['oid'];
+    },
+  ],
+  [
+    'resultPath',
+    query => {
+      query.graphql.resultPath = ['records'];
+    },
+  ],
+  [
+    'lookup',
+    query => {
+      query.graphql.lookup!.afterVariable = 'next';
+    },
+  ],
+];
+
+// Reproduce the persisted pre-v2 algorithm independently of the version matcher.
+function legacyQueryVersion(query: unknown): string {
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object')
+      return Object.fromEntries(
+        Object.keys(value)
+          .sort()
+          .map(key => [key, canonical(Reflect.get(value, key))])
+      );
+    return value;
+  };
+  return createHash('sha256')
+    .update(JSON.stringify(canonical(query)))
+    .digest('hex');
+}
+
+describe('GraphQL report query versions', () => {
+  const resolved = () => new GraphqlNamedQueryConfig({ ...definition(), branding: 'default', key: 'default_scoped' });
+  it('uses a namespaced version stable across persistence and key order', () => {
+    const query = resolved();
+    assert.match(graphqlQueryVersion(query), /^v2:[a-f0-9]{64}$/);
+    const persisted = JSON.parse(JSON.stringify(query));
+    persisted.graphql.variables.search = {
+      required: false,
+      inputType: 'String',
+      parameter: 'search',
+      ownership: 'consumer',
+    };
+    assert.equal(graphqlQueryVersion(persisted), graphqlQueryVersion(query));
+  });
+  it('keeps the version after a description-only change', () => {
+    const query = resolved();
+    query.description = 'Original description';
+    const version = graphqlQueryVersion(query);
+    query.description = 'Clearer description';
+    assert.equal(graphqlQueryVersion(query), version);
+  });
+  it('keeps the version after a provenance-only change', () => {
+    const query = resolved();
+    query.graphql.provenance = { explorerId: 'original', explorerRevision: 1, explorerPortal: 'rdmp' };
+    const version = graphqlQueryVersion(query);
+    query.graphql.provenance = { explorerId: 'copy', explorerRevision: 2, explorerPortal: 'other' };
+    assert.equal(graphqlQueryVersion(query), version);
+  });
+  it('excludes derived storage keys and descriptive source links', () => {
+    const query: GraphqlNamedQueryDefinition & { branding: string; key: string } = {
+      ...resolved(),
+      sourceSavedQuery: null,
+    };
+    const version = graphqlQueryVersion(query);
+    query.key = 'derived-key';
+    query.sourceSavedQuery = {
+      id: 'copy',
+      publishedRevision: 1,
+      revision: 2,
+      name: 'Renamed explorer',
+      recordType: 'grid-fixture',
+      recordTypeLabel: 'Fixture',
+      mode: 'graphql',
+      updatedAt: null,
+      updatedBy: null,
+      missing: false,
+      changedSincePublished: true,
+    };
+    assert.equal(graphqlQueryVersion(query), version);
+  });
+  for (const [field, change] of executionChanges)
+    it(`changes the version after a change to ${field}`, () => {
+      const query = resolved();
+      const version = graphqlQueryVersion(query);
+      change(query);
+      assert.notEqual(graphqlQueryVersion(query), version);
+    });
+  it('accepts legacy hashes only for the exact current full definition', () => {
+    const query = resolved();
+    const legacy = legacyQueryVersion(query);
+    assert.equal(graphqlQueryVersionMatches(query, legacy), true);
+    assert.equal(graphqlQueryVersionMatches(query, undefined), false);
+    assert.equal(graphqlQueryVersionMatches(query, 'v3:' + legacy), false);
+    query.description = 'Changed since legacy save';
+    assert.equal(graphqlQueryVersionMatches(query, legacy), false);
+  });
+});
 
 describe('GraphQL reports security and bounded export', () => {
   const names = ['sails', 'RecordGraphqlService', 'NamedQueryService', 'RBReport', 'BrandingService', 'ReportsService'];
@@ -105,6 +290,81 @@ describe('GraphQL reports security and bounded export', () => {
       if (descriptor) Object.defineProperty(globalThis, name, descriptor);
       else Reflect.deleteProperty(globalThis, name);
     }
+  });
+  const author = {
+    brand: gridCaller.brand,
+    user: { id: 'viewer', username: 'viewer', type: 'local', name: 'Viewer', email: 'viewer@example.test', roles: [] },
+  };
+  const preview = () =>
+    service.previewConfig(
+      gridCaller.brand,
+      { ...report, readOnly: false, canEdit: true, canDelete: true, canPreview: true },
+      { param: () => undefined },
+      {
+        portal: gridCaller.portal,
+        caller: author,
+        graphqlCaller: gridCaller,
+      }
+    );
+  for (const legacy of [false, true]) {
+    it(`runs page, CSV and preview with ${legacy ? 'an unchanged legacy' : 'a v2'} binding`, async () => {
+      if (legacy) report.databaseQuery.queryVersion = legacyQueryVersion(query);
+      const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller);
+      assert.equal(page.records.length, 25);
+      const csv = await service.getCSVResult(
+        gridCaller.brand,
+        'report',
+        { param: () => undefined },
+        0,
+        undefined,
+        gridCaller
+      );
+      assert.equal(csv.trim().split('\n').length, 61);
+      assert.equal((await preview()).records.length, 25);
+      assert.equal((await service.validateConfig(gridCaller.brand, gridCaller.portal, author, report)).valid, true);
+    });
+    for (const [field, change] of executionChanges)
+      it(`rejects ${field} drift in page, CSV and preview with ${legacy ? 'a legacy' : 'a v2'} binding`, async () => {
+        if (legacy) report.databaseQuery.queryVersion = legacyQueryVersion(query);
+        change(query);
+        const conflict = (error: unknown) =>
+          error instanceof GraphqlReportError && error.code === 'REPORT_QUERY_CHANGED' && error.status === 409;
+        await assert.rejects(
+          service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller),
+          conflict
+        );
+        await assert.rejects(
+          service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+          conflict
+        );
+        await assert.rejects(preview(), conflict);
+        assert.equal(execute.callCount, 0);
+      });
+  }
+  it('keeps page continuations, CSV and preview usable after descriptive changes', async () => {
+    const page = await graphqlReportPage(gridCaller.brand, report, query, {}, undefined, 25, gridCaller);
+    query.description = 'Updated description';
+    query.graphql.provenance = { explorerId: 'copy', explorerRevision: 2, explorerPortal: 'rdmp' };
+    const next = await graphqlReportPage(
+      gridCaller.brand,
+      report,
+      query,
+      {},
+      page.pagination.nextCursor,
+      25,
+      gridCaller
+    );
+    assert.equal(next.pagination.start, 25);
+    assert.equal((await preview()).records.length, 25);
+    const csv = await service.getCSVResult(
+      gridCaller.brand,
+      'report',
+      { param: () => undefined },
+      0,
+      undefined,
+      gridCaller
+    );
+    assert.equal(csv.trim().split('\n').length, 61);
   });
   it('supports general explorer publications without requiring a lookup search parameter', async () => {
     query.graphql.document =

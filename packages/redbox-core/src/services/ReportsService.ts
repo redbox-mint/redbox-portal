@@ -59,7 +59,7 @@ import {
 } from '../utilities/ReportConfigAssistance';
 
 import type { ReadCaller } from '../record-graphql/read-record';
-import { graphqlReportPage, graphqlReportCsv, assertReportQueryVersion, describeGraphqlReport, graphqlReportLimits } from './reports/graphql';
+import { graphqlReportPage, graphqlReportCsv, graphqlQueryVersionMatches, assertReportQueryVersion, describeGraphqlReport, graphqlReportLimits } from './reports/graphql';
 
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
@@ -392,7 +392,7 @@ export namespace Services {
         };
       if (saved.source === 'graphql') {
         const description = await describeGraphqlReport(brand, portal, caller, saved);
-        const versionMatches = normalized.databaseQuery!.queryVersion === description.queryVersion;
+        const versionMatches = graphqlQueryVersionMatches(saved, normalized.databaseQuery!.queryVersion);
         if (!versionMatches) diagnostics.push(reportDiagnostic('REPORT_QUERY_CHANGED', 'databaseQuery.queryVersion', 'report-graphql-query-changed', 'error'));
         diagnostics.push(...description.diagnostics);
         return { valid: description.valid && versionMatches, diagnostics: displayedReportDiagnostics(diagnostics) };

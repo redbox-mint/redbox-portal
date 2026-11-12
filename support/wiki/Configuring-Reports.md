@@ -108,9 +108,14 @@ nodes. General explorer publications need no lookup search binding. Other query
 shapes can remain valid named queries while being unavailable for reports.
 GraphQL schema and mappings must still validate for the caller.
 
-The description supplies a canonical content hash as `queryVersion`. Persist it
-in `databaseQuery.queryVersion`. Preview, save, run and export reject missing or
-changed GraphQL bindings. Refresh the editor, review fields/filters, explicitly
+The query description API supplies a `v2:` canonical execution-shape hash as
+`queryVersion`. It covers the query name, branding, GraphQL document, operation,
+variable bindings/defaults, result path, mappings and lookup controls; descriptions,
+provenance and source links do not change it. Persist it in
+`databaseQuery.queryVersion`. An unprefixed legacy full-definition hash is accepted
+only while it exactly matches the current full definition; saving with the current
+version adopts `v2:`. Preview, save, run and export reject missing or changed
+GraphQL bindings. Refresh the editor, review fields/filters, explicitly
 accept the current version and save. Source changes (including source type) cannot
 silently change the meaning of an existing report. CSV rechecks the effective
 query between pages and before returning its file.

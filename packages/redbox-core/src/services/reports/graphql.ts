@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { Kind, getOperationAST, parse, type SelectionSetNode } from 'graphql';
 import type {
   GraphqlNamedQueryDefinition,
+  NamedQueryDefinition,
   ReportNamedQueryDescription,
   ContextSchemaField,
 } from '@researchdatabox/sails-ng-common';
@@ -48,13 +49,36 @@ const digest = (value: unknown) =>
   createHash('sha256')
     .update(JSON.stringify(canonical(value)))
     .digest('hex');
-/** Content, including bindings/provenance, is stable across JSON persistence and key order. */
-export const graphqlQueryVersion = (query: unknown): string => digest(query);
+/** Version execution and report bindings, excluding descriptions and source links.
+ * Keep this projection in sync with execution fields added to the named-query contract.
+ */
+export const graphqlQueryVersion = (query: GraphqlNamedQueryDefinition & { branding?: string }): string =>
+  'v2:' +
+  digest({
+    source: query.source,
+    name: query.name,
+    branding: query.branding,
+    graphql: {
+      document: query.graphql.document,
+      operationName: query.graphql.operationName,
+      variables: query.graphql.variables,
+      resultPath: query.graphql.resultPath,
+      mappings: query.graphql.mappings,
+      lookup: query.graphql.lookup,
+    },
+  });
+/** Pre-v2 reports remain bound to the exact full definition they reviewed. */
+export function graphqlQueryVersionMatches(
+  query: GraphqlNamedQueryDefinition & { branding?: string },
+  version: string | undefined
+): boolean {
+  return version === graphqlQueryVersion(query) || version === digest(query);
+}
 export function assertReportQueryVersion(
   report: { databaseQuery?: { queryVersion?: string } | null },
-  query: unknown
+  query: NamedQueryDefinition & { branding?: string }
 ): void {
-  if (!report.databaseQuery?.queryVersion || report.databaseQuery.queryVersion !== graphqlQueryVersion(query))
+  if (query.source !== 'graphql' || !graphqlQueryVersionMatches(query, report.databaseQuery?.queryVersion))
     throw new GraphqlReportError('REPORT_QUERY_CHANGED', 409);
 }
 export function graphqlReportLimits() {
@@ -255,7 +279,7 @@ export async function graphqlReportCsv(
     after: string | null = null;
   const currentVersion = async () => {
     const current = await budget.wait(NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery!.queryName));
-    if (!current || graphqlQueryVersion(current) !== graphqlQueryVersion(query))
+    if (!current || current.source !== 'graphql' || graphqlQueryVersion(current) !== graphqlQueryVersion(query))
       throw new GraphqlReportError('REPORT_QUERY_CHANGED', 409);
   };
   try {
