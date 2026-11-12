@@ -70,6 +70,7 @@
   <% } %>
   <!-- Branding-aware web analytics (noscript fallback) -->
   <%- include('analytics', { position: 'body' }) %>
+  <header>
   <div class="header-area">
     <div class="container">
       <div class="row">
@@ -148,6 +149,7 @@
     <%- include('layout/menu.ejs') %>
     <%}%>
   <!-- End mainmenu area -->
+  </header>
 <% if (typeof title!== 'undefined') { %>
 <% } %>
 
@@ -197,14 +199,14 @@
 
 
 
-  <div class="footer-bottom-area navbar-bottom">
+  <footer class="footer-bottom-area navbar-bottom">
     <% if(typeof branding !== 'undefined' && branding != null && typeof portal !== 'undefined' && portal != null) { %>
       <%- superPartial("/layout/footer.ejs", branding, portal, true) %>
       <% } else { %>
         <%- include('layout/footer.ejs') %>
       <%}%>
 
-  </div>
+  </footer>
 
 
 
