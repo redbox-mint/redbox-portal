@@ -4,6 +4,54 @@ This document details the configuration and usage of named queries within our ap
 
 Named queries are stored per brand and managed through **Admin → Named Queries** (`/:branding/:portal/admin/named-query`). Core and hook bootstrap definitions can supply initial queries. Existing configuration shapes and REST clients remain supported. The examples below describe the execution configuration; the editor also supplies advisory field guidance.
 
+## Create and edit in Admin
+
+The default sidebar places **Named queries** beside **Record explorer** under
+**Records and reporting**. Institutions with a stored sidebar override must move
+the existing named-query item in **Admin Sidebar Configuration**; upgrading does
+not overwrite their navigation.
+
+The list includes **Built from**. A linked saved-query name opens its source in
+the explorer with results. Hand-written GraphQL and database queries have separate
+source labels. **Create named query** opens a dialog with three starting points:
+
+1. **From a saved query** (default): search the saved explorer queries, filter
+   **Built with** by All, Visual or GraphQL, select a row and **Continue**. The
+   table shows record type, update time and any existing publications. Continue
+   prepares the selected revision; **Save** in the editor publishes it.
+2. **New GraphQL query**: opens a new GraphQL draft in the Record explorer.
+   Save it there, then publish it as a named query.
+3. **Database query**: opens the existing database editor described below.
+
+GraphQL editors use a section rail: **Basics**, **Source query**, **Parameters**,
+**Lookup fields**, **Preview** and **Used by**. Linked queries show a source card
+with its name, record type, mode and update details, plus **Open in explorer** and
+**Change…**. The published document is read-only under **Advanced**. A hand-written
+query keeps its document, operation and advanced bindings editable. Friendly
+labels appear in parameter and result-field choices; execution still uses stable
+field IDs and response paths.
+
+**Changed since published** means the saved source has a newer revision. Select
+**Review and update**, check the new saved values and caller bindings, then
+**Save**. This does not publish automatically. Compatible caller bindings and
+lookup mappings are retained; removed fields need an explicit replacement.
+Breaking updates show the existing usage/review confirmation. A deleted source
+shows **Source query unavailable**; the published query still uses its own
+working document, and **Change…** can link a replacement.
+
+Parameters start with saved values. Choose explicitly which values callers may
+supply; paging is **Handled by ReDBox**. Lookup choices select the stored value,
+label and additional result fields. Literal path editing remains under Advanced.
+Preview runs only when requested, with the current authenticated caller's access.
+General GraphQL previews and form-lookup previews use their respective existing
+bounded execution endpoints. **Used by** lists known consumers; dynamic hook/API
+callers cannot all be enumerated.
+
+Dialogs and side panels trap focus and return it on Cancel/Escape. The section
+rail moves keyboard focus to the selected section. Save, Cancel and navigation
+retain the unsaved-change guards. GraphQL describe supplies validation and
+parameter metadata in one request; this does not weaken save-time validation.
+
 ## Configuration
 
 Below is a breakdown of how to configure a named query within the `module.exports.namedQuery` object:
@@ -91,7 +139,8 @@ The server will process this request by substituting the parameters into the nam
 
 ## Schema-assisted editor
 
-Open a query or choose **Create** to enter the full-page workspace. Select a
+Open a database query, or choose **Create named query → Database query**, to enter
+the database workspace. Select a
 record collection, then a record type and optional workflow stage in **Fields
 and help**. Search by label or path, or use the keyboard autocomplete in a path
 input. Suggestions work in predicates, parameters, sort fields and mappings.
@@ -290,14 +339,14 @@ inspected incompatibility remains fatal in verify mode.
 
 ### Explorer promotion and update review
 
-**Create named query** snapshots the current unsaved visual or GraphQL exploration
-into a detached editor. Visual mode uses fresh discovery and shared filter validation;
-raw mode copies the current document and candidate variables without executing it.
-Candidate values are neither fixed values nor defaults until explicitly classified.
-Saving requires a unique valid name and separate named-query CREATE permission.
-Cancel/failure leaves the exploration's identity, revision, URL, saved content and
-unsaved edits intact. Provenance is informational; execution never follows it.
-Preparation is session-only and CSRF-protected, including when a bearer token is sent.
+In the Record explorer, **Publish as named query…** opens a side panel over the
+mounted workspace. An unsaved query first asks to be saved, retaining the source
+link. Visual mode uses fresh discovery and shared filter validation; GraphQL mode
+copies the current document and candidate variables. Saved values become sensible
+fixed bindings; callers receive only the parameters explicitly enabled in the
+panel. **Publish** requires a unique valid name and separate CREATE permission.
+Cancel/failure retain the exploration and its results. After publication the
+explorer shows **Published as** links and offers **Update named query…**.
 
 Breaking source, parameter/default/type/nullability or lookup mapping changes require
 `POST /:name/review-update` with the proposed definition, then PUT with

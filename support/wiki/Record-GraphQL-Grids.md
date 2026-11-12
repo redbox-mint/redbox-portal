@@ -1,6 +1,49 @@
 # Record GraphQL grids
 
-The authenticated read-only endpoint `POST /:branding/:portal/api/graphql` supports `record(oid: ID!)`, `records(...)` and `recordFields(...)`. These last two operations provide a backend for a visual query builder and paginated data grid. This change adds no UI or saved-grid persistence. Mutations, subscriptions, public discovery, relationship traversal and REST projection remain outside its scope.
+The authenticated read-only endpoint `POST /:branding/:portal/api/graphql` supports `record(oid: ID!)`, `records(...)` and `recordFields(...)`. These last two operations provide a backend for a visual query builder and paginated data grid. The admin Record explorer uses these operations and saves reusable visual or GraphQL queries through the scoped saved-grid API. Mutations, subscriptions, public discovery, relationship traversal and REST projection remain outside its scope.
+
+## Record explorer workspace
+
+Open **Admin → Records and reporting → Record explorer**
+(`/:branding/:portal/admin/data-grids`). The left rail contains saved queries,
+search, publication badges and a link to Named queries. Selecting a saved query
+loads its current definition and results. The query card holds Save, Publish or
+Update, and an overflow menu with Save as, Rename and Delete. Changes stay in the
+draft until saved. Publication metadata does not itself make a query dirty.
+
+**Visual** and **GraphQL** are two views of one query. Choose a record type,
+workflow stage, sort and row limit; edit condition chips and selected columns;
+then **Run query**. The Results card offers Grid and JSON in either view, with
+cursor paging below it. Results are marked stale after query changes. New queries
+prefer Title, Workflow stage, Last modified and OID where available; existing
+saved column choices are preserved.
+
+**Edit columns** opens a side panel. Search grouped fields, expand a group and
+select fields. Repeating child fields sit behind an explanation; select the
+supported parent group where appropriate. Reorder shown chips by drag, arrow
+keys, Home or End. **Apply and run** commits the detached selection and reruns;
+Cancel/Escape retains the prior selection and restores focus. Grid detail buttons
+open a labelled dialog for structured values and return focus on Escape.
+
+Generated GraphQL follows Visual and stays read-only. **Unlink and edit** makes
+GraphQL canonical and Visual read-only. Variables and full schema details are
+under disclosures; the field list uses friendly labels. Switching views retains
+query identity, dirty state and results. Schema loading and validation happen on
+demand; unchanged documents are not reparsed on every render.
+
+**Publish as named query…** first saves an unsaved source, then opens a side panel
+with Basics, Parameters, Lookup fields and Preview. Publishing retains the link;
+**Published as** opens the named editor. Named queries can also select a saved
+source through Create. **Open in explorer** and Built from links use
+`#grid=<saved-query-id>` to reopen the correct source and run its results. See
+[Configuring Named Queries](Configuring-Named-Queries#create-and-edit-in-admin)
+for publication, review/update and missing-source behavior.
+
+The default sidebar groups both screens together. Persisted institution sidebar
+overrides need their own navigation update. Hook logo/footer partials should
+provide meaningful image alt text and avoid inline style attributes; core's
+banner and footer landmarks contain their rendered content. HTTP demo origins
+cannot satisfy Lighthouse's HTTPS and COOP checks; production needs HTTPS.
 
 ## Enable and prepare the index
 
