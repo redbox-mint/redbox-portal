@@ -800,7 +800,7 @@ export async function runFigshareWorker(
           s.work[kind].dueAt = terminal ? null : Date.now() + settings.retryBaseMs * 2 ** (count - 1);
       });
       if (state.error?.terminal && !state.auditClosed && state.audit) {
-        failFigshareAudit(state.audit, new Error(message), {
+        failFigshareAudit(state.audit, error, {
           message,
           responseSummary: { articleId: state.binding?.articleId, attempts: state.error.count, category },
         });

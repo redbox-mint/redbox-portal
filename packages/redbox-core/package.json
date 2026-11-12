@@ -133,7 +133,7 @@
   },
   "overrides": {
     "axios": "1.21.0",
-    "fast-xml-parser": "5.10.1",
+    "fast-xml-parser": "5.12.0",
     "immutable": "5.1.8",
     "sails-mongo": {
       "qs": "6.17.1"
