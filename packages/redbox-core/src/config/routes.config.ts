@@ -274,6 +274,7 @@ export const routes: RoutesConfig = {
 
   // Record routes
   'get /:branding/:portal/record/default/:name': 'RecordController.getMetaDefault',
+  // The relatedMetadata refresh POST is registered by the contract route group (CSRF enabled).
   'get /:branding/:portal/record/metadata/:oid': 'RecordController.getMeta',
   'get /:branding/:portal/record/form/:name': 'RecordController.getForm',
   'get /:branding/:portal/record/form/:name/:oid': 'RecordController.getForm',

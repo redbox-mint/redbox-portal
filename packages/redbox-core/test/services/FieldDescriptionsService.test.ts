@@ -3,6 +3,7 @@ import type { EditorContextSchema } from '@researchdatabox/sails-ng-common';
 import { of } from 'rxjs';
 import * as sinon from 'sinon';
 import { Services, FieldDescriptionError } from '../../src/services/FieldDescriptionsService';
+import { Services as FormServices } from '../../src/services/FormsService';
 import type { BrandingModel } from '../../src/model';
 import type { FormRecordAccessContext } from '../../src/services/FormsService';
 import { createMockSails, setupServiceTestGlobals, cleanupServiceTestGlobals } from './testHelper';
@@ -134,6 +135,32 @@ describe('FieldDescriptionsService', () => {
     getForm.resetHistory();
     await assert.rejects(fields(), { code: 'FORBIDDEN' });
     sinon.assert.notCalled(getForm);
+  });
+  it('describes required related-source forms without resolving a synthetic record', async () => {
+    mock.config.recordSchema.enabled = false;
+    getForm.resolves({ branding: 'a', configuration: {
+      name: 'related-plan', type: 'rdmp', componentDefinitions: [
+        { name: 'notes', component: { class: 'SimpleInputComponent' } },
+        { name: 'source', component: { class: 'RelatedObjectDataComponent', config: {
+          relationId: 'activities', required: true,
+        } } },
+      ],
+    } });
+    (global as any).RecordTypesService.get = () => of({ id: 'type-a', name: 'rdmp', branding: 'a', relatedTo: [{
+      id: 'activities', recordType: 'activity', localField: 'metadata.activities', foreignField: 'redboxOid',
+      resolution: { metadataFields: ['/title'] },
+    }] });
+    (global as any).WorkflowStepsService.getFirst = () => of({ name: 'draft' });
+    const resolve = sinon.stub().rejects(new Error('Required related source is unavailable without a record'));
+    mock.services.recordsservice.resolveRelatedMetadata = resolve;
+    const forms = new FormServices.Forms();
+    (global as any).FormsService.buildClientFormConfig = forms.buildClientFormConfig.bind(forms);
+
+    const result = await fields();
+
+    assert.equal(result.precision, 'form-config');
+    assert.ok(result.fields.some(field => field.path === 'notes'));
+    sinon.assert.notCalled(resolve);
   });
   it('resolves SCU-style form label keys with the current brand before field search', async () => {
     mock.config.recordSchema.enabled = false;

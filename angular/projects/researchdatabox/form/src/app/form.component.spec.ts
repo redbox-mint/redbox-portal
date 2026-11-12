@@ -157,7 +157,7 @@ describe('FormComponent', () => {
   const setWindowSearch = (search?: string) => {
     const url = new URL(window.location.href);
     url.search = search ?? '';
-    window.history.replaceState({}, '', url.toString());
+    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
   };
 
   const setFormDebugUrl = (value?: string) => {
@@ -166,7 +166,7 @@ describe('FormComponent', () => {
     if (value) {
       url.searchParams.set('formDebug', value);
     }
-    window.history.replaceState({}, '', url.toString());
+    if (url.href !== window.location.href) window.history.replaceState({}, '', url.toString());
   };
 
   const ensureDebugPanelOpen = async (fixture: { nativeElement: HTMLElement; detectChanges: () => void; whenStable: () => Promise<any> }) => {
@@ -180,7 +180,6 @@ describe('FormComponent', () => {
 
   beforeEach(async () => {
     setWindowSearch('');
-    setFormDebugUrl('1');
     const { translationService } = await createTestbedModule(
       {
         declarations: {
@@ -244,6 +243,23 @@ describe('FormComponent', () => {
       expect(fixture.componentInstance.componentsLoaded()).toBeFalse();
     });
   }
+
+  it('keeps PDF readiness pending until a form without related sources has loaded', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    fixture.componentInstance.downloadAndCreateOnInit.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('pending');
+    fixture.destroy();
+
+    const loaded = await createFormAndWaitForReady({
+      name: 'legacy', componentDefinitions: [{
+        name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+      }],
+    });
+    expect(loaded.formComponent.componentsLoaded()).toBeTrue();
+    expect(loaded.fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('ready');
+    loaded.fixture.destroy();
+  });
 
   it('should render basic form config', async () => {
     TestBed.configureTestingModule({providers: [provideZonelessChangeDetection()]});
@@ -1960,6 +1976,41 @@ describe('FormComponent', () => {
     expect(control.errors?.['server#old']).toBeUndefined();
     expect(control.errors?.['server#0']).toEqual({ class: 'server', message: '@record-save-failed', params: {} });
     expect(control.errors?.['server#1']).toEqual({ class: 'server', message: '@record-save-invalid-hook-configuration', params: {} });
+  });
+
+  it('clears rejected source field errors from display controls outside the saved form on retry', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const sourceName = new FormControl('Alice Alpha');
+    const sourceEmail = new FormControl('alpha@example.test');
+    const localNote = new FormControl('local edit');
+    formComponent.form = new FormGroup({ localNote });
+    formComponent.oid.set('oid-123');
+    // Disabled/display-only fields can remain in component entries without
+    // belonging to the persisted form tree. Server issues still target them.
+    formComponent.componentDefArr = [{
+      name: 'sourceCi', compConfigJson: { name: 'sourceCi' } as any,
+      formControlMap: { name: sourceName, email: sourceEmail },
+      lineagePaths: { angularComponents: ['sourceCi'], dataModel: ['sourceCi'] } as any,
+    }];
+    (formComponent as any).applyServerSaveProblems({ problems: [{
+      kind: 'validation', phase: 'pre-save', issues: [
+        { pointer: '/metadata/sourceCi/name', message: 'Name is required' },
+        { pointer: '/metadata/sourceCi/email', message: 'Email is required' },
+      ],
+    }] });
+    expect(sourceName.errors?.['server#0']).toBeDefined();
+    expect(sourceEmail.errors?.['server#1']).toBeDefined();
+    // Clearing save problems must retain unrelated client validation.
+    sourceName.setErrors({ ...sourceName.errors, required: true });
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
+
+    await formComponent.saveForm({ force: true });
+
+    expect(updateSpy).toHaveBeenCalled();
+    expect(sourceName.errors).toEqual({ required: true });
+    expect(sourceEmail.errors).toBeNull();
+    fixture.destroy();
   });
 
   it('leaves ambiguous repeatable pointer suffixes at form level', function () {

@@ -55,6 +55,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   public readonly isContentLoading = signal(false);
   private renderVersion = 0;
   private readonly contentDestroyRef = inject(DestroyRef);
+  private contentInitialization?: Promise<void>;
+  private renderContent?: () => void;
+  private contentDestroyed = false;
+
+  protected async refreshContent(): Promise<void> {
+    await this.contentInitialization;
+    if (!this.contentDestroyed) this.renderContent?.();
+  }
+
   protected formValueChangesSub?: Subscription;
   protected formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
@@ -71,6 +80,11 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
+    this.contentInitialization = this.initializeContent();
+    await this.contentInitialization;
+  }
+
+  private async initializeContent(): Promise<void> {
     const version = ++this.renderVersion;
     this.formValueChangesSub?.unsubscribe();
     if (this.formBindTimeoutId) clearTimeout(this.formBindTimeoutId);
@@ -101,6 +115,7 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
           const extra = {libraries: {handlebars: handlebarsTemplate}};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";
         };
+        this.renderContent = () => renderTemplate(this.getFormComponent.form?.getRawValue?.() ?? {});
         const initialForm = this.getFormComponent.form;
         renderTemplate(initialForm?.getRawValue?.() ?? initialForm?.value ?? {});
 
@@ -189,6 +204,8 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
 
   ngOnDestroy(): void {
     this.renderVersion++;
+    this.contentDestroyed = true;
+    this.renderContent = undefined;
     if (this.formBindTimeoutId) {
       clearTimeout(this.formBindTimeoutId);
     }

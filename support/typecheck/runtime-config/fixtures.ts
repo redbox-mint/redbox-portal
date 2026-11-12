@@ -105,3 +105,55 @@ export const invalidInput: AvailableFormComponentDefinitionFrames = {
   // @ts-expect-error Concrete components still enforce their own config shape.
   component: { class: 'SimpleInputComponent', config: { placeholder: 42 } },
 };
+
+// Related resolution opt-ins use only public package contracts.
+import type {
+  RelatedMetadata, RelatedMetadataRequest, RelatedRecordReadContext, RecordsService,
+  RecordModel, RecordRelation,
+} from '@researchdatabox/redbox-core';
+import type {
+  RelatedObjectDataFormComponentDefinitionFrame, ValidationOperationDefinition,
+  ValidationOperationOverride,
+} from '@researchdatabox/sails-ng-common';
+
+export const relatedRequest = { relations: [{ relationId: 'activities', required: true }] } satisfies RelatedMetadataRequest;
+export const relatedRelation = {
+  id: 'activities', recordType: 'activity', localField: 'metadata.activities',
+  foreignField: 'redboxOid', cardinality: 'many', oidProperty: 'oid',
+  resolution: { metadataFields: ['/title', '/literal.key', '/slash~1key', '/tilde~0key'] },
+} satisfies RecordRelation;
+export const legacyRelation = { recordType: 'activity', foreignField: 'redboxOid' } satisfies RecordRelation;
+export const relatedComponent = {
+  name: 'activityData', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities', required: false } },
+} satisfies RelatedObjectDataFormComponentDefinitionFrame;
+export const displayComponent = {
+  name: 'title', relatedDisplay: { relationId: 'activities' }, component: { class: 'SimpleInputComponent' },
+} satisfies AvailableFormComponentDefinitionFrames;
+export const relatedOperation = { enabledValidationGroups: [], relatedMetadata: relatedRequest } satisfies ValidationOperationDefinition;
+export const relatedOverride = { relatedMetadata: relatedRequest } satisfies ValidationOperationOverride;
+export const relatedResult = {
+  activities: { status: 'resolved', records: [{ redboxOid: 'activity-a', metaMetadata: { type: 'activity', brandId: 'test' }, metadata: { title: '', nullable: null, enabled: false, rows: [] } }], issues: [] },
+} satisfies RelatedMetadata;
+
+// @ts-expect-error A related source is model-free.
+export const invalidRelatedModel: RelatedObjectDataFormComponentDefinitionFrame['model'] = {};
+// @ts-expect-error The request cannot choose field projections.
+export const invalidRelatedSelection: RelatedMetadataRequest = { relations: [{ relationId: 'activities', metadataFields: ['/secret'] }] };
+// @ts-expect-error Service reads require an identified caller and a real principal.
+export const invalidServiceContext: RelatedRecordReadContext = { audience: 'service' };
+export function relatedSignatures(service: RecordsService, record: Readonly<RecordModel>, context: RelatedRecordReadContext): void {
+  const resolved: Promise<RelatedMetadata> = service.resolveRelatedMetadata(record, context, relatedRequest);
+  const enriched: Promise<RecordModel> = service.enrichWithRelatedMetadata(record, context, relatedRequest);
+  const loaded: Promise<RecordModel> = service.getMetaWithRelatedMetadata(record.redboxOid, context, relatedRequest);
+  void [resolved, enriched, loaded];
+}
+
+export function relatedContextTypeChecks(brand: RelatedRecordReadContext['brand'], user: RelatedRecordReadContext['user']): void {
+  const browser: RelatedRecordReadContext = { brand, user, audience: 'browser' };
+  const service: RelatedRecordReadContext = { brand, user, audience: 'service', serviceId: 'email' };
+  // @ts-expect-error A service audience requires its calling service identity.
+  const missingService: RelatedRecordReadContext = { brand, user, audience: 'service' };
+  // @ts-expect-error Browser contexts cannot claim a service identity.
+  const browserService: RelatedRecordReadContext = { brand, user, audience: 'browser', serviceId: 'email' };
+  void [browser, service, missingService, browserService];
+}

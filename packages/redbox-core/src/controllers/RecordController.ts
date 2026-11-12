@@ -1,3 +1,8 @@
+import { RBValidationError } from '../model/RBValidationError';
+import { relatedHttpCandidate, RelatedHttpError } from '../related-records/http';
+import { withinRelatedResolutionDeadline } from '../related-records/resolver';
+import { relatedRefreshBodySchema, relatedMetadataSchema } from '../api-routes/groups/related-records';
+import { getEffectiveRelatedClientForm } from '../related-records/effective-form';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -59,7 +64,7 @@ import { normalizeRecordRelations } from '../config/recordtype.config';
 import type { DashboardViewDefinition, DashboardViewStepDefinition } from '../config/dashboardview.config';
 import { RecordRelationshipExpandOptions, RecordRelationshipGraph } from '../RecordsService';
 import { TusStorageManagerDataStore } from '../storage/TusStorageManagerDataStore';
-import { FormConfigFrame, FormModesConfig } from '@researchdatabox/sails-ng-common';
+import { FormModesConfig } from '@researchdatabox/sails-ng-common';
 import {
   createRecordSaveContext,
   normalizeRecordValidationRequestFacts,
@@ -149,6 +154,7 @@ export namespace Controllers {
       'getType',
       'getWorkflowSteps',
       'getMeta',
+      'resolveRelatedMetadata',
       'getMetaDefault',
       'doAttachment',
       'getAttachments',
@@ -329,6 +335,9 @@ export namespace Controllers {
       error: unknown,
       meta?: RecordSaveResponse
     ) {
+      if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(error) && RBValidationError.classify(error) === 'validation') {
+        return this.sendResp(req, res, { status: 400, displayErrors: error.displayErrors });
+      }
       const rawType = error instanceof Error ? error.name : typeof error;
       const errorType = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(rawType) ? rawType : 'UnknownError';
       sails.log.error('record_save_request_failed', {
@@ -487,7 +496,7 @@ export namespace Controllers {
       }
       try {
         const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
-        const clientFormConfig = await this.getEffectiveClientFormConfig(
+        const clientFormConfig = await getEffectiveRelatedClientForm(
           req,
           brand,
           current,
@@ -648,44 +657,6 @@ export namespace Controllers {
       };
     }
 
-    /**
-     * Build the client form used by the record metadata read and save-sync paths.
-     * The false edit lookup / edit form mode pairing is inherited from getMeta and
-     * has not been independently reviewed; keep both values explicit at call sites.
-     */
-    private async getEffectiveClientFormConfig(
-      req: Sails.Req,
-      brand: BrandingModel,
-      record: ControllerRecord,
-      formName: string,
-      formLookupEditMode: boolean,
-      formMode: FormModesConfig
-    ): Promise<FormConfigFrame | undefined> {
-      const metaMetadata = record.metaMetadata as AnyRecord | undefined;
-      const brandId = String(metaMetadata?.['brandId'] ?? brand.id);
-      const formRecord = await firstValueFrom(FormsService.getFormByName(formName, formLookupEditMode, brandId));
-      const formConfig = formRecord?.configuration;
-      if (!formConfig) {
-        return undefined;
-      }
-
-      const userRoles = ((req.user?.['roles'] ?? []) as AnyRecord[])
-        .map((role: AnyRecord) => String(role['name'] ?? ''))
-        .filter((name: string) => !!name);
-      const reusableFormDefs = sails.config.reusableFormDefinitions;
-      const contextVariablesMap = ContextVariableUtils.evaluateContextVariables(req, record);
-      return FormsService.buildClientFormConfig(
-        formConfig,
-        formMode,
-        userRoles,
-        record.metadata,
-        reusableFormDefs,
-        String(brand?.name ?? ''),
-        contextVariablesMap,
-        { user: req.user as UserModel, brand }
-      );
-    }
-
     private async getPostSaveMetadata(
       req: Sails.Req,
       brand: BrandingModel,
@@ -701,7 +672,7 @@ export namespace Controllers {
         if (typeof formName !== 'string' || formName.length === 0) {
           return null;
         }
-        const clientFormConfig = await this.getEffectiveClientFormConfig(
+        const clientFormConfig = await getEffectiveRelatedClientForm(
           req,
           brand,
           savedRecord,
@@ -727,6 +698,30 @@ export namespace Controllers {
       }
     }
 
+    public async resolveRelatedMetadata(req: Sails.Req, res: Sails.Res) {
+      const startedAt = Date.now();
+      const headers = { 'Cache-Control': 'private, no-store' };
+      if (!req.isAuthenticated()) return this.sendResp(req, res, { status: 403, headers, displayErrors: [{ detail: 'Authentication is required.' }] });
+      try {
+        if (Buffer.byteLength(JSON.stringify(req.body ?? {}), 'utf8') > 65536) throw new RelatedHttpError(400);
+        const parsed = relatedRefreshBodySchema.safeParse(req.body);
+        if (!parsed.success) throw new RelatedHttpError(400);
+        const context = { brand: this.getReqBrand(req), user: req.user as unknown as UserModel, audience: 'browser' as const };
+        const { root, options } = await relatedHttpCandidate(parsed.data, context, this.recordsService, startedAt);
+        const relatedMetadata = relatedMetadataSchema.parse(await withinRelatedResolutionDeadline(() =>
+          this.recordsService.resolveRelatedMetadata(root, context, {
+            relations: parsed.data.relations.map(relationId => ({ relationId })),
+          }, options), startedAt));
+        if (Object.values(relatedMetadata).some(entry => entry.issues.some(issue => issue.code === 'configuration-error')))
+          throw new RelatedHttpError(500);
+        const data = { relatedMetadata };
+        return this.sendResp(req, res, { data, v1: data, headers });
+      } catch (error) {
+        return this.sendResp(req, res, { status: error instanceof RelatedHttpError ? error.status : 500,
+          displayErrors: [{ detail: 'Related metadata could not be resolved.' }], headers });
+      }
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const brand: BrandingModel = this.getReqBrand(req);
       const oid = req.param('oid') ?? '';
@@ -735,19 +730,23 @@ export namespace Controllers {
       }
 
       try {
-        const record = await this.recordsService.getMeta(oid);
+        let record = await this.recordsService.getMeta(oid);
         if (_.isEmpty(record)) {
           return this.sendResp(req, res, { status: 404 });
         }
         const hasViewAccess = await firstValueFrom(this.hasViewAccess(brand, req.user ?? {}, record));
         if (hasViewAccess) {
           const representation = recordRepresentationConcurrency(record);
+          const consumerView = req.query.consumerView === 'true';
+          if (consumerView) {
+            record = await this.recordsService.getConsumerView(record as unknown as AnyRecord, brand, req.user) as unknown as typeof record;
+          }
           const formName = record.metaMetadata?.['form'] as string | undefined;
           if (formName) {
             try {
               const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
-              const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
-              const clientFormConfig = await this.getEffectiveClientFormConfig(
+              const formMode: FormModesConfig = !consumerView && hasEditAccess ? 'edit' : 'view';
+              const clientFormConfig = await getEffectiveRelatedClientForm(
                 req,
                 brand,
                 record,
@@ -1184,7 +1183,7 @@ export namespace Controllers {
           reusableFormDefs,
           String(brand?.name ?? ''),
           contextVariablesMap,
-          { user: req.user as UserModel, brand }
+          { user: req.user as UserModel, brand, record: recordData as RecordModel }
         );
         const viewMetadata = formMode === 'view' && recordData?.metadata
           ? FormRecordConsistencyService.metadataForViewForm(recordData.metadata as AnyRecord, mergedForm)
@@ -1353,6 +1352,9 @@ export namespace Controllers {
           return this.sendSaveFailure(req, res, createResponse, createResponse.message);
         }
       } catch (error) {
+        if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(error) && RBValidationError.classify(error) === 'validation') {
+          return this.sendResp(req, res, { status: 400, displayErrors: error.displayErrors });
+        }
         return this.sendResp(req, res, {
           errors: [this.asError(error)],
           displayErrors: [{ detail: 'Failed to save record' }],
@@ -1421,7 +1423,7 @@ export namespace Controllers {
         try {
           const hasEditAccess = await firstValueFrom(this.hasEditAccess(brand, req.user ?? {}, record));
           const formMode: FormModesConfig = hasEditAccess ? 'edit' : 'view';
-          const clientFormConfig = await this.getEffectiveClientFormConfig(
+          const clientFormConfig = await getEffectiveRelatedClientForm(
             req,
             brand,
             record,
@@ -2976,7 +2978,7 @@ export namespace Controllers {
       if (!_.isUndefined(packageType) && !_.isEmpty(packageType)) {
         packageType = (packageType as string).split(',');
       }
-      const results = await this.recordsService.getRecords(
+      const results = await this.recordsService.getRecordsForDisplay(
         workflowState,
         recordType,
         start,

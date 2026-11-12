@@ -1,5 +1,6 @@
 import { manualRecordTypes } from '../form-config/pw-remaining-manual';
 import type { RecordTypeConfig } from '@researchdatabox/redbox-core';
+import { relatedPlanEmail, relatedPlanDoi } from './related-record-examples';
 
 /**
  * Demo record type definitions.
@@ -118,6 +119,30 @@ export const recordtype: RecordTypeConfig = {
       name: 'PW-01 chained calculated fields',
       namePlural: 'PW-01 chained calculated field records',
     },
+  },
+  'related-activity': {
+    packageType: 'related-activity',
+    labels: { name: 'Related activity', namePlural: 'Related activities' },
+  },
+  'related-plan': {
+    packageType: 'related-plan',
+    labels: { name: 'Related plan', namePlural: 'Related plans' },
+    relatedTo: [
+      {
+        id: 'primaryActivity', recordType: 'related-activity',
+        localField: 'metadata.primaryActivity', foreignField: 'redboxOid',
+        cardinality: 'one', direction: 'outbound',
+        resolution: { metadataFields: ['/title', '/startDate', '/endDate'] },
+      },
+      {
+        id: 'activities', recordType: 'related-activity',
+        localField: 'metadata.activities', foreignField: 'redboxOid', oidProperty: 'oid',
+        cardinality: 'many', direction: 'outbound',
+        resolution: { metadataFields: ['/title', '/startDate', '/endDate'] },
+      },
+    ],
+    // Explicit root operations only; no source-change hooks. Outputs are off by default.
+    hooks: { onUpdate: { post: [relatedPlanEmail, relatedPlanDoi] } },
   },
   rdmp: {
     packageType: 'rdmp',

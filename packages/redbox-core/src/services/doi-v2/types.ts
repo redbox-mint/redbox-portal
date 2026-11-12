@@ -1,3 +1,5 @@
+import type { RelatedMetadataRequest, RelatedMetadata } from '@researchdatabox/sails-ng-common';
+import type { UserModel } from '../../model';
 import type { DoiProfile, DoiPublishingConfigData } from '../../configmodels/DoiPublishing';
 
 export interface DoiRecordModel extends Record<string, unknown> {
@@ -7,6 +9,8 @@ export interface DoiRecordModel extends Record<string, unknown> {
   metaMetadata?: {
     brandId?: string;
   };
+  /** Detached, runtime-only mapping input; never persisted by DOI writeback. */
+  relatedMetadata?: RelatedMetadata;
   metadata: Record<string, unknown>;
 }
 
@@ -54,4 +58,10 @@ export interface DoiOperationResult {
   doi?: string | null;
   statusCode?: number;
   responseSummary?: Record<string, unknown>;
+}
+
+/** Server-owned operation options; user is the effective source-read principal. */
+export interface DoiRelatedOptions {
+  relatedMetadata?: RelatedMetadataRequest;
+  user?: UserModel;
 }

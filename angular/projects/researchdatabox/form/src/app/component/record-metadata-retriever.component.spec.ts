@@ -439,6 +439,16 @@ describe('RecordMetadataRetrieverComponent', () => {
     expect(eventBus.publish).not.toHaveBeenCalled();
   });
 
+  it('keeps disposed request guards inactive for later direct calls and retries', async () => {
+    const component = createComponent();
+    component.ngOnDestroy();
+    await component.fetchMetadata('after-destroy');
+    await component.retryMetadata();
+    expect(recordService.getRecordMeta).not.toHaveBeenCalled();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(component.metadataLoading).toBeFalse();
+  });
+
   it('should create component', () => {
     expect(createComponent()).toBeDefined();
   });

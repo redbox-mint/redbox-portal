@@ -256,6 +256,7 @@ export namespace Services {
                 undefined,
                 caller,
                 false,
+                true,
                 { hydrateVocabulary: false }
               );
               metadataSchema = formMetadataSchema(effective,

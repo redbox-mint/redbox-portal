@@ -740,14 +740,20 @@
     page-break-inside: avoid;
   }
 
-  .rb-form-action-row,
-  .rb-form-action-row--legacy-inline,
-  .rb-form-action-row-layout {
+  // Repeatable data layouts can retain the legacy action-row CSS classes.
+  // Hide only the action layout component so those values still print.
+  redbox-form-action-row-layout {
     display: none !important;
   }
 
   .rb-form-repeatable__add,
   .rb-form-repeatable-item__actions {
+    display: none !important;
+  }
+
+  // Date values still print when a form retains native date inputs.
+  // The calendar trigger is a span, rather than a button covered by print resets.
+  redbox-date-input .input-group-append {
     display: none !important;
   }
 

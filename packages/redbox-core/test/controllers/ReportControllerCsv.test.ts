@@ -126,7 +126,7 @@ describe('ReportController CSV request context', () => {
     sails.config.http.rootContext = context.rootContext ?? '';
     const params = { name: 'rdmpRecords', ...context.params };
     const request = {
-      params, body: context.body ?? {}, session: { ...context.session }, query: { ...filters },
+      user: { username: 'csv-caller' }, params, body: context.body ?? {}, session: { ...context.session }, query: { ...filters },
       param: (name: string) => Reflect.get(params, name) ?? filters[name],
     } as unknown as Sails.Req;
     const response = {
@@ -154,7 +154,7 @@ describe('ReportController CSV request context', () => {
       dateModifiedFrom: filters.dateObjectModifiedRange_fromDate,
       dateModifiedTo: filters.dateObjectModifiedRange_toDate,
       title: filters.title,
-    }, brand, 0, 1000000000);
+    }, brand, 0, 1000000000, { username: 'csv-caller' });
     assert.deepEqual(rows, [
       {
         Id: 'oid-1', Title: title, 'External URL': `http://localhost:1500${context.expectedPath}/record/view/oid-1`,

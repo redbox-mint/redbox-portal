@@ -14,6 +14,10 @@ export interface RelatedObjectSummary {
 }
 
 export interface RelatedObjectDataFieldComponentConfigFrame extends ContentFieldComponentConfigFrame {
+  /** Opt in to the existing relatedTo relation; incompatible with legacy reference configuration. */
+  relationId?: string;
+  /** Default false. */
+  required?: boolean;
   dataPath?: string;
   oidProperty?: string;
   relatedFields?: string[];

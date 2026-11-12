@@ -468,6 +468,8 @@ test.describe('stage 4 email editor regressions', () => {
 
   test('autocomplete inserts a schema field at the caret in the body and subject', async ({ page }) => {
     await open(page);
+    // Select the schema under test explicitly; development hooks can add earlier record types.
+    await page.locator('#et-schema-type').selectOption('rdmp');
     await expect(page.locator('#et-schema-status')).toContainText('rdmp');
     const body = page.locator('#et-body');
     await body.fill('<p>Stage: </p>');
@@ -501,6 +503,8 @@ test.describe('stage 4 email editor regressions', () => {
 
   test('a schema warning offers a one-occurrence "did you mean" and does not block publish', async ({ page }) => {
     await open(page);
+    // Select the schema under test explicitly; development hooks can add earlier record types.
+    await page.locator('#et-schema-type').selectOption('rdmp');
     await expect(page.locator('#et-schema-status')).toContainText('rdmp');
     const body = page.locator('#et-body');
     await body.fill('<p>{{record.workflow.stag}} / {{record.workflow.stag}}</p>');
@@ -526,6 +530,8 @@ test.describe('stage 4 email editor regressions', () => {
   test('the field tree inserts an #each scaffold for a list at the caret', async ({ page }) => {
     await withListField(page);
     await open(page);
+    // Select the schema under test explicitly; development hooks can add earlier record types.
+    await page.locator('#et-schema-type').selectOption('rdmp');
     await expect(page.locator('#et-schema-status')).toContainText('Using the record schema for rdmp');
     const body = page.locator('#et-body');
     await body.fill('<ul>\n</ul>');
@@ -556,6 +562,8 @@ test.describe('stage 4 email editor regressions', () => {
     await withListField(page);
     await open(page);
     const selector = page.locator('email-templates-schema-target');
+    // Select the schema under test explicitly; development hooks can add earlier record types.
+    await page.locator('#et-schema-type').selectOption('rdmp');
     await expect(page.locator('#et-schema-status')).toContainText('Using the record schema for rdmp');
     await shot(page, '01-selector-record-schema', selector);
 

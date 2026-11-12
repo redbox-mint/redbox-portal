@@ -16,19 +16,19 @@
     "maxReportBytes": 65536
   },
   "summary": {
-    "formsChecked": 8,
-    "schemasChecked": 16,
-    "completeSchemas": 12,
-    "partialSchemas": 4,
+    "formsChecked": 10,
+    "schemasChecked": 20,
+    "completeSchemas": 14,
+    "partialSchemas": 6,
     "unsupportedComponents": 0,
-    "schemaWarnings": 16,
-    "unknownPropertyProbesAccepted": 16
+    "schemaWarnings": 20,
+    "unknownPropertyProbesAccepted": 20
   },
   "limitHeadroom": {
     "cacheEntries": {
       "limit": 128,
-      "observedMaximum": 16,
-      "remaining": 112
+      "observedMaximum": 20,
+      "remaining": 108
     },
     "maxDepth": {
       "limit": 64,
@@ -97,6 +97,27 @@
       "code": "record-contract.unrepresentable-condition",
       "kinds": ["create", "update"],
       "pointer": "/text_7",
+      "componentType": "SimpleInputComponent"
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/activityDates",
+      "componentType": "GroupComponent"
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/activitySummaries",
+      "componentType": "RepeatableComponent"
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "code": "record-contract.unrepresentable-condition",
+      "kinds": ["create", "update"],
+      "pointer": "/activityTitle",
       "componentType": "SimpleInputComponent"
     }
   ],
@@ -306,6 +327,58 @@
       "observedProperties": 1,
       "diagnosticCount": 0,
       "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-activity-1.0-draft",
+      "kind": "create",
+      "digest": "bd514d3301dde30e35251eedc92c0794a9eed55cb8fd8d8860d5f97250f20948",
+      "completeness": "complete",
+      "byteLength": 730,
+      "observedNodeDepth": 1,
+      "observedProperties": 3,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-activity-1.0-draft",
+      "kind": "update",
+      "digest": "9267ef9eef6fba525964ba5f1328b8f929eb93ed0789e6f6832b0c2fbeb29469",
+      "completeness": "complete",
+      "byteLength": 730,
+      "observedNodeDepth": 1,
+      "observedProperties": 3,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "kind": "create",
+      "digest": "146034394e56003d0d61a2ae4e2ae340742796cbec72e3f32c86b44ce053d577",
+      "completeness": "partial",
+      "byteLength": 4672,
+      "observedNodeDepth": 3,
+      "observedProperties": 15,
+      "diagnosticCount": 3,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": ["record-schema.type"]
+    },
+    {
+      "form": "dev-hook/related-plan-1.0-draft",
+      "kind": "update",
+      "digest": "a7aebc7c9b7a6239c85b9655a0448172f7465b8fc88f5d4f5e1c6aac7db7cdbd",
+      "completeness": "partial",
+      "byteLength": 4672,
+      "observedNodeDepth": 3,
+      "observedProperties": 15,
+      "diagnosticCount": 3,
+      "diagnosticCodes": ["record-contract.unrepresentable-condition"],
       "unknownPropertyProbe": "accepted",
       "shadowWarningCodes": ["record-schema.type"]
     }

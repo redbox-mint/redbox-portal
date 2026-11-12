@@ -89,7 +89,7 @@ export namespace Services {
           );
         }
         const paramMap = this.buildNamedQueryParamMap(queryConfig, searchString, user);
-        const dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows);
+        const dbResults = await NamedQueryService.performNamedQueryFromConfig(namedQueryConfig, paramMap, brand, start, rows, user);
         if (queryConfig.resultObjectMapping) {
           return this.getResultObjectMappings(dbResults as unknown as Record<string, unknown>, queryConfig);
         } else {

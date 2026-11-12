@@ -40,6 +40,8 @@ export interface PdfgenConfig {
   pdfPrefix: string;
   readinessStrategy: PdfgenReadinessStrategy;
   readinessTimeout: number;
+  /** Wait for opted-in form related sources and their dependent rendering. */
+  waitForRelatedData: boolean;
   networkIdleTime: number;
   waitForSelector: string;
   waitForFunction: string;
@@ -56,6 +58,7 @@ export const pdfgen: PdfgenConfig = {
   pdfPrefix: 'pdf',
   readinessStrategy: 'networkIdle',
   readinessTimeout: 60000,
+  waitForRelatedData: false,
   networkIdleTime: 2000,
   waitForSelector: '',
   waitForFunction: '',
