@@ -4422,6 +4422,7 @@
   "data-grids-promotion-schema-changed": "Available fields or filter types changed. Your exploration is retained; review its fields and filters before trying again.",
   "data-grids-field-group-record": "Record",
   "data-grids-field-group-metadata": "Metadata",
+  "data-grids-field-group-other": "Other fields",
   "data-grids-records-reporting": "Records & reporting",
   "data-grids-published": "Published",
   "data-grids-published-as": "Published as",

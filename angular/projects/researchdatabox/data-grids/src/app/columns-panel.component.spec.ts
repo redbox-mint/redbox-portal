@@ -92,7 +92,7 @@ describe('Explorer columns panel', () => {
     fixture.destroy();
   }));
 
-  it('leaves ungrouped fields flat and uses the shared record ID label', () => {
+  it('puts ungrouped fields last under Other fields when other fields are grouped, and uses the shared record ID label', () => {
     const fixture = TestBed.createComponent(ColumnsPanelComponent), c = fixture.componentInstance;
     fixture.componentRef.setInput('fields', [
       { id: 'record:oid', label: 'OID', type: 'text', selectable: true },
@@ -101,12 +101,29 @@ describe('Explorer columns panel', () => {
       { id: 'person', label: 'Person', type: 'text', selectable: true, groupPath: ['People'] },
     ]);
     fixture.detectChanges();
-    expect(c.groups.map(g => g.label)).toEqual(['data-grids-field-group-record', '', 'People']);
+    expect(c.groups.map(g => g.label)).toEqual([
+      'data-grids-field-group-record',
+      'People',
+      'data-grids-field-group-other',
+    ]);
+    expect(c.groups[2].fields.map(f => f.id)).toEqual(['title', 'legacy']);
     expect(c.label('record:oid')).toBe('data-grids-oid');
+    expect(fixture.nativeElement.querySelector('.explorer-field-flat')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Metadata');
+    fixture.destroy();
+  });
+
+  it('lists fields flat without a heading when none are grouped', () => {
+    const fixture = TestBed.createComponent(ColumnsPanelComponent), c = fixture.componentInstance;
+    fixture.componentRef.setInput('fields', [
+      { id: 'title', label: 'Title', type: 'text', selectable: true },
+      { id: 'legacy', label: 'Legacy', type: 'text', selectable: true, groupPath: ['Metadata'] },
+    ]);
+    fixture.detectChanges();
+    expect(c.groups.map(g => g.label)).toEqual(['']);
     const flat = fixture.nativeElement.querySelector('.explorer-field-flat');
     expect(flat.textContent).toContain('Title');
     expect(flat.querySelector('summary')).toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('Metadata');
     fixture.destroy();
   });
 

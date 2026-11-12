@@ -11081,6 +11081,11 @@
     "description": "Fallback group heading for metadata without a labelled form container",
     "contentFormat": "plain"
   },
+  "data-grids-field-group-other": {
+    "category": "data-grids",
+    "description": "Column picker heading for fields without a catalogue group when other fields are grouped",
+    "contentFormat": "plain"
+  },
   "data-grids-records-reporting": {
     "category": "Record explorer and named queries",
     "description": "Records & reporting",

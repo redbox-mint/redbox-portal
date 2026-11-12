@@ -59,9 +59,16 @@ export class ColumnsPanelComponent implements OnInit {
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group)!.push(field);
     }
-    return fieldGroups(
+    const grouped = fieldGroups(
       [...groups].flatMap(([group, fields]) => fields.map(field => ({ ...field, group, groupPath: [] })))
     );
+    // A flat list only reads well when nothing is grouped; otherwise ungrouped fields go last under a heading.
+    const ungrouped = grouped.find(group => !group.label);
+    if (!ungrouped || grouped.length === 1) return grouped;
+    return [
+      ...grouped.filter(group => group !== ungrouped),
+      { ...ungrouped, label: String(this.i18n.t('data-grids-field-group-other')) },
+    ];
   }
   get repeatingCount(): number {
     return this.fields.filter(f => f.repeatingSubfield).length;
