@@ -27,3 +27,9 @@ export function sanitizeFigshareResponse(value: unknown, secrets: string[] = [])
   return typeof value === 'string' && !/<[^>]+>/.test(value)
     ? sanitizeFigshareText(value, 1000, secrets) : undefined;
 }
+
+/** Strip URL credentials, query parameters and fragments at every error boundary. */
+export function sanitizeFigshareEndpoint(value: unknown, secrets: string[] = []): string | undefined {
+  return typeof value === 'string'
+    ? sanitizeFigshareText(value.split(/[?#]/)[0], 500, secrets) : undefined;
+}

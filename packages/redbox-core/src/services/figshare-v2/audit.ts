@@ -1,7 +1,7 @@
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../model/storage/IntegrationAuditModel';
 import type { FigshareRunContext } from './types';
-import { sanitizeFigshareResponse, sanitizeFigshareText } from './diagnostics';
+import { sanitizeFigshareEndpoint, sanitizeFigshareResponse, sanitizeFigshareText } from './diagnostics';
 
 export function startFigshareAudit(
   oid: string,
@@ -50,7 +50,11 @@ export function summarizeFigshareError(error: unknown): { statusCode?: number; e
   let source = error as { statusCode?: number; responseBody?: unknown; method?: string; endpoint?: string; cause?: unknown; message?: string; name?: string };
   const seen = new Set<unknown>();
   for (let depth = 0; depth < 5 && source != null && typeof source === 'object'; depth++) {
-    if (source.statusCode != null || source.responseBody != null || source.method != null || !source.cause || seen.has(source)) break;
+    const validStatus = typeof source.statusCode === 'number' && Number.isInteger(source.statusCode)
+      && source.statusCode >= 100 && source.statusCode <= 599;
+    const response = sanitizeFigshareResponse(source.responseBody);
+    const usefulResponse = typeof response === 'string' || response?.code != null || response?.message != null;
+    if (validStatus || usefulResponse || !source.cause || seen.has(source)) break;
     seen.add(source);
     source = source.cause as typeof source;
   }
@@ -59,7 +63,7 @@ export function summarizeFigshareError(error: unknown): { statusCode?: number; e
   const responseSummary: Record<string, unknown> = typeof body === 'object' ? { ...body } : {};
   if (typeof body === 'string') responseSummary.rawResponseBody = body;
   const method = sanitizeFigshareText(source?.method, 10);
-  const endpoint = sanitizeFigshareText(typeof source?.endpoint === 'string' ? source.endpoint.split(/[?#]/)[0] : undefined, 500);
+  const endpoint = sanitizeFigshareEndpoint(source?.endpoint);
   if (method) responseSummary.method = method;
   if (endpoint) responseSummary.endpoint = endpoint;
   const explanation = typeof body === 'object' ? body.message : body;

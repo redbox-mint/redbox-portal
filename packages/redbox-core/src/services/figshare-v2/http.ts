@@ -20,7 +20,7 @@ import {
 } from './types';
 import { logEvent, withSpan } from './observability';
 import { redactObject } from '../../utilities/RedactionUtils';
-import { sanitizeFigshareResponse, sanitizeFigshareText } from './diagnostics';
+import { sanitizeFigshareEndpoint, sanitizeFigshareResponse } from './diagnostics';
 
 export class FigshareHttpError extends Error {
   statusCode?: number;
@@ -34,7 +34,7 @@ export class FigshareHttpError extends Error {
     this.statusCode = options.statusCode;
     this.responseBody = sanitizeFigshareResponse(options.responseBody, options.secrets);
     this.method = options.method;
-    this.endpoint = options.endpoint;
+    this.endpoint = sanitizeFigshareEndpoint(options.endpoint, options.secrets);
     if (options.cause != null) {
       (this as Error & { cause?: unknown }).cause = options.cause;
     }
@@ -213,7 +213,7 @@ async function requestWithRetry<T = Record<string, unknown>>(config: FigsharePub
       if (!retryable || attempt === attempts) {
         // Wrap instead of rethrowing the raw AxiosError: axios errors carry the full
         // request config (including the Authorization header) and must not propagate.
-        const endpoint = sanitizeFigshareText((path || url).split(/[?#]/)[0], 500, [config.connection.token]);
+        const endpoint = sanitizeFigshareEndpoint(path || url, [config.connection.token]);
         throw new FigshareHttpError(`Figshare HTTP request failed for ${method} ${endpoint}`, {
           statusCode: status == null ? undefined : Number(status),
           responseBody: axiosErr?.response?.data ?? (status == null ? { code: axiosErr?.code, message: axiosErr?.message } : undefined),
