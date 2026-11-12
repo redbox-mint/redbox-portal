@@ -124,14 +124,14 @@
     "@aws-sdk/s3-request-presigner": {
       "@aws-sdk/core": {
         "@aws-sdk/xml-builder": {
-          "fast-xml-parser": "5.10.1"
+          "fast-xml-parser": "5.12.0"
         }
       },
       "@aws-sdk/signature-v4-multi-region": {
         "@aws-sdk/middleware-sdk-s3": {
           "@aws-sdk/core": {
             "@aws-sdk/xml-builder": {
-              "fast-xml-parser": "5.10.1"
+              "fast-xml-parser": "5.12.0"
             }
           }
         }
@@ -167,7 +167,7 @@
     "@uppy/companion": {
       "express": "4.22.2",
       "express-session": "1.18.2",
-      "fast-xml-parser": "5.10.1",
+      "fast-xml-parser": "5.12.0",
       "morgan": "1.12.1",
       "serialize-javascript": "7.1.3"
     },
@@ -190,7 +190,7 @@
     "exceljs": {
       "uuid": "14.0.0"
     },
-    "fast-xml-parser": "5.10.1",
+    "fast-xml-parser": "5.12.0",
     "istanbul-lib-processinfo": {
       "uuid": "14.0.0"
     },
