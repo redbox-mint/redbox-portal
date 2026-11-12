@@ -782,6 +782,38 @@ describe('Data grid editor', () => {
     await component.switchMode('visual');
     expect(component.activeDefinition?.mode).toBe('graphql');
   });
+  it('revalidates edited source, variables and refreshed schemas without repeating unchanged validation', async () => {
+    component.open(validGrid());
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    await component.switchMode('graphql');
+    const first = component.rawErrors;
+    expect(component.rawErrors).toBe(first);
+    component.variablesText = '[]';
+    const invalidVariables = component.rawErrors;
+    expect(invalidVariables.length).toBeGreaterThan(0);
+    expect(invalidVariables).not.toBe(first);
+    component.variablesText = '{}';
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    const valid = component.rawErrors;
+    expect(valid).toEqual([]);
+    component.rawDraft.document = '{ invented }';
+    expect(component.rawErrors.length).toBeGreaterThan(0);
+    component.rawDraft.document = '{ records(recordType:"plan") { nodes { oid } } }';
+    await component.loadSchema();
+    expect(component.rawErrors).toEqual([]);
+    expect(component.rawErrors).not.toBe(valid);
+  });
+  it('loads the schema while visual generation is still pending', async () => {
+    component.open(validGrid());
+    let finish!: (value: {query: string; variables: Record<string, never>}) => void;
+    source.generate = jasmine.createSpy().and.returnValue(new Promise(resolve => finish = resolve));
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    const switching = component.switchMode('graphql');
+    expect(source.schema).toHaveBeenCalled();
+    finish({query: '{ records(recordType:"plan") { nodes { oid } } }', variables: {}});
+    await switching;
+    expect(component.rawErrors).toEqual([]);
+  });
   it('keeps GraphQL canonical and Visual read-only after unlink across view switches', async () => {
     component.open(validGrid());
     source.schema = jasmine.createSpy().and.resolveTo(testSdl);

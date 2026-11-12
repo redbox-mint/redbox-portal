@@ -370,12 +370,30 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   get activeDefinition(): SavedQuery | null {
     return this.unlinked ? this.rawDraft : this.draft;
   }
+  private rawValidation: {
+    schema: GraphQLSchema | null;
+    document: string;
+    variables: string;
+    errors: string[];
+  } | null = null;
   get rawErrors(): string[] {
-    return (
-      this.graphqlEngine?.editorErrors(this.schema, this.rawDraft.document, this.variablesText) ?? [
-        this.text('loading-fields'),
-      ]
-    );
+    if (!this.graphqlEngine) return [this.text('loading-fields')];
+    const previous = this.rawValidation;
+    if (
+      previous &&
+      previous.schema === this.schema &&
+      previous.document === this.rawDraft.document &&
+      previous.variables === this.variablesText
+    )
+      return previous.errors;
+    const errors = this.graphqlEngine.editorErrors(this.schema, this.rawDraft.document, this.variablesText);
+    this.rawValidation = {
+      schema: this.schema,
+      document: this.rawDraft.document,
+      variables: this.variablesText,
+      errors,
+    };
+    return errors;
   }
   get recordTypes(): string[] {
     return [...new Set(this.catalogue?.scopes.map(scope => scope.recordType) ?? [])];
@@ -869,9 +887,8 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.schema = null;
     try {
       if (!this.source.schema) throw new GridRequestError('schema-unavailable');
-      const sdl = await this.source.schema();
+      const [sdl, engine] = await Promise.all([this.source.schema(), import('./graphql-query')]);
       if (seq === this.schemaSequence && !this.disposed) {
-        const engine = await import('./graphql-query');
         if (seq !== this.schemaSequence || this.disposed) return;
         this.graphqlEngine = engine;
         this.schemaSdl = sdl;
@@ -889,8 +906,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     this.mode = mode;
     this.editorOpen = true;
     if (mode === 'graphql') {
-      if (!this.unlinked) await this.syncGraphql();
-      if (!this.schema) await this.loadSchema();
+      await Promise.all([
+        !this.unlinked ? this.syncGraphql() : Promise.resolve(),
+        !this.schema ? this.loadSchema() : Promise.resolve(),
+      ]);
     }
   }
   /** Generated GraphQL is a view of the visual definition until the explicit unlink action. */
@@ -1064,8 +1083,13 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   get publications() {
     return this.activeDefinition?.publishedAs ?? [];
   }
+  private labelsCache: { fields: GridField[]; labels: Record<string, string> } | null = null;
   get fieldLabels(): Record<string, string> {
-    return Object.fromEntries((this.scope?.fields ?? []).map(f => [f.id, f.label]));
+    const fields = this.scope?.fields;
+    if (!fields) return {};
+    if (this.labelsCache?.fields !== fields)
+      this.labelsCache = { fields, labels: Object.fromEntries(fields.map(f => [f.id, f.label])) };
+    return this.labelsCache.labels;
   }
   get publishFields(): NamedQueryResultField[] {
     const fields = this.scope?.fields ?? [];
