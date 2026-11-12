@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { MongoClient } from 'mongodb';
 import { createHash } from 'node:crypto';
 import { relatedPdfProof } from './related-record-pdf';
+import { loginWithCsrf } from './fixtures/auth';
+import { installExternalAssetStubs } from './fixtures/stubs';
 
 const prefix = '/default/rdmp';
 const password = 'RR20Test123!';
@@ -20,11 +22,15 @@ test.describe('Related record resolution (RR-20)', () => {
   const ids: string[] = [];
 
   test.beforeAll(async ({ request }) => {
+    const tokenResponse = await request.get('/csrfToken?branding=default&portal=rdmp');
+    expect(tokenResponse.ok()).toBeTruthy();
+    const { _csrf } = await tokenResponse.json();
     const login = await request.post('/user/login_local', {
-      headers: { 'X-Source': 'jsclient' },
-      form: { username: 'admin', password: 'rbadmin' },
+      headers: { 'X-Source': 'jsclient', 'X-CSRF-Token': _csrf },
+      form: { username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp', _csrf },
     });
     expect((await login.json()).user.username).toBe('admin');
+    const { _csrf: adminCsrf } = await (await request.get('/csrfToken?branding=default&portal=rdmp')).json();
     mongo = await new MongoClient(process.env.RR20_MONGO_URL ?? 'mongodb://mongodb:27017').connect();
     for (const [username, roles] of [
       ['related-admin', ['Admin', 'Librarians', 'Researcher']],
@@ -32,7 +38,7 @@ test.describe('Related record resolution (RR-20)', () => {
     ] as const) {
       const existing = await mongo.db('redbox-portal').collection('user').findOne({ username });
       const response = await request.post(`${prefix}/admin/users/${existing ? 'update' : 'newUser'}`, {
-        headers: { 'X-Source': 'jsclient' },
+        headers: { 'X-Source': 'jsclient', 'X-CSRF-Token': adminCsrf },
         data: {
           username,
           ...(existing ? { userid: String(existing._id) } : {}),
@@ -110,11 +116,8 @@ test.describe('Related record resolution (RR-20)', () => {
     // Dispose the old page before switching identities so its requests cannot race the login cookie.
     await page.goto('about:blank');
     await page.context().clearCookies();
-    const response = await page.request.post('/user/login_local', {
-      headers: { 'X-Source': 'jsclient' },
-      form: { username, password, branding: 'default', portal: 'rdmp' },
-    });
-    expect((await response.json()).user.username).toBe(username);
+    await installExternalAssetStubs(page.context());
+    await loginWithCsrf(page, { username, password });
     await page.goto(`${prefix}/record/${mode}/${p}`);
     await expect(page.locator('[data-rb-related-state]')).toHaveAttribute('data-rb-related-state', 'ready');
   }
