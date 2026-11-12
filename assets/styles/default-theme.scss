@@ -195,7 +195,8 @@ z-index: 999;
 .mainmenu-area ul.navbar-nav > li > a:focus,
 .mainmenu-area ul.navbar-nav > li.active > a:focus,
 .mainmenu-area ul.navbar-nav > li.nav-active-item > a:focus {
-  color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color})
+  color: var(--rb-main-menu-selected-item-color, #{$main-menu-selected-item-color});
+  background-color: var(--rb-main-menu-selected-item-background-color, #{$main-menu-selected-item-background-color});
 }
 
 .maincontent-area {padding-bottom: 170px}
