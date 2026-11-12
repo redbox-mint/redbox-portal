@@ -1,3 +1,5 @@
+import { mutationGuard } from '../../http/fastify/mutations';
+import { mutationDeclarations } from '../../http/mutationRoutes';
 import { recordQueryReadDeclarations } from '../../http/readRoutes';
 import { identityAdministrationDeclarations } from '../../http/identityRoutes';
 import { identityAdministrationGuard } from '../../http/fastify/identityAdministration';
@@ -137,6 +139,7 @@ export async function createPortalFastifyHost(
     guards: async (binding, request, reply) => {
       if (resolved.httpOwners.identities.includes(binding.route))
         return identityAdministrationGuard(binding, request, reply);
+      if (resolved.httpOwners.mutations.includes(binding.route)) return mutationGuard(binding, request, reply);
       if (resolved.httpOwners.schemaReads.includes(binding.route)) return schemaReadPrelude(request, reply);
       if (resolved.httpOwners.metadataUpdates.includes(binding.route)) return recordMetadataBodyPrelude(request, reply);
     },
@@ -155,9 +158,12 @@ export async function createPortalFastifyHost(
         // policy/parser denials. Full page/asset header conversion stays scoped
         // to its later task. Route identities come from executable declarations.
         const referenceNames = new Set(
-          [...referenceReadDeclarations, ...recordQueryReadDeclarations, ...identityAdministrationDeclarations].map(
-            route => coreRouteName(route.method, route.path)
-          )
+          [
+            ...referenceReadDeclarations,
+            ...recordQueryReadDeclarations,
+            ...identityAdministrationDeclarations,
+            ...mutationDeclarations,
+          ].map(route => coreRouteName(route.method, route.path))
         );
         const selectedReferenceNames = new Set(
           resolved.routePlan.routes
@@ -177,9 +183,9 @@ export async function createPortalFastifyHost(
             const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
             // Express's empty end is chunked while express-session awaits a
             // save/touch. A fresh untouched session instead ends with length 0.
-            const identitySessionEnd =
+            const sessionEnd =
               binding &&
-              identityAdministrationDeclarations.some(
+              [...identityAdministrationDeclarations, ...mutationDeclarations].some(
                 route => coreRouteName(route.method, route.path) === binding.route.declaration.name
               ) &&
               request.session &&
@@ -189,7 +195,7 @@ export async function createPortalFastifyHost(
             // replacement payload retains Fastify's ordinary length handling.
             if (
               referenceRequest(request) &&
-              !identitySessionEnd &&
+              !sessionEnd &&
               request.method !== 'HEAD' &&
               reply.statusCode >= 400 &&
               payload === undefined

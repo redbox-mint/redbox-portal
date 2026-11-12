@@ -1,3 +1,4 @@
+import { portalMutationHttpInputs } from './mutationHttpPlan';
 import { portalReadHttpInputs } from './readHttpPlan';
 import { portalIdentityHttpInputs } from './identityHttpPlan';
 import { portalReferenceHttpInputs } from './referenceHttpPlan';
@@ -13,7 +14,6 @@ import type { PoliciesConfig } from '../../config/policies.config';
 import { portalHttpPlan, portalHttpSettings } from './httpPlan';
 import * as http from '../../http/express';
 import { BrandingModel } from '../../model/storage/BrandingModel';
-import { ContextVariables } from '../../forms/ContextVariables';
 import { Services as Logos } from '../../branding/BrandingLogo';
 import { Services as Templates } from '../../pages/Templates';
 import * as persistence from '../../persistence/runtime';
@@ -245,7 +245,6 @@ export class PortalHttp implements ApplicationModule {
     const audit = (actor: { id: string; username: string }, action: string, context: { brandId: string }) =>
       this.audit(actor, action, context);
     const loadRecord = (oid: string) => data.records.get().getMeta(oid);
-    const contextVariables = new ContextVariables(config.record.contextVariables, log);
     const canCreate = async (context: ReturnType<typeof http.requestContext>, name: string) => {
       if (!context.actor) return false;
       const brand = Object.assign(new BrandingModel(), context.brand);
@@ -361,12 +360,10 @@ export class PortalHttp implements ApplicationModule {
     http.mountMetadataReadRoutes(router, { ...shared, ...referenceInputs.metadata });
     http.mountPageRoutes(router, pages);
     http.mountConfigurationReadRoutes(router, { ...shared, ...referenceInputs.configuration });
+    const mutationInputs = portalMutationHttpInputs(this.portal, this.options.actions ?? {});
     http.mountConfigurationWriteRoutes(router, {
       ...shared,
-      appConfigs: ref.appConfigs.get(),
-      translations: ref.entries.get(),
-      dashboardConfig: ref.dashboardConfig.get(),
-      reloadTranslations: id => ref.translation.get().reloadResources(id),
+      ...mutationInputs.configuration,
     });
     http.mountFormDeliveryRoutes(router, { ...shared, ...referenceInputs.form });
     const readInputs = portalReadHttpInputs(this.portal);
@@ -374,25 +371,16 @@ export class PortalHttp implements ApplicationModule {
     http.mountRecordReadRoutes(router, { ...shared, ...readInputs.records });
     http.mountRecordMutationRoutes(router, {
       ...shared,
-      records: data.records.get(),
-      recordTypes: ref.types.get(),
-      workflows: ref.workflows.get(),
-      forms: ref.forms.get(),
-      contextVariables,
-      reusableFormDefinitions: config.reusableFormDefinitions,
-      returnMetadataOnSave: config.record.form?.returnMetadataOnSave,
-      schemaEnabled: config.recordSchema.enabled,
-      rootContext,
-      publicUrl: config.server.publicUrl,
+      ...mutationInputs.records,
     });
-    http.mountHarvestMutationRoutes(router, { ...shared, harvest: data.harvest.get(), recordTypes: ref.types.get() });
+    http.mountHarvestMutationRoutes(router, { ...shared, ...mutationInputs.harvest });
     const identityInputs = portalIdentityHttpInputs(this.portal, () => invalidateAssets());
     http.mountIdentityAdministrationRoutes(router, {
       ...shared,
       ...identityInputs.users,
     });
     http.mountIdentityLinkRoutes(router, { ...shared, ...identityInputs.users });
-    http.mountQueryWriteRoutes(router, { ...shared, audit, queries: ref.queries.get(), reports: ref.reports.get() });
+    http.mountQueryWriteRoutes(router, { ...shared, ...mutationInputs.queries });
     http.mountVocabularyIntegrationRoutes(router, {
       ...shared,
       audit,
@@ -430,7 +418,7 @@ export class PortalHttp implements ApplicationModule {
       search: data.search.get(),
       email: providers.email.get(),
     });
-    http.mountConfiguredActionRoutes(router, { ...shared, audit, actions: this.options.actions ?? {} });
+    http.mountConfiguredActionRoutes(router, { ...shared, ...mutationInputs.actions });
     http.mountBrandingUploadRoutes(router, {
       ...shared,
       audit,

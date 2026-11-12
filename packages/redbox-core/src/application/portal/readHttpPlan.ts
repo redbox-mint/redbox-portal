@@ -103,6 +103,10 @@ const readUploadController = defineController({
   actions: [...c.apiRecordReadController.actions, 'addDataStreams'],
   create: (input: ReadUploadInput) => new ReadUploadController(input),
 });
+export const combineHttpInputs = <A extends object, B extends object>(a: A, b: B): A & B =>
+  Object.defineProperties({}, { ...Object.getOwnPropertyDescriptors(a), ...Object.getOwnPropertyDescriptors(b) }) as A &
+    B;
+
 export function portalReadControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
@@ -112,11 +116,7 @@ export function portalReadControllers(
   const metadata = portalHttpPlan(portal, {}).metadata,
     refs = portalReferenceHttpInputs(portal);
   // Preserve lazy domain getters when combining a controller's explicit inputs.
-  const combine = <A extends object, B extends object>(a: A, b: B): A & B =>
-    Object.defineProperties(
-      {},
-      { ...Object.getOwnPropertyDescriptors(a), ...Object.getOwnPropertyDescriptors(b) }
-    ) as A & B;
+  const combine = combineHttpInputs;
   const bindings = [
     ...(uploads
       ? [bindControllerFactory(readUploadController, combine(combine(metadata, inputs.records), uploads))]

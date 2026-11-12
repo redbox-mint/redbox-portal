@@ -39,3 +39,6 @@ export { referenceReadDeclarations } from './referenceRoutes';
 
 export * from './controllers/ReadControllers';
 export * from './controllers/IdentityAdministrationControllers';
+
+export * from './controllers/MutationControllers';
+export type { ConfiguredAction, ConfiguredActionContext } from './actions/configuredActions';

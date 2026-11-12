@@ -16,6 +16,7 @@ export async function readAction(
 ): Promise<void> {
   const request: ReferenceRequest = {
     method: req.method,
+    protocol: req.protocol,
     params: req.params,
     query: req.query,
     headers: req.headers,

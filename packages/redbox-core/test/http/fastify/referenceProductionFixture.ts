@@ -34,6 +34,8 @@ export async function referenceProductionFixture(
     readonly declarations: readonly import('../../../src/http/fastify/routes').ApiRouteSource[];
     readonly configuration?: Record<string, unknown>;
     readonly log?: typeof nothingLogger;
+    readonly actions?: Readonly<Record<string, import('../../../src/http/actions/configuredActions').ConfiguredAction>>;
+    readonly bindings?: import('../../../src/application/portal/application').PortalApplicationOptions['bindings'];
   }
 ) {
   assert(
@@ -159,6 +161,8 @@ export async function referenceProductionFixture(
     );
     const options = {
       appPath: directory,
+      actions: scope?.actions,
+      bindings: scope?.bindings,
       files: { application: configFile },
       env: {},
       argv: [],
@@ -171,6 +175,7 @@ export async function referenceProductionFixture(
           http: {
             declarations: scope?.declarations ?? referenceReadDeclarations,
             policyConfiguration,
+            actions: scope?.actions,
             portals: ['rdmp'],
           },
         })

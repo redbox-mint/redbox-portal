@@ -1,3 +1,5 @@
+import { mutationDeclarations } from '../../http/mutationRoutes';
+import { portalMutationControllers } from './mutationHttpPlan';
 import { portalReadControllers } from './readHttpPlan';
 import { portalIdentityControllers } from './identityHttpPlan';
 import { identityAdministrationDeclarations } from '../../http/identityRoutes';
@@ -35,6 +37,7 @@ export interface PortalFastifySelection {
   readonly declarations: readonly ApiRouteSource[];
   /** Select the owned Socket.IO progress channel and its grant endpoint. */
   readonly progress?: boolean;
+  readonly actions?: Readonly<Record<string, import('../../http/actions/configuredActions').ConfiguredAction>>;
   readonly policyConfiguration?: PoliciesConfig;
   readonly portals?: readonly string[];
   /** Bind concrete inputs offline; getters borrow initialized domain instances later. */
@@ -113,16 +116,30 @@ export async function resolvePortalInstallation(
       )
       .map(route => route.controller)
   );
+  const mutationTargets = new Set(
+    input.declarations
+      .filter(
+        route =>
+          mutationDeclarations.some(write => write.method === route.method && write.path === route.path) &&
+          !(route.controller === updateMetaRoute.controller && route.action === updateMetaRoute.action)
+      )
+      .map(route => route.controller)
+  );
+  const mutations = portalMutationControllers(context, mutationTargets, input.actions ?? {}, uploadInputs);
   const assetCache = new BrandingDeliveryCache();
   const identities = portalIdentityControllers(context, identityTargets, assetCache);
   const reads = portalReadControllers(
     context,
-    new Set([...readTargets].filter(name => !identityTargets.has(name))),
+    new Set([...readTargets].filter(name => !identityTargets.has(name) && !mutationTargets.has(name))),
     uploadInputs
   );
   const reference = portalReferenceControllers(
     context,
-    new Set(input.declarations.map(route => route.controller).filter(name => !readTargets.has(name)))
+    new Set(
+      input.declarations
+        .map(route => route.controller)
+        .filter(name => !readTargets.has(name) && !mutationTargets.has(name))
+    )
   );
   const recordFactory = upload ? datastreamController : recordController;
   const coreRoutes = apiRouteRegistrations({
@@ -136,30 +153,34 @@ export async function resolvePortalInstallation(
         [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
       (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
         ? 'apiProtect'
-        : identityAdministrationDeclarations.some(
-              identity => route.declaration.name === coreRouteName(identity.method, identity.path)
-            )
-          ? route.declaration.controller === 'webservice/AdminController'
-            ? route.declaration.action === 'getAppConfig'
-              ? 'none'
-              : 'apiProtect'
-            : route.declaration.method === 'get'
-              ? 'none'
-              : route.declaration.path.includes('/api/')
+        : mutationDeclarations.some(write => route.declaration.name === coreRouteName(write.method, write.path))
+          ? route.declaration.path.includes('/api/')
+            ? 'apiProtect'
+            : 'protect'
+          : identityAdministrationDeclarations.some(
+                identity => route.declaration.name === coreRouteName(identity.method, identity.path)
+              )
+            ? route.declaration.controller === 'webservice/AdminController'
+              ? route.declaration.action === 'getAppConfig'
+                ? 'none'
+                : 'apiProtect'
+              : route.declaration.method === 'get'
+                ? 'none'
+                : route.declaration.path.includes('/api/')
+                  ? 'apiProtect'
+                  : 'protect'
+            : recordQueryReadDeclarations.some(
+                  read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
+                )
+              ? route.declaration.path.includes('/api/')
                 ? 'apiProtect'
                 : 'protect'
-          : recordQueryReadDeclarations.some(
-                read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
-              )
-            ? route.declaration.path.includes('/api/')
-              ? 'apiProtect'
-              : 'protect'
-            : 'none',
+              : 'none',
   }));
   const bindings = Object.freeze([
-    ...(upload && !readTargets.has(recordController.name)
+    ...(!mutationTargets.has(recordController.name) && upload && !readTargets.has(recordController.name)
       ? [bindControllerFactory(datastreamController, uploadInputs!)]
-      : readTargets.has(recordController.name)
+      : readTargets.has(recordController.name) || mutationTargets.has(recordController.name)
         ? []
         : [bindControllerFactory(recordController, plan.metadata)]),
     ...(input.progress
@@ -175,6 +196,7 @@ export async function resolvePortalInstallation(
     ...reference.bindings,
     ...reads.bindings,
     ...identities.bindings,
+    ...mutations.bindings,
     ...(input.bindings?.(context) ?? []),
   ]);
   const selected = new Set(coreRoutes.map(route => route.declaration.name));
@@ -203,10 +225,13 @@ export async function resolvePortalInstallation(
           apiVersion: 2,
           modules: [...context.plans.map(plan => plan.declaration), ...(rawDeclaration ? [rawDeclaration] : [])],
           controllers: [
-            ...(readTargets.has(recordController.name) ? [] : [recordFactory]),
+            ...(readTargets.has(recordController.name) || mutationTargets.has(recordController.name)
+              ? []
+              : [recordFactory]),
             ...reads.controllers,
             ...reference.controllers,
             ...identities.controllers,
+            ...mutations.controllers,
             ...(input.progress ? [progressController] : []),
           ],
         },
@@ -240,6 +265,15 @@ export async function resolvePortalInstallation(
     progress: routesFor(progressSocketGrantRoute),
     metadataUpdates: routesFor(updateMetaRoute),
     schemaReads: Object.freeze(recordSchemaReadRoutes.flatMap(routesFor)),
+    mutations: Object.freeze([
+      ...new Set(
+        mutationDeclarations
+          .filter(
+            route => !(route.controller === updateMetaRoute.controller && route.action === updateMetaRoute.action)
+          )
+          .flatMap(routesFor)
+      ),
+    ]),
     identities: Object.freeze([...new Set(identityAdministrationDeclarations.flatMap(routesFor))]),
   });
   if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);

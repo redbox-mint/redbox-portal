@@ -16,6 +16,8 @@ module.exports = {
     'test/http/fastify/ReferenceDifferentialMongo.test.ts',
     'test/http/fastify/ReadDifferentialMongo.test.ts',
     'test/http/fastify/IdentityAdministrationDifferentialMongo.test.ts',
+    'test/http/fastify/MutationDifferentialMongo.test.ts',
+    'test/http/fastify/MutationLifecycleMongo.test.ts',
     'test/http/fastify/ReadStreamsMongo.test.ts',
     'test/http/PagesMongo.test.ts',
     'test/http/NotificationHooksMongo.test.ts',

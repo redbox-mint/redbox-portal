@@ -294,6 +294,7 @@ function nativeAction(handlers: RequestHandler[], mongo: Mongo) {
     const version = (value: unknown) => requestStrings(value) ?? (value && typeof value === 'object' ? {} : undefined);
     Object.defineProperties(req, {
       method: { enumerable: true, value: request.method },
+      protocol: { enumerable: true, value: request.protocol },
       url: { enumerable: true, value: url, writable: true },
       originalUrl: { enumerable: true, value: '/portal' + url },
       headers: {

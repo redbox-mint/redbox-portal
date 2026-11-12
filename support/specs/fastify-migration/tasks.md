@@ -220,7 +220,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: linked/disabled-account and cross-brand success/denial coverage,
     CSRF-backed AJAX/API behavior and audit/security events remain intact.
 
-- [ ] **FM-026 — Migrate mutations and concurrency-sensitive actions.**
+- [x] **FM-026 — Migrate mutations and concurrency-sensitive actions.**
   - Dependencies: FM-024, FM-025.
   - Work: port records/workflows/versions and remaining write actions; preserve
     domain checks, optimistic concurrency, Zod extraction and error precedence.

@@ -124,6 +124,7 @@ export function productionCompositionInputCases() {
         inputs<PortalFastifySelection>(selected.http, {
           declarations: same(selected.http.declarations),
           progress: same(false),
+          actions: same(undefined),
           policyConfiguration: same(resolved.policyConfiguration),
           portals: equal(resolved.portals),
           bindings: callable,
@@ -149,6 +150,7 @@ export function productionCompositionInputCases() {
             progress: [],
             schemaReads: [],
             identities: [],
+            mutations: [],
             metadataUpdates: resolved.routePlan.routes.filter(
               route =>
                 route.declaration.controller === 'webservice/RecordController' &&

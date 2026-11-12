@@ -12,6 +12,7 @@ import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 export function readRequest(request: FastifyRequest): ReferenceRequest {
   return {
     method: request.method,
+    protocol: request.protocol,
     params: request.params as Record<string, unknown>,
     query: request.query as Record<string, unknown>,
     headers: request.headers,

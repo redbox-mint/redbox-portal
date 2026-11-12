@@ -317,6 +317,22 @@ function collectInventory() {
     'application/portal/identityHttpPlan.ts',
   ])
     inputs.add(prefix + file);
+  const mutationDeclarations = fromSource(prefix + 'http/mutationRoutes.ts').mutationDeclarations;
+  const mutationFactories = Object.values(fromSource(prefix + 'http/controllers/MutationControllers.ts')).filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
+  for (const file of [
+    'http/mutationRoutes.ts',
+    'http/controllers/MutationControllers.ts',
+    'http/actions/recordMutations.ts',
+    'http/actions/harvestMutations.ts',
+    'http/actions/configurationWrites.ts',
+    'http/actions/queryWrites.ts',
+    'http/actions/configuredActions.ts',
+    'http/fastify/mutations.ts',
+    'application/portal/mutationHttpPlan.ts',
+  ])
+    inputs.add(prefix + file);
   const routes = collections.flatMap(collection => {
     assert(owners[collection.export], 'Unassigned source collection: ' + collection.export);
     inputs.add(collection.file);
@@ -332,6 +348,30 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-026') {
+        const pilot = route.controller === 'webservice/RecordController' && route.action === 'updateMeta';
+        const declarations = mutationDeclarations.filter(
+          item => identity(item.method, item.path) === identity(route.method, route.path)
+        );
+        const factories = mutationFactories.filter(
+          factory => factory.name === route.controller && factory.actions.includes(route.action)
+        );
+        assert.equal(declarations.length, 1, 'Exactly one FM-026 declaration: ' + route.path);
+        assert.equal(factories.length, 1, 'Exactly one FM-026 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factories[0].name,
+          action: route.action,
+          file:
+            prefix +
+            (pilot ? 'http/controllers/webservice/RecordController.ts' : 'http/controllers/MutationControllers.ts'),
+          productionBinding: prefix + 'application/portal/mutationHttpPlan.ts',
+          differential: test(
+            pilot ? 'http/fastify/MetadataDifferentialMongo.test.ts' : 'http/fastify/MutationDifferentialMongo.test.ts'
+          ),
+          migratedBy: pilot ? 'FM-019' : 'FM-026',
+        };
+      }
       if (owners[collection.export][0] === 'FM-025') {
         const declarations = identityDeclarations.filter(
           item => identity(item.method, item.path) === identity(route.method, route.path)

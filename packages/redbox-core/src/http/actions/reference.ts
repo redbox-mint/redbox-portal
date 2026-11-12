@@ -7,6 +7,7 @@ import { Services as Dashboard } from '../../dashboards/DashboardConfig';
 
 export interface ReferenceRequest extends ApiRequestInput {
   readonly method?: string;
+  readonly protocol?: string;
   readonly context: HttpRequestContext;
   readonly params: Record<string, unknown>;
   readonly query: Record<string, unknown>;
