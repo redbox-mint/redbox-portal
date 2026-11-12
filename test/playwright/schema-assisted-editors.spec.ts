@@ -215,8 +215,9 @@ test.describe('schema-assisted editor release workflows', () => {
       await page.locator('#preview-from-0').fill('2000-01-01');
       await page.locator('#preview-to-0').fill('2999-12-31');
       // Add an unknown/array output manually, preserving custom mapping support.
+      const last = await page.locator('[data-column]').count();
       await page.getByRole('button', { name: 'Add column', exact: true }).click();
-      const last = (await page.locator('[data-column]').count()) - 1;
+      await expect(page.locator('[data-column]')).toHaveCount(last + 1);
       await page.locator(`#column-label-${last}`).fill('People');
       await page.locator(`#column-property-${last}`).fill('metadata.people');
       await page

@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures/test';
 import { apiData } from '../helpers/api';
 import { PortalApi } from '../fixtures/resources';
+import { ResponseGate } from '../helpers/response-gate';
 
 test('A10 saves a workflow dashboard column and renders owned records with its settings', async ({ adminPage, adminCsrfToken, resources, records }) => {
   const api = new PortalApi(adminPage.request, adminCsrfToken);
@@ -164,6 +165,18 @@ test('A11 creates a parameterised query with nested filters and mappings, verifi
   await expect(row).toHaveCount(1);
   await row.locator('summary').click();
   await row.getByRole('button', { name: 'Delete', exact: true }).click();
-  await app.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
-  await expect(row).toHaveCount(0);
+  const deleteGate = new ResponseGate(adminPage, { url: `/api/named-query/${name}`, method: 'DELETE' });
+  await deleteGate.install();
+  try {
+    const deletion = adminPage.waitForResponse(response => response.request().method() === 'DELETE'
+      && response.url().endsWith(`/api/named-query/${name}`));
+    await app.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
+    expect((await deleteGate.waitForCapture()).ok()).toBeTruthy();
+    // Closing the modal makes background rows accessible before deletion finishes.
+    await expect(row).toHaveCount(1);
+    await deleteGate.release();
+    expect((await deletion).ok()).toBeTruthy();
+    await expect(app.getByRole('alertdialog')).toHaveCount(0);
+    await expect(row).toHaveCount(0);
+  } finally { await deleteGate.dispose(); }
 });
