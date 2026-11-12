@@ -582,7 +582,7 @@ test.describe('stage 4 email editor regressions', () => {
     await shot(page, '04-warnings-did-you-mean', page.locator('#et-body-diagnostics'));
 
     await body.press('Control+End');
-    await body.pressSequentially('<p>{{record.metadata.co');
+    await body.pressSequentially('<p>{{record.metadata.contributors');
     await expect(page.locator('[role="listbox"]')).toBeVisible();
     await shot(page, '05-autocomplete-body', body);
     await body.press('Enter');

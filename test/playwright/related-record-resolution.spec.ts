@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { MongoClient } from 'mongodb';
 import { createHash } from 'node:crypto';
+import { createAuthenticatedContext, loginWithCsrf } from './fixtures/auth';
 import { relatedPdfProof } from './related-record-pdf';
 
 const prefix = '/default/rdmp';
@@ -19,36 +20,37 @@ test.describe('Related record resolution (RR-20)', () => {
   let a: string, b: string, p: string;
   const ids: string[] = [];
 
-  test.beforeAll(async ({ request }) => {
-    const login = await request.post('/user/login_local', {
-      headers: { 'X-Source': 'jsclient' },
-      form: { username: 'admin', password: 'rbadmin' },
-    });
-    expect((await login.json()).user.username).toBe('admin');
-    mongo = await new MongoClient(process.env.RR20_MONGO_URL ?? 'mongodb://mongodb:27017').connect();
-    for (const [username, roles] of [
-      ['related-admin', ['Admin', 'Librarians', 'Researcher']],
-      ['related-librarian', ['Librarians']],
-    ] as const) {
-      const existing = await mongo.db('redbox-portal').collection('user').findOne({ username });
-      const response = await request.post(`${prefix}/admin/users/${existing ? 'update' : 'newUser'}`, {
-        headers: { 'X-Source': 'jsclient' },
-        data: {
-          username,
-          ...(existing ? { userid: String(existing._id) } : {}),
-          details: { name: username, email: `${username}@example.invalid`, password, roles },
-        },
-      });
-      expect(response.ok(), await response.text()).toBeTruthy();
-      expect(await response.json()).toMatchObject({ status: true });
+  test.beforeAll(async ({ browser }) => {
+    const { context, csrfToken } = await createAuthenticatedContext(browser);
+    try {
+      const request = context.request;
+      mongo = await new MongoClient(process.env.RR20_MONGO_URL ?? 'mongodb://mongodb:27017').connect();
+      for (const [username, roles] of [
+        ['related-admin', ['Admin', 'Librarians', 'Researcher']],
+        ['related-librarian', ['Librarians']],
+      ] as const) {
+        const existing = await mongo.db('redbox-portal').collection('user').findOne({ username });
+        const response = await request.post(`${prefix}/admin/users/${existing ? 'update' : 'newUser'}`, {
+          headers: { 'X-Source': 'jsclient', 'X-CSRF-Token': csrfToken },
+          data: {
+            username,
+            ...(existing ? { userid: String(existing._id) } : {}),
+            details: { name: username, email: `${username}@example.invalid`, password, roles },
+          },
+        });
+        expect(response.ok(), await response.text()).toBeTruthy();
+        expect(await response.json()).toMatchObject({ status: true });
+      }
+      await mongo
+        .db('redbox-portal')
+        .collection('user')
+        .updateOne(
+          { username: 'related-admin' },
+          { $set: { token: createHash('sha256').update('rr20-isolated-pdf-token').digest('base64') } }
+        );
+    } finally {
+      await context.close();
     }
-    await mongo
-      .db('redbox-portal')
-      .collection('user')
-      .updateOne(
-        { username: 'related-admin' },
-        { $set: { token: createHash('sha256').update('rr20-isolated-pdf-token').digest('base64') } }
-      );
   });
 
   test.beforeEach(async () => {
@@ -110,11 +112,7 @@ test.describe('Related record resolution (RR-20)', () => {
     // Dispose the old page before switching identities so its requests cannot race the login cookie.
     await page.goto('about:blank');
     await page.context().clearCookies();
-    const response = await page.request.post('/user/login_local', {
-      headers: { 'X-Source': 'jsclient' },
-      form: { username, password, branding: 'default', portal: 'rdmp' },
-    });
-    expect((await response.json()).user.username).toBe(username);
+    await loginWithCsrf(page, { username, password });
     await page.goto(`${prefix}/record/${mode}/${p}`);
     await expect(page.locator('[data-rb-related-state]')).toHaveAttribute('data-rb-related-state', 'ready');
   }

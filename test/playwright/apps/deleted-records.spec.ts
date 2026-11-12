@@ -12,8 +12,8 @@ test('A15 restores one owned record and cancels then confirms permanent deletion
   }
   await adminPage.goto('/default/rdmp/admin/deletedRecords');
   const app = adminPage.locator('deleted-records');
-  await app.getByLabel('Filter by title', { exact: true }).fill(name);
-  await app.locator('a.btn').filter({ hasText: /filter/i }).click();
+  await app.locator('#title').fill(name);
+  await app.locator('#title').press('Enter');
   const restoreRow = app.getByRole('row').filter({ hasText: `${name} restore` });
   const purgeRow = app.getByRole('row').filter({ hasText: `${name} purge` });
   await expect(restoreRow).toBeVisible();
@@ -21,12 +21,14 @@ test('A15 restores one owned record and cancels then confirms permanent deletion
   await restoreRow.getByRole('button', { name: /restore/i }).click();
   await expect(restoreRow).toHaveCount(0);
   expect((await records.read(restored.oid)).body).toMatchObject({ title: `${name} restore`, translated: 'Restored content' });
+  await purgeRow.locator('summary').click();
   await purgeRow.getByRole('button', { name: /destroy|permanent/i }).click();
   const modal = app.getByRole('dialog');
   await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(modal).toHaveCount(0);
   await expect(purgeRow).toBeVisible();
   expect((await adminPage.request.get(`/default/rdmp/record/delete/${purged.oid}`)).ok()).toBeTruthy();
+  await purgeRow.locator('summary').click();
   await purgeRow.getByRole('button', { name: /destroy|permanent/i }).click();
   await modal.getByRole('button', { name: /confirm|delete|destroy/i }).click();
   await expect(purgeRow).toHaveCount(0);

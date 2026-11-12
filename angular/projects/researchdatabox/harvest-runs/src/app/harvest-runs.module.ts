@@ -6,7 +6,7 @@ import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
+import { RecordService, RedboxPortalCoreServicesModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { HarvestRunApiService } from './harvest-run-api.service';
 import { HarvestRunsComponent } from './harvest-runs.component';
 
@@ -24,6 +24,7 @@ import { HarvestRunsComponent } from './harvest-runs.component';
   ],
   providers: [
     HarvestRunApiService,
+    RecordService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),

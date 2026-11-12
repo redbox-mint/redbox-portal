@@ -27,44 +27,44 @@ test('A10 saves a workflow dashboard column and renders owned records with its s
   } });
   await adminPage.goto('/default/rdmp/admin/dashboard-config');
   const app = adminPage.locator('dashboard-config-editor');
-  await expect(app.locator('.dc-section-heading')).toBeVisible();
+  await expect(app.getByRole('textbox', { name: 'Filter dashboards' })).toBeVisible();
   const navFilter = app.getByRole('textbox', { name: 'Filter dashboards' });
   await navFilter.fill('e2e-initialisation-modes');
   await navFilter.press('Tab');
-  const target = app.locator('.dc-nav-group').filter({ hasText: 'e2e-initialisation-modes' });
-  await target.locator('.dc-nav-item').filter({ hasText: /draft/i }).click();
-  await expect(app.locator('.dc-section-heading')).toContainText('e2e-initialisation-modes /');
+  const target = app.locator('.dc-nav-item').filter({ hasText: 'e2e-initialisation-modes' }).filter({ hasText: /draft/i });
+  await target.click();
+  await expect(app.locator('.dc-target-heading')).toContainText(/Draft/i);
   const table = app.locator('table-config-editor');
-  await table.getByRole('button', { name: /Add Column$/ }).click();
+  await table.getByRole('button', { name: /Add column$/i }).click();
   const column = table.locator('column-detail');
   await column.getByPlaceholder('Display title', { exact: true }).fill('Owned record title');
-  await column.locator('input#dc-column-variable').fill('metadata.title');
+  await column.locator('dashboard-field-picker input').fill('metadata.title');
   await column.locator('textarea').fill('{{metadata.title}}');
   const validation = adminPage.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/admin/dashboard-config/validate'));
   const pending = adminPage.waitForResponse(response => response.request().method() === 'PUT' && response.url().endsWith('/admin/dashboard-config/workflows/e2e-initialisation-modes/draft'));
-  await app.locator('.dc-section-save').click();
+  await app.locator('.rb-admin-save-bar .btn-primary').click();
   const review = await apiData<{ errors: unknown[]; warnings: Array<{ id: string }> }>(await validation);
   expect(review.errors).toEqual([]);
   if (review.warnings.length) {
-    const acknowledgements = app.locator('.dc-finding-warning input[type="checkbox"]');
+    const acknowledgements = app.locator('.dc-choice input[type="checkbox"]');
     await expect(acknowledgements).toHaveCount(review.warnings.length);
     for (let index = 0; index < review.warnings.length; index++) await acknowledgements.nth(index).check();
-    await app.locator('.dc-section-save').click();
+    await app.locator('.rb-admin-save-bar .btn-primary').click();
   }
   const response = await pending;
   expect(response.ok()).toBeTruthy();
-  await expect(app.locator('.alert-success')).toContainText('Saved e2e-initialisation-modes /');
+  await expect(app.locator('.alert-success')).toContainText(/Saved .*Draft/i);
   const saved = await apiData<{ settings: { tableConfig: { rowConfig: Array<{ title: string; variable: string; template: string }> } } }>(await api.get(path));
   expect(saved.settings.tableConfig.rowConfig).toContainEqual(expect.objectContaining({
     title: 'Owned record title', variable: 'metadata.title', template: '{{metadata.title}}',
   }));
   await adminPage.reload();
-  await expect(app.locator('.dc-section-heading')).toBeVisible();
+  await expect(app.getByRole('textbox', { name: 'Filter dashboards' })).toBeVisible();
   await navFilter.fill('e2e-initialisation-modes');
   await navFilter.press('Tab');
-  await target.locator('.dc-nav-item').filter({ hasText: /draft/i }).click();
-  await expect(app.locator('.dc-section-heading')).toContainText('e2e-initialisation-modes /');
-  await table.locator('.dc-column-item').filter({ hasText: 'Owned record title' }).click();
+  await target.click();
+  await expect(app.locator('.dc-target-heading')).toContainText(/Draft/i);
+  await table.getByRole('row').filter({ hasText: 'Owned record title' }).locator('.dc-column-edit').click();
   await expect(column.locator('textarea')).toHaveValue('{{metadata.title}}');
   await adminPage.goto('/default/rdmp/dashboard/e2e-initialisation-modes');
   const dashboard = adminPage.locator('dashboard');
@@ -88,7 +88,7 @@ test('A11 creates a parameterised query with nested filters and mappings, verifi
   await adminPage.goto('/default/rdmp/admin/named-query');
   const app = adminPage.locator('named-query-editor');
   await app.getByRole('button', { name: /Create.*query/i }).click();
-  const modal = app.getByRole('dialog');
+  const modal = app.locator('.nq-workspace');
   await modal.locator('#nq-name').fill(name);
   await modal.locator('#nq-collection').selectOption('record');
   await modal.getByRole('tab', { name: /Mongo/ }).click();

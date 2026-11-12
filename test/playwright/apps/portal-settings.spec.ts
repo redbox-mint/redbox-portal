@@ -13,10 +13,10 @@ test('A14 saves a system message, shows its effect and restores the original val
   } });
   await adminPage.goto('/default/rdmp/admin/appconfig/edit/systemMessage');
   const app = adminPage.locator('app-config');
-  await app.getByRole('checkbox', { name: 'Enabled', exact: true }).check();
+  await app.locator('#config-enabled').check();
   await app.getByRole('textbox', { name: 'Message Title', exact: true }).fill(title);
   await app.getByRole('textbox', { name: 'Message Body', exact: true }).fill('Owned regression announcement');
-  await app.getByRole('button', { name: 'Submit', exact: true }).click();
+  await app.locator('.rb-admin-save-bar button[type=submit]').click();
   await expect(app).toContainText('Configuration saved successfully');
   await adminPage.reload();
   await expect(app.getByRole('textbox', { name: 'Message Title', exact: true })).toHaveValue(title);
@@ -94,11 +94,14 @@ test('A17 edits and previews a saved branding draft, reopens it and restores the
     expect(final.draft.variables).toEqual(original.draft.variables);
     expect(final.draft.typeface).toEqual(original.draft.typeface);
     await adminPage.goto('/default/rdmp/admin/branding');
+    await adminPage.locator('branding-admin-root a[href^="#branding-group-"]').filter({ hasText: /Header/i }).click();
     await expect(adminPage.locator(`#${key}`)).toHaveValue(original.draft.variables[key] ?? '#f4f4f4');
   } });
   await adminPage.goto('/default/rdmp/admin/branding');
   const app = adminPage.locator('branding-admin-root');
-  const colour = app.locator(`#${key}`).locator('..').locator('input[type="text"]');
+  const headerGroup = app.locator('a[href^="#branding-group-"]').filter({ hasText: /Header/i });
+  await headerGroup.click();
+  const colour = app.locator(`#${key}-hex`);
   await colour.fill(value);
   await app.getByRole('button', { name: /Save Draft/ }).click();
   await expect(app.locator('.alert-success')).toContainText(/draft.*saved/i);
@@ -106,6 +109,7 @@ test('A17 edits and previews a saved branding draft, reopens it and restores the
   const preview = app.locator('branding-preview');
   await expect(preview.locator('.header-area')).toHaveCSS('background-color', value === '#123456' ? 'rgb(18, 52, 86)' : 'rgb(101, 67, 33)');
   await adminPage.reload();
+  await headerGroup.click();
   await expect(colour).toHaveValue(value);
   const changed = await read();
   expect(changed.draft.variables[key]).toBe(value);

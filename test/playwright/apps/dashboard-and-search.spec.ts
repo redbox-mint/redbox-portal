@@ -16,14 +16,15 @@ test('A03 filters owned dashboard records, sorts both ways, paginates and opens 
   const links = app.locator('tbody a').filter({ hasText: prefix });
   await expect(links).toHaveCount(10);
   const titleSort = app.locator('sort').filter({ hasText: /Title/ }).getByRole('button');
-  const initialDirection = await titleSort.getAttribute('aria-sort');
+  const titleHeader = app.getByRole('columnheader').filter({ has: titleSort });
+  const initialDirection = await titleHeader.getAttribute('aria-sort');
   await titleSort.click();
   const direction = initialDirection === 'ascending' ? 'descending' : 'ascending';
-  await expect(titleSort).toHaveAttribute('aria-sort', direction);
+  await expect(titleHeader).toHaveAttribute('aria-sort', direction);
   const firstTitle = direction === 'ascending' ? owned[0].metadata.title : owned[11].metadata.title;
   await expect(links.first()).toHaveText(firstTitle as string);
   await titleSort.click();
-  await expect(titleSort).toHaveAttribute('aria-sort', direction === 'ascending' ? 'descending' : 'ascending');
+  await expect(titleHeader).toHaveAttribute('aria-sort', direction === 'ascending' ? 'descending' : 'ascending');
   await expect(links.first()).toHaveText((direction === 'ascending' ? owned[11] : owned[0]).metadata.title as string);
   await app.locator('pagination').getByRole('link', { name: '2', exact: true }).click();
   await expect(links).toHaveCount(2);
