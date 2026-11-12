@@ -14,7 +14,11 @@ export interface RelatedResolutionIssue {
   code: 'unavailable' | 'invalid-reference' | 'cardinality'
     | 'limit-exceeded' | 'unsupported-relation' | 'field-absent'
     | 'configuration-error' | 'source-read-failed';
+  /** Zero-based position in the original relation reference array; scalars use 0. */
   referenceIndex?: number;
+  /** Zero-based position in this entry's returned records array. */
+  recordIndex?: number;
+  /** RFC 6901 pointer relative to the source metadata. */
   fieldPointer?: string;
 }
 

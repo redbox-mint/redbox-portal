@@ -200,7 +200,7 @@ export async function resolveRelatedMetadata(
             } else {
               entry = { status: 'empty', records: [], issues: [] };
               let candidates: RecordModel[] = [];
-              let missing = false;
+              const unavailableIndices: number[] = [];
               if (direct) {
                 // Six workers share one deduplicated operation cache, including across distinct relation IDs.
                 const ordered: (RecordModel | null)[] = new Array(references.values.length);
@@ -220,10 +220,10 @@ export async function resolveRelatedMetadata(
                 for (const worker of workers) {
                   if (worker.status === 'rejected') throw worker.reason;
                 }
-                for (const record of ordered) {
+                ordered.forEach((record, index) => {
                   if (record && allowed(record, relation.recordType)) candidates.push(record);
-                  else missing = true;
-                }
+                  else unavailableIndices.push(...references.referenceIndices[index]);
+                });
               } else if (references.values.length) {
                 // Only trusted relation configuration enters this query. Request extras/predicates are never spread.
                 const queryKey = JSON.stringify([relation.recordType, relation.foreignField, references.values]);
@@ -293,12 +293,14 @@ export async function resolveRelatedMetadata(
                   const projection = await projected.get(key)!;
                   relationBytes += projection.bytes;
                   if (relationBytes > remainingBytes) throw new RangeError('Related output limit');
+                  const recordIndex = entry.records.length;
                   entry.records.push(cloneDeep(projection.source));
                   for (const fieldPointer of projection.absent)
-                    entry.issues.push({ code: 'field-absent', fieldPointer });
+                    entry.issues.push({ code: 'field-absent', recordIndex, fieldPointer });
                 }
-                if (missing) entry.issues.push({ code: 'unavailable' });
-                entry.status = missing
+                for (const referenceIndex of unavailableIndices.sort((a, b) => a - b))
+                  entry.issues.push({ code: 'unavailable', referenceIndex });
+                entry.status = unavailableIndices.length
                   ? entry.records.length
                     ? 'partial'
                     : 'unavailable'

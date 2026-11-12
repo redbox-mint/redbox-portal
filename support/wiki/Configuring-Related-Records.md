@@ -161,10 +161,58 @@ Revision is descriptive, not a snapshot token. Statuses are:
 
 Issue codes are `unavailable`, `invalid-reference`, `cardinality`,
 `limit-exceeded`, `unsupported-relation`, `field-absent`, `configuration-error`
-and `source-read-failed`; optional `referenceIndex`/`fieldPointer` identify safe
-input/projection locations. Hidden source IDs and denial/existence distinctions
-are not returned. Optional failures are returned as entries so consumers must
-check status and define their own fallback. A selection with `required: true`
+and `source-read-failed`. Issues belong to their enclosing relation entry. The
+optional location fields use zero-based indexes:
+
+- `recordIndex` points into that entry's returned `records` array. Every
+  `field-absent` issue includes it, together with a `fieldPointer` relative to
+  the source metadata. Use `records[issue.recordIndex].redboxOid` to identify
+  the readable source.
+- `referenceIndex` points into the original relation reference array, before
+  blanks are removed, strings are trimmed, or duplicates are combined. A scalar
+  reference uses index `0`. Invalid references and unavailable direct OID
+  references include it. Repeated unavailable references produce an issue for
+  each original position while sharing one source read.
+
+For example, references `["activity-a", "activity-b", "activity-c"]` could return:
+
+```json
+{
+  "activities": {
+    "status": "partial",
+    "records": [
+      {
+        "redboxOid": "activity-a",
+        "metaMetadata": { "type": "activity", "brandId": "default" },
+        "metadata": { "title": "Activity A", "endDate": "2026-09-30" }
+      },
+      {
+        "redboxOid": "activity-c",
+        "metaMetadata": { "type": "activity", "brandId": "default" },
+        "metadata": { "title": "Activity C" }
+      }
+    ],
+    "issues": [
+      { "code": "field-absent", "recordIndex": 1, "fieldPointer": "/endDate" },
+      { "code": "unavailable", "referenceIndex": 1 }
+    ]
+  }
+}
+```
+
+Here the absent date belongs to returned record `activity-c`; the unavailable
+reference is the original `activity-b`. Do not match issue array positions to
+record array positions. Indexes apply only to that result and its reference
+input, not to later refreshes.
+
+Relation-wide failures such as cardinality, configuration, size limits, deadlines,
+and source-read failures have no index. Non-OID relation queries can match several
+records per input, so they do not attach a reference index to filtered-out matches.
+Returned records still have indexed field issues. Hidden source IDs and
+missing-versus-denied distinctions are not returned.
+
+Optional failures are returned as entries so consumers must check status and
+define their own fallback. A selection with `required: true`
 throws `RequiredRelatedMetadataError` unless its status is `resolved`; this is not
 field-level required validation (`field-absent` does not itself change that status).
 

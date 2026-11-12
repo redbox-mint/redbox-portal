@@ -14,10 +14,22 @@ describe('related-record opt-in construction contracts', () => {
   it('normalizes browser references with literal own-property tokens and stable invalid positions', () => {
     const reference = Object.assign(Object.create({ oid: 'inherited' }), { 'literal.key': ' a ' });
     assert.deepEqual(normalizeRelatedReferenceValues([reference, 'a', {}, null, 42, { 'literal.key': 'b' }],
-      value => readRelatedReference(value, ['literal.key'])), { values: ['a', 'b'], invalidIndices: [2, 4] });
+      value => readRelatedReference(value, ['literal.key'])), { values: ['a', 'b'], invalidIndices: [2, 4], referenceIndices: [[0, 1], [5]] });
     assert.equal(readRelatedReference(reference, ['oid']), undefined);
     assert.deepEqual(normalizeRelatedReferenceValues(reference, value => readRelatedReference(value, ['oid'])),
-      { values: [], invalidIndices: [0] });
+      { values: [], invalidIndices: [0], referenceIndices: [] });
+  });
+
+  it('retains original positions through blanks, trimming, duplicates and scalar normalization', () => {
+    assert.deepEqual(normalizeRelatedReferenceValues([null, ' a ', '', 'b', 'a', ' ', 'b']), {
+      values: ['a', 'b'], invalidIndices: [], referenceIndices: [[1, 4], [3, 6]],
+    });
+    assert.deepEqual(normalizeRelatedReferenceValues(' a '), {
+      values: ['a'], invalidIndices: [], referenceIndices: [[0]],
+    });
+    assert.deepEqual(normalizeRelatedReferenceValues(null), {
+      values: [], invalidIndices: [], referenceIndices: [],
+    });
   });
 
   it('retains relation selection and display declarations on runtime definitions', () => {

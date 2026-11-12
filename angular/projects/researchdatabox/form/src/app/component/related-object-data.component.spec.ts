@@ -9,7 +9,7 @@ import { RelatedMetadata, RelatedMetadataEntry } from '@researchdatabox/sails-ng
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { fakeAsync, flushMicrotasks, tick, TestBed } from '@angular/core/testing';
 import { HandlebarsTemplateService, UtilityService } from '@researchdatabox/portal-ng-common';
-import { FormConfigFrame, handlebarsCompile, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
+import { FormConfigFrame, handlebarsCompile, jsonataCompileAndEvaluate, normalizeRelatedReferenceValues } from '@researchdatabox/sails-ng-common';
 import { createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions } from '../helpers.spec';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state/events/form-component-event.types';
 import { RelatedObjectDataComponent } from './related-object-data.component';
@@ -39,7 +39,7 @@ describe('RelatedObjectDataComponent', () => {
       name: 'related-consumers',
       relatedRecords: { displayTargets: [], relations: [], sources: [{
         relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
-        referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }),
+        referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')),
         initialResult: { status: 'resolved', issues: [], records: [{ redboxOid: 'A',
           metadata: { title: 'Current activity' }, metaMetadata: { type: 'activity', brandId: 'default' } }] },
       }] },
@@ -122,7 +122,7 @@ describe('RelatedObjectDataComponent', () => {
         displayTargets: [{ metadataPointer: '/title', relationId: 'activity' }],
         relations: [{ relationId: 'activity', referenceTokens: ['reference'] }], sources: [{
           componentPointer: '/source', relationId: 'activity', referenceTokens: ['reference'], required: true,
-          referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }), initialResult,
+          referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')), initialResult,
         }],
       }, componentDefinitions: [
         { name: 'reference', component: { class: 'ContentComponent', config: { content: 'A' } } },
@@ -149,7 +149,7 @@ describe('RelatedObjectDataComponent', () => {
       const config: FormConfigFrame = { name: 'nested-related-reference', relatedRecords: {
         displayTargets: [], relations: [{ relationId: 'activity', referenceTokens: ['project', 'activityOid'] }],
         sources: [{ componentPointer: '/source', relationId: 'activity', referenceTokens: ['project', 'activityOid'],
-          required: true, referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }), initialResult }],
+          required: true, referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')), initialResult }],
       }, componentDefinitions: [
         { name: 'project', model: { class: 'GroupModel' }, component: { class: 'GroupComponent', config: {
           componentDefinitions: [{ name: 'activityOid', component: { class: 'ContentComponent', config: { content: 'A' } } }],
@@ -188,7 +188,7 @@ describe('RelatedObjectDataComponent', () => {
     const config: FormConfigFrame = { name: 'delayed-related-loading',
       relatedRecords: { displayTargets: [], relations: [], sources: [{
         relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
-        initialResult: entry('Previous'), referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }),
+        initialResult: entry('Previous'), referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')),
       }] }, componentDefinitions: [
         { name: 'selection', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel', config: { value: 'A' } } },
         { name: 'source', component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities' } } },
@@ -289,7 +289,7 @@ describe('RelatedObjectDataComponent', () => {
     const config: FormConfigFrame = { name: 'related-view-groups',
       relatedRecords: { displayTargets: [], relations: [], sources: [{ relationId: 'activities',
         componentPointer: '/source', referenceTokens: ['activities'], oidTokens: ['oid'],
-        referenceFingerprint: JSON.stringify({ values: ['A', 'B'], invalidIndices: [] }),
+        referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues(['A', 'B'])),
         initialResult: { status: 'resolved', issues: [], records },
       }] }, componentDefinitions: [
         { name: 'activities', model: { class: 'RepeatableModel', config: { value: [{ oid: 'A' }, { oid: 'B' }] } },
@@ -325,7 +325,7 @@ describe('RelatedObjectDataComponent', () => {
     const config: FormConfigFrame = { name: 'readonly-related-view',
       relatedRecords: { displayTargets: [], relations: [], sources: [{
         relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
-        referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }),
+        referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')),
         initialResult: { status: 'resolved', issues: [], records: [{ redboxOid: 'A',
           metadata: { title: 'Activity A' }, metaMetadata: { type: 'activity', brandId: 'default' } }] },
       }] }, componentDefinitions: [
@@ -388,7 +388,7 @@ describe('RelatedObjectDataComponent', () => {
     const config: FormConfigFrame = { name: 'feedback',
       relatedRecords: { displayTargets: [], relations: [], sources: [{ relationId: 'activities',
         componentPointer: '/source', referenceTokens: ['selection'], initialResult: resultFor('A'),
-        referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }),
+        referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')),
       }] },
       componentDefinitions: [
         { name: 'selection', component: { class: 'SimpleInputComponent' },
@@ -434,7 +434,7 @@ describe('RelatedObjectDataComponent', () => {
       const rendered: string[][] = [];
       const config: FormConfigFrame = { name: 'snapshot', relatedRecords: { displayTargets: [], relations: [], sources: [{
         relationId: 'activities', componentPointer: '/source', referenceTokens: ['selection'],
-        initialResult: entry('A'), referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }),
+        initialResult: entry('A'), referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')),
       }] }, componentDefinitions: [
         { name: 'selection', component: { class: 'SimpleInputComponent' },
           model: { class: 'SimpleInputModel', config: { value: matches ? 'A' : 'B' } } },
@@ -579,7 +579,7 @@ describe('RelatedObjectDataComponent request lifecycle', () => {
 
   it('reuses only a matching bootstrap result and explicitly refreshes the same ID', async () => {
     Object.assign((component as any).descriptor, { initialResult: resolved('initial'),
-      referenceFingerprint: JSON.stringify({ values: ['A'], invalidIndices: [] }) });
+      referenceFingerprint: JSON.stringify(normalizeRelatedReferenceValues('A')) });
     await component.refreshRelatedData(false, true);
     expect(service.resolveRelatedMetadata).not.toHaveBeenCalled();
     expect(lastValue().value.records[0].redboxOid).toBe('initial');
@@ -612,6 +612,27 @@ describe('RelatedObjectDataComponent request lifecycle', () => {
     expect(lastValue().value).toEqual({ status: 'empty', records: [], issues: [] });
     expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(1);
   }));
+
+  it('refreshes issue positions when blanks or duplicates change without changing the lookup IDs', async () => {
+    service.resolveRelatedMetadata.and.resolveTo({ activities: {
+      status: 'unavailable', records: [], issues: [{ code: 'unavailable', referenceIndex: 0 }],
+    } });
+    await component.refreshRelatedData();
+    expect(lastValue().value.issues).toEqual([{ code: 'unavailable', referenceIndex: 0 }]);
+    service.resolveRelatedMetadata.and.resolveTo({ activities: {
+      status: 'unavailable', records: [], issues: [
+        { code: 'unavailable', referenceIndex: 1 }, { code: 'unavailable', referenceIndex: 2 },
+      ],
+    } });
+    form.get('canonical/reference')!.setValue([null, 'A', ' A ']);
+    await component.refreshRelatedData();
+    expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(2);
+    expect(lastValue().value.issues).toEqual([
+      { code: 'unavailable', referenceIndex: 1 }, { code: 'unavailable', referenceIndex: 2 },
+    ]);
+    await component.refreshRelatedData();
+    expect(service.resolveRelatedMetadata).toHaveBeenCalledTimes(2);
+  });
 
   for (const malformed of [
     { name: 'non-string reference', value: 42, oidTokens: undefined, invalidIndices: [0] },

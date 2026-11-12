@@ -7,16 +7,24 @@ export function readRelatedReference(value: unknown, tokens: readonly string[]):
   return value;
 }
 
-/** Normalize scalar/object references; path interpretation belongs to the caller. */
+/** Normalize scalar/object references; path interpretation belongs to the caller.
+ * referenceIndices[i] lists every original position for the deduplicated values[i].
+ */
 export function normalizeRelatedReferenceValues(raw: unknown, readIdentifier?: (value: object) => unknown) {
-  const values = new Set<string>();
+  const references = new Map<string, number[]>();
   const invalidIndices: number[] = [];
   (Array.isArray(raw) ? raw : [raw]).forEach((value, index) => {
     if (value == null || value === '') return;
     const identifier = typeof value === 'string' ? value
       : typeof value === 'object' && !Array.isArray(value) ? readIdentifier?.(value) : undefined;
     if (typeof identifier !== 'string') invalidIndices.push(index);
-    else if (identifier.trim()) values.add(identifier.trim());
+    else if (identifier.trim()) {
+      const key = identifier.trim();
+      const indices = references.get(key);
+      if (indices) indices.push(index);
+      else references.set(key, [index]);
+    }
   });
-  return { values: [...values], invalidIndices };
+  // Keep every original position, including duplicates, for issue correlation and refresh identity.
+  return { values: [...references.keys()], invalidIndices, referenceIndices: [...references.values()] };
 }

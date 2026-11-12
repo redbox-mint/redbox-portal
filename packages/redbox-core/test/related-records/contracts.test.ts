@@ -1,7 +1,31 @@
 import { strict as assert } from 'node:assert';
 import { normalizeRecordRelation, RecordRelation } from '../../src/config/recordtype.config';
+import { relatedMetadataSchema } from '../../src/api-routes/groups/related-records';
 import { RelatedTo } from '../../src/model/storage/RecordTypeModel';
 import { createRelatedRecordsFixtures } from '../fixtures/related-records.fixtures';
+
+describe('related metadata issue contracts', () => {
+  const entry = (issue: Record<string, unknown>) => ({ activities: {
+    status: 'resolved',
+    records: [{ redboxOid: 'activity', metaMetadata: { type: 'activity', brandId: 'brand' }, metadata: {} }],
+    issues: [issue],
+  } });
+  it('preserves returned-record and original-reference indexes in the public response schema', () => {
+    for (const issue of [
+      { code: 'field-absent', recordIndex: 0, fieldPointer: '/endDate' },
+      { code: 'unavailable', referenceIndex: 2 },
+      { code: 'invalid-reference', referenceIndex: 0 },
+      { code: 'limit-exceeded' },
+    ]) assert.deepEqual(relatedMetadataSchema.parse(entry(issue)), entry(issue));
+  });
+  it('requires nonnegative integer indexes when present', () => {
+    for (const key of ['recordIndex', 'referenceIndex']) {
+      for (const value of [-1, 0.5, '0', null]) {
+        assert.equal(relatedMetadataSchema.safeParse(entry({ code: 'field-absent', [key]: value })).success, false);
+      }
+    }
+  });
+});
 
 describe('related-record relation contracts', () => {
   it('preserves legacy normalization defaults without enabling resolution', () => {

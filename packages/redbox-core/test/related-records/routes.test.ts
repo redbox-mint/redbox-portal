@@ -176,6 +176,28 @@ describe('related metadata HTTP routes', () => {
       assert.equal(records.getMeta.getCalls().filter((call: sinon.SinonSpyCall) => call.args[0] === 'root').length, 1);
       assert.equal(root.metadata.activity, 'old');
     });
+    it(`preserves per-record and per-reference issues in the ${kind} HTTP response with the real resolver`, async () => {
+      useRealResolver();
+      const references = ['new', 'missing', 'old'];
+      root.metadata.activity = references;
+      records.getMeta.withArgs('missing').resolves(null);
+      Reflect.set(globalThis, 'RecordTypesService', { get: () => of({ name: 'plan', relatedTo: [{
+        ...relation, resolution: { metadataFields: ['/title', '/endDate'] },
+      }] }) });
+      const response = kind === 'browser'
+        ? await post({ oid: 'root', relations: ['activity'], references: { activity: references } })
+        : await request();
+      assert.equal(response.status, 200, await response.clone().text());
+      const result = ((await response.json()) as any).data.relatedMetadata.activity;
+      assert.equal(result.status, 'partial');
+      assert.deepEqual(result.records.map((record: any) => record.redboxOid), ['new', 'old']);
+      assert.deepEqual(result.issues, [
+        { code: 'field-absent', recordIndex: 0, fieldPointer: '/endDate' },
+        { code: 'field-absent', recordIndex: 1, fieldPointer: '/endDate' },
+        { code: 'unavailable', referenceIndex: 1 },
+      ]);
+      assert.ok(!JSON.stringify(result).includes('missing'));
+    });
     it(`includes the initial ${kind} root lookup in the HTTP deadline and stops late resolution`, async () => {
       useRealResolver();
       const clock = sinon.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });

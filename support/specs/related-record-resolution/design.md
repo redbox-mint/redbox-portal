@@ -82,8 +82,9 @@ interface RelatedResolutionIssue {
   code: 'unavailable' | 'invalid-reference' | 'cardinality'
     | 'limit-exceeded' | 'unsupported-relation' | 'field-absent'
     | 'configuration-error' | 'source-read-failed';
-  referenceIndex?: number;
-  fieldPointer?: string;
+  referenceIndex?: number; // zero-based original reference position; scalar = 0
+  recordIndex?: number; // zero-based position in this entry's returned records
+  fieldPointer?: string; // relative to source metadata
 }
 
 interface RelatedMetadataEntry {

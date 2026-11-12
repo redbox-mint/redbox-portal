@@ -175,6 +175,7 @@ describe('relation-based initial resolution', () => {
       expect(calls[0][1].audience).to.equal('browser');
       expect(form.relatedRecords!.sources[0].referenceFingerprint).to.equal(JSON.stringify({
         values: Array.isArray(references) ? ['a', 'b'] : ['a'], invalidIndices: [],
+        referenceIndices: Array.isArray(references) ? [[0, 2], [1]] : [[0]],
       }));
       const config = (form.componentDefinitions[0] as RelatedObjectDataFormComponentDefinitionOutline).component.config!;
       expect(config.accessDeniedOids).to.deep.equal([]);

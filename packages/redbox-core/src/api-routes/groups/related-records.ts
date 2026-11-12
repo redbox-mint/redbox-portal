@@ -35,7 +35,18 @@ const issue = z.object({
     'configuration-error',
     'source-read-failed',
   ]),
-  referenceIndex: z.number().int().nonnegative().optional(),
+  referenceIndex: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe('Zero-based original relation reference position; scalars use 0'),
+  recordIndex: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe("Zero-based position in this entry's returned records array"),
   fieldPointer: z.string().optional(),
 });
 export const relatedMetadataSchema = z.record(

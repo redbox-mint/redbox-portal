@@ -112,7 +112,7 @@ describe('shared related metadata resolver', () => {
       assert.deepEqual((await run())['primary-activity'], {
         status: 'unavailable',
         records: [],
-        issues: [{ code: 'unavailable' }],
+        issues: [{ code: 'unavailable', referenceIndex: 0 }],
       });
     });
   it('never grants source read access from service audience or service identity alone', async () => {
@@ -132,6 +132,65 @@ describe('shared related metadata resolver', () => {
       metadata: { primaryActivity: [fixture.ids.activityA, fixture.ids.denied] },
     });
     assert.equal(result['primary-activity'].status, 'partial');
+    assert.ok(!JSON.stringify(result).includes(fixture.ids.denied));
+  });
+  it('correlates unavailable direct references with every original position after normalization', async () => {
+    relations[0].cardinality = 'many';
+    relations[0].oidProperty = 'nested.oid';
+    const references = [null, ` ${fixture.ids.denied} `, fixture.ids.activityB, '',
+      { nested: { oid: fixture.ids.missing } }, fixture.ids.denied, ' ', fixture.ids.activityA];
+    const result = await run({ ...fixture.root, metadata: { primaryActivity: references } });
+    const entry = result['primary-activity'];
+    assert.equal(entry.status, 'partial');
+    assert.deepEqual(entry.records.map(record => record.redboxOid), [fixture.ids.activityB, fixture.ids.activityA]);
+    assert.deepEqual(entry.issues, [
+      { code: 'unavailable', referenceIndex: 1 },
+      { code: 'unavailable', referenceIndex: 4 },
+      { code: 'unavailable', referenceIndex: 5 },
+    ]);
+    assert.equal(getMeta.callCount, 4); // Duplicate unavailable references still share a read.
+    assert.ok(!JSON.stringify(result).includes(fixture.ids.denied));
+    assert.ok(!JSON.stringify(result).includes(fixture.ids.missing));
+  });
+  it('correlates absent fields with returned records after ACL filtering and across cached projections', async () => {
+    for (const relation of relations) {
+      relation.cardinality = 'many';
+      relation.resolution!.metadataFields = ['/title', '/endDate'];
+    }
+    delete (fixture.activityA.metadata as Record<string, unknown>).endDate;
+    delete (fixture.activityB.metadata as Record<string, unknown>).title;
+    const result = await run({ ...fixture.root, metadata: {
+      primaryActivity: [fixture.ids.denied, fixture.ids.activityB, fixture.ids.activityA, fixture.ids.activityB],
+      supportingActivities: [fixture.ids.activityA, fixture.ids.activityB],
+    } }, { relations: relations.map(relation => ({ relationId: relation.id! })) });
+    assert.deepEqual(result['primary-activity'].records.map(record => record.redboxOid),
+      [fixture.ids.activityB, fixture.ids.activityA]);
+    assert.deepEqual(result['primary-activity'].issues, [
+      { code: 'field-absent', recordIndex: 0, fieldPointer: '/title' },
+      { code: 'field-absent', recordIndex: 1, fieldPointer: '/endDate' },
+      { code: 'unavailable', referenceIndex: 0 },
+    ]);
+    assert.deepEqual(result['supporting-activities'].records.map(record => record.redboxOid),
+      [fixture.ids.activityA, fixture.ids.activityB]);
+    assert.deepEqual(result['supporting-activities'].issues, [
+      { code: 'field-absent', recordIndex: 0, fieldPointer: '/endDate' },
+      { code: 'field-absent', recordIndex: 1, fieldPointer: '/title' },
+    ]);
+    assert.equal(getMeta.callCount, 3);
+  });
+  it('correlates native query field issues with sorted authorised results without identifying hidden matches', async () => {
+    relations[0].cardinality = 'many';
+    relations[0].foreignField = 'metadata.plan';
+    relations[0].resolution!.metadataFields = ['/title', '/endDate'];
+    delete (fixture.activityB.metadata as Record<string, unknown>).endDate;
+    dependencies.storage.findRecordsByRelation = async () => ({
+      records: [fixture.denied, fixture.activityB, fixture.activityA].map(asRecord), complete: true, overflow: false,
+    });
+    const result = await run();
+    const entry = result['primary-activity'];
+    assert.equal(entry.status, 'resolved');
+    assert.deepEqual(entry.records.map(record => record.redboxOid), [fixture.ids.activityA, fixture.ids.activityB]);
+    assert.deepEqual(entry.issues, [{ code: 'field-absent', recordIndex: 1, fieldPointer: '/endDate' }]);
     assert.ok(!JSON.stringify(result).includes(fixture.ids.denied));
   });
   it('enforces required nonempty and complete results before returning', async () => {
@@ -435,11 +494,13 @@ describe('related reference and field projection helpers', () => {
     assert.deepEqual(normalizeRelatedReferences(['b', { nested: { oid: ' a ' } }, 'b', '', null], 'nested.oid'), {
       values: ['b', 'a'],
       invalidIndices: [],
+      referenceIndices: [[0, 2], [1]],
     });
-    assert.deepEqual(normalizeRelatedReferences({ oid: 1 }, 'oid'), { values: [], invalidIndices: [0] });
+    assert.deepEqual(normalizeRelatedReferences({ oid: 1 }, 'oid'), { values: [], invalidIndices: [0], referenceIndices: [] });
     assert.deepEqual(normalizeRelatedReferences([' ', 42, ['a'], {}], 'oid'), {
       values: [],
       invalidIndices: [1, 2, 3],
+      referenceIndices: [],
     });
   });
   it('retains Lodash literal dotted-key precedence and inherited identifier paths', () => {
@@ -558,7 +619,7 @@ describe('related source projection and RecordsService integration', () => {
   it('reuses caller-effective browser selection and intersects its output without raw fallback', async () => {
     const result = await service.resolveRelatedMetadata(asRecord(fixture.root), context, request);
     assert.deepEqual(result['primary-activity'].records[0].metadata, { title: 'Activity A', emptyText: '' });
-    assert.deepEqual(result['primary-activity'].issues, [{ code: 'field-absent', fieldPointer: '/absent' }]);
+    assert.deepEqual(result['primary-activity'].issues, [{ code: 'field-absent', recordIndex: 0, fieldPointer: '/absent' }]);
     assert.deepEqual(
       forms.getFormByName.getCalls().map(call => call.args[1]),
       [true, false]

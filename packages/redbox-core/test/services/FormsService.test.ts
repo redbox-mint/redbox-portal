@@ -1212,7 +1212,7 @@ describe('FormsService', function () {
       expect(resolve.firstCall.args[0].redboxOid).to.equal('root');
       expect(resolve.firstCall.args[1].audience).to.equal('browser');
       expect(result.relatedRecords.sources[0].initialResult).to.deep.equal(entry);
-      expect(result.relatedRecords.sources[0].referenceFingerprint).to.equal(JSON.stringify({ values: ['activity'], invalidIndices: [] }));
+      expect(result.relatedRecords.sources[0].referenceFingerprint).to.equal(JSON.stringify({ values: ['activity'], invalidIndices: [], referenceIndices: [[0]] }));
       expect(metadata).to.deep.equal({ activities: 'activity', answer: 'local' });
       expect(item).not.to.have.property('relatedRecords');
       const projection = await FormsService.buildClientFormConfig(item, 'edit', [], metadata, {}, 'default', {}, access, false, true);
