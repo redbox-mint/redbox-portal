@@ -73,6 +73,7 @@ export class RecordTableComponent extends BaseComponent {
   @Input() paginationMaxSize:number = 10;
   @Input() paginationRotate: boolean = true;
   @Input() paginationDisabled: boolean = false;
+  @Input() showPagination = true;
   paginationPending = false;
   // which actions to show in the table
   @Input() showActions: {name:string, classes: string, label:string}[] = [];
@@ -83,11 +84,11 @@ export class RecordTableComponent extends BaseComponent {
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
 
-  get adminTotalPages(): number { return Math.max(1, Math.ceil(this.dataSource.getCurrentPage().total / this.paginationItemsPerPage)); }
+  get adminTotalPages(): number { return Math.max(1, Math.ceil((this.dataSource.getCurrentPage().total ?? 0) / this.paginationItemsPerPage)); }
 
   get adminPageEnd(): number {
     const page = this.dataSource.getCurrentPage();
-    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total);
+    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total ?? 0);
   }
 
   constructor(

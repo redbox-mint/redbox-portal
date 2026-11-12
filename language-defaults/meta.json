@@ -11920,5 +11920,210 @@
     "category": "Named queries",
     "description": "Choose a collection in Basics before saving.",
     "contentFormat": "plain"
+  },
+  "report-graphql-source": {
+    "category": "Reports",
+    "description": "GraphQL",
+    "contentFormat": "plain"
+  },
+  "report-open-named-query": {
+    "category": "Reports",
+    "description": "Open named query",
+    "contentFormat": "plain"
+  },
+  "report-create-from-query": {
+    "category": "Reports",
+    "description": "Create report from this query",
+    "contentFormat": "plain"
+  },
+  "report-browse-queries": {
+    "category": "Reports",
+    "description": "Browse named queries",
+    "contentFormat": "plain"
+  },
+  "report-add-parameter-filter": {
+    "category": "Reports",
+    "description": "Add filter: {{name}}",
+    "contentFormat": "plain"
+  },
+  "report-graphql-range": {
+    "category": "Reports",
+    "description": "Showing {{start}}–{{end}}",
+    "contentFormat": "plain"
+  },
+  "report-graphql-previous": {
+    "category": "Reports",
+    "description": "Previous",
+    "contentFormat": "plain"
+  },
+  "report-graphql-next": {
+    "category": "Reports",
+    "description": "Next",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-limit": {
+    "category": "Reports",
+    "description": "Exports up to {{count}} rows",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-wait": {
+    "category": "Reports",
+    "description": "Export in progress. Please wait while ReDBox checks each page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-complete": {
+    "category": "Reports",
+    "description": "Export complete. Your CSV download is ready.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-export-failed": {
+    "category": "Reports",
+    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-live-data": {
+    "category": "Reports",
+    "description": "Results are live. Changes during paging or export can affect which records appear; this is not a snapshot.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-query-changed": {
+    "category": "Reports",
+    "description": "The named query has changed. Review its fields and filters, then accept the current version and save the report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-review-version": {
+    "category": "Reports",
+    "description": "Use reviewed query version",
+    "contentFormat": "plain"
+  },
+  "report-graphql-paging-required": {
+    "category": "Reports",
+    "description": "This query needs a collection with page size, continuation cursor and next-page fields before it can run as a report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-output-field": {
+    "category": "Reports",
+    "description": "Result field",
+    "contentFormat": "plain"
+  },
+  "report-graphql-advanced": {
+    "category": "Reports",
+    "description": "Advanced: raw path",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_QUERY_CHANGED": {
+    "category": "Reports",
+    "description": "The named query has changed. Review its fields and filters, then accept the current version and save the report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_CURSOR_INVALID": {
+    "category": "Reports",
+    "description": "This page link is expired or no longer matches the report, filters or your access. Run the report again from the first page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_ROW_LIMIT": {
+    "category": "Reports",
+    "description": "The export exceeds its row limit. No partial CSV was downloaded. Narrow the query or ask an administrator to increase the limit.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_PAGE_LIMIT": {
+    "category": "Reports",
+    "description": "The export exceeds its page limit. No partial CSV was downloaded. Narrow the query and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_BYTE_LIMIT": {
+    "category": "Reports",
+    "description": "The export exceeds its file size limit. No partial CSV was downloaded. Choose fewer columns or narrow the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_EXPORT_TIMEOUT": {
+    "category": "Reports",
+    "description": "The export reached its time limit. No partial CSV was downloaded. Narrow the query and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_OFFSET_UNSUPPORTED": {
+    "category": "Reports",
+    "description": "This report uses Next and Previous to page through its results. Run it again from the first page.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_PAGE_INVALID": {
+    "category": "Reports",
+    "description": "Choose a valid page size and run the report again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_CURSOR_UNAVAILABLE": {
+    "category": "Reports",
+    "description": "Report paging is not configured. Ask an administrator to check the shared cursor secret.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-REPORT_LIMIT_CONFIG_INVALID": {
+    "category": "Reports",
+    "description": "Report export limits are not configured correctly. Ask an administrator to check them.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_CONTEXT_REQUIRED": {
+    "category": "Reports",
+    "description": "Sign in again before running or exporting this report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_REPORT_PAGING_REQUIRED": {
+    "category": "Reports",
+    "description": "This query needs a collection with page size, continuation cursor and next-page fields before it can run as a report.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_EXECUTION_FAILED": {
+    "category": "Reports",
+    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_RESULT_INVALID": {
+    "category": "Reports",
+    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_ROW_INVALID": {
+    "category": "Reports",
+    "description": "The report could not be completed. Try again, or ask an administrator to check the query.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-GRAPHQL_DISABLED": {
+    "category": "Reports",
+    "description": "GraphQL reports are currently unavailable. Ask an administrator to check the GraphQL configuration.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-UNAVAILABLE": {
+    "category": "Reports",
+    "description": "The report service is temporarily unavailable. Try again later.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-QUERY_TIMEOUT": {
+    "category": "Reports",
+    "description": "This report took too long. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-QUERY_LIMIT": {
+    "category": "Reports",
+    "description": "This report exceeds its data or work limit. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-COLLECTION_LIMIT": {
+    "category": "Reports",
+    "description": "This report could not finish a page within its work limit. Narrow its filters and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-INVALID_GRAPHQL_NAMED_QUERY": {
+    "category": "Reports",
+    "description": "The query no longer matches the available record fields. Ask an administrator to review it.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-INVALID_GRAPHQL_PARAMETER": {
+    "category": "Reports",
+    "description": "Check the report filter values and try again.",
+    "contentFormat": "plain"
+  },
+  "report-graphql-preview-help": {
+    "category": "Reports",
+    "description": "GraphQL report automatic first page preview guidance",
+    "contentFormat": "plain"
   }
 }

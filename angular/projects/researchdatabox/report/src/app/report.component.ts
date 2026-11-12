@@ -41,6 +41,83 @@ export class ReportComponent extends BaseComponent implements RecordSource {
   datePickerOpts: any;
   filterParams: any = {};
   private pageLoadPending = false;
+  private cursorHistory: Array<string | undefined> = [undefined];
+  cursorIndex = 0;
+  exporting = false;
+  exportMessage = '';
+  exportError = false;
+  get graphqlReport(): boolean {
+    return this.report?.querySource === 'graphql';
+  }
+  get rangeStart(): number {
+    return this.reportResult?.records.length ? (this.reportResult.pagination?.start ?? 0) + 1 : 0;
+  }
+  get rangeEnd(): number {
+    return (this.reportResult?.pagination?.start ?? 0) + (this.reportResult?.records.length ?? 0);
+  }
+  async cursorPage(direction: number): Promise<void> {
+    const index = this.cursorIndex + direction;
+    if (this.pageLoadPending || index < 0 || (direction > 0 && !this.reportResult.pagination?.hasNextPage)) return;
+    const token = direction > 0 ? (this.reportResult.pagination!.nextCursor ?? undefined) : this.cursorHistory[index];
+    const focused = document.activeElement;
+    const pagerButton =
+      focused instanceof HTMLButtonElement && focused.closest('.report-cursor-pager') ? focused : null;
+    await this.gotoPage(1, { ...this.appliedFilterParams }, { index, token });
+    if (pagerButton)
+      setTimeout(() => {
+        if (
+          (document.activeElement !== document.body && document.activeElement !== pagerButton) ||
+          !pagerButton.isConnected
+        )
+          return;
+        const target = !pagerButton.disabled
+          ? pagerButton
+          : this.elementRef.nativeElement.querySelector('.report-cursor-pager button:not(:disabled)');
+        target?.focus();
+      }, 0);
+  }
+  async downloadCsv(): Promise<void> {
+    const params = this.getParams();
+    if (params === null || this.exporting) return;
+    this.exporting = true;
+    this.exportError = false;
+    this.exportMessage = String(this.translationService.t('report-graphql-export-wait'));
+    try {
+      const blob = await this.reportService.downloadCSV(this.reportName, params);
+      if (blob.type.includes('json')) throw { error: blob };
+      const url = URL.createObjectURL(blob),
+        anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = this.reportName + '.csv';
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.exportMessage = String(this.translationService.t('report-graphql-export-complete'));
+    } catch (error: unknown) {
+      let payload = (error as { error?: unknown }).error;
+      if (payload instanceof Blob) {
+        try {
+          payload = JSON.parse(await payload.text());
+        } catch {
+          payload = undefined;
+        }
+      }
+      const response = payload as
+        | { data?: { message?: string }; message?: string; errors?: Array<{ code?: string }> }
+        | undefined;
+      const code = response?.errors?.[0]?.code ?? response?.data?.message ?? response?.message;
+      const key =
+        code && /^(REPORT_|GRAPHQL_|QUERY_|INVALID_CURSOR|COLLECTION_)/.test(code)
+          ? 'report-graphql-error-' + code
+          : 'report-request-failed';
+      const message = String(this.translationService.t(key));
+      this.exportMessage =
+        message === key ? String(this.translationService.t('report-graphql-export-failed')) : message;
+      this.exportError = true;
+    } finally {
+      this.exporting = false;
+    }
+  }
+
   private pendingFilter: { params: any } | undefined;
   initTracker: any = { reportLoaded: false, resultsReturned: false };
   report: ReportDto = null as any;
@@ -67,7 +144,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(HandlebarsTemplateService) private handlebarsTemplateService: HandlebarsTemplateService,
-    @Inject(ElementRef) elementRef: ElementRef
+    @Inject(ElementRef) private readonly elementRef: ElementRef
   ) {
     super();
     this.initDependencies = [this.translationService, this.reportService, this.handlebarsTemplateService];
@@ -79,7 +156,7 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     return this.reportResult;
   }
 
-  async gotoPage(pageNum: number, params = this.getParams()): Promise<RecordPageDto> {
+  async gotoPage(pageNum: number, params = this.getParams(), cursorRequest?: {index:number;token?:string}): Promise<RecordPageDto> {
     if (params === null || this.pageLoadPending) {
       return this.reportResult;
     }
@@ -87,9 +164,16 @@ export class ReportComponent extends BaseComponent implements RecordSource {
     this.initTracker.resultsReturned = false;
     this.loadError = '';
     try {
-      const result = await this.reportService.getReportResult(this.reportName, pageNum, this.withSort(params), this.recordsPerPage);
+      const result = this.graphqlReport
+        ? await this.reportService.getReportCursorPage(this.reportName,params,25,cursorRequest?.token)
+        : await this.reportService.getReportResult(this.reportName, pageNum, this.withSort(params), this.recordsPerPage);
       if (!this.pendingFilter) {
         this.reportResult = result;
+        if (this.graphqlReport) {
+          this.cursorIndex = cursorRequest?.index ?? 0;
+          if (!cursorRequest) this.cursorHistory = [undefined];
+          this.cursorHistory[this.cursorIndex] = cursorRequest?.token;
+        }
         this.appliedFilterParams = { ...params };
       }
     } catch (error) {
@@ -97,7 +181,10 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       if (!this.isReady) {
         throw error;
       }
-      if (!this.pendingFilter) this.showLoadError(error, () => this.gotoPage(pageNum, params));
+      if (!this.pendingFilter) {
+        this.showLoadError(error, () => this.gotoPage(pageNum, params, cursorRequest));
+
+      }
     } finally {
       this.pageLoadPending = false;
       this.initTracker.resultsReturned = true;
@@ -109,6 +196,16 @@ export class ReportComponent extends BaseComponent implements RecordSource {
       return this.gotoPage(1, pending.params);
     }
     return this.reportResult;
+  }
+
+  protected override showLoadError(error: unknown, retry: () => Promise<unknown>): void {
+    super.showLoadError(error, retry);
+    const response = error as { error?: { message?: string; data?: { message?: string }; errors?: Array<{code?: string}> } };
+    const code = response.error?.errors?.[0]?.code ?? response.error?.data?.message ?? response.error?.message;
+    if (!code) return;
+    const key = 'report-graphql-error-' + code;
+    const text = String(this.translationService.t(key));
+    if (text !== key) this.loadError = text;
   }
 
   protected async initComponent(): Promise<void> {

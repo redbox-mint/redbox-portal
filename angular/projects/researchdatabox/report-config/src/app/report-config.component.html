@@ -181,7 +181,7 @@
         </div>
         <div class="card-body">
           <div class="rb-ws-grid" [class.rb-ws-with-help]="helpOpen">
-            <main class="rb-ws-main report-editor">
+            <div class="rb-ws-main report-editor">
               <section class="card rb-ws-pane" aria-labelledby="report-basics-title">
                 <div class="card-header">
                   <h2 id="report-basics-title" class="rb-ws-pane-title">
@@ -249,9 +249,35 @@
                       ></report-diagnostics>
                     </div>
                   </div>
+                  @if (selectedQueryChoice; as query) {
+                    <div class="report-query-source rb-admin-filter-bar">
+                      <span class="badge" [class.rb-admin-badge-primary]="query.source === 'graphql'" [class.rb-admin-badge-success]="query.source !== 'graphql'">{{ querySourceLabel(query) }}</span>
+                      <a class="btn btn-sm btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/named-query#query=' + query.name">{{ 'report-open-named-query' | i18next }}</a>
+                      @if (query.sourceSavedQuery?.name; as name) {
+                        <span>{{ 'nq-ux-built-from' | i18next }} {{ name }}</span>
+                        <a class="btn btn-sm btn-outline-secondary" [href]="brandingAndPortalUrl + '/admin/data-grids#grid=' + query.sourceSavedQuery?.id">{{ 'nq-ux-open-explorer' | i18next }}</a>
+                      }
+                    </div>
+                  }
+                  @if (queryVersionChanged) {
+                    <div class="alert alert-warning" role="alert">{{ 'report-graphql-query-changed' | i18next }}
+                      <button type="button" class="btn btn-outline-primary" (click)="reviewQueryVersion()">{{ 'report-graphql-review-version' | i18next }}</button>
+                    </div>
+                  }
+                  <details class="rb-ws-disclosure"><summary>{{ 'report-browse-queries' | i18next }}</summary>
+                    <div class="table-responsive"><table class="table table-hover"><caption class="visually-hidden">{{ 'report-browse-queries' | i18next }}</caption>
+                      <thead><tr><th scope="col">{{ 'report-field-named-query' | i18next }}</th><th scope="col">{{ 'report-source' | i18next }}</th><th scope="col">{{ 'nq-ux-built-from' | i18next }}</th></tr></thead>
+                      <tbody>@for (query of namedQueries; track query.name) {<tr><td><button class="btn btn-link" type="button" (click)="selectQuery(query.name)">{{ query.name }}</button></td><td><span class="badge" [class.rb-admin-badge-primary]="query.source === 'graphql'" [class.rb-admin-badge-success]="query.source !== 'graphql'">{{ querySourceLabel(query) }}</span></td><td>{{ query.sourceSavedQuery?.name }}</td></tr>}</tbody>
+                    </table></div>
+                  </details>
                   <p id="report-query-change-help" class="form-text mb-0">{{ 'report-query-change-help' | i18next }}</p>
                 </div>
               </section>
+              @if (description?.source === 'graphql' && parameters.length) {
+                <section class="card rb-admin-form-section"><div class="card-header"><h2>{{ 'nq-section-parameters' | i18next }}</h2></div><div class="card-body">
+                  @for (parameter of parameters; track parameter.key) {<button type="button" class="btn btn-outline-primary me-2" (click)="addParameterFilter(parameter)">{{ 'report-add-parameter-filter' | i18next: { name: parameterLabel(parameter) } }}</button>}
+                </div></section>
+              }
               <datalist id="report-parameters">
                 @for (p of parameters; track p.key) {
                   <option [value]="p.key">{{ p.type }} — {{ p.path }}</option>
@@ -316,6 +342,9 @@
                             (filter.type === 'date-range' ? 'report-filter-range-key' : 'report-filter-parameter')
                               | i18next
                           }}</label>
+                          @if (description?.source === 'graphql') {
+                            <select class="form-select" [id]="'filter-param-' + i" [(ngModel)]="filter.paramName" (ngModelChange)="draftChanged()"><option value="">{{ 'nq-section-none' | i18next }}</option>@for (parameter of parameters; track parameter.key) {<option [value]="parameter.key">{{ parameterLabel(parameter) }}</option>}</select>
+                          } @else {
                           <input
                             [id]="'filter-param-' + i"
                             class="form-control"
@@ -323,6 +352,7 @@
                             (ngModelChange)="draftChanged()"
                             [attr.list]="filter.type === 'text' ? 'report-parameters' : null"
                           />
+                          }
                           <report-diagnostics
                             [diagnostics]="diagnostics"
                             [location]="'filter.' + i + '.paramName'"
@@ -466,6 +496,14 @@
                           ></report-diagnostics>
                         </div>
                         <div>
+                          @if (description?.source === 'graphql') {
+                            <label class="form-label" [for]="'column-property-' + i">{{ 'report-graphql-output-field' | i18next }}</label>
+                            <select class="form-select" [id]="'column-property-' + i" [(ngModel)]="column.property" (ngModelChange)="draftChanged()">
+                              <option value="">{{ 'report-output-fields' | i18next }}</option>
+                              @for (field of fields; track field.path) { <option [value]="field.path">{{ field.title }}</option> }
+                            </select>
+                            <details class="rb-ws-disclosure"><summary>{{ 'report-graphql-advanced' | i18next }}</summary><code>{{ column.property }}</code></details>
+                          } @else {
                           <label class="form-label" [for]="'column-property-' + i">{{
                             'report-column-property' | i18next
                           }}</label>
@@ -481,6 +519,7 @@
                             mode="path"
                             [source]="outputSource"
                           ></rb-field-autocomplete>
+                          }
                           <report-diagnostics
                             [diagnostics]="diagnostics"
                             [location]="'columns.' + i + '.property'"
@@ -564,7 +603,7 @@
                   </button>
                 </div>
               </section>
-            </main>
+            </div>
 
             <aside
               id="report-help-content"
@@ -668,7 +707,7 @@
                           <span class="report-output-text">
                             <span class="report-output-title">{{ field.title || field.path }}</span>
                             <span class="report-output-meta">
-                              <code>{{ field.path }}</code>
+                              <details><summary>{{ 'report-graphql-advanced' | i18next }}</summary><code>{{ field.path }}</code></details>
                               <span class="report-type">{{ field.type }}</span>
                               @if (field.isArray) {
                                 <span class="report-type">{{ 'report-array' | i18next }}</span>
@@ -730,7 +769,7 @@
                         <strong class="rb-ws-diagnostic-label">{{
                           (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next
                         }}</strong>
-                        <code>{{ d.field }}</code> <span>{{ d.reason }}</span>
+                        <code>{{ d.field }}</code> <span>{{ d.reason | i18next }}</span>
                         @if (d.suggestion) {
                           <span>{{ 'report-suggestion' | i18next }} <code>{{ d.suggestion }}</code></span>
                         }
@@ -746,7 +785,7 @@
 
               <div class="rb-ws-section">
                 <h3 class="rb-ws-section-title">{{ 'report-preview' | i18next }}</h3>
-                <p class="rb-ws-lede">{{ 'report-preview-real-data' | i18next }}</p>
+                <p class="rb-ws-lede">{{ (description?.source === 'graphql' ? 'report-graphql-preview-help' : 'report-preview-real-data') | i18next }}</p>
                 @if (report.filter.length) {
                   <fieldset class="report-preview-filters">
                     <legend class="rb-ws-label">{{ 'report-preview-filters' | i18next }}</legend>
@@ -802,7 +841,7 @@
                 }
                 @if (previewResult; as result) {
                   <p class="report-preview-count" role="status">
-                    {{ 'report-preview-result' | i18next: { total: result.total } }}
+                    @if (result.total === null) { {{ 'report-graphql-range' | i18next: { start: result.records.length ? 1 : 0, end: result.records.length } }} } @else { {{ 'report-preview-result' | i18next: { total: result.total } }} }
                   </p>
                   @if (result.valid === false || result.success === false) {
                     <p class="alert alert-warning">{{ 'report-preview-refused' | i18next }}</p>

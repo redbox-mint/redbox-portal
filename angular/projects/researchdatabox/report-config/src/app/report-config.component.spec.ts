@@ -1071,4 +1071,30 @@ describe('Report configuration workspace', () => {
     expect(api.create).toHaveBeenCalledTimes(1);
     expect(api.update).toHaveBeenCalledTimes(1);
   });
+  it('pins a newly selected GraphQL query and previews its first page without saving', async () => {
+    await edit();
+    api.describeQuery.and.resolveTo({...description(),source:'graphql',queryVersion:'version-one'});
+    component.selectQuery('other');await settle();render();
+    expect(component.selectedReport?.databaseQuery?.queryVersion).toBe('version-one');
+    expect(api.preview).toHaveBeenCalled();expect(api.create).not.toHaveBeenCalled();expect(api.update).not.toHaveBeenCalled();
+    expect(component.previewResult).not.toBeNull();
+  });
+  it('requires explicit review when the named query version changes', async () => {
+    const saved=report();saved.databaseQuery!.queryVersion='version-one';
+    api.describeQuery.and.resolveTo({...description(),source:'graphql',queryVersion:'version-two'});
+    await edit(saved);
+    expect(component.queryVersionChanged).toBeTrue();expect(component.selectedReport?.databaseQuery?.queryVersion).toBe('version-one');
+    expect(api.preview).not.toHaveBeenCalled();
+    component.reviewQueryVersion();await settle();expect(component.queryVersionChanged).toBeFalse();expect(api.preview).toHaveBeenCalled();
+  });
+  it('chooses GraphQL columns and filters with labels while preserving paths and caller parameter keys', async () => {
+    await edit();component.description={...description(),source:'graphql',queryVersion:'one'};
+    component.selectedReport!.columns=[];component.toggleOutput('metadata.projectTitle',true);component.addSelectedColumns();
+    component.addParameterFilter(component.parameters[0]);await settle();render();
+    expect(component.selectedReport!.columns[0]).toEqual({label:'Project title',property:'metadata.projectTitle'});
+    expect(query('select[id="column-property-0"]')).not.toBeNull();
+    expect(component.selectedReport!.filter.filter(filter=>filter.paramName==='titleSearch').length).toBe(1);
+    expect(component.parameterLabel(component.parameters[0])).toBe('Title Search');
+  });
+
 });

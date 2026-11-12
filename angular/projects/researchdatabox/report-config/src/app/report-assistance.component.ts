@@ -36,7 +36,7 @@ import {
       <strong class="rb-ws-diagnostic-label">{{
         (d.severity === 'error' ? 'report-blocking' : 'report-advisory') | i18next
       }}</strong>
-      <span>{{ d.reason }}</span>
+      <span>{{ d.reason | i18next }}</span>
       @if (d.line) {
         <span>({{ d.line }}:{{ d.column }})</span>
       }

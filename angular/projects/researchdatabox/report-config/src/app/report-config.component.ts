@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, Inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, Injector } from '@angular/core';
 import {
   BaseComponent,
   LatestRequest,
@@ -17,7 +17,7 @@ import {
   type ReportNamedQueryDescription,
   lookupPath,
 } from '@researchdatabox/sails-ng-common';
-import { ReportConfigService } from './report-config.service';
+import { ReportConfigService, type ReportQueryChoice } from './report-config.service';
 
 @Component({
   selector: 'report-config',
@@ -31,7 +31,9 @@ export class ReportConfigComponent extends BaseComponent {
   selectedReport: ReportConfigDto | null = null;
   previewResult: ReportConfigPreviewDto | null = null;
   previewFilterValues: Record<string, string> = {};
-  namedQueries: { name: string }[] = [];
+  namedQueries: ReportQueryChoice[] = [];
+  private bindSelectedQuery = false;
+  private parameterLabels: Record<string,string> = {};
   queryChoicesUnavailable = false;
   description: ReportNamedQueryDescription | null = null;
   diagnostics: EditorDiagnostic[] = [];
@@ -111,6 +113,7 @@ export class ReportConfigComponent extends BaseComponent {
 
   constructor(
     private readonly elementRef: ElementRef,
+    private readonly reportInjector: Injector,
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(ReportConfigService) private reportConfigService: ReportConfigService
@@ -125,6 +128,14 @@ export class ReportConfigComponent extends BaseComponent {
     this.brandingAndPortalUrl = this.reportConfigService.brandingAndPortalUrl;
     await this.loadReports();
     await this.loadNamedQueries();
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const query = hash.get('create-from');
+    if (query && this.isAdmin && this.namedQueries.some(item => item.name === query)) {
+      this.createReport();this.selectQuery(query);
+    }
+    const report = hash.get('report');
+    if (report) { const saved = this.reports.find(item => item.name === report);if (saved) this.editReport(saved); }
+
   }
 
   override ngOnDestroy(): void {
@@ -220,6 +231,7 @@ export class ReportConfigComponent extends BaseComponent {
     this.itemRequests.next();
     this.saveValidationRequests.invalidate();
     this.invalidateAssistance();
+    this.bindSelectedQuery = false;
     this.selectedReport = report;
     this.isNewReport = isNew;
     this.isSaving = false;
@@ -269,6 +281,7 @@ export class ReportConfigComponent extends BaseComponent {
     this.cancelValidation();
     this.previewChanged();
     this.description = null;
+    this.parameterLabels = {};
     this.describing = false;
     this.diagnostics = [];
     this.validationBlocking = false;
@@ -298,7 +311,8 @@ export class ReportConfigComponent extends BaseComponent {
   }
   selectQuery(name: string): void {
     if (!this.editable || !this.selectedReport) return;
-    this.selectedReport.databaseQuery = { ...this.selectedReport.databaseQuery, queryName: name };
+    this.selectedReport.databaseQuery = { queryName: name };
+    this.bindSelectedQuery = true;
     this.queryChanged();
   }
   async refreshAssistance(): Promise<void> {
@@ -313,6 +327,17 @@ export class ReportConfigComponent extends BaseComponent {
       const description = await this.reportConfigService.describeQuery(name);
       if (this.descriptionRequests.isCurrent(token)) {
         this.description = description;
+        if (description.source === 'graphql') {
+          if (this.bindSelectedQuery || (this.isNewReport && !this.selectedReport!.databaseQuery?.queryVersion)) {
+            this.selectedReport!.databaseQuery!.queryVersion = description.queryVersion;
+            this.bindSelectedQuery = false;
+          }
+          await this.friendlyGraphqlFields(description);
+          if (!this.descriptionRequests.isCurrent(token)) return;
+          void this.validateDraft();
+          if (!this.queryVersionChanged) void this.previewReport();
+        }
+
         this.selectedOutputs = new Set(
           [...this.selectedOutputs].filter(path => description.result.fields.some(f => f.path === path))
         );
@@ -411,7 +436,7 @@ export class ReportConfigComponent extends BaseComponent {
     this.errorMessage = '';
     this.previewResult = null;
     try {
-      const result = await this.reportConfigService.preview(this.clone(this.selectedReport), {
+      const result = await this.reportConfigService.preview({ ...this.clone(this.selectedReport), ...(this.description?.source === 'graphql' ? { name: this.selectedReport.name || 'preview', title: this.selectedReport.title || 'preview' } : {}) }, {
         ...this.previewFilterValues,
       });
       if (!this.previewRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return;
@@ -438,6 +463,7 @@ export class ReportConfigComponent extends BaseComponent {
     }
     this.selectedOutputs = new Set();
     this.draftChanged();
+    if (this.description?.source === 'graphql') void this.previewReport();
   }
   addColumn(): void {
     if (this.editable) {
@@ -512,8 +538,126 @@ export class ReportConfigComponent extends BaseComponent {
   get saveBlocked(): boolean {
     return this.validationBlocking;
   }
+  get selectedQueryChoice(): ReportQueryChoice | undefined {
+    return this.namedQueries.find(item => item.name === this.selectedReport?.databaseQuery?.queryName);
+  }
+  get queryVersionChanged(): boolean {
+    return (
+      this.description?.source === 'graphql' &&
+      !!this.description.queryVersion &&
+      this.selectedReport?.databaseQuery?.queryVersion !== this.description.queryVersion
+    );
+  }
+  reviewQueryVersion(): void {
+    if (!this.selectedReport?.databaseQuery || !this.description?.queryVersion) return;
+    this.selectedReport.databaseQuery.queryVersion = this.description.queryVersion;
+    this.draftChanged();
+    void this.previewReport();
+  }
+  querySourceLabel(choice?: ReportQueryChoice): string {
+    return this.t(choice?.source === 'graphql' ? 'report-graphql-source' : 'report-source-database');
+  }
+  parameterLabel(parameter: NamedQueryParameterDescription): string {
+    return (
+      this.parameterLabels[parameter.path] ||
+      parameter.sourceField?.title ||
+      parameter.key
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/^./, c => c.toUpperCase())
+    );
+  }
+  addParameterFilter(parameter: NamedQueryParameterDescription): void {
+    if (
+      !this.editable ||
+      !this.selectedReport ||
+      this.selectedReport.filter.some(filter => filter.paramName === parameter.key)
+    )
+      return;
+    this.selectedReport.filter.push({
+      type: 'text',
+      paramName: parameter.key,
+      message: this.parameterLabel(parameter),
+      property: '',
+    });
+    this.draftChanged();
+  }
+  private async friendlyGraphqlFields(description: ReportNamedQueryDescription): Promise<void> {
+    const choice = this.selectedQueryChoice;
+    if (!choice?.graphql) return;
+    // Reuse the explorer's caller-scoped catalogue and named editor's alias/projection logic.
+    try {
+      const presentation = await import('../../../named-query-editor/src/app/graphql-presentation');
+      const draft = { source: 'graphql' as const, graphql: choice.graphql };
+      const type = presentation.recordType(draft);
+      if (!type) return;
+      const { RecordGridService } = await import('../../../data-grids/src/app/record-grid.service');
+      const service = this.reportInjector.get(RecordGridService);
+      await service.waitForInit();
+      const saved = choice.sourceSavedQuery?.id ? await service.read(choice.sourceSavedQuery.id) : null;
+      const scope = {
+        id: type,
+        label: type,
+        recordType: type,
+        fields: [],
+        ...(saved && saved.mode !== 'graphql' && saved.workflowStage ? { workflowStage: saved.workflowStage } : {}),
+      };
+      const [catalogue] = await service.fields(scope);
+      const ids = [
+        ...new Set([
+          ...(saved && saved.mode !== 'graphql'
+            ? saved.columns
+            : catalogue.fields
+                .filter(field => field.selectable && !field.repeatingSubfield)
+                .slice(0, 30)
+                .map(field => field.id)),
+          ...catalogue.fields
+            .filter(field => field.selectable && field.id.startsWith('record:'))
+            .map(field => field.id),
+        ]),
+      ].slice(0, 50);
+      const fields = await service.selections(scope, ids);
+      const { visualPublicationProjection } = await import('../../../named-query-editor/src/app/publication-helpers');
+      const known = visualPublicationProjection(choice.graphql.document, fields).fields;
+      const labels = Object.fromEntries(catalogue.fields.map(field => [field.id, field.label]));
+      const parameterLabels = presentation.conditionLabels(draft, labels, key =>
+        String(this.translationService.t('data-grids-' + key))
+      );
+      if (this.description === description) this.parameterLabels = parameterLabels;
+      const selected = presentation.selectedResultFields(draft, [
+        ...known,
+        ...fields.flatMap(field =>
+          (field.selections ?? []).map(selection => ({
+            label: field.label,
+            path: selection.responsePath,
+            type: field.type,
+          }))
+        ),
+      ]);
+      for (const field of selected)
+        for (const [target, path] of Object.entries(choice.graphql.mappings ?? {}) as Array<[string, string[]]>) {
+          if (!path.every((part, index) => field.path[index] === part)) continue;
+          const property = lookupPath(
+            [target, ...field.path.slice(path.length)]
+              .map((part, index) =>
+                /^[A-Za-z_][A-Za-z0-9_]*$/.test(part) ? (index ? '.' : '') + part : '[' + JSON.stringify(part) + ']'
+              )
+              .join('')
+          );
+          const result = description.result.fields.find(item => lookupPath(item.path) === property);
+          if (result) result.title = field.label;
+        }
+    } catch {
+      /* Schema guidance is advisory; execution and server validation remain authoritative. */
+    }
+  }
+
   private getErrorMessage(error: unknown): string {
-    const response = error as { error?: { message?: string } };
-    return response.error?.message ?? this.t('report-request-failed');
+    const response = error as { error?: { message?: string; data?: {message?: string}; errors?: Array<{code?: string}> } };
+    const message = response.error?.errors?.[0]?.code ?? response.error?.data?.message ?? response.error?.message;
+    const key = 'report-graphql-error-' + message;
+    const translated = this.t(key);
+    if (message && /^(REPORT_|GRAPHQL_|QUERY_|INVALID_GRAPHQL_|COLLECTION_|UNAVAILABLE$)/.test(message)) return translated !== key ? translated : this.t('report-request-failed');
+    return message ?? this.t('report-request-failed');
   }
 }
