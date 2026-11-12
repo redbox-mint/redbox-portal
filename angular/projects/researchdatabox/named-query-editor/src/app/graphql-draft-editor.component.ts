@@ -31,12 +31,15 @@ import { GraphqlJsonInputComponent } from './graphql-json-input.component';
 export class GraphqlDraftEditorComponent implements OnChanges {
   @Input() draft!: GraphqlNamedQueryDefinition;
   @Input() isNew = false;
+  @Input() advanced = false;
   @Input() candidateValues: Record<string, NamedQueryJson> = {};
   @Input() diagnostics: EditorDiagnostic[] = [];
   @Input() description: GraphqlNamedQueryDescription | null = null;
   @Output() draftChange = new EventEmitter<void>();
   @Output() validityChange = new EventEmitter<boolean>();
-  readonly tabs = ['basics', 'document', 'variables', 'mappings'];
+  get tabs() {
+    return this.advanced ? ['document', 'variables', 'mappings'] : ['basics', 'document', 'variables', 'mappings'];
+  }
   tab = 'basics';
   readonly mappingTargets: Array<keyof GraphqlNamedQueryMappings> = [
     'oid',
@@ -50,7 +53,7 @@ export class GraphqlDraftEditorComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['draft']) {
       this.invalid.clear();
-      this.tab = 'basics';
+      this.tab = this.advanced ? 'document' : 'basics';
     }
   }
   variableKey(_index: number, variable: { name: string }): string {
@@ -124,7 +127,10 @@ export class GraphqlDraftEditorComponent implements OnChanges {
       ownership === 'consumer'
         ? { ownership, parameter: name, inputType: variable?.inputType ?? '', required: variable?.required ?? false }
         : ownership === 'fixed'
-          ? { ownership, value: Object.hasOwn(this.candidateValues, name) ? structuredClone(this.candidateValues[name]) : null }
+          ? {
+              ownership,
+              value: Object.hasOwn(this.candidateValues, name) ? structuredClone(this.candidateValues[name]) : null,
+            }
           : { ownership: 'omitted' };
     this.operation.variables = { ...this.operation.variables, [name]: binding };
     this.clearValidity(name);

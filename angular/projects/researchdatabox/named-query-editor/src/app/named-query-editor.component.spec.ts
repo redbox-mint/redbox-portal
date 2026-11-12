@@ -1,3 +1,10 @@
+import { SavedQueryChooserComponent } from './saved-query-chooser.component';
+import {
+  NamedQueryBasicsSectionComponent,
+  NamedQueryParametersSectionComponent,
+  NamedQueryLookupSectionComponent,
+  NamedQueryPreviewSectionComponent,
+} from '@researchdatabox/portal-ng-common';
 import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
 import { GraphqlSchemaComponent } from './graphql-schema.component';
 import { GraphqlJsonInputComponent } from './graphql-json-input.component';
@@ -36,6 +43,7 @@ class I18NextPipeStub implements PipeTransform {
 }
 
 class NamedQueryApiServiceStub {
+  async graphqlRead() { return { data: { records: { nodes: [] } } }; }
   async graphqlSchema() { return { sdl: 'type Query { visible: String }' }; }
   async describe() { return { source: 'graphql', valid: true, diagnostics: [], parameters: [], operationVariables: [], result: { recordType: '', stage: '', precision: 'none', completeness: 'unavailable', fields: [] } }; }
 
@@ -114,7 +122,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub,
       ],
-      imports: [GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
+      imports: [SavedQueryChooserComponent, NamedQueryBasicsSectionComponent, NamedQueryParametersSectionComponent, NamedQueryLookupSectionComponent, NamedQueryPreviewSectionComponent, GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },
@@ -165,25 +173,47 @@ describe('NamedQueryEditorComponent', () => {
     ['mapping', 'named-query-graphql-mapping-title'],
     ['lookup', 'named-query-graphql-collectionPath'],
   ]) it(`keeps invalid ${variable} path text blocking Save after a same-named variable ownership change`, async () => {
-    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
-    fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.draft.name = 'collisions';
-    component.changeSource('graphql'); Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql);
-    component.activeGraphqlBuffer.graphql.document = `query Q($${variable}: String) { records(recordType: "rdmp") { nodes { oid } } }`;
-    component.activeGraphqlBuffer.graphql.variables = {}; fixture.detectChanges();
-    const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
-    editor.classify(variable, 'consumer'); editor.toggleLookup(true); editor.tab = 'mappings'; fixture.detectChanges(); await fixture.whenStable();
-    const json = fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
-      .map(node => node.componentInstance as GraphqlJsonInputComponent).find(control => control.label === label)!;
-    const textarea = fixture.nativeElement.querySelector('#' + json.id) as HTMLTextAreaElement;
-    textarea.value = '["unfinished"'; textarea.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
-    expect(json.invalid).toBeTrue(); expect(component.pendingInput).toBeTrue();
-    editor.tab = 'variables'; fixture.detectChanges(); await fixture.whenStable();
-    const ownership = fixture.nativeElement.querySelector('#nq-owner-' + variable) as HTMLSelectElement;
-    ownership.value = 'omitted'; ownership.dispatchEvent(new Event('change', { bubbles: true })); fixture.detectChanges();
-    expect(json.invalid).toBeTrue(); expect(textarea.value).toBe('["unfinished"');
-    expect(component.pendingInput).toBeTrue(); expect(component.canSave).toBeFalse();
-    expect((fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement).disabled).toBeTrue();
-  });
+      const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      await component.waitForInit();
+      component.newQuery();
+      component.draft.name = 'collisions';
+      component.changeSource('graphql');
+      Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql);
+      component.activeGraphqlBuffer.graphql.document = `query Q($${variable}: String) { records(recordType: "rdmp") { nodes { oid } } }`;
+      component.activeGraphqlBuffer.graphql.variables = {};
+      fixture.detectChanges();
+      const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent))
+        .componentInstance as GraphqlDraftEditorComponent;
+      editor.classify(variable, 'consumer');
+      editor.toggleLookup(true);
+      editor.tab = 'mappings';
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const json = fixture.debugElement
+        .queryAll(By.directive(GraphqlJsonInputComponent))
+        .map(node => node.componentInstance as GraphqlJsonInputComponent)
+        .find(control => control.label === label)!;
+      const textarea = fixture.nativeElement.querySelector('#' + json.id) as HTMLTextAreaElement;
+      textarea.value = '["unfinished"';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      expect(json.invalid).toBeTrue();
+      expect(component.pendingInput).toBeTrue();
+      editor.tab = 'variables';
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const ownership = fixture.nativeElement.querySelector('#nq-owner-' + variable) as HTMLSelectElement;
+      ownership.value = 'omitted';
+      ownership.dispatchEvent(new Event('change', { bubbles: true }));
+      fixture.detectChanges();
+      expect(json.invalid).toBeTrue();
+      expect(textarea.value).toBe('["unfinished"');
+      expect(component.pendingInput).toBeTrue();
+      expect(component.canSave).toBeFalse();
+      expect((fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement).disabled).toBeTrue();
+    });
   it('retains pending database JSON while editing the independent GraphQL buffer', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
@@ -239,31 +269,43 @@ describe('NamedQueryEditorComponent', () => {
   for (const phase of ['validation', 'review'] as const) {
     for (const change of ['draft', 'pendingInput'] as const) {
       it(`explains ${change} changes during deferred ${phase} and restores a focus cue`, async () => {
-        const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+        const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+        const component = fixture.componentInstance;
         const api = TestBed.inject(NamedQueryApiService);
-        fixture.detectChanges(); await component.waitForInit(); await component.openQuery('existing'); fixture.detectChanges();
+        fixture.detectChanges();
+        await component.waitForInit();
+        await component.openQuery('existing');
+        fixture.detectChanges();
         const validation = deferred<Awaited<ReturnType<NamedQueryApiService['validate']>>>();
         const review = deferred<Awaited<ReturnType<NamedQueryApiService['reviewUpdate']>>>();
         spyOn(api, 'validate').and.returnValue(validation.promise);
         const reviewSpy = spyOn(api, 'reviewUpdate').and.returnValue(review.promise);
         const update = spyOn(api, 'update');
         const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
-        save.focus(); const saving = component.save(); fixture.detectChanges();
+        save.focus();
+        const saving = component.save();
+        fixture.detectChanges();
         if (phase === 'review') {
           validation.resolve({ valid: true, diagnostics: [] });
           await new Promise(resolve => setTimeout(resolve, 0));
           expect(reviewSpy).toHaveBeenCalledTimes(1);
         }
-        if (change === 'draft') { component.draft.description = 'Edited while awaiting response'; component.draftChanged(); }
-        else component.pendingInput = true;
+        if (change === 'draft') {
+          component.draft.description = 'Edited while awaiting response';
+          component.draftChanged();
+        } else component.pendingInput = true;
         fixture.detectChanges();
         if (phase === 'validation') validation.resolve({ valid: true, diagnostics: [] });
         else review.resolve({ required: false, changes: [], usedBy: [], usageComplete: false });
-        await saving; fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
+        await saving;
+        fixture.detectChanges();
+        await new Promise(resolve => setTimeout(resolve, 0));
         expect(component.error).toContain('The draft changed');
         expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('The draft changed');
-        expect(update).not.toHaveBeenCalled(); expect(component.pendingReview).toBeNull();
-        if (change === 'pendingInput') expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
+        expect(update).not.toHaveBeenCalled();
+        expect(component.pendingReview).toBeNull();
+        if (change === 'pendingInput')
+          expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
         else expect(document.activeElement).toBe(save);
         if (phase === 'validation') expect(reviewSpy).not.toHaveBeenCalled();
       });
@@ -295,11 +337,16 @@ describe('NamedQueryEditorComponent', () => {
   });
   for (const phase of ['create', 'update', 'validation'] as const) {
     it(`restores focus after deferred ordinary ${phase} failure with controls rendered`, async () => {
-      const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+      const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+      const component = fixture.componentInstance;
       const api = TestBed.inject(NamedQueryApiService);
-      fixture.detectChanges(); await component.waitForInit();
-      if (phase === 'create') { component.newQuery(); component.draft.name = 'new-query'; component.draft.collectionName = 'record'; }
-      else await component.openQuery('existing');
+      fixture.detectChanges();
+      await component.waitForInit();
+      if (phase === 'create') {
+        component.newQuery();
+        component.draft.name = 'new-query';
+        component.draft.collectionName = 'record';
+      } else await component.openQuery('existing');
       fixture.detectChanges();
       const validation = deferred<Awaited<ReturnType<NamedQueryApiService['validate']>>>();
       spyOn(api, 'validate').and.returnValue(validation.promise);
@@ -307,21 +354,48 @@ describe('NamedQueryEditorComponent', () => {
       const create = spyOn(api, 'create').and.returnValue(write.promise);
       const update = spyOn(api, 'update').and.returnValue(write.promise);
       const save = fixture.nativeElement.querySelector('#named-query-save') as HTMLButtonElement;
-      save.focus(); const saving = component.save(); fixture.detectChanges();
-      expect(save.disabled).toBeTrue(); save.blur();
-      await new Promise(yes => setTimeout(yes, 0)); expect(document.activeElement).not.toBe(save);
-      validation.resolve({ valid: phase !== 'validation', diagnostics: phase === 'validation' ? [{ code: 'INVALID', severity: 'error', field: 'mongoQuery', reason: 'Invalid current definition', line: 0, column: 0 }] : [] });
+      save.focus();
+      const saving = component.save();
+      fixture.detectChanges();
+      expect(save.disabled).toBeTrue();
+      save.blur();
+      await new Promise(yes => setTimeout(yes, 0));
+      expect(document.activeElement).not.toBe(save);
+      validation.resolve({
+        valid: phase !== 'validation',
+        diagnostics:
+          phase === 'validation'
+            ? [
+                {
+                  code: 'INVALID',
+                  severity: 'error',
+                  field: 'mongoQuery',
+                  reason: 'Invalid current definition',
+                  line: 0,
+                  column: 0,
+                },
+              ]
+            : [],
+      });
       if (phase !== 'validation') {
         await new Promise(yes => setTimeout(yes, 0));
         expect(phase === 'create' ? create : update).toHaveBeenCalledTimes(1);
-        expect(document.activeElement).not.toBe(save); write.reject(new Error('Rejected current definition'));
+        expect(document.activeElement).not.toBe(save);
+        write.reject(new Error('Rejected current definition'));
       }
-      await saving; fixture.detectChanges(); await new Promise(yes => setTimeout(yes, 0));
+      await saving;
+      fixture.detectChanges();
+      await new Promise(yes => setTimeout(yes, 0));
       expect(component.isEditing).toBeTrue();
       if (phase === 'validation') {
-        expect(save.disabled).toBeTrue(); expect(create).not.toHaveBeenCalled(); expect(update).not.toHaveBeenCalled();
+        expect(save.disabled).toBeTrue();
+        expect(create).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
         expect(document.activeElement).toBe(fixture.nativeElement.querySelector('#named-query-workspace-title'));
-      } else { expect(save.disabled).toBeFalse(); expect(document.activeElement).toBe(save); }
+      } else {
+        expect(save.disabled).toBeFalse();
+        expect(document.activeElement).toBe(save);
+      }
       fixture.destroy();
     });
   }
@@ -365,20 +439,32 @@ describe('NamedQueryEditorComponent', () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
     fixture.detectChanges(); await component.waitForInit(); component.newQuery(); fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('main')).toBeNull();
-    expect(fixture.nativeElement.querySelector('[role="region"][aria-labelledby="named-query-workspace-title"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.nq-workspace[aria-labelledby="named-query-workspace-title"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#named-query-workspace-title')).not.toBeNull(); fixture.destroy();
   });
   it('ignores a database schema-target failure after successful GraphQL assistance', async () => {
-    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+    const component = fixture.componentInstance;
     const api = TestBed.inject(NamedQueryApiService);
     const targets = deferred<Awaited<ReturnType<NamedQueryApiService['schemaTargets']>>>();
     spyOn(api, 'schemaTargets').and.returnValue(targets.promise);
-    fixture.detectChanges(); await component.waitForInit(); component.newQuery();
-    component.assistanceError = 'Old database warning'; component.error = 'Old database error';
-    component.changeSource('graphql'); fixture.detectChanges(); await new Promise(resolve => setTimeout(resolve, 0));
-    expect(component.graphqlSdl).toContain('type Query'); expect(component.assistanceError).toBe(''); expect(component.error).toBe('');
-    targets.reject(new Error('Delayed database failure')); await new Promise(resolve => setTimeout(resolve, 0)); fixture.detectChanges();
-    expect(component.graphqlSdl).toContain('type Query'); expect(component.assistanceError).toBe(''); expect(component.schemaError).toBe('');
+    fixture.detectChanges();
+    await component.waitForInit();
+    component.newQuery();
+    component.assistanceError = 'Old database warning';
+    component.error = 'Old database error';
+    component.changeSource('graphql');
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(component.graphqlSdl).toBe('');
+    expect(component.assistanceError).toBe('');
+    expect(component.error).toBe('');
+    targets.reject(new Error('Delayed database failure'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    fixture.detectChanges();
+    expect(component.graphqlSdl).toBe('');
+    expect(component.assistanceError).toBe('');
+    expect(component.schemaError).toBe('');
     expect(fixture.nativeElement.textContent).not.toContain('Guidance unavailable');
   });
   it('ignores GraphQL schema errors after switching back to database assistance', async () => {
@@ -452,80 +538,151 @@ describe('NamedQueryEditorComponent', () => {
   });
   for (const transition of ['name', 'ownership', 'source'])
     it(`clears invalid GraphQL preview state when the ${transition} transition removes its control`, async () => {
-      const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
-      fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.changeSource('graphql');
-      Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql); component.draftChanged(); fixture.detectChanges();
-      const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
-      editor.tab = 'variables'; fixture.detectChanges(); await fixture.whenStable();
+      const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+      const component = fixture.componentInstance;
+      fixture.detectChanges();
+      await component.waitForInit();
+      component.newQuery();
+      component.changeSource('graphql');
+      Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql);
+      component.draftChanged();
+      fixture.detectChanges();
+      const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent))
+        .componentInstance as GraphqlDraftEditorComponent;
+      editor.tab = 'variables';
+      fixture.detectChanges();
+      await fixture.whenStable();
       const input = fixture.nativeElement.querySelector('.nq-test-parameters textarea') as HTMLTextAreaElement;
-      input.value = '"last valid"'; input.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
-      input.value = '{unfinished'; input.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+      input.value = '"last valid"';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      input.value = '{unfinished';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
       expect(component.previewInputInvalid).toBeTrue();
       if (transition === 'name') {
         const name = fixture.nativeElement.querySelector('#nq-parameter-search') as HTMLInputElement;
-        name.value = 'renamed'; name.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
+        name.value = 'renamed';
+        name.dispatchEvent(new Event('input', { bubbles: true }));
+        fixture.detectChanges();
       } else if (transition === 'ownership') {
         const owner = fixture.nativeElement.querySelector('#nq-owner-search') as HTMLSelectElement;
-        owner.value = 'fixed'; owner.dispatchEvent(new Event('change', { bubbles: true })); fixture.detectChanges();
+        owner.value = 'fixed';
+        owner.dispatchEvent(new Event('change', { bubbles: true }));
+        fixture.detectChanges();
         expect(component.previewInputInvalid).toBeFalse();
-        owner.value = 'consumer'; owner.dispatchEvent(new Event('change', { bubbles: true })); fixture.detectChanges();
+        owner.value = 'consumer';
+        owner.dispatchEvent(new Event('change', { bubbles: true }));
+        fixture.detectChanges();
       } else {
         component.databaseBuffer.queryParams = { search: { type: 'string', path: 'search', whenUndefined: 'ignore' } };
-        component.changeSource('database'); fixture.detectChanges(); expect(component.previewInputInvalid).toBeFalse();
-        component.changeSource('graphql'); fixture.detectChanges();
+        component.changeSource('database');
+        fixture.detectChanges();
+        expect(component.previewInputInvalid).toBeFalse();
+        component.changeSource('graphql');
+        fixture.detectChanges();
       }
-      await fixture.whenStable(); fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
       expect(input.isConnected).toBeFalse();
       const current = fixture.nativeElement.querySelector('.nq-test-parameters textarea') as HTMLTextAreaElement;
-      expect(current).not.toBe(input); expect(current.value).toBe(''); expect(current.getAttribute('aria-invalid')).toBe('false');
-      expect(component.previewInputInvalid).toBeFalse(); expect(component.testParameters).toEqual({});
+      expect(current).not.toBe(input);
+      expect(current.value).toBe('');
+      expect(current.getAttribute('aria-invalid')).toBe('false');
+      expect(component.previewInputInvalid).toBeFalse();
+      expect(component.testParameters).toEqual({});
     });
   for (const transition of ['parse failure', 'missing operation', 'removed declaration'])
     it(`reconciles default validity after ${transition} destroys and recreates its GraphQL control`, async () => {
-      const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
-      const api = TestBed.inject(NamedQueryApiService); const preview = spyOn(api, 'preview').and.callThrough();
-      fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.draft.name = 'lifecycle'; component.changeSource('graphql');
-      Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql); component.draftChanged(); fixture.detectChanges();
-      const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
-      editor.tab = 'variables'; editor.setDefault('search', 'stored default'); fixture.detectChanges(); await fixture.whenStable();
-      const defaultInput = () => fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
-        .find(node => node.componentInstance.label === 'named-query-graphql-default')?.nativeElement.querySelector('textarea') as HTMLTextAreaElement | undefined;
+      const fixture = TestBed.createComponent(NamedQueryEditorComponent);
+      const component = fixture.componentInstance;
+      const api = TestBed.inject(NamedQueryApiService);
+      const preview = spyOn(api, 'preview').and.callThrough();
+      fixture.detectChanges();
+      await component.waitForInit();
+      component.newQuery();
+      component.draft.name = 'lifecycle';
+      component.changeSource('graphql');
+      Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql);
+      component.draftChanged();
+      fixture.detectChanges();
+      const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent))
+        .componentInstance as GraphqlDraftEditorComponent;
+      editor.tab = 'variables';
+      editor.setDefault('search', 'stored default');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const defaultInput = () =>
+        fixture.debugElement
+          .queryAll(By.directive(GraphqlJsonInputComponent))
+          .find(node => node.componentInstance.label === 'named-query-graphql-default')
+          ?.nativeElement.querySelector('textarea') as HTMLTextAreaElement | undefined;
       const input = defaultInput()!;
       const test = fixture.nativeElement.querySelector('.nq-test-parameters textarea') as HTMLTextAreaElement;
-      test.value = '"current search"'; test.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
-      input.value = '{unfinished'; input.dispatchEvent(new Event('input', { bubbles: true })); fixture.detectChanges();
-      expect(component.pendingInput).toBeTrue(); await component.preview(); expect(preview).not.toHaveBeenCalled();
-      editor.tab = 'document'; fixture.detectChanges();
+      test.value = '"current search"';
+      test.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      input.value = '{unfinished';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      expect(component.pendingInput).toBeTrue();
+      await component.preview();
+      expect(preview).not.toHaveBeenCalled();
+      editor.tab = 'document';
+      fixture.detectChanges();
       const document = fixture.nativeElement.querySelector('#nq-graphql-document') as HTMLTextAreaElement;
       const operation = fixture.nativeElement.querySelector('#nq-graphql-operation') as HTMLInputElement;
       const original = component.activeGraphqlBuffer.graphql.document;
       if (transition === 'missing operation') {
-        operation.value = 'Missing'; operation.dispatchEvent(new Event('input', { bubbles: true }));
+        operation.value = 'Missing';
+        operation.dispatchEvent(new Event('input', { bubbles: true }));
       } else {
-        document.value = transition === 'parse failure' ? 'query Q(' : 'query Q { records(recordType: "rdmp") { nodes { oid } } }';
+        document.value =
+          transition === 'parse failure' ? 'query Q(' : 'query Q { records(recordType: "rdmp") { nodes { oid } } }';
         document.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      fixture.detectChanges(); await fixture.whenStable();
-      expect(input.isConnected).toBeFalse(); expect(defaultInput()).toBeUndefined();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(input.isConnected).toBeFalse();
+      expect(defaultInput()).toBeUndefined();
       if (transition === 'missing operation') {
-        operation.value = ''; operation.dispatchEvent(new Event('input', { bubbles: true }));
+        operation.value = '';
+        operation.dispatchEvent(new Event('input', { bubbles: true }));
       } else {
-        document.value = original; document.dispatchEvent(new Event('input', { bubbles: true }));
+        document.value = original;
+        document.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      fixture.detectChanges(); await fixture.whenStable(); editor.tab = 'variables'; fixture.detectChanges();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      editor.tab = 'variables';
+      fixture.detectChanges();
       const current = defaultInput()!;
-      expect(current).not.toBe(input); expect(current.value).toBe('"stored default"'); expect(current.getAttribute('aria-invalid')).toBe('false');
+      expect(current).not.toBe(input);
+      expect(current.value).toBe('"stored default"');
+      expect(current.getAttribute('aria-invalid')).toBe('false');
       expect(fixture.nativeElement.querySelectorAll('nq-graphql-draft-editor [aria-invalid="true"]').length).toBe(0);
-      expect(component.pendingInput).toBeFalse(); expect(component.canSave).toBeTrue(); expect(component.previewInputInvalid).toBeFalse();
-      const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
-        .find(button => button.textContent?.includes('named-query-preview'))!;
-      expect(button.disabled).toBeFalse(); expect(preview).not.toHaveBeenCalled();
-      button.click(); await fixture.whenStable();
+      expect(component.pendingInput).toBeFalse();
+      expect(component.canSave).toBeTrue();
+      expect(component.previewInputInvalid).toBeFalse();
+      const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(
+        button => button.textContent?.includes('named-query-preview')
+      )!;
+      expect(button.disabled).toBeFalse();
+      expect(preview).not.toHaveBeenCalled();
+      button.click();
+      await fixture.whenStable();
       expect(preview).toHaveBeenCalledTimes(1);
       const request = preview.calls.mostRecent().args[0];
-      expect(request.definition).toEqual(jasmine.objectContaining({ graphql: jasmine.objectContaining({
-        document: original, variables: jasmine.objectContaining({ search: jasmine.objectContaining({ defaultValue: JSON.parse(current.value) }) }),
-      }) }));
+      expect(request.definition).toEqual(
+        jasmine.objectContaining({
+          graphql: jasmine.objectContaining({
+            document: original,
+            variables: jasmine.objectContaining({
+              search: jasmine.objectContaining({ defaultValue: JSON.parse(current.value) }),
+            }),
+          }),
+        })
+      );
       expect(request.parameters).toEqual({ search: JSON.parse(test.value) });
     });
   it('retains other mounted GraphQL JSON errors across document, operation, source and ownership changes', async () => {
@@ -1302,11 +1459,21 @@ describe('NamedQueryEditorComponent', () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent);
     const component = fixture.componentInstance;
     component.newQuery();
-    component.draft = { name: 'pending', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    component.draft = {
+      name: 'pending',
+      collectionName: 'record',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     let reject!: (error: Error) => void;
-    const create = spyOn(TestBed.inject(NamedQueryApiService), 'create').and.returnValue(new Promise((_, fail) => reject = fail));
+    const create = spyOn(TestBed.inject(NamedQueryApiService), 'create').and.returnValue(
+      new Promise((_, fail) => (reject = fail))
+    );
     const pending = component.save();
-    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(component.saving).toBeTrue();
     expect(component.canSave).toBeFalse();
     component.closeEditModal();
@@ -1318,4 +1485,207 @@ describe('NamedQueryEditorComponent', () => {
     expect(component.isEditing).toBeTrue();
     expect(component.error).toContain('Save rejected');
   });
+  it('opens the create chooser without discarding the list or choosing a database source', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent);
+    f.detectChanges();
+    await f.componentInstance.waitForInit();
+    f.nativeElement.querySelector('#named-query-create').click();
+    f.detectChanges();
+    expect(f.componentInstance.chooserOpen).toBeTrue();
+    expect(f.componentInstance.isEditing).toBeFalse();
+    f.destroy();
+  });
+  for (const state of ['linked', 'changed', 'missing', 'handwritten']) it(`renders the ${state} source safely and loads schema only on demand`, async () => {
+      const f = TestBed.createComponent(NamedQueryEditorComponent);
+      const c = f.componentInstance;
+      const api = TestBed.inject(NamedQueryApiService);
+      const draft = graphqlDraft('plans') as import('./named-query-api.service').NamedQueryDefinition;
+      if (draft.source === 'graphql' && state !== 'handwritten')
+        draft.sourceSavedQuery = {
+          id: 'a'.repeat(24),
+          publishedRevision: 1,
+          revision: 2,
+          name: state === 'missing' ? null : 'Research plans',
+          recordType: null,
+          recordTypeLabel: 'Research plans',
+          mode: 'graphql',
+          updatedAt: null,
+          updatedBy: null,
+          missing: state === 'missing',
+          changedSincePublished: state === 'changed',
+        };
+      spyOn(api, 'get').and.resolveTo(draft);
+      const schema = spyOn(api, 'graphqlSchema').and.callThrough();
+      f.detectChanges();
+      await c.waitForInit();
+      await c.openQuery('plans');
+      await c.loadGraphqlPresentation();
+      f.detectChanges();
+      const source = f.nativeElement.querySelector('#nq-section-source') as HTMLElement;
+      expect(schema).not.toHaveBeenCalled();
+      expect(source.textContent).not.toContain('graphql.variables');
+      expect(source.textContent).not.toContain('Blocking error');
+      if (state === 'handwritten')
+        expect(source.querySelector('#nq-graphql-document')?.hasAttribute('readonly')).toBeFalse();
+      else {
+        expect(source.querySelector('nq-graphql-draft-editor')).toBeNull();
+        expect(source.querySelector('textarea')?.readOnly).toBeTrue();
+      }
+      if (state === 'missing') expect(source.textContent).toContain('nq-ux-source-missing-help');
+      if (state === 'changed') expect(source.textContent).toContain('nq-ux-review-update');
+      expect(f.nativeElement.querySelector('.rb-admin-save-bar')).not.toBeNull();
+      f.destroy();
+    });
+  it('prepares saved values as fixed bindings, retains false/zero and keeps the exact source revision', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent);
+    const c = f.componentInstance;
+    f.detectChanges();
+    await c.waitForInit();
+    await c.chooseSavedSource({
+      summary: {
+        id: 'a'.repeat(24),
+        revision: 4,
+        name: 'Plans',
+        recordType: null,
+        recordTypeLabel: null,
+        mode: 'graphql',
+        updatedAt: null,
+        updatedBy: null,
+        publishedAs: [],
+      },
+      prepared: {
+        definition: {
+          source: 'graphql',
+          graphql: {
+            document: 'query Q($flag:Boolean,$count:Int){records(recordType:"rdmp",first:$count){nodes{oid}}}',
+            variables: {},
+            resultPath: ['records', 'nodes'],
+            provenance: { explorerId: 'a'.repeat(24), explorerRevision: 4, explorerPortal: 'rdmp' },
+          },
+        },
+        variableValues: { flag: false, count: 0 },
+      },
+    });
+    expect(JSON.stringify(c.activeGraphqlBuffer.graphql.variables['flag'])).toBe(
+      JSON.stringify({ ownership: 'fixed', value: false })
+    );
+    expect(JSON.stringify(c.activeGraphqlBuffer.graphql.variables['count'])).toBe(
+      JSON.stringify({ ownership: 'fixed', value: 0 })
+    );
+    expect(c.linkedSource?.publishedRevision).toBe(4);
+    expect(c.dirty).toBeTrue();
+    expect(c.isNew).toBeTrue();
+    f.destroy();
+  });
+  it('updates fixed source values while retaining compatible consumer contracts and mappings', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent);
+    const c = f.componentInstance;
+    f.detectChanges();
+    await c.waitForInit();
+    c.isEditing = true;
+    c.isNew = false;
+    c.chooserReplacing = true;
+    c.draft = {
+      source: 'graphql',
+      name: 'published',
+      description: 'Keep this',
+      graphql: {
+        document: 'query Q($condition_1:String,$search:String){records(recordType:"rdmp"){nodes{oid}}}',
+        variables: {
+          condition_1: { ownership: 'fixed', value: 'Old' },
+          search: { ownership: 'consumer', parameter: 'term', inputType: 'String', required: false },
+        },
+        resultPath: ['records', 'nodes'],
+        mappings: { oid: ['oid'] },
+      },
+    };
+    await c.chooseSavedSource({
+      summary: {
+        id: 'a'.repeat(24),
+        revision: 5,
+        name: 'Latest',
+        recordType: null,
+        recordTypeLabel: null,
+        mode: 'graphql',
+        updatedAt: null,
+        updatedBy: null,
+        publishedAs: [],
+      },
+      prepared: {
+        definition: {
+          source: 'graphql',
+          graphql: {
+            document: 'query Q($condition_1:String,$search:String){records(recordType:"rdmp"){nodes{oid}}}',
+            variables: {},
+            resultPath: ['records', 'nodes'],
+          },
+        },
+        variableValues: { condition_1: 'New', search: 'Saved' },
+      },
+    });
+    expect(JSON.stringify(c.activeGraphqlBuffer.graphql.variables['condition_1'])).toBe(JSON.stringify({ ownership: 'fixed', value: 'New' }));
+    expect(JSON.stringify(c.activeGraphqlBuffer.graphql.variables['search'])).toBe(JSON.stringify({ ownership: 'consumer', parameter: 'term', inputType: 'String', required: false }));
+    expect(c.activeGraphqlBuffer.graphql.mappings).toEqual({ oid: ['oid'] });
+    expect(c.draft.name).toBe('published');
+    expect(c.isNew).toBeFalse();
+    expect(c.sourceDraftUpdated).toBeTrue();
+    expect(c.dirty).toBeTrue();
+    f.destroy();
+  });
+  it('discards a general GraphQL preview that completes after the draft changes', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent);
+    const c = f.componentInstance;
+    f.detectChanges();
+    await c.waitForInit();
+    c.draft = {
+      source: 'graphql',
+      name: 'draft',
+      graphql: {
+        document: '{records(recordType:"rdmp"){nodes{oid}}}',
+        variables: {},
+        resultPath: ['records', 'nodes'],
+      },
+    };
+    let resolve!: (result: { data: Record<string, unknown> }) => void;
+    spyOn(TestBed.inject(NamedQueryApiService), 'graphqlRead').and.returnValue(new Promise(yes => (resolve = yes)));
+    const pending = c.previewGraphql();
+    // Dynamic import finishes before the request starts.
+    while (!resolve) await new Promise(yes => setTimeout(yes, 0));
+    c.draftChanged();
+    resolve({ data: { records: { nodes: [{ oid: 'stale' }] } } });
+    await pending;
+    expect(c.rawGraphqlPreview).toBeNull();
+    expect(c.previewing).toBeFalse();
+    f.destroy();
+  });
+  it('keeps diagnostics as sentences without exposing technical location keys', () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent);
+    f.componentInstance.diagnostics = [
+      {
+        code: 'REQUIRED_VARIABLE',
+        field: 'graphql.variables.type',
+        severity: 'error',
+        reason: 'Choose a value for the record type.',
+        line: 0,
+        column: 0,
+      },
+    ];
+    f.componentInstance.isEditing = true;
+    f.componentInstance.draft = {
+      source: 'graphql',
+      name: 'plans',
+      graphql: {
+        document: '{records(recordType:"rdmp"){nodes{oid}}}',
+        variables: {},
+        resultPath: ['records', 'nodes'],
+      },
+    };
+    f.detectChanges();
+    const diagnostics = f.nativeElement.querySelector('#nq-checks-title').parentElement.parentElement.textContent;
+    expect(diagnostics).toContain('Choose a value for the record type.');
+    expect(diagnostics).not.toContain('graphql.variables.type');
+    expect(diagnostics).not.toContain('named-query-blocking');
+    f.destroy();
+  });
+
 });

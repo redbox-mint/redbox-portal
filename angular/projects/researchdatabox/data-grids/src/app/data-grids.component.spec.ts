@@ -1036,6 +1036,16 @@ describe('Data grid editor', () => {
     expect(component.error).toBe('');
     expect(component.saved).toEqual([saved]);
   });
+  it('opens an independent GraphQL draft from the named-query creation deep link', async () => {
+    window.history.replaceState(null, '', '#new=graphql');
+    source.schema = jasmine.createSpy().and.resolveTo(testSdl);
+    component.draft = null;
+    await component.load();
+    expect(component.activeDefinition?.mode).toBe('graphql');
+    expect(component.unlinked).toBeTrue();
+    expect(component.activeDefinition?.id).toBeUndefined();
+    expect(source.read).not.toHaveBeenCalled();
+  });
   it('guards navigation away from unsaved edits', () => {
     component.open(validGrid());
     component.draft!.name = 'Changed';

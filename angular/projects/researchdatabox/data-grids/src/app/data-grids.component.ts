@@ -178,9 +178,16 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       this.catalogue = catalogue;
       this.saved = saved.grids;
       this.nextSaved = saved.next;
-      const id = new URLSearchParams(window.location.hash.slice(1)).get('grid');
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const id = params.get('grid');
       if (!this.draft && id && /^[a-f0-9]{24}$/.test(id)) await this.reopen({ id }, true);
-      else if (!this.draft) this.open();
+      else if (!this.draft) {
+        this.open();
+        if (params.get('new') === 'graphql') {
+          this.unlinked = true;
+          await this.switchMode('graphql');
+        }
+      }
     } catch (error) {
       if (seq !== this.loadSequence || this.disposed) return;
       this.catalogue = null;

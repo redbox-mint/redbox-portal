@@ -18,7 +18,7 @@ import {
   template: `<p class="rb-ws-lede">{{ 'named-query-graphql-schema-help' | i18next }}</p>
     <label for="nq-graphql-type" class="rb-ws-label">{{ 'named-query-graphql-schema-type' | i18next }}</label>
     <select id="nq-graphql-type" class="form-select" [(ngModel)]="typeName">
-      <option *ngFor="let name of types" [value]="name">{{ name }}</option>
+      <option *ngFor="let name of types" [value]="name">{{ friendlyType(name) }}</option>
     </select>
     <label for="nq-graphql-field-search" class="rb-ws-label mt-2">{{
       'named-query-graphql-field-search' | i18next
@@ -40,6 +40,13 @@ export class GraphqlSchemaComponent implements OnChanges {
   schema: GraphQLSchema | null = null;
   typeName = 'Query';
   search = '';
+  friendlyType(name: string): string {
+    return name
+      .replace(/^(M|R)_/, '')
+      .replace(/_[a-f0-9]{6,}$/i, '')
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2');
+  }
   get types(): string[] {
     return Object.keys(this.schema?.getTypeMap() ?? {})
       .filter(name => !name.startsWith('__'))

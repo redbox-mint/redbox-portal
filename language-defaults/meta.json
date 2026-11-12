@@ -7406,7 +7406,7 @@
   },
   "export-recent-title": {
     "category": "export",
-    "description": "Heading for the current user\u2019s latest background CSV exports",
+    "description": "Heading for the current user’s latest background CSV exports",
     "contentFormat": "plain"
   },
   "export-refresh": {
@@ -7421,7 +7421,7 @@
   },
   "export-no-jobs": {
     "category": "export",
-    "description": "Empty state for the current user\u2019s recent export jobs",
+    "description": "Empty state for the current user’s recent export jobs",
     "contentFormat": "plain"
   },
   "export-list-error": {
@@ -7491,7 +7491,7 @@
   },
   "export-prepare-again": {
     "category": "export",
-    "description": "Action to prepare a new CSV export using the failed or expired job\u2019s options",
+    "description": "Action to prepare a new CSV export using the failed or expired job’s options",
     "contentFormat": "plain"
   },
   "export-delete": {
@@ -11510,5 +11510,377 @@
     "category": "Record explorer and named queries",
     "description": "Default page size",
     "contentFormat": "plain"
+  },
+  "nq-ux-how-start": {
+    "category": "Named queries",
+    "description": "How do you want to start?"
+  },
+  "nq-ux-start-saved": {
+    "category": "Named queries",
+    "description": "From a saved query"
+  },
+  "nq-ux-start-saved-help": {
+    "category": "Named queries",
+    "description": "Use a query built in the Record explorer. It stays linked to it."
+  },
+  "nq-ux-start-graphql": {
+    "category": "Named queries",
+    "description": "New GraphQL query"
+  },
+  "nq-ux-start-graphql-help": {
+    "category": "Named queries",
+    "description": "Open the Record explorer to build a new query and see its results."
+  },
+  "nq-ux-start-database": {
+    "category": "Named queries",
+    "description": "Database query"
+  },
+  "nq-ux-start-database-help": {
+    "category": "Named queries",
+    "description": "Use the database editor for reports and CSV export."
+  },
+  "nq-ux-search-saved": {
+    "category": "Named queries",
+    "description": "Search saved queries"
+  },
+  "nq-ux-built-with": {
+    "category": "Named queries",
+    "description": "Built with"
+  },
+  "nq-ux-mode-visual": {
+    "category": "Named queries",
+    "description": "Visual"
+  },
+  "nq-ux-mode-graphql": {
+    "category": "Named queries",
+    "description": "GraphQL"
+  },
+  "nq-ux-loading-saved": {
+    "category": "Named queries",
+    "description": "Loading saved queries…"
+  },
+  "nq-ux-saved-table": {
+    "category": "Named queries",
+    "description": "Saved explorer queries"
+  },
+  "nq-ux-saved-query": {
+    "category": "Named queries",
+    "description": "Saved query"
+  },
+  "nq-ux-updated": {
+    "category": "Named queries",
+    "description": "Updated"
+  },
+  "nq-ux-published-as": {
+    "category": "Named queries",
+    "description": "Published as {{name}}"
+  },
+  "nq-ux-not-published": {
+    "category": "Named queries",
+    "description": "Not published"
+  },
+  "nq-ux-unknown-type": {
+    "category": "Named queries",
+    "description": "Multiple or unspecified record types"
+  },
+  "nq-ux-not-recorded": {
+    "category": "Named queries",
+    "description": "Not recorded"
+  },
+  "nq-ux-no-saved": {
+    "category": "Named queries",
+    "description": "No saved queries yet"
+  },
+  "nq-ux-no-saved-help": {
+    "category": "Named queries",
+    "description": "Build and save a query in the Record explorer, then return here to make it reusable."
+  },
+  "nq-ux-open-explorer": {
+    "category": "Named queries",
+    "description": "Open in Record explorer"
+  },
+  "nq-ux-chooser-help": {
+    "category": "Named queries",
+    "description": "Continue to review the conditions and choose which values callers can change. Nothing is published until you save."
+  },
+  "nq-ux-continue": {
+    "category": "Named queries",
+    "description": "Continue"
+  },
+  "nq-ux-preparing": {
+    "category": "Named queries",
+    "description": "Preparing query…"
+  },
+  "nq-ux-change-source": {
+    "category": "Named queries",
+    "description": "Choose a source query"
+  },
+  "nq-ux-chooser-load-error": {
+    "category": "Named queries",
+    "description": "Saved queries could not be loaded. Try again."
+  },
+  "nq-ux-source-conflict": {
+    "category": "Named queries",
+    "description": "This saved query changed while you were choosing it. Select its current version and continue again."
+  },
+  "nq-ux-source-gone": {
+    "category": "Named queries",
+    "description": "This saved query is no longer available. Choose another query."
+  },
+  "nq-ux-source-denied": {
+    "category": "Named queries",
+    "description": "You need permission to create named queries in this portal. Your current draft has been kept."
+  },
+  "nq-ux-prepare-error": {
+    "category": "Named queries",
+    "description": "This query could not be prepared. Check that its fields are available in the Record explorer, then try again."
+  },
+  "nq-ux-built-from": {
+    "category": "Named queries",
+    "description": "Built from"
+  },
+  "nq-ux-built-from-prefix": {
+    "category": "Named queries",
+    "description": "Built from the saved query"
+  },
+  "nq-ux-written-by-hand": {
+    "category": "Named queries",
+    "description": "Written by hand"
+  },
+  "nq-ux-database-source": {
+    "category": "Named queries",
+    "description": "Database query"
+  },
+  "nq-ux-source-missing": {
+    "category": "Named queries",
+    "description": "Source query unavailable"
+  },
+  "nq-ux-source-missing-help": {
+    "category": "Named queries",
+    "description": "The saved query was removed or is no longer available here. This named query still works with its published document. Choose another source to replace the link."
+  },
+  "nq-ux-source-changed": {
+    "category": "Named queries",
+    "description": "Changed since published"
+  },
+  "nq-ux-source-changed-help": {
+    "category": "Named queries",
+    "description": "The saved query has changed since this named query was published. The published query stays as it is until you review and save an update."
+  },
+  "nq-ux-review-update": {
+    "category": "Named queries",
+    "description": "Review and update"
+  },
+  "nq-ux-change": {
+    "category": "Named queries",
+    "description": "Change…"
+  },
+  "nq-ux-source-draft-updated": {
+    "category": "Named queries",
+    "description": "The current saved query is now in your draft. Review the parameters and lookup fields, then save to publish the update."
+  },
+  "nq-ux-source-independent": {
+    "category": "Named queries",
+    "description": "This named query uses its own published document. Changes in the explorer take effect here only after you review and save an update."
+  },
+  "nq-ux-linked-readonly": {
+    "category": "Named queries",
+    "description": "This linked document is read-only here. Edit and save its source in the Record explorer, then review an update here."
+  },
+  "nq-ux-advanced-document": {
+    "category": "Named queries",
+    "description": "Advanced: GraphQL document"
+  },
+  "nq-ux-advanced-schema": {
+    "category": "Named queries",
+    "description": "Advanced: schema browser"
+  },
+  "nq-ux-handwritten-help": {
+    "category": "Named queries",
+    "description": "This GraphQL query was written by hand. Edit its document and bindings here, or choose a saved query to link it."
+  },
+  "nq-ux-edit-graphql": {
+    "category": "Named queries",
+    "description": "Edit GraphQL and advanced bindings"
+  },
+  "nq-ux-sections": {
+    "category": "Named queries",
+    "description": "Named query sections"
+  },
+  "nq-ux-section-basics": {
+    "category": "Named queries",
+    "description": "Basics"
+  },
+  "nq-ux-section-source": {
+    "category": "Named queries",
+    "description": "Source query"
+  },
+  "nq-ux-section-parameters": {
+    "category": "Named queries",
+    "description": "Parameters"
+  },
+  "nq-ux-section-lookup": {
+    "category": "Named queries",
+    "description": "Lookup fields"
+  },
+  "nq-ux-section-preview": {
+    "category": "Named queries",
+    "description": "Preview"
+  },
+  "nq-ux-section-used-by": {
+    "category": "Named queries",
+    "description": "Used by"
+  },
+  "nq-ux-checks": {
+    "category": "Named queries",
+    "description": "Checks"
+  },
+  "nq-ux-checks-passed": {
+    "category": "Named queries",
+    "description": "The query and its variable bindings are valid."
+  },
+  "nq-ux-operation-default": {
+    "category": "Named queries",
+    "description": "Use the query default"
+  },
+  "nq-ux-no-conditions": {
+    "category": "Named queries",
+    "description": "None"
+  },
+  "nq-ux-search-parameter": {
+    "category": "Named queries",
+    "description": "Text the user types"
+  },
+  "nq-ux-preview-values": {
+    "category": "Named queries",
+    "description": "Enter JSON values for numbers, yes/no values and lists. Text values do not need quotes."
+  },
+  "nq-ux-preview-error": {
+    "category": "Named queries",
+    "description": "The preview could not run. Check the document, test values and available fields, then try again."
+  },
+  "nq-ux-save-conflict": {
+    "category": "Named queries",
+    "description": "The source or published query changed while you were editing. Your draft is kept. Reopen the current query or choose the source again, then review and save."
+  },
+  "nq-ux-description": {
+    "category": "Named queries",
+    "description": "Description"
+  },
+  "nq-ux-empty-conditions": {
+    "category": "Named queries",
+    "description": "All accessible records in this scope."
+  },
+  "nq-ux-condition-value": {
+    "category": "Named queries",
+    "description": "{{condition}}: {{value}}"
+  },
+  "nq-ux-diagnostic-DUPLICATE_PARAMETER": {
+    "category": "Named queries",
+    "description": "Give each caller parameter a unique name. Paging names are reserved."
+  },
+  "nq-ux-diagnostic-GRAPHQL_CONTEXT_REQUIRED": {
+    "category": "Named queries",
+    "description": "Sign in with an authorized account before validating this query."
+  },
+  "nq-ux-diagnostic-GRAPHQL_OPERATION": {
+    "category": "Named queries",
+    "description": "Use a single read-only query operation."
+  },
+  "nq-ux-diagnostic-GRAPHQL_SCHEMA": {
+    "category": "Named queries",
+    "description": "A selected field, argument or variable is unavailable or has changed. Check it against the current schema."
+  },
+  "nq-ux-diagnostic-GRAPHQL_SYNTAX": {
+    "category": "Named queries",
+    "description": "Check the GraphQL syntax at the indicated line and column."
+  },
+  "nq-ux-diagnostic-INPUT_TYPE": {
+    "category": "Named queries",
+    "description": "Match each caller parameter to its variable type. Use a scalar, choice or list of these values."
+  },
+  "nq-ux-diagnostic-INVALID_DEFAULT": {
+    "category": "Named queries",
+    "description": "A saved value or default does not match its variable type. Correct it under Advanced."
+  },
+  "nq-ux-diagnostic-INVALID_DEFINITION": {
+    "category": "Named queries",
+    "description": "Check the document, variable choices and result paths. Some settings are incomplete or invalid."
+  },
+  "nq-ux-diagnostic-INVALID_SCOPE": {
+    "category": "Named queries",
+    "description": "Choose one available record type and compatible workflow stages."
+  },
+  "nq-ux-diagnostic-INVALID_SOURCE": {
+    "category": "Named queries",
+    "description": "Choose a supported query source."
+  },
+  "nq-ux-diagnostic-LOOKUP_MAPPING": {
+    "category": "Named queries",
+    "description": "Choose a stored value and label that are present in every suggestion."
+  },
+  "nq-ux-diagnostic-LOOKUP_PAGE_REQUIRED": {
+    "category": "Named queries",
+    "description": "Set up first-page paging to use this query in a form lookup."
+  },
+  "nq-ux-diagnostic-LOOKUP_PAGE_SHAPE": {
+    "category": "Named queries",
+    "description": "Select the records list and its continuation fields. Declare separate first and after paging variables."
+  },
+  "nq-ux-diagnostic-LOOKUP_SEARCH_BINDING": {
+    "category": "Named queries",
+    "description": "Choose a text parameter used by a query condition for the text the user types."
+  },
+  "nq-ux-diagnostic-MAPPING_PATH": {
+    "category": "Named queries",
+    "description": "A mapped field is no longer selected in every result. Choose another field or correct its path under Advanced."
+  },
+  "nq-ux-diagnostic-PAGE_VARIABLE": {
+    "category": "Named queries",
+    "description": "Declare both paging variables in the query document."
+  },
+  "nq-ux-diagnostic-QUERY_LIMIT": {
+    "category": "Named queries",
+    "description": "The query exceeds a server limit. Reduce its size or number of selections."
+  },
+  "nq-ux-diagnostic-REQUIRED_CONTRACT": {
+    "category": "Named queries",
+    "description": "The caller parameter requirement must match its GraphQL variable type."
+  },
+  "nq-ux-diagnostic-REQUIRED_VARIABLE": {
+    "category": "Named queries",
+    "description": "Choose a saved value or caller parameter for each required condition."
+  },
+  "nq-ux-diagnostic-RESULT_PATH": {
+    "category": "Named queries",
+    "description": "Choose the selected result list under Advanced. Nested lists cannot be flattened."
+  },
+  "nq-ux-diagnostic-UNKNOWN_RECORD_TYPE": {
+    "category": "Named queries",
+    "description": "This record type is no longer available. Review the source in the Record explorer."
+  },
+  "nq-ux-diagnostic-UNKNOWN_VARIABLE": {
+    "category": "Named queries",
+    "description": "Remove bindings for variables that the document no longer declares."
+  },
+  "nq-ux-diagnostic-UNKNOWN_WORKFLOW_STAGE": {
+    "category": "Named queries",
+    "description": "A workflow stage is no longer available. Review the source in the Record explorer."
+  },
+  "nq-ux-diagnostic-UNSAFE_PATH": {
+    "category": "Named queries",
+    "description": "Choose a valid result field. Paths must use literal property names."
+  },
+  "nq-ux-diagnostic-VARIABLE_OWNERSHIP": {
+    "category": "Named queries",
+    "description": "Choose how each condition gets its value. Paging variables are managed by ReDBox."
+  },
+  "nq-ux-diagnostic-GRAPHQL_DISABLED": {
+    "category": "Named queries",
+    "description": "Record queries are disabled. Ask an administrator to enable GraphQL."
+  },
+  "nq-ux-diagnostic-GRAPHQL_SCHEMA_UNAVAILABLE": {
+    "category": "Named queries",
+    "description": "The current schema could not be loaded. Your draft is kept; try again."
   }
 }

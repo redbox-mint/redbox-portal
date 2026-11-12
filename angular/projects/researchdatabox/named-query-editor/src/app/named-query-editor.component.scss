@@ -106,3 +106,75 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+.nq-editor-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nq-graphql-workspace {
+  color: var(--admin-ink);
+  padding-bottom: 24px;
+}
+.nq-editor-layout > .rb-admin-section-rail {
+  flex-basis: 150px;
+  max-width: 180px;
+}
+.nq-editor-layout > .rb-admin-split-main {
+  flex-basis: 420px;
+}
+.nq-editor-layout > .rb-admin-split-side {
+  flex-basis: 240px;
+  max-width: 300px;
+}
+.nq-graphql-workspace :is(.btn, summary, .rb-admin-section-rail a) {
+  min-height: 44px;
+  align-content: center;
+}
+.nq-graphql-workspace :is(input, select, textarea) {
+  min-height: 44px;
+}
+.nq-linked-card {
+  padding: 16px;
+  border: 1px solid var(--admin-line);
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius);
+}
+.nq-linked-card h3 {
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+.nq-document {
+  font: 13px/1.6 var(--admin-mono);
+}
+.nq-condition-summary {
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+.nq-condition-summary li {
+  margin: 8px 0;
+}
+.nq-graphql-workspace [tabindex='-1']:focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 3px;
+}
+@media (max-width: 900px) {
+  .nq-editor-layout > .rb-admin-section-rail {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .nq-editor-layout > .rb-admin-split-side {
+    max-width: none;
+    flex-basis: 100%;
+  }
+}
+
+.nq-graphql-workspace .rb-admin-form-section a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

@@ -21,7 +21,7 @@ describe('NqListComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [NqListComponent, I18NextPipeStub],
       imports: [AdminCountPipe, FormsModule],
-      providers: [{ provide: TranslationService, useValue: { t: (key: string) => key } }]
+      providers: [{ provide: TranslationService, useValue: { t: (key: string) => key } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NqListComponent);
@@ -29,7 +29,9 @@ describe('NqListComponent', () => {
   });
 
   it('opens the editor with a native list-name button', () => {
-    component.queries = [{ name: 'q1', collectionName: 'record', resultObjectMapping: {}, mongoQuery: {}, queryParams: {} }];
+    component.queries = [
+      { name: 'q1', collectionName: 'record', resultObjectMapping: {}, mongoQuery: {}, queryParams: {} },
+    ];
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.rb-admin-list-name').type).toBe('button');
     const selected = spyOn(component.selected, 'emit');
@@ -40,8 +42,8 @@ describe('NqListComponent', () => {
   it('emits selected and deleted actions', () => {
     let selectedName = '';
     let deletedName = '';
-    component.selected.subscribe((name: string) => selectedName = name);
-    component.deleted.subscribe((name: string) => deletedName = name);
+    component.selected.subscribe((name: string) => (selectedName = name));
+    component.deleted.subscribe((name: string) => (deletedName = name));
 
     component.open('q1');
     component.remove('q2');
@@ -53,8 +55,8 @@ describe('NqListComponent', () => {
   it('does not emit when name is undefined', () => {
     let selectedName = '';
     let deletedName = '';
-    component.selected.subscribe((name: string) => selectedName = name);
-    component.deleted.subscribe((name: string) => deletedName = name);
+    component.selected.subscribe((name: string) => (selectedName = name));
+    component.deleted.subscribe((name: string) => (deletedName = name));
 
     component.open(undefined);
     component.remove(undefined);
@@ -65,7 +67,7 @@ describe('NqListComponent', () => {
 
   it('emits query changes with debounce', fakeAsync(() => {
     let query: NamedQueryListQueryState | undefined;
-    component.queryChanged.subscribe((value) => query = value);
+    component.queryChanged.subscribe(value => (query = value));
 
     component.onSearchTermChanged('search');
     expect(component.searchTerm).toBe('search');
@@ -98,13 +100,19 @@ describe('NqListComponent', () => {
 
   it('reflects query input changes', () => {
     component.query = { searchTerm: 'hello' };
-    component.ngOnChanges({ query: { currentValue: component.query, previousValue: undefined, firstChange: true, isFirstChange: () => true } });
+    component.ngOnChanges({
+      query: { currentValue: component.query, previousValue: undefined, firstChange: true, isFirstChange: () => true },
+    });
     expect(component.searchTerm).toBe('hello');
   });
 
   it('computes paramCount', () => {
     const q: NamedQueryDefinition = {
-      name: 'q', collectionName: 'c', mongoQuery: {}, queryParams: { a: { type: 'string', path: 'p', whenUndefined: 'ignore' } }, resultObjectMapping: {}
+      name: 'q',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: { a: { type: 'string', path: 'p', whenUndefined: 'ignore' } },
+      resultObjectMapping: {},
     };
     expect(component.paramCount(q)).toBe(1);
     expect(component.paramCount({ ...q, queryParams: undefined } as any)).toBe(0);
@@ -112,8 +120,12 @@ describe('NqListComponent', () => {
 
   it('computes filterCount', () => {
     const q: NamedQueryDefinition = {
-      name: 'q', collectionName: 'c', mongoQuery: {}, queryParams: {}, resultObjectMapping: {},
-      relatedRecordFilters: [{ collectionName: 'c', mongoQuery: {}, localField: 'l', foreignField: 'f' }]
+      name: 'q',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+      relatedRecordFilters: [{ collectionName: 'c', mongoQuery: {}, localField: 'l', foreignField: 'f' }],
     };
     expect(component.filterCount(q)).toBe(1);
     expect(component.filterCount({ ...q, relatedRecordFilters: undefined })).toBe(0);
@@ -121,26 +133,38 @@ describe('NqListComponent', () => {
 
   it('computes mappingCount', () => {
     const q: NamedQueryDefinition = {
-      name: 'q', collectionName: 'c', mongoQuery: {}, queryParams: {}, resultObjectMapping: { a: 'b' }
+      name: 'q',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: { a: 'b' },
     };
     expect(component.mappingCount(q)).toBe(1);
     expect(component.mappingCount({ ...q, resultObjectMapping: undefined } as any)).toBe(0);
   });
 
   it('trackByName returns name or fallback', () => {
-    const q: NamedQueryDefinition = { name: 'q1', collectionName: 'c', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+    const q: NamedQueryDefinition = {
+      name: 'q1',
+      collectionName: 'c',
+      mongoQuery: {},
+      queryParams: {},
+      resultObjectMapping: {},
+    };
     expect(component.trackByName(0, q)).toBe('q1');
     expect(component.trackByName(0, { ...q, name: undefined })).toBe('named-query-0');
   });
   it('renders linked consumers and a muted empty state in Used by', () => {
     component.brandingAndPortalUrl = '/brand/portal';
     const query = { name: 'q1', collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
-    component.queries = [{ ...query, usedBy: [{ type: 'report', name: 'Report title', path: '/admin/report/report' }] }, { ...query, name: 'q2', usedBy: [] }];
+    component.queries = [
+      { ...query, usedBy: [{ type: 'report', name: 'Report title', path: '/admin/report/report' }] },
+      { ...query, name: 'q2', usedBy: [] },
+    ];
     fixture.detectChanges();
     const element: HTMLElement = fixture.nativeElement;
     expect(element.querySelector('thead')?.textContent).toContain('named-query-used-by');
     expect(element.querySelector('a[href="/brand/portal/admin/report/report"]')?.textContent).toContain('Report title');
-    expect(element.querySelector('tbody .text-muted')?.textContent).toContain('named-query-not-used');
+    expect(element.querySelector('tbody .nq-not-used')?.textContent).toContain('named-query-not-used');
   });
-
 });

@@ -1,5 +1,7 @@
-import { Component, Inject, OnDestroy, HostListener } from '@angular/core';
+import { Component, Inject, Injector, Type, OnDestroy, HostListener } from '@angular/core';
 import type {
+  NamedQueryJson,
+  NamedQueryExplorerSource,
   ContextSchemaField,
   EditorDiagnostic,
   NamedQuerySourceDescription,
@@ -13,10 +15,21 @@ import type {
   NamedQuerySchemaSelection,
   SchemaTarget,
 } from '@researchdatabox/sails-ng-common';
-import { storedRecordPath } from '@researchdatabox/sails-ng-common';
+import { storedRecordPath } from '@researchdatabox/sails-ng-common/dist/src/query-report-context';
 import { LatestRequest, type FieldNode } from '@researchdatabox/portal-ng-common';
 import { BaseComponent, LoggerService, TranslationService } from '@researchdatabox/portal-ng-common';
-import { NamedQueryApiService, NamedQueryDefinition, NamedQueryDatabaseDefinition, NamedQueryCatalogueRow } from './named-query-api.service';
+import {
+  NamedQueryApiService,
+  NamedQueryDefinition,
+  NamedQueryDatabaseDefinition,
+  NamedQueryCatalogueRow,
+} from './named-query-api.service';
+import type { SavedQueryChoice } from './saved-query-chooser.component';
+import type {
+  NamedQueryParameterRow,
+  NamedQueryResultField,
+  NamedQueryBindingChange,
+} from '@researchdatabox/portal-ng-common';
 import { NamedQueryListQueryState } from './nq-list/nq-list.component';
 
 @Component({
@@ -26,6 +39,357 @@ import { NamedQueryListQueryState } from './nq-list/nq-list.component';
   standalone: false,
 })
 export class NamedQueryEditorComponent extends BaseComponent implements OnDestroy {
+  chooserOpen = false;
+  chooserReplacing = false;
+  sourcePreparing = false;
+  sourceDraftUpdated = false;
+  rawGraphqlPreview: unknown[] | null = null;
+  get graphqlPreviewData(): unknown {
+    if (this.rawGraphqlPreview)
+      return this.presentation?.previewRows(this.rawGraphqlPreview, this.graphqlResultFields) ?? null;
+    return this.previewResult?.records ? (this.presentation?.previewValue(this.previewResult.records) ?? null) : null;
+  }
+  activeSection = 'basics';
+  readonly sections = ['basics', 'source', 'parameters', 'lookup', 'preview', 'used-by'];
+  candidateValues: Record<string, NamedQueryJson> = {};
+  conditionLabels: Record<string, string> = {};
+  fieldLabels: Record<string, string> = {};
+  knownResultFields: NamedQueryResultField[] = [];
+  private sourceFieldsSequence = 0;
+  private presentation: typeof import('./graphql-presentation') | null = null;
+  get linkedSource(): NamedQueryExplorerSource | null {
+    return this.activeGraphqlBuffer.sourceSavedQuery ?? null;
+  }
+  get explorerUrl(): string {
+    return (
+      this.brandingAndPortalUrl +
+      '/admin/data-grids' +
+      (this.linkedSource && !this.linkedSource.missing ? '#grid=' + encodeURIComponent(this.linkedSource.id) : '')
+    );
+  }
+  get graphqlRows(): NamedQueryParameterRow[] {
+    const rows =
+      this.presentation?.parameterRows(
+        this.activeGraphqlBuffer,
+        key => this.translationService.t('data-grids-' + key) as string,
+        this.conditionLabels,
+        this.candidateValues
+      ) ?? [];
+    return rows.map(row => ({
+      ...row,
+      consumerAllowed:
+        this.graphqlDescription?.operationVariables?.find(variable => variable.variable === row.variable)
+          ?.consumerSupported ?? row.consumerAllowed,
+      displayValue: this.valueLabel(row),
+      ...(row.variable === 'type' && this.linkedSource?.recordTypeLabel
+        ? { displayValue: this.translationService.t(this.linkedSource.recordTypeLabel) as string }
+        : {}),
+      ...(row.variable === 'stages' && Array.isArray(row.value) && !row.value.length
+        ? { displayValue: this.translationService.t('data-grids-all-stages') as string }
+        : {}),
+      ...(['filters', 'sort'].includes(row.variable) && Array.isArray(row.value) && !row.value.length
+        ? { displayValue: this.translationService.t('nq-ux-no-conditions') as string }
+        : {}),
+    }));
+  }
+  get graphqlSummaryRows(): NamedQueryParameterRow[] {
+    return this.graphqlRows.filter(row => !row.paging);
+  }
+  valueLabel(row: NamedQueryParameterRow): string {
+    if (row.displayValue) return row.displayValue;
+    const value = row.value;
+    if (row.variable.startsWith('condition_') && value !== undefined && this.presentation)
+      return this.presentation.savedValueLabel(value);
+    if (row.variable === 'stages' && (value === undefined || value === null || (Array.isArray(value) && !value.length)))
+      return this.translationService.t('data-grids-all-stages') as string;
+    if (row.variable === 'sort' && Array.isArray(value))
+      return (
+        value
+          .map(item => {
+            const sort = item as { field?: string; direction?: string };
+            return (
+              (this.fieldLabels[sort.field ?? ''] ?? this.presentation?.humanLabel(sort.field ?? '') ?? '') +
+              ', ' +
+              this.translationService.t(sort.direction === 'DESC' ? 'data-grids-descending' : 'data-grids-ascending')
+            );
+          })
+          .join('; ') || (this.translationService.t('data-grids-default-order') as string)
+      );
+    if (row.variable === 'filters' && Array.isArray(value))
+      return (
+        value
+          .map(item => {
+            const condition = item as Record<string, unknown>;
+            const operator = Object.keys(condition).find(key => key !== 'field') ?? '';
+            const actual = condition[operator];
+            return (
+              (this.fieldLabels[String(condition['field'])] ??
+                this.presentation?.humanLabel(String(condition['field'])) ??
+                '') +
+              ' ' +
+              this.translationService.t('data-grids-op-' + operator) +
+              ' ' +
+              (this.presentation?.savedValueLabel(actual as NamedQueryJson) ?? String(actual))
+            );
+          })
+          .join('; ') || (this.translationService.t('nq-ux-empty-conditions') as string)
+      );
+    return value === undefined
+      ? (this.translationService.t('nq-ux-operation-default') as string)
+      : typeof value === 'string'
+        ? value
+        : JSON.stringify(value);
+  }
+  get graphqlResultFields(): NamedQueryResultField[] {
+    return this.presentation?.selectedResultFields(this.activeGraphqlBuffer, this.knownResultFields) ?? [];
+  }
+  get graphqlUse(): 'general' | 'lookup' {
+    return this.activeGraphqlBuffer.graphql.lookup ? 'lookup' : 'general';
+  }
+  get graphqlPreviewValues(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(this.testParameters).map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v)])
+    );
+  }
+  get graphqlPreviewParameters(): { name: string; label: string }[] {
+    return this.graphqlRows.flatMap(row =>
+      row.binding?.ownership === 'consumer' ? [{ name: row.binding.parameter, label: row.label }] : []
+    );
+  }
+  get graphqlReady(): boolean {
+    return (
+      !!this.graphqlDescription?.valid &&
+      !this.validating &&
+      !this.pendingInput &&
+      (this.graphqlUse !== 'lookup' || !!this.capabilities?.lookup)
+    );
+  }
+  get graphqlDiagnostics(): EditorDiagnostic[] {
+    return [...this.diagnostics, ...(this.graphqlUse === 'lookup' ? (this.capabilities?.diagnostics ?? []) : [])];
+  }
+  openCreateChooser(): void {
+    if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    this.itemRequests.invalidate();
+    this.rememberEditModalTrigger();
+    this.chooserReplacing = false;
+    this.chooserOpen = true;
+  }
+  changeSavedSource(): void {
+    if (!this.saving) {
+      this.chooserReplacing = true;
+      this.chooserOpen = true;
+    }
+  }
+  createDatabase(): void {
+    this.chooserOpen = false;
+    this.newQuery();
+  }
+  async chooseSavedSource(choice: SavedQueryChoice): Promise<void> {
+    const token = this.itemRequests.next();
+    const replacing = this.chooserReplacing && this.isEditing;
+    const old = replacing ? structuredClone(this.activeGraphqlBuffer) : null;
+    const { initializePublish } = await import('@researchdatabox/portal-ng-common');
+    if (!this.itemRequests.isCurrent(token) || this.editorDestroyed) return;
+    const initialized = initializePublish(
+      choice.prepared,
+      { mode: choice.summary.mode },
+      {},
+      key => this.translationService.t('data-grids-' + key) as string
+    );
+    const next = initialized.draft;
+    this.candidateValues = Object.fromEntries(
+      initialized.variables.filter(v => v.value !== undefined).map(v => [v.name, v.value!])
+    );
+    this.conditionLabels = Object.fromEntries(initialized.variables.map(v => [v.name, v.label]));
+    if (old) {
+      next.name = old.name;
+      next.description = old.description;
+      // Fixed conditions follow the newly selected saved revision. Retain caller
+      // contracts only when the variable's GraphQL type is unchanged.
+      const { parameterRows } = await import('./graphql-presentation');
+      const oldRows = parameterRows(old, key => key);
+      const newRows = parameterRows(next, key => key);
+      for (const [name, binding] of Object.entries(old.graphql.variables)) {
+        if (
+          binding.ownership !== 'fixed' &&
+          newRows.some(
+            row =>
+              row.variable === name && row.inputType === oldRows.find(previous => previous.variable === name)?.inputType
+          )
+        )
+          next.graphql.variables[name] = binding;
+      }
+      next.graphql.mappings = old.graphql.mappings;
+      if (old.graphql.lookup) next.graphql.lookup = old.graphql.lookup;
+    }
+    if (!this.itemRequests.isCurrent(token) || this.editorDestroyed) return;
+    next.sourceSavedQuery = {
+      ...choice.summary,
+      publishedRevision: choice.summary.revision,
+      missing: false,
+      changedSincePublished: false,
+    };
+    this.chooserOpen = false;
+    if (!replacing) {
+      this.selectedQuery = null;
+      this.isNew = true;
+    }
+    this.draft = next;
+    this.graphqlBuffer = next;
+    this.isEditing = true;
+    this.startDraft(false);
+    this.sourceDraftUpdated = replacing;
+    this.draftChanged();
+    await this.loadGraphqlPresentation(true);
+  }
+  async loadGraphqlPresentation(project = false): Promise<void> {
+    const sequence = ++this.sourceFieldsSequence;
+    this.presentation = await import('./graphql-presentation');
+    if (sequence !== this.sourceFieldsSequence || this.editorDestroyed) return;
+    const target = this.activeGraphqlBuffer;
+    const type = this.linkedSource?.recordType ?? this.presentation.recordType(target);
+    if (!type || this.linkedSource?.missing) {
+      this.requestRender();
+      return;
+    }
+    this.sourcePreparing = true;
+    try {
+      const { RecordGridService } = await import('../../../data-grids/src/app/record-grid.service');
+      const service = this.editorInjector.get(RecordGridService);
+      await service.waitForInit();
+      const saved = this.linkedSource ? await service.read(this.linkedSource.id) : null;
+      const scope = {
+        id: type,
+        label: type,
+        recordType: type,
+        fields: [],
+        ...(saved && saved.mode !== 'graphql' && saved.workflowStage ? { workflowStage: saved.workflowStage } : {}),
+      };
+      const [catalogue] = await service.fields(scope);
+      const ids =
+        saved && saved.mode !== 'graphql'
+          ? saved.columns
+          : catalogue.fields
+              .filter(f => f.selectable && !f.repeatingSubfield)
+              .slice(0, 30)
+              .map(f => f.id);
+      const fields = await service.selections(scope, ids);
+      if (sequence !== this.sourceFieldsSequence || target !== this.activeGraphqlBuffer || this.editorDestroyed) return;
+      this.fieldLabels = Object.fromEntries(catalogue.fields.map(field => [field.id, field.label]));
+      const { visualPublicationProjection } = await import('@researchdatabox/portal-ng-common');
+      const projection = visualPublicationProjection(target.graphql.document, fields);
+      this.knownResultFields =
+        this.linkedSource?.mode === 'visual'
+          ? projection.fields
+          : fields.flatMap(f =>
+              (f.selections ?? []).map(sel => ({ label: f.label, path: sel.responsePath, type: f.type }))
+            );
+      if (project && this.linkedSource?.mode === 'visual') {
+        target.graphql.document = projection.document;
+        this.draftChanged();
+      }
+      this.conditionLabels = {
+        ...this.conditionLabels,
+        ...this.presentation.conditionLabels(
+          target,
+          this.fieldLabels,
+          key => this.translationService.t('data-grids-' + key) as string
+        ),
+      };
+    } catch {
+      /* Field discovery is optional; selected response paths and advanced editing remain available. */
+    } finally {
+      if (sequence === this.sourceFieldsSequence) {
+        this.sourcePreparing = false;
+        this.requestRender();
+      }
+    }
+  }
+  setGraphqlBinding(change: NamedQueryBindingChange): void {
+    this.activeGraphqlBuffer.graphql.variables = {
+      ...this.activeGraphqlBuffer.graphql.variables,
+      [change.variable]: change.binding,
+    };
+    this.draftChanged();
+  }
+  setGraphqlUse(use: 'general' | 'lookup'): void {
+    const operation = this.activeGraphqlBuffer.graphql;
+    if (use === 'general') delete operation.lookup;
+    else if (!operation.lookup) {
+      const path = operation.resultPath.slice(0, -1);
+      operation.lookup = {
+        mode: 'firstPage',
+        collectionPath: path,
+        hasNextPagePath: [...path, 'hasNextPage'],
+        endCursorPath: [...path, 'endCursor'],
+        firstVariable: 'first',
+        afterVariable: 'after',
+        searchParameter: '',
+      };
+      delete operation.variables['first'];
+      delete operation.variables['after'];
+    }
+    this.draftChanged();
+  }
+  selectSection(event: Event, section: string): void {
+    event.preventDefault();
+    this.activeSection = section;
+    const element = document.getElementById('nq-section-' + section);
+    element?.scrollIntoView({ block: 'start' });
+    element?.focus({ preventScroll: true });
+  }
+  async previewGraphql(): Promise<void> {
+    if (this.graphqlUse === 'lookup') {
+      try {
+        const { publishPreviewVariables } = await import('@researchdatabox/portal-ng-common');
+        const values = publishPreviewVariables(this.activeGraphqlBuffer, this.graphqlPreviewValues);
+        this.testParameters = Object.fromEntries(
+          this.graphqlRows.flatMap(r =>
+            r.binding?.ownership === 'consumer' && Object.hasOwn(values, r.variable)
+              ? [[r.binding.parameter, values[r.variable]]]
+              : []
+          )
+        );
+      } catch {
+        this.error = this.translationService.t('nq-ux-preview-values') as string;
+        return;
+      }
+      await this.preview();
+      return;
+    }
+    if (this.previewing || this.pendingInput) return;
+    const token = this.previewRequests.next();
+    this.previewing = true;
+    this.error = '';
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    try {
+      const { publishPreviewVariables } = await import('@researchdatabox/portal-ng-common');
+      const result = await this.api.graphqlRead(
+        this.activeGraphqlBuffer.graphql.document,
+        publishPreviewVariables(this.activeGraphqlBuffer, this.graphqlPreviewValues),
+        this.activeGraphqlBuffer.graphql.operationName
+      );
+      if (!this.previewRequests.isCurrent(token)) return;
+      if (result.errors?.length || !result.data) throw Error();
+      let rows: unknown = result.data;
+      for (const part of this.activeGraphqlBuffer.graphql.resultPath)
+        rows =
+          rows && typeof rows === 'object' && Object.hasOwn(rows, part)
+            ? (rows as Record<string, unknown>)[part]
+            : undefined;
+      if (!Array.isArray(rows)) throw Error();
+      this.rawGraphqlPreview = rows;
+    } catch {
+      if (this.previewRequests.isCurrent(token))
+        this.error = this.translationService.t('nq-ux-preview-error') as string;
+    } finally {
+      if (this.previewRequests.isCurrent(token)) {
+        this.previewing = false;
+        this.requestRender();
+      }
+    }
+  }
   queries: NamedQueryCatalogueRow[] = [];
   filteredQueries: NamedQueryCatalogueRow[] = [];
   collections: string[] = [];
@@ -37,20 +401,36 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   databaseBuffer: NamedQueryDatabaseDefinition = this.emptyDraft();
   graphqlBuffer: GraphqlNamedQueryDefinition = this.emptyGraphqlDraft();
   private sourceValidity: Record<NamedQuerySource, boolean> = { database: true, graphql: true };
+  schemaComponent: Type<unknown> | null = null;
   graphqlSdl = '';
   schemaLoading = false;
   schemaError = '';
   private schemaRequests = new LatestRequest();
   private draftVersion = 0;
-  pendingReview: { review: NamedQueryUpdateReview; payload: NamedQueryDefinition; snapshot: string; version: number } | null = null;
+  pendingReview: {
+    review: NamedQueryUpdateReview;
+    payload: NamedQueryDefinition;
+    snapshot: string;
+    version: number;
+  } | null = null;
   private reviewTrigger: HTMLElement | null = null;
   private editorDestroyed = false;
   capabilities: { lookup: boolean; diagnostics: EditorDiagnostic[] } | null = null;
-  get activeDatabaseBuffer(): NamedQueryDatabaseDefinition { return this.draft.source === 'graphql' ? this.databaseBuffer : this.draft; }
-  get activeGraphqlBuffer(): GraphqlNamedQueryDefinition { return this.draft.source === 'graphql' ? this.draft : this.graphqlBuffer; }
-  get source(): NamedQuerySource { return this.draft.source === 'graphql' ? 'graphql' : 'database'; }
-  get graphqlDescription(): GraphqlNamedQueryDescription | null { return this.description?.source === 'graphql' ? this.description : null; }
-  get catalogueDiagnostics(): EditorDiagnostic[] { return this.queries.flatMap(query => query.valid === false ? query.diagnostics : []); }
+  get activeDatabaseBuffer(): NamedQueryDatabaseDefinition {
+    return this.draft.source === 'graphql' ? this.databaseBuffer : this.draft;
+  }
+  get activeGraphqlBuffer(): GraphqlNamedQueryDefinition {
+    return this.draft.source === 'graphql' ? this.draft : this.graphqlBuffer;
+  }
+  get source(): NamedQuerySource {
+    return this.draft.source === 'graphql' ? 'graphql' : 'database';
+  }
+  get graphqlDescription(): GraphqlNamedQueryDescription | null {
+    return this.description?.source === 'graphql' ? this.description : null;
+  }
+  get catalogueDiagnostics(): EditorDiagnostic[] {
+    return this.queries.flatMap(query => (query.valid === false ? query.diagnostics : []));
+  }
   changeSource(source: NamedQuerySource): void {
     if (source === this.source || this.saving) return;
     if (this.draft.source === 'graphql') this.graphqlBuffer = this.draft;
@@ -71,16 +451,31 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.error = '';
     this.invalidateAssistance();
     this.draftChanged();
-    if (source === 'graphql') void this.loadGraphqlSchema();
-    else { void this.loadTargets(); void this.refreshFields(); }
+    if (source === 'graphql') void this.loadGraphqlPresentation();
+    else {
+      void this.loadTargets();
+      void this.refreshFields();
+    }
   }
   async loadGraphqlSchema(): Promise<void> {
     const token = this.schemaRequests.next();
     this.schemaLoading = true;
     this.schemaError = '';
-    try { const result = await this.api.graphqlSchema(); if (this.schemaRequests.isCurrent(token)) this.graphqlSdl = result.sdl; }
-    catch { if (this.schemaRequests.isCurrent(token)) this.schemaError = this.t('named-query-graphql-schema-error', 'Current GraphQL schema unavailable. Your draft is retained.'); }
-    finally { if (this.schemaRequests.isCurrent(token)) this.schemaLoading = false; }
+    try {
+      const [result, component] = await Promise.all([this.api.graphqlSchema(), import('./graphql-schema.component')]);
+      if (this.schemaRequests.isCurrent(token)) {
+        this.graphqlSdl = result.sdl;
+        this.schemaComponent = component.GraphqlSchemaComponent;
+      }
+    } catch {
+      if (this.schemaRequests.isCurrent(token))
+        this.schemaError = this.t(
+          'named-query-graphql-schema-error',
+          'Current GraphQL schema unavailable. Your draft is retained.'
+        );
+    } finally {
+      if (this.schemaRequests.isCurrent(token)) this.schemaLoading = false;
+    }
   }
   sourceValidityChanged(source: NamedQuerySource, valid: boolean): void {
     this.sourceValidity[source] = valid;
@@ -91,7 +486,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     setTimeout(() => {
       if (this.editorDestroyed || this.saving || !this.isEditing || this.pendingReview) return;
       const target = trigger?.isConnected ? trigger : document.getElementById('named-query-save');
-      (target && !target.matches(':disabled') ? target : document.getElementById('named-query-workspace-title'))?.focus();
+      (target && !target.matches(':disabled')
+        ? target
+        : document.getElementById('named-query-workspace-title')
+      )?.focus();
     }, 0);
   }
   cancelSaveReview(): void {
@@ -113,11 +511,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     }
     this.saving = true;
     let saved = false;
-    try { await this.persist(pending.payload, pending.snapshot, pending.review.confirmation); saved = true; }
-    catch (error) { if (!this.editorDestroyed) this.saveError(error); }
-    finally { this.saving = false; if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger); }
+    try {
+      await this.persist(pending.payload, pending.snapshot, pending.review.confirmation);
+      saved = true;
+    } catch (error) {
+      if (!this.editorDestroyed) this.saveError(error);
+    } finally {
+      this.saving = false;
+      if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger);
+    }
   }
-
 
   message = '';
   error = '';
@@ -164,9 +567,29 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   get dirty(): boolean {
     return this.isEditing && (this.inputDirty || JSON.stringify(this.draft) !== this.baseline);
   }
-  get parameterEntries(): Array<{ key: string; path: string; type: string; format?: string; queryType?: string; template?: string }> {
-    if (this.draft.source === 'graphql') return Object.entries(this.draft.graphql.variables).flatMap(([variable, binding]) =>
-      binding?.ownership === 'consumer' ? [{ key: binding.parameter, path: '$' + variable, type: binding.inputType, format: undefined, queryType: undefined, template: undefined }] : []);
+  get parameterEntries(): Array<{
+    key: string;
+    path: string;
+    type: string;
+    format?: string;
+    queryType?: string;
+    template?: string;
+  }> {
+    if (this.draft.source === 'graphql')
+      return Object.entries(this.draft.graphql.variables).flatMap(([variable, binding]) =>
+        binding?.ownership === 'consumer'
+          ? [
+              {
+                key: binding.parameter,
+                path: '$' + variable,
+                type: binding.inputType,
+                format: undefined,
+                queryType: undefined,
+                template: undefined,
+              },
+            ]
+          : []
+      );
     return Object.entries(this.draft.queryParams || {}).map(([key, param]) => ({ key, ...param }));
   }
   get previewColumns(): string[] {
@@ -196,7 +619,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   @HostListener('document:click', ['$event'])
   guardExternalNavigation(event: MouseEvent): void {
     const anchor = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
-    if (anchor && anchor.target.toLowerCase() !== '_blank' && anchor.getAttribute('href') !== '#' && this.dirty && !this.confirmDiscard()) {
+    if (
+      anchor &&
+      anchor.target.toLowerCase() !== '_blank' &&
+      !anchor.getAttribute('href')?.startsWith('#') &&
+      this.dirty &&
+      !this.confirmDiscard()
+    ) {
       event.preventDefault();
       event.stopPropagation();
     }
@@ -216,13 +645,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.validating = false;
     this.previewing = false;
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
     this.description = null;
     this.diagnostics = [];
     this.capabilities = null;
     this.validationBlocking = false;
   }
 
-  private startDraft(): void {
+  private startDraft(loadSource = true): void {
+    ++this.sourceFieldsSequence;
+    this.sourcePreparing = false;
     this.schemaRequests.invalidate();
     this.graphqlSdl = '';
     this.schemaError = '';
@@ -230,6 +662,9 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.databaseBuffer = this.draft.source === 'graphql' ? this.emptyDraft() : this.draft;
     this.graphqlBuffer = this.draft.source === 'graphql' ? this.draft : this.emptyGraphqlDraft();
     this.draftVersion++;
+    this.knownResultFields = [];
+    this.fieldLabels = {};
+    this.sourceDraftUpdated = false;
     this.pendingReview = null;
     this.invalidateAssistance();
     this.targetRequests.invalidate();
@@ -245,8 +680,12 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.fields = [];
     this.assistanceError = '';
     this.targets = [];
-    if (this.source === 'graphql') void this.loadGraphqlSchema();
-    else { void this.loadTargets(); void this.refreshFields(); }
+    if (this.source === 'graphql') {
+      if (loadSource) void this.loadGraphqlPresentation();
+    } else {
+      void this.loadTargets();
+      void this.refreshFields();
+    }
     if (this.draft.relatedRecordFilters?.length) void this.foreignContextChanged({ index: -1, collectionName: '' });
     this.scheduleValidation();
     // Focus the workspace heading after Angular has rendered the new item.
@@ -347,6 +786,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.validationRequests.invalidate();
     this.previewRequests.invalidate();
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
     this.previewing = false;
     const filters = this.draft.relatedRecordFilters || [];
     await Promise.all(
@@ -379,6 +819,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.previewRequests.invalidate();
     this.previewing = false;
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
     this.description = null;
     this.diagnostics = [];
     this.capabilities = null;
@@ -396,6 +837,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.previewRequests.invalidate();
     this.previewing = false;
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
   }
   validityChanged(valid: boolean): void {
     this.pendingInput = !valid;
@@ -449,6 +891,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.testParameters = { ...this.testParameters, [key]: value };
     this.previewRequests.invalidate();
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
     this.previewing = false;
   }
   testParameterValidity(key: string, valid: boolean): void {
@@ -456,12 +899,14 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     else this.invalidTestParameters.set(key, this.testParameterDefinition(key));
     this.previewRequests.invalidate();
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
     this.previewing = false;
   }
   private testParameterDefinition(key: string): string {
     // GraphQL always uses the same JSON control, tracked by consumer parameter name.
     // Binding defaults/types/ownership edits must not clear a still-mounted control's error.
-    if (this.draft.source === 'graphql') return this.parameterEntries.some(parameter => parameter.key === key) ? 'graphql-json' : 'absent';
+    if (this.draft.source === 'graphql')
+      return this.parameterEntries.some(parameter => parameter.key === key) ? 'graphql-json' : 'absent';
     const param = this.draft.queryParams?.[key];
     return JSON.stringify(param ? [param.type, param.template] : null);
   }
@@ -477,6 +922,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     const token = this.previewRequests.next();
     this.previewing = true;
     this.previewResult = null;
+    this.rawGraphqlPreview = null;
     this.description = null;
     this.error = '';
     const request = { ...this.request(), parameters: JSON.parse(JSON.stringify(this.testParameters)) };
@@ -504,6 +950,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   private messageTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
+    @Inject(Injector) private editorInjector: Injector,
     @Inject(LoggerService) private logger: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(NamedQueryApiService) private api: NamedQueryApiService
@@ -514,9 +961,12 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.api.brandingAndPortalUrl;
-    await Promise.all([this.loadQueries(), this.loadCollections()]);
     const name = new URLSearchParams(window.location.hash.slice(1)).get('query');
-    if (name && /^[A-Za-z0-9_-]{1,120}$/.test(name)) await this.openQuery(name);
+    await Promise.all([
+      this.loadQueries(),
+      this.loadCollections(),
+      name && /^[A-Za-z0-9_-]{1,120}$/.test(name) ? this.openQuery(name) : Promise.resolve(),
+    ]);
   }
 
   async loadCollections(): Promise<void> {
@@ -534,6 +984,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   override ngOnDestroy(): void {
     this.editorDestroyed = true;
+    ++this.sourceFieldsSequence;
     super.ngOnDestroy();
     this.itemRequests.invalidate();
     this.targetRequests.invalidate();
@@ -548,7 +999,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   get presentCollections(): string[] {
-    return [...new Set(this.queries.map(query => query.valid === false ? undefined : query.collectionName).filter((collection): collection is string => !!collection))].sort();
+    return [
+      ...new Set(
+        this.queries
+          .map(query => (query.valid === false ? undefined : query.collectionName))
+          .filter((collection): collection is string => !!collection)
+      ),
+    ].sort();
   }
 
   get uniqueCollections(): number {
@@ -560,7 +1017,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   get canSave(): boolean {
-    if (!this.isEditing || this.pendingInput || this.saving || !!this.pendingReview || this.validationBlocking) return false;
+    if (!this.isEditing || this.pendingInput || this.saving || !!this.pendingReview || this.validationBlocking)
+      return false;
     if (this.isNew) {
       const trimmed = this.draft.name?.trim();
       if (!trimmed || !/^[A-Za-z0-9_-]+$/.test(trimmed)) return false;
@@ -601,9 +1059,17 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.filteredQueries = this.queries.filter(q => {
       const name = (q.name || '').toLowerCase();
       const collectionName = q.valid === false ? '' : q.collectionName || '';
-      const collection = (q.valid === false ? this.t('named-query-invalid-source', 'Unsupported source') : q.source === 'graphql' ? 'GraphQL' : collectionName).toLowerCase();
-      return (!this.listQuery.collection || collectionName === this.listQuery.collection) &&
-        (name.includes(term) || collection.includes(term));
+      const collection = (
+        q.valid === false
+          ? this.t('named-query-invalid-source', 'Unsupported source')
+          : q.source === 'graphql'
+            ? 'GraphQL'
+            : collectionName
+      ).toLowerCase();
+      return (
+        (!this.listQuery.collection || collectionName === this.listQuery.collection) &&
+        (name.includes(term) || collection.includes(term))
+      );
     });
   }
 
@@ -615,6 +1081,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     this.rememberEditModalTrigger();
     this.selectedQuery = null;
     this.isNew = true;
+    this.candidateValues = {};
+    this.conditionLabels = {};
     this.draft = this.emptyDraft();
     this.isEditing = true;
     this.startDraft();
@@ -622,7 +1090,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   async openQuery(name: string): Promise<void> {
     if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
-    if (this.queries.some(query => query.name === name && query.valid === false)) { this.error = this.t('named-query-invalid-source-help', 'This saved source is unsupported. Review its diagnostics or delete it after removing known usages.'); return; }
+    if (this.queries.some(query => query.name === name && query.valid === false)) {
+      this.error = this.t(
+        'named-query-invalid-source-help',
+        'This saved source is unsupported. Review its diagnostics or delete it after removing known usages.'
+      );
+      return;
+    }
     const token = this.itemRequests.next();
     this.invalidateAssistance();
     this.clearMessage();
@@ -633,6 +1107,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       if (!this.itemRequests.isCurrent(token)) return;
       this.selectedQuery = result;
       this.isNew = false;
+      this.candidateValues = {};
+      this.conditionLabels = {};
       this.draft = this.cloneQuery(result);
       this.isEditing = true;
       this.startDraft();
@@ -647,6 +1123,7 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   closeEditModal(): void {
     if (this.saving || this.pendingReview || !this.confirmDiscard()) return;
+    ++this.sourceFieldsSequence;
     this.itemRequests.invalidate();
     this.targetRequests.invalidate();
     this.schemaRequests.invalidate();
@@ -657,8 +1134,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   async save(): Promise<void> {
     if (this.saving || this.editorDestroyed) return;
-    const trigger = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
-      ? document.activeElement : document.getElementById('named-query-save');
+    const trigger =
+      document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+        ? document.activeElement
+        : document.getElementById('named-query-save');
     if (!this.canSave) {
       if (this.isNew) {
         const trimmed = this.draft.name?.trim();
@@ -673,7 +1152,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
           this.error = this.t('named-query-error-name-reserved', "'collections' is a reserved name and cannot be used");
         }
       } else if (this.source === 'graphql') {
-        this.error = this.t('named-query-graphql-correct-before-save', 'Correct the GraphQL document and variable diagnostics before saving.');
+        this.error = this.t(
+          'named-query-graphql-correct-before-save',
+          'Correct the GraphQL document and variable diagnostics before saving.'
+        );
       } else {
         this.error = this.t('named-query-error-collection-required', 'Collection name is required');
       }
@@ -691,7 +1173,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       await this.validateDraft();
       if (this.editorDestroyed) return;
       if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
-        this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
+        this.error = this.t(
+          'named-query-review-changed',
+          'The draft changed. Save again to review the current changes.'
+        );
         return;
       }
       if (this.validationBlocking) return;
@@ -699,7 +1184,10 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
         const review = await this.api.reviewUpdate(payload.name as string, payload);
         if (this.editorDestroyed) return;
         if (this.pendingInput || this.draftVersion !== versionAtSave || JSON.stringify(this.draft) !== draftAtSave) {
-          this.error = this.t('named-query-review-changed', 'The draft changed. Save again to review the current changes.');
+          this.error = this.t(
+            'named-query-review-changed',
+            'The draft changed. Save again to review the current changes.'
+          );
           return;
         }
         if (review.required) {
@@ -710,7 +1198,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
       }
       await this.persist(payload, draftAtSave);
       saved = true;
-    } catch (err) { if (!this.editorDestroyed) this.saveError(err);
+    } catch (err) {
+      if (!this.editorDestroyed) this.saveError(err);
     } finally {
       this.saving = false;
       if (!saved && !this.editorDestroyed) this.restoreReviewFocus(trigger);
@@ -721,22 +1210,48 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     if (this.isNew) await this.api.create(payload);
     else await this.api.update(payload.name as string, payload, confirmation);
     if (this.editorDestroyed) return;
-    this.setMessage(this.t(this.isNew ? 'named-query-message-created' : 'named-query-message-updated',
-      this.isNew ? 'Named query "{{name}}" created' : 'Named query "{{name}}" updated', { name: payload.name ?? '' }));
+    this.setMessage(
+      this.t(
+        this.isNew ? 'named-query-message-created' : 'named-query-message-updated',
+        this.isNew ? 'Named query "{{name}}" created' : 'Named query "{{name}}" updated',
+        { name: payload.name ?? '' }
+      )
+    );
     await this.loadQueries();
     if (this.editorDestroyed) return;
     if (JSON.stringify(this.draft) === snapshot) {
-      this.inputDirty = false; this.baseline = snapshot; this.saving = false; this.closeEditModal();
+      this.inputDirty = false;
+      this.baseline = snapshot;
+      this.saving = false;
+      this.closeEditModal();
     }
   }
   private saveError(error: unknown): void {
-    this.error = this.t(this.source === 'graphql' ? 'named-query-graphql-save-error' : (this.isNew ? 'named-query-error-create' : 'named-query-error-update'),
-      'Failed to save named query: {{error}}', { error: this.asErrorMessage(error) });
+    if ((error as { status?: number }).status === 409) {
+      this.error = this.translationService.t('nq-ux-save-conflict') as string;
+      return;
+    }
+
+    this.error = this.t(
+      this.source === 'graphql'
+        ? 'named-query-graphql-save-error'
+        : this.isNew
+          ? 'named-query-error-create'
+          : 'named-query-error-update',
+      'Failed to save named query: {{error}}',
+      { error: this.asErrorMessage(error) }
+    );
   }
   graphqlTestValue(key: string, value: unknown): void {
-    if (value === undefined) { const parameters = { ...this.testParameters }; delete parameters[key]; this.testParameters = parameters; }
-    else this.testParameterChanged(key, value);
-    this.previewRequests.invalidate(); this.previewResult = null; this.previewing = false;
+    if (value === undefined) {
+      const parameters = { ...this.testParameters };
+      delete parameters[key];
+      this.testParameters = parameters;
+    } else this.testParameterChanged(key, value);
+    this.previewRequests.invalidate();
+    this.previewResult = null;
+    this.rawGraphqlPreview = null;
+    this.previewing = false;
   }
 
   requestDelete(name: string): void {
@@ -809,12 +1324,22 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     const cloned = JSON.parse(JSON.stringify(q)) as NamedQueryDefinition;
     if (cloned.source === 'graphql') {
       const operation = cloned.graphql;
-      cloned.graphql = { ...operation,
+      cloned.graphql = {
+        ...operation,
         document: typeof operation?.document === 'string' ? operation.document : '',
-        variables: operation?.variables && typeof operation.variables === 'object' && !Array.isArray(operation.variables) ? operation.variables : {},
+        variables:
+          operation?.variables && typeof operation.variables === 'object' && !Array.isArray(operation.variables)
+            ? operation.variables
+            : {},
         resultPath: Array.isArray(operation?.resultPath) ? operation.resultPath : [],
-        mappings: operation?.mappings && typeof operation.mappings === 'object' && !Array.isArray(operation.mappings) ? operation.mappings : {},
-        lookup: operation?.lookup && typeof operation.lookup === 'object' && !Array.isArray(operation.lookup) ? operation.lookup : undefined,
+        mappings:
+          operation?.mappings && typeof operation.mappings === 'object' && !Array.isArray(operation.mappings)
+            ? operation.mappings
+            : {},
+        lookup:
+          operation?.lookup && typeof operation.lookup === 'object' && !Array.isArray(operation.lookup)
+            ? operation.lookup
+            : undefined,
       };
       return cloned;
     }
@@ -827,8 +1352,13 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private sanitizeQuery(q: NamedQueryDefinition): NamedQueryDefinition {
-    if (q.source === 'graphql') return { source: 'graphql', name: q.name?.trim() || undefined,
-      ...(q.description !== undefined ? { description: q.description } : {}), graphql: q.graphql };
+    if (q.source === 'graphql')
+      return {
+        source: 'graphql',
+        name: q.name?.trim() || undefined,
+        ...(q.description !== undefined ? { description: q.description } : {}),
+        graphql: q.graphql,
+      };
     const { graphql: inactiveGraphql, usedBy, ...databaseFields } = q;
     return {
       ...databaseFields,
@@ -873,7 +1403,8 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
 
   private rememberDeleteModalTrigger(): void {
     const el = document.activeElement;
-    this.deleteModalTrigger = el instanceof HTMLElement ? el.closest('details')?.querySelector('summary') ?? el : null;
+    this.deleteModalTrigger =
+      el instanceof HTMLElement ? (el.closest('details')?.querySelector('summary') ?? el) : null;
   }
 
   private restoreEditModalTrigger(): void {
@@ -898,7 +1429,6 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
   }
 
   private asErrorMessage(err: unknown): string {
-
     if (typeof err === 'object' && err !== null) {
       const maybe = err as { message?: string; error?: { message?: string; errors?: { detail?: string }[] } };
       if (maybe.error?.errors?.[0]?.detail) return maybe.error.errors[0].detail;
