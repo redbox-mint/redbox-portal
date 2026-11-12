@@ -1,3 +1,4 @@
+import { reportDisplayValue } from '@researchdatabox/sails-ng-common';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -65,6 +66,8 @@ const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
 
 type ReportColumnLike = {
+  format?: 'text' | 'date' | 'datetime';
+  valueLabels?: { value: string; label: string }[];
   label: string;
   property: string;
   exportTemplate?: string;
@@ -99,6 +102,8 @@ type ReportConfigFilterDto = {
 };
 
 type ReportConfigColumnDto = {
+  format?: 'text' | 'date' | 'datetime';
+  valueLabels?: { value: string; label: string }[];
   label: string;
   property: string;
   hide?: boolean;
@@ -617,7 +622,9 @@ export namespace Services {
         hide: column.hide ?? false,
         exportTemplate: column.exportTemplate ?? '',
         template: column.template ?? '',
-        multivalue: column.multivalue ?? false
+        multivalue: column.multivalue ?? false,
+        ...(column.format ? { format: column.format } : {}),
+        ...(column.valueLabels ? { valueLabels: column.valueLabels } : {})
       }));
       return {
         name: config.name ?? '',
@@ -898,9 +905,11 @@ export namespace Services {
       budget?: NamedQueryExecutionBudget,
       display = false
     ): string {
-      if (col.multivalue) {
+      if (col.multivalue && (display || !col.format)) {
         const retVal: string[] = [];
         const values = _.get(row, col.property);
+        if (col.format && !Array.isArray(values))
+          return this.getEntryValue(row, col, undefined, optTemplateData, budget, display) as string;
         if (Array.isArray(values) || (display && typeof values === 'string')) {
           for (const val of values) {
             const entry = this.getEntryValue(row, col, val, optTemplateData, budget, display) as string;
@@ -908,7 +917,7 @@ export namespace Services {
             retVal.push(entry);
           }
         }
-        return retVal.join('');
+        return retVal.join(display && col.format && Array.isArray(values) && !col.template ? '<br>' : '');
       } else {
         return this.getEntryValue(
           row,
@@ -942,7 +951,8 @@ export namespace Services {
 
         retVal = this.runTemplate(data, { template: template, noEscape: !display }, {}, undefined, budget);
       } else {
-        retVal = _.get(row, col.property, val);
+        retVal = display && col.multivalue && col.format && val !== undefined ? val : _.get(row, col.property, val);
+        if (display) retVal = reportDisplayValue(retVal, col);
       }
       if (budget && !budget.output(retVal)) throw new NamedQueryPreviewOutputLimitError();
       return retVal;

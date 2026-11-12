@@ -43,6 +43,8 @@ export class ReportConfig {
   }
   
   class ReportColumnConfig {
+    format?: 'text' | 'date' | 'datetime';
+    valueLabels?: { value: string; label: string }[];
     label: string = '';
     property: string = '';
     hide: boolean = false;

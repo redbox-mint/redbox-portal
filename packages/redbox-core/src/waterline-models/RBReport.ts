@@ -42,6 +42,8 @@ export class ReportClass {
 export const ReportWLDef = toWaterlineModelDef(ReportClass);
 
 export interface ReportColumn {
+  format?: 'text' | 'date' | 'datetime';
+  valueLabels?: { value: string; label: string }[];
   label: string;
   property: string;
   exportTemplate?: string;

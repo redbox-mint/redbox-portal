@@ -40,6 +40,8 @@ export interface ReportConfigFilterDto {
 }
 
 export interface ReportConfigColumnDto {
+  format?: 'text' | 'date' | 'datetime';
+  valueLabels?: { value: string; label: string }[];
   label: string;
   property: string;
   hide?: boolean;
@@ -103,6 +105,7 @@ export interface ReportConfigValidation {
 export interface ReportNamedQueryDescription extends Omit<NamedQueryDescription, 'source'> {
   source?: 'database' | 'graphql';
   queryVersion?: string;
+  compatibleQueryVersions?: string[];
   sourceSavedQuery?: { id: string; name: string };
   sourceExplorerUrl?: string;
   templateContexts: { display: FieldDescription; csv: FieldDescription };
