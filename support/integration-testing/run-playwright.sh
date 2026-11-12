@@ -11,15 +11,17 @@ if [[ "${PLAYWRIGHT_INSTALL_DEPS:-false}" == "true" && ! -x node_modules/.bin/pl
   npm ci --ignore-scripts --strict-peer-deps
 fi
 
-# The browser PDF tests load the real PDF service and its shared test helpers.
-# These packages have no compiled output in a clean CI checkout.
-npm run compile:raido
-npm run compile:rva
-npm run compile:sails-ng-common
-npm run compile:agenda-sqs
-npm run compile:core
-npm run compile:dev-tools
-npm run compile:pdfgen-hook
+# CI prepares PDF dependencies on the host before the read-only test mounts.
+# Mounted development stacks build them during portal preparation.
+if [[ ! -f packages/sails-hook-redbox-pdfgen/dist/api/services/PDFService.js || ! -f packages/redbox-dev-tools/dist/testing.js ]]; then
+  npm run compile:raido
+  npm run compile:rva
+  npm run compile:sails-ng-common
+  npm run compile:agenda-sqs
+  npm run compile:core
+  npm run compile:dev-tools
+  npm run compile:pdfgen-hook
+fi
 
 mkdir -p /opt/redbox-portal/.tmp/junit/backend-playwright
 mkdir -p /opt/redbox-portal/.tmp/playwright/report

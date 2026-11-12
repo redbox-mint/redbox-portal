@@ -441,6 +441,16 @@ jobs:
             sudo mkdir -p .tmp/playwright/{logs,attachments,email}
             sudo chmod -R 777 .
       - run:
+          name: Prepare browser PDF test dependencies
+          command: |
+            npm run compile:raido
+            npm run compile:rva
+            npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
+            npm run compile:core
+            npm run compile:dev-tools
+            npm run compile:pdfgen-hook
+      - run:
           name: Validate Playwright coverage manifest
           command: npm run test:playwright:check-coverage
       - run:

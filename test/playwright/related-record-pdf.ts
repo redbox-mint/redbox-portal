@@ -4,12 +4,6 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 
 const pdfRequire = createRequire(path.resolve('packages/sails-hook-redbox-pdfgen/package.json'));
-const { Effect, Cause } = pdfRequire('effect');
-const {
-  installPdfgenTestGlobals,
-  clearPdfgenTestGlobals,
-} = require('../../packages/sails-hook-redbox-pdfgen/test/support/globals');
-const { relatedPlanPdf } = require('../../packages/redbox-hook-dev/src/config/related-record-examples');
 
 /** Real PDFService + Puppeteer + actual portal/Angular page. Only storage and timing are test doubles. */
 export async function relatedPdfProof(options: {
@@ -21,6 +15,13 @@ export async function relatedPdfProof(options: {
   requiredError?: boolean;
   changeSource: () => Promise<unknown>;
 }) {
+  const { Effect, Cause } = pdfRequire('effect');
+  const {
+    installPdfgenTestGlobals,
+    clearPdfgenTestGlobals,
+  } = require('../../packages/sails-hook-redbox-pdfgen/test/support/globals');
+  const { relatedPlanPdf } = require('../../packages/redbox-hook-dev/src/config/related-record-examples');
+
   const name = options.requiredError ? 'pdf-required-error' : options.wait ? 'pdf-ready' : 'pdf-without-wait';
   const globals = globalThis as any;
   installPdfgenTestGlobals({ appUrl: options.baseURL });
