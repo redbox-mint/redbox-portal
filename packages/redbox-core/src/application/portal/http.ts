@@ -1,3 +1,4 @@
+import { portalReadHttpInputs } from './readHttpPlan';
 import { portalReferenceHttpInputs } from './referenceHttpPlan';
 import { companionOptions } from '../../http/integrations/companion/uploads';
 import path from 'node:path';
@@ -5,16 +6,12 @@ import express from 'express';
 import type { Router, Request } from 'express';
 import type { Server } from 'node:http';
 import { firstValueFrom } from 'rxjs';
-import { diffRecordValues } from '@researchdatabox/sails-ng-common';
 import type { ApplicationModule } from '../Application';
 import type { createPortalApplication } from './application';
 import type { PoliciesConfig } from '../../config/policies.config';
 import { portalHttpPlan, portalHttpSettings } from './httpPlan';
 import * as http from '../../http/express';
 import { BrandingModel } from '../../model/storage/BrandingModel';
-import { RecordAuditViews } from '../../queries/RecordAuditViews';
-import { SiemReads } from '../../queries/SiemReads';
-import { summarizeFigshareStatus } from '../../queries/FigshareStatus';
 import { ContextVariables } from '../../forms/ContextVariables';
 import { Services as Logos } from '../../branding/BrandingLogo';
 import { Services as Templates } from '../../pages/Templates';
@@ -371,45 +368,9 @@ export class PortalHttp implements ApplicationModule {
       reloadTranslations: id => ref.translation.get().reloadResources(id),
     });
     http.mountFormDeliveryRoutes(router, { ...shared, ...referenceInputs.form });
-    const recordAudit = new RecordAuditViews({
-      records: data.records.get(),
-      forms: ref.forms.get(),
-      integrations: providers.audits.get(),
-      compareRecords: diffRecordValues,
-      canView: async (brand, user, record) =>
-        data.records.get().hasViewAccess(brand, user, Array.isArray(user.roles) ? user.roles : [], record),
-      configuration: name => ref.appConfigs.get().getAppConfigurationForBrand(name),
-      figshareStatus: async (oid, record) =>
-        summarizeFigshareStatus(oid, record, await persistence.getFigshareSyncRepository(owner).get(oid)),
-    });
-    http.mountQueryReadRoutes(router, {
-      ...shared,
-      queries: ref.queries.get(),
-      reports: ref.reports.get(),
-      harvest: data.harvest.get(),
-      siem: new SiemReads(persistence.getSiemRepository(owner)),
-      audit: recordAudit,
-      search: data.search.get(),
-      recordTypes: ref.types.get(),
-      returnFields: config.record.search.returnFields,
-      siemConfig: async id => ref.appConfigs.get().getAppConfigByBrandAndKey(id, 'siem'),
-    });
-    http.mountRecordReadRoutes(router, {
-      ...shared,
-      schemas: ref.schema.get(),
-      rootContext,
-      storage: data.storage(),
-      audit: data.records.get(),
-      forms: ref.forms.get(),
-      contextVariables,
-      reusableFormDefinitions: config.reusableFormDefinitions,
-      recordTypes: ref.types.get(),
-      search: data.search.get(),
-      returnFields: config.record.search.returnFields,
-      maxRows: config.api.max_requests,
-      maxSearchRows: config.record.search.maxRecordsPerPage,
-      translate: (key, brand) => ref.translation.get().t(key, undefined, 'en', brand),
-    });
+    const readInputs = portalReadHttpInputs(this.portal);
+    http.mountQueryReadRoutes(router, { ...shared, ...readInputs.queries });
+    http.mountRecordReadRoutes(router, { ...shared, ...readInputs.records });
     http.mountRecordMutationRoutes(router, {
       ...shared,
       records: data.records.get(),

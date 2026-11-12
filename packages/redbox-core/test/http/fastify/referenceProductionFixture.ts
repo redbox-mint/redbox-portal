@@ -28,7 +28,12 @@ export const referenceOrigin = 'https://portal.example.invalid';
 export async function referenceProductionFixture(
   nativeHost: boolean,
   policyConfiguration?: PoliciesConfig,
-  beforePrepare?: () => () => void
+  beforePrepare?: () => () => void,
+  scope?: {
+    readonly declarations: readonly import('../../../src/http/fastify/routes').ApiRouteSource[];
+    readonly configuration?: Record<string, unknown>;
+    readonly log?: typeof nothingLogger;
+  }
 ) {
   assert(
     process.env.HTTP_PILOT_TEST_MONGO_URL && process.env.HTTP_READ_SOLR_PORT,
@@ -137,6 +142,7 @@ export async function referenceProductionFixture(
           record: {
             contextVariables: { requestHeader: { source: 'request', type: 'header', field: 'x-fixture-context' } },
           },
+          ...scope?.configuration,
           dashboardview: {
             referenceView: {
               name: 'referenceView',
@@ -155,13 +161,17 @@ export async function referenceProductionFixture(
       files: { application: configFile },
       env: {},
       argv: [],
-      log: nothingLogger,
+      log: scope?.log ?? nothingLogger,
       localesDirectory: path.join(directory, 'locales'),
     };
     const portal = nativeHost
       ? await createPortalFastifyApplication({
           ...options,
-          http: { declarations: referenceReadDeclarations, policyConfiguration, portals: ['rdmp'] },
+          http: {
+            declarations: scope?.declarations ?? referenceReadDeclarations,
+            policyConfiguration,
+            portals: ['rdmp'],
+          },
         })
       : await createPortalHost({ ...options, policyConfiguration, portals: ['rdmp'] });
     const { owner, data } = portal;

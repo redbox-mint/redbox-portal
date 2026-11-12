@@ -15,7 +15,11 @@ import { hasViewAccess } from '../../records/access';
 import { filterRelationshipGraph, relationshipOptions } from '../../records/relationships';
 import { userFromActor } from '../actors';
 import type { HttpRequestContext } from '../context';
-import { apiNoCacheHeaders, apiVersion, validationApiVersion } from '../apiResponses';
+import {
+  apiNoCacheHeaders,
+  safeApiVersion as apiVersion,
+  safeValidationApiVersion as validationApiVersion,
+} from '../apiResponses';
 import {
   recordRepresentationConcurrency,
   parsePublicRecordConcurrencyRequest,

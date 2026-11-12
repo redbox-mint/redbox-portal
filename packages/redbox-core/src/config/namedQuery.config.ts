@@ -10,6 +10,7 @@
 export interface NamedQueryParam {
     type: 'string' | 'date' | 'number' | 'boolean' | 'array' | 'object';
     path: string;
+    required?: boolean;
     queryType?: 'contains' | '<=' | '>=' | string;
     whenUndefined: 'defaultValue' | 'ignore';
     defaultValue?: unknown;

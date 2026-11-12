@@ -1,3 +1,9 @@
+import assert from 'node:assert/strict';
+import { serialize } from 'node:v8';
+import _ from 'lodash';
+import { RetainedNamedQueryParameters } from '../helpers/retainedNamedQueryParameters';
+import { NamedQueryParameterError } from '../../src/queries/namedQueryParameters';
+import { namedQueryDefaultDefinitions, namedQueryDefaultInputs } from '../helpers/namedQueryDefaults';
 const collaborators: any = {};
 import * as storageQueries from '../../src/persistence/storage/NamedQueryTargets';
 import { repositoryFixtures } from '../helpers/repositoryFixtures';
@@ -758,6 +764,19 @@ describe('NamedQueryService', function() {
       expect(mockRecordNativeCollection.countDocuments.firstCall.args[0].relatedId).to.deep.equal({ $in: ['rel-1', 'rel-2'] });
     });
 
+    it('applies configured null defaults to omitted primary and related-filter parameters', async function() {
+      mockRelatedRecordModel.find.returns({ meta: sinon.stub().resolves([]) });
+      mockRecordNativeCollection.countDocuments.resolves(0);
+      await NamedQueryService.performNamedQuery('', {}, 'record', {}, {
+        status: { path: 'status', type: 'string', whenUndefined: 'defaultValue', defaultValue: null }
+      }, { status: undefined }, { id: 'brand-1' }, 0, 10, undefined, undefined, false, [{
+        collectionName: 'relatedmodel', mongoQuery: { status: 'placeholder' },
+        localField: 'relatedId', foreignField: 'recordId'
+      }]);
+      expect(mockRelatedRecordModel.find.firstCall.args[0].where).to.deep.equal({ status: null, branding: 'brand-1' });
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0].status).to.equal(null);
+    });
+
     it('should intersect related record filters targeting the same local field', async function() {
       const brand = { id: 'brand-1' };
       const countMeta = sinon.stub().resolves(0);
@@ -832,6 +851,16 @@ describe('NamedQueryService', function() {
   });
 
   describe('performNamedQueryFromConfigResults', function() {
+    it('preserves configured null defaults through paginated named-query execution', async function() {
+      mockRecordNativeCollection.countDocuments.resolves(0);
+      const records = await NamedQueryService.performNamedQueryFromConfigResults({
+        collectionName: 'record', mongoQuery: {}, resultObjectMapping: {}, sort: [],
+        queryParams: { title: { type: 'string', path: 'metadata.title', whenUndefined: 'defaultValue', defaultValue: null } }
+      }, { title: undefined }, { id: 'brand-1' }, 'null-defaults');
+      expect(records).to.deep.equal([]);
+      expect(mockRecordNativeCollection.countDocuments.firstCall.args[0]['metadata.title']).to.equal(null);
+    });
+
     it('should break the loop when maxRecords is exceeded', async function() {
       const brand = { id: 'brand-1' };
       const config = {
@@ -913,7 +942,106 @@ describe('NamedQueryService', function() {
     });
   });
 
+  describe('retained parameter pipeline equivalence', function() {
+    const types = ['string', 'number', 'date', 'boolean', 'array', 'object'] as const;
+    const operators = [{ $ne: 'x' }, { $regex: '.*' }, { 'a.b': 'x' },
+      { safe: { $ne: 'x' } }, [{ $ne: 'x' }], [['x', { 'a.b': 'x' }]]];
+    for (const type of types) {
+      const typed = { string: 'fallback', number: 10, date: '2026-01-02T03:04:05.000Z', boolean: true, array: ['fallback'], object: { $schema: 'https://example.org/default', 'schema.org': 'Dataset' } }[type];
+      const valid = { string: 'value', number: '12', date: '2026-02-03T04:05:06.000Z', boolean: 'true', array: '["a","b"]', object: '{"$schema":"https://example.org/schema","schema.org":"Dataset"}' }[type];
+      const fallback = type === 'number' ? '10' : type === 'boolean' ? 'true' : type === 'array' ? "'[\"fallback\"]'" : type === 'object' ? "'" + JSON.stringify(typed) + "'" : JSON.stringify(typed);
+      for (const defaults of ['none', 'null', 'typed'] as const)
+        for (const template of ['', '{{value}}', '{{default value ' + fallback + '}}']) {
+          const definition = RetainedNamedQueryParameters.parameter({
+            type, path: 'metadata.value', format: 'ISODate', template,
+            whenUndefined: defaults === 'none' ? 'ignore' : 'defaultValue',
+            defaultValue: defaults === 'null' ? null : defaults === 'typed' ? typed : undefined
+          });
+          for (const [input, value] of [
+            ['omitted', undefined], ['empty', ''], ['valid', valid],
+            ['false-ish', type === 'boolean' ? false : '0'], ['multi-value', ['a', 'b']]
+          ] as const) {
+            it(`${type} / ${input} / ${defaults} / ${template || 'no template'} is byte-identical`, function() {
+              for (const query of [{}, { 'metadata.value': 'sentinel' }, { metadata: { value: 'sentinel' } }])
+                for (const queryType of type === 'object' ? ['$eq', '$ne', '$gt', '$gte', '$lt', '$lte'] : ['', '$eq'])
+                  for (const params of input === 'omitted' ? [{}, { value: undefined }] : [{ value }]) {
+                    const definitions = { value: Object.assign({}, definition, { queryType }) };
+                    const resolve = (pipeline: Pick<RetainedNamedQueryParameters, 'setParamsInQuery'>) => {
+                      const resolved = _.cloneDeep(query);
+                      try {
+                        return { query: resolved, result: pipeline.setParamsInQuery(resolved, definitions, _.cloneDeep(params)) };
+                      } catch (error) {
+                        if (!(error instanceof Error)) throw error;
+                        return { query: resolved, error: { name: error.name, message: error.message } };
+                      }
+                    };
+                    const original = resolve(new RetainedNamedQueryParameters());
+                    const current = resolve(NamedQueryService);
+                    assert.deepEqual(serialize(current), serialize(original));
+                    assert.equal(JSON.stringify(current), JSON.stringify(original));
+                  }
+            });
+          }
+          it(`${type} / ${defaults} / ${template || 'no template'} rejects operator inputs with 400`, function() {
+            for (const value of [...operators, ...(type === 'array' ? ['[{"$ne":"x"}]'] : type === 'object' ? ['{"$schema":"schema"}', '{"schema.org":"Dataset"}'] : [])]) {
+              const query = {};
+              assert.throws(() => NamedQueryService.setParamsInQuery(query, { value: definition }, { value }),
+                (error: unknown) => error instanceof NamedQueryParameterError && error.status === 400);
+              assert.deepEqual(query, {});
+            }
+          });
+        }
+    }
+  });
+
   describe('setParamsInQuery', function() {
+    it('rejects deeply nested decoded array operators with safe 400', function() {
+      const value = '['.repeat(5000) + '{"$ne":"x"}' + ']'.repeat(5000);
+      assert.throws(() => NamedQueryService.setParamsInQuery({}, {
+        value: { type: 'array', path: 'metadata.value', whenUndefined: 'ignore' }
+      }, { value }), (error: unknown) => error instanceof NamedQueryParameterError && error.status === 400);
+    });
+
+    for (const definition of namedQueryDefaultDefinitions) {
+      for (const input of [
+        { name: 'absent', params: {} },
+        ...namedQueryDefaultInputs.map(input => ({
+          name: input.name === 'omitted' ? 'own undefined' : input.name,
+          params: { term: input.value }
+        })),
+        { name: 'explicit null', params: { term: null } },
+      ]) {
+        it(`preserves default provenance: ${definition.name} / ${input.name}`, function() {
+          const query = { 'metadata.title': 'sentinel' };
+          const omitted = input.name === 'absent' || input.name === 'own undefined';
+          const run = () => NamedQueryService.setParamsInQuery(query, { term: definition.parameter }, input.params);
+          if (input.name === 'operator' || (omitted && definition.name === 'required')) {
+            expect(run).to.throw(omitted ? 'term is a required parameter' : 'term contains an unsafe query parameter');
+            expect(query).to.deep.equal({ 'metadata.title': 'sentinel' });
+          } else {
+            run();
+            expect(query).to.deep.equal((omitted || input.name === 'explicit null') && definition.name === 'no-default' ? {} : {
+              'metadata.title': omitted ? definition.parameter.defaultValue : input.params.term
+            });
+          }
+        });
+      }
+    }
+
+    it('validates a template result after selecting a null default from own undefined', function() {
+      expect(() => NamedQueryService.setParamsInQuery({}, {
+        term: { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: null, template: 'paramMap.other' }
+      }, { term: undefined, other: { $ne: 'x' } })).to.throw('term contains an unsafe query parameter');
+    });
+
+    it('preserves a null template result after selecting the configured null default', function() {
+      const query = {};
+      NamedQueryService.setParamsInQuery(query, {
+        term: { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: null, template: 'value' }
+      }, { term: undefined });
+      expect(query).to.deep.equal({ 'metadata.title': null });
+    });
+
     it('should replace parameters in query', function() {
       const mongoQuery = { status: 'param-status' };
       const queryParams = {
@@ -955,6 +1083,53 @@ describe('NamedQueryService', function() {
       }).to.throw('status is a required parameter');
     });
 
+    it('rejects operators before configured string templates can coerce them', function() {
+      expect(() => NamedQueryService.setParamsInQuery({}, {
+        title: { path: 'metadata.title', type: 'string', template: '{{value}}' }
+      }, { title: { $ne: 'x' } })).to.throw('title contains an unsafe query parameter');
+    });
+
+    it('validates template results before they enter predicates', function() {
+      expect(() => NamedQueryService.setParamsInQuery({}, {
+        title: { path: 'metadata.title', type: 'string', template: 'paramMap.other' }
+      }, { title: 'valid', other: { $regex: '.*' } })).to.throw('title contains an unsafe query parameter');
+    });
+
+    it('preserves a configured null default', function() {
+      const query = {};
+      NamedQueryService.setParamsInQuery(query, {
+        title: { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: null }
+      }, {});
+      expect(query).to.deep.equal({ 'metadata.title': null });
+    });
+
+    it('validates templates even after a configured null default', function() {
+      expect(() => NamedQueryService.setParamsInQuery({}, {
+        title: { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: null, template: 'paramMap.other' }
+      }, { other: { $ne: 'x' } })).to.throw('title contains an unsafe query parameter');
+    });
+
+    it('retains original trusted parameter resolution', function() {
+      const query = {};
+      NamedQueryService.setParamsInQuery(query, {
+        title: { path: 'metadata.title', type: 'string', required: true }
+      }, Object.create({ title: 'inherited' }));
+      expect(query).to.deep.equal({ 'metadata.title': 'inherited' });
+    });
+
+    it('refuses executable keys in configured structured client data', function() {
+      expect(() => NamedQueryService.setParamsInQuery({}, {
+        value: { path: 'metadata.literal', type: 'object' }
+      }, { value: { $regex: '.*', nested: { $ne: null } } })).to.throw('value contains an unsafe query parameter');
+    });
+
+    it('preserves bare array parameters for the selected query target dialect', function() {
+      const query = {};
+      NamedQueryService.setParamsInQuery(query, { tags: { path: 'tags', type: 'array' } },
+        { tags: ['science', 'art'] });
+      expect(query).to.deep.equal({ tags: ['science', 'art'] });
+    });
+
     it('should parse boolean and array parameters', function() {
       const mongoQuery: any = {};
       const queryParams = {
@@ -984,20 +1159,20 @@ describe('NamedQueryService', function() {
     it('should parse object parameters from json strings', function() {
       const mongoQuery: any = {};
       const queryParams = {
-        'constraints': { path: 'constraints', type: 'object', whenUndefined: 'ignore' }
+        'constraints': { path: 'constraints', type: 'object', queryType: '$eq', whenUndefined: 'ignore' }
       };
 
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, {
         constraints: '{"status":"active","limit":5}'
       });
 
-      expect(mongoQuery.constraints).to.deep.equal({ status: 'active', limit: 5 });
+      expect(mongoQuery.constraints).to.deep.equal({ $eq: { status: 'active', limit: 5 } });
     });
 
     it('should reject invalid object parameters', function() {
       const mongoQuery: any = {};
       const queryParams = {
-        'constraints': { path: 'constraints', type: 'object', whenUndefined: 'ignore' }
+        'constraints': { path: 'constraints', type: 'object', queryType: '$eq', whenUndefined: 'ignore' }
       };
 
       expect(() => {

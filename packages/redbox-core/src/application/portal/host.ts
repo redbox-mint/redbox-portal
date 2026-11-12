@@ -1,3 +1,5 @@
+import { recordQueryReadDeclarations } from '../../http/readRoutes';
+import { schemaReadPrelude } from '../../http/fastify/readActions';
 import { referenceReadDeclarations } from '../../http/referenceRoutes';
 import { coreRouteName } from '../../http/fastify/routes';
 import type { RouteBinding } from '../../http/fastify/routes';
@@ -131,6 +133,7 @@ export async function createPortalFastifyHost(
     namespaceConfiguration: resolved.namespaceConfiguration,
     routing: resolved.routing,
     guards: async (binding, request, reply) => {
+      if (resolved.httpOwners.schemaReads.includes(binding.route)) return schemaReadPrelude(request, reply);
       if (resolved.httpOwners.metadataUpdates.includes(binding.route)) return recordMetadataBodyPrelude(request, reply);
     },
     security: {
@@ -147,7 +150,11 @@ export async function createPortalFastifyHost(
         // Preserve the configured HTTPS header for the FM-023 routes, including
         // policy/parser denials. Full page/asset header conversion stays scoped
         // to its later task. Route identities come from executable declarations.
-        const referenceNames = new Set(referenceReadDeclarations.map(route => coreRouteName(route.method, route.path)));
+        const referenceNames = new Set(
+          [...referenceReadDeclarations, ...recordQueryReadDeclarations].map(route =>
+            coreRouteName(route.method, route.path)
+          )
+        );
         const selectedReferenceNames = new Set(
           resolved.routePlan.routes
             .filter(route => referenceNames.has(route.declaration.name))

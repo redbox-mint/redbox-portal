@@ -11,6 +11,7 @@ export interface HttpLogRecord {
   readonly code: string;
   readonly level: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';
   readonly path?: string;
+  readonly requestId?: string;
 }
 export type HttpLogSink = (record: Readonly<HttpLogRecord>) => unknown;
 /** Opaque callback destinations must declare their streams at composition time. */
@@ -25,7 +26,8 @@ export function ownerHttpLogger(owner: PersistenceOwner): HttpLogTarget {
   return {
     sources: pinoLoggerDestinations(owner.log),
     write: record => {
-      if (['warn', 'error', 'fatal'].includes(record.level)) return owner.log.warn(record.code);
+      if (['warn', 'error', 'fatal'].includes(record.level))
+        return owner.log.warn(record.requestId ? JSON.stringify(record) : record.code);
     },
   };
 }
@@ -37,6 +39,7 @@ const codes = new Set([
   'HTTP_DUPLICATE_SEND',
   'HTTP_REPLY_CALLBACK_FAILED',
   'HTTP_REPLY_REJECTED',
+  'HTTP_STREAM_DISPOSAL_FAILED',
 ]);
 type FailureClass = 'SINK' | 'STREAM' | 'WORKER';
 type Counts = {
@@ -190,13 +193,17 @@ export function createHttpLogger(target?: HttpLogTarget, owner?: PersistenceOwne
       }
       try {
         // Never format arguments, exceptions or bindings. Only known fixed codes
-        // and a query-free path may cross the transport boundary.
+        // and a query-free path/bounded request correlation may cross the boundary.
         const code = args.find(value => typeof value === 'string' && codes.has(value)) as string | undefined;
         const first = args[0];
         const req = first && typeof first === 'object' ? Reflect.get(first, 'req') : undefined;
         const url = req && typeof req === 'object' ? Reflect.get(req, 'url') : undefined;
         const path = typeof url === 'string' && url.startsWith('/') ? url.split(/[?#]/, 1)[0] : undefined;
-        const record = Object.freeze({ code: code ?? 'HTTP_DIAGNOSTIC', level, ...(path ? { path } : {}) });
+        const id = req && typeof req === 'object' ? Reflect.get(req, 'id') : undefined;
+        const requestId = typeof id === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(id) ? id : undefined;
+        const record = Object.freeze({
+          code: code ?? 'HTTP_DIAGNOSTIC', level, ...(path ? { path } : {}), ...(requestId ? { requestId } : {}),
+        });
         const result = owner ? runAcceptedPersistenceWork(owner, () => Promise.resolve(write(record))) : write(record);
         if (result && typeof (result as PromiseLike<unknown>).then === 'function')
           track(

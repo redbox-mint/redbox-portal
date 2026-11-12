@@ -14,6 +14,8 @@ module.exports = {
     'test/http/fastify/G2Mongo.test.ts',
     'test/http/fastify/MetadataDifferentialMongo.test.ts',
     'test/http/fastify/ReferenceDifferentialMongo.test.ts',
+    'test/http/fastify/ReadDifferentialMongo.test.ts',
+    'test/http/fastify/ReadStreamsMongo.test.ts',
     'test/http/PagesMongo.test.ts',
     'test/http/NotificationHooksMongo.test.ts',
     'test/http/RecordMutationsMongo.test.ts',

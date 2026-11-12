@@ -84,6 +84,8 @@ const publicHeaders = new Set([
   'cross-origin-opener-policy',
   // Configuration reads retain this public source marker if JSON encoding fails.
   'x-redbox-config-source',
+  // Caught record export failures retain their already prepared attachment name.
+  'content-disposition',
   // Companion's public provider responses retain their canonical CORS contract.
   'access-control-allow-origin',
   'access-control-allow-credentials',

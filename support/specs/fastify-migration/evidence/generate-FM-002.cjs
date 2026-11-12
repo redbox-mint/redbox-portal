@@ -274,6 +274,30 @@ function collectInventory() {
     'application/portal/installation.ts',
   ])
     inputs.add(prefix + file);
+  const readDeclarations = fromSource(prefix + 'http/readRoutes.ts').recordQueryReadDeclarations;
+  const readFactories = Object.values(fromSource(prefix + 'http/controllers/ReadControllers.ts')).filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
+  for (const file of [
+    'http/readRoutes.ts',
+    'http/controllers/ReadControllers.ts',
+    'http/actions/recordReads.ts',
+    'http/actions/queryReads.ts',
+    'http/actions/recordSchemaReads.ts',
+    'http/express/readActions.ts',
+    'http/express/recordSchemaReads.ts',
+    'http/fastify/readActions.ts',
+    'http/fastify/readStreams.ts',
+    'queries/NamedQueries.ts',
+    'queries/namedQueryParameters.ts',
+    'config/namedQuery.config.ts',
+    'http/fastify/errorBoundary.ts',
+    'http/fastify/requestOwnership.ts',
+    'http/fastify/responses.ts',
+    'http/actions/recordMetadata.ts',
+    'application/portal/readHttpPlan.ts',
+  ])
+    inputs.add(prefix + file);
   const configuration = portalHttpPolicies();
   const routes = collections.flatMap(collection => {
     assert(owners[collection.export], 'Unassigned source collection: ' + collection.export);
@@ -306,6 +330,33 @@ function collectInventory() {
           file: prefix + 'http/controllers/ReferenceControllers.ts',
           productionBinding: prefix + 'application/portal/referenceHttpPlan.ts',
           differential: test('http/fastify/ReferenceDifferentialMongo.test.ts'),
+        };
+      }
+      if (owners[collection.export][0] === 'FM-024') {
+        const pilot = route.controller === 'webservice/RecordController' && route.action === 'getMeta';
+        const bindings = pilot
+          ? [route]
+          : readDeclarations.filter(item => identity(item.method, item.path) === identity(route.method, route.path));
+        const factories = pilot
+          ? [fromSource(prefix + 'http/controllers/webservice/RecordController.ts').recordController]
+          : readFactories.filter(
+              factory => factory.name === route.controller && factory.actions.includes(route.action)
+            );
+        assert.equal(bindings.length, 1, 'Exactly one FM-024 declaration: ' + route.path);
+        assert.equal(factories.length, 1, 'Exactly one FM-024 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factories[0].name,
+          action: route.action,
+          file:
+            prefix +
+            (pilot ? 'http/controllers/webservice/RecordController.ts' : 'http/controllers/ReadControllers.ts'),
+          productionBinding:
+            prefix + (pilot ? 'application/portal/installation.ts' : 'application/portal/readHttpPlan.ts'),
+          differential: test(
+            pilot ? 'http/fastify/MetadataDifferentialMongo.test.ts' : 'http/fastify/ReadDifferentialMongo.test.ts'
+          ),
+          ...(pilot ? { migratedBy: 'FM-019' } : { migratedBy: 'FM-024' }),
         };
       }
       return {

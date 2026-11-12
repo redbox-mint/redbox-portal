@@ -157,13 +157,14 @@
     "packages/redbox-core/src/application/portal/application.ts": "ba6ad9b1572f4489e634c033181909222206ddb42aaddb7b399735192efef211",
     "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "c693ad8d2bbc4878be597cb246e031f0d0d1adfe6fd0b7044e016ca5bbb9ff5d",
-    "packages/redbox-core/src/application/portal/http.ts": "bad0d0595464993b5a28ce359a829d971680e742d6f1bb91692578f4ed9128d0",
+    "packages/redbox-core/src/application/portal/host.ts": "d2de568393b4115ab64589b1c3d6ab60479736e73f9916c5951e2bb5f333ff0c",
+    "packages/redbox-core/src/application/portal/http.ts": "ccaf2666e19b480e0736b9c87ddbb138344196abad57866e0f166b27905243d0",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
-    "packages/redbox-core/src/application/portal/installation.ts": "9fc605fc4347132532b727a31ae0ec682b3ad4b3a35e2f5b75e74ceca54e4521",
+    "packages/redbox-core/src/application/portal/installation.ts": "09492fefb4f0d8ed1a67880263dbc422f798aa39c97e7116a5d9071e62312c58",
     "packages/redbox-core/src/application/portal/providers.ts": "32daf1c9dab7936148e14ef13a49c3744f74ea9292ef47006457bde1edb20ccd",
     "packages/redbox-core/src/application/portal/rawHttp.ts": "f2b163d9e8f9c1869cecd74cab2215966a107149147a7b82f5e7ded269ab889b",
+    "packages/redbox-core/src/application/portal/readHttpPlan.ts": "44aec7975d361c2c9a63dc4652cd91dd91c6e6f5eab861bb7ffd3ae26abbc97b",
     "packages/redbox-core/src/application/portal/recordOperations.ts": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a",
     "packages/redbox-core/src/application/portal/reference.ts": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f",
     "packages/redbox-core/src/application/portal/referenceHttpPlan.ts": "8955373b254db84a6b63dd91c1d00b3853500ac92a132aaae945a4a2b359eb74",
@@ -200,7 +201,7 @@
     "packages/redbox-core/src/config/i18n.config.ts": "ad9f55cbae3fe64282a9e46f3bc4c11c220ffec0aedaab237323924d0a9ff1b8",
     "packages/redbox-core/src/config/jsonld.config.ts": "54056da5ed39359ba92e341b2e831981360934cc21379671c0a965d1324fe56d",
     "packages/redbox-core/src/config/mint.config.ts": "926979640a09e759b895157e4eb596d759be7aa0131fbf8053ae1e3b78db3e7c",
-    "packages/redbox-core/src/config/namedQuery.config.ts": "e42246486f70ad89d0d1ec43b966510ea86bcd0fe25c91584d30c5dfc7ea1df8",
+    "packages/redbox-core/src/config/namedQuery.config.ts": "87aa4ed51972b97dea0a5e8bf6164b08034063dc0601f1c456f31edd245379fe",
     "packages/redbox-core/src/config/ng2.config.ts": "56095888ef62827c5be577f8e6bd43be80428ccf8ce2dd13f0370c8f11df1934",
     "packages/redbox-core/src/config/orcid.config.ts": "3b410973d24cb56c4d2fc403c098b63811538fd2f8f0e475ab21867ac1230d10",
     "packages/redbox-core/src/config/peopleSearch.config.ts": "1288fd24a8fb4f26c0f9e8b19b1ee8f2e4816184489f89910fefb1ba085bf3d6",
@@ -273,14 +274,18 @@
     "packages/redbox-core/src/http/actions/formDelivery.ts": "d2c519e37c958ff06bc552624c7cdbf3fb933ade1c98298caad83dfefe9c8195",
     "packages/redbox-core/src/http/actions/metadataReads.ts": "aa99f195f7bc2fad753ebbab9c17a571dda9300718219af74212b1e494d397f4",
     "packages/redbox-core/src/http/actions/progressGrant.ts": "84016e801361bee902d869a29855b869e8bfde38f984eb10906d101200ec0397",
-    "packages/redbox-core/src/http/actions/recordMetadata.ts": "56d43c596c0d88e8a0d0e83aa7833f3eda89b2971c0faa39b4e8c16aaae27c4d",
+    "packages/redbox-core/src/http/actions/queryReads.ts": "963d750e6598a98603693d3651299174792b0da1e185c6b2b4d15a6da32b3631",
+    "packages/redbox-core/src/http/actions/recordMetadata.ts": "8a8fb1e1de1779b7491631311a27d930b525fac02c7362b6f7b438ea2138579e",
+    "packages/redbox-core/src/http/actions/recordReads.ts": "5b2d5ea583a16ab845e5a9f42055efb30125fed966ecb4696db7191d0efe6407",
+    "packages/redbox-core/src/http/actions/recordSchemaReads.ts": "836171a3c8aa86bd869ca16ce03c4c5d00a5339e25390f44882302b2768ffb39",
     "packages/redbox-core/src/http/actions/recordTypeReads.ts": "060b26c59e3017aa5e6882b5449dd5e07b43f95acc635d3abc13171d42271583",
-    "packages/redbox-core/src/http/actions/reference.ts": "33a04f11a9567e1370e5c3005b6c8a614c2df4e0333e14f40b1b6b3fc5ebf05c",
+    "packages/redbox-core/src/http/actions/reference.ts": "7736a546926339d49a242aa88cc7f116f524242a0332cf1d5d849c5f1c7e4016",
     "packages/redbox-core/src/http/actors.ts": "f3bbf8f73707e116e27f53038f52c6b42f68f4d19ba64e5a8d534107264092ed",
     "packages/redbox-core/src/http/apiResponses.ts": "dd8ed234f7c8d2946f7e9a4b71b3ae1f81b0dfb12831d244ad2f7ff59512d130",
     "packages/redbox-core/src/http/context.ts": "f0b15b9456a8ebb91b238ddb4354b6265549b91ba564b0ab61a7c43a3e5b37af",
     "packages/redbox-core/src/http/controllers.ts": "4295649161b5d152609c007a22727d683f386a51210e29131bbbf3a7bb856ba3",
     "packages/redbox-core/src/http/controllers/ProgressController.ts": "e1dba5e6771bb39f34c6f59275783caa60ad6f3d9c560cafb5299b215bdccb53",
+    "packages/redbox-core/src/http/controllers/ReadControllers.ts": "fbf5c2cfef34835e9144b7f3e344699355a42dfbcf5d7ce095b34df859a733d5",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "a5b9b2fdda355fdd72e7a6bdcfe5d520f6307e138f25789ff9bcc3e130f2a7b6",
     "packages/redbox-core/src/http/controllers/webservice/DatastreamController.ts": "f12be3b87082563b2935e10b2fa73d8d919dae70c7ef0513733ed0539ec3be6a",
     "packages/redbox-core/src/http/controllers/webservice/RecordController.ts": "a59b148daf38b9abd8dfe75b2194217e255ba6503f3d9922eb2713928d7ae143",
@@ -322,11 +327,12 @@
     "packages/redbox-core/src/http/express/policies.ts": "7b526b8d03bf7cba4883cdd184166391a305c58bd04c7e165f5e05a9b10d22c5",
     "packages/redbox-core/src/http/express/progressOperations.ts": "8cba7261d11bf655a47dba8a1d786e8654fb4ac2c5c93b385d28b434614d05d8",
     "packages/redbox-core/src/http/express/progressSockets.ts": "d77bb8ddfac931ad3dd26bd5f98fc1de11aa6e26ff684f2d8af3dff485acae3a",
-    "packages/redbox-core/src/http/express/queryReads.ts": "91d82fd29e3ade6491a38cbcd34a80d8e7067ae44ca2c700f3ff704b996c9492",
+    "packages/redbox-core/src/http/express/queryReads.ts": "de3e7269897173ba591e01d914b3de343b1fe9e7a03e27ff7add7f47ec0de857",
     "packages/redbox-core/src/http/express/queryWrites.ts": "6c553ed7385185d1b2305a2852f8b131f830eeb49f913d921efd0c8dc9bc2612",
+    "packages/redbox-core/src/http/express/readActions.ts": "6a8dd7135ca643e78d1bd9f9111723d3a0dd2ee7e6aff1d03d8ec716d846df7f",
     "packages/redbox-core/src/http/express/recordMutations.ts": "86db330d6cbe6f2a24b795eb740231ad5eb9f57e38d5c8a64ddf3369f6dd7948",
-    "packages/redbox-core/src/http/express/recordReads.ts": "f9fb8ccd4e94afbe00c937833085498b1132027982a17b447b4de228700e53da",
-    "packages/redbox-core/src/http/express/recordSchemaReads.ts": "dc19e77ff9213695f490a0604a9cc24cd844a0ff9e531d0111d8d86415de3ecf",
+    "packages/redbox-core/src/http/express/recordReads.ts": "cebfeaaa2141f72e61c6fd084997961e0077e2a4900c8e0b66f36740de43dcd8",
+    "packages/redbox-core/src/http/express/recordSchemaReads.ts": "67d48d67029965b4c6303bf9ded078b5e5bfa7d28f9b7ffadf4affdcb9fb1428",
     "packages/redbox-core/src/http/express/recordTypes.ts": "5bbdf234840072b6a7c1a9bf7b5f0a2a3a4f0c8c434097a2b4ba9c07a75bea5a",
     "packages/redbox-core/src/http/express/referenceReads.ts": "2b02ee588ca48cd967c7916bd9efc2ddd7fd35f41a2dc282ea0d8f755db76e13",
     "packages/redbox-core/src/http/express/responses.ts": "08e9e26ad6f618995badb423395a7eac65acedf7d94dee786bce0260856e85b4",
@@ -343,23 +349,25 @@
     "packages/redbox-core/src/http/fastify/coreNamespaces.ts": "aa898f182d6f04bbf41f37767632e6c721f35db6b5e75da3ebb1c0651df7ca65",
     "packages/redbox-core/src/http/fastify/csrf.ts": "e190bb256c553c9accff701279bcadab4e833e810531cb13eed996f5f405525b",
     "packages/redbox-core/src/http/fastify/datastreamUploads.ts": "89184ebf6e2ff25a6b7439c19013abbd3889135ed65752d6584b207cdc9f9585",
-    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "966d192c8f7d9f972395718acab70a52292cdde38636e6cc2b0114c0060e446d",
+    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "015037a4db8b832ac6ea61b8d868b13d2618c4071aae537c9ef79113adf0f46e",
     "packages/redbox-core/src/http/fastify/fallbacks.ts": "8220c4b6862d880e6cb8a782212d28b85abcf24500906934d26e471c3652662a",
     "packages/redbox-core/src/http/fastify/hooks.ts": "bea4a4d7c4ca29f3ef78172cf729bde2f718197ee67f6ac254f5230f18d072e8",
     "packages/redbox-core/src/http/fastify/identityProviders.ts": "f615c88335590697a5191ba3e8113695c820ba50061567d465ca089da1619772",
-    "packages/redbox-core/src/http/fastify/logging.ts": "7715b5d0a6223b045d47aebacb41d9c8d3a34cb4a7f1b52f4d4997e65e851b9b",
+    "packages/redbox-core/src/http/fastify/logging.ts": "f2f46c880eeb0990026513ff31dee00d23e04d3a7e0ef83ad4ec1d6a4b184091",
     "packages/redbox-core/src/http/fastify/parsers.ts": "2220870f08f2b639f05e3a049749ad1cf22876be8906c3245f30d7837f61d697",
     "packages/redbox-core/src/http/fastify/policies.ts": "aba566cebbb20e10b99f55ee4cf240e7ca3a5b1556f9c1754670731efc0e435c",
     "packages/redbox-core/src/http/fastify/precedence.ts": "f22abeb7d3d52c19beed2188d9817d54b8703efcbb45f1215b2ea63729547041",
     "packages/redbox-core/src/http/fastify/preparation.ts": "f5d23412f2919817403459f7b88db3c4060d7210da676bdbf4236137209a4e5c",
     "packages/redbox-core/src/http/fastify/rawMultipart.ts": "bf33f81da4065fdc242b143dfed453248ac01f0056761ba8336e23e8ec864a1d",
+    "packages/redbox-core/src/http/fastify/readActions.ts": "d1b4b811610e63c8115f2a770fcd728fc8435b8b0d2a7c5ca4debc9b3beb4181",
+    "packages/redbox-core/src/http/fastify/readStreams.ts": "e7b9feec7978b07229ff48065d4dd65f5da911ec93d8182b4ef8693659a63c89",
     "packages/redbox-core/src/http/fastify/referenceReads.ts": "5ed1c640d728d10471b2564609208865ad3f648d6662bffcdd93c89ee5d6842b",
     "packages/redbox-core/src/http/fastify/registration.ts": "0f1c7a4f7430d99730ddea74a3a3751e7bd679d7af38b28ee8541e8656811189",
     "packages/redbox-core/src/http/fastify/registry.ts": "12d367d5cda0871608ed1ca184e681e3937bcdda3875f22e896150d7adbd0dc3",
-    "packages/redbox-core/src/http/fastify/requestOwnership.ts": "51d2eb381f380b7da7e8fb684c0b9c33dca7dad744f6f501e3a8c67807d0ad2f",
-    "packages/redbox-core/src/http/fastify/responses.ts": "3a0d2c901d6c3c5d36fcb765390ba37d31ab349600ab7c34b594d3edfd10e229",
+    "packages/redbox-core/src/http/fastify/requestOwnership.ts": "055827dcc8622c6b50847984ecc094965d7bea349dac4e99a52018f4464b7787",
+    "packages/redbox-core/src/http/fastify/responses.ts": "315342f90276acb4a2f1b68c4374ccef179e0a7ea9630b4eaf3aa8930c0ee069",
     "packages/redbox-core/src/http/fastify/router.ts": "b716b5eac0b18f79fda8954b8631ce59f942e024074d425c4dc007cf09bc50f2",
-    "packages/redbox-core/src/http/fastify/routes.ts": "6c81974e157c590ef850dcaa8f5c30b41c317bc27facd5f80605ec1833f4f760",
+    "packages/redbox-core/src/http/fastify/routes.ts": "7bfc2cc1cf3d3d06ee55e35cb1ba7eec4c9c7409132a71d2b8f0b0dbda1f5f54",
     "packages/redbox-core/src/http/fastify/session.ts": "eb24c918a9dfb5ed0e9c84166d3c1d0b258e2bb1adb712e83597ea035c868055",
     "packages/redbox-core/src/http/fastify/targetNames.ts": "17b7eb243aab350a84fd1fa0ac4d38a9a5bd6425fbb3a0f5f37c2c45a60625d5",
     "packages/redbox-core/src/http/fastify/validation.ts": "83e03cbd92be82209f9fcac8c5adfd9220815ff93ede845e838e9ee2d5d42ed0",
@@ -369,6 +377,7 @@
     "packages/redbox-core/src/http/integrations/companion/fastify.ts": "077d9d8777570ac90420703cdcf3380dbbd18a092dcd928f5e82c23588dba0e9",
     "packages/redbox-core/src/http/integrations/companion/uploads.ts": "a9427161069dac85c1a8ecf02b69a8638e7196d65934ca6f40f539fcda6fe8c4",
     "packages/redbox-core/src/http/policyConfiguration.ts": "a4d9223d24f2c2e978f1d984f4120eed3866766f0722b6a90a19e2cec3662c54",
+    "packages/redbox-core/src/http/readRoutes.ts": "e24b6f9b7a8d83ab6bc327d5e272bf8689c25ee9724c6e52986c6653be8abea4",
     "packages/redbox-core/src/http/referenceRoutes.ts": "150e3906d9209a3475e57830e3b15041173ffbd65b9bebed40e5ea555ae90e3a",
     "packages/redbox-core/src/http/requestValues.ts": "852282c8423c4391d3873e633aa12851042e918a404e7d9cbe8046d7f57999a2",
     "packages/redbox-core/src/identity/Roles.ts": "2ccd8dd41aa15cbdf975f77f741504b09a10369115c344ac6d3bbc25e341a0c7",
@@ -503,7 +512,7 @@
     "packages/redbox-core/src/queries/FigshareStatus.ts": "956f70a75e8eeaf263aa6fde9e5c15c8c9a8c3f9f5c077e5fa3f718270620c66",
     "packages/redbox-core/src/queries/HarvestHistory.ts": "ad5d1649dde906eaef6bc404d264371cd26a909bb2a8e9cdf7da4fb507b583fb",
     "packages/redbox-core/src/queries/IntegrationAudits.ts": "5b0b3298eb4d3e69d2d1bd51aad44fe100b16b71d1cd6cfdfeca6a0da5c66e6e",
-    "packages/redbox-core/src/queries/NamedQueries.ts": "6069bd4aa57812ca81e60b299bdf1ed5cd39e82fefe8a2218d9d650729839fe6",
+    "packages/redbox-core/src/queries/NamedQueries.ts": "e5f534cfd882810240d68eae6902b233c1de20f471fbd173c2ddc4df8b8a3a76",
     "packages/redbox-core/src/queries/RecordAuditReader.ts": "bebac66ca784fc480b5d3fdea89ad1b5b9dd6474817d17323dabaaeceb5efe15",
     "packages/redbox-core/src/queries/RecordAuditViews.ts": "50539483ed316c19ffe39feeef87d21356f2ddc104c244b9da1516c6652184b3",
     "packages/redbox-core/src/queries/Reports.ts": "bc2e5390b4453063b64197ae0f0ac5caaf5dee5599b6da0b5891ceef1504975a",
@@ -512,6 +521,7 @@
     "packages/redbox-core/src/queries/SolrReads.ts": "dcbc0df0de748e4c7e9a5203caa53c76022b31b69b63fc6b0be3b7d720072048",
     "packages/redbox-core/src/queries/bootstrapDiagnostics.ts": "836b7e52d23595072ba173f12b6c212904fec9dd9a813a55a11272d063038929",
     "packages/redbox-core/src/queries/harvestModels.ts": "891d180132fbd78fc820b639eac00edce92b1cc464c76a46238f442bbd160a91",
+    "packages/redbox-core/src/queries/namedQueryParameters.ts": "ed1142c3823ce7dc3e495a000986c70604ac1e59feb4af2ba2e965b7427d3185",
     "packages/redbox-core/src/queues/AgendaQueue.ts": "75e6ee70a8587f6a1ecadb7542186cd89422330c699b472f1a3a44d54fd31c87",
     "packages/redbox-core/src/queues/ScheduledWork.ts": "85c16fdf7da0514af3aeb90f680d6999e638d6be53ec564e6bb65ddb0d279b75",
     "packages/redbox-core/src/queues/indexes.ts": "6e561508831e0bfc50b42d8f5958a1320dea6aa86d0e3d91424ce12ace2aad73",
@@ -693,7 +703,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "e27d53266f55a96c2276d9d84205a9f3bbc30a6ef428e6d7835e5efb502c492f"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "98edfe4c77efce03a8e584a3a369e15c3b289c94037d1533b8ebcb90ab0c5e0b"
   },
   "counts": {
     "routes": 335,
@@ -8869,7 +8879,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 0
       },
       "apiDeclaration": {
@@ -8962,10 +8972,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/report/namedQuery",
       "controller": "webservice/ReportController",
       "action": "executeNamedQuery",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/ReportController",
+        "action": "executeNamedQuery",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9035,7 +9054,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 1
       },
       "apiDeclaration": {
@@ -9098,10 +9117,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/report-config",
       "controller": "webservice/ReportController",
       "action": "listConfigs",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/ReportController",
+        "action": "listConfigs",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9171,7 +9199,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 2
       },
       "apiDeclaration": {
@@ -9270,10 +9298,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/report-config/preview",
       "controller": "webservice/ReportController",
       "action": "previewConfig",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/ReportController",
+        "action": "previewConfig",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9339,7 +9376,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 3
       },
       "apiDeclaration": {
@@ -9425,10 +9462,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/report-config/:name",
       "controller": "webservice/ReportController",
       "action": "getConfig",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/ReportController",
+        "action": "getConfig",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9498,7 +9544,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 4
       },
       "apiDeclaration": null,
@@ -9557,10 +9603,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/report-config",
       "controller": "ReportController",
       "action": "listConfigs",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "listConfigs",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9583,7 +9638,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -9630,7 +9685,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 5
       },
       "apiDeclaration": null,
@@ -9725,10 +9780,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/report-config/preview",
       "controller": "ReportController",
       "action": "previewConfig",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "previewConfig",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9751,7 +9815,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -9794,7 +9858,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 6
       },
       "apiDeclaration": null,
@@ -9876,10 +9940,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/report-config/:name",
       "controller": "ReportController",
       "action": "getConfig",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "getConfig",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -9902,7 +9975,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -9949,7 +10022,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 7
       },
       "apiDeclaration": {
@@ -10000,10 +10073,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/named-query",
       "controller": "webservice/NamedQueryController",
       "action": "listQueries",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/NamedQueryController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/NamedQueryController",
+        "action": "listQueries",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -10073,7 +10155,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 8
       },
       "apiDeclaration": {
@@ -10124,10 +10206,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/named-query/collections",
       "controller": "webservice/NamedQueryController",
       "action": "getCollections",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/NamedQueryController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/NamedQueryController",
+        "action": "getCollections",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -10197,7 +10288,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 9
       },
       "apiDeclaration": {
@@ -10256,10 +10347,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/named-query/:name",
       "controller": "webservice/NamedQueryController",
       "action": "getQuery",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/NamedQueryController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/NamedQueryController",
+        "action": "getQuery",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -10329,7 +10429,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 10
       },
       "apiDeclaration": {
@@ -10448,10 +10548,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/harvest-runs",
       "controller": "webservice/HarvestRunController",
       "action": "listRuns",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/HarvestRunController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/HarvestRunController",
+        "action": "listRuns",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -10521,7 +10630,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 11
       },
       "apiDeclaration": {
@@ -10628,10 +10737,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/harvest-runs/:id",
       "controller": "webservice/HarvestRunController",
       "action": "getRun",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/HarvestRunController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/HarvestRunController",
+        "action": "getRun",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -10701,7 +10819,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 12
       },
       "apiDeclaration": {
@@ -10838,10 +10956,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/harvest-runs/:id/events",
       "controller": "webservice/HarvestRunController",
       "action": "listRunEvents",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/HarvestRunController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/HarvestRunController",
+        "action": "listRunEvents",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -10911,7 +11038,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 13
       },
       "apiDeclaration": {
@@ -10990,10 +11117,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/siem/config",
       "controller": "webservice/SiemController",
       "action": "getConfig",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/SiemController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/SiemController",
+        "action": "getConfig",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11063,7 +11199,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 14
       },
       "apiDeclaration": {
@@ -11161,10 +11297,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/siem/events",
       "controller": "webservice/SiemController",
       "action": "getEvents",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/SiemController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/SiemController",
+        "action": "getEvents",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11234,7 +11379,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 15
       },
       "apiDeclaration": {
@@ -11331,10 +11476,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/siem/delivery-status",
       "controller": "webservice/SiemController",
       "action": "getDeliveryStatus",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/SiemController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/SiemController",
+        "action": "getDeliveryStatus",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11404,7 +11558,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 16
       },
       "apiDeclaration": {
@@ -11477,10 +11631,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/search",
       "controller": "webservice/SearchController",
       "action": "search",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/SearchController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/SearchController",
+        "action": "search",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11550,7 +11713,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 17
       },
       "apiDeclaration": {
@@ -11668,10 +11831,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/integration-audit/:oid",
       "controller": "webservice/IntegrationAuditController",
       "action": "getAuditLog",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/IntegrationAuditController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/IntegrationAuditController",
+        "action": "getAuditLog",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11741,7 +11913,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 18
       },
       "apiDeclaration": null,
@@ -11756,10 +11928,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/getReport",
       "controller": "ReportController",
       "action": "get",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "get",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11782,7 +11963,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -11829,7 +12010,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 19
       },
       "apiDeclaration": null,
@@ -11844,10 +12025,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/getReportResults",
       "controller": "ReportController",
       "action": "getResults",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "getResults",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11870,7 +12060,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -11917,7 +12107,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 20
       },
       "apiDeclaration": null,
@@ -11932,10 +12122,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/downloadReportCSV",
       "controller": "ReportController",
       "action": "downloadCSV",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "downloadCSV",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -11958,7 +12157,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -12005,7 +12204,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 21
       },
       "apiDeclaration": null,
@@ -12020,10 +12219,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/viewAudit/:oid/audit",
       "controller": "RecordAuditController",
       "action": "getAuditData",
-      "selectedFactory": null,
+      "selectedFactory": "RecordAuditController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordAuditController",
+        "action": "getAuditData",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -12046,7 +12254,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -12093,7 +12301,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 22
       },
       "apiDeclaration": null,
@@ -12108,10 +12316,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/viewAudit/:oid/permissions",
       "controller": "RecordAuditController",
       "action": "getPermissionsData",
-      "selectedFactory": null,
+      "selectedFactory": "RecordAuditController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordAuditController",
+        "action": "getPermissionsData",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -12134,7 +12351,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -12181,7 +12398,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 23
       },
       "apiDeclaration": null,
@@ -12196,10 +12413,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/viewAudit/:oid/integration-audit",
       "controller": "RecordAuditController",
       "action": "getIntegrationAuditData",
-      "selectedFactory": null,
+      "selectedFactory": "RecordAuditController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordAuditController",
+        "action": "getIntegrationAuditData",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -12222,7 +12448,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -12269,7 +12495,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
         "export": "queryReadRoutes",
-        "line": 35,
+        "line": 10,
         "index": 24
       },
       "apiDeclaration": null,
@@ -12284,10 +12510,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/integrationStatus/:oid",
       "controller": "RecordAuditController",
       "action": "getIntegrationStatusData",
-      "selectedFactory": null,
+      "selectedFactory": "RecordAuditController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordAuditController",
+        "action": "getIntegrationStatusData",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/queryReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -12310,7 +12545,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/queryReads.ts",
           "export": "queryReadRoutes",
-          "line": 35
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -13742,7 +13977,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 0
       },
       "apiDeclaration": {
@@ -13839,10 +14074,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/list",
       "controller": "webservice/RecordController",
       "action": "listRecords",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "listRecords",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -13912,7 +14156,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 1
       },
       "apiDeclaration": {
@@ -14009,10 +14253,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/deletedrecords/list",
       "controller": "webservice/RecordController",
       "action": "listDeletedRecords",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "listDeletedRecords",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14082,7 +14335,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 2
       },
       "apiDeclaration": {
@@ -14193,10 +14446,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/metadata/:oid",
       "controller": "webservice/RecordController",
       "action": "getMeta",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "getMeta",
+        "file": "packages/redbox-core/src/http/controllers/webservice/RecordController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/MetadataDifferentialMongo.test.ts",
+        "migratedBy": "FM-019"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14266,7 +14528,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 3
       },
       "apiDeclaration": {
@@ -14342,10 +14604,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/audit/:oid",
       "controller": "webservice/RecordController",
       "action": "getRecordAudit",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "getRecordAudit",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14415,7 +14686,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 4
       },
       "apiDeclaration": {
@@ -14522,10 +14793,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/deletedrecords/:oid",
       "controller": "webservice/RecordController",
       "action": "getDeletedRecord",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "getDeletedRecord",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14595,7 +14875,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 5
       },
       "apiDeclaration": {
@@ -14702,10 +14982,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/objectmetadata/:oid",
       "controller": "webservice/RecordController",
       "action": "getObjectMeta",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "getObjectMeta",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14775,7 +15064,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 6
       },
       "apiDeclaration": {
@@ -14882,10 +15171,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/permissions/:oid",
       "controller": "webservice/RecordController",
       "action": "getPermissions",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordController",
+        "action": "getPermissions",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14955,7 +15253,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 7
       },
       "apiDeclaration": null,
@@ -14970,10 +15268,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/listRecords",
       "controller": "RecordController",
       "action": "getRecordList",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getRecordList",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -14996,7 +15303,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15043,7 +15350,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 8
       },
       "apiDeclaration": null,
@@ -15058,10 +15365,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/listDeletedRecords",
       "controller": "RecordController",
       "action": "getDeletedRecordList",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getDeletedRecordList",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15084,7 +15400,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15131,7 +15447,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 9
       },
       "apiDeclaration": null,
@@ -15146,10 +15462,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/metadata/:oid",
       "controller": "RecordController",
       "action": "getMeta",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getMeta",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15172,7 +15497,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15219,7 +15544,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 10
       },
       "apiDeclaration": null,
@@ -15234,10 +15559,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/default/:name",
       "controller": "RecordController",
       "action": "getMetaDefault",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getMetaDefault",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15260,7 +15594,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15307,7 +15641,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 11
       },
       "apiDeclaration": null,
@@ -15322,10 +15656,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/delete/:oid",
       "controller": "RecordController",
       "action": "getDeletedRecord",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getDeletedRecord",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15348,7 +15691,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15395,7 +15738,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 12
       },
       "apiDeclaration": null,
@@ -15410,10 +15753,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/:oid/permissions",
       "controller": "RecordController",
       "action": "getPermissions",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getPermissions",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15436,7 +15788,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15483,7 +15835,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 13
       },
       "apiDeclaration": null,
@@ -15498,10 +15850,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/:oid/relatedRecords",
       "controller": "RecordController",
       "action": "getRelatedRecords",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "getRelatedRecords",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15524,7 +15885,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15571,7 +15932,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 14
       },
       "apiDeclaration": null,
@@ -15586,10 +15947,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/search/:type",
       "controller": "RecordController",
       "action": "search",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "search",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15612,7 +15982,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -15659,7 +16029,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 15
       },
       "apiDeclaration": {
@@ -15766,10 +16136,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/export/record/download/:format",
       "controller": "webservice/ExportController",
       "action": "downloadRecs",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/ExportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/ExportController",
+        "action": "downloadRecs",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15839,7 +16218,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 16
       },
       "apiDeclaration": null,
@@ -15942,10 +16321,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/export/record/download/:format",
       "controller": "ExportController",
       "action": "downloadRecs",
-      "selectedFactory": null,
+      "selectedFactory": "ExportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ExportController",
+        "action": "downloadRecs",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -15968,7 +16356,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -16015,7 +16403,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 17
       },
       "apiDeclaration": {
@@ -16281,10 +16669,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/schemas/create/:recordType",
       "controller": "webservice/RecordSchemaController",
       "action": "create",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordSchemaController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordSchemaController",
+        "action": "create",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordSchemaReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -16354,7 +16751,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 18
       },
       "apiDeclaration": {
@@ -16620,10 +17017,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/schemas/update/:oid",
       "controller": "webservice/RecordSchemaController",
       "action": "update",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordSchemaController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordSchemaController",
+        "action": "update",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordSchemaReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -16693,7 +17099,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 19
       },
       "apiDeclaration": {
@@ -16944,10 +17350,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/api/records/schemas/:digest",
       "controller": "webservice/RecordSchemaController",
       "action": "immutable",
-      "selectedFactory": null,
+      "selectedFactory": "webservice/RecordSchemaController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "webservice/RecordSchemaController",
+        "action": "immutable",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordSchemaReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -17017,7 +17432,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
         "export": "recordReadRoutes",
-        "line": 68,
+        "line": 10,
         "index": 20
       },
       "apiDeclaration": null,
@@ -17032,10 +17447,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/workspaces/list",
       "controller": "RecordController",
       "action": "listWorkspaces",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "listWorkspaces",
+        "file": "packages/redbox-core/src/http/controllers/ReadControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/readHttpPlan.ts",
+        "differential": "packages/redbox-core/test/http/fastify/ReadDifferentialMongo.test.ts",
+        "migratedBy": "FM-024"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/recordReads.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -17058,7 +17482,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/recordReads.ts",
           "export": "recordReadRoutes",
-          "line": 68
+          "line": 10
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },

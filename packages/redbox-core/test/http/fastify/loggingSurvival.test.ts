@@ -177,6 +177,20 @@ describe('FM-016 logger destination and worker survival', function () {
 });
 
 describe('FM-016 shared logger destination registration', () => {
+  it('retains bounded request correlation for export disposal failures without diagnostics or query values', async () => {
+    const records: unknown[] = [];
+    const logger = createHttpLogger(record => { records.push(record); });
+    try {
+      logger.error({ req: { id: 'req-42', url: '/export?token=query-secret' }, err: new Error('cursor-secret') }, 'HTTP_STREAM_DISPOSAL_FAILED');
+      for (const id of ['secret\nforged', 'x'.repeat(101), { toString() { throw new Error('secret'); } }])
+        logger.error({ req: { id, url: '/export?token=query-secret' } }, 'HTTP_STREAM_DISPOSAL_FAILED');
+      assert.deepEqual(records, [
+        { code: 'HTTP_STREAM_DISPOSAL_FAILED', level: 'error', path: '/export', requestId: 'req-42' },
+        ...Array.from({ length: 3 }, () => ({ code: 'HTTP_STREAM_DISPOSAL_FAILED', level: 'error', path: '/export' })),
+      ]);
+      assert(!JSON.stringify(records).includes('secret'));
+    } finally { await drainHttpLogger(logger); }
+  });
   for (const shape of ['plain', 'null-prototype', 'default'])
     it(`preserves 00511d68b shared logger output and runtime/namespace levels: ${shape}`, async () => {
       const run = async (revision: string) => {

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { METHODS } from 'node:http';
 import { Readable } from 'node:stream';
+import { prepareReadStreamHead } from './readStreams';
 import type { FastifyInstance, FastifyRequest, FastifyReply, HTTPMethods, RouteOptions } from 'fastify';
 import type { HTTPMethod as NativeMethod } from 'find-my-way';
 import { parse, type Token } from 'path-to-regexp';
@@ -53,7 +54,9 @@ export interface RouteRegistration extends ResolvedRegistration<RouteDeclaration
   readonly effectiveCsrf?: string;
 }
 
-function apiMetadata(api: ApiRouteDefinition, configuration: PoliciesConfig) {
+export type ApiRouteSource = ApiRouteDefinition | (Omit<ApiRouteDefinition, 'method'> & { readonly method: 'all' });
+
+function apiMetadata(api: ApiRouteSource, configuration: PoliciesConfig) {
   const check = (value: PolicyChain | undefined) => {
     if (value === undefined || typeof value === 'boolean') return;
     const names = typeof value === 'string' ? [value] : value;
@@ -86,7 +89,7 @@ function apiMetadata(api: ApiRouteDefinition, configuration: PoliciesConfig) {
 /** No parallel dispatch table: each view points to its executable API declaration. */
 export function apiRouteRegistrations(
   options: {
-    readonly declarations?: readonly ApiRouteDefinition[];
+    readonly declarations?: readonly ApiRouteSource[];
     readonly configuration?: PoliciesConfig;
     readonly provider?: string;
   } = {}
@@ -105,7 +108,8 @@ export function apiRouteRegistrations(
         controller: api.controller,
         action: api.action,
         csrf: api.csrf,
-        api,
+        api: api.method === 'all' ? undefined : api,
+        ...(api.method === 'all' ? { validation: api.request } : {}),
         access,
         ...(head ? { head } : {}),
       },
@@ -936,6 +940,9 @@ export async function composeRoutes(
           onSend:
             method === 'HEAD'
               ? async (_request, reply, payload: unknown) => {
+                  // Owned exports retain GET's source/error/commit lifetime.
+                  // Node suppresses HEAD bytes while piping that same source.
+                  if (prepareReadStreamHead(reply, payload)) return payload;
                   if (!reply.hasHeader('content-length') && (typeof payload === 'string' || Buffer.isBuffer(payload)))
                     reply.header('content-length', Buffer.byteLength(payload));
                   if (payload instanceof Readable) {

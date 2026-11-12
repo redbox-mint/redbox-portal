@@ -1,3 +1,4 @@
+import { assertNamedQueryParameterSafe } from './namedQueryParameters';
 import { bootstrapFailureDetails } from './bootstrapDiagnostics';
 import _ from 'lodash';
 import { defer } from 'rxjs';
@@ -577,6 +578,9 @@ export namespace Services {
       queryParams: Record<string, QueryParameterDefinition>,
       paramMap: Record<string, unknown>
     ) {
+      // Inspect raw client values without changing the retained conversion pipeline.
+      for (const [name, definition] of Object.entries(queryParams))
+        assertNamedQueryParameterSafe(name, definition, paramMap[name]);
       for (const queryParamKey in queryParams) {
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
@@ -638,6 +642,10 @@ export namespace Services {
         if (queryParam.type == DataType.Object && !_.isUndefined(value)) {
           value = parseObjectParamValue(queryParamKey, value);
         }
+
+        // Also inspect decoded/template operands before trusted query operators wrap them.
+        if (paramMap[queryParamKey] !== undefined || !_.isEmpty(queryParam.template))
+          assertNamedQueryParameterSafe(queryParamKey, queryParam, value);
 
         if (queryParam.type != DataType.Date && !_.isEmpty(queryParam.queryType)) {
           const query: Record<string, unknown> = {};

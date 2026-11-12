@@ -36,3 +36,5 @@ export type { ProgressGrantInput } from './actions/progressGrant';
 
 export * from './controllers/ReferenceControllers';
 export { referenceReadDeclarations } from './referenceRoutes';
+
+export * from './controllers/ReadControllers';

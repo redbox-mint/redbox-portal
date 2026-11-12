@@ -1,3 +1,4 @@
+import { isOwnedReadStream } from './readStreams';
 import { bindMultipartRequestView } from './rawMultipart';
 import { bindCompanionRequestView } from '../integrations/companion/fastify';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -47,7 +48,7 @@ function payloadType(payload: unknown) {
   return typeof payload === 'string' ? 'string' : 'object';
 }
 function sendPayload(payload: unknown) {
-  if (['node-stream', 'web-stream', 'response'].includes(payloadType(payload)))
+  if (!isOwnedReadStream(payload) && ['node-stream', 'web-stream', 'response'].includes(payloadType(payload)))
     throw new TypeError('send(stream/Response) requires a qualified module with drain/hijack.');
   return payload;
 }

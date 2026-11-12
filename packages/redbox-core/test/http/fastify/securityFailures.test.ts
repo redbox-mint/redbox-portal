@@ -76,6 +76,7 @@ describe('FM-016 single error boundary failure matrix', function () {
                   'X-Credential',
                   'Set-Cookie',
                   'WWW-Authenticate',
+                  'Content-Disposition',
                   'Allow',
                   'Vary',
                   'Content-Encoding',
@@ -235,6 +236,7 @@ describe('FM-016 single error boundary failure matrix', function () {
                 assert.equal(response.headers['content-length'], '48');
                 assert.equal(response.headers['set-cookie'], undefined);
                 assert.equal(response.headers['www-authenticate'], undefined);
+                assert.equal(response.headers['content-disposition'], undefined);
                 assert.equal(response.headers.allow, undefined);
                 assert.equal(response.headers.vary, undefined);
               }

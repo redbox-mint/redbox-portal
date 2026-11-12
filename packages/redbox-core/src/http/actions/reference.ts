@@ -16,12 +16,14 @@ export interface ReferenceRequest extends ApiRequestInput {
   readonly recordFailure?: () => void;
 }
 export interface ReferenceResult {
+  readonly kind?: 'text' | 'stream' | 'redirect' | 'empty';
   readonly status: number;
   readonly headers: Readonly<Record<string, string>>;
   readonly body: unknown;
 }
 export interface EncodedReferenceResult extends ReferenceResult {
   readonly json: string | undefined;
+  readonly bytes?: Buffer;
 }
 export const jsonResult = (
   body: unknown,
@@ -96,7 +98,17 @@ export async function executeReferenceRead(
     // Express sets these public action headers before res.json serializes. Keep
     // them if serialization fails, then overlay the safe error's cache headers.
     headers = { ...headers, ...result.headers };
-    return { ...result, headers, json: JSON.stringify(result.body) };
+    if (result.kind === 'text') {
+      const value = result.body;
+      const bytes =
+        value == null
+          ? undefined
+          : Buffer.isBuffer(value)
+            ? value
+            : Buffer.from(typeof value === 'string' ? value : JSON.stringify(value));
+      return { ...result, headers, json: undefined, bytes };
+    }
+    return { ...result, headers, json: result.kind ? undefined : JSON.stringify(result.body) };
   };
   try {
     const validated = validateApiRouteRequest(request, contract);

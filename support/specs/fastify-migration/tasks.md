@@ -207,7 +207,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: existing version/envelope/validation/security tests pass; route
     inventory records exactly one binding per migrated route.
 
-- [ ] **FM-024 — Migrate records, queries and schema reads.**
+- [x] **FM-024 — Migrate records, queries and schema reads.**
   - Dependencies: FM-023.
   - Work: port read/query/search/schema actions and conditional/cache behavior.
   - Acceptance: brand/object authorization, strong ETags/preconditions, schema

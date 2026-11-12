@@ -1,9 +1,12 @@
+import { portalReadControllers } from './readHttpPlan';
+import { recordQueryReadDeclarations, recordSchemaReadRoutes } from '../../http/readRoutes';
+import type { ApiRouteSource } from '../../http/fastify/routes';
 import type { ApiRouteDefinition } from '../../api-routes/types';
 import type { PoliciesConfig } from '../../config/policies.config';
 import { resolveExtensionsV2, type loadInstalledExtensionProvidersV2 } from '../../extensions/v2';
 import { bindControllerFactory, type BoundControllerFactory } from '../../http/controllers';
 import { recordController } from '../../http/controllers/webservice/RecordController';
-import { apiRouteRegistrations } from '../../http/fastify/routes';
+import { coreRouteName, apiRouteRegistrations } from '../../http/fastify/routes';
 import { coreRoutePrecedence } from '../../http/fastify/precedence';
 import { nativePolicyNames } from '../../http/fastify/policies';
 import { PortalRawHttp } from './rawHttp';
@@ -26,7 +29,7 @@ import type {
 } from './compositionInputs';
 
 export interface PortalFastifySelection {
-  readonly declarations: readonly ApiRouteDefinition[];
+  readonly declarations: readonly ApiRouteSource[];
   /** Select the owned Socket.IO progress channel and its grant endpoint. */
   readonly progress?: boolean;
   readonly policyConfiguration?: PoliciesConfig;
@@ -64,7 +67,45 @@ export async function resolvePortalInstallation(
           create: () => raw!,
         }
       : undefined;
-  const reference = portalReferenceControllers(context, new Set(input.declarations.map(route => route.controller)));
+  const readTargets = new Set(
+    input.declarations
+      .filter(route =>
+        recordQueryReadDeclarations.some(read => read.method === route.method && read.path === route.path)
+      )
+      .map(route => route.controller)
+  );
+  const uploadInputs = upload
+    ? {
+        log: context.log,
+        rootContext: context.config.server.rootContext,
+        get records() {
+          return context.data.records.get();
+        },
+        get storage() {
+          return context.data.storage();
+        },
+        get recordTypes() {
+          return context.data.reference.types.get();
+        },
+        get workflows() {
+          return context.data.reference.workflows.get();
+        },
+        get schemas() {
+          return context.data.reference.schema.get();
+        },
+        get datastream() {
+          return context.data.datastream.get();
+        },
+        get multipart() {
+          return raw!.multipart;
+        },
+      }
+    : undefined;
+  const reads = portalReadControllers(context, readTargets, uploadInputs);
+  const reference = portalReferenceControllers(
+    context,
+    new Set(input.declarations.map(route => route.controller).filter(name => !readTargets.has(name)))
+  );
   const recordFactory = upload ? datastreamController : recordController;
   const coreRoutes = apiRouteRegistrations({
     declarations: [...input.declarations, ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : [])],
@@ -77,38 +118,20 @@ export async function resolvePortalInstallation(
         [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
       (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
         ? 'apiProtect'
-        : 'none',
+        : recordQueryReadDeclarations.some(
+              read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
+            )
+          ? route.declaration.path.includes('/api/')
+            ? 'apiProtect'
+            : 'protect'
+          : 'none',
   }));
   const bindings = Object.freeze([
-    ...(upload
-      ? [
-          bindControllerFactory(datastreamController, {
-            log: context.log,
-            rootContext: context.config.server.rootContext,
-            get records() {
-              return context.data.records.get();
-            },
-            get storage() {
-              return context.data.storage();
-            },
-            get recordTypes() {
-              return context.data.reference.types.get();
-            },
-            get workflows() {
-              return context.data.reference.workflows.get();
-            },
-            get schemas() {
-              return context.data.reference.schema.get();
-            },
-            get datastream() {
-              return context.data.datastream.get();
-            },
-            get multipart() {
-              return raw!.multipart;
-            },
-          }),
-        ]
-      : [bindControllerFactory(recordController, plan.metadata)]),
+    ...(upload && !readTargets.has(recordController.name)
+      ? [bindControllerFactory(datastreamController, uploadInputs!)]
+      : readTargets.has(recordController.name)
+        ? []
+        : [bindControllerFactory(recordController, plan.metadata)]),
     ...(input.progress
       ? [
           bindControllerFactory(progressController, {
@@ -120,6 +143,7 @@ export async function resolvePortalInstallation(
         ]
       : []),
     ...reference.bindings,
+    ...reads.bindings,
     ...(input.bindings?.(context) ?? []),
   ]);
   const selected = new Set(coreRoutes.map(route => route.declaration.name));
@@ -147,7 +171,12 @@ export async function resolvePortalInstallation(
         declaration: {
           apiVersion: 2,
           modules: [...context.plans.map(plan => plan.declaration), ...(rawDeclaration ? [rawDeclaration] : [])],
-          controllers: [recordFactory, ...reference.controllers, ...(input.progress ? [progressController] : [])],
+          controllers: [
+            ...(readTargets.has(recordController.name) ? [] : [recordFactory]),
+            ...reads.controllers,
+            ...reference.controllers,
+            ...(input.progress ? [progressController] : []),
+          ],
         },
       },
       ...installed.providers,
@@ -178,6 +207,7 @@ export async function resolvePortalInstallation(
     uploads: routesFor(addDataStreamsRoute),
     progress: routesFor(progressSocketGrantRoute),
     metadataUpdates: routesFor(updateMetaRoute),
+    schemaReads: Object.freeze(recordSchemaReadRoutes.flatMap(routesFor)),
   });
   if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
   // Seal declaration/plan data in place to retain exact factory identities.

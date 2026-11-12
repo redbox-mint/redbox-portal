@@ -75,6 +75,19 @@ describe('ReportsService', function () {
     sinon.restore();
   });
 
+  for (const value of [undefined, '']) {
+    it(`preserves omitted/empty report filter normalization: ${JSON.stringify(value)}`, function () {
+      const params = ReportsService.buildNamedQueryParamMap({ param: () => value || undefined }, {
+        filter: [
+          { type: 'text', paramName: 'term' },
+          { type: 'date-range', paramName: 'dates', database: { fromProperty: 'from', toProperty: 'to' } }
+        ]
+      });
+      expect(params).to.deep.equal({ term: undefined, from: undefined, to: undefined });
+      expect(Object.hasOwn(params, 'term')).to.equal(true);
+    });
+  }
+
   describe('bootstrapData', function () {
     const stubFileOps = (fileOps: any) => sinon.stub(ReportsService, 'getBootstrapFileOps').returns(fileOps);
 

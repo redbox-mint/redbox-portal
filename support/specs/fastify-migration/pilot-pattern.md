@@ -152,6 +152,19 @@ never closes or waits for closure of a borrowed destination. See [logging](loggi
 - FM-020 intentionally fixes the pre-existing Express polling-origin bypass on
   **both hosts**: every Engine.IO request, including existing sid polling and
   upgrades, checks canonical Origin before private progress dispatch.
+- FM-024 intentionally refuses named-query operator injection with safe 400 on
+  **both hosts**, retaining the original conversion pipeline and configured literal
+  operands. `ACCEPTED-EXPORT-PRECOMMIT-FAILURE` is the user's round-5 decision:
+  native export errors before response commitment return the existing safe 500
+  for GET and HEAD, where retained Express aborts. HEAD consumes the same source
+  and carries GET's headers without its body. Errors after commitment/first-byte
+  delivery but before source EOF still abort; cancellation and awaited disposal
+  remain owned. See the
+  [FM-024 evidence](evidence/FM-024.md). Express is unchanged for this export deviation.
+  After source EOF the complete response stands: a later disposal/finaliser error
+  is logged once through the redacting logger with request correlation. It neither
+  delays nor replaces the response. Request ownership and close still await disposal
+  settling, including failure, before releasing borrowed resources.
 - FM-021 Companion is process-local and requires fresh-process restart. Redis and
   periodic pings are rejected for missing public cleanup handles. Direct Grant
   entry under a nonempty implicit root has the retained baseline 404; native outer

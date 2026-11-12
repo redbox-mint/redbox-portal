@@ -17,6 +17,7 @@ export function sendSerializedJson(
     readonly status: number;
     readonly headers: Readonly<Record<string, string>>;
     readonly json: string | undefined;
+    readonly bytes?: Buffer;
   }
 ) {
   reply.headers(result.headers).code(result.status);
@@ -29,8 +30,8 @@ export function sendSerializedJson(
     return reply.code(304).send();
   }
   return reply
-    .type('application/json; charset=utf-8')
-    .send(result.json === undefined ? undefined : Buffer.from(result.json));
+    .type(result.headers['Content-Type'] ?? 'application/json; charset=utf-8')
+    .send(result.bytes ?? (result.json === undefined ? undefined : Buffer.from(result.json)));
 }
 
 export const requestAccepts = (request: FastifyRequest) =>
