@@ -491,7 +491,7 @@ describe('NamedQueryEditorComponent', () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance; const api = TestBed.inject(NamedQueryApiService);
     spyOn(api, 'get').and.resolveTo(graphqlDraft('stale'));
     const diagnostic = { code: 'DUPLICATE_PARAMETER', field: 'graphql.variables.search', reason: 'Use a unique consumer parameter distinct from transport and server paging names.', severity: 'error' as const, line: 0, column: 0 };
-    spyOn(api, 'validate').and.resolveTo({ valid: false, source: 'graphql', diagnostics: [diagnostic] });
+    spyOn(api, 'describe').and.resolveTo({ source: 'graphql', valid: false, diagnostics: [diagnostic], parameters: [], operationVariables: [], result: { recordType: '', stage: '', precision: 'none', completeness: 'unavailable', fields: [] } });
     spyOn(api, 'preview').and.rejectWith({ error: { errors: [{ detail: 'COLLECTION_LIMIT' }] } });
     fixture.detectChanges(); await component.waitForInit(); await component.openQuery('stale'); await component.validateDraft(); fixture.detectChanges();
     expect(component.canSave).toBeFalse(); expect(fixture.nativeElement.textContent).toContain(diagnostic.reason);
@@ -501,7 +501,7 @@ describe('NamedQueryEditorComponent', () => {
   it('shows valid nonlookup capability separately from saving and never executes on validation', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance; const api = TestBed.inject(NamedQueryApiService);
     spyOn(api, 'get').and.resolveTo(graphqlDraft());
-    spyOn(api, 'validate').and.resolveTo({ valid: true, source: 'graphql', diagnostics: [], capabilities: { lookup: false, diagnostics: [{ code: 'LOOKUP_MAPPING', field: 'graphql.mappings.title', reason: 'Provide a lookup label.', severity: 'warning', line: 0, column: 0 }] } });
+    spyOn(api, 'describe').and.resolveTo({ source: 'graphql', valid: true, diagnostics: [], parameters: [], operationVariables: [], result: { recordType: '', stage: '', precision: 'none', completeness: 'unavailable', fields: [] }, capabilities: { lookup: false, diagnostics: [{ code: 'LOOKUP_MAPPING', field: 'graphql.mappings.title', reason: 'Provide a lookup label.', severity: 'warning', line: 0, column: 0 }] } });
     const preview = spyOn(api, 'preview'); const update = spyOn(api, 'update').and.resolveTo({ name: 'gql' });
     fixture.detectChanges(); await component.waitForInit(); await component.openQuery('gql'); await component.validateDraft(); fixture.detectChanges();
     expect(component.canSave).toBeTrue(); expect(fixture.nativeElement.textContent).toContain('nq-ux-checks-passed');
@@ -509,6 +509,21 @@ describe('NamedQueryEditorComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Provide a lookup label.');
     expect(fixture.nativeElement.querySelector('.nq-workspace.rb-ws')).toBeNull();
     expect(preview).not.toHaveBeenCalled(); await component.save(); expect(update).toHaveBeenCalled();
+  });
+  it('uses one caller-scoped description for GraphQL checks and ignores a stale response', async () => {
+    const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;
+    const api = TestBed.inject(NamedQueryApiService);
+    fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.changeSource('graphql');
+    const validate = spyOn(api, 'validate').and.callThrough();
+    const pending = deferred<Awaited<ReturnType<NamedQueryApiService['describe']>>>();
+    const describe = spyOn(api, 'describe').and.returnValue(pending.promise);
+    const validating = component.validateDraft();
+    expect(describe).toHaveBeenCalledTimes(1); expect(validate).not.toHaveBeenCalled();
+    component.changeSource('database');
+    pending.resolve({ source: 'graphql', valid: false, diagnostics: [{code: 'GRAPHQL_SCHEMA', field: 'graphql.document', severity: 'error', reason: 'Old source', line: 0, column: 0}], parameters: [], operationVariables: [], result: { recordType: '', stage: '', precision: 'none', completeness: 'unavailable', fields: [] } });
+    await validating;
+    expect(component.description).toBeNull(); expect(component.diagnostics).toEqual([]);
+    fixture.destroy();
   });
   it('keeps malformed GraphQL preview input blocked after a rendered binding default edit until corrected', async () => {
     const fixture = TestBed.createComponent(NamedQueryEditorComponent); const component = fixture.componentInstance;

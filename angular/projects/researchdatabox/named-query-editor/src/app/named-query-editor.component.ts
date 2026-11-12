@@ -897,15 +897,16 @@ export class NamedQueryEditorComponent extends BaseComponent implements OnDestro
     const token = this.validationRequests.next();
     this.validating = true;
     try {
-      const result = await this.api.validate(this.request());
+      // GraphQL describe includes the same caller-scoped validation and capabilities.
+      // Use one snapshot and one request so checks and parameter metadata cannot disagree.
+      const request = this.request();
+      const description = this.source === 'graphql' ? await this.api.describe(request) : null;
+      const result = description ?? (await this.api.validate(request));
       if (this.validationRequests.isCurrent(token)) {
         this.diagnostics = result.diagnostics;
         this.validationBlocking = !result.valid;
         this.capabilities = result.capabilities ?? null;
-        if (this.source === 'graphql') {
-          const description = await this.api.describe(this.request());
-          if (this.validationRequests.isCurrent(token)) this.description = description;
-        }
+        if (description) this.description = description;
       }
     } catch {
       if (this.validationRequests.isCurrent(token)) {
