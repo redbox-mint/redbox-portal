@@ -4503,5 +4503,9 @@
   "data-grids-full-schema": "Full schema (advanced)",
   "data-grids-title-column": "Title",
   "data-grids-promotion-query-changed": "The query changed while publishing was opening. Save your changes and try again.",
-  "data-grids-publication-target": "Named query to update"
+  "data-grids-publication-target": "Named query to update",
+  "data-grids-results-current": "Results match the current query.",
+  "nq-section-paging": "Paging",
+  "nq-section-per-page": "per page",
+  "nq-section-default-page": "Default page size"
 }

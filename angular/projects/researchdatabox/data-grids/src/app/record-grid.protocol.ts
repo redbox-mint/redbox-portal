@@ -1,4 +1,5 @@
-import { recordGridFilter, recordGridRequest } from '@researchdatabox/sails-ng-common';
+import { recordGridFilter } from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
+import { recordGridRequest } from '@researchdatabox/sails-ng-common/dist/src/record-grid-query';
 import {
   GridDefinition,
   SavedQuery,
@@ -80,29 +81,52 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
                 ? 'structured'
                 : 'unavailable';
     const label = typeof field['displayLabel'] === 'string' ? field['displayLabel'] : string(field['label']);
-    const key = field['displayLabelKey'] ?? field['labelKey'];
+    const key = typeof field['displayLabel'] === 'string' ? field['displayLabelKey'] : field['labelKey'];
     const translated = typeof key === 'string' && key ? translate(key) : '';
     const resolvedLabel =
-      translated && translated !== key && translated !== String(key).replace(/^@/, '') ? translated : label;
+      translated &&
+      translated !== key &&
+      translated !== String(key).replace(/^@/, '') &&
+      (!/[-_]/.test(String(key)) ||
+        translated.toLocaleLowerCase() !== String(key).replace(/^@/, '').replace(/[-_]+/g, ' ').toLocaleLowerCase())
+        ? translated
+        : label;
     const leaf = typeof field['path'] === 'string' ? (field['path'].split('/').at(-1)?.split(':').at(-1) ?? '') : '';
     const shortLabel =
-      resolvedLabel.length > 90 && leaf
+      (resolvedLabel.length > 80 ||
+        /[?\n<>]/.test(resolvedLabel) ||
+        resolvedLabel === field['path']?.toString().split('/').at(-1)) &&
+      leaf
         ? leaf
+            .replace(/^dmpt[-_]/i, '')
             .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
             .replace(/[_-]+/g, ' ')
+            .toLocaleLowerCase()
             .replace(/^./, c => c.toLocaleUpperCase())
         : resolvedLabel;
+    const translateLabel = (key: string, fallback: string): string => {
+      if (!key) return fallback;
+      const result = key.startsWith('@') ? translate(key) : key;
+      return result && result !== key.replace(/^@/, '') && result !== key
+        ? result
+        : key.startsWith('@')
+          ? fallback
+          : key;
+    };
+    const group = translateLabel(
+      typeof field['groupKey'] === 'string' ? field['groupKey'] : '',
+      typeof field['group'] === 'string' ? field['group'] : ''
+    );
     const allVariants = boolean(field['availableInAllVariants']);
     return {
       id: string(field['id']),
       path: typeof field['path'] === 'string' ? field['path'] : undefined,
       label: shortLabel,
-      group: typeof field['group'] === 'string' ? field['group'] : undefined,
+      group,
       groupPath: Array.isArray(field['groupPath'])
         ? field['groupPath'].map(g => {
             const k = string(g);
-            const t = k.startsWith('@') ? translate(k) : k;
-            return t && t !== k.replace(/^@/, '') && t !== k ? t : k.replace(/^@/, '');
+            return translateLabel(k, group);
           })
         : [],
       repeatingSubfield: field['repeatingSubfield'] === true,
@@ -131,7 +155,8 @@ export function parseDiscovery(value: unknown, translate: (key: string) => strin
         const choice = object(value);
         const choiceValue = choice['value'];
         if (!['string', 'number', 'boolean'].includes(typeof choiceValue)) return invalid();
-        return { label: string(choice['label']), value: String(choiceValue) };
+        const label = string(choice['label']);
+        return { label: translateLabel(label, String(choiceValue)), value: String(choiceValue) };
       }),
       selections:
         field['selections'] === undefined

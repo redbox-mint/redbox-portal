@@ -1,4 +1,4 @@
-<div id="explorer-workspace" [attr.inert]="promotion || columnsOpen ? '' : null">
+<div id="explorer-workspace" [attr.inert]="promotion || promotionOpening || columnsOpen ? '' : null">
   <nav class="rb-admin-crumbs" [attr.aria-label]="text('breadcrumbs')">
     <ol>
       <li>
@@ -22,9 +22,6 @@
   <div aria-live="polite" aria-atomic="true">
     @if (busy) {
       <p role="status" class="visually-hidden">{{ text('loading') }}</p>
-    }
-    @if (promotionOpening) {
-      <p role="status">{{ text('promotion-opening') }}</p>
     }
     @if (promotionSaved) {
       <p class="alert alert-success" role="status">{{ text('promotion-saved') }}</p>
@@ -145,6 +142,11 @@
                   <button class="btn" [disabled]="!active.id || busy || saving" (click)="remove(active)">
                     {{ text('delete') }}
                   </button>
+                  @if (scope && !unlinked) {
+                    <button type="button" class="btn" [disabled]="loadingFields" (click)="chooseScope(scope.id)">
+                      {{ text('refresh-fields') }}
+                    </button>
+                  }
                 </div>
               </details>
             </div>
@@ -174,7 +176,7 @@
               }
               <fieldset class="explorer-visual" [disabled]="unlinked || saving">
                 <legend class="visually-hidden">{{ text('visual') }}</legend>
-                <div class="rb-admin-filter-bar">
+                <div class="rb-admin-filter-bar" [class.explorer-filter-sorted]="!!draft.sort">
                   <label class="rb-admin-field"
                     >{{ text('record-type')
                     }}<select
@@ -199,7 +201,9 @@
                     >
                       <option value="" disabled>{{ text('choose-scope') }}</option>
                       @for (option of typeScopes; track option.id) {
-                        <option [value]="option.id">{{ option.workflowStage || text('all-stages') }}</option>
+                        <option [value]="option.id">
+                          {{ option.workflowStage ? workflowLabel(option.workflowStage) : text('all-stages') }}
+                        </option>
                       }
                     </select></label
                   >
@@ -435,18 +439,6 @@
                       }
                     </div>
                   }
-                  @if (scope) {
-                    <details>
-                      <summary>{{ text('field-options') }}</summary>
-                      <button
-                        class="btn btn-outline-secondary"
-                        [disabled]="loadingFields"
-                        (click)="chooseScope(scope.id)"
-                      >
-                        {{ text('refresh-fields') }}
-                      </button>
-                    </details>
-                  }
                 </div>
               </fieldset>
             }
@@ -538,19 +530,33 @@
                 <aside class="explorer-field-list" [attr.aria-label]="text('available-fields')">
                   <label class="rb-admin-field"
                     >{{ recordTypeLabel(draft?.recordType || '') }} {{ text('available-fields')
-                    }}<input class="form-control" type="search" [(ngModel)]="schemaSearch"
+                    }}<input
+                      id="graphql-field-search"
+                      class="form-control"
+                      type="search"
+                      [placeholder]="text('find-field')"
+                      [(ngModel)]="schemaSearch"
                   /></label>
                   <div class="explorer-field-list-items" tabindex="0" [attr.aria-label]="text('available-fields')">
-                    @for (field of graphqlFields; track field.id) {
-                      <button
-                        type="button"
-                        class="explorer-insert-field"
-                        [disabled]="!unlinked"
-                        (click)="insertField(queryEditor, field.id)"
-                      >
-                        <span>{{ fieldLabel(field.id) }}</span
-                        ><code>{{ field.path || field.id }}</code>
-                      </button>
+                    @for (group of graphqlFieldGroups; track group.label; let gi = $index) {
+                      <details class="explorer-graphql-group" [open]="!!schemaSearch || gi < 2">
+                        <summary>
+                          {{ group.label }} <span class="badge">{{ group.fields.length }}</span>
+                        </summary>
+                        @for (field of group.fields; track field.id) {
+                          <button
+                            type="button"
+                            class="explorer-insert-field"
+                            [disabled]="!unlinked"
+                            (click)="insertField(queryEditor, field.id)"
+                          >
+                            <span>{{ fieldLabel(field.id) }}</span
+                            ><code>{{ field.path || field.id }}</code>
+                          </button>
+                        }
+                      </details>
+                    } @empty {
+                      <p class="rb-admin-hint">{{ text('no-fields') }}</p>
                     }
                   </div>
                   <p class="rb-admin-hint">{{ text('insert-field-help') }}</p>
@@ -559,7 +565,9 @@
             </div>
           }
           <footer class="card-footer explorer-panel-footer">
-            <span role="status">{{ text(resultsStale ? 'results-stale' : 'run-query-help') }}</span>
+            <span role="status">{{
+              text(resultsStale ? 'results-stale' : hasPreview ? 'results-current' : 'run-query-help')
+            }}</span>
             <button class="btn btn-primary" [disabled]="!canPreview" (click)="preview()">{{ text('run') }}</button>
           </footer>
         </section>
@@ -600,20 +608,22 @@
           @if (previewError) {
             <p class="alert alert-danger" role="alert">{{ text(previewError) }}</p>
           }
+          <div [hidden]="!hasPreview || responseView === 'json'">
+            @defer (when hasPreview; prefetch when !!draft?.recordType) {
+              <rb-explorer-results-grid
+                [rows]="rows"
+                [columns]="columnDefs"
+                [defaults]="defaultColDef"
+                [label]="text('results')"
+              ></rb-explorer-results-grid>
+            } @placeholder {
+              <div class="explorer-grid-placeholder" role="status">{{ text('loading-results') }}</div>
+            }
+          </div>
           @if (hasPreview) {
             @if (responseView === 'json') {
               <pre class="explorer-json">{{ jsonResponse | json }}</pre>
             } @else {
-              @defer (when hasPreview) {
-                <rb-explorer-results-grid
-                  [rows]="rows"
-                  [columns]="columnDefs"
-                  [defaults]="defaultColDef"
-                  [label]="text('results')"
-                ></rb-explorer-results-grid>
-              } @placeholder {
-                <div class="grid-results" role="status">{{ text('loading-results') }}</div>
-              }
               @if (!rows.length && !previewError) {
                 <p class="explorer-message" role="status">{{ text('no-results') }}</p>
               }
@@ -698,17 +708,18 @@
       [fields]="scope?.fields || []"
       [selected]="draft.columns"
       [subtitle]="recordTypeLabel(draft.recordType) + ' · ' + (draft.workflowStage || text('all-stages'))"
-      (closed)="columnsOpen = false"
+      (closed)="closeColumns()"
       (applied)="applyColumns($event)"
     ></rb-explorer-columns>
   }
 }
-@defer (when promotion) {
-  @if (promotion; as prepared) {
+@defer (when promotionOpening || promotion; prefetch when !!activeDefinition?.id) {
+  @if (promotionOpening || promotion) {
     <rb-explorer-named-query
-      [prepared]="prepared"
+      [prepared]="promotion"
       [exploration]="promotionOrigin"
       [fieldLabels]="fieldLabels"
+      [fields]="scope?.fields || []"
       [resultFields]="publicationFields"
       [updateName]="publicationTarget || publications[0]?.name || ''"
       (closed)="closePromotion()"

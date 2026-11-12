@@ -70,6 +70,133 @@ describe('Data grid editor', () => {
     fixture.destroy();
   });
 
+  it('reuses the loaded grid across JSON views and subsequent queries', async () => {
+    spyOn(component, 'ngOnInit');
+    component.open(validGrid(), false);
+    await component.preview();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const grid = fixture.nativeElement.querySelector('ag-grid-angular');
+    expect(grid).not.toBeNull();
+    [...fixture.nativeElement.querySelectorAll('button')]
+      .find(b => b.textContent.trim() === 'data-grids-json-view')
+      .click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('ag-grid-angular')).toBe(grid);
+    expect(grid.closest('[hidden]')).not.toBeNull();
+    component.open(validGrid(), false);
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('ag-grid-angular')).toBe(grid);
+    await component.preview();
+    [...fixture.nativeElement.querySelectorAll('button')]
+      .find(b => b.textContent.trim() === 'data-grids-grid-view')
+      .click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('ag-grid-angular')).toBe(grid);
+    expect(grid.closest('[hidden]')).toBeNull();
+  });
+
+  it('renders an asynchronous query completion with OnPush after a real Run action', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    component.open(validGrid(), false);
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+    const response = deferred<GridPage>();
+    source.query.and.returnValue(response.promise);
+    const run = [...fixture.nativeElement.querySelectorAll('button')].find(
+      b => b.textContent.trim() === 'data-grids-run'
+    );
+    run.click();
+    fixture.detectChanges();
+    expect(run.disabled).toBeTrue();
+    response.resolve({
+      rows: [{ oid: 'async', values: { title: 'Async result' } }],
+      pageInfo: { hasNextPage: false, endCursor: null },
+    });
+    await fixture.whenStable();
+    expect(run.disabled).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.explorer-panel-footer [role="status"]').textContent).toContain(
+      'data-grids-results-current'
+    );
+  });
+
+  it('returns focus to Edit columns after the detached panel releases its inert workspace', async () => {
+    spyOn(component, 'ngOnInit');
+    component.open(validGrid(), false);
+    fixture.detectChanges();
+    const trigger = component.columnsButton!.nativeElement;
+    trigger.focus();
+    trigger.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('rb-explorer-columns .offcanvas-header button').click();
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.closest('[inert]')).toBeNull();
+  });
+
+  it('discovers fields alongside stage choices and retains the stage fallback if broad discovery fails', async () => {
+    const stages = deferred<GridScope[]>();
+    source.stages = jasmine.createSpy().and.returnValue(stages.promise);
+    source.fields = jasmine.createSpy().and.rejectWith(new GridRequestError('catalogue-limit'));
+    component.open(validGrid(), false);
+    component.catalogue!.scopes[0].workflowStage = undefined;
+    const loading = component.chooseScope(scope.id);
+    expect(source.fields).toHaveBeenCalled();
+    stages.resolve([{ ...scope, id: 'review', workflowStage: 'review' }]);
+    await loading;
+    expect(component.error).toBe('catalogue-limit');
+    expect(component.catalogue!.scopes.some(scope => scope.workflowStage === 'review')).toBeTrue();
+  });
+
+  it('reuses the current scope catalogue on rail navigation while retaining explicit refresh', async () => {
+    source.fields = jasmine.createSpy('fields').and.resolveTo([structuredClone(scope)]);
+    source.read.and.resolveTo({ ...validGrid(), id: 'saved', revision: 1 });
+    await component.reopen({ id: 'saved' });
+    expect(source.fields).not.toHaveBeenCalled();
+    await component.chooseScope(component.scope!.id);
+    expect(source.fields).toHaveBeenCalledTimes(1);
+    expect(component.scope!.fields.length).toBeGreaterThan(0);
+  });
+
+  it('uses neutral current-results status, choice labels and a wider primary column without changing stored values', async () => {
+    component.open({
+      ...validGrid(),
+      columns: ['title', 'status'],
+      filters: [{ fieldId: 'title', expectedScalarType: 'STRING', operator: 'contains', values: ['saved'] }],
+    });
+    source.query.and.resolveTo({
+      rows: [{ oid: 'a', values: { title: 'A long project title', status: 'draft' } }],
+      pageInfo: { hasNextPage: false, endCursor: null },
+    });
+    await component.preview();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.explorer-panel-footer [role="status"]').textContent).toContain(
+      'data-grids-results-current'
+    );
+    const status = component.columnDefs.find(c => c.colId === 'status')!;
+    expect((status.cellRenderer as Function)({ value: 'draft' }).textContent).toBe('Draft');
+    expect<unknown>(component.rows[0].values['status']).toBe('draft');
+    expect(component.columnDefs[0].flex).toBeGreaterThan(status.flex!);
+    expect(component.conditionLabel({ fieldId: 'status', operator: 'eq', values: ['draft'] })).toContain('Draft');
+    fixture.nativeElement.querySelector('.explorer-chip-remove').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.explorer-panel-footer [role="status"]').textContent).toContain(
+      'data-grids-results-stale'
+    );
+  });
+  it('groups GraphQL fields and searches short labels, paths and group names', () => {
+    component.open(validGrid());
+    component.scope!.fields[0].groupPath = ['Project'];
+    component.schemaSearch = 'Project';
+    expect(component.graphqlFieldGroups[0].label).toBe('Project');
+    expect(component.graphqlFieldGroups[0].fields[0].label).toBe('Title');
+  });
   it('renders the unavailable state without fabricated records or API calls', async () => {
     source.catalogue.and.rejectWith(new GridSourceUnavailable());
     source.list.calls.reset();
@@ -145,7 +272,7 @@ describe('Data grid editor', () => {
     expect(fixture.nativeElement.querySelector('#filter-field-0')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#grid-stage').value).toBe(scope.id);
   });
-  it('qualifies ambiguous discovered child labels consistently across columns and inspection', async () => {
+  it('keeps short child labels consistent and makes paths searchable separately', async () => {
     spyOn(component, 'ngOnInit');
     const fields = component.catalogue!.scopes[0].fields;
     for (const parent of ['owner', 'contact'])
@@ -170,21 +297,19 @@ describe('Data grid editor', () => {
     await fixture.whenStable();
     fixture.detectChanges();
     for (const parent of ['owner', 'contact']) {
-      const label = `Name (/${parent}/name)`;
+      const label = 'Name';
       expect(component.fieldLabel(`metadata:/${parent}/name`)).toBe(label);
       expect(fixture.nativeElement.querySelector('#columns-panel').textContent).toContain(label);
       expect(fixture.nativeElement.querySelector('.explorer-chips').textContent).toContain(label);
 
       expect(component.columnDefs.some(column => column.headerName === label)).toBeTrue();
-      const labels = Array.from(fixture.nativeElement.querySelectorAll('.grid-field label')) as HTMLElement[];
-      expect(labels.some(node => node.textContent?.includes(label))).toBeTrue();
       expect(fixture.nativeElement.querySelector('ag-grid-angular').textContent).toContain(label);
     }
     const button: HTMLButtonElement = fixture.nativeElement.querySelector('.ag-cell button');
-    expect(button.getAttribute('aria-label')).toContain('Name (/owner/name)');
+    expect(button.getAttribute('aria-label')).toContain('Name');
     button.click();
     const dialog = document.querySelector<HTMLDialogElement>('dialog.grid-cell-detail')!;
-    expect(dialog.querySelector('h2')!.textContent).toBe('Name (/owner/name)');
+    expect(dialog.querySelector('h2')!.textContent).toBe('Name');
     dialog.close();
     await new Promise(resolve => setTimeout(resolve, 30));
     component.fieldSearch = 'contact';

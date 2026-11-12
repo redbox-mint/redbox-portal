@@ -21,6 +21,25 @@ describe('Shared named-query sections', () => {
     );
     expect(changed).not.toHaveBeenCalled();
   });
+  it('combines page size and cursor into one managed paging row and keeps formatted values separate from bindings', () => {
+    const c = new NamedQueryParametersSectionComponent();
+    c.rows = [
+      { variable: 'first', label: 'Rows per page', inputType: 'Int', value: 25, paging: true, consumerAllowed: false },
+      { variable: 'after', label: 'Paging', inputType: 'String', value: null, paging: true, consumerAllowed: false },
+      {
+        variable: 'sort',
+        label: 'Sorting',
+        inputType: '[Sort!]',
+        value: [{ field: 'title', direction: 'ASC' }],
+        displayValue: 'Title, ascending',
+        consumerAllowed: false,
+      },
+    ];
+    expect(c.visibleRows.length).toBe(2);
+    expect<unknown>(c.visibleRows[0].value).toBe(25);
+    expect(c.displayValue(c.rows[2])).toBe('Title, ascending');
+    expect<unknown>(c.rows[2].value).toEqual([{ field: 'title', direction: 'ASC' }]);
+  });
   it('keeps nested input objects fixed and creates scalar consumer bindings explicitly', () => {
     const c = new NamedQueryParametersSectionComponent(),
       changed = jasmine.createSpy();

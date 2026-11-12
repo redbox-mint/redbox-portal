@@ -79,7 +79,9 @@ export function initializePublish(
           type: parseType(inputType),
         });
         customLabels[name] =
-          (labels[String(object['field'])] ?? String(object['field'])) + ' ' + text('op-' + operator);
+          (labels[String(object['field'])] ?? String(object['field'])) +
+          ' ' +
+          text('op-' + operator).replace(/^./, c => c.toLocaleLowerCase());
         const variable: ValueNode = { kind: Kind.VARIABLE, name: { kind: Kind.NAME, value: name } };
         return {
           ...node,
@@ -114,7 +116,9 @@ export function initializePublish(
           type: parseType(operator === 'in' ? '[RecordFilterValue!]!' : 'RecordFilterRange!'),
         });
         customLabels[name] =
-          (labels[String(object['field'])] ?? String(object['field'])) + ' ' + text('op-' + operator);
+          (labels[String(object['field'])] ?? String(object['field'])) +
+          ' ' +
+          text('op-' + operator).replace(/^./, c => c.toLocaleLowerCase());
         return {
           ...node,
           fields: node.fields.map(field =>

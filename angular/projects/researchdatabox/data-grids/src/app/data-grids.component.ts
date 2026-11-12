@@ -1,5 +1,6 @@
 import type { NamedQueryPromotionDraft } from '@researchdatabox/sails-ng-common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { fieldValue, fieldGroups, columnSize } from './field-presentation';
 import { parseQueryVariables } from './record-grid.protocol';
 import { inspectCell, detailKeyboard, CellText, displayScalar } from './cell-detail';
 import type { GraphQLSchema } from 'graphql';
@@ -15,7 +16,15 @@ import {
 import { ColumnsPanelComponent } from './columns-panel.component';
 import { ExplorerNamedQueryComponent } from './explorer-named-query.component';
 import { ResultsGridComponent } from './results-grid.component';
-import { Component, ElementRef, HostListener, Inject, OnDestroy, ViewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  Inject,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import { BaseComponent, TranslationService } from '@researchdatabox/portal-ng-common';
 import type { ColDef, GetRowIdParams } from 'ag-grid-community';
 import { DATA_GRID_SOURCE, DataGridSource, GridRequestError, GridSourceUnavailable } from './data-grid-source';
@@ -48,6 +57,7 @@ import {
   templateUrl: './data-grids.component.html',
   styleUrls: ['./data-grids.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -65,6 +75,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   @ViewChild('editorHeading') editorHeading?: ElementRef<HTMLElement>;
   @ViewChild('catalogueHeading') catalogueHeading?: ElementRef<HTMLElement>;
   @ViewChild('promotionButton') promotionButton?: ElementRef<HTMLButtonElement>;
+  @ViewChild('columnsButton') columnsButton?: ElementRef<HTMLButtonElement>;
   promotion: NamedQueryPromotionDraft | null = null;
   promotionOrigin: SavedQuery | null = null;
   publicationFields: NamedQueryResultField[] = [];
@@ -103,6 +114,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   private rawBaseline = '';
   private schemaSequence = 0;
   private modeSequence = 0;
+  private promotionSequence = 0;
   busy = false;
   loadingPage = false;
   loadingFields = false;
@@ -214,7 +226,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   }
   get visibleFields(): GridField[] {
     return (this.scope?.fields ?? []).filter(field =>
-      this.fieldLabel(field.id).toLocaleLowerCase().includes(this.fieldSearch.toLocaleLowerCase().trim())
+      [this.fieldLabel(field.id), field.path, field.id]
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(this.fieldSearch.toLocaleLowerCase().trim())
     );
   }
   get filterFields(): GridField[] {
@@ -264,21 +279,24 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       }
     }
     const trigger = this.promotionButton?.nativeElement;
+    const promotionSeq = ++this.promotionSequence;
     this.promotionOpening = true;
     this.promotionError = '';
     this.promotionSaved = false;
+    this.requestRender();
     try {
       // Fetch the detached definition, field selections and lazy panel together
       // after the user opens Publish, avoiding sequential mobile round trips.
       const [prepared, selections, { visualPublicationProjection }] = await Promise.all([
         this.source.prepareNamedQuery(snapshot),
         snapshot.mode !== 'graphql' && originalScope && this.source.selection
-          ? Promise.all(snapshot.columns.map(id => this.source.selection!(originalScope, id)))
+          ? this.source.selections
+            ? this.source.selections(originalScope, snapshot.columns)
+            : Promise.all(snapshot.columns.map(id => this.source.selection!(originalScope, id)))
           : Promise.resolve(null),
         import('./publish-query'),
-        import('./explorer-named-query.component'),
       ]);
-      if (this.disposed) return;
+      if (this.disposed || promotionSeq !== this.promotionSequence) return;
       if (selections) {
         const projection = visualPublicationProjection(prepared.definition.graphql.document, selections);
         prepared.definition.graphql.document = projection.document;
@@ -292,7 +310,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         this.promotion = structuredClone(prepared);
       else if (!this.disposed) this.promotionError = 'promotion-query-changed';
     } catch (error) {
-      if (!this.disposed) {
+      if (!this.disposed && promotionSeq === this.promotionSequence) {
         const code: unknown =
           error instanceof HttpErrorResponse
             ? (error.error?.errors?.[0]?.code ?? error.error?.data?.error?.code ?? error.error?.error?.code)
@@ -317,13 +335,15 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         });
       }
     } finally {
-      if (!this.disposed) {
+      if (!this.disposed && promotionSeq === this.promotionSequence) {
         this.promotionOpening = false;
         this.requestRender();
       }
     }
   }
   closePromotion(saved = false): void {
+    this.promotionSequence++;
+    this.promotionOpening = false;
     this.promotion = null;
     this.promotionSaved = saved;
     if (saved) void this.refreshSaved();
@@ -384,11 +404,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   fieldLabel(id: string, fields: GridField[] = this.scope?.fields ?? []): string {
     const field = fields.find(field => field.id === id);
     if (!field) return id;
-    if (field.id === 'metadata:/title' && field.label.toLocaleLowerCase() === 'title') return this.text('title-column');
-    const ambiguous = fields.some(
-      other => other.id !== id && other.label.trim().toLocaleLowerCase() === field.label.trim().toLocaleLowerCase()
-    );
-    return ambiguous ? `${field.label} (${field.path ?? field.id})` : field.label;
+    return field.label;
   }
   field(id: string): GridField | undefined {
     return this.scope?.fields.find(field => field.id === id);
@@ -477,7 +493,10 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         });
       }
       this.setSavedUrl(saved.id);
-      if (this.scope) await this.chooseScope(this.scope.id);
+      // Reuse a catalogue already displayed for this exact type/stage. Run and
+      // Publish still revalidate against the server; Refresh fields explicitly
+      // reloads the catalogue. Avoid blanking/rebuilding it on every rail click.
+      if (this.scope && !this.scope.fields.length) await this.chooseScope(this.scope.id);
       if (this.disposed || seq !== this.loadSequence || this.draft?.id !== saved.id) return;
       this.baseline = JSON.stringify(editableQuery(saved));
       this.editorOpen = true;
@@ -552,20 +571,22 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     scope.fields = [];
     scope.revision = undefined;
     try {
-      if (!scope.workflowStage && this.source.stages) {
-        const stages = await this.source.stages(scope);
-        if (seq !== this.fieldSequence || this.disposed || !this.catalogue) return;
-        for (const stage of stages) {
-          if (
-            !this.catalogue.scopes.some(
-              item => item.recordType === stage.recordType && item.workflowStage === stage.workflowStage
-            )
-          )
-            this.catalogue.scopes.push(stage);
-        }
-      }
-      const scopes = await this.source.fields(scope);
+      const [stageResult, fieldResult] = await Promise.allSettled([
+        !scope.workflowStage && this.source.stages ? this.source.stages(scope) : Promise.resolve([]),
+        this.source.fields(scope),
+      ]);
       if (seq !== this.fieldSequence || this.disposed || !this.catalogue) return;
+      if (stageResult.status === 'rejected') throw stageResult.reason;
+      for (const stage of stageResult.value) {
+        if (
+          !this.catalogue.scopes.some(
+            item => item.recordType === stage.recordType && item.workflowStage === stage.workflowStage
+          )
+        )
+          this.catalogue.scopes.push(stage);
+      }
+      if (fieldResult.status === 'rejected') throw fieldResult.reason;
+      const scopes = fieldResult.value;
       for (const discovered of scopes) {
         const index = this.catalogue.scopes.findIndex(
           item => item.recordType === discovered.recordType && item.workflowStage === discovered.workflowStage
@@ -708,10 +729,14 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       this.jsonResponse = { rows: result.rows, pageInfo: result.pageInfo };
       this.columnDefs = request.definition.columns.map(id => ({
         colId: id,
+        ...columnSize(id, fields.find(field => field.id === id)?.type),
         headerName: this.fieldLabel(id, fields),
         cellRenderer: (params: { value: GridRow['values'][string] }) =>
           inspectCell(
-            params.value,
+            fieldValue(
+              fields.find(field => field.id === id),
+              params.value
+            ),
             this.fieldLabel(id, fields),
             fields.find(field => field.id === id)!.type,
             this.cellText
@@ -800,7 +825,11 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     if (query.mode === 'graphql') return this.text('raw-summary') + ' · ' + (query.resultPath.join('.') || 'JSON');
     const conditions = query.filters.map(
       filter =>
-        this.fieldLabel(filter.fieldId) + ' ' + this.text('op-' + filter.operator) + ' ' + filter.values.join(', ')
+        this.fieldLabel(filter.fieldId) +
+        ' ' +
+        this.text('op-' + filter.operator).replace(/^./, c => c.toLocaleLowerCase()) +
+        ' ' +
+        filter.values.map(value => fieldValue(this.field(filter.fieldId), value)).join(', ')
     );
     const sort = query.sort
       ? this.fieldLabel(query.sort.fieldId) +
@@ -932,12 +961,25 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
         : null;
       const mapped = this.graphqlEngine!.rawRows(this.jsonResponse, this.rawDraft.resultPath, identityKey);
       this.rows = mapped.rows;
-      const labels = new Map(this.publishFields.map(field => [field.path.join('.'), field.label]));
+      const resultFields = this.publishFields;
+      const labels = new Map(resultFields.map(field => [field.path.join('.'), field.label]));
       this.columnDefs = mapped.columns.map(key => ({
         colId: key,
+        ...columnSize(
+          labels.get(key) === this.text('title-column') ? 'title' : key,
+          resultFields.find(field => field.path.join('.') === key)?.type
+        ),
         headerName: labels.get(key) ?? key,
         cellRenderer: (params: { value: GridRow['values'][string] }) =>
-          inspectCell(params.value, labels.get(key) ?? key, undefined, this.cellText),
+          inspectCell(
+            fieldValue(
+              resultFields.find(field => field.path.join('.') === key),
+              params.value
+            ),
+            labels.get(key) ?? key,
+            undefined,
+            this.cellText
+          ),
         valueGetter: p => p.data?.values[key],
         ...(identityKey && (/(^|\.)title$/i.test(key) || labels.get(key) === this.text('title-column') || key === 'oid')
           ? {
@@ -1016,7 +1058,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
     return this.activeDefinition?.publishedAs ?? [];
   }
   get fieldLabels(): Record<string, string> {
-    return Object.fromEntries((this.scope?.fields ?? []).map(f => [f.id, this.fieldLabel(f.id)]));
+    return Object.fromEntries((this.scope?.fields ?? []).map(f => [f.id, f.label]));
   }
   get publishFields(): NamedQueryResultField[] {
     const fields = this.scope?.fields ?? [];
@@ -1032,8 +1074,16 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
                   label: this.fieldLabel(id),
                   path: selection.responsePath,
                   type: field.type,
+                  choices: field.choices,
                 }))
-              : [{ label: this.fieldLabel(id), path: [id.replace(/^record:/, '')], type: field.type }];
+              : [
+                  {
+                    label: this.fieldLabel(id),
+                    path: [id.replace(/^record:/, '')],
+                    type: field.type,
+                    choices: field.choices,
+                  },
+                ];
         }),
         { label: this.text('field-group-metadata'), path: ['metadata'], type: 'object' },
       ].filter((f, i, all) => all.findIndex(other => JSON.stringify(other.path) === JSON.stringify(f.path)) === i);
@@ -1047,6 +1097,7 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       );
       return {
         ...result,
+        choices: field?.choices,
         label: field
           ? this.fieldLabel(field.id)
           : result.path.length === 1 && result.path[0] === 'metadata'
@@ -1067,11 +1118,19 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
       (name ? '#query=' + encodeURIComponent(name) : '')
     );
   }
-  get graphqlFields(): GridField[] {
+  get graphqlFieldGroups(): { label: string; fields: GridField[] }[] {
     const q = this.schemaSearch.trim().toLocaleLowerCase();
-    return (this.scope?.fields ?? []).filter(
-      f => f.selectable && !f.repeatingSubfield && (!q || [f.label, f.path].join(' ').toLocaleLowerCase().includes(q))
+    return fieldGroups(
+      (this.scope?.fields ?? []).filter(
+        f =>
+          f.selectable &&
+          !f.repeatingSubfield &&
+          (!q || [f.label, f.path, ...(f.groupPath ?? [])].join(' ').toLocaleLowerCase().includes(q))
+      )
     );
+  }
+  workflowLabel(stage: string): string {
+    return String(fieldValue(this.field('record:workflowStep'), stage));
   }
   async discoverRawFields(): Promise<void> {
     const original = this.rawDraft;
@@ -1114,12 +1173,24 @@ export class DataGridsComponent extends BaseComponent implements OnDestroy {
   applyColumns(columns: string[]): void {
     if (!this.draft || this.unlinked) return;
     this.draft.columns = [...columns];
-    this.columnsOpen = false;
+    this.closeColumns();
     this.changed();
     void this.preview();
   }
+  closeColumns(): void {
+    this.columnsOpen = false;
+    setTimeout(() => {
+      if (!this.disposed) this.columnsButton?.nativeElement.focus();
+    });
+  }
   conditionLabel(filter: GridFilter): string {
-    return this.fieldLabel(filter.fieldId) + ' ' + this.text('op-' + filter.operator) + ' ' + filter.values.join(', ');
+    return (
+      this.fieldLabel(filter.fieldId) +
+      ' ' +
+      this.text('op-' + filter.operator).replace(/^./, c => c.toLocaleLowerCase()) +
+      ' ' +
+      filter.values.map(value => fieldValue(this.field(filter.fieldId), value)).join(', ')
+    );
   }
   async refreshSaved(): Promise<void> {
     try {

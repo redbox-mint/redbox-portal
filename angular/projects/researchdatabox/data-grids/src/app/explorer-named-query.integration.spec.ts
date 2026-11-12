@@ -153,6 +153,16 @@ describe('Explorer publishing workspace', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Blocking error');
     expect(child.canSave).toBeTrue();
   });
+  it('renders delayed validation completion in the OnPush publishing panel', async () => {
+    let resolve!: (value: GraphqlNamedQueryDescription) => void;
+    api.describe.and.returnValue(new Promise(yes => (resolve = yes)));
+    const child = await open();
+    expect(child.saveButton!.nativeElement.disabled).toBeTrue();
+    resolve(described(true));
+    await render();
+    expect(child.saveButton!.nativeElement.disabled).toBeFalse();
+    expect(child.initializing).toBeFalse();
+  });
   it('saves dirty queries before preparing an exact linked revision', async () => {
     explorer.draft!.name = 'Changed';
     await explorer.createNamedQuery();
@@ -193,6 +203,43 @@ describe('Explorer publishing workspace', () => {
     resolve(prepared());
     await work;
     expect(explorer.promotion).toBeNull();
+  });
+  it('opens a focus-contained panel while preparation is pending and ignores a late result after cancellation', async () => {
+    let resolve!: (value: NamedQueryPromotionDraft) => void;
+    source.prepareNamedQuery.and.returnValue(new Promise(yes => (resolve = yes)));
+    const work = explorer.createNamedQuery();
+    await render();
+    await new Promise(yes => setTimeout(yes, 30));
+    await render();
+    const child = fixture.debugElement.query(By.directive(ExplorerNamedQueryComponent))
+      .componentInstance as ExplorerNamedQueryComponent;
+    expect(child.initializing).toBeTrue();
+    expect(child.dirty).toBeFalse();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('rb-named-query-basics')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('rb-named-query-parameters')).toBeNull();
+    expect(fixture.nativeElement.querySelector('rb-named-query-lookup-fields')).toBeNull();
+    child.cancel();
+    await render();
+    resolve(prepared());
+    await work;
+    expect(explorer.promotion).toBeNull();
+    expect(explorer.promotionOpening).toBeFalse();
+  });
+  it('renders plain-language sort, all-stage and sentence-case condition summaries', async () => {
+    const input = prepared();
+    input.definition.graphql.document =
+      'query($sort:[Sort!],$stages:[String!],$filters:[Filter!]){records(sort:$sort,stages:$stages,filters:$filters){nodes{oid}}}';
+    input.variableValues = {
+      sort: [{ field: 'title', direction: 'ASC' }],
+      stages: null,
+      filters: [{ field: 'title', contains: 'Hunter' }],
+    };
+    source.prepareNamedQuery.and.resolveTo(input);
+    const child = await open();
+    expect(child.parameterRows.find(r => r.variable === 'stages')?.displayValue).toBe('data-grids-all-stages');
+    expect(child.parameterRows.find(r => r.variable === 'sort')?.displayValue).toBe('Title, data-grids-ascending');
+    expect(child.parameterRows.find(r => r.variable === 'condition_1')?.label).not.toContain('Contains');
   });
   it('rejects a prepared handoff if the query changed while it was loading', async () => {
     let resolve!: (value: NamedQueryPromotionDraft) => void;

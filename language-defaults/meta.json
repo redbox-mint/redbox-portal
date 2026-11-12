@@ -11490,5 +11490,25 @@
     "category": "Record explorer and named queries",
     "description": "Named query to update",
     "contentFormat": "plain"
+  },
+  "data-grids-results-current": {
+    "category": "Record explorer and named queries",
+    "description": "Results match the current query.",
+    "contentFormat": "plain"
+  },
+  "nq-section-paging": {
+    "category": "Record explorer and named queries",
+    "description": "Paging",
+    "contentFormat": "plain"
+  },
+  "nq-section-per-page": {
+    "category": "Record explorer and named queries",
+    "description": "per page",
+    "contentFormat": "plain"
+  },
+  "nq-section-default-page": {
+    "category": "Record explorer and named queries",
+    "description": "Default page size",
+    "contentFormat": "plain"
   }
 }

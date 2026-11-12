@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import {
   Component,
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   ElementRef,
   EventEmitter,
@@ -9,6 +10,7 @@ import {
   Inject,
   Input,
   OnDestroy,
+  OnChanges,
   OnInit,
   Output,
   ViewChild,
@@ -35,7 +37,8 @@ import type {
   NamedQueryUpdateReview,
 } from '@researchdatabox/sails-ng-common';
 import { NamedQueryApiService } from '../../../named-query-editor/src/app/named-query-api.service';
-import { SavedQuery } from './data-grid.model';
+import { SavedQuery, GridField, JsonValue } from './data-grid.model';
+import { fieldValue } from './field-presentation';
 import { initializePublish, publishPreviewVariables, type PublishVariable } from './publish-query';
 import { cursorBinding } from './graphql-query';
 import { DATA_GRID_SOURCE, DataGridSource } from './data-grid-source';
@@ -56,18 +59,24 @@ import { DATA_GRID_SOURCE, DataGridSource } from './data-grid-source';
     NamedQueryPreviewSectionComponent,
   ],
   templateUrl: './explorer-named-query.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
-  @Input({ required: true }) prepared!: NamedQueryPromotionDraft;
+export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy {
+  @Input() prepared: NamedQueryPromotionDraft | null = null;
   @Input() exploration: SavedQuery | null = null;
   @Input() fieldLabels: Record<string, string> = {};
+  @Input() fields: GridField[] = [];
   @Input() resultFields: NamedQueryResultField[] = [];
   @Input() updateName = '';
   @Output() closed = new EventEmitter<void>();
   @Output() saved = new EventEmitter<string>();
   @ViewChild('saveButton') saveButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('cancelButton') cancelButton?: ElementRef<HTMLButtonElement>;
-  draft!: GraphqlNamedQueryDefinition;
+  draft: GraphqlNamedQueryDefinition = {
+    source: 'graphql',
+    name: '',
+    graphql: { document: '', variables: {}, resultPath: [] },
+  };
   variableValues: NamedQueryPromotionDraft['variableValues'] = {};
   description: GraphqlNamedQueryDescription | null = null;
   variables: PublishVariable[] = [];
@@ -88,6 +97,7 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
   private previewSequence = 0;
   private destroyed = false;
   private initialized = false;
+  private preparation: NamedQueryPromotionDraft | null = null;
   private timer?: ReturnType<typeof setTimeout>;
   constructor(
     @Inject(NamedQueryApiService) private api: NamedQueryApiService,
@@ -97,13 +107,24 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.startPreparation();
+  }
+  ngOnChanges(): void {
+    this.startPreparation();
+  }
+  private startPreparation(): void {
+    if (!this.prepared) {
+      if (!this.preparation) this.draft.name = this.defaultName();
+      return;
+    }
+    if (this.preparation === this.prepared) return;
+    this.preparation = this.prepared;
     const initialized = initializePublish(this.prepared, this.exploration, this.fieldLabels, key =>
       this.text('data-grids-' + key)
     );
     this.draft = initialized.draft;
     this.variables = initialized.variables;
-    if (!this.draft.name)
-      this.draft.name = (this.exploration?.name ?? '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!this.draft.name) this.draft.name = this.defaultName();
     this.variableValues = structuredClone(this.prepared.variableValues);
     const title = this.resultFields.find(
       f =>
@@ -113,6 +134,9 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
     if (!this.draft.graphql.mappings?.title && title)
       this.draft.graphql.mappings = { ...this.draft.graphql.mappings, title: title.path };
     void this.initialize();
+  }
+  private defaultName(): string {
+    return (this.exploration?.name ?? '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
   }
   text(key: string): string {
     return this.i18n.t(key) as string;
@@ -144,11 +168,14 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
     } catch {
       if (!this.destroyed) this.error = 'data-grids-promotion-init-failed';
     } finally {
-      if (!this.destroyed) this.initializing = false;
+      if (!this.destroyed) {
+        this.initializing = false;
+        this.cdr.markForCheck();
+      }
     }
   }
   get dirty(): boolean {
-    return JSON.stringify(this.draft) !== this.baseline;
+    return this.initialized && JSON.stringify(this.draft) !== this.baseline;
   }
   get canSave(): boolean {
     const name = this.draft?.name?.trim();
@@ -173,6 +200,7 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
       label: v.label,
       inputType: v.inputType,
       value: v.value,
+      displayValue: this.parameterValue(v),
       binding: this.draft.graphql.variables[v.name],
       consumerAllowed: v.consumerAllowed,
       paging:
@@ -180,6 +208,47 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
         v.name === this.draft.graphql.lookup?.afterVariable ||
         ['first', 'after'].includes(v.name),
     }));
+  }
+  private parameterValue(variable: PublishVariable): string | undefined {
+    if (variable.name === 'stages') {
+      const stages = Array.isArray(variable.value) ? variable.value : [];
+      return stages.length
+        ? stages
+            .map(value =>
+              fieldValue(
+                this.fields.find(f => f.id === 'record:workflowStep'),
+                value as JsonValue
+              )
+            )
+            .join(', ')
+        : this.text('data-grids-all-stages');
+    }
+    if (variable.name === 'sort' && Array.isArray(variable.value))
+      return (
+        variable.value
+          .map(value => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
+            const id = String(value['field']);
+            return (
+              (this.fieldLabels[id] ?? id) +
+              ', ' +
+              this.text(
+                value['direction'] === 'DESC' ? 'data-grids-descending' : 'data-grids-ascending'
+              ).toLocaleLowerCase()
+            );
+          })
+          .join('; ') || this.text('data-grids-default-order')
+      );
+    const match = /^condition_(\d+)$/.exec(variable.name);
+    const filter =
+      match && this.exploration?.mode !== 'graphql' ? this.exploration?.filters[Number(match[1]) - 1] : undefined;
+    if (filter) {
+      const field = this.fields.find(f => f.id === filter.fieldId);
+      return filter.values
+        .map(value => String(fieldValue(field, value)))
+        .join(filter.operator === 'between' ? ' – ' : ', ');
+    }
+    return undefined;
   }
   get consumers(): { name: string; label: string }[] {
     return this.parameterRows.flatMap(row =>
@@ -243,6 +312,7 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
     const seq = ++this.sequence,
       snapshot = JSON.stringify(this.draft);
     this.validating = true;
+    this.cdr.markForCheck();
     try {
       const result = await this.api.describe({ definition: JSON.parse(snapshot) });
       if (this.destroyed || seq !== this.sequence || snapshot !== JSON.stringify(this.draft)) return false;
@@ -252,7 +322,10 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
       if (!this.destroyed && seq === this.sequence) this.error = 'data-grids-promotion-validation-failed';
       return false;
     } finally {
-      if (!this.destroyed && seq === this.sequence) this.validating = false;
+      if (!this.destroyed && seq === this.sequence) {
+        this.validating = false;
+        this.cdr.markForCheck();
+      }
     }
   }
   async preview(): Promise<void> {
@@ -305,7 +378,10 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
     } catch {
       if (!this.destroyed && seq === this.previewSequence) this.previewError = this.text('nq-section-preview-failed');
     } finally {
-      if (!this.destroyed && seq === this.previewSequence) this.previewBusy = false;
+      if (!this.destroyed && seq === this.previewSequence) {
+        this.previewBusy = false;
+        this.cdr.markForCheck();
+      }
     }
   }
   async save(): Promise<void> {
@@ -367,7 +443,10 @@ export class ExplorerNamedQueryComponent implements OnInit, OnDestroy {
       this.pendingUpdate = null;
       this.handleSaveError(error);
     } finally {
-      if (!this.destroyed) this.saving = false;
+      if (!this.destroyed) {
+        this.saving = false;
+        this.cdr.markForCheck();
+      }
     }
   }
   cancelUpdate(): void {

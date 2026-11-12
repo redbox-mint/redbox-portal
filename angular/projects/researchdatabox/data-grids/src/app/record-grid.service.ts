@@ -117,6 +117,11 @@ export class RecordGridService extends HttpClientService implements DataGridSour
     if (!field) throw new GridRequestError('schema-changed');
     return field;
   }
+  async selections(scope: GridScope, ids: string[]) {
+    const discovery = await this.discover(scope, ids);
+    if (ids.some(id => !discovery.fields.some(field => field.id === id))) throw new GridRequestError('schema-changed');
+    return discovery.fields;
+  }
 
   async query(request: GridQuery): Promise<GridPage> {
     const definition = request.definition;

@@ -1,4 +1,4 @@
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import {
@@ -16,6 +16,7 @@ import { RecordGridService } from './record-grid.service';
 /** Retain the portal's configuration and CSRF boundary without loading unrelated admin widgets. */
 export const dataGridsConfig: ApplicationConfig = {
   providers: [
+    provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     provideHttpClient(withInterceptorsFromDi()),
     ConfigService,
     TranslationService,

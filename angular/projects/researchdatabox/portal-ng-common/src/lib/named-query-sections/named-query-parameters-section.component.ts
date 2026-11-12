@@ -25,10 +25,20 @@ import { NamedQueryBindingChange, NamedQueryParameterRow } from './named-query-s
           </tr>
         </thead>
         <tbody>
-          @for (row of rows; track row.variable) {
+          @for (row of visibleRows; track row.variable) {
             <tr>
-              <th scope="row">{{ row.label }}</th>
-              <td class="nq-saved-value">{{ displayValue(row) }}</td>
+              <th scope="row">{{ row.paging ? ('nq-section-paging' | i18next) : row.label }}</th>
+              <td class="nq-saved-value">
+                @if (row.paging) {
+                  @if (row.value !== null && row.value !== undefined) {
+                    {{ row.value }} {{ 'nq-section-per-page' | i18next }}
+                  } @else {
+                    {{ 'nq-section-default-page' | i18next }}
+                  }
+                } @else {
+                  {{ displayValue(row) }}
+                }
+              </td>
               <td>
                 @if (row.paging) {
                   <span>{{ 'nq-section-paging-managed' | i18next }}</span>
@@ -70,8 +80,16 @@ export class NamedQueryParametersSectionComponent {
   @Input() rows: NamedQueryParameterRow[] = [];
   @Input() disabled = false;
   @Output() bindingChange = new EventEmitter<NamedQueryBindingChange>();
+  get visibleRows(): NamedQueryParameterRow[] {
+    const page =
+      this.rows.find(row => row.paging && typeof row.value === 'number') ?? this.rows.find(row => row.paging);
+    return this.rows.filter(row => !row.paging || row === page);
+  }
   displayValue(row: NamedQueryParameterRow): string {
-    return row.value === undefined ? '—' : typeof row.value === 'string' ? row.value : JSON.stringify(row.value);
+    return (
+      row.displayValue ??
+      (row.value === undefined ? '—' : typeof row.value === 'string' ? row.value : JSON.stringify(row.value))
+    );
   }
   parameter(row: NamedQueryParameterRow): string {
     return row.binding?.ownership === 'consumer' ? row.binding.parameter : '';

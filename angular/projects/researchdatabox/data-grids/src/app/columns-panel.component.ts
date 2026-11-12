@@ -2,6 +2,7 @@ import { Component, ElementRef, EventEmitter, Input, OnInit, Output } from '@ang
 import { FormsModule } from '@angular/forms';
 import { AdminSidePanelComponent, I18NextPipe, TranslationService } from '@researchdatabox/portal-ng-common';
 import { defaultColumns, GridField, LIMITS } from './data-grid.model';
+import { fieldGroups } from './field-presentation';
 
 @Component({
   selector: 'rb-explorer-columns',
@@ -30,10 +31,7 @@ export class ColumnsPanelComponent implements OnInit {
   label(id: string): string {
     const field = this.fields.find(f => f.id === id);
     if (!field) return id;
-    const ambiguous = this.fields.some(
-      f => f.id !== id && f.label.toLocaleLowerCase() === field.label.toLocaleLowerCase()
-    );
-    return ambiguous ? `${field.label} (${field.path ?? id})` : field.label;
+    return field.label;
   }
   get groups(): { label: string; fields: GridField[] }[] {
     const groups = new Map<string, GridField[]>();
@@ -52,13 +50,9 @@ export class ColumnsPanelComponent implements OnInit {
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group)!.push(field);
     }
-    return [...groups]
-      .map(([label, fields]) => ({ label, fields }))
-      .sort((a, b) => {
-        const recordA = a.fields.some(f => f.id.startsWith('record:')),
-          recordB = b.fields.some(f => f.id.startsWith('record:'));
-        return Number(recordB) - Number(recordA) || a.label.localeCompare(b.label);
-      });
+    return fieldGroups(
+      [...groups].flatMap(([group, fields]) => fields.map(field => ({ ...field, group, groupPath: [] })))
+    );
   }
   get repeatingCount(): number {
     return this.fields.filter(f => f.repeatingSubfield).length;

@@ -4,8 +4,8 @@ import {
   type RecordGridScalar,
   type RecordGridScalarType,
   type RecordGridOperator,
-} from '@researchdatabox/sails-ng-common';
-export { normalizeTimestamp } from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
+export { normalizeTimestamp } from '@researchdatabox/sails-ng-common/dist/src/record-grid-filter';
 
 /** UI contracts, independent of AG Grid state and of the HTTP/GraphQL schema. */
 export type Scalar = RecordGridScalar;
