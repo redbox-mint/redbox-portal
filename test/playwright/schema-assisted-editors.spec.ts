@@ -276,7 +276,7 @@ test.describe('schema-assisted editor release workflows', () => {
       const filteredResponse = page.waitForResponse(
         response => response.url().includes('/admin/getReportResults?') && response.url().includes('created_fromDate')
       );
-      await page.locator('report').getByText('Filter', { exact: true }).click();
+      await page.locator('#created_toDate').press('Enter');
       expect((await (await filteredResponse).json()).records).toEqual(reportPreview.records);
       await expect(page.locator('record-table tbody b')).toContainText(title);
       expect(await page.locator('record-table tbody td').allInnerTexts()).toEqual(previewDisplay);

@@ -31,8 +31,7 @@ export class PlaywrightStubs {
   }
 }
 
-// External font stylesheets are the only fixed browser resource URLs outside
-// the portal. Their HTTP responses come from the local fixture service.
+// Fixed external assets are served by local fixtures; unknown URLs remain errors.
 export const fontStylesheetUrls = new Set([
   'https://fonts.googleapis.com/css?family=Titillium+Web:400,200,300,700,600&display=swap',
   'https://fonts.googleapis.com/css?family=Roboto+Condensed:400,700,300&display=swap',
@@ -40,7 +39,11 @@ export const fontStylesheetUrls = new Set([
   'https://fonts.googleapis.com/css?family=Open+Sans:400italic,600',
 ]);
 
+export const redocLogoUrl = 'https://cdn.redoc.ly/redoc/logo-mini-full.svg';
+export const stubbedExternalAssetUrls = new Set([...fontStylesheetUrls, redocLogoUrl]);
+
 export async function installExternalAssetStubs(context: BrowserContext): Promise<void> {
+  await context.route(redocLogoUrl, route => route.fulfill({ path: 'assets/images/logo.svg', contentType: 'image/svg+xml' }));
   await context.route(url => fontStylesheetUrls.has(url.href), async route => {
     const base = process.env.PLAYWRIGHT_STUB_URL ?? 'http://playwright-stubs:8787';
     const response = await context.request.get(`${base}/fonts/css`, {

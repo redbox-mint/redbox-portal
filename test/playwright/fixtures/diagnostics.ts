@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { fontStylesheetUrls } from './stubs';
+import { stubbedExternalAssetUrls } from './stubs';
 import type { BrowserContext, Page, TestInfo } from '@playwright/test';
 
 export type ExpectedBrowserFailure = {
@@ -55,7 +55,7 @@ export class BrowserDiagnostics {
     context.on('page', page => this.attach(page));
     context.on('request', request => {
       const url = new URL(request.url());
-      if (/^https?:$/.test(url.protocol) && !this.allowedOrigins.has(url.origin) && !fontStylesheetUrls.has(url.href)) {
+      if (/^https?:$/.test(url.protocol) && !this.allowedOrigins.has(url.origin) && !stubbedExternalAssetUrls.has(url.href)) {
         this.diagnostics.push({ kind: 'external-request', url: request.url(), method: request.method(),
           message: 'Request origin is outside the configured portal and local stub service.', timestamp: new Date().toISOString() });
       }

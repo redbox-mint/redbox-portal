@@ -94,3 +94,12 @@ test('real browser exceptions, console errors, failed transports and HTTP failur
     }
   } finally { await browser.close(); }
 });
+
+test('only the locally stubbed ReDoc logo URL is a recognized external image', async () => {
+  const { original, diagnostics } = diagnosticFixture();
+  original.emit('request', { url: () => 'https://cdn.redoc.ly/redoc/logo-mini-full.svg', method: () => 'GET' });
+  await diagnostics.flush();
+  const other = diagnosticFixture();
+  other.original.emit('request', { url: () => 'https://cdn.redoc.ly/unrecognized.svg', method: () => 'GET' });
+  await assert.rejects(other.diagnostics.flush(), /unexpected external-request/);
+});
