@@ -1,0 +1,138 @@
+import { integrationDeclarations } from '../../http/integrationRoutes';
+import { prepareReferenceRequest } from '../../http/actions/requestPreparation';
+import { readRequest, applyPreparedReadRequest, readAction } from '../../http/fastify/readActions';
+import type { RouteBinding } from '../../http/fastify/routes';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import type { PortalApplicationContext } from './application';
+import { bindControllerFactory } from '../../http/controllers';
+import * as c from '../../http/controllers/IntegrationControllers';
+import { combineHttpInputs, portalReadHttpInputs } from './readHttpPlan';
+import { portalIdentityHttpInputs } from './identityHttpPlan';
+import type { BrandingDeliveryCache } from '../../http/brandingDeliveryCache';
+/** Resolve concrete inputs offline; borrow initialized owners on each request. */
+export function portalIntegrationHttpInputs(portal: PortalApplicationContext) {
+  const { data, providers, log } = portal,
+    ref = data.reference;
+  const audit = (
+    actor: { id: string; username: string },
+    action: string,
+    context: { brandId: string; vocabularyId?: string }
+  ) => data.users.get().addUserAuditEvent({ ...actor }, action, context);
+  return {
+    vocabulary: {
+      get vocabulary() {
+        return ref.vocabulary.get();
+      },
+      audit,
+      log,
+    },
+    rva: {
+      get rva() {
+        return data.rva.get();
+      },
+      get vocabulary() {
+        return ref.vocabulary.get();
+      },
+      audit,
+      log,
+    },
+    branding: {
+      get branding() {
+        return ref.branding.get();
+      },
+      audit,
+      log,
+    },
+    figshare: {
+      get vocabulary() {
+        return providers.figshareVocabulary.get();
+      },
+      audit,
+      log,
+    },
+    operations: {
+      get records() {
+        return data.records.get();
+      },
+      get search() {
+        return data.search.get();
+      },
+      get email() {
+        return providers.email.get();
+      },
+      audit,
+      log,
+    },
+    lookups: {
+      get vocabulary() {
+        return ref.vocabulary.get();
+      },
+      get lookups() {
+        return data.lookups.get();
+      },
+      get users() {
+        return data.users.get();
+      },
+      log,
+    },
+  };
+}
+export function portalIntegrationControllers(
+  portal: PortalApplicationContext,
+  selected: ReadonlySet<string>,
+  cache: BrandingDeliveryCache
+) {
+  const input = portalIntegrationHttpInputs(portal),
+    combine = combineHttpInputs;
+  const vocabulary = combine(input.vocabulary, input.rva);
+  const bindings = [
+    bindControllerFactory(c.apiVocabularyController, vocabulary),
+    bindControllerFactory(c.vocabularyController, vocabulary),
+    bindControllerFactory(c.apiBrandingController, input.branding),
+    bindControllerFactory(c.brandingAppController, input.branding),
+    bindControllerFactory(c.brandingController, input.branding),
+    bindControllerFactory(c.apiFigshareCrosswalkController, input.figshare),
+    bindControllerFactory(c.apiFigshareVocabularyController, input.figshare),
+    bindControllerFactory(c.apiSearchController, combine(portalReadHttpInputs(portal).queries, input.operations)),
+    bindControllerFactory(c.emailController, input.operations),
+    bindControllerFactory(c.formVocabularyController, input.lookups),
+    bindControllerFactory(
+      c.userController,
+      combine(portalIdentityHttpInputs(portal, () => cache.invalidate()).users, input.lookups)
+    ),
+  ].filter(binding => selected.has(binding.factory.name));
+  const preparations = new Map(
+    integrationDeclarations.flatMap(route =>
+      'preparation' in route && route.preparation
+        ? [[route.controller + '\0' + route.action, route.preparation] as const]
+        : []
+    )
+  );
+  const preparationFor = (binding: RouteBinding) => {
+    const { controller, action } = binding.route.declaration;
+    return preparations.get(controller + '\0' + action);
+  };
+  return {
+    hasPreparation: (binding: RouteBinding) => preparationFor(binding) !== undefined,
+    controllers: bindings.map(binding => binding.factory),
+    bindings,
+    async prepareRequest(binding: RouteBinding, request: FastifyRequest, reply: FastifyReply) {
+      const preparation = preparationFor(binding);
+      if (!preparation) return;
+      const facts = readRequest(request);
+      try {
+        applyPreparedReadRequest(request, await prepareReferenceRequest(input.branding, facts, preparation.request));
+      } catch (error) {
+        return readAction(
+          request,
+          reply,
+          async () => {
+            throw error;
+          },
+          facts => preparation.failure(input.branding, facts, error),
+          true
+        );
+      }
+    },
+  };
+}

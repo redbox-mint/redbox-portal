@@ -148,6 +148,61 @@ describe('FM-018 scoped hooks and named unmatched fallback', function () {
     };
   }
 
+  it('prepares aliases once after hooks and validates their prepared live values', async () => {
+    const trace: string[] = [];
+    const f = await fixture(
+      {
+        routes: [
+          {
+            ...route,
+            declaration: {
+              ...route.declaration,
+              method: 'post',
+              head: undefined,
+              validation: {
+                body: { required: true, content: { 'application/json': { schema: z.object({ title: z.string() }) } } },
+              },
+            },
+          },
+        ],
+        guards: async () => {
+          trace.push('prelude');
+        },
+        actionPreparation: {
+          applies: () => true,
+          run: async (_binding, request) => {
+            trace.push('prepare');
+            assert.deepEqual(request.params, { id: 'hook' });
+            assert.deepEqual(request.query, { name: 'hook' });
+            request.body = { title: 'prepared' };
+          },
+        },
+        hooks: [
+          reg(
+            hook('replace', {
+              run: async request => {
+                trace.push('hook');
+                request.params = { id: 'hook' };
+                request.query = { name: 'hook' };
+              },
+            })
+          ),
+        ],
+      },
+      (request, reply) => {
+        trace.push('action');
+        assert.deepEqual(request.body, { title: 'prepared' });
+        return reply.send({ reached: true });
+      }
+    );
+    const result = await exchange(await f.start(), '/known', 'POST');
+    assert.equal(result.status, 200, result.text);
+    assert.deepEqual(trace, ['prelude', 'hook', 'prepare', 'action']);
+    trace.length = 0;
+    assert.equal((await exchange(f.host.address()!.port, '/known', 'OPTIONS')).status, 200);
+    assert.deepEqual(trace, ['hook'], 'Automatic OPTIONS never prepares action inputs');
+  });
+
   const invalid: [string, HttpHookContribution[], RegExp][] = [
     [
       'unknown application scope fields',

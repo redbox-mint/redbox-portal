@@ -145,11 +145,17 @@ export function productionCompositionInputCases() {
           raw: same(undefined),
           assetCache: value => assert(value instanceof module('http/brandingDeliveryCache').BrandingDeliveryCache),
           rawDeclaration: same(undefined),
+          actionPreparation: value => {
+            assert(value && typeof value === 'object' && 'applies' in value && 'run' in value);
+            assert.equal(typeof value.applies, 'function');
+            assert.equal(typeof value.run, 'function');
+          },
           httpOwners: equal({
             uploads: [],
             progress: [],
             schemaReads: [],
             identities: [],
+            integrations: [],
             mutations: [],
             metadataUpdates: resolved.routePlan.routes.filter(
               route =>
@@ -313,6 +319,7 @@ export function productionCompositionInputCases() {
           namespaceConfiguration: same(resolved.namespaceConfiguration),
           routing: same(resolved.routing),
           guards: callable,
+          actionPreparation: same(resolved.actionPreparation),
           security: same(security),
         });
         inputs<FastifyHostOptions>(transport.firstCall.args[1], {

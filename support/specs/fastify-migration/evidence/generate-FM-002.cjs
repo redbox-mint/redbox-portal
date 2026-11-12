@@ -100,6 +100,23 @@ function sourceReference(file, symbol) {
     ts.forEachChild(node, visit);
   }
   visit(ast);
+  if (line === undefined) {
+    for (const node of ast.statements) {
+      if (
+        !ts.isExportDeclaration(node) ||
+        !node.moduleSpecifier ||
+        !node.exportClause ||
+        !ts.isNamedExports(node.exportClause)
+      )
+        continue;
+      const exported = node.exportClause.elements.find(item => item.name.text === symbol);
+      if (exported)
+        return sourceReference(
+          path.posix.normalize(path.posix.join(path.posix.dirname(file), node.moduleSpecifier.text + '.ts')),
+          exported.propertyName?.text ?? exported.name.text
+        );
+    }
+  }
   assert(line !== undefined, `Missing source declaration: ${file}#${symbol}`);
   return { file, export: symbol, line };
 }
@@ -298,6 +315,24 @@ function collectInventory() {
     'application/portal/readHttpPlan.ts',
   ])
     inputs.add(prefix + file);
+  const integrationDeclarations = fromSource(prefix + 'http/integrationRoutes.ts').integrationDeclarations;
+  const integrationFactories = Object.values(fromSource(prefix + 'http/controllers/IntegrationControllers.ts')).filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
+  for (const file of [
+    'http/integrationRoutes.ts',
+    'http/controllers/IntegrationControllers.ts',
+    'http/actions/integrationGuard.ts',
+    'http/actions/vocabularyAdministration.ts',
+    'http/actions/vocabularyIntegrations.ts',
+    'http/actions/brandingOperations.ts',
+    'http/actions/figshareAdministration.ts',
+    'http/actions/integrationOperations.ts',
+    'http/actions/formVocabulary.ts',
+    'http/fastify/integrations.ts',
+    'application/portal/integrationHttpPlan.ts',
+  ])
+    inputs.add(prefix + file);
   const configuration = portalHttpPolicies();
   const identityDeclarations = fromSource(prefix + 'http/identityRoutes.ts').identityAdministrationDeclarations;
   const identityFactories = Object.values(
@@ -348,6 +383,25 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-027') {
+        const declarations = integrationDeclarations.filter(
+          item => identity(item.method, item.path) === identity(route.method, route.path)
+        );
+        const factories = integrationFactories.filter(
+          factory => factory.name === route.controller && factory.actions.includes(route.action)
+        );
+        assert.equal(declarations.length, 1, 'Exactly one FM-027 declaration: ' + route.path);
+        assert.equal(factories.length, 1, 'Exactly one FM-027 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factories[0].name,
+          action: route.action,
+          file: prefix + 'http/controllers/IntegrationControllers.ts',
+          productionBinding: prefix + 'application/portal/integrationHttpPlan.ts',
+          differential: test('http/fastify/IntegrationDifferentialMongo.test.ts'),
+          migratedBy: 'FM-027',
+        };
+      }
       if (owners[collection.export][0] === 'FM-026') {
         const pilot = route.controller === 'webservice/RecordController' && route.action === 'updateMeta';
         const declarations = mutationDeclarations.filter(

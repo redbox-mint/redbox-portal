@@ -44,6 +44,11 @@ export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare
   readonly routing: Parameters<typeof composeRoutes>[1];
   /** Additional action preludes; native route security always runs first. */
   readonly guards?: RouteGuards;
+  /** Declaration-derived preparation runs once after hooks, before final validation. */
+  readonly actionPreparation?: {
+    applies(binding: Parameters<RouteGuards>[0]): boolean;
+    readonly run: RouteGuards;
+  };
   readonly security?: {
     readonly policies: Readonly<Record<string, NativePolicy>>;
     readonly csrf: Pick<ReturnType<typeof createNativeCsrf>, 'protect' | 'apiProtect' | 'token'>;
@@ -73,6 +78,7 @@ export async function createControllerHost(
     routes,
     routing,
     guards,
+    actionPreparation,
     security,
     hooks = [],
     fallbacks = [],
@@ -156,7 +162,7 @@ export async function createControllerHost(
             if (uploads.has(binding.route)) {
               await uploadBoundary!.prelude(request, reply);
               if (httpReplySubmitted(reply)) return reply;
-            } else if (declaration.api || declaration.validation) {
+            } else if (!actionPreparation?.applies(binding) && (declaration.api || declaration.validation)) {
               const contract = declaration.api?.request ?? declaration.validation;
               await validateRouteRequest(request, reply, {
                 request: contract,
@@ -166,6 +172,7 @@ export async function createControllerHost(
           };
           const beforeAction = async (
             name: string,
+            binding: Parameters<RouteGuards>[0] | undefined,
             request: Parameters<RouteGuards>[1],
             reply: Parameters<RouteGuards>[2]
           ) => {
@@ -178,6 +185,23 @@ export async function createControllerHost(
             if (httpReplySubmitted(reply)) {
               await uploadBoundary?.finish(request, reply);
               return reply;
+            }
+            if (
+              binding &&
+              (binding.kind === 'action' || binding.kind === 'implicit-head') &&
+              !uploads.has(binding.route) &&
+              actionPreparation?.applies(binding)
+            ) {
+              await actionPreparation.run(binding, request, reply);
+              if (httpReplySubmitted(reply)) return reply;
+              // Prepared declarations validate the live post-hook inputs here,
+              // including for replacement controllers. Other shared actions derive
+              // and validate their own live inputs at dispatch, as on Express.
+              const declaration = binding.route.declaration;
+              if (declaration.api || declaration.validation)
+                await validateRouteRequest(request, reply, {
+                  request: declaration.api?.request ?? declaration.validation,
+                });
             }
           };
           const prepareUnmatched = async (request: Parameters<RouteGuards>[1], reply: Parameters<RouteGuards>[2]) => {
@@ -194,7 +218,7 @@ export async function createControllerHost(
             unmatched: prepareUnmatched,
             afterAuthentication: (route, binding, request, reply) =>
               afterAuthentication(route.name, binding, request, reply),
-            beforeAction: (route, request, reply) => beforeAction(route.name, request, reply),
+            beforeAction: (route, binding, request, reply) => beforeAction(route.name, binding, request, reply),
           });
           await security?.prepare?.(app);
           prepareDatastreamUploads(app, {
@@ -219,7 +243,7 @@ export async function createControllerHost(
             if (selected) {
               await guard(selected.binding, request, reply);
               if (httpReplySubmitted(reply)) return reply;
-              await beforeAction(selected.binding.route.declaration.name, request, reply);
+              await beforeAction(selected.binding.route.declaration.name, selected.binding, request, reply);
               if (httpReplySubmitted(reply)) return reply;
               return instances.action(selected.binding.route.declaration)(request, reply);
             }

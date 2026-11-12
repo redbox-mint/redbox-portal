@@ -28,7 +28,7 @@ type Scenario = {
   query?: string;
   method?: string;
   target?: 'alias' | 'disabled' | 'foreign' | 'shared' | 'missing' | 'bad';
-  body?: 'array' | 'invalid' | 'parser';
+  body?: 'array' | 'invalid' | 'parser' | 'empty' | 'absent' | 'object';
   brand?: 'other' | 'unknown';
   origin?: string;
   fault?: 'domain' | 'audit' | 'roles' | 'serialization' | 'once';
@@ -144,7 +144,11 @@ for (const reduced of [false, true])
               ]
             : []),
         ];
-    for (const scenario of scenarios)
+    if (!reduced && ['post', 'put'].includes(route.method))
+      for (const version of ['1.0', '2.0'])
+        for (const body of ['empty', 'absent', 'object'] as const)
+          scenarios.push({ name: 'body-' + body + '-' + version, body, version, cookie: true, csrf: true });
+    for (const scenario of scenarios.filter(s => !process.env.FM027_BODY_SWEEP || s.name.startsWith('body-')))
       cases.push({
         key: `${reduced ? 'reduced' : 'default'} ${route.method} ${route.path} ${scenario.name}`,
         route,
@@ -539,6 +543,7 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
     try {
       for (const reduced of [false, true])
         for (const mode of modes) {
+          if (!cases.some(c => c.reduced === reduced)) continue;
           const policies = portalHttpPolicies();
           if (reduced)
             for (const name of new Set(routes.map(r => r.controller)))
@@ -599,7 +604,7 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
             // Session representations intentionally differ and are not compared.
             for (const name of [...stateCollections, 'referenceSessions'])
               baseline.set(name, await f.client.db().collection(name).find({}).toArray());
-            if (!reduced) {
+            if (!reduced && !process.env.FM027_BODY_SWEEP) {
               const reset = async () => {
                 for (const [name, rows] of baseline) {
                   await f.client.db().collection(name).deleteMany({});
@@ -740,18 +745,24 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
               if (auth) headers.Authorization = 'Bearer ' + auth;
               if (s.version) headers['X-ReDBox-API-Version'] = s.version;
               if (s.name.startsWith('conditional')) headers['If-None-Match'] = '*';
+              if (s.body === 'empty') headers['Content-Length'] = '0';
+              if (s.body === 'absent') delete headers['Content-Type'];
               const body =
                 method === 'GET' || method === 'HEAD'
                   ? ''
-                  : s.body === 'parser'
-                    ? '{'
-                    : JSON.stringify(
-                        s.body === 'array'
-                          ? []
-                          : s.body === 'invalid'
-                            ? {}
-                            : payload(route, t.id, endpoint, s.brand === 'other')
-                      );
+                  : s.body === 'empty' || s.body === 'absent'
+                    ? ''
+                    : s.body === 'object'
+                      ? '{}'
+                      : s.body === 'parser'
+                        ? '{'
+                        : JSON.stringify(
+                            s.body === 'array'
+                              ? []
+                              : s.body === 'invalid'
+                                ? {}
+                                : payload(route, t.id, endpoint, s.brand === 'other')
+                          );
               const fault = faults(f, route, s);
               const cache =
                 mode === 'fastify' && route.action === 'refreshCachedResources'
@@ -912,7 +923,7 @@ describe('FM-025 retained production identity/administration raw-HTTP differenti
           assert.equal(value.encodings, 1, key + ': serialize once inside the shared guard');
       assert(!JSON.stringify(values[2]).includes('private-backend-password-token-marker'));
     });
-  for (const flow of ['token freshness', 'linked disabled-account lifecycle'])
+  for (const flow of process.env.FM027_BODY_SWEEP ? [] : ['token freshness', 'linked disabled-account lifecycle'])
     it(flow, () => {
       const values = flows.get(flow)!;
       assert.equal(values.length, 3);

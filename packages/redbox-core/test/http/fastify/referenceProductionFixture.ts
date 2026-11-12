@@ -34,6 +34,8 @@ export async function referenceProductionFixture(
     readonly declarations: readonly import('../../../src/http/fastify/routes').ApiRouteSource[];
     readonly configuration?: Record<string, unknown>;
     readonly log?: typeof nothingLogger;
+    /** Installed API2 provider hooks; no alternate host/controller composition. */
+    readonly hooksModule?: string;
     readonly actions?: Readonly<Record<string, import('../../../src/http/actions/configuredActions').ConfiguredAction>>;
     readonly bindings?: import('../../../src/application/portal/application').PortalApplicationOptions['bindings'];
   }
@@ -79,6 +81,9 @@ export async function referenceProductionFixture(
         JSON.stringify(storageEntry) +
         ');\nexports.inspectPrismaStagedStorage=storage.inspectPrismaStagedStorage; exports.ensurePrismaStagedStorageIndexes=storage.ensurePrismaStagedStorageIndexes;\nexports.registerRedboxExtension=()=>({...storage.registerRedboxExtension(),apiVersion:' +
         (nativeHost ? '2' : '1') +
+        (nativeHost && scope?.hooksModule
+          ? ',hooks:require(' + JSON.stringify(scope.hooksModule) + ').replacementHooks'
+          : '') +
         '});'
     );
     for (const name of ['views', 'assets', '.tmp/public']) await mkdir(path.join(directory, name), { recursive: true });

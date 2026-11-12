@@ -227,7 +227,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: existing mutation/conflict/validation/authorization assertions pass;
     accepted work and external side effects retain application ownership.
 
-- [ ] **FM-027 — Migrate remaining integration APIs.**
+- [x] **FM-027 — Migrate remaining integration APIs.**
   - Dependencies: FM-023; relevant FM-024–FM-026 collaborators.
   - Work: close all other API inventory entries, including provider-specific error
     paths, without new branch-based controller dispatch.

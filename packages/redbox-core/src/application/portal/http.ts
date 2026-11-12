@@ -1,3 +1,4 @@
+import { portalIntegrationHttpInputs } from './integrationHttpPlan';
 import { portalMutationHttpInputs } from './mutationHttpPlan';
 import { portalReadHttpInputs } from './readHttpPlan';
 import { portalIdentityHttpInputs } from './identityHttpPlan';
@@ -381,19 +382,10 @@ export class PortalHttp implements ApplicationModule {
     });
     http.mountIdentityLinkRoutes(router, { ...shared, ...identityInputs.users });
     http.mountQueryWriteRoutes(router, { ...shared, ...mutationInputs.queries });
-    http.mountVocabularyIntegrationRoutes(router, {
-      ...shared,
-      audit,
-      rva: data.rva.get(),
-      vocabulary: ref.vocabulary.get(),
-    });
-    http.mountVocabularyAdministrationRoutes(router, { ...shared, audit, vocabulary: ref.vocabulary.get() });
-    http.mountFormVocabularyRoutes(router, {
-      ...shared,
-      vocabulary: ref.vocabulary.get(),
-      lookups: data.lookups.get(),
-      users: data.users.get(),
-    });
+    const integrationInputs = portalIntegrationHttpInputs(this.portal);
+    http.mountVocabularyIntegrationRoutes(router, { ...shared, ...integrationInputs.rva });
+    http.mountVocabularyAdministrationRoutes(router, { ...shared, ...integrationInputs.vocabulary });
+    http.mountFormVocabularyRoutes(router, { ...shared, ...integrationInputs.lookups });
     http.mountSiemWriteRoutes(router, {
       ...shared,
       ...identityInputs.administration,
@@ -405,19 +397,9 @@ export class PortalHttp implements ApplicationModule {
       ...shared,
       ...identityInputs.administration,
     });
-    http.mountBrandingOperationRoutes(router, { ...shared, audit, branding: ref.branding.get() });
-    http.mountFigshareAdministrationRoutes(router, {
-      ...shared,
-      audit,
-      vocabulary: providers.figshareVocabulary.get(),
-    });
-    http.mountIntegrationOperationRoutes(router, {
-      ...shared,
-      audit,
-      records: data.records.get(),
-      search: data.search.get(),
-      email: providers.email.get(),
-    });
+    http.mountBrandingOperationRoutes(router, { ...shared, ...integrationInputs.branding });
+    http.mountFigshareAdministrationRoutes(router, { ...shared, ...integrationInputs.figshare });
+    http.mountIntegrationOperationRoutes(router, { ...shared, ...integrationInputs.operations });
     http.mountConfiguredActionRoutes(router, { ...shared, ...mutationInputs.actions });
     http.mountBrandingUploadRoutes(router, {
       ...shared,

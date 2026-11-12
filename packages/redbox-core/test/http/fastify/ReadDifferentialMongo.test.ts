@@ -185,7 +185,9 @@ describe('FM-024 retained query actor-refusal differential', function () {
               if (profile === 'reduced-query' || controller === 'ReportController')
                 policyConfiguration[controller] = ['noCache', 'brandingAndPortal'];
           const f = await referenceProductionFixture(
-            mode === 'fastify', policyConfiguration, mode === 'retained' ? retained.install : undefined,
+            mode === 'fastify',
+            policyConfiguration,
+            mode === 'retained' ? retained.install : undefined,
             { declarations: recordQueryReadDeclarations }
           );
           try {
@@ -193,25 +195,43 @@ describe('FM-024 retained query actor-refusal differential', function () {
             const csrf = JSON.parse((await wire(f.url + '/csrfToken', 'GET', { Cookie: cookie })).text)._csrf;
             // A previously authenticated session whose persisted actor no longer
             // exists exercises fresh identity resolution, rather than a fake context.
-            assert.equal((await f.client.db().collection('user').deleteOne({ username: 'pilot-admin' })).deletedCount, 1);
+            assert.equal(
+              (await f.client.db().collection('user').deleteOne({ username: 'pilot-admin' })).deletedCount,
+              1
+            );
             for (const route of queryReadRoutes)
               for (const subject of subjects)
                 for (const version of versions) {
                   const method = route.method.toUpperCase();
                   const headers: Record<string, string> = {
                     'X-ReDBox-API-Version': version,
-                    ...(subject === 'missing-actor' ? { Cookie: cookie, 'x-csrf-token': csrf, Origin: referenceOrigin } : {}),
+                    ...(subject === 'missing-actor'
+                      ? { Cookie: cookie, 'x-csrf-token': csrf, Origin: referenceOrigin }
+                      : {}),
                     ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}),
                   };
-                  const body = method === 'POST' ? JSON.stringify({
-                    name: 'preview', title: 'Preview', reportSource: 'database',
-                    databaseQuery: { queryName: 'records' }, filter: [], columns: [],
-                  }) : '';
-                  const response = await normalized(f, await wire(
-                    f.url + target(route, { name: subject }, '000000000000000000000099', 'a'.repeat(64)),
-                    method, headers, body
-                  ));
-                  const key = id(profile, route, subject, version), values = observations.get(key) ?? [];
+                  const body =
+                    method === 'POST'
+                      ? JSON.stringify({
+                          name: 'preview',
+                          title: 'Preview',
+                          reportSource: 'database',
+                          databaseQuery: { queryName: 'records' },
+                          filter: [],
+                          columns: [],
+                        })
+                      : '';
+                  const response = await normalized(
+                    f,
+                    await wire(
+                      f.url + target(route, { name: subject }, '000000000000000000000099', 'a'.repeat(64)),
+                      method,
+                      headers,
+                      body
+                    )
+                  );
+                  const key = id(profile, route, subject, version),
+                    values = observations.get(key) ?? [];
                   values[modes.indexOf(mode)] = response;
                   observations.set(key, values);
                 }
@@ -220,9 +240,14 @@ describe('FM-024 retained query actor-refusal differential', function () {
             assert.equal(persistenceStatus(f.owner).pools, 0);
           }
         }
-    } finally { await retained.close(); }
+    } finally {
+      await retained.close();
+    }
     if (process.env.FM024_HTTP_REPORT)
-      await writeFile(process.env.FM024_HTTP_REPORT + '.actors.json', JSON.stringify(Object.fromEntries(observations), null, 2));
+      await writeFile(
+        process.env.FM024_HTTP_REPORT + '.actors.json',
+        JSON.stringify(Object.fromEntries(observations), null, 2)
+      );
   });
   for (const profile of profiles)
     for (const route of queryReadRoutes)
@@ -233,13 +258,16 @@ describe('FM-024 retained query actor-refusal differential', function () {
             assert(values && values.length === 3);
             assert.deepEqual(values[1], values[0], 'Current Express must retain the authorization refusal');
             assert.deepEqual(values[2], values[0], 'Fastify must delegate to the same actor guard and response');
-            const actorGuardReached = profile === 'reduced-query' ||
-              (profile === 'reduced-report' && route.controller === 'ReportController');
+            const actorGuardReached =
+              profile === 'reduced-query' || (profile === 'reduced-report' && route.controller === 'ReportController');
             if (actorGuardReached && (route.method === 'get' || subject === 'missing-actor')) {
               assert.equal(values[0].status, 403);
-              assert.equal(values[0].text, version === '2.0'
-                ? '{"errors":[{"detail":"view-error-no-permissions"}],"meta":{}}'
-                : '{"message":"view-error-no-permissions","details":""}');
+              assert.equal(
+                values[0].text,
+                version === '2.0'
+                  ? '{"errors":[{"detail":"view-error-no-permissions"}],"meta":{}}'
+                  : '{"message":"view-error-no-permissions","details":""}'
+              );
               assert.equal(values[0].headers['content-disposition'], undefined);
             }
           });
@@ -258,8 +286,11 @@ function forRoute(route: Route): Scenario[] {
     for (const refusal of [403, 404] as const)
       for (const version of ['1.0', '2.0'])
         extra.push({
-          name: `domain-refusal-${refusal}-v${version}`, variant: 'fault', refusal,
-          cookie: route.method === 'post', csrf: route.method === 'post',
+          name: `domain-refusal-${refusal}-v${version}`,
+          variant: 'fault',
+          refusal,
+          cookie: route.method === 'post',
+          csrf: route.method === 'post',
           headers: { 'X-ReDBox-API-Version': version, ...(route.method === 'post' ? { Origin: referenceOrigin } : {}) },
         });
   if (route.controller === 'webservice/RecordSchemaController')
@@ -388,6 +419,19 @@ function forRoute(route: Route): Scenario[] {
   if (route.method === 'all')
     for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'PROPFIND'])
       extra.push({ name: `workspace-${method}`, method });
+  if (['post', 'put', 'all'].includes(route.method))
+    for (const version of ['1.0', '2.0'])
+      for (const body of ['empty', 'absent', 'object'])
+        extra.push({
+          name: 'body-' + body + '-' + version,
+          method: route.method === 'all' ? 'POST' : undefined,
+          raw: body === 'object' ? '{}' : '',
+          headers: {
+            'X-ReDBox-API-Version': version,
+            ...(body === 'absent' ? {} : { 'Content-Type': 'application/json' }),
+            ...(body === 'empty' ? { 'Content-Length': '0' } : {}),
+          },
+        });
   return [
     ...scenarios,
     ...(read
@@ -399,7 +443,7 @@ function forRoute(route: Route): Scenario[] {
       : []),
     ...versions,
     ...extra,
-  ];
+  ].filter(s => !process.env.FM027_BODY_SWEEP || s.name.startsWith('body-'));
 }
 const key = (route: Route, s: Pick<Scenario, 'name'>) => coreRouteName(route.method, route.path) + ':' + s.name;
 async function wire(url: string, method: string, headers: Record<string, string> = {}, body = ''): Promise<Wire> {
@@ -1129,9 +1173,12 @@ describe('FM-024 production record/query/schema differential over raw HTTP', fun
         }
         if (scenario.method === 'HEAD') assert.equal(values[2].text, '');
         if (scenario.refusal) {
-          assert.equal(values[2].status,
+          assert.equal(
+            values[2].status,
             route.controller === 'ReportController' && ['getResults', 'downloadCSV'].includes(route.action)
-              ? 200 : scenario.refusal);
+              ? 200
+              : scenario.refusal
+          );
           assert.match(values[2].text, /controlled domain refusal/);
         }
         if (values[2].status === 304) {

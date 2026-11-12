@@ -22,7 +22,12 @@ interface RoutePipeline {
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<unknown>;
-  beforeAction(route: RegisteredHttpRoute, request: FastifyRequest, reply: FastifyReply): Promise<unknown>;
+  beforeAction(
+    route: RegisteredHttpRoute,
+    binding: RouteBinding | undefined,
+    request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<unknown>;
 }
 interface RouteBoundary {
   readonly entry: RegisteredHttpRoute;
@@ -241,7 +246,7 @@ export class HttpRouteRegistry {
       ...existing,
       requestStageHook((request, reply) => {
         const entry = entries.find(route => route.method === request.method)!;
-        return pipeline.beforeAction(entry, request, reply);
+        return pipeline.beforeAction(entry, binding, request, reply);
       }),
     ];
   }

@@ -42,3 +42,5 @@ export * from './controllers/IdentityAdministrationControllers';
 
 export * from './controllers/MutationControllers';
 export type { ConfiguredAction, ConfiguredActionContext } from './actions/configuredActions';
+
+export * from './controllers/IntegrationControllers';

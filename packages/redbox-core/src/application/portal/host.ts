@@ -1,3 +1,5 @@
+import { integrationDeclarations } from '../../http/integrationRoutes';
+import { integrationGuard } from '../../http/fastify/integrations';
 import { mutationGuard } from '../../http/fastify/mutations';
 import { mutationDeclarations } from '../../http/mutationRoutes';
 import { recordQueryReadDeclarations } from '../../http/readRoutes';
@@ -136,7 +138,9 @@ export async function createPortalFastifyHost(
     fallbackReservedPrefixes: resolved.fallbackReservedPrefixes,
     namespaceConfiguration: resolved.namespaceConfiguration,
     routing: resolved.routing,
+    actionPreparation: resolved.actionPreparation,
     guards: async (binding, request, reply) => {
+      if (resolved.httpOwners.integrations.includes(binding.route)) return integrationGuard(binding, request, reply);
       if (resolved.httpOwners.identities.includes(binding.route))
         return identityAdministrationGuard(binding, request, reply);
       if (resolved.httpOwners.mutations.includes(binding.route)) return mutationGuard(binding, request, reply);
@@ -163,6 +167,7 @@ export async function createPortalFastifyHost(
             ...recordQueryReadDeclarations,
             ...identityAdministrationDeclarations,
             ...mutationDeclarations,
+            ...integrationDeclarations,
           ].map(route => coreRouteName(route.method, route.path))
         );
         const selectedReferenceNames = new Set(
@@ -185,7 +190,7 @@ export async function createPortalFastifyHost(
             // save/touch. A fresh untouched session instead ends with length 0.
             const sessionEnd =
               binding &&
-              [...identityAdministrationDeclarations, ...mutationDeclarations].some(
+              [...identityAdministrationDeclarations, ...mutationDeclarations, ...integrationDeclarations].some(
                 route => coreRouteName(route.method, route.path) === binding.route.declaration.name
               ) &&
               request.session &&

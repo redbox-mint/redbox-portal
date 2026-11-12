@@ -17,7 +17,8 @@ export async function wire(
   url: string,
   method: string,
   headers: Record<string, string> = {},
-  body = ''
+  body = '',
+  timeoutMs = 10000
 ): Promise<Wire> {
   return new Promise((resolve, reject) => {
     const req = request(
@@ -43,7 +44,7 @@ export async function wire(
     req.once('error', error =>
       error.message === 'socket hang up' ? resolve({ status: 0, headers: {}, text: '', aborted: true }) : reject(error)
     );
-    req.setTimeout(10000, () => req.destroy(new Error('wire timeout')));
+    req.setTimeout(timeoutMs, () => req.destroy(new Error('wire timeout')));
     req.end(body);
   });
 }
@@ -184,7 +185,7 @@ export const mutationCollections = [
   'securityevent',
 ];
 const collections = mutationCollections;
-export async function normalizeMutation(f: Fixture, response: Wire) {
+export async function normalizeMutation(f: Fixture, response: Wire, headEntityText?: string) {
   const headers = { ...response.headers };
   for (const key of ['date', 'connection', 'keep-alive', 'x-request-id']) delete headers[key];
   if (headers['set-cookie'])
@@ -279,19 +280,22 @@ export async function normalizeMutation(f: Fixture, response: Wire) {
   state.jobs = (await f.client.db().collection('agendaJobs').find({ name: jobs }).toArray())
     .map(row => clean({ name: row.name, data: row.data, failReason: row.failReason }) as unknown)
     .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
-  let text = response.text;
+  let text = headEntityText ?? response.text;
   try {
     text = JSON.stringify(clean(JSON.parse(text)));
   } catch {}
   const cleanedHeaders = clean(headers) as Record<string, unknown>;
   if (headers['content-length']) cleanedHeaders['content-length'] = String(Buffer.byteLength(text));
   if (response.headers['content-length'])
-    assert.equal(Number(response.headers['content-length']), Buffer.byteLength(response.text));
-  return { wire: { ...response, headers: cleanedHeaders, text }, state };
+    assert.equal(Number(response.headers['content-length']), Buffer.byteLength(headEntityText ?? response.text));
+  return { wire: { ...response, headers: cleanedHeaders, text: headEntityText === undefined ? text : '' }, state };
 }
 
 export async function dashboardMutationPayload(f: Fixture, action: string) {
-  const brand = Object.assign(new BrandingModel(), f.brand);
+  // Use the same resolved brand (including roles) as the production request.
+  // A bare persistence seed caches a forbidden field catalogue until its TTL.
+  const brand = f.data.reference.branding.get().getBrand('default');
+  assert(brand);
   if (action === 'retiredOperation') return {};
   const source = { kind: 'workflow' as const, recordType: 'dataRecord', stage: 'draft' },
     destination = { kind: 'view' as const, view: 'referenceView', step: 'draft' };

@@ -8,9 +8,11 @@ import { resolvedRequestContract } from './validation';
 import { sendSerializedJson, sendLoginRedirect } from './responses';
 import { invalidSchemaRead } from '../actions/recordSchemaReads';
 import { sendReadStream } from './readStreams';
+import { inheritRequestPreparation } from '../actions/requestPreparation';
 import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
+/** Derive action facts from the live request; hook replacements must remain visible. */
 export function readRequest(request: FastifyRequest): ReferenceRequest {
-  return {
+  const facts: ReferenceRequest = {
     method: request.method,
     protocol: request.protocol,
     params: request.params as Record<string, unknown>,
@@ -24,6 +26,15 @@ export function readRequest(request: FastifyRequest): ReferenceRequest {
     observe: facts => RequestChronicleHelper.existing(request)?.addInfo(facts),
     recordFailure: () => request.log.error('HTTP_REQUEST_FAILED'),
   };
+  inheritRequestPreparation(request, facts);
+  return facts;
+}
+/** Publish prepared inputs for host validation and live action adaptation. */
+export function applyPreparedReadRequest(request: FastifyRequest, facts: ReferenceRequest): void {
+  request.body = facts.body;
+  request.params = facts.params;
+  request.query = facts.query;
+  inheritRequestPreparation(facts, request);
 }
 export async function readAction(
   request: FastifyRequest,

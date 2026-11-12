@@ -1,3 +1,5 @@
+import { integrationDeclarations } from '../../http/integrationRoutes';
+import { portalIntegrationControllers } from './integrationHttpPlan';
 import { mutationDeclarations } from '../../http/mutationRoutes';
 import { portalMutationControllers } from './mutationHttpPlan';
 import { portalReadControllers } from './readHttpPlan';
@@ -125,12 +127,26 @@ export async function resolvePortalInstallation(
       )
       .map(route => route.controller)
   );
+  const integrationTargets = new Set(
+    input.declarations
+      .filter(route => integrationDeclarations.some(item => item.method === route.method && item.path === route.path))
+      .map(route => route.controller)
+  );
   const mutations = portalMutationControllers(context, mutationTargets, input.actions ?? {}, uploadInputs);
   const assetCache = new BrandingDeliveryCache();
-  const identities = portalIdentityControllers(context, identityTargets, assetCache);
+  const identities = portalIdentityControllers(
+    context,
+    new Set([...identityTargets].filter(name => !integrationTargets.has(name))),
+    assetCache
+  );
+  const integrations = portalIntegrationControllers(context, integrationTargets, assetCache);
   const reads = portalReadControllers(
     context,
-    new Set([...readTargets].filter(name => !identityTargets.has(name) && !mutationTargets.has(name))),
+    new Set(
+      [...readTargets].filter(
+        name => !identityTargets.has(name) && !mutationTargets.has(name) && !integrationTargets.has(name)
+      )
+    ),
     uploadInputs
   );
   const reference = portalReferenceControllers(
@@ -138,7 +154,7 @@ export async function resolvePortalInstallation(
     new Set(
       input.declarations
         .map(route => route.controller)
-        .filter(name => !readTargets.has(name) && !mutationTargets.has(name))
+        .filter(name => !readTargets.has(name) && !mutationTargets.has(name) && !integrationTargets.has(name))
     )
   );
   const recordFactory = upload ? datastreamController : recordController;
@@ -153,29 +169,35 @@ export async function resolvePortalInstallation(
         [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
       (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
         ? 'apiProtect'
-        : mutationDeclarations.some(write => route.declaration.name === coreRouteName(write.method, write.path))
-          ? route.declaration.path.includes('/api/')
-            ? 'apiProtect'
-            : 'protect'
-          : identityAdministrationDeclarations.some(
-                identity => route.declaration.name === coreRouteName(identity.method, identity.path)
-              )
-            ? route.declaration.controller === 'webservice/AdminController'
-              ? route.declaration.action === 'getAppConfig'
-                ? 'none'
-                : 'apiProtect'
-              : route.declaration.method === 'get'
-                ? 'none'
-                : route.declaration.path.includes('/api/')
+        : integrationDeclarations.some(item => route.declaration.name === coreRouteName(item.method, item.path))
+          ? route.declaration.method === 'get'
+            ? 'none'
+            : route.declaration.path.includes('/api/')
+              ? 'apiProtect'
+              : 'protect'
+          : mutationDeclarations.some(write => route.declaration.name === coreRouteName(write.method, write.path))
+            ? route.declaration.path.includes('/api/')
+              ? 'apiProtect'
+              : 'protect'
+            : identityAdministrationDeclarations.some(
+                  identity => route.declaration.name === coreRouteName(identity.method, identity.path)
+                )
+              ? route.declaration.controller === 'webservice/AdminController'
+                ? route.declaration.action === 'getAppConfig'
+                  ? 'none'
+                  : 'apiProtect'
+                : route.declaration.method === 'get'
+                  ? 'none'
+                  : route.declaration.path.includes('/api/')
+                    ? 'apiProtect'
+                    : 'protect'
+              : recordQueryReadDeclarations.some(
+                    read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
+                  )
+                ? route.declaration.path.includes('/api/')
                   ? 'apiProtect'
                   : 'protect'
-            : recordQueryReadDeclarations.some(
-                  read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
-                )
-              ? route.declaration.path.includes('/api/')
-                ? 'apiProtect'
-                : 'protect'
-              : 'none',
+                : 'none',
   }));
   const bindings = Object.freeze([
     ...(!mutationTargets.has(recordController.name) && upload && !readTargets.has(recordController.name)
@@ -197,6 +219,7 @@ export async function resolvePortalInstallation(
     ...reads.bindings,
     ...identities.bindings,
     ...mutations.bindings,
+    ...integrations.bindings,
     ...(input.bindings?.(context) ?? []),
   ]);
   const selected = new Set(coreRoutes.map(route => route.declaration.name));
@@ -232,6 +255,7 @@ export async function resolvePortalInstallation(
             ...reference.controllers,
             ...identities.controllers,
             ...mutations.controllers,
+            ...integrations.controllers,
             ...(input.progress ? [progressController] : []),
           ],
         },
@@ -274,6 +298,7 @@ export async function resolvePortalInstallation(
           .flatMap(routesFor)
       ),
     ]),
+    integrations: Object.freeze([...new Set(integrationDeclarations.flatMap(routesFor))]),
     identities: Object.freeze([...new Set(identityAdministrationDeclarations.flatMap(routesFor))]),
   });
   if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
@@ -304,6 +329,7 @@ export async function resolvePortalInstallation(
     assetCache,
     rawDeclaration,
     httpOwners,
+    actionPreparation: { applies: integrations.hasPreparation, run: integrations.prepareRequest },
     bindings,
     routing,
     policyConfiguration: plan.policyConfiguration,

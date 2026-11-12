@@ -30,11 +30,16 @@ import { retainedMutationExpress } from './retainedMutationExpress';
 
 type Route = (typeof mutationDeclarations)[number];
 const routes = mutationDeclarations.filter(
-  route => !(route.controller === 'webservice/RecordController' && route.action === 'updateMeta')
+  route =>
+    process.env.FM027_BODY_SWEEP ||
+    !(route.controller === 'webservice/RecordController' && route.action === 'updateMeta')
 );
 const modes = ['retained', 'express', 'fastify'] as const;
 const scope = [...referenceReadDeclarations, ...recordQueryReadDeclarations, ...mutationDeclarations];
 const scenarios = [
+  'body-empty',
+  'body-absent',
+  'body-object',
   'success',
   'session',
   'bearer-only',
@@ -80,7 +85,10 @@ for (const reduced of [false, true])
   for (const route of routes)
     for (const version of ['1.0', '2.0'])
       for (const scenario of reduced ? (['anonymous', 'missing-actor', 'reader', 'invalid-body'] as const) : scenarios)
-        if (!process.env.FM026_SCENARIOS || process.env.FM026_SCENARIOS.split(',').includes(scenario))
+        if (
+          (!scenario.startsWith('body-') || ['post', 'put'].includes(route.method)) &&
+          (!process.env.FM026_SCENARIOS || process.env.FM026_SCENARIOS.split(',').includes(scenario))
+        )
           cases.push({
             key: `${reduced ? 'reduced' : 'default'} ${route.method} ${route.path} ${version} ${scenario}`,
             route,
@@ -359,13 +367,21 @@ describe('FM-026 retained production mutation raw-HTTP differential', function (
                     },
                   });
               }
+              if (scenario === 'body-empty') headers['Content-Length'] = '0';
+              if (scenario === 'body-absent') delete headers['Content-Type'];
               let result: Wire;
               try {
                 result = await wire(
                   f.url + endpoint(route, scenario) + query,
                   route.method.toUpperCase(),
                   headers,
-                  scenario === 'parser-before-auth' ? '{' : JSON.stringify(body)
+                  scenario === 'parser-before-auth'
+                    ? '{'
+                    : scenario === 'body-object'
+                      ? '{}'
+                      : scenario.startsWith('body-')
+                        ? ''
+                        : JSON.stringify(body)
                 );
               } finally {
                 stub?.restore();
