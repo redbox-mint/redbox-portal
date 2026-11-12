@@ -31,7 +31,10 @@ export async function relatedPdfProof(options: {
   let preprint:
     | {
         text: string;
-        values: string[];
+        relatedText: string;
+        primaryTitle: string;
+        controls: number;
+        renderComplete: boolean;
         state: string | null;
         rows: { title: string; startDate: string; endDate: string }[];
         dates: string[];
@@ -40,11 +43,6 @@ export async function relatedPdfProof(options: {
   let printed = false;
   let requiredState: string | null = null;
   let controlledPage: any;
-  let delayRequests = false;
-  let releaseFetch!: () => void;
-  const fetchGate = new Promise<void>(resolve => {
-    releaseFetch = resolve;
-  });
   let baseReady!: () => void;
   const ready = new Promise<void>(resolve => {
     baseReady = resolve;
@@ -71,53 +69,59 @@ export async function relatedPdfProof(options: {
           sameSite,
         }))
       );
-      // Delay the actual POST while retaining PDFService's auth/navigation interception.
-      const on = page.on.bind(page);
-      page.on = (event: string, handler: (...args: any[]) => void) => {
-        if (event === 'request')
-          return on(event, async (request: any) => {
-            if (delayRequests && request.url().includes('/relatedMetadata/resolve')) await fetchGate;
-            handler(request);
-          });
-        return on(event, handler);
-      };
       const goto = page.goto.bind(page);
       page.goto = async (...args: any[]) => {
         const response = await goto(...args);
         await page.waitForSelector('redbox-form[data-rb-related-state="ready"]');
         await page.waitForFunction(() => {
-          const form = (window as any).ng?.getComponent(document.querySelector('redbox-form'));
-          return form?.form?.get('activitySummaries')?.value?.length === 2;
+          const table = Array.from(document.querySelectorAll('redbox-content table')).find(
+            table => table.querySelector('th')?.textContent?.trim() === 'Activity title'
+          );
+          return table?.querySelectorAll('tbody tr').length === 2;
         });
         await options.changeSource();
-        delayRequests = true;
         await page.evaluate((requiredError: boolean) => {
           const runtime = window as any;
           const form = runtime.ng.getComponent(document.querySelector('redbox-form'));
-          const summaries = form.form.get('activitySummaries');
-          if (!requiredError) {
-            const setter = summaries.customValueSetter.bind(summaries);
-            summaries.customValueSetter = async (value: unknown[], opts: unknown) => {
-              if (value.length) {
-                runtime.__rr20SetterStarted = true;
-                await new Promise<void>(resolve => {
-                  runtime.__rr20ReleaseSetter = resolve;
-                });
-              }
-              return setter(value, opts);
-            };
-          }
-          const sources = Array.from(document.querySelectorAll('redbox-related-object-data')).map(element =>
-            runtime.ng.getComponent(element)
-          );
-          for (const source of sources) {
-            if (requiredError && source.componentDefinition.config.relationId === 'primaryActivity') {
-              source.descriptor.required = true;
+          const source = runtime.ng.getComponent(document.querySelector('redbox-related-object-data'));
+          const prototype = Object.getPrototypeOf(source);
+          const refresh = prototype.refreshRelatedData;
+          prototype.refreshRelatedData = function (...args: unknown[]) {
+            if (requiredError && this.componentDefinition.config.relationId === 'primaryActivity') {
+              this.descriptor.required = true;
             }
-            // Fire existing component refreshes, allowing PDFService itself to perform readiness waits.
-            void source.refreshRelatedData(true);
-          }
+            return refresh.apply(this, args);
+          };
+          const render = prototype.refreshContent;
+          prototype.refreshContent = async function () {
+            const config = this.componentDefinition.config;
+            const target = requiredError
+              ? config.relationId === 'primaryActivity'
+              : config.template?.includes('<h3>Current activities</h3>');
+            if (target && this.result && !this.result.loading) {
+              runtime.__rr20RenderStarted = true;
+              await new Promise<void>(resolve => {
+                runtime.__rr20ReleaseRender = resolve;
+              });
+            }
+            await render.call(this);
+            if (target) runtime.__rr20RenderCompleted = true;
+          };
+          // View targets are server-hydrated content, with no editable reference or
+          // repeatable controls. Reload through the real form API to reread the
+          // changed source, then hold its actual asynchronous content renderer.
+          void form.downloadAndCreateFormComponents().catch((error: unknown) => {
+            runtime.__rr20ReloadError = String(error);
+          });
         }, !!options.requiredError);
+        await page.waitForFunction(() => {
+          const runtime = window as any;
+          if (runtime.__rr20ReloadError) throw new Error(runtime.__rr20ReloadError);
+          return (
+            runtime.__rr20RenderStarted === true &&
+            document.querySelector('redbox-form')?.getAttribute('data-rb-related-state') === 'pending'
+          );
+        });
         return response;
       };
       const selector = page.waitForSelector.bind(page);
@@ -130,32 +134,32 @@ export async function relatedPdfProof(options: {
       const pdf = page.pdf.bind(page);
       page.pdf = async (...args: any[]) => {
         printed = true;
-        preprint = await page.evaluate(() => ({
-          rows: Array.from(document.querySelectorAll('.rb-form-repeatable-item'))
-            .filter(row =>
-              Array.from(row.querySelectorAll('label')).some(label => label.textContent?.trim() === 'Activity title')
-            )
-            .map(row => {
-              const value = (name: string) => {
-                const label = Array.from(row.querySelectorAll('label')).find(
-                  label => label.textContent?.trim() === name
-                ) as HTMLLabelElement;
-                return (document.getElementById(label.htmlFor) as HTMLInputElement).value;
-              };
-              return { title: value('Activity title'), startDate: value('Start date'), endDate: value('End date') };
+        preprint = await page.evaluate(() => {
+          const table = Array.from(document.querySelectorAll('redbox-content table')).find(
+            table => table.querySelector('th')?.textContent?.trim() === 'Activity title'
+          );
+          const primary = Array.from(document.querySelectorAll('.rb-form-field-layout')).find(
+            field => field.querySelector('.rb-form-field-label')?.textContent?.trim() === 'Primary activity'
+          );
+          const related = Array.from(document.querySelectorAll<HTMLElement>('redbox-related-object-data')).find(
+            source => source.querySelector('h3')?.textContent?.trim() === 'Current activities'
+          );
+          return {
+            rows: Array.from(table?.querySelectorAll('tbody tr') ?? []).map(row => {
+              const cells = Array.from(row.querySelectorAll('td')).map(cell => cell.textContent?.trim() ?? '');
+              return { title: cells[0], startDate: cells[1], endDate: cells[2] };
             }),
-          dates: ['Start date', 'End date'].map(name => {
-            const label = Array.from(document.querySelectorAll('redbox-form label')).find(
-              label => label.textContent?.trim() === name
-            ) as HTMLLabelElement;
-            return (document.getElementById(label.htmlFor) as HTMLInputElement).value;
-          }),
-          text: document.body.innerText,
-          values: Array.from(
-            document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('redbox-form input, redbox-form textarea')
-          ).map(input => input.value),
-          state: document.querySelector('redbox-form')!.getAttribute('data-rb-related-state'),
-        }));
+            dates: Array.from(document.querySelectorAll('redbox-content .rb-view-group .rb-view-value')).map(
+              value => value.textContent?.trim() ?? ''
+            ),
+            primaryTitle: primary?.querySelector('.rb-form-content')?.textContent?.trim() ?? '',
+            relatedText: related?.innerText ?? '',
+            text: document.body.innerText,
+            controls: document.querySelectorAll('redbox-form input, redbox-form textarea, redbox-form select').length,
+            renderComplete: (window as any).__rr20RenderCompleted === true,
+            state: document.querySelector('redbox-form')!.getAttribute('data-rb-related-state'),
+          };
+        });
         await writeFile(path.join(options.outputDir, `${name}-dom.json`), JSON.stringify(preprint, null, 2));
         await page.screenshot({ path: path.join(options.outputDir, `${name}.png`), fullPage: true });
         const buffer = await pdf(...args);
@@ -205,7 +209,9 @@ export async function relatedPdfProof(options: {
       expect(await controlledPage.$eval('redbox-form', (el: Element) => el.getAttribute('data-rb-related-state'))).toBe(
         'pending'
       );
-      releaseFetch();
+      expect(await controlledPage.evaluate(() => (window as any).__rr20RenderStarted)).toBe(true);
+      expect(printed, 'server hydration must not outrun the asynchronous related content renderer').toBe(false);
+      await controlledPage.evaluate(() => (window as any).__rr20ReleaseRender());
       if (options.requiredError) {
         await controlledPage.waitForFunction(
           () => document.querySelector('redbox-form')?.getAttribute('data-rb-related-state') === 'error'
@@ -213,13 +219,6 @@ export async function relatedPdfProof(options: {
         requiredState = await controlledPage.$eval('redbox-form', (element: Element) =>
           element.getAttribute('data-rb-related-state')
         );
-      } else {
-        await controlledPage.waitForFunction('window.__rr20SetterStarted === true');
-        expect(printed, 'network completion must not outrun the asynchronous repeatable setter').toBe(false);
-        expect(
-          await controlledPage.$eval('redbox-form', (el: Element) => el.getAttribute('data-rb-related-state'))
-        ).toBe('pending');
-        await controlledPage.evaluate(() => (window as any).__rr20ReleaseSetter());
       }
     }
     const exit = await generation;
@@ -237,8 +236,10 @@ export async function relatedPdfProof(options: {
       expect(exit.value.pdfBufferSize).toBeGreaterThan(1000);
       expect(put.calledOnce).toBe(true);
       expect(preprint).toBeDefined();
+      expect(preprint!.controls, 'PDF uses the view content presentation').toBe(0);
       if (options.wait) {
         expect(preprint!.state).toBe('ready');
+        expect(preprint!.renderComplete).toBe(true);
         expect(preprint!.dates).toEqual(['2027-02-01', '2027-03-01']);
         expect(preprint!.rows).toEqual([
           { title: 'PDF final activity', startDate: '2027-02-01', endDate: '2027-03-01' },
@@ -248,16 +249,21 @@ export async function relatedPdfProof(options: {
         expect(preprint!.text).toContain('2027-02-01');
         expect(preprint!.text).toContain('2027-03-01');
         expect(preprint!.text).toContain('Activity B');
-        expect(preprint!.values).toContain('PDF final activity');
+        expect(preprint!.primaryTitle).toBe('PDF final activity');
+        expect(preprint!.relatedText).toContain('PDF final activity: 2027-02-01 – 2027-03-01');
+        expect(preprint!.relatedText).toContain('Activity B: 2025-02-01 – 2025-03-01');
         expect(preprint!.text).not.toMatch(/loading|no accessible activities/i);
       } else {
         expect(preprint!.state).toBe('pending');
-        expect(preprint!.text).not.toContain('PDF final activity');
-        expect(preprint!.values).not.toContain('PDF final activity');
+        // Server hydration and form subscriptions can already display fresh values.
+        // The opt-out still prints before the tracked asynchronous work settles.
+        expect(preprint!.renderComplete).toBe(false);
       }
     }
   } finally {
-    releaseFetch();
+    if (controlledPage && !controlledPage.isClosed()) {
+      await controlledPage.evaluate(() => (window as any).__rr20ReleaseRender?.()).catch(() => {});
+    }
     abort.abort();
     await generation;
     await service.shutdownPDFRetries();

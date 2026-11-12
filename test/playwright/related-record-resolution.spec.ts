@@ -141,23 +141,49 @@ test.describe('Related record resolution (RR-20)', () => {
     await expect(oids.nth(1)).toHaveValue(b);
   }
 
-  async function readonlyView(page: Page, scalarTitle = title(page)) {
-    for (const field of [
-      reference(page),
-      scalarTitle,
-      page.getByLabel('Start date', { exact: true }).first(),
-      page.getByLabel('End date', { exact: true }).first(),
-      ...(await page.getByLabel('Activity title', { exact: true }).all()),
-      ...(await page.getByLabel('Start date', { exact: true }).all()),
-      ...(await page.getByLabel('End date', { exact: true }).all()),
-      page.getByLabel('Activity OID', { exact: true }).nth(0),
-      page.getByLabel('Activity OID', { exact: true }).nth(1),
-    ]) {
-      await expect(field).not.toBeEditable();
+  const viewField = (page: Page, label: string) =>
+    page
+      .locator('.rb-form-field-layout')
+      .filter({
+        has: page.locator('.rb-form-field-label').getByText(label, { exact: true }),
+      })
+      .locator('redbox-content .rb-form-content');
+
+  async function readonlyView(page: Page, titleLabel: string) {
+    await expect(viewField(page, titleLabel)).toHaveText(aData.title);
+    await expect(viewField(page, 'Primary activity OID (clear to unlink)')).toHaveText(a);
+    await expect(viewField(page, 'Additional activity references').getByRole('columnheader')).toHaveText([
+      'Activity OID',
+    ]);
+    await expect(viewField(page, 'Additional activity references').getByRole('cell')).toHaveText([a, b]);
+    await expect(page.locator('redbox-content .rb-view-group .rb-view-label')).toHaveText(['Start date', 'End date']);
+    await expect(page.locator('redbox-content .rb-view-group .rb-view-value')).toHaveText([
+      aData.startDate,
+      aData.endDate,
+    ]);
+    const summaries = page.locator('redbox-content table').filter({
+      has: page.getByRole('columnheader', { name: 'Activity title', exact: true }),
+    });
+    await expect(summaries.getByRole('columnheader')).toHaveText(['Activity title', 'Start date', 'End date']);
+    await expect(summaries.getByRole('row')).toHaveCount(3);
+    for (const [index, activity] of [aData, bData].entries()) {
+      await expect(
+        summaries
+          .getByRole('row')
+          .nth(index + 1)
+          .getByRole('cell')
+      ).toHaveText([activity.title, activity.startDate, activity.endDate]);
     }
+    await expect(page.getByRole('heading', { name: 'Current activities' })).toBeVisible();
+    await expect(page.getByText('Activity A: 2026-02-01', { exact: false })).toBeVisible();
+    await expect(page.getByText('Activity B: 2025-02-01', { exact: false })).toBeVisible();
+    await expect(
+      page.locator('redbox-form input, redbox-form textarea, redbox-form select, redbox-form [contenteditable="true"]')
+    ).toHaveCount(0);
+    await expect(page.locator('.rb-form-repeatable-item')).toHaveCount(0);
     await expect(page.getByRole('button', { name: /add|remove|move up|move down/i })).toHaveCount(0);
     const dirty = await page.evaluate(
-      () => (window as any).ng.getComponent(document.querySelector('redbox-form')).form.dirty
+      () => (window as any).ng.getComponent(document.querySelector('redbox-form')).form?.dirty ?? false
     );
     expect(dirty).toBe(false);
   }
@@ -298,21 +324,25 @@ test.describe('Related record resolution (RR-20)', () => {
   test('role presentations share related data in edit and view modes', async ({ page }, testInfo) => {
     for (const mode of ['edit', 'view']) {
       await open(page, 'related-admin', mode);
-      await expect(page.locator('redbox-simpleinput input').filter({ visible: true })).not.toHaveCount(0);
       await expect(page.locator('textarea')).toHaveCount(0);
-      await expect(title(page)).toHaveValue(aData.title);
-      await populated(page);
-      if (mode === 'view') {
-        await readonlyView(page);
+      if (mode === 'edit') {
+        await expect(page.locator('redbox-simpleinput input').filter({ visible: true })).not.toHaveCount(0);
+        await populated(page);
+      } else {
+        await readonlyView(page, 'Primary activity');
+        await expect(viewField(page, 'Primary activity summary (read only)')).toHaveCount(0);
         await page.screenshot({ path: testInfo.outputPath(`admin-view.png`), fullPage: true });
       }
       await open(page, 'related-librarian', mode);
-      const summary = page.getByLabel('Primary activity summary (read only)', { exact: true });
-      await expect(summary).toHaveValue(aData.title);
-      await expect(summary).toHaveAttribute('readonly', '');
-      await populated(page, aData, summary);
-      if (mode === 'view') await expect(summary).not.toBeEditable();
-      if (mode === 'view') await readonlyView(page, summary);
+      if (mode === 'edit') {
+        const summary = page.getByLabel('Primary activity summary (read only)', { exact: true });
+        await expect(summary).toHaveValue(aData.title);
+        await expect(summary).toHaveAttribute('readonly', '');
+        await populated(page, aData, summary);
+      } else {
+        await readonlyView(page, 'Primary activity summary (read only)');
+        await expect(viewField(page, 'Primary activity')).toHaveCount(0);
+      }
       await expect(page.getByLabel('Current primary activity title', { exact: true })).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath(`initial-librarian-${mode}.png`), fullPage: true });
     }
@@ -367,7 +397,7 @@ test.describe('Related record resolution (RR-20)', () => {
     }
   });
 
-  test('real PDFService waits for delayed related data and repeatable rendering; required failures stop printing', async ({
+  test('real PDFService waits for refreshed view content rendering; required failures stop printing', async ({
     page,
     baseURL,
   }, testInfo) => {
