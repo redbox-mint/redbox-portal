@@ -445,10 +445,15 @@ saved-row author backfill is performed.
    database queries. Do not mass-convert them. Revert runtime mounts/config and matched
    assets together; unused versioned companion fields may remain safely in Solr.
 
-GraphQL reports, numbered-page/unknown-total report UI, CSV/export, exact totals and
-broad performance work remain deferred. Report/CSV follow-up must establish trusted
-caller propagation, bounded cursor traversal, unknown-total UI and explicit consistency
-decisions; first-page suggestions are not an export interface.
+GraphQL named queries can power reports and complete, bounded CSV exports.
+Choose **Create report from this query**, or select the GraphQL source in Reports.
+The editor discovers result fields and caller parameters, previews the first page,
+and links back to the named query and its saved explorer source. **Used by** links
+back to configured reports. See [Configuring Reports](Configuring-Reports) for
+viewer ACLs, version binding, cursor paging, consistency and export limits.
+The named-query REST/vocabulary first-page interface remains a suggestion
+interface; use dedicated report routes for continuation and complete export.
+Exact totals remain unknown.
 
 GraphQL bootstrap definitions that fail validation or cannot inspect an available schema
 are logged using safe codes and skipped. Check bootstrap logs before enabling a

@@ -1,6 +1,6 @@
 # Configuring Reports
 
-Manage database report definitions through **Admin → Reports**
+Manage database and GraphQL report definitions through **Admin → Reports**
 (`/:branding/:portal/admin/reports`). Open a report or choose **Create** for the
 full-page editor. Select a saved named query to discover its parameters and
 output fields. Choose fields explicitly to add columns, then edit their labels,
@@ -67,9 +67,11 @@ cancelled by this preview budget. The UI displays this limitation. Row, response
 and post-query rendering bounds still apply. A response timer is not database
 cancellation. Draft named-query preview refuses these paths instead.
 
-Report record reads retain existing administrative query access, including brand
-scoping and the existing lack of per-record read-ACL filtering. Preview does not
-add an independent record access model.
+Legacy database report reads retain administrative query access, including brand
+scoping and the existing lack of per-record read-ACL filtering. GraphQL reports,
+including preview and CSV, execute as the authenticated viewer with current
+brand/portal scope and per-record read ACLs. They never use a privileged service
+identity. Existing report route permissions and CSRF protection still apply.
 
 ## API
 
@@ -89,3 +91,73 @@ v2 wraps them in `data`/`meta`. Structured validation/refusals return 200 with
 `valid: false` (preview also `success: false`); input/complexity overflow 413,
 timeout 408, denied access 403, missing description 404. Existing invalid report
 preview configuration retains its 400/403 response with a safe code.
+
+## GraphQL reports
+
+Publish a saved explorer query as a GraphQL named query, then choose **Create
+report from this query**. The report query picker includes GraphQL badges and
+saved-source provenance. Choose friendly output fields to add columns; raw
+properties are available under **Advanced**. Caller-owned parameters offer filter
+buttons and plain-language labels. The first page previews automatically when a
+GraphQL query is selected. Links return to the named query and saved explorer;
+the named query's **Used by** section lists the report.
+
+Reports require a paged `records` collection with variable `first` and `after`
+arguments, selected `hasNextPage`/`endCursor`, and a two-part result path to its
+nodes. General explorer publications need no lookup search binding. Other query
+shapes can remain valid named queries while being unavailable for reports.
+GraphQL schema and mappings must still validate for the caller.
+
+The description supplies a canonical content hash as `queryVersion`. Persist it
+in `databaseQuery.queryVersion`. Preview, save, run and export reject missing or
+changed GraphQL bindings. Refresh the editor, review fields/filters, explicitly
+accept the current version and save. Source changes (including source type) cannot
+silently change the meaning of an existing report. CSV rechecks the effective
+query between pages and before returning its file.
+
+The viewer shows **Showing 1–25**, **Previous** and **Next** in live regions,
+without numbered pages or a fabricated total. Each request executes one page of
+at most 25 rows. Server-issued encrypted/authenticated continuation tokens bind
+the report definition, effective query version, viewer identity and roles, brand,
+portal, filters and page size. They expire using the existing record-grid cursor
+age. Tampered, foreign or stale tokens return a safe error. Configure a shared
+`recordGraphql.cursorSecret` (at least 32 characters) on all instances. A raw
+engine cursor is never accepted from a report client. GraphQL report sorting uses
+the published query order; database/Solr sorting is unchanged.
+
+CSV starts at the beginning, traverses cursor pages server-side, and sends an
+attachment only after successful completion. The button explains the configured
+row limit, announces a wait state, and reports failures in plain language. No
+silently partial file is returned. `recordGraphql.reportExport` defaults are:
+
+| Setting | Default | Valid range |
+| --- | ---: | ---: |
+| `maxRows` | 10000 | 1–100000 |
+| `maxPages` | 400 | 1–4000 |
+| `timeoutMs` | 30000 | 1–120000 |
+| `maxBytes` | 16777216 | 1–67108864 |
+
+All values must be safe integers; invalid configuration fails closed. Traversal
+uses fixed 25-row pages, so the page ceiling can constrain the effective row
+limit. Raw accumulated rows and the rendered CSV both obey the byte ceiling.
+The export budget also bounds pending schema/query/version reads. Existing
+GraphQL per-query work/response limits still apply. Exceeding row/page/bytes
+returns HTTP 413, expiry of the export deadline 408, changed query 409, and an
+invalid report cursor 400. None returns an attachment. Narrow the query or ask
+an administrator to adjust valid limits. Display sanitization and CSV formula
+protection remain in force.
+
+Record traversal is a **live read**, not a snapshot. Current stored ACLs are
+checked on every page; deletions and revoked access disappear from later pages.
+Concurrent inserts, edits and index changes may affect order, omit/repeat rows or
+invalidate a continuation. An invalid/nonadvancing continuation aborts export.
+No exact total or snapshot consistency is promised. Query-definition drift is
+separately detected by the version checks above.
+
+Viewer routes remain `admin/getReport`, `admin/getReportResults` and
+`admin/downloadReportCSV`. Metadata adds `querySource` and GraphQL
+`exportMaxRows`; result `total` is null with `pagination: {mode: "cursor", start,
+hasNextPage, nextCursor}`. Results accept `cursor` with `start=0`; CSV rejects client cursors and always
+starts fresh. The viewer’s page or offset never selects export scope. Responses are no-store. GraphQL
+preview is capped at 25 rows in addition to the existing preview response/render
+bounds; its exact total is null.
