@@ -41,7 +41,7 @@
     "@uppy/dashboard": "6.0.3",
     "@uppy/dropbox": "6.0.1",
     "@uppy/google-drive": "6.0.2",
-    "@uppy/onedrive": "6.0.0",
+    "@uppy/onedrive": "6.0.1",
     "@uppy/tus": "6.0.1",
     "dompurify": "3.4.17",
     "esbuild": "0.28.2",
