@@ -211,4 +211,18 @@ describe('Saved query chooser', () => {
     expect(c.selected).toEqual(summary());
     f.destroy();
   });
+  it('clears stale choices immediately when a keyboard user filters before tabbing', fakeAsync(() => {
+    const fixture = TestBed.createComponent(SavedQueryChooserComponent);
+    fixture.detectChanges(); flushMicrotasks(); fixture.detectChanges();
+    const search = fixture.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
+    search.focus();
+    const component = fixture.componentInstance;
+    expect(component.rows.length).toBeGreaterThan(0);
+    component.search = 'different'; component.filtersChanged(); fixture.detectChanges();
+    expect(component.rows).toEqual([]);
+    expect(fixture.nativeElement.querySelector('input[name="nq-saved"]')).toBeNull();
+    expect(document.activeElement).toBe(search);
+    tick(250); flushMicrotasks(); fixture.destroy();
+  }));
+
 });

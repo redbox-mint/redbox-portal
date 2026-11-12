@@ -45,6 +45,9 @@ export class SavedQueryChooserComponent implements OnInit, OnDestroy {
   filtersChanged(): void {
     if (this.timer) clearTimeout(this.timer);
     ++this.sequence;
+    // Remove stale choices while focus is still on the filter. Otherwise a fast
+    // Tab can enter an old radio that the debounced response then destroys.
+    this.rows = [];
     this.selected = null;
     this.next = null;
     this.loading = true;
