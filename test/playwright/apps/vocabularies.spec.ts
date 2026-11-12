@@ -154,8 +154,15 @@ test('A09 recovers catalogue failure, previews and applies a crosswalk, edits ma
   await editor.getByRole('row').filter({ hasText: 'Coastal ecology' }).getByRole('button', { name: /Remove target/i }).click();
   await expect(editor.locator('tbody tr')).toHaveCount(1);
   await editor.getByRole('button', { name: /Approve revision/i }).click();
+  const refreshedCrosswalks = adminPage.waitForResponse(response =>
+    response.request().method() === 'GET' && response.url().endsWith('/api/figshare-crosswalks?limit=100')
+  );
   await editor.getByRole('alertdialog').getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(editor.getByRole('status')).toContainText(/approved/i);
+  // Approval announces success before refreshing the list. Finish that request before reload.
+  const refreshedCrosswalksResponse = await refreshedCrosswalks;
+  expect(refreshedCrosswalksResponse.ok()).toBeTruthy();
+  expect(await refreshedCrosswalksResponse.finished()).toBeNull();
   await adminPage.reload();
   await app.getByRole('tab', { name: /^Crosswalks \d+$/ }).click();
   await row.getByRole('button', { name: /Manage/i }).click();
