@@ -57,8 +57,19 @@ export class ColumnsPanelComponent implements OnInit {
   get repeatingCount(): number {
     return this.fields.filter(f => f.repeatingSubfield).length;
   }
-  toggle(id: string): void {
-    if (this.columns.includes(id)) this.columns = this.columns.filter(key => key !== id);
+  toggle(id: string, restoreFocus = false): void {
+    const index = this.columns.indexOf(id);
+    if (index !== -1) {
+      this.columns = this.columns.filter(key => key !== id);
+      if (restoreFocus) {
+        const next = this.columns[Math.min(index, this.columns.length - 1)];
+        setTimeout(() =>
+          this.host.nativeElement
+            .querySelector<HTMLElement>(next ? `[data-column-id="${CSS.escape(next)}"]` : '#field-search')
+            ?.focus()
+        );
+      }
+    }
     else if (this.fields.some(f => f.id === id && f.selectable) && this.columns.length < this.limit)
       this.columns = [...this.columns, id];
   }

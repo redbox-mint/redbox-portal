@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, tick, TestBed } from '@angular/core/testing';
 import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { ColumnsPanelComponent } from './columns-panel.component';
 import { scope } from './data-grid.testing';
@@ -75,4 +75,21 @@ describe('Explorer columns panel', () => {
     expect(applied).toHaveBeenCalledWith(['budget', 'title']);
     fixture.destroy();
   });
+  it('keeps keyboard focus in the panel after removing first, last and final chips', fakeAsync(() => {
+    const fixture = TestBed.createComponent(ColumnsPanelComponent);
+    fixture.componentRef.setInput('fields', scope.fields);
+    fixture.componentRef.setInput('selected', ['title', 'budget', 'start']);
+    fixture.detectChanges(); tick();
+    for (const [id, next] of [['title', 'budget'], ['start', 'budget'], ['budget', null]]) {
+      const remove = fixture.nativeElement.querySelector(
+        `[data-column-id="${id}"] + button`
+      ) as HTMLButtonElement;
+      remove.focus(); remove.click(); fixture.detectChanges(); tick();
+      const expected = fixture.nativeElement.querySelector(next ? `[data-column-id="${next}"]` : '#field-search');
+      expect(document.activeElement).toBe(expected);
+      expect(fixture.nativeElement.querySelector('[role="dialog"]').contains(document.activeElement)).toBeTrue();
+    }
+    fixture.destroy();
+  }));
+
 });

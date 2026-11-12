@@ -26,7 +26,7 @@
           <button
             class="btn explorer-chip-remove"
             [attr.aria-label]="('data-grids-remove-column' | i18next) + ': ' + label(id)"
-            (click)="toggle(id)"
+            (click)="toggle(id, true)"
           >
             ×
           </button>
