@@ -1753,4 +1753,111 @@ describe('NamedQueryEditorComponent', () => {
     f.destroy();
   });
 
+  it('renders saved record type, empty stages and conditions as readable source summaries', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent), c = f.componentInstance;
+    f.detectChanges(); await c.waitForInit();
+    c.isEditing = true;
+    c.draft = {
+      source: 'graphql', name: 'summary',
+      sourceSavedQuery: {
+        id: 'a'.repeat(24), name: 'Research plans', mode: 'visual', revision: 1, publishedRevision: 1,
+        recordType: null, recordTypeLabel: 'Research management plans', updatedAt: null, updatedBy: null,
+        missing: false, changedSincePublished: false,
+      },
+      graphql: {
+        document: 'query Q($type:String,$stages:[String!],$filters:[String],$sort:[String],$condition_1:Int,$first:Int){records(first:$first){nodes{oid}}}',
+        variables: {
+          type: { ownership: 'fixed', value: 'rdmp' }, stages: { ownership: 'fixed', value: [] },
+          filters: { ownership: 'fixed', value: [] }, sort: { ownership: 'fixed', value: [] },
+          condition_1: { ownership: 'fixed', value: 0 },
+        }, resultPath: ['records', 'nodes'],
+      },
+    };
+    await c.loadGraphqlPresentation(); f.detectChanges();
+    const summary = f.nativeElement.querySelector('.nq-condition-summary').textContent;
+    expect(summary).toContain('Research management plans');
+    expect(summary).toContain('data-grids-all-stages');
+    expect(summary).toContain('nq-ux-no-conditions');
+    expect(summary).toContain('Condition 1: 0');
+    expect(c.graphqlSummaryRows.some(row => row.variable === 'first')).toBeFalse();
+    f.destroy();
+  });
+
+  it('formats source conditions and sort values with catalogue labels and honest default fallbacks', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent), c = f.componentInstance;
+    await c.loadGraphqlPresentation();
+    c.fieldLabels = { 'metadata:/title': 'Project title' };
+    const row = (variable: string, value?: import('@researchdatabox/sails-ng-common').NamedQueryJson) =>
+      ({ variable, value, label: variable, inputType: 'String', paging: false, consumerAllowed: true });
+    expect(c.valueLabel(row('stages'))).toBe('data-grids-all-stages');
+    expect(c.valueLabel(row('stages', null))).toBe('data-grids-all-stages');
+    expect(c.valueLabel(row('sort', []))).toBe('data-grids-default-order');
+    expect(c.valueLabel(row('sort', [{ field: 'metadata:/title', direction: 'DESC' }]))).toBe('Project title, data-grids-descending');
+    expect(c.valueLabel(row('filters', []))).toBe('nq-ux-empty-conditions');
+    expect(c.valueLabel(row('filters', [{ field: 'metadata:/title', contains: { text: 'Plan' } }, { field: 'metadata:/count', eq: 0 }])))
+      .toBe('Project title data-grids-op-contains Plan; Count data-grids-op-eq 0');
+    expect(c.valueLabel(row('custom'))).toBe('nq-ux-operation-default');
+    expect(c.valueLabel(row('custom', false))).toBe('false');
+    expect(c.valueLabel(row('custom', 'Saved text'))).toBe('Saved text');
+    expect(c.valueLabel({ ...row('custom', 'raw'), displayValue: 'Shown label' })).toBe('Shown label');
+    f.destroy();
+  });
+
+  it('renders a general GraphQL preview using selected field labels and sends typed caller values', async () => {
+    const f = TestBed.createComponent(NamedQueryEditorComponent), c = f.componentInstance;
+    f.detectChanges(); await c.waitForInit();
+    c.isEditing = true; c.draft = graphqlDraft('preview');
+    c.testParameters = { search: 'rdmp' };
+    const read = spyOn(TestBed.inject(NamedQueryApiService), 'graphqlRead').and.resolveTo({
+      data: { records: { nodes: [{ oid: 'plan-1', __typename: 'Record' }] } },
+    });
+    await c.loadGraphqlPresentation();
+    await c.previewGraphql(); f.detectChanges();
+    expect(read).toHaveBeenCalledOnceWith(c.activeGraphqlBuffer.graphql.document, { search: 'rdmp' }, undefined);
+    expect(c.graphqlPreviewData).toEqual([{ Oid: 'plan-1' }]);
+    expect(f.nativeElement.querySelector('#nq-section-preview').textContent).toContain('plan-1');
+    expect(f.nativeElement.querySelector('#nq-section-preview').textContent).not.toContain('__typename');
+    expect(c.previewing).toBeFalse();
+    f.destroy();
+  });
+
+  for (const [label, response] of [
+    ['GraphQL errors', { errors: [{ message: 'Forbidden field' }], data: { records: { nodes: [] } } }],
+    ['no data', {}], ['missing result path', { data: { records: null } }],
+    ['non-list result', { data: { records: { nodes: {} } } }],
+  ] as [string, Awaited<ReturnType<NamedQueryApiService['graphqlRead']>>][]) {
+    it(`explains a failed GraphQL preview with ${label} without showing stale results`, async () => {
+      const f = TestBed.createComponent(NamedQueryEditorComponent), c = f.componentInstance;
+      f.detectChanges(); await c.waitForInit();
+      c.isEditing = true; c.draft = graphqlDraft('preview'); c.rawGraphqlPreview = [{ oid: 'old' }];
+      spyOn(TestBed.inject(NamedQueryApiService), 'graphqlRead').and.resolveTo(response);
+      await c.previewGraphql(); f.detectChanges();
+      expect(c.rawGraphqlPreview).toBeNull();
+      expect(c.error).toBe('nq-ux-preview-error');
+      expect(f.nativeElement.textContent).toContain('nq-ux-preview-error');
+      expect(c.previewing).toBeFalse();
+      f.destroy();
+    });
+  }
+
+  for (const [reason, setState] of [
+    ['data-grids-saving', (c: NamedQueryEditorComponent) => { c.saving = true; }],
+    ['named-query-pending-input', (c: NamedQueryEditorComponent) => { c.pendingInput = true; }],
+    ['named-query-validating', (c: NamedQueryEditorComponent) => { c.validating = true; }],
+    ['named-query-error-collection-required', (c: NamedQueryEditorComponent) => { c.draft.collectionName = ' '; }],
+    ['named-query-graphql-correct-before-save', (c: NamedQueryEditorComponent) => {
+      c.draft = { ...graphqlDraft('incomplete'), graphql: { document: ' ', variables: {}, resultPath: [] } };
+    }],
+  ] as const) {
+    it(`renders the save blocker ${reason} beside the active save control`, async () => {
+      const f = TestBed.createComponent(NamedQueryEditorComponent), c = f.componentInstance;
+      f.detectChanges(); await c.waitForInit(); c.newQuery();
+      c.draft.name = 'valid_name'; c.draft.collectionName = 'record';
+      setState(c); f.detectChanges();
+      expect(f.nativeElement.querySelector('#nq-save-blocker').textContent).toContain(reason);
+      expect(f.nativeElement.querySelector('#named-query-save').getAttribute('aria-describedby')).toBe('nq-save-blocker');
+      f.destroy();
+    });
+  }
+
 });

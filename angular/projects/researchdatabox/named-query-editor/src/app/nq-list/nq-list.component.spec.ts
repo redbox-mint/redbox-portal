@@ -167,4 +167,60 @@ describe('NqListComponent', () => {
     expect(element.querySelector('a[href="/brand/portal/admin/report/report"]')?.textContent).toContain('Report title');
     expect(element.querySelector('tbody .nq-not-used')?.textContent).toContain('named-query-not-used');
   });
+
+  it('renders Built from links, stale and missing warnings, and handwritten or database origins', () => {
+    component.brandingAndPortalUrl = '/brand/portal';
+    const graphql = { source: 'graphql' as const, graphql: { document: '{ health }', variables: {}, resultPath: [] } };
+    const linked = {
+      id: 'a'.repeat(24), name: 'Research plans', revision: 3, publishedRevision: 2, mode: 'visual' as const,
+      missing: false, changedSincePublished: true, recordType: 'rdmp', recordTypeLabel: null, updatedAt: null, updatedBy: null,
+    };
+    component.queries = [
+      { ...graphql, name: 'linked', sourceSavedQuery: linked },
+      { ...graphql, name: 'missing', sourceSavedQuery: { ...linked, missing: true, name: null, changedSincePublished: false } },
+      { ...graphql, name: 'handwritten' },
+      { name: 'database', collectionName: 'user', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
+    ];
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>;
+    expect(rows[0].cells[2].querySelector('a')!.getAttribute('href')).toBe('/brand/portal/admin/data-grids#grid=' + linked.id);
+    expect(rows[0].cells[2].textContent).toContain('Research plans');
+    expect(rows[0].cells[2].textContent).toContain('nq-ux-source-changed');
+    expect(rows[1].cells[2].querySelector('a')).toBeNull();
+    expect(rows[1].cells[2].textContent).toContain('nq-ux-source-missing');
+    expect(rows[2].cells[2].textContent).toContain('nq-ux-written-by-hand');
+    expect(rows[3].cells[2].textContent).toContain('nq-ux-database-source');
+    expect(rows[3].cells[3].textContent).toContain('admin-query-collection-user');
+  });
+
+  it('counts only caller bindings and configured mappings on GraphQL queries', () => {
+    component.queries = [{
+      name: 'graphql', source: 'graphql', graphql: {
+        document: 'query Q($term:String){ health }', resultPath: [], mappings: { title: ['title'] },
+        variables: { term: { ownership: 'consumer', parameter: 'search', inputType: 'String', required: false },
+          type: { ownership: 'fixed', value: 'rdmp' }, skipped: { ownership: 'omitted' } },
+      },
+    }, { name: 'bare', source: 'graphql', graphql: { document: '{ health }', variables: {}, resultPath: [] } }];
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll('tbody tr') as NodeListOf<HTMLTableRowElement>;
+    expect(rows[0].cells[4].textContent!.trim()).toBe('1');
+    expect(rows[0].cells[5].textContent!.trim()).toBe('1');
+    expect(rows[1].cells[4].textContent!.trim()).toBe('—');
+    expect(rows[1].cells[5].textContent!.trim()).toBe('—');
+  });
+
+  it('debounces consecutive searches and clears both filters from the empty state', fakeAsync(() => {
+    component.query = { searchTerm: 'old', collection: 'record' };
+    component.searchTerm = 'old';
+    const emit = spyOn(component.queryChanged, 'emit');
+    component.onSearchTermChanged('first');
+    component.onSearchTermChanged('latest');
+    tick(250);
+    expect(emit).toHaveBeenCalledOnceWith({ searchTerm: 'latest', collection: 'record' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h3').textContent).toContain('admin-no-filter-results');
+    fixture.nativeElement.querySelector('.rb-admin-empty button').click();
+    expect(emit.calls.mostRecent().args).toEqual([{ searchTerm: '', collection: '' }]);
+    expect(component.searchTerm).toBe('');
+  }));
 });

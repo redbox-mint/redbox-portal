@@ -225,4 +225,85 @@ describe('Saved query chooser', () => {
     tick(250); flushMicrotasks(); fixture.destroy();
   }));
 
+  it('filters From a saved query by Visual, GraphQL and All using the rendered controls', fakeAsync(() => {
+    const f = TestBed.createComponent(SavedQueryChooserComponent);
+    f.detectChanges(); flushMicrotasks(); f.detectChanges();
+    const buttons = f.nativeElement.querySelectorAll('[aria-labelledby="nq-mode-label"] button') as NodeListOf<HTMLButtonElement>;
+    for (const [index, mode] of [[1, 'visual'], [2, 'graphql'], [0, '']] as const) {
+      buttons[index].click();
+      f.detectChanges();
+      expect(buttons[index].getAttribute('aria-pressed')).toBe('true');
+      expect(f.nativeElement.querySelector('input[name="nq-saved"]')).toBeNull();
+      tick(250); flushMicrotasks(); f.detectChanges();
+      expect(api.savedQueries.calls.mostRecent().args).toEqual([mode ? { mode } : {}]);
+      expect(f.nativeElement.querySelector('tbody').textContent).toContain('Saved research plans');
+    }
+    expect(f.nativeElement.querySelector('tbody').textContent).toContain('nq-ux-not-published');
+    expect(f.nativeElement.querySelector('tbody').textContent).toContain('nq-ux-not-recorded');
+    f.destroy();
+  }));
+
+  it('keeps only the latest debounced search and cancels a pending search when closed', fakeAsync(() => {
+    const f = TestBed.createComponent(SavedQueryChooserComponent);
+    f.detectChanges(); flushMicrotasks();
+    const c = f.componentInstance;
+    c.search = 'old'; c.filtersChanged(); tick(100);
+    c.search = '  latest  '; c.filtersChanged(); tick(250); flushMicrotasks();
+    expect(api.savedQueries).toHaveBeenCalledTimes(2);
+    expect(api.savedQueries.calls.mostRecent().args).toEqual([{ q: 'latest' }]);
+    c.search = 'never requested'; c.filtersChanged();
+    f.destroy(); tick(250); flushMicrotasks();
+    expect(api.savedQueries).toHaveBeenCalledTimes(2);
+  }));
+
+  it('preselects the current source on replacement and clears a source absent from the refreshed page', async () => {
+    const f = TestBed.createComponent(SavedQueryChooserComponent);
+    f.componentRef.setInput('replacing', true);
+    f.componentRef.setInput('selectedId', summary().id);
+    f.detectChanges(); await f.whenStable(); f.detectChanges();
+    await f.whenStable(); f.detectChanges();
+    expect(f.nativeElement.querySelector('#nq-start-title').textContent).toContain('nq-ux-change-source');
+    expect(f.nativeElement.querySelector('input[name="nq-start"]')).toBeNull();
+    expect(f.componentInstance.selected).toEqual(summary());
+    expect(f.nativeElement.querySelector('input[name="nq-saved"]').checked).toBeTrue();
+    api.savedQueries.and.resolveTo({ grids: [], next: null });
+    await f.componentInstance.load(); f.detectChanges();
+    expect(f.componentInstance.selected).toBeNull();
+    expect(f.nativeElement.querySelector('footer .btn-primary').disabled).toBeTrue();
+    f.destroy();
+  });
+
+  it('shows a recoverable preparation error without dropping the selected saved revision', async () => {
+    const f = TestBed.createComponent(SavedQueryChooserComponent);
+    f.detectChanges(); await f.whenStable();
+    const c = f.componentInstance;
+    const chosen = spyOn(c.chosen, 'emit');
+    await c.continue();
+    expect(api.fromSavedQuery).not.toHaveBeenCalled();
+    c.selected = summary();
+    api.fromSavedQuery.and.rejectWith({ status: 503 });
+    await c.continue(); f.detectChanges();
+    expect(f.nativeElement.querySelector('[role="alert"]').textContent).toContain('nq-ux-prepare-error');
+    expect(c.selected).toEqual(summary());
+    expect(c.busy).toBeFalse();
+    expect(chosen).not.toHaveBeenCalled();
+    api.fromSavedQuery.and.resolveTo(prepared);
+    await c.continue();
+    expect(chosen).toHaveBeenCalledOnceWith({ summary: summary(), prepared });
+    f.destroy();
+  });
+
+  it('ignores preparation that finishes after the chooser is destroyed', async () => {
+    const pending = deferred<NamedQueryPromotionDraft>();
+    api.fromSavedQuery.and.returnValue(pending.promise);
+    const f = TestBed.createComponent(SavedQueryChooserComponent);
+    f.detectChanges(); await f.whenStable();
+    f.componentInstance.selected = summary();
+    const chosen = spyOn(f.componentInstance.chosen, 'emit');
+    const preparing = f.componentInstance.continue();
+    f.destroy(); pending.resolve(prepared); await preparing;
+    expect(chosen).not.toHaveBeenCalled();
+    expect(f.componentInstance.busy).toBeFalse();
+  });
+
 });
