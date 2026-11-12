@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { A11yModule } from '@angular/cdk/a11y';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import {
   Component,
   ChangeDetectionStrategy,
@@ -43,7 +43,7 @@ import { NamedQueryApiService } from '../../../named-query-editor/src/app/named-
 import { SavedQuery, GridField, JsonValue } from './data-grid.model';
 import { fieldValue } from './field-presentation';
 import { initializePublish, publishPreviewVariables, type PublishVariable } from './publish-query';
-import { cursorBinding } from './graphql-query';
+import { cursorBinding } from './cursor-binding';
 import { DATA_GRID_SOURCE, DataGridSource } from './data-grid-source';
 
 /** Lazy, detached publishing workspace. All execution and update review stay on the existing caller-scoped API. */
@@ -52,7 +52,7 @@ import { DATA_GRID_SOURCE, DataGridSource } from './data-grid-source';
   imports: [
     CommonModule,
     FormsModule,
-    A11yModule,
+    CdkTrapFocus,
     AdminModalDirective,
     AdminSidePanelComponent,
     I18NextPipe,

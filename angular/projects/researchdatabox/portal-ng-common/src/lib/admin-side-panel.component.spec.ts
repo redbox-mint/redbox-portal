@@ -26,8 +26,19 @@ describe('Admin offcanvas focus management', () => {
     expect(dialog.textContent).toContain('Columns');
     expect(dialog.contains(document.activeElement)).toBeTrue();
     expect(trigger.inert).toBeTrue();
+    const close = dialog.querySelector('button');
+    for (const anchor of fixture.nativeElement.querySelectorAll('.cdk-focus-trap-anchor')) {
+      anchor.focus();
+      expect(document.activeElement).toBe(close);
+    }
     const closed = jasmine.createSpy();
     fixture.componentInstance.closed.subscribe(closed);
+    fixture.componentRef.setInput('busy', true);
+    fixture.detectChanges();
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(closed).not.toHaveBeenCalled();
+    fixture.componentRef.setInput('busy', false);
+    fixture.detectChanges();
     dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(closed).toHaveBeenCalled();
     fixture.destroy();

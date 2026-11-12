@@ -230,6 +230,8 @@ describe('Explorer publishing workspace', () => {
     expect(explorer.promotion).toBeNull();
   });
   it('opens a focus-contained panel while preparation is pending and ignores a late result after cancellation', async () => {
+    const schema = jasmine.createSpy('schema').and.resolveTo(testSdl);
+    source.schema = schema;
     let resolve!: (value: NamedQueryPromotionDraft) => void;
     source.prepareNamedQuery.and.returnValue(new Promise(yes => (resolve = yes)));
     const work = explorer.createNamedQuery();
@@ -244,12 +246,18 @@ describe('Explorer publishing workspace', () => {
     expect(fixture.nativeElement.querySelector('rb-named-query-basics')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('rb-named-query-parameters')).toBeNull();
     expect(fixture.nativeElement.querySelector('rb-named-query-lookup-fields')).toBeNull();
+    expect(api.describe).not.toHaveBeenCalled();
+    expect(api.preview).not.toHaveBeenCalled();
+    expect(source.raw).not.toHaveBeenCalled();
+    expect(schema).not.toHaveBeenCalled();
     child.cancel();
     await render();
     resolve(prepared());
     await work;
     expect(explorer.promotion).toBeNull();
     expect(explorer.promotionOpening).toBeFalse();
+    expect(api.describe).not.toHaveBeenCalled();
+    expect(schema).not.toHaveBeenCalled();
   });
   it('renders plain-language sort, all-stage and sentence-case condition summaries', async () => {
     const input = prepared();

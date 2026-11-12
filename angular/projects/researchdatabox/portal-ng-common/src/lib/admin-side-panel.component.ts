@@ -1,4 +1,4 @@
-import { A11yModule } from '@angular/cdk/a11y';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { Component, EventEmitter, Input, OnDestroy, Output, ViewEncapsulation } from '@angular/core';
 import { AdminModalDirective } from './admin-modal.directive';
 import { I18NextPipe } from './i18next.pipe';
@@ -8,7 +8,7 @@ import { I18NextPipe } from './i18next.pipe';
   selector: 'rb-admin-side-panel',
   styleUrls: ['./admin-side-panel.component.scss'],
   encapsulation: ViewEncapsulation.None,
-  imports: [A11yModule, AdminModalDirective, I18NextPipe],
+  imports: [CdkTrapFocus, AdminModalDirective, I18NextPipe],
   template: ` <div class="offcanvas-backdrop show" aria-hidden="true" (click)="!busy && closed.emit()"></div>
     <section
       class="offcanvas offcanvas-end show rb-admin-side-panel"
