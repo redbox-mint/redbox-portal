@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { recordHasAccess } from '../reporting/authorization';
 import { of, from, mergeMap as flatMap, firstValueFrom, throwError } from 'rxjs';
 import { concatMap, last, catchError } from 'rxjs/operators';
 
@@ -7147,35 +7148,10 @@ export namespace Services {
      *
      */
     public hasViewAccess(brand: unknown, user: AnyRecord, roles: object[], record: AnyRecord): boolean {
-      const auth = record.authorization as AnyRecord | undefined;
-      const editArr = auth ? auth.edit : record.authorization_edit;
-      const editRolesArr = auth ? auth.editRoles : record.authorization_editRoles;
-      const viewArr = auth ? auth.view : record.authorization_view;
-      const viewRolesArr = auth ? auth.viewRoles : record.authorization_viewRoles;
-      const uname = String(user.username ?? '');
-      const brandObj = brand as BrandingModel;
-
-      const combinedViewArr = _.union(this.asArray(viewArr) ?? [], this.asArray(editArr) ?? []);
-      const combinedViewRolesArr = _.union(this.asArray(viewRolesArr) ?? [], this.asArray(editRolesArr) ?? []);
-
-      const isInUserView = _.find(combinedViewArr, (username: unknown) => {
-        return uname == username;
-      });
-      if (!_.isUndefined(isInUserView)) {
-        return true;
-      }
-      const isInRoleView = _.find(combinedViewRolesArr, (roleName: unknown) => {
-        const role = RolesService.getRole(brandObj, String(roleName));
-        return (
-          role &&
-          !_.isUndefined(
-            _.find(roles, (r: AnyRecord) => {
-              return role.id == r.id;
-            })
-          )
-        );
-      });
-      return !_.isUndefined(isInRoleView);
+      return recordHasAccess(
+        brand as BrandingModel, String(user.username ?? ''), roles as Array<{ id: string }>, record, false,
+        (activeBrand, name) => RolesService.getRole(activeBrand, name)
+      );
     }
 
     /**
@@ -7183,30 +7159,10 @@ export namespace Services {
      *
      */
     public hasEditAccess(brand: unknown, user: AnyRecord, roles: AnyRecord[], record: AnyRecord): boolean {
-      const auth = record.authorization as AnyRecord | undefined;
-      const editArr = auth ? auth.edit : record.authorization_edit;
-      const editRolesArr = auth ? auth.editRoles : record.authorization_editRoles;
-      const uname = String(user.username ?? '');
-      const brandObj = brand as BrandingModel;
-
-      const isInUserEdit = _.find(this.asArray(editArr), (username: unknown) => {
-        return uname == username;
-      });
-      if (!_.isUndefined(isInUserEdit)) {
-        return true;
-      }
-      const isInRoleEdit = _.find(this.asArray(editRolesArr), (roleName: unknown) => {
-        const role = RolesService.getRole(brandObj, String(roleName));
-        return (
-          role &&
-          !_.isUndefined(
-            _.find(roles, (r: AnyRecord) => {
-              return role.id == r.id;
-            })
-          )
-        );
-      });
-      return !_.isUndefined(isInRoleEdit);
+      return recordHasAccess(
+        brand as BrandingModel, String(user.username ?? ''), roles as Array<{ id: string }>, record, true,
+        (activeBrand, name) => RolesService.getRole(activeBrand, name)
+      );
     }
 
     public searchFuzzy(

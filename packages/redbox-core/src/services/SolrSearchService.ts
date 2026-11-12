@@ -1,3 +1,6 @@
+import { ReportingError } from '../reporting/types';
+import { recordSolrAuthorization, solrLiteral, assertReportingPrincipal } from '../reporting/authorization';
+import type { ReportingPrincipal } from '../reporting/types';
 // Copyright (c) 2020 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -146,6 +149,7 @@ export namespace Services {
       'index',
       'remove',
       'searchFuzzy',
+      'searchReportingText',
       'solrAddOrUpdate',
       'solrDelete',
       'searchAdvanced',
@@ -452,6 +456,31 @@ export namespace Services {
       return customResp;
     }
 
+    /** Literal full-text discovery for reporting. No query syntax or caller filters. */
+    public async searchReportingText(principal: ReportingPrincipal, coreId: string, recordType: string, text: string, start: number, rows: number): Promise<string[]> {
+      assertReportingPrincipal(principal);
+      if (typeof text !== 'string' || !text.trim() || text.length > 500 || !Number.isInteger(start) || start < 0 || start > 10000 ||
+        !Number.isInteger(rows) || rows < 1 || rows > 101) throw new ReportingError('INVALID_QUERY');
+      const core = sails.config.solr.cores[coreId];
+      if (!core) throw new Error('Reporting search core unavailable');
+      const params = new URLSearchParams({
+        q: `full_text:${solrLiteral(text)}`,
+        fl: 'redboxOid', start: String(start), rows: String(rows), wt: 'json',
+        sort: 'date_object_modified desc', timeAllowed: '5000',
+      });
+      params.append('fq', `metaMetadata_brandId:${solrLiteral(principal.brand.id)}`);
+      params.append('fq', `metaMetadata_type:${solrLiteral(recordType)}`);
+      params.append('fq', recordSolrAuthorization(principal.brand, principal.user.username, principal.roles));
+      const response = await axios.get(`${this.getBaseUrl(core.options)}${core.options.core}/select`, {
+        params, timeout: 6000,
+      }).then((response: { data: SolrResponse }) => response.data);
+      return response.response.docs.flatMap((doc: Record<string, unknown>) => {
+        // storage_id is Mongo's internal document ID; RecordsService resolves the public ReDBox OID.
+        const oid = Array.isArray(doc.redboxOid) ? doc.redboxOid[0] : doc.redboxOid;
+        return typeof oid === 'string' ? [oid] : [];
+      });
+    }
+
     private clientSleep() {
       if (!_.isUndefined(sails.config.solr.clientSleepTimeMillis)) {
         sails.log.verbose(`${this.logHeader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
@@ -585,21 +614,7 @@ export namespace Services {
 
     protected addAuthParams(allParams: Array<{ key: string; value: string }> | URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
 
-      let roleString = ""
-      let matched = false;
-      for (let i = 0; i < roles.length; i++) {
-        const role = roles[i]
-        const roleBrandId = (role.branding as BrandingModel | string | undefined);
-        if ((typeof roleBrandId === 'object' ? roleBrandId?.id : roleBrandId) == brand.id) {
-          if (matched) {
-            roleString += " OR ";
-            matched = false;
-          }
-          roleString += roles[i].name;
-          matched = true;
-        }
-      }
-      const fqValue = "authorization_edit:" + username + (editAccessOnly ? "" : (" OR authorization_view:" + username + " OR authorization_viewRoles:(" + roleString + ")")) + " OR authorization_editRoles:(" + roleString + ")";
+      const fqValue = recordSolrAuthorization(brand, username, roles, editAccessOnly);
       if (allParams instanceof URLSearchParams) {
         allParams.append('fq', fqValue);
       } else {

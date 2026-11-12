@@ -133,23 +133,23 @@ describe('SolrSearchService', function() {
     it('should add authorization filter for username', function() {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
-      const roles = [{ name: 'Admin', branding: 'brand-1' }];
-      const brand = { id: 'brand-1', name: 'default' };
+      const roles = [{ id: 'admin-1', name: 'Admin', branding: 'brand-1' }];
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
       
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
       
-      expect(result).to.include('authorization_edit:testuser');
-      expect(result).to.include('authorization_view:testuser');
+      expect(result).to.include('authorization_edit:"testuser"');
+      expect(result).to.include('authorization_view:"testuser"');
     });
 
     it('should add role-based filters', function() {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles = [
-        { name: 'Admin', branding: 'brand-1' },
-        { name: 'Researcher', branding: 'brand-1' }
+        { id: 'admin-1', name: 'Admin', branding: 'brand-1' },
+        { id: 'researcher-1', name: 'Researcher', branding: 'brand-1' }
       ];
-      const brand = { id: 'brand-1', name: 'default' };
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
       
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
       
@@ -163,10 +163,10 @@ describe('SolrSearchService', function() {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles = [
-        { name: 'Admin', branding: 'brand-1' },
-        { name: 'OtherBrandRole', branding: 'brand-2' }
+        { id: 'admin-1', name: 'Admin', branding: 'brand-1' },
+        { id: 'other-brand-role', name: 'OtherBrandRole', branding: 'brand-2' }
       ];
-      const brand = { id: 'brand-1', name: 'default' };
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
       
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
       
@@ -177,45 +177,45 @@ describe('SolrSearchService', function() {
     it('should exclude view access when editAccessOnly is true', function() {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
-      const roles = [{ name: 'Admin', branding: 'brand-1' }];
-      const brand = { id: 'brand-1', name: 'default' };
+      const roles = [{ id: 'admin-1', name: 'Admin', branding: 'brand-1' }];
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
       
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand, true);
       
-      expect(result).to.include('authorization_edit:testuser');
-      expect(result).to.not.include('authorization_view:testuser');
+      expect(result).to.include('authorization_edit:"testuser"');
+      expect(result).to.not.include('authorization_view:"testuser"');
     });
 
     it('should handle empty roles', function() {
       const url = 'http://localhost:8983/solr/redbox/select?q=*:*';
       const username = 'testuser';
       const roles: any[] = [];
-      const brand = { id: 'brand-1', name: 'default' };
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
       
       const result = (SolrSearchService as any).addAuthFilter(url, username, roles, brand);
 
-      expect(result).to.include('authorization_edit:testuser');
+      expect(result).to.include('authorization_edit:"testuser"');
     });
   });
 
   describe('addAuthParams', function() {
     it('should append the authorization filter as an fq param', function() {
       const params = new URLSearchParams();
-      const roles = [{ name: 'Admin', branding: 'brand-1' }];
-      const brand = { id: 'brand-1', name: 'default' };
+      const roles = [{ id: 'admin-1', name: 'Admin', branding: 'brand-1' }];
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
 
       (SolrSearchService as any).addAuthParams(params, 'testuser', roles, brand);
 
       const authFilters = params.getAll('fq');
       expect(authFilters).to.have.lengthOf(1);
-      expect(authFilters[0]).to.include('authorization_edit:testuser');
-      expect(authFilters[0]).to.include('authorization_viewRoles:(Admin)');
+      expect(authFilters[0]).to.include('authorization_edit:"testuser"');
+      expect(authFilters[0]).to.include('authorization_viewRoles:("Admin")');
     });
 
     it('should not overwrite filters already collected', function() {
       const params = new URLSearchParams();
       params.append('fq', 'existing:filter');
-      const brand = { id: 'brand-1', name: 'default' };
+      const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
 
       (SolrSearchService as any).addAuthParams(params, 'testuser', [], brand);
 
@@ -253,7 +253,7 @@ describe('SolrSearchService', function() {
   });
 
   describe('searchFuzzy', function() {
-    const brand = { id: 'brand-1', name: 'default' };
+    const brand = { id: 'brand-1', name: 'default', roles: [{ id: 'admin-1', name: 'Admin' }, { id: 'researcher-1', name: 'Researcher' }] };
     const user = { username: 'testuser' };
 
     function stubAxiosGet() {
@@ -279,7 +279,7 @@ describe('SolrSearchService', function() {
       expect(params.getAll('fq')).to.have.lengthOf(4);
       expect(params.getAll('fq')[0]).to.equal('title:first');
       expect(params.getAll('fq')[1]).to.equal('owner:second');
-      expect(params.getAll('fq')[3]).to.include('authorization_edit:testuser');
+      expect(params.getAll('fq')[3]).to.include('authorization_edit:"testuser"');
     });
 
     it('should build the q param from brand, type and search query', async function() {

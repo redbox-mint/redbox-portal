@@ -1,0 +1,39 @@
+{
+  "name": "@researchdatabox/redbox-mcp",
+  "version": "0.0.1",
+  "description": "Authenticated MCP reporting adapter for ReDBox",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "GPL-3.0",
+  "sails": {
+    "isHook": true,
+    "hasControllers": true,
+    "hasConfig": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "TS_NODE_PROJECT=tsconfig.test.json mocha --no-config --exit --node-option no-experimental-strip-types --require ts-node/register --timeout 10000 test/**/*.test.ts",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "example:client": "TS_NODE_PROJECT=tsconfig.test.json node --no-experimental-strip-types -r ts-node/register examples/client.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.0",
+    "@modelcontextprotocol/node": "2.1.1",
+    "@researchdatabox/redbox-core": "file:../redbox-core",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.0",
+    "@types/mocha": "10.0.10",
+    "@types/node": "24.12.4",
+    "mocha": "11.7.6",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "mongodb": "7.6.0"
+  }
+}

@@ -1,3 +1,4 @@
+import { MongoReportingProvider, runtimeReportingRegistry, type ReportingPrincipal, type MongoReportingQuery } from '@researchdatabox/redbox-core';
 import { firstValueFrom, Observable, of } from 'rxjs';
 import { mergeMap } from 'rxjs';
 import { randomUUID } from 'crypto';
@@ -297,6 +298,7 @@ export namespace Services {
       'create',
       'updateMeta',
       'getCapabilities',
+      'executeReporting',
       'removeActiveRecord',
       'createTombstone',
       'updateTombstone',
@@ -908,6 +910,12 @@ export namespace Services {
       sails.emit('hook:redbox:storage:ready');
       sails.emit('hook:redbox:datastream:ready');
       sails.log.verbose(`${this.logHeader} Ready!`);
+    }
+
+    /** Reporting capability: accepts only the public DSL and a mandatory server-side principal. */
+    public async executeReporting(principal: ReportingPrincipal, query: MongoReportingQuery) {
+      const provider = new MongoReportingProvider(this.getNativeRecordCollection(), runtimeReportingRegistry);
+      return provider.executeReporting(principal, query);
     }
 
     private async createIndices(db: Db): Promise<void> {

@@ -1,3 +1,4 @@
+import type { RecordTypeReportingConfig } from '../reporting/types';
 /**
  * Record Type Config Interface
  * (sails.config.recordtype)
@@ -211,6 +212,7 @@ export interface RecordTypeValidationConfig {
 }
 
 export interface RecordTypeDefinition {
+  reporting?: RecordTypeReportingConfig;
   packageType: string;
   packageName?: string;
   searchable?: boolean;

@@ -1,0 +1,6 @@
+{
+  "extends": "../redbox-core/tsconfig.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src", "types": ["node"] },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "test"]
+}

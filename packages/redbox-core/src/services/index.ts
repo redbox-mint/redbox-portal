@@ -1,3 +1,4 @@
+import * as ReportingServiceModule from './ReportingService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -198,7 +199,12 @@ function getOrCreateService(name: string, factory: () => unknown): unknown {
   return serviceCache[name];
 }
 
+export { ReportingServiceModule as ReportingService };
+
 export const ServiceExports = {
+  get ReportingService() {
+    return getOrCreateService('ReportingService', () => new ReportingServiceModule.Services.Reporting().exports());
+  },
   get AgendaQueueService() {
     return getOrCreateService('AgendaQueueService', () =>
       new AgendaQueueServiceModule.Services.AgendaQueue().exports()

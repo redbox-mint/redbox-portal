@@ -1,0 +1,88 @@
+name: redbox-reporting-demo
+x-image: &image ${RBPORTAL_IMAGE:-redbox-portal:playwright-node24}
+services:
+  mongodb:
+    image: mongo:7.0.43-jammy@sha256:f71f6d0913c945096cd058557cbadf4ad435007f378d84b3c4c636c928735e72
+    restart: unless-stopped
+    # MongoDB 8 cannot run on this host's kernel. Keep its original volume intact.
+    volumes: [mongo7-data:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, 'db.runCommand({ping:1}).ok']
+      interval: 3s
+      timeout: 5s
+      retries: 20
+  solr:
+    image: solr:latest@sha256:d5d3e2445d6ecf634d81259f1d0c25ba7fd3d297bc31f0032aca16cdc6cbd8e5
+    restart: unless-stopped
+    volumes: [solr-data:/var/solr]
+    entrypoint: [docker-entrypoint.sh, solr-precreate, redbox]
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4-0@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    restart: unless-stopped
+    env_file: .dev/demo.env
+    environment:
+      KC_HOSTNAME: ${REDBOX_DEMO_URL}/auth
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: 'true'
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${REDBOX_DEMO_ADMIN_PASSWORD}
+    volumes:
+      - ./.dev/realm.json:/opt/keycloak/data/import/redbox-reporting-realm.json:ro
+      - keycloak-data:/opt/keycloak/data
+    command: [start-dev, --import-realm, --features=resource-indicators]
+  portal:
+    image: *image
+    restart: unless-stopped
+    init: true
+    user: root
+    working_dir: /opt/redbox-portal
+    entrypoint: [node, --enable-source-maps, app.js]
+    env_file: .dev/demo.env
+    environment:
+      NODE_ENV: mcpdemo
+      PORT: 1500
+      WEBPACK_SKIP: 'true'
+      LOAD_DEFAULT_FORMS: 'true'
+      REGENERATE_SHIMS: 'true'
+      REDBOX_SKIP_MIGRATIONS: 'false'
+      sails__datastores__mongodb__url: mongodb://mongodb:27017/reporting-demo-portal
+      sails__datastores__redboxStorage__url: mongodb://mongodb:27017/reporting-demo-storage
+      sails__redboxSession_mongoUrl: mongodb://mongodb:27017/reporting-demo-sessions
+      sails__generation_bootstrap_enabled: 'false'
+    volumes:
+      - ../../../packages/redbox-core:/opt/redbox-portal/packages/redbox-core:ro
+      - ../../../packages/sails-ng-common:/opt/redbox-portal/packages/sails-ng-common:ro
+      - ../../../packages/rva-registry:/opt/redbox-portal/packages/rva-registry:ro
+      - ../../../node_modules/axios:/opt/redbox-portal/node_modules/axios:ro
+      - ../../../packages/redbox-mcp:/opt/redbox-portal/packages/redbox-mcp:ro
+      - ../../../packages/redbox-mcp:/opt/redbox-portal/node_modules/@researchdatabox/redbox-mcp:ro
+      - ../../../packages/sails-hook-redbox-storage-mongo:/opt/redbox-portal/packages/sails-hook-redbox-storage-mongo:ro
+      - ./.dev/package.json:/opt/redbox-portal/package.json:ro
+      - ./hook:/opt/redbox-portal/node_modules/redbox-hook-reporting-demo:ro
+      - ./environment.js:/opt/redbox-portal/config/env/mcpdemo.js:ro
+      - attachments:/attachments
+    depends_on:
+      mongodb: { condition: service_healthy }
+      solr: { condition: service_started }
+      keycloak: { condition: service_started }
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://localhost:1500/default/rdmp/home]
+      interval: 10s
+      timeout: 5s
+      start_period: 300s
+      retries: 10
+  proxy:
+    image: *image
+    restart: unless-stopped
+    init: true
+    healthcheck: { disable: true }
+    env_file: .dev/demo.env
+    entrypoint: [node, /opt/reporting-proxy.js]
+    volumes: [./proxy.js:/opt/reporting-proxy.js:ro]
+    ports: ['127.0.0.1:18080:8080']
+volumes:
+  mongo7-data:
+  solr-data:
+  keycloak-data:
+  attachments:

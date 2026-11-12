@@ -1,3 +1,4 @@
+import { reportingApiRoutes } from './groups/reporting';
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
 import { buildSailsRouteConfig, ensureUniqueApiRoutes, isRecord, toRouteMap, validateApiRouteConsistency } from './helpers';
@@ -30,6 +31,7 @@ const apiDocumentInfo = {
 } as const;
 
 const coreApiRouteGroups = [
+  reportingApiRoutes,
   recordApiRoutes,
   recordSchemaApiRoutes,
   userApiRoutes,

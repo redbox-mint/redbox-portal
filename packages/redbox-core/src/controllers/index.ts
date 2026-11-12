@@ -1,3 +1,4 @@
+import * as WSReportingControllerModule from './webservice/ReportingController';
 /**
  * Controllers index - exports all controller classes
  */
@@ -84,6 +85,7 @@ export const ControllerExports: Record<string, unknown> = {
 
 // Webservice Controllers export (separate object, not prefixed)
 export const WebserviceControllerExports: Record<string, unknown> = {
+    get ReportingController() { return getOrCreate('WSReportingController', () => new WSReportingControllerModule.Controllers.Reporting().exports()); },
     get AdminController() { return getOrCreate('WS_AdminController', () => new WSAdminControllerModule.Controllers.Admin().exports()); },
     get AppConfigController() { return getOrCreate('WS_AppConfigController', () => new WSAppConfigControllerModule.Controllers.AppConfig().exports()); },
     get BrandingController() { return getOrCreate('WS_BrandingController', () => new WSBrandingControllerModule.Controllers.Branding().exports()); },
@@ -133,6 +135,7 @@ export const ControllerNames = [
 ];
 
 export const WebserviceControllerNames = [
+    'ReportingController',
     'AdminController',
     'AppConfigController',
     'BrandingController',

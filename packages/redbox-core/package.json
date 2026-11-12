@@ -27,7 +27,9 @@
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "generate-openapi": "ts-node --transpile-only scripts/generate-openapi.ts",
     "doc:api": "npm run generate-openapi --",
-    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080"
+    "docs:serve": "npx serve ../../../support/docs/generated/api -p 8080",
+    "test:reporting": "npm run typecheck:reporting && TS_NODE_PROJECT=test/tsconfig.json mocha --no-config --exit --node-option no-experimental-strip-types --require ts-node/register/transpile-only --require chai --require test/setup.ts --timeout 15000 test/reporting/*.test.ts",
+    "typecheck:reporting": "tsc --noEmit -p test/tsconfig.reporting.json"
   },
   "author": "",
   "license": "ISC",

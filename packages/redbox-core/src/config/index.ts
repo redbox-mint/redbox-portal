@@ -1,3 +1,5 @@
+import { reporting, type ReportingConfig } from './reporting.config';
+export * from './reporting.config';
 /**
  * Config Types Index
  * 
@@ -267,6 +269,7 @@ export interface SailsConfig {
     recordSchema: RecordSchemaConfig;
     harvestRuns: HarvestRunsConfig;
     generation: GenerationConfig;
+    reporting: ReportingConfig;
 
     // Auth-related configs
     auth: AuthConfig;
@@ -295,6 +298,7 @@ export interface SailsConfig {
  * Used by the redbox-core loader for shim generation
  */
 export const Config = {
+    reporting,
     api,
     appmode,
     record,

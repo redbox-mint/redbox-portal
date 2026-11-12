@@ -106,6 +106,7 @@ jobs:
               . \
               packages/agenda-sqs-backend \
               packages/redbox-core \
+              packages/redbox-mcp \
               packages/redbox-dev-tools \
               packages/sails-hook-redbox-pdfgen \
               packages/sails-ng-common \
@@ -432,7 +433,7 @@ jobs:
       - run:
           name: Install required ReDBox dependencies
           command: |
-            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:storage-mongo && npm run compile:sails
+            npm run compile:sails-ng-common && npm run compile:raido && npm run compile:rva && npm run compile:agenda-sqs && npm run compile:core && npm run compile:mcp && npm run compile:storage-mongo && npm run compile:sails
       - run:
           name: Setup test directories
           command: |
@@ -443,6 +444,9 @@ jobs:
           name: Run Mocha tests
           no_output_timeout: 30m
           command: timeout 1800s npm run test:mocha:ci
+      - run:
+          name: Test reporting authorization, Mongo aggregates and MCP
+          command: npm run test:reporting
       - run:
           name: Upload Mocha code coverage
           command: |

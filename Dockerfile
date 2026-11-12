@@ -40,6 +40,7 @@ RUN cd packages/raido && npm run build
 RUN cd packages/rva-registry && npm run build
 RUN cd packages/sails-ng-common && npm run compile
 RUN cd packages/redbox-core && npx tsc -p tsconfig.json
+RUN npm run compile:mcp
 RUN cd packages/redbox-dev-tools && npm install --include=dev --no-save --ignore-scripts --strict-peer-deps --no-audit && npm run build
 RUN cd packages/sails-hook-redbox-storage-mongo && npm run compile
 # redbox-hook-dev is a devDependency that supplies the demo record types/forms.
@@ -69,6 +70,7 @@ RUN cp -a node_modules /tmp/test-node_modules \
       packages/rva-registry \
       packages/sails-ng-common \
       packages/redbox-core \
+      packages/redbox-mcp \
       packages/redbox-dev-tools \
       packages/sails-hook-redbox-storage-mongo \
       packages/redbox-hook-dev \
@@ -84,6 +86,7 @@ RUN cp -a node_modules /tmp/test-node_modules \
 RUN rm -rf \
     packages/agenda-sqs-backend/node_modules \
     packages/redbox-core/node_modules \
+    packages/redbox-mcp/node_modules \
     packages/redbox-dev-tools/node_modules \
     packages/sails-ng-common/node_modules \
     packages/raido/node_modules \
