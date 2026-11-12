@@ -2,7 +2,7 @@ import * as sinon from 'sinon';
 import axios, { AxiosError } from 'axios';
 import { FigsharePublishing } from '../../src/configmodels/FigsharePublishing';
 import { makeLiveClient, FigshareHttpError } from '../../src/services/figshare-v2/http';
-import { failFigshareAudit } from '../../src/services/figshare-v2/audit';
+import { failFigshareAudit, summarizeFigshareError } from '../../src/services/figshare-v2/audit';
 import { trace } from '@opentelemetry/api';
 import { Services } from '../../src/services/IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../src/model/storage/IntegrationAuditModel';
@@ -150,6 +150,47 @@ describe('IntegrationAuditService', function () {
         expect(entry.responseSummary.error).not.to.have.property('endpoint');
       }
     } finally { delete (global as any).IntegrationAuditService; }
+  });
+
+  it('looks past incomplete wrapper metadata to preserve the underlying HTTP diagnostics', function () {
+    const cause = new FigshareHttpError('Figshare request failed', {
+      statusCode: 404, responseBody: { code: 'EntityNotFound', message: 'Category rejected' },
+      method: 'put', endpoint: '/account/articles/34989604',
+    });
+    for (const metadata of [
+      { statusCode: 0 }, { statusCode: '404' }, { statusCode: NaN },
+      { responseBody: {} }, { responseBody: { payload: 'private' } },
+      { method: '' }, { method: 'put', statusCode: 0, responseBody: {} },
+    ]) {
+      const summary = summarizeFigshareError(Object.assign(new Error('outer wrapper', { cause }), metadata));
+      expect(summary.statusCode).to.equal(404);
+      expect(summary.errorDetail).to.contain('Category rejected');
+      expect(summary.responseSummary.code).to.equal('EntityNotFound');
+      expect(summary.responseSummary.endpoint).to.equal('/account/articles/34989604');
+      expect(JSON.stringify(summary)).not.to.contain('private');
+    }
+  });
+
+  it('bounds cause traversal for cyclic and deeply nested wrappers', function () {
+    const cyclic: any = { message: 'cycle', statusCode: 0 };
+    cyclic.cause = cyclic;
+    expect(summarizeFigshareError(cyclic).errorDetail).to.equal('cycle');
+    let nested: Error = new Error('deepest');
+    for (let depth = 0; depth < 20; depth++) nested = new Error('wrapper', { cause: nested });
+    expect(summarizeFigshareError(nested).errorDetail).to.equal('wrapper');
+  });
+
+  it('sanitizes endpoints in the HTTP error constructor for all callers', function () {
+    const error = new FigshareHttpError('request failed', {
+      endpoint: 'https://user:password@example.org/account/articles/1?token=private#fragment',
+    });
+    expect(error.endpoint).to.equal('https://REDACTED@example.org/account/articles/1');
+    const longEndpoint = new FigshareHttpError('request failed', { endpoint: '/' + 'x'.repeat(1000) });
+    expect(longEndpoint.endpoint?.length).to.equal(500);
+    const secretEndpoint = new FigshareHttpError('request failed', { endpoint: '/private-token/path', secrets: ['private-token'] });
+    expect(secretEndpoint.endpoint).to.equal('/REDACTED/path');
+    const malformed = new FigshareHttpError('request failed', { endpoint: 404 as any });
+    expect(malformed.endpoint).to.equal(undefined);
   });
 
   it('retains transport diagnostics without inventing an HTTP status', async function () {
