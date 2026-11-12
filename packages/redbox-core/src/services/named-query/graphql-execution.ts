@@ -16,13 +16,7 @@ import {
 } from './graphql-validation';
 
 export const GRAPHQL_NAMED_QUERY_ROWS = 25;
-export interface GraphqlNamedQueryRecord {
-  oid: string;
-  title: string;
-  metadata?: unknown;
-  dateCreated?: unknown;
-  lastSaveDate?: unknown;
-}
+export type GraphqlNamedQueryRecord = Record<string, unknown>;
 
 /** Only safe categories leave this boundary; never reflect engine errors or values. */
 export class GraphqlNamedQueryExecutionError extends Error {
@@ -109,7 +103,14 @@ export async function executeGraphqlNamedQuery(
     const variables = budget.run(() => bindGraphqlNamedQuery(prepared, parameters, transport));
     const config = prepared.definition.graphql;
     const page = config.lookup;
-    const reportCompatible = continuation && prepared.validation.capabilities?.diagnostics.every(item => item.code === 'LOOKUP_SEARCH_BINDING');
+    // Reports need bounded paging, while typeahead consumers also need search and label mappings.
+    const reportCompatible =
+      continuation &&
+      !prepared.validation.capabilities?.diagnostics.some(
+        item => item.code === 'LOOKUP_PAGE_REQUIRED' || item.code === 'LOOKUP_PAGE_SHAPE'
+      );
+    if (continuation && (!reportCompatible || !page?.endCursorPath))
+      throw new GraphqlNamedQueryExecutionError('GRAPHQL_REPORT_PAGING_REQUIRED');
     if ((!prepared.validation.capabilities?.lookup && !reportCompatible) || !page)
       throw new GraphqlNamedQueryExecutionError('GRAPHQL_LOOKUP_UNSUPPORTED');
     variables[page.firstVariable] = first;
@@ -171,6 +172,7 @@ export async function executeGraphqlNamedQuery(
         const value = graphqlPath(item, path);
         if (value !== undefined) mapped[target] = value;
       }
+      if (continuation) return mapped;
       const oid = mapped.oid;
       if (
         !((typeof oid === 'string' && oid.trim()) || (typeof oid === 'number' && Number.isSafeInteger(oid))) ||

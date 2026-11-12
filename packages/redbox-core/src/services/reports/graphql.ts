@@ -406,8 +406,9 @@ export async function describeGraphqlReport(
     fields: fields.filter((field, i, all) => all.findIndex(item => item.path === field.path) === i),
   };
   const paginationReady =
-    inspected.validation.capabilities?.diagnostics.every(item => item.code === 'LOOKUP_SEARCH_BINDING') &&
-    !!adapted.graphql.lookup?.endCursorPath;
+    !inspected.validation.capabilities?.diagnostics.some(
+      item => item.code === 'LOOKUP_PAGE_REQUIRED' || item.code === 'LOOKUP_PAGE_SHAPE'
+    ) && !!adapted.graphql.lookup?.endCursorPath;
   const diagnostics = [
     ...inspected.validation.diagnostics.map(item => ({ ...item, reason: 'nq-ux-diagnostic-' + item.code })),
     ...(paginationReady

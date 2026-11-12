@@ -154,9 +154,8 @@ export interface GridTestResponse {
   };
   errors?: Array<{ message: string; extensions: { code: string }; path?: Array<string | number> }>;
 }
-export function gridHarness(ids = ['a', 'b', 'c']) {
+export function gridHarness(ids = ['a', 'b', 'c'], contracts = gridContracts()) {
   const environment = gridEnvironment();
-  const contracts = gridContracts();
   const records = new Map(ids.map(oid => [oid, gridRecord(oid)]));
   const denied = new Set<string>();
   const calls: URLSearchParams[] = [];

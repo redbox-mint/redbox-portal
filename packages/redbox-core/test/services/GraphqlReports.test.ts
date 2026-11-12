@@ -4,7 +4,9 @@ import type { Response } from 'express';
 import type { BuildResponseType } from '../../src/model';
 import sinon from 'sinon';
 import type { GraphqlNamedQueryDefinition } from '@researchdatabox/sails-ng-common';
-import { gridHarness, gridCaller } from '../fixtures/record-grid.fixtures';
+import { gridHarness, gridCaller, gridContracts } from '../fixtures/record-grid.fixtures';
+import { fieldName, metadataTypeName } from '../../src/record-graphql/renderer';
+import { executeGraphqlNamedQuery } from '../../src/services/named-query/graphql-execution';
 import { createMockSails, createQueryObject } from './testHelper';
 import {
   graphqlQueryVersion,
@@ -306,6 +308,188 @@ describe('GraphQL reports security and bounded export', () => {
         graphqlCaller: gridCaller,
       }
     );
+  function activePlans() {
+    const original = gridContracts()[0];
+    const ethics = 'uon:ethicsApprovalStatus';
+    const start = 'dc:coverage_vivo:DateTimeInterval_vivo:start';
+    const contract: ReturnType<typeof gridContracts>[number] = {
+      ...original,
+      context: { ...original.context, recordType: 'rdmp', workflowStep: 'active', form: 'active-form' },
+      root: {
+        ...original.root,
+        properties: {
+          ...original.root.properties,
+          [ethics]: { kind: 'scalar', scalarType: 'string', nullable: true },
+          [start]: { kind: 'scalar', scalarType: 'string', nullable: true },
+        },
+      },
+    };
+    h = gridHarness(
+      Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')),
+      [contract]
+    );
+    for (const record of h.records.values()) {
+      record.metaMetadata.type = 'rdmp';
+      record.metaMetadata.form = 'active-form';
+      record.workflow.stage = 'active';
+      record.metadata[ethics] = 'Approved';
+      record.metadata[start] = '2026-01-01';
+    }
+    const variant = metadataTypeName(contract);
+    query = {
+      name: 'ActivePlans',
+      source: 'graphql',
+      graphql: {
+        document: `query GridPage($type: String!, $stages: [String!], $sort: [RecordSortInput!], $first: Int, $after: String) {
+          records(recordType: $type, workflowStages: $stages, filters: [], sort: $sort, first: $first, after: $after) {
+            nodes { oid workflowStep metadata { __typename
+              ... on ${variant} { explorer_field_1: title }
+              ... on ${variant} { explorer_field_2: ${fieldName(ethics)} }
+              ... on ${variant} { explorer_field_3: ${fieldName(start)} }
+            } }
+            hasNextPage endCursor
+          }
+        }`,
+        variables: {
+          type: { ownership: 'fixed', value: 'rdmp' },
+          stages: { ownership: 'fixed', value: ['active'] },
+          sort: { ownership: 'fixed', value: [{ field: 'metadata:/title', direction: 'ASC' }] },
+          first: { ownership: 'fixed', value: 25 },
+          after: { ownership: 'fixed', value: null },
+        },
+        resultPath: ['records', 'nodes'],
+        mappings: { oid: ['oid'], metadata: ['metadata'] },
+      },
+    };
+    report.databaseQuery = { queryName: 'ActivePlans', queryVersion: graphqlQueryVersion(query) };
+  }
+  it('describes ActivePlans without lookup title/search mappings and offers all repeated-fragment fields', async () => {
+    activePlans();
+    const description = await service.describeQuery(
+      gridCaller.brand,
+      gridCaller.portal,
+      author,
+      report.databaseQuery.queryName
+    );
+    assert.equal(description.valid, true, JSON.stringify(description.diagnostics));
+    assert.deepEqual(description.diagnostics, []);
+    assert.deepEqual(
+      description.result.fields.map(field => field.path),
+      ['oid', 'metadata', 'metadata.explorer_field_1', 'metadata.explorer_field_2', 'metadata.explorer_field_3']
+    );
+    assert.equal((await service.validateConfig(gridCaller.brand, gridCaller.portal, author, report)).valid, true);
+  });
+  it('runs two ActivePlans pages, CSV and preview without a title mapping', async () => {
+    activePlans();
+    report.columns.push(
+      ...[1, 2, 3].map(i => ({
+        label: `Field ${i}`,
+        property: `metadata.explorer_field_${i}`,
+        hide: false,
+        template: '',
+        exportTemplate: '',
+      }))
+    );
+    const before = structuredClone(query);
+    const page = await graphqlReportPage(gridCaller.brand, report, query, {}, undefined, 25, gridCaller);
+    assert.equal(page.records.length, 25);
+    assert.equal(Object.hasOwn(page.records[0], 'title'), false);
+    assert.equal(page.pagination.hasNextPage, true);
+    const next = await graphqlReportPage(
+      gridCaller.brand,
+      report,
+      query,
+      {},
+      page.pagination.nextCursor,
+      25,
+      gridCaller
+    );
+    assert.equal(next.pagination.start, 25);
+    assert.equal(next.records[0].oid, '25');
+    const csv = await service.getCSVResult(
+      gridCaller.brand,
+      'report',
+      { param: () => undefined },
+      0,
+      undefined,
+      gridCaller
+    );
+    assert.equal(csv.trim().split('\n').length, 61);
+    assert.match(csv, /00,00,Approved,2026-01-01/);
+    const sample = await preview();
+    assert.equal(sample.valid, true);
+    assert.equal(sample.records.length, 25);
+    assert.deepEqual(
+      sample.renderedRows[0].cells.map(cell => cell.export),
+      ['00', '00', 'Approved', '2026-01-01']
+    );
+    assert.deepEqual(query, before);
+  });
+  it('keeps unpaged queries blocked in describe, page, CSV and preview', async () => {
+    activePlans();
+    query.graphql.document = query.graphql.document.replace('hasNextPage endCursor', 'hasNextPage');
+    report.databaseQuery.queryVersion = graphqlQueryVersion(query);
+    await assert.rejects(
+      service.describeQuery(gridCaller.brand, gridCaller.portal, author, report.databaseQuery.queryName),
+      code('GRAPHQL_REPORT_PAGING_REQUIRED')
+    );
+    await assert.rejects(
+      graphqlReportPage(gridCaller.brand, report, query, {}, undefined, 25, gridCaller),
+      code('GRAPHQL_REPORT_PAGING_REQUIRED')
+    );
+    await assert.rejects(
+      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+      code('GRAPHQL_REPORT_PAGING_REQUIRED')
+    );
+    await assert.rejects(preview(), code('GRAPHQL_REPORT_PAGING_REQUIRED'));
+  });
+  it('still refuses ActivePlans as a typeahead query without title/search mappings', async () => {
+    activePlans();
+    await assert.rejects(
+      executeGraphqlNamedQuery(query, {}, gridCaller.brand, 0, 25, gridCaller),
+      code('GRAPHQL_LOOKUP_UNSUPPORTED')
+    );
+  });
+  it('keeps invalid configured paging blocked even when lookup mappings are also missing', async () => {
+    activePlans();
+    query.graphql.lookup = {
+      mode: 'firstPage',
+      collectionPath: ['records'],
+      firstVariable: 'first',
+      afterVariable: 'after',
+      hasNextPagePath: ['records', 'hasNextPage'],
+      endCursorPath: ['records', 'hasNextPage'],
+      searchParameter: 'search',
+    };
+    delete query.graphql.variables.first;
+    delete query.graphql.variables.after;
+    report.databaseQuery.queryVersion = graphqlQueryVersion(query);
+    const description = await service.describeQuery(
+      gridCaller.brand,
+      gridCaller.portal,
+      author,
+      report.databaseQuery.queryName
+    );
+    assert.equal(description.valid, false);
+    assert.ok(description.diagnostics.some(item => item.code === 'GRAPHQL_REPORT_PAGING_REQUIRED'));
+    await assert.rejects(
+      graphqlReportPage(gridCaller.brand, report, query, {}, undefined, 25, gridCaller),
+      code('GRAPHQL_REPORT_PAGING_REQUIRED')
+    );
+  });
+  it('does not require lookup identifier mappings for reports either', async () => {
+    activePlans();
+    delete query.graphql.mappings!.oid;
+    report.databaseQuery.queryVersion = graphqlQueryVersion(query);
+    assert.equal(
+      (await service.describeQuery(gridCaller.brand, gridCaller.portal, author, report.databaseQuery.queryName)).valid,
+      true
+    );
+    assert.equal(
+      (await graphqlReportPage(gridCaller.brand, report, query, {}, undefined, 25, gridCaller)).records.length,
+      25
+    );
+  });
   for (const legacy of [false, true]) {
     it(`runs page, CSV and preview with ${legacy ? 'an unchanged legacy' : 'a v2'} binding`, async () => {
       if (legacy) report.databaseQuery.queryVersion = legacyQueryVersion(query);
