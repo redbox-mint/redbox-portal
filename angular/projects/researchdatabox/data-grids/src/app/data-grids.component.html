@@ -704,7 +704,7 @@
 </div>
 @defer (when columnsOpen) {
   @if (columnsOpen && draft) {
-    <rb-explorer-columns
+    <rb-explorer-columns [defaults]="columnDefaults"
       [fields]="scope?.fields || []"
       [selected]="draft.columns"
       [subtitle]="recordTypeLabel(draft.recordType) + ' · ' + (draft.workflowStage || text('all-stages'))"

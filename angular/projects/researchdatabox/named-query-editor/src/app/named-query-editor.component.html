@@ -202,26 +202,11 @@
               <h3>{{ 'nq-ux-source-missing' | i18next }}</h3>
               <p>{{ 'nq-ux-source-missing-help' | i18next }}</p>
             </div>
-            <div *ngIf="!linked.missing" class="nq-linked-card">
-              <h3>{{ linked.name }}</h3>
-              <p>
-                {{ linked.recordTypeLabel || linked.recordType || 'nq-ux-unknown-type' | i18next }} ·
-                {{ 'nq-ux-mode-' + linked.mode | i18next }}
-              </p>
-              <p class="rb-admin-hint">
-                {{
-                  (linked.updatedBy ? 'nq-ux-updated-by' : 'nq-ux-updated-at')
-                    | i18next
-                      : {
-                          date: linked.updatedAt
-                            ? (linked.updatedAt | date: 'd MMM yyyy')
-                            : ('nq-ux-not-recorded' | i18next),
-                          user: linked.updatedBy?.displayName || linked.updatedBy?.username,
-                        }
-                }}
-              </p>
-              <a class="btn btn-outline-secondary" [href]="explorerUrl">{{ 'nq-ux-open-explorer' | i18next }}</a>
-            </div>
+            <rb-admin-source-card *ngIf="!linked.missing" [name]="linked.name || ''">
+              {{ linked.recordTypeLabel || linked.recordType || 'nq-ux-unknown-type' | i18next }} · {{ 'nq-ux-mode-' + linked.mode | i18next }}
+              <span class="d-block">{{ (linked.updatedBy ? 'nq-ux-updated-by' : 'nq-ux-updated-at') | i18next: { date: linked.updatedAt ? (linked.updatedAt | date: 'd MMM yyyy') : ('nq-ux-not-recorded' | i18next), user: linked.updatedBy?.displayName || linked.updatedBy?.username } }}</span>
+              <a sourceActions class="btn btn-sm btn-outline-secondary" [href]="explorerUrl">{{ 'nq-ux-open-explorer' | i18next }}</a>
+            </rb-admin-source-card>
             <div *ngIf="linked.changedSincePublished" class="alert alert-warning mt-3" role="status">
               <p>{{ 'nq-ux-source-changed-help' | i18next }}</p>
               <button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="changeSavedSource()">

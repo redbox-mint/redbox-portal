@@ -2,7 +2,7 @@
   <section class="explorer-shown" aria-labelledby="columns-heading" id="columns-panel">
     <div class="grid-preview-heading">
       <h3 id="columns-heading">{{ 'data-grids-shown-in-order' | i18next }}</h3>
-      <button class="btn btn-outline-secondary" (click)="reset()">{{ 'data-grids-reset' | i18next }}</button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="reset()">{{ 'data-grids-reset' | i18next }}</button>
     </div>
     <div class="explorer-chips" role="list" [attr.aria-label]="'data-grids-column-order-help' | i18next">
       @for (id of columns; track id; let index = $index) {
@@ -81,10 +81,14 @@
       </button>
     </div>
   }
+  @if (note) {
+    <p class="alert alert-info" role="note">{{ note }}</p>
+  }
+  <ng-content></ng-content>
   <div panelFooter class="grid-actions">
     <button class="btn btn-outline-secondary" (click)="closed.emit()">{{ 'data-grids-cancel' | i18next }}</button>
     <button class="btn btn-primary" [disabled]="!columns.length" (click)="applied.emit(columns)">
-      {{ 'data-grids-apply-and-run' | i18next }}
+      {{ applyLabel | i18next }}
     </button>
   </div>
 </rb-admin-side-panel>

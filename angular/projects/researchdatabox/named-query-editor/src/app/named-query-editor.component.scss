@@ -135,16 +135,6 @@
 .nq-graphql-workspace :is(input, select, textarea) {
   min-height: 44px;
 }
-.nq-linked-card {
-  padding: 16px;
-  border: 1px solid var(--admin-line);
-  background: var(--admin-surface);
-  border-radius: var(--admin-radius);
-}
-.nq-linked-card h3 {
-  font-size: 17px;
-  margin: 0 0 8px;
-}
 .nq-document {
   font: 13px/1.6 var(--admin-mono);
 }

@@ -1,0 +1,81 @@
+:host {
+  display: block;
+}
+.explorer-shown {
+  background: var(--admin-surface);
+  padding: 12px;
+  border-radius: var(--admin-radius);
+}
+.explorer-shown h3 {
+  font-size: 14px;
+  margin: 0;
+}
+.grid-preview-heading,
+.grid-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.grid-actions {
+  justify-content: flex-end;
+  width: 100%;
+}
+.explorer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 8px;
+}
+.rb-admin-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+}
+.explorer-reorder,
+.explorer-chip-remove {
+  min-height: 40px;
+  font-size: 13px;
+}
+.explorer-field-search {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 16px 0;
+  font-weight: 700;
+}
+.explorer-field-group summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.grid-field {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--admin-soft-line);
+}
+.grid-field input {
+  margin-top: 5px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+.grid-field label {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  min-width: 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+.grid-field code,
+.grid-field small {
+  color: var(--admin-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+:is(button, input, summary):focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 3px;
+}

@@ -444,52 +444,6 @@ data-grids {
     outline: 2px solid var(--admin-primary);
     outline-offset: 3px;
   }
-  .explorer-field-search {
-    margin: 16px 0;
-  }
-  .explorer-shown {
-    background: var(--admin-surface);
-    padding: 12px;
-    border-radius: var(--admin-radius);
-  }
-  .explorer-shown h3 {
-    font-size: 14px;
-    margin: 0;
-  }
-  .explorer-shown .explorer-chips {
-    margin-block: 8px;
-  }
-  .explorer-field-group summary {
-    cursor: pointer;
-    font-weight: 600;
-  }
-  .grid-field {
-    display: flex;
-    gap: 10px;
-    align-items: start;
-    padding: 9px 14px;
-    border-bottom: 1px solid var(--admin-soft-line);
-  }
-  .grid-field input {
-    margin-top: 5px;
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-  }
-  .grid-field label {
-    display: flex;
-    flex-direction: column;
-    margin: 0;
-    min-width: 0;
-    font-weight: 400;
-    cursor: pointer;
-  }
-  .grid-field code,
-  .grid-field small {
-    color: var(--admin-muted);
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
   .nq-saved-value {
     max-width: 28ch;
     overflow-wrap: anywhere;

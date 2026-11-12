@@ -70,6 +70,8 @@ import {
   ],
 })
 export class DataGridsComponent extends BaseComponent implements OnDestroy {
+  get columnDefaults(): string[] { return defaultColumns(this.scope?.fields ?? []); }
+
   @ViewChild('schemaDetails') schemaDetails?: ElementRef<HTMLDetailsElement>;
   @ViewChild('saveDialog') saveDialog?: ElementRef<HTMLDialogElement>;
   @ViewChild('editorHeading') editorHeading?: ElementRef<HTMLElement>;

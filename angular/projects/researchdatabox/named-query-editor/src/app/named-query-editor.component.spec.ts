@@ -6,6 +6,7 @@ import {
   NamedQueryParametersSectionComponent,
   NamedQueryLookupSectionComponent,
   NamedQueryPreviewSectionComponent,
+  AdminSourceCardComponent,
 } from '@researchdatabox/portal-ng-common';
 import { GraphqlDraftEditorComponent } from './graphql-draft-editor.component';
 import { GraphqlSchemaComponent } from './graphql-schema.component';
@@ -124,7 +125,7 @@ describe('NamedQueryEditorComponent', () => {
         RelatedFilterEditorComponent,
         I18NextPipeStub,
       ],
-      imports: [NamedQueryNameFieldComponent, SavedQueryChooserComponent, NamedQueryBasicsSectionComponent, NamedQueryParametersSectionComponent, NamedQueryLookupSectionComponent, NamedQueryPreviewSectionComponent, GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
+      imports: [AdminSourceCardComponent, NamedQueryNameFieldComponent, SavedQueryChooserComponent, NamedQueryBasicsSectionComponent, NamedQueryParametersSectionComponent, NamedQueryLookupSectionComponent, NamedQueryPreviewSectionComponent, GraphqlDraftEditorComponent, GraphqlSchemaComponent, GraphqlJsonInputComponent, AdminTabsDirective, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe, QueryAssistanceModule, FieldTreeComponent, SchemaTargetSelectorComponent, FormsModule, A11yModule],
       providers: [
         { provide: APP_BASE_HREF, useValue: '/' },
         { provide: NamedQueryApiService, useClass: NamedQueryApiServiceStub },

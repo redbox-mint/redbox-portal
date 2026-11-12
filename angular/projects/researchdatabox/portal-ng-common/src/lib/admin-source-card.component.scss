@@ -1,0 +1,36 @@
+:host {
+  display: block;
+}
+.rb-source-card {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rb-source-description {
+  min-width: 0;
+  flex: 1;
+}
+.rb-source-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.rb-source-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+@media (max-width: 1199px) {
+  .rb-source-card {
+    flex-wrap: wrap;
+  }
+  .rb-source-actions {
+    flex-wrap: wrap;
+  }
+}

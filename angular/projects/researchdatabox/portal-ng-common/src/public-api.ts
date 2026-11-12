@@ -75,3 +75,7 @@ export * from './lib/named-query-sections/named-query-publication';
 
 export * from './lib/named-query-sections/named-query-name';
 export * from './lib/named-query-sections/named-query-name-field.component';
+
+export * from './lib/columns-panel.component';
+export * from './lib/column-picker-field';
+export * from './lib/admin-source-card.component';
