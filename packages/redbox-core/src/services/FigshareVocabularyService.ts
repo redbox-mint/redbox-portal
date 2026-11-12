@@ -240,6 +240,8 @@ export namespace Services {
 
   export interface ResolveCrosswalkValuesInput extends ResolveCategoriesInput {
     outputs: CrosswalkOutput;
+    /** Article category publishing excludes explicit non-selectable targets; generic bindings retain them. */
+    selectableOnly?: boolean;
   }
 
   export interface ResolveCrosswalkValuesResult {
@@ -2340,6 +2342,10 @@ export namespace Services {
     public async resolveCrosswalkValues(input: ResolveCrosswalkValuesInput): Promise<ResolveCrosswalkValuesResult> {
       const outputs: CrosswalkOutput = input?.outputs || 'categoryId';
       const resolution = await this.resolveCrosswalkTargets(input);
+      // Mirror normalization treats missing selectability metadata as selectable.
+      const matches = input?.selectableOnly === true
+        ? resolution.matches.filter((match) => match.category.selectable !== false)
+        : resolution.matches;
       const base = {
         normalizedCodes: resolution.normalizedCodes,
         unresolvedCodes: resolution.unresolvedCodes,
@@ -2347,23 +2353,23 @@ export namespace Services {
       };
 
       if (outputs === 'categoryId') {
-        const categoryIds = new Set<number>(resolution.matches.map((match) => match.category.categoryId));
+        const categoryIds = new Set<number>(matches.map((match) => match.category.categoryId));
         return { ...base, values: Array.from(categoryIds).sort((left, right) => left - right) };
       }
 
       if (outputs === 'sourceId') {
-        return { ...base, values: Array.from(new Set(resolution.matches.map((match) => match.category.sourceId))) };
+        return { ...base, values: Array.from(new Set(matches.map((match) => match.category.sourceId))) };
       }
 
       // Labels live on the mirrored VocabularyEntry, not on the category row.
-      const entryIds = Array.from(new Set(resolution.matches.map((match) => String(match.category.entry))));
+      const entryIds = Array.from(new Set(matches.map((match) => String(match.category.entry))));
       const entries = entryIds.length === 0
         ? []
         : await VocabularyEntry.find({ id: entryIds }) as VocabularyEntryAttributes[];
       const labelByEntryId = new Map(entries.map((entry) => [String(entry.id), entry.label]));
 
       const labels = new Set<string>();
-      for (const match of resolution.matches) {
+      for (const match of matches) {
         const label = String(labelByEntryId.get(String(match.category.entry)) ?? '').trim();
         if (label !== '') {
           labels.add(label);

@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -377,6 +378,32 @@ describe('RecordAuditComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Trace Events');
     expect(fixture.nativeElement.textContent).toContain('publishAfterUploadFilesJob');
+  });
+
+  it('shows failure explanations without opening Technical Data and renders historical events', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+    await component.activateTab('integration');
+    const events = component.integrationTab.data.records[0].events;
+    events[0].message = 'Figshare sync failed.';
+    events[0].errorDetail = 'Entity not found: Not allowed to set category Other engineering in article.';
+    component.toggleIntegrationTrace('trace-1');
+    fixture.detectChanges();
+
+    const cells = fixture.nativeElement.querySelectorAll('.rb-trace-event-row .rb-message-cell');
+    expect(cells[0].textContent).toContain('Figshare sync failed.');
+    expect(cells[0].textContent).toContain('Not allowed to set category Other engineering');
+    expect(cells[1].textContent).toContain('Publish completed');
+    expect(component.integrationTab.expandedEvents['event-1']).toBeFalsy();
+
+    events[0].message = undefined;
+    events[0].errorDetail = 'Historical failure explanation';
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-trace-event-row .rb-message-cell').textContent).toContain('Historical failure explanation');
+    events[0].errorDetail = undefined;
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-trace-event-row .rb-message-cell').textContent.trim()).toBe('-');
   });
 
   it('shows technical details for an expanded integration event', async () => {

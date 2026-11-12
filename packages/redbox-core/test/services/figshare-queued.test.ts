@@ -97,6 +97,8 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   let requests: Array<{ method: string; path: string; body: Record<string, unknown>; query: URLSearchParams; authorization?: string }>;
   let createFailure: number | undefined;
   let publishFailure: number | undefined;
+  let metadataFailure: boolean;
+  let failureDetails: Record<string, any>;
   let articleReadFailure: number | undefined;
   let published = false;
   let hideArticles = false;
@@ -167,7 +169,9 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
         if (publishFailure) return send({ code: 'BadRequest', message: 'Missing mandatory value: Central Queensland University ROR' }, publishFailure);
         article.is_public = published; if (published) { article.published_date = '2026-01-01'; article.version = Number(article.version) + 1; } return send({});
       }
-      if (req.method === 'PUT') { Object.assign(article, body); if (mutateOnUpdate) { const callback = mutateOnUpdate; mutateOnUpdate = undefined; await callback(); } return send({}); }
+      if (req.method === 'PUT') {
+        if (metadataFailure) return send({ code: 'EntityNotFound', message: 'Entity not found: Not allowed to set category Other engineering in article.' }, 404);
+        Object.assign(article, body); if (mutateOnUpdate) { const callback = mutateOnUpdate; mutateOnUpdate = undefined; await callback(); } return send({}); }
       return send(article);
     });
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -175,7 +179,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
   beforeEach(async () => {
     await db.dropDatabase(); store = new FigshareSyncStore(db); await store.ensureIndexes();
     articles = []; requests = []; createFailure = undefined; publishFailure = undefined; articleReadFailure = undefined; published = false; hideArticles = false; mutateOnUpdate = undefined;
-    traceStarts = 0; traceFailures = 0; traceCompletions = 0;
+    traceStarts = 0; traceFailures = 0; traceCompletions = 0; metadataFailure = false; failureDetails = {};
     config = new FigsharePublishing(); config.enabled = true;
     config.processing = { ...config.processing!, enabled: true, serviceUsername: 'service', serviceUserType: 'local' };
     config.connection.baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -202,7 +206,7 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
         setRecordFields: async (oid: string, fields: Record<string, unknown>, version: number) => ({ updated: (await records.updateOne({ redboxOid: oid, recordVersion: version }, { $set: fields, $inc: { recordVersion: 1 } })).matchedCount === 1 }) },
       IntegrationAuditService: {
         startAudit: () => { traceStarts++; return { traceId: `trace-${traceStarts}`, spanId: 'span', startedAt: new Date().toISOString() }; },
-        completeAudit: () => { traceCompletions++; }, failAudit: () => { traceFailures++; }
+        completeAudit: () => { traceCompletions++; }, failAudit: (_ctx: unknown, _error: unknown, details: Record<string, any>) => { traceFailures++; failureDetails = details; }
       },
       FigshareSync: { getDatastore: () => ({ manager: db }) }
     });
@@ -740,6 +744,22 @@ mongoDescribe('Figshare durable worker against Mongo and controlled HTTP', funct
     assert.equal(articles.length, 1); assert.equal(requests.filter(r => r.path.endsWith('/publish')).length, 1);
     assert.equal((await store.get('record-1')).binding.articleId, '51');
     await run(); assert.equal(articles.length, 1); assert.equal(traceStarts, 1); assert.equal(traceFailures, 0);
+  });
+  it('preserves category rejection diagnostics from the metadata request through the worker catch', async () => {
+    metadataFailure = true;
+    await run();
+    const state = await store.get('record-1');
+    assert.equal(state.status, 'failed');
+    assert.equal(state.error.category, 'http:404');
+    assert.equal(traceFailures, 1);
+    assert.equal(failureDetails.httpStatusCode, 404);
+    assert.match(failureDetails.errorDetail, /Not allowed to set category Other engineering in article/);
+    assert.equal(failureDetails.responseSummary.articleId, '51');
+    assert.equal(failureDetails.responseSummary.attempts, 1);
+    assert.deepEqual(failureDetails.responseSummary.error, {
+      code: 'EntityNotFound', message: 'Entity not found: Not allowed to set category Other engineering in article.',
+      method: 'put', endpoint: '/account/articles/51',
+    });
   });
   it('recovers an article hidden behind HTTP 400, retains failure, and updates it after correction', async () => {
     createFailure = 400; await run();
