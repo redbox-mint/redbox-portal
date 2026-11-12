@@ -159,6 +159,8 @@ const DEFAULT_FORMS: readonly RecordSchemaRolloutEvidenceForm[] = Object.freeze(
     'dataRecord-1.0-draft',
     'default-1.0-draft',
     'existing-locations-1.0-draft',
+    'related-activity-1.0-draft',
+    'related-plan-1.0-draft',
   ].map(id =>
     Object.freeze({
       id: `dev-hook/${id}`,
