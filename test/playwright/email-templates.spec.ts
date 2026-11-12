@@ -617,6 +617,7 @@ test.describe('stage 4 email editor regressions', () => {
     await page.unroute('**/app/email-templates/context-schema?**');
     page.on('dialog', dialog => dialog.accept());
     await page.reload();
+    await page.locator('#et-schema-type').selectOption('rdmp');
     await expect(page.locator('#et-schema-status')).toContainText('Field list from the rdmp form config');
     await page.locator('.et-help summary').click();
     await shot(page, '11-form-config-precision', page.locator('email-templates-schema-target'));

@@ -65,7 +65,7 @@
           @for (q of queries; track trackByName($index, q)) {
             <tr [class.nq-selected]="selectedName === q.name">
               <td>
-                <button type="button" class="rb-admin-list-name" (click)="open(q.name)">
+                <button type="button" class="rb-admin-list-name" [attr.data-query-name]="q.name" (click)="open(q.name)">
                   <code class="rb-admin-code-wrap">{{ q.name }}</code>
                 </button>
               </td>

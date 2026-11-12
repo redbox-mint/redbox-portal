@@ -70,3 +70,42 @@ test('missing and extra occurrences fail, and unrelated context routes still run
   await assert.rejects(missing.waitForCapture(), /Timed out waiting/);
   await assert.rejects(missing.dispose(), /matched 0 requests/);
 });
+
+test('delayed configuration uses the HTTP fallback without removing the page CSRF token', { timeout: 15000 }, async t => {
+  const { useHttpConfigurationFallback } = require('../playwright/helpers/configuration-fallback.ts');
+  const server = http.createServer((req, res) => {
+    if (req.url === '/dynamic/apiClientConfig') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ title: 'Ready from configuration' }));
+    } else {
+      res.writeHead(200, { 'content-type': 'text/html', 'x-fixture-version': 'original' });
+      res.end(`<meta name="rb-client-config" content='{"title":"Ready from configuration"}'>
+        <meta name="rb-csrf-token" content="fixture-token"><div id="result">Loading</div>
+        <script>
+          const snapshot = document.querySelector('meta[name="rb-client-config"]');
+          const configuration = snapshot ? Promise.resolve(JSON.parse(snapshot.content))
+            : fetch('/dynamic/apiClientConfig').then(response => response.json());
+          configuration.then(value => document.querySelector('#result').textContent = value.title);
+        </script>`);
+    }
+  });
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const browser = await chromium.launch(); t.after(() => browser.close());
+  const page = await browser.newPage();
+  const restore = await useHttpConfigurationFallback(page);
+  const gate = new ResponseGate(page, { url: '/dynamic/apiClientConfig', timeoutMs: 3000 });
+  await gate.install();
+  try {
+    const response = await page.goto(`http://127.0.0.1:${server.address().port}`);
+    assert.equal(response.headers()['x-fixture-version'], 'original');
+    await gate.waitForCapture();
+    assert.equal(await page.locator('#result').textContent(), 'Loading');
+    assert.equal(await page.locator('meta[name="rb-csrf-token"]').getAttribute('content'), 'fixture-token');
+    await gate.release();
+    await page.waitForFunction(() => document.querySelector('#result').textContent === 'Ready from configuration');
+  } finally { await gate.dispose(); await restore(); }
+  await page.goto(`http://127.0.0.1:${server.address().port}`);
+  assert.equal(await page.locator('meta[name="rb-client-config"]').count(), 1);
+  await page.waitForFunction(() => document.querySelector('#result').textContent === 'Ready from configuration');
+});

@@ -37,7 +37,7 @@ test('A02 selects dates and record type and downloads real JSON and CSV exports'
   await app.getByLabel('Record type', { exact: true }).selectOption(type);
   for (const format of ['json', 'csv'] as const) {
     await app.locator(`label[for="format-${format}"]`).click();
-    await expect(app.getByLabel(format.toUpperCase(), { exact: true })).toBeChecked();
+    await expect(app.locator(`#format-${format}`)).toBeChecked();
     let download: Download;
     if (format === 'json') {
       const pending = adminPage.waitForEvent('download');
@@ -63,7 +63,7 @@ test('A02 selects dates and record type and downloads real JSON and CSV exports'
       expect(job.recordType).toBe(type);
       expect(job.modifiedAfter).toContain('2019-12-31T14:00:00');
       expect(job.modifiedBefore).toContain('2099-12-31T13:59:59');
-      const link = app.getByRole('link', { name: 'Download CSV', exact: true })
+      const link = app.getByRole('link', { name: 'Download', exact: true })
         .and(app.locator(`a[href$="/export/jobs/${job.id}/download"]`));
       await expect(link).toBeVisible();
       const pending = adminPage.waitForEvent('download');
@@ -93,14 +93,14 @@ test('A04 filters a real report to owned records, changes its result set and dow
   const second = await records.create('rdmp', { title: `${prefix} Beta` });
   await adminPage.goto('/default/rdmp/admin/report/rdmpRecords');
   const app = adminPage.locator('report');
-  const titleFilter = app.getByLabel('Filter by title', { exact: true });
+  const titleFilter = app.getByRole('textbox', { name: 'Title contains', exact: true });
   await titleFilter.fill(prefix);
-  await app.locator('a.btn').filter({ hasText: /^\s*Filter\s*$/ }).click();
+  await titleFilter.press('Enter');
   const table = app.locator('record-table');
   await expect(table.getByRole('link', { name: first.metadata.title as string, exact: true })).toHaveAttribute('href', new RegExp(`/record/view/${first.oid}$`));
   await expect(table.getByRole('link', { name: second.metadata.title as string, exact: true })).toBeVisible();
   await titleFilter.fill(`${prefix} Alpha`);
-  await app.locator('a.btn').filter({ hasText: /^\s*Filter\s*$/ }).click();
+  await titleFilter.press('Enter');
   await expect(table.getByRole('link', { name: second.metadata.title as string, exact: true })).toHaveCount(0);
   await expect(table.getByRole('link', { name: first.metadata.title as string, exact: true })).toBeVisible();
   const pending = adminPage.waitForEvent('download');
@@ -114,7 +114,7 @@ test('A04 filters a real report to owned records, changes its result set and dow
   expect(csv).toContain(`${prefix} Alpha`);
   expect(csv).not.toContain(`${prefix} Beta`);
   await titleFilter.fill(`${prefix} no match`);
-  await app.locator('a.btn').filter({ hasText: /^\s*Filter\s*$/ }).click();
+  await titleFilter.press('Enter');
   await expect(table.locator('tbody tr')).toHaveCount(0);
 });
 
@@ -126,24 +126,19 @@ test('A05 creates a report with filters and columns, previews real data, reopens
   await adminPage.goto('/default/rdmp/admin/reports');
   const app = adminPage.locator('report-config');
   await app.getByRole('button', { name: /Create report/i }).click();
-  const modal = app.getByRole('dialog');
+  const modal = app.locator('.report-workspace');
   await modal.locator('#report-name').fill(name);
   await modal.locator('#report-title').fill(name);
   await modal.locator('#report-named-query').selectOption('listRDMPRecords');
   await modal.getByRole('button', { name: /Add filter/i }).click();
-  const filters = modal.locator('fieldset').filter({ has: adminPage.locator('legend', { hasText: /^Filters$/ }) });
-  const filterInputs = filters.locator('tbody input');
-  await filterInputs.nth(0).fill('title');
-  await filterInputs.nth(1).fill('title');
-  await filterInputs.nth(2).fill('Owned title');
+  await modal.locator('#filter-param-0').fill('title');
+  await modal.locator('#filter-label-0').fill('Owned title');
   await modal.getByRole('button', { name: /Add column/i }).click();
-  const columns = modal.locator('fieldset').filter({ has: adminPage.locator('legend', { hasText: /^Columns$/ }) });
-  await columns.locator('tbody input').nth(0).fill('Title');
-  await columns.locator('tbody input').nth(1).fill('title');
-  const previewFilters = modal.locator('fieldset').filter({ has: adminPage.locator('legend', { hasText: /Preview filters/i }) });
-  await previewFilters.getByRole('textbox').fill(title);
+  await modal.locator('#column-label-0').fill('Title');
+  await modal.locator('#column-property-0').fill('title');
+  await modal.locator('#preview-text-0').fill(title);
   await modal.getByRole('button', { name: /Preview$/ }).click();
-  await expect(modal.locator('.alert-info')).toContainText(/1/);
+  await expect(modal.locator('.report-preview-count')).toContainText(/1/);
   const pending = adminPage.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/admin/report-config'));
   await modal.getByRole('button', { name: /Save/i }).click();
   const created = await pending;
@@ -157,8 +152,8 @@ test('A05 creates a report with filters and columns, previews real data, reopens
   const row = app.getByRole('row').filter({ hasText: name });
   await row.getByRole('button', { name: /Edit/i }).click();
   await expect(modal.locator('#report-name')).toBeDisabled();
-  await expect(filterInputs.nth(2)).toHaveValue('Owned title');
-  await expect(columns.locator('tbody input').nth(1)).toHaveValue('title');
+  await expect(modal.locator('#filter-label-0')).toHaveValue('Owned title');
+  await expect(modal.locator('#column-property-0')).toHaveValue('title');
   await modal.locator('#report-title').fill(`${name} edited`);
   await modal.getByRole('button', { name: /Save/i }).click();
   await expect(modal).toHaveCount(0);

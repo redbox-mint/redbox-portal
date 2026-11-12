@@ -66,8 +66,7 @@ test('A16 runs a tracked harvest, filters its source and inspects its chunk, eve
   await adminPage.goto('/default/rdmp/admin/harvest-runs');
   const app = adminPage.locator('harvest-runs');
   await app.getByRole('textbox', { name: 'Source', exact: true }).fill(source);
-  await app.locator('form').filter({ has: adminPage.getByRole('textbox', { name: 'Source', exact: true }) })
-    .getByRole('button', { name: 'Apply filters', exact: true }).click();
+  await app.getByRole('textbox', { name: 'Source', exact: true }).press('Enter');
   const run = app.locator('table.hr-table--runs tbody tr').filter({ hasText: source });
   await expect(run).toHaveCount(1);
   await run.click();

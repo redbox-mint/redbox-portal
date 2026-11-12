@@ -84,6 +84,11 @@
   padding: 8px;
 }
 
+// Keep absolutely positioned accessible labels inside the scrolling table.
+.nq-subeditor .table-responsive {
+  position: relative;
+}
+
 // Add rows keep their controls top-aligned so an open field picker below the
 // path input does not stretch the neighbouring controls.
 .nq-add-row {

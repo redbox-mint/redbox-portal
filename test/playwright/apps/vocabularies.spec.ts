@@ -8,7 +8,7 @@ test('A08 creates and edits a local vocabulary, imports an RVA tree and confirms
   const name = resources.name('A08', 'local');
   await adminPage.goto('/default/rdmp/admin/vocabulary/manager');
   const app = adminPage.locator('admin-vocabulary');
-  await app.getByRole('button', { name: /Create.*vocabulary/i }).click();
+  await app.getByRole('button', { name: 'Add vocabulary', exact: true }).click();
   const modal = app.getByRole('dialog');
   await modal.locator('#vocab-name').fill(name);
   await modal.locator('#vocab-slug').fill(name);
@@ -37,9 +37,11 @@ test('A08 creates and edits a local vocabulary, imports an RVA tree and confirms
   await row.getByRole('button', { name: /Edit/i }).click();
   await expect(modal.locator('tbody input').nth(0)).toHaveValue('Coastal systems');
   await modal.getByRole('button', { name: /Cancel/i }).click();
+  await row.locator('summary').click();
   await row.getByRole('button', { name: /Delete/i }).click();
   await app.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(row).toHaveCount(1);
+  await row.locator('summary').click();
   await row.getByRole('button', { name: /Delete/i }).click();
   await app.getByRole('alertdialog').getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(row).toHaveCount(0);
@@ -64,7 +66,9 @@ test('A08 creates and edits a local vocabulary, imports an RVA tree and confirms
   expect((await stubs.requests()).filter(request => request.path === `/rva/api/resource/vocabularies/${rvaId}`)).toHaveLength(1);
   await adminPage.reload();
   await app.getByRole('searchbox').fill(importedName);
-  await app.getByRole('row').filter({ hasText: importedName }).getByRole('button', { name: /Edit/i }).click();
+  const importedRow = app.getByRole('row').filter({ hasText: importedName });
+  await importedRow.locator('summary').click();
+  await importedRow.getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(modal.locator('#vocab-source')).toHaveValue('rva');
   await expect(modal.locator('#vocab-type')).toHaveValue('tree');
   await expect(modal.locator('tbody tr')).toHaveCount(2);
@@ -142,7 +146,7 @@ test('A09 recovers catalogue failure, previews and applies a crosswalk, edits ma
   } });
   expect(appliedResponse.ok()).toBeTruthy();
   expect(result).toMatchObject({ state: 'applied', categories: { created: 2 }, mappings: { created: 2 } });
-  await app.getByRole('tab', { name: 'Crosswalks', exact: true }).click();
+  await app.getByRole('tab', { name: /^Crosswalks \d+$/ }).click();
   const row = app.getByRole('row').filter({ hasText: name });
   await row.getByRole('button', { name: /Manage/i }).click();
   const editor = app.locator('figshare-crosswalk-editor');
@@ -153,7 +157,7 @@ test('A09 recovers catalogue failure, previews and applies a crosswalk, edits ma
   await editor.getByRole('alertdialog').getByRole('button', { name: 'Approve', exact: true }).click();
   await expect(editor.getByRole('status')).toContainText(/approved/i);
   await adminPage.reload();
-  await app.getByRole('tab', { name: 'Crosswalks', exact: true }).click();
+  await app.getByRole('tab', { name: /^Crosswalks \d+$/ }).click();
   await row.getByRole('button', { name: /Manage/i }).click();
   await expect(editor.locator('tbody tr')).toHaveCount(1);
   await expect(editor.locator('tbody')).toContainText('Forest ecology');

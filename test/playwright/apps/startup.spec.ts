@@ -1,5 +1,6 @@
 import { expect, test } from '../fixtures/test';
 import { ResponseGate } from '../helpers/response-gate';
+import { useHttpConfigurationFallback } from '../helpers/configuration-fallback';
 import { applicationManifest } from '../coverage/applications';
 import { routeForEntry } from './_routes';
 
@@ -53,6 +54,7 @@ async function assertDelayedStartup(
   selectors: string[],
   id: string
 ): Promise<void> {
+  const restoreSnapshot = await useHttpConfigurationFallback(page);
   const gate = new ResponseGate(page, { url: dependency, method: 'GET' });
   await gate.install();
   try {
@@ -65,7 +67,7 @@ async function assertDelayedStartup(
     for (const selector of selectors) await expect(page.locator(`${selector}:visible`).first()).toBeVisible();
     await assertZonelessAngular(page);
   } finally {
-    await gate.dispose();
+    try { await gate.dispose(); } finally { await restoreSnapshot(); }
   }
 }
 

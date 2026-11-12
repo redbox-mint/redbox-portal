@@ -14,12 +14,12 @@ test('A14 saves a system message, shows its effect and restores the original val
   await adminPage.goto('/default/rdmp/admin/appconfig/edit/systemMessage');
   const app = adminPage.locator('app-config');
   await app.locator('#config-enabled').check();
-  await app.getByRole('textbox', { name: 'Message Title', exact: true }).fill(title);
-  await app.getByRole('textbox', { name: 'Message Body', exact: true }).fill('Owned regression announcement');
+  await app.getByRole('textbox', { name: /^Message title$/i }).fill(title);
+  await app.getByRole('textbox', { name: /^Message body$/i }).fill('Owned regression announcement');
   await app.locator('.rb-admin-save-bar button[type=submit]').click();
   await expect(app).toContainText('Configuration saved successfully');
   await adminPage.reload();
-  await expect(app.getByRole('textbox', { name: 'Message Title', exact: true })).toHaveValue(title);
+  await expect(app.getByRole('textbox', { name: /^Message title$/i })).toHaveValue(title);
   await adminPage.goto('/default/rdmp/researcher/home');
   await expect(adminPage.getByText(title, { exact: true })).toBeVisible();
   await expect(adminPage.getByText('Owned regression announcement', { exact: true })).toBeVisible();
@@ -103,9 +103,9 @@ test('A17 edits and previews a saved branding draft, reopens it and restores the
   await headerGroup.click();
   const colour = app.locator(`#${key}-hex`);
   await colour.fill(value);
-  await app.getByRole('button', { name: /Save Draft/ }).click();
+  await app.getByRole('button', { name: /Save draft/i }).click();
   await expect(app.locator('.alert-success')).toContainText(/draft.*saved/i);
-  await app.getByRole('button', { name: /Generate Preview/ }).click();
+  await app.getByRole('button', { name: /Generate preview/i }).click();
   const preview = app.locator('branding-preview');
   await expect(preview.locator('.header-area')).toHaveCSS('background-color', value === '#123456' ? 'rgb(18, 52, 86)' : 'rgb(101, 67, 33)');
   await adminPage.reload();

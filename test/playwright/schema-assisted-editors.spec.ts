@@ -329,12 +329,12 @@ test.describe('schema-assisted editor release workflows', () => {
     try {
       await page.locator('.nq-workspace-actions').getByRole('button', { name: 'Save', exact: true }).click();
       await expect(page.locator('.nq-workspace')).toHaveCount(0);
-      await page.getByRole('link', { name, exact: true }).click();
+      await page.getByRole('button', { name, exact: true }).click();
       await expect(page.locator('#nq-collection')).toHaveValue('user');
       await page.getByRole('tab', { name: /Result Mappings/i }).click();
       await expect(page.locator('result-mapping-editor tbody textarea')).toHaveValue('{{record.username}} custom');
       await page.locator('.nq-workspace-actions').getByRole('button', { name: 'Cancel', exact: true }).click();
-      await expect(page.locator(`[data-query-name="${name}"]`)).toBeFocused();
+      await expect(page.getByRole('button', { name, exact: true })).toBeFocused();
     } finally {
       page.on('dialog', dialog => dialog.accept());
       await page.goto('/default/rdmp/admin');
