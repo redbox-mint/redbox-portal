@@ -103,3 +103,32 @@ test('only the locally stubbed ReDoc logo URL is a recognized external image', a
   other.original.emit('request', { url: () => 'https://cdn.redoc.ly/unrecognized.svg', method: () => 'GET' });
   await assert.rejects(other.diagnostics.flush(), /unexpected external-request/);
 });
+
+test('the ReDoc image fixture works in a browser runner without application assets', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { installExternalAssetStubs, redocLogoUrl } = require('../playwright/fixtures/stubs.ts');
+  const browser = await chromium.launch();
+  const previousDirectory = process.cwd();
+  const runnerDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'playwright-assets-'));
+  try {
+    const browserContext = await browser.newContext();
+    let fixtureError;
+    await installExternalAssetStubs({ route: (pattern, handler) => browserContext.route(pattern, async route => {
+      try { await handler(route); }
+      catch (error) { fixtureError = error; await route.abort(); }
+    }) });
+    process.chdir(runnerDirectory);
+    const page = await browserContext.newPage();
+    const response = await page.goto(redocLogoUrl).catch(() => null);
+    assert.equal(fixtureError, undefined);
+    assert.equal(response?.status(), 200);
+    assert.match(response.headers()['content-type'], /image\/svg\+xml/);
+    assert.match(await response.text(), /<svg\b/);
+  } finally {
+    process.chdir(previousDirectory);
+    await browser.close();
+    fs.rmSync(runnerDirectory, { recursive: true, force: true });
+  }
+});

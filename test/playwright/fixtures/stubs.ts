@@ -43,7 +43,10 @@ export const redocLogoUrl = 'https://cdn.redoc.ly/redoc/logo-mini-full.svg';
 export const stubbedExternalAssetUrls = new Set([...fontStylesheetUrls, redocLogoUrl]);
 
 export async function installExternalAssetStubs(context: BrowserContext): Promise<void> {
-  await context.route(redocLogoUrl, route => route.fulfill({ path: 'assets/images/logo.svg', contentType: 'image/svg+xml' }));
+  await context.route(redocLogoUrl, route => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#646cff"/></svg>',
+  }));
   await context.route(url => fontStylesheetUrls.has(url.href), async route => {
     const base = process.env.PLAYWRIGHT_STUB_URL ?? 'http://playwright-stubs:8787';
     const response = await context.request.get(`${base}/fonts/css`, {
