@@ -11,11 +11,11 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FormComponentEvent } from '../events/form-component-event.types';
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from '../apply-expression-target';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
-import { BehaviourFieldResolverContext, ResolvedField, resolveFieldByPointer } from './behaviour-field-resolver';
+import { BehaviourFieldResolverContext, ResolvedField, resolveComponentByPointer, resolveFieldByPointer } from './behaviour-field-resolver';
 
 /**
  * Dependencies shared by action execution.
@@ -128,7 +128,9 @@ async function executeSetValueEntry(
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
   if (ctx.isActive?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
-  resolved.control.markAsDirty();
+  if (!ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
+    resolved.control.markAsDirty();
+  }
   ctx.broadcastFormStatus?.();
 }
 
@@ -171,6 +173,7 @@ async function executeEmitEventAction(
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,
+      ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     })
   );
@@ -283,7 +286,8 @@ async function applyRunTemplateInstructions(
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
     if (ctx.isActive?.() === false) return;
     if (target === FormExpressionsTargetModelValue) {
-      host.model?.formControl?.markAsDirty();
+      const control = host.model?.formControl;
+      if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
     }
   }
 }
@@ -356,12 +360,20 @@ async function applySingleUIProperty(
   let host: ExpressionTargetHost = {};
   if (entry.target !== FormExpressionsTargetValidationGroups) {
     const fieldPathKind = fieldPathConfig.fieldPathKind ?? FieldPathKind.ComponentJsonPointer;
-    const resolved =
-      fieldPathKind === FieldPathKind.Logical
-        ? resolveLogicalField(ctx, logicalEntryIndex)
-        : await resolveDynamicField(fieldPathConfig, fieldPathKeyPath, pipelineContext, ctx, fieldPathKind);
+    // UI-only targets do not require a FormControl. In particular Save and
+    // Delete buttons have no model but still need workflow/context guards.
+    let fieldPath = fieldPathConfig.fieldPath;
+    if (fieldPathKind === FieldPathKind.JSONata && fieldPathConfig.hasFieldPathTemplate && ctx.compiledTemplateEvaluator) {
+      const evaluated = await ctx.compiledTemplateEvaluator.evaluate(
+        ctx.behaviourIndex, [ctx.listName, ctx.actionIndex, ...fieldPathKeyPath, 'fieldPath'], pipelineContext);
+      fieldPath = typeof evaluated === 'string' ? evaluated : undefined;
+    }
+    const lockedEntry = fieldPathKind === FieldPathKind.Logical
+      ? ctx.getLogicalFieldEntry(ctx.listName, ctx.actionIndex, logicalEntryIndex) : undefined;
+    if (fieldPathKind === FieldPathKind.Logical) fieldPath = lockedEntry?.lineagePaths?.angularComponentsJsonPointer;
+    const componentEntry = fieldPath ? resolveComponentByPointer(fieldPath, ctx.fieldResolverContext) : undefined;
     if (ctx.isActive?.() === false) return;
-    if (!resolved) {
+    if (!componentEntry) {
       ctx.logger.warn('Behaviour action setUIProperty: target field did not resolve.', {
         behaviourIndex: ctx.behaviourIndex,
         actionIndex: ctx.actionIndex,
@@ -371,7 +383,7 @@ async function applySingleUIProperty(
       });
       return;
     }
-    host = buildTargetHost(resolved.entry);
+    host = buildTargetHost(componentEntry);
   }
 
   const value = await resolveActionValue(entry, valueKeyPath, pipelineContext, ctx, { allowLiteralValue: true });
@@ -392,12 +404,14 @@ function buildTargetContext(
   ctx: BehaviourActionExecutionContext
 ): ApplyExpressionTargetContext {
   return {
+    isActive: ctx.isActive,
     eventBus: ctx.eventBus,
     logger: ctx.logger,
     broadcastFormStatus: ctx.broadcastFormStatus,
     eventFieldId: (pipelineContext.event as { fieldId?: string } | undefined)?.fieldId,
     cause: {
       behaviourChain: ctx.behaviourChain,
+      ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     },
   };

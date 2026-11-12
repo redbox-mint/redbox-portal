@@ -31,6 +31,8 @@ export * from './groups/export';
 export * from './groups/notifications';
 export * from './groups/named-query';
 
+export * from './groups/related-records';
+
 export * from './groups/deleted-records';
 
 export * from './groups/admin-users';

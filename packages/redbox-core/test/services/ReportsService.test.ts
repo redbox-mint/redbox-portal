@@ -516,7 +516,8 @@ describe('ReportsService', function () {
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
 
-      const result = await ReportsService.getResults(brand, 'report-1', req);
+      const result = await ReportsService.getResults(brand, 'report-1', req, 0, 10, { username: 'caller' });
+      expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[5]).to.deep.equal({ username: 'caller' });
 
       expect((global as any).NamedQueryService.performNamedQueryFromConfig.called).to.be.true;
       expect(result.total).to.equal(1);
@@ -597,7 +598,8 @@ describe('ReportsService', function () {
       };
       mockReport.findOne.returns(createQueryObject(reportModel));
 
-      const result = await ReportsService.getCSVResult(brand, 'report-1', req);
+      const result = await ReportsService.getCSVResult(brand, 'report-1', req, 0, 10, { username: 'caller' });
+      expect((global as any).NamedQueryService.performNamedQueryFromConfig.firstCall.args[5]).to.deep.equal({ username: 'caller' });
 
       expect(result).to.be.a('string');
       expect(result).to.include('Title,ID');

@@ -77,7 +77,10 @@ export type FormBehaviourJsonataTransformProcessorConfig =
     type: typeof FormBehaviourProcessorType.JSONataTransform;
   };
 
-export type FormBehaviourFetchMetadataProcessorConfig = FormBehaviourProcessorConfigFrame<Record<string, never>> & {
+export type FormBehaviourFetchMetadataProcessorConfig = FormBehaviourProcessorConfigFrame<{
+  /** Resolve current related display fields through the authorized consumer view. */
+  consumerView?: boolean;
+}> & {
   type: typeof FormBehaviourProcessorType.FetchMetadata;
 };
 

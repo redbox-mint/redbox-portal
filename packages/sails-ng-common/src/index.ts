@@ -1,4 +1,6 @@
 // top
+export type { RelatedDisplayDescriptor, RelatedReferenceDescriptor, RelatedSourceDescriptor, RelatedFormDescriptors, RelatedResolutionStatus, RelatedMetadataRecord, RelatedResolutionIssue, RelatedMetadataEntry, RelatedMetadata, RelatedMetadataSelection, RelatedMetadataRequest } from './related-records.model';
+
 export * from './record.model';
 export * from './record-concurrency.model';
 export * from './record-diff';
@@ -137,6 +139,9 @@ export * from './validation/validation-groups';
 export * from './validation/validators';
 export * from './validation/validators-support';
 export * from './translation-html';
+
+export * from './related-display-projection';
+export * from './related-reference-values';
 
 export * from './email-template-admin.model';
 

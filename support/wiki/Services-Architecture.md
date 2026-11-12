@@ -423,6 +423,129 @@ public getRecordWithRelated(oid: string): Observable<any> {
 }
 ```
 
+### Related-record consumers
+
+Use `RecordsService.resolveRelatedMetadata(candidate, context, request)` for a
+runtime map, `enrichWithRelatedMetadata(candidate, context, request)` for a detached
+record view, or `getMetaWithRelatedMetadata(oid, context, request)` for a fresh root
+read plus enrichment. These are Promise-returning opt-ins; `getMeta()` and other
+services are not globally hydrated. The read context must carry the actual brand
+and effective user; `audience: 'service'` additionally requires `serviceId` and
+grants no additional privileges. See [Configuring Related Records](Configuring-Related-Records.md)
+for declarations, safe statuses, budgets, adapter support and deployment inventory.
+
+The development hook exports runnable examples from
+`packages/redbox-hook-dev/src/config/related-record-examples.ts`:
+
+```typescript
+export const relatedPlanRequest = {
+  relations: [{ relationId: 'primaryActivity' }, { relationId: 'activities' }],
+};
+// Existing EmailService.sendRecordNotification hook options:
+options: {
+  triggerCondition: '<%= false %>',
+  relatedMetadata: relatedPlanRequest,
+  to: 'related-plan@example.invalid',
+  subject: 'Plan: {{record.metadata.title}} — {{record.relatedMetadata.primaryActivity.records.0.metadata.title}}',
+  template: 'relatedPlanExample',
+}
+```
+
+Email keeps its disabled early return. When enabled and opted in, it enriches once
+before evaluating the trigger condition, recipients, subject and body. Both
+`record` and `imports.record` use that same evaluation view; hook return and
+success mutation semantics still use the original record. Required failure
+prevents delivery; optional failure supplies status/empty records for templates
+to handle. The example's condition is always false, even with mail enabled.
+Clone options and mock delivery to exercise it safely.
+
+The example's DOI trigger is `sails.services.doiservice.publishDoiTrigger` with:
+
+```typescript
+options: {
+  triggerCondition: '<%= false %>',
+  profile: 'related-plan', event: 'draft',
+  relatedMetadata: relatedPlanRequest,
+}
+```
+
+Its v2 `related-plan` profile is also disabled. The profile maps a local title and
+current activity titles/dates using existing binding kinds:
+
+```typescript
+publicationYear: {
+  kind: 'jsonata',
+  expression: '$substring(record.relatedMetadata.primaryActivity.records[0].metadata.startDate, 0, 4)',
+},
+titles: [
+  { title: { kind: 'path', path: 'record.metadata.title' } },
+  { sourcePath: 'relatedMetadata.activities.records',
+    title: { kind: 'path', path: 'item.metadata.title' } },
+],
+dates: [{
+  sourcePath: 'relatedMetadata.activities.records',
+  date: { kind: 'path', path: 'item.metadata.startDate' },
+  dateType: { kind: 'handlebars', template: 'Other' },
+}],
+```
+
+V2 operation/trigger `relatedMetadata` requests resolve once against the supplied
+candidate before binding/HTTP, using an effective `user`. Related inputs work in
+path, Handlebars, JSONata and array mappings. Required failure prevents DataCite
+HTTP; optional failures need mapping/validation fallbacks. Unconfigured legacy DOI
+behavior remains; legacy use of the new related option is explicitly rejected.
+The original mutable record remains the writeback target for intended DOI and
+citation fields with normal persistence/CAS. `writeBack.extraFields` source paths
+rooted at `relatedMetadata` are rejected as `doi-configuration-error`: this is not
+a supported way to copy fresh inputs into canonical metadata. The example has
+`creators: []`, deliberately relaxed creator validation and `example.invalid`
+URLs; it is a mock-only illustration, not a production DataCite publication.
+
+For PDF, pass the exported options to the existing operation:
+
+```typescript
+const relatedPlanPdf = {
+  waitForRelatedData: true,
+  readinessTimeout: 60000,
+  readinessStrategy: 'networkIdle',
+};
+await PDFService.createPDF(oid, plan, relatedPlanPdf, user);
+```
+
+`waitForRelatedData` defaults false. When enabled it adds a wait **after** the
+ordinary readiness strategy, until every marked `redbox-form` has
+`data-rb-related-state="ready"`. Required-source `error` uses the existing PDF
+failure/retry path; a missing marker or unsettled state times out using
+`readinessTimeout`. Optional failures may render the configured empty/error
+presentation and settle ready. Configure the existing authenticated PDF/token
+setup and check the page principal can read sources. This is an operation example,
+not a globally registered PDF hook; enabling it globally can break legacy pages
+without a marker.
+
+Validation operations can declare `relatedMetadata: relatedPlanRequest` in their
+existing operation policy (`FormConfig.validationOperations`). Resolution uses the
+transformed candidate's references and effective read authority. Custom validators
+receive a detached frozen `context.relatedMetadata`; JSONata validators receive
+`$relatedMetadata`. Existing `record`/`metadata` meanings stay unchanged and the
+runtime map is not attached to `transformedCandidate`. Selected related validation
+must complete even in shadow mode; required resolution failure blocks dependent
+validation rather than skipping legacy rules. Operation groups/roles and normal
+validation authorization continue to apply.
+
+`relatedPlansByActivityDate` demonstrates `relatedRecordFilters` with
+`rootRecordType: 'related-plan'`, `relationId: 'activities'` and `match: 'any'`.
+It filters source ISO dates before authorized root count/pagination and sorts by
+stored plan title. It has a separate 1,000-source materialization limit. Other
+exports/jobs/dashboards must explicitly use helpers or remain on a documented
+copy-based migration path.
+
+These integrations do not make post-save effects transactional. A required-source
+failure prevents the dependent mail/DOI call, but a root saved before a failing
+post hook remains committed under existing partial-commit semantics. Inspect
+results before retries. No automatic source-change hooks are installed. Follow
+the [activation and rollback checklist](Configuring-Related-Records.md#activation-consumer-inventory-and-deployment-migration)
+before retiring a deployment-specific copy writer.
+
 ### Waterline Model Access
 
 Services access Waterline models via globals:
@@ -539,7 +662,7 @@ cat api/services/RecordsService.js
 
 ## See Also
 
-- [Redbox Core Types](redbox-core) - Package documentation and service list
+- [Redbox Core Types](Redbox-Core-Types.md) - Package documentation and service list
 - [Redbox Loader](Redbox-Loader) - Shim generation system
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Hook development guide
 - [Architecture Overview](Architecture-Overview) - System architecture

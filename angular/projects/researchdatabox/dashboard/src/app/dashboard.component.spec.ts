@@ -164,6 +164,27 @@ describe('DashboardComponent', () => {
       expect(component.partyPageEnd('draft')).toBe(50);
     });
 
+    it('submits typed dashboard search text through the native input binding', async () => {
+      const fixture = TestBed.createComponent(DashboardComponent);
+      const component = fixture.componentInstance;
+      component.recordType = 'rdmp';
+      component.dashboardTypeSelected = 'standard';
+      (TestBed.inject(UserService) as any).getInfo = jasmine.createSpy().and.resolveTo({});
+      fixture.detectChanges();
+      await component.waitForInit();
+      fixture.detectChanges(); await fixture.whenStable();
+      const input = fixture.nativeElement.querySelector('input[type="text"]') as HTMLInputElement;
+      input.value = 'Alpha project';
+      input.dispatchEvent(new Event('input'));
+      await fixture.whenStable(); fixture.detectChanges();
+      expect(component.filterSearchString['draft']).toBe('Alpha project');
+      expect((input.nextElementSibling as HTMLButtonElement).disabled).toBeFalse();
+      const filter = spyOn(component, 'filterChanged');
+      input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' }));
+      expect(filter).toHaveBeenCalledWith('draft');
+      fixture.destroy();
+    });
+
     it('binds each real paginator to its target page size', async () => {
       const snapshot = await recordService.getDashboardSettings();
       snapshot.targets.draft.settings.rowsPerPage = 25;

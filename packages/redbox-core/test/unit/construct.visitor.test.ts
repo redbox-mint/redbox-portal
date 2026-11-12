@@ -45,6 +45,21 @@ async function expectRejects(errorFunc: () => Promise<unknown>, message?: string
 }
 
 describe('Construct Visitor', async () => {
+  it('strips authored related-view markers from legacy fields and reusable definitions', async () => {
+    const field: any = { name: 'field', model: { class: 'SimpleInputModel' },
+      component: { class: 'SimpleInputComponent', config: { readonly: true, disabled: true, relatedViewPreserved: true } },
+      overrides: { formModeClasses: { view: { component: 'SimpleInputComponent' } } } };
+    const reusable: any = { shared: [field] };
+    for (const componentDefinitions of [[field], [{ name: 'shared', component: { class: 'ReusableComponent' },
+      overrides: { reusableFormName: 'shared' } }]]) {
+      const visitor = new ConstructFormConfigVisitor(consoleLogger);
+      const result: any = await visitor.start({ data: { name: 'legacy', componentDefinitions } as any,
+        reusableFormDefs: reusable, formMode: 'view' });
+      expect(result.componentDefinitions[0].component.config.relatedViewPreserved).not.to.equal(true);
+    }
+    expect(field.component.config.relatedViewPreserved).to.equal(true);
+  });
+
   for (const className of [
     'CheckboxInputComponent',
     'RadioInputComponent',
@@ -2624,5 +2639,30 @@ describe('Construct Visitor', async () => {
         template: 'event.value.contributor_ci',
       });
     });
+  });
+});
+
+describe('related-record construction contracts', () => {
+  it('preserves relatedDisplay through reusable expansion and view transforms', async () => {
+    const data: FormConfigFrame = { name: 'related-plan', componentDefinitions: [{ name: 'wrapper',
+      component: { class: 'ReusableComponent', config: { componentDefinitions: [] } }, overrides: { reusableFormName: 'title' } }] };
+    const reusableFormDefs: ReusableFormDefinitions = { title: [{ name: 'title', relatedDisplay: { relationId: 'activities' },
+      component: { class: 'SimpleInputComponent' } }] };
+    const visitor = new ConstructFormConfigVisitor(consoleLogger);
+    const result = await visitor.start({ data, reusableFormDefs, formMode: 'view' });
+    expect(result.componentDefinitions[0].component.class).to.equal('ContentComponent');
+    expect(result.componentDefinitions[0].relatedDisplay).to.deep.equal({ relationId: 'activities' });
+  });
+
+  it('carries new source selection flags without introducing legacy reference defaults', async () => {
+    const visitor = new ConstructFormConfigVisitor(consoleLogger);
+    const result = await visitor.start({ data: { name: 'related-plan', componentDefinitions: [{ name: 'source',
+      component: { class: 'RelatedObjectDataComponent', config: { relationId: 'activities', required: true } } }] }, formMode: 'edit' });
+    const config = result.componentDefinitions[0].component.config as any;
+    expect(config.relationId).to.equal('activities');
+    expect(config.required).to.equal(true);
+    expect(config.oidProperty).to.equal(undefined);
+    expect(config.relatedFields).to.equal(undefined);
+    expect(result).not.to.have.property('relatedRecords');
   });
 });

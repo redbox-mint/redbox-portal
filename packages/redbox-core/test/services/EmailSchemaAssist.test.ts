@@ -175,6 +175,7 @@ describe('Email schema assistance', () => {
         undefined,
         caller,
         false,
+        true,
         { hydrateVocabulary: false },
       ]);
       if (reason === 'disabled') assert.equal(describe.callCount, 0);

@@ -164,6 +164,34 @@ describe('NamedQueryService', function() {
       expect(createStub.called).to.be.false;
     });
 
+    it('keeps file seeds ahead of config seeds with the same name', async function() {
+      const file = { collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+      mockSails.config.namedQuery.queries = { same: { ...file, collectionName: 'user' } };
+      stubFileOps({ readdir: sinon.stub().resolves([{ name: 'same.json', isFile: () => true }]), readFile: sinon.stub().resolves(JSON.stringify(file)) });
+      mockNamedQuery.findOne.onFirstCall().resolves(null);
+      mockNamedQuery.findOne.onSecondCall().resolves({ key: 'brand-1_same' });
+      const create = sinon.stub(NamedQueryService, 'create').resolves({});
+      await NamedQueryService.bootstrapData({ id: 'brand-1' });
+      expect(create.calledOnce).to.be.true;
+      expect(create.firstCall.args[2]).to.deep.equal(file);
+    });
+
+    it('loads config seeds even without a file directory and preserves existing entries', async function() {
+      mockSails.config.namedQuery = { queries: {
+        fresh: { collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
+        edited: { collectionName: 'record' },
+        invalid: {}
+      } };
+      stubFileOps({ readdir: sinon.stub().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' })), readFile: sinon.stub() });
+      mockNamedQuery.findOne.resolves(null);
+      mockNamedQuery.findOne.withArgs({ key: 'brand-1_edited' }).resolves({ id: 'existing' });
+      const create = sinon.stub(NamedQueryService, 'create').resolves({});
+      await NamedQueryService.bootstrapData({ id: 'brand-1' });
+      expect(create.calledOnce).to.be.true;
+      expect(create.firstCall.args[1]).to.equal('fresh');
+      expect(mockSails.log.error.called).to.be.true;
+    });
+
     it('should be a no-op when the bootstrap data directory is missing', async function() {
       const defBrand = { id: 'brand-1' };
       const enoent = Object.assign(new Error('not found'), { code: 'ENOENT' });
@@ -542,6 +570,46 @@ describe('NamedQueryService', function() {
   });
 
   describe('performNamedQuery', function() {
+    const declaredRelationQuery = () => {
+      mockRecordsService.getRecordTypeSummary = sinon.stub().resolves({ relatedTo: [{
+        id: 'activities', recordType: 'activity', localField: 'metadata.activityOid',
+        foreignField: 'redboxOid', cardinality: 'one', direction: 'outbound',
+      }] });
+      return NamedQueryService.performNamedQueryFromConfig({
+        collectionName: 'record', mongoQuery: {}, resultObjectMapping: {},
+        relatedRecordFilters: [{ rootRecordType: 'rdmp', relationId: 'activities',
+          mongoQuery: { 'metadata.active': true } }],
+      }, {}, { id: 'brand-1' }, 0, 10, { username: 'reader', roles: [] });
+    };
+
+    it('bounds declared relation source lookup execution as well as result count', async function() {
+      mockRecordNativeCollection.cursor.toArray.resolves([{ redboxOid: 'activity-1' }]);
+
+      await declaredRelationQuery();
+
+      expect(mockRecordNativeCollection.find.firstCall.args[1]).to.deep.equal({ maxTimeMS: 10_000 });
+      expect(mockRecordNativeCollection.cursor.limit.calledOnceWithExactly(1001)).to.equal(true);
+      expect(mockRecordNativeCollection.countDocuments.calledOnce).to.equal(true);
+    });
+
+    it('stops before root count or paging when declared relation source lookup times out', async function() {
+      const timeout = Object.assign(new Error('operation exceeded time limit'), { code: 50, codeName: 'MaxTimeMSExpired' });
+      mockRecordNativeCollection.cursor.toArray.rejects(timeout);
+
+      let failure: unknown;
+      try {
+        await declaredRelationQuery();
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.equal(timeout);
+      expect(mockRecordNativeCollection.find.firstCall.args[1]).to.deep.equal({ maxTimeMS: 10_000 });
+      expect(mockRecordNativeCollection.find.calledOnce).to.equal(true);
+      expect(mockRecordNativeCollection.countDocuments.notCalled).to.equal(true);
+      expect(mockRecordNativeCollection.cursor.skip.notCalled).to.equal(true);
+    });
+
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
@@ -1063,6 +1131,64 @@ describe('NamedQueryService', function() {
       });
 
       expect(mongoQuery.constraints).to.deep.equal({ status: 'active', limit: 5 });
+    });
+
+    it('should reject operator objects supplied directly for non-object parameters', function() {
+      const queryParams = { 'title': { path: 'metadata.title', type: 'string' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { title: { $ne: 'x' } }))
+        .to.throw('title must be a literal value of the declared type');
+      const untyped = { 'title': { path: 'metadata.title' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, untyped, { title: { $regex: '.*' } }))
+        .to.throw('title must be a literal value of the declared type');
+      const dated = { 'from': { path: 'lastSaveDate', type: 'date', queryType: '>=' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, dated, { from: { $where: 'sleep(1)' } }))
+        .to.throw('from must be a literal value of the declared type');
+    });
+
+    it('should reject template-selected operators from undeclared request parameters', function() {
+      const mongoQuery: any = { 'metaMetadata.type': 'activity', 'metadata.active': null };
+      const queryParams = { 'flag': { path: 'metadata.active', type: 'string', template: 'paramMap.payload' } };
+      expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { flag: 'unused', payload: { $ne: true } }))
+        .to.throw('flag must be a literal value of the declared type');
+      expect(mongoQuery['metadata.active']).to.equal(null);
+    });
+
+    it('should reject operator documents nested in array parameters but keep literal arrays', function() {
+      const queryParams = { 'tags': { path: 'tags', type: 'array', queryType: '$in' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { tags: [{ $gt: '' }] }))
+        .to.throw('tags must be a literal value of the declared type');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { tags: '[{"$ne":null}]' }))
+        .to.throw('tags must be a literal value of the declared type');
+      const mongoQuery: any = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { tags: '["a","b"]' });
+      expect(mongoQuery.tags).to.deep.equal({ $in: ['a', 'b'] });
+    });
+
+    it('should guard defaults and day offsets while coercing numbers and booleans to literals', function() {
+      const defaulted = { 'title': { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: { $ne: null } } };
+      expect(() => NamedQueryService.setParamsInQuery({}, defaulted, {}))
+        .to.throw('title must be a literal value of the declared type');
+      const days = { 'age': { path: 'lastSaveDate', type: 'date', format: 'days', queryType: '>=' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, days, { age: { $gt: 0 } }))
+        .to.throw('age must be a literal value of the declared type');
+      const mongoQuery: any = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, {
+        'count': { path: 'count', type: 'number' },
+        'active': { path: 'active', type: 'boolean' }
+      }, { count: { $gt: 1 }, active: { $ne: false } });
+      expect(mongoQuery.active).to.equal(true);
+      expect(Number.isNaN(mongoQuery.count)).to.equal(true);
+    });
+
+    it('should keep template strings and declared object parameters working', function() {
+      const mongoQuery: any = {};
+      const queryParams = {
+        'title': { path: 'metadata.title', type: 'string', template: '{{value}}-suffix' },
+        'constraints': { path: 'constraints', type: 'object' }
+      };
+      NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { title: 'abc', constraints: { status: 'active' } });
+      expect(mongoQuery['metadata.title']).to.equal('abc-suffix');
+      expect(mongoQuery.constraints).to.deep.equal({ status: 'active' });
     });
 
     it('should reject invalid object parameters', function() {

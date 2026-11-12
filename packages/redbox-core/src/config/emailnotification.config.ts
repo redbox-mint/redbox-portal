@@ -5,6 +5,8 @@
  * Email notification service configuration.
  */
 
+import type { RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+
 export interface EmailApiEndpoint {
     method: 'post' | 'get';
     url: string;
@@ -54,6 +56,10 @@ export interface EmailTemplate {
     subject?: string;
     template: string;
     format?: 'html' | 'text';
+    /** Trusted default request shared by delivery and record-backed admin previews.
+     * Notification options may override it; template content/editor JSON cannot.
+     */
+    relatedMetadata?: RelatedMetadataRequest;
 }
 
 export interface EmailNotificationConfig {
