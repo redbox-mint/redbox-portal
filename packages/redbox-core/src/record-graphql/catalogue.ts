@@ -90,7 +90,7 @@ function nodeHints(
   tokens: readonly (string | null)[] = [],
   output = new Map<
     string,
-    { label?: string; shortLabel?: string; groups?: string[]; choices: Array<string | number | boolean> }
+    { label?: string; shortLabel?: string; groups?: string[]; vocabulary?: string; choices: GridField['choices'] }
   >(),
   groups: string[] = []
 ) {
@@ -109,7 +109,23 @@ function nodeHints(
   if (typeof shortLabel === 'string') hint.shortLabel ??= shortLabel;
   const label = node.annotations?.extensions?.['x-redbox-label'] ?? node.annotations?.description;
   if (typeof label === 'string' && !hint.label) hint.label = label;
-  if (node.kind === 'scalar') hint.choices.push(...(node.enum ?? []));
+  const vocabulary = node.annotations?.extensions?.['x-redbox-vocabulary'];
+  if (typeof vocabulary === 'string') hint.vocabulary ??= vocabulary;
+  if (node.kind === 'scalar')
+    hint.choices.push(
+      ...(node.enum ?? []).filter(value => value !== null).map(value => ({ label: String(value), value }))
+    );
+  const choices = node.annotations?.extensions?.['x-redbox-choice-labels'];
+  if (Array.isArray(choices))
+    for (const choice of choices)
+      if (
+        choice &&
+        typeof choice === 'object' &&
+        !Array.isArray(choice) &&
+        typeof choice.label === 'string' &&
+        ['string', 'number', 'boolean'].includes(typeof choice.value)
+      )
+        hint.choices.push({ label: choice.label, value: choice.value as string | number | boolean });
   output.set(id, hint);
   if (node.kind === 'object' && shape.kind === 'object')
     for (const [key, child] of Object.entries(node.properties))
@@ -261,7 +277,7 @@ export function buildCatalogue(
       filterable: false,
       operators: [],
       sortable: false,
-      choices: [],
+      choices: name === 'workflowStep' ? (environment.workflowLabels ?? []) : [],
       selections: [{ variant: '', workflowStage: '', form: '', selection: name, responsePath: [name] }],
       unavailableReason: null,
     });
@@ -284,15 +300,20 @@ export function buildCatalogue(
         const fallbackLabel = String(tokens.at(-1) ?? tokens.at(-2))
           .split(':')
           .at(-1)!
+          .replace(/^dmpt[-_]/i, '')
           .replace(/[_-]/g, ' ')
           .replace(/([a-z])([A-Z])/g, '$1 $2');
+        const property = String(tokens.at(-1) ?? tokens.at(-2));
         const short =
           hint?.shortLabel ??
-          (rawLabel?.startsWith('@') || (rawLabel && rawLabel.length <= 80 && !/[?\n<>]/.test(rawLabel))
+          (rawLabel?.startsWith('@') ||
+          (rawLabel && rawLabel !== property && rawLabel.length <= 80 && !/[?\n<>]/.test(rawLabel))
             ? rawLabel
             : undefined);
         const displayLabel =
-          short && !short.startsWith('@') ? short : fallbackLabel.charAt(0).toUpperCase() + fallbackLabel.slice(1);
+          short && !short.startsWith('@')
+            ? short
+            : fallbackLabel.charAt(0).toUpperCase() + fallbackLabel.slice(1).toLowerCase();
         const groupPath = hint?.groups?.length ? hint.groups : ['@data-grids-field-group-metadata'];
         const rawGroup = groupPath.at(-1)!;
         const group = rawGroup.startsWith('@')
@@ -311,7 +332,7 @@ export function buildCatalogue(
               : !['OBJECT', 'JSON'].includes(type));
           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
           existing.selections.push(selection(contract, tokens, shape));
-          existing.choices.push(...(hint?.choices ?? []).map(value => ({ label: String(value), value })));
+          existing.choices.push(...(hint?.choices ?? []));
         } else
           fields.set(id, {
             id,
@@ -338,7 +359,8 @@ export function buildCatalogue(
             filterable: false,
             operators: [],
             sortable: false,
-            choices: (hint?.choices ?? []).map(value => ({ label: String(value), value })),
+            choices: hint?.choices ?? [],
+            ...(hint?.vocabulary ? { vocabulary: hint.vocabulary } : {}),
             selections: [selection(contract, tokens, shape)],
             unavailableReason: null,
           });

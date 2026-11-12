@@ -674,6 +674,24 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(contract.fieldOwners).not.to.have.property('/details/view_only_note');
   });
 
+  it('retains choice labels and local vocabulary references only as read presentation annotations', async function () {
+    const configured = form([
+      field('retention', 'RadioInputComponent', {
+        inlineVocab: true,
+        vocabRef: 'retention',
+        options: [{ value: '5_years', label: 'Five years' }],
+      }),
+    ]);
+    const read = expectCompiled(
+      await compiler().compile({ form: configured, context: publicContext, fieldMode: 'read' })
+    );
+    expect(read.root.properties.retention.annotations?.extensions?.['x-redbox-choice-labels']).to.deep.equal([
+      { value: '5_years', label: 'Five years' },
+    ]);
+    expect(read.root.properties.retention.annotations?.extensions?.['x-redbox-vocabulary']).to.equal('retention');
+    const write = expectCompiled(await compiler().compile({ form: configured, context: publicContext }));
+    expect(JSON.stringify(write.root)).not.to.contain('x-redbox-choice-labels');
+  });
   it('retains labelled tab and group presentation only in read contracts', async function () {
     const tab = {
       name: 'main',

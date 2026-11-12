@@ -825,8 +825,22 @@ export class RecordContractCompiler {
       config = asRecord(component.component?.config);
     const label = layout.label ?? config.label;
     const shortLabel = layout.shortLabel ?? config.shortLabel;
+    // Presentation only: preserve option labels without changing the stored
+    // scalar/enum or hydrating remote vocabularies during contract compilation.
+    const options = config.options ?? config.staticOptions;
+    const choiceLabels = Array.isArray(options)
+      ? options.flatMap(option => {
+          const item = asRecord(option);
+          return typeof item.label === 'string' &&
+            (typeof item.value === 'string' || typeof item.value === 'number' || typeof item.value === 'boolean')
+            ? [{ label: item.label, value: item.value }]
+            : [];
+        })
+      : [];
+    const vocabulary = config.inlineVocab === true && typeof config.vocabRef === 'string' ? config.vocabRef : undefined;
     const node =
-      request.fieldMode === 'read' && (typeof label === 'string' || typeof shortLabel === 'string')
+      request.fieldMode === 'read' &&
+      (typeof label === 'string' || typeof shortLabel === 'string' || choiceLabels.length || vocabulary)
         ? {
             ...contribution.node,
             annotations: {
@@ -835,6 +849,8 @@ export class RecordContractCompiler {
                 ...contribution.node.annotations?.extensions,
                 ...(typeof label === 'string' ? { 'x-redbox-label': label } : {}),
                 ...(typeof shortLabel === 'string' ? { 'x-redbox-short-label': shortLabel } : {}),
+                ...(choiceLabels.length ? { 'x-redbox-choice-labels': choiceLabels } : {}),
+                ...(vocabulary ? { 'x-redbox-vocabulary': vocabulary } : {}),
               },
             },
           }

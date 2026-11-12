@@ -185,6 +185,24 @@ export function gridFields(
             id => fields.get(id) ?? gridError('UNKNOWN_FIELD', `Unknown or stale field identifier: ${id}`)
           );
         }
+        if (ports.getChoiceLabels) {
+          const references = [
+            ...new Set(snapshot.catalogue.fields.flatMap(field => (field.vocabulary ? [field.vocabulary] : []))),
+          ];
+          if (references.length > GRID_LIMITS.fieldIds) gridError('CATALOGUE_LIMIT', 'Too many field vocabularies.');
+          context.consumeUnits(references.length);
+          const choices = new Map(
+            await Promise.all(
+              references.map(
+                async reference =>
+                  [reference, await ports.getChoiceLabels!(context.caller, reference, context.deadline)] as const
+              )
+            )
+          );
+          for (const field of snapshot.catalogue.fields)
+            if (field.vocabulary && choices.get(field.vocabulary)?.length)
+              field.choices = choices.get(field.vocabulary)!;
+        }
         context.consumeUnits(snapshot.catalogue.fields.length);
         return snapshot.catalogue;
       },

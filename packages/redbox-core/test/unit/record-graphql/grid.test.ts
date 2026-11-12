@@ -100,6 +100,90 @@ describe('Record grid catalogue and pagination', () => {
     );
     assert.equal(response.body.errors, undefined);
   });
+  it('derives sentence-case property labels and preserves configured choices and workflow labels', () => {
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          'uon:declarationDate': {
+            kind: 'scalar' as const,
+            scalarType: 'string' as const,
+            nullable: true,
+            annotations: { extensions: { 'x-redbox-label': 'uon:declarationDate' } },
+          },
+          'dmpt-data_collection_description': {
+            kind: 'scalar' as const,
+            scalarType: 'string' as const,
+            nullable: true,
+            annotations: { extensions: { 'x-redbox-label': '@dmpt-data_collection_description' } },
+          },
+          title: {
+            ...contract.root.properties.title,
+            annotations: { extensions: { 'x-redbox-choice-labels': [{ value: 'first', label: 'First plan' }] } },
+          },
+        },
+      },
+    }));
+    const fields = buildCatalogue(contracts, 'grid-fixture', [], {
+      ...gridEnvironment(),
+      workflowLabels: [{ value: 'draft', label: 'Draft' }],
+    }).catalogue.fields;
+    assert.equal(fields.find(f => f.id === 'metadata:/uon:declarationDate')!.displayLabel, 'Declaration date');
+    assert.equal(
+      fields.find(f => f.id === 'metadata:/dmpt-data_collection_description')!.displayLabel,
+      'Data collection description'
+    );
+    assert.equal(fields.find(f => f.id === 'metadata:/title')!.displayLabel, 'Title');
+    assert.deepEqual(
+      fields.find(f => f.id === 'metadata:/title')!.choices.find(c => c.value === 'first'),
+      { value: 'first', label: 'First plan' }
+    );
+    assert.deepEqual(fields.find(f => f.id === 'record:workflowStep')!.choices, [{ value: 'draft', label: 'Draft' }]);
+  });
+  it('resolves only readable, requested vocabulary references within the caller brand', async () => {
+    const contracts = gridContracts().map(contract => ({
+      ...contract,
+      root: {
+        ...contract.root,
+        properties: {
+          ...contract.root.properties,
+          title: {
+            ...contract.root.properties.title,
+            annotations: { extensions: { 'x-redbox-vocabulary': 'retention' } },
+          },
+          secret: {
+            ...contract.root.properties.secret,
+            annotations: { writeOnly: true, extensions: { 'x-redbox-vocabulary': 'secret' } },
+          },
+        },
+      },
+    }));
+    const getChoiceLabels = sinon.stub().resolves([{ value: 'first', label: 'First plan' }]);
+    const { yoga } = createRecordYoga(
+      contracts,
+      { getRecord: async () => undefined, hasViewAccess: () => false },
+      { getGridEnvironment: async () => gridEnvironment(), getChoiceLabels }
+    );
+    const response = await yoga.fetch(
+      'http://redbox/graphql',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: '{recordFields(recordType:"grid-fixture",ids:["metadata:/title"]){fields{id choices{label value}}}}',
+        }),
+      },
+      { caller: gridCaller }
+    );
+    const result = await response.json();
+    assert.equal(result.errors, undefined);
+    assert.deepEqual(result.data.recordFields.fields[0].choices, [{ value: 'first', label: 'First plan' }]);
+    assert.equal(getChoiceLabels.callCount, 1);
+    assert.equal(getChoiceLabels.firstCall.args[0].brand.id, gridCaller.brand.id);
+    assert.equal(getChoiceLabels.firstCall.args[1], 'retention');
+  });
   it('projects declared repeated groups with pairing and nulls, and rejects repeated scalar operations', async () => {
     const h = gridHarness(['a', 'b', 'c']);
     h.records.get('a')!.metadata.people = [{ name: 'One' }, { name: null }];

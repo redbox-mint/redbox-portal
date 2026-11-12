@@ -79,6 +79,8 @@ export interface GridField {
   operators: GridOperator[];
   sortable: boolean;
   choices: Array<{ label: string; value: string | number | boolean }>;
+  /** Internal presentation reference, never exposed as a selectable metadata path. */
+  vocabulary?: string;
   selections: GridSelection[];
   unavailableReason: string | null;
 }
@@ -109,6 +111,7 @@ export interface GridIndexPage {
 }
 export interface GridEnvironment {
   recordTypeLabel?: string;
+  workflowLabels?: Array<{ value: string; label: string }>;
   coreId: string;
   config: SolrCoreConfig;
   schema: GridIndexSchema;
@@ -117,4 +120,5 @@ export interface GridEnvironment {
 }
 export interface GridPorts {
   getGridEnvironment: (caller: ReadCaller, recordType: string, deadline: number) => Promise<GridEnvironment>;
+  getChoiceLabels?: (caller: ReadCaller, reference: string, deadline: number) => Promise<GridField['choices']>;
 }
