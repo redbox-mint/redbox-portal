@@ -909,6 +909,21 @@
     "description": "Global navigation link label for logout",
     "contentFormat": "plain"
   },
+  "menu-navigation-label": {
+    "category": "menu",
+    "description": "Accessible name for the global main navigation landmark",
+    "contentFormat": "plain"
+  },
+  "admin-sidebar-navigation-label": {
+    "category": "admin",
+    "description": "Accessible name for the admin settings sidebar navigation landmark",
+    "contentFormat": "plain"
+  },
+  "admin-page-actions-label": {
+    "category": "admin",
+    "description": "Accessible name for the admin home page actions navigation landmark",
+    "contentFormat": "plain"
+  },
   "menu-toggle": {
     "category": "menu",
     "description": "Global navigation button label for expanding or collapsing the menu",
