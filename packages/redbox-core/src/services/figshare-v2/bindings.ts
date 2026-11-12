@@ -21,6 +21,7 @@ interface CrosswalkResolver {
     sourceVocabularyId: string;
     codes: string[];
     outputs: string;
+    selectableOnly?: boolean;
   }) => Promise<{
     values: Array<number | string>;
     normalizedCodes: string[];
@@ -57,12 +58,14 @@ export function validateHandlebarsTemplate(template: string): void {
  * through the approved revision of the configured crosswalk.
  *
  * Returns the full resolution rather than just the values, because the categories
- * payload has to enforce `allowUnmapped` against the historical targets.
+ * payload has to enforce `allowUnmapped` against the historical targets. Only
+ * article-category publishing opts into filtering non-selectable targets.
  */
 export async function resolveCrosswalkBinding(
   binding: CrosswalkBinding,
   target: AnyRecord,
-  context?: BindingContext
+  context?: BindingContext,
+  options: { selectableOnly?: boolean } = {}
 ): Promise<CrosswalkBindingResult> {
   // Config arrives as JSON, so the type-level ban on nesting needs a runtime guard.
   if (String((binding.source as { kind?: unknown } | undefined)?.kind ?? '') === 'crosswalk') {
@@ -101,7 +104,8 @@ export async function resolveCrosswalkBinding(
     sourceVocabularyId,
     codes: sourceCodes,
     // `||` not `??`: an unset select in the config editor arrives as an empty string.
-    outputs: binding.outputs || 'categoryId'
+    outputs: binding.outputs || 'categoryId',
+    ...(options.selectableOnly === true ? { selectableOnly: true } : {})
   });
 
   return { ...resolution, sourceCodes };
