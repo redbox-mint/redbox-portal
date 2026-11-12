@@ -22,6 +22,7 @@ describe('Saved-grid HTTP and Mongo integration', function () {
   const otherBase = `/default/${otherPortal}/app/data-grids`;
   let fixture = 0;
   let originalGraphql: typeof sails.config.recordGraphql;
+  let originalCsrf: typeof sails.config.security.csrf;
   const definition = () => ({
     version: 1,
     name: `${prefix}${++fixture}`,
@@ -64,11 +65,14 @@ describe('Saved-grid HTTP and Mongo integration', function () {
   };
 
   before(async function () {
+    originalCsrf = sails.config.security.csrf;
     if (typeof RecordGraphqlService === 'undefined') {
       this.skip(); // The admin-design base alone intentionally has no GraphQL implementation.
     }
     originalGraphql = sails.config.recordGraphql;
     sails.config.recordGraphql = { ...recordGraphql, ...originalGraphql, enabled: true, cursorSecret: 'saved-grid-http-secret-0123456789abcdef' };
+    // Exercise browser mutations even when the shared harness disables global CSRF.
+    sails.config.security.csrf = true;
     assert.ok(sails.config.security.csrf, 'Run with RBPORTAL_TEST_CSRF=true / security.csrf=true');
     assert.ok(SavedGrid && SavedGridService, 'Regenerate shims and build core before running');
     const options = sails.config.solr.cores.default.options;
@@ -105,6 +109,7 @@ describe('Saved-grid HTTP and Mongo integration', function () {
     await firstValueFrom(BrandingService.loadAvailableBrands(undefined));
   });
   after(async function () {
+    sails.config.security.csrf = originalCsrf;
     if (originalGraphql) sails.config.recordGraphql = originalGraphql;
     if (typeof SavedGrid !== 'undefined')
       await db()
