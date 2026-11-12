@@ -372,6 +372,7 @@ describe('GraphQL reports security and bounded export', () => {
       report.databaseQuery.queryName
     );
     assert.equal(description.valid, true, JSON.stringify(description.diagnostics));
+    assert.ok(description.compatibleQueryVersions?.includes(legacyQueryVersion(query)));
     assert.deepEqual(description.diagnostics, []);
     assert.deepEqual(
       description.result.fields.map(field => field.path),

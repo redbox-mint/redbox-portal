@@ -1,152 +1,192 @@
-// Report list. Follows the email template catalogue: brand page card, lede,
-// search with quick source filters, then a plain table with quiet headers.
-.report-list-card {
-  margin-bottom: 24px;
-}
-
-.report-list-header {
+.report-title-line,
+.report-row-actions,
+.report-source-actions,
+.report-preview-actions,
+.report-panel-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  min-height: 48px;
+  gap: 8px;
 }
-
-.report-list-title {
+.report-title-line h1 {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.3;
 }
-
-.report-lede {
-  max-width: 768px;
-  margin-bottom: 20px;
-  color: var(--bs-secondary-color);
+.report-layout {
+  flex-wrap: nowrap;
 }
-
-.report-list-toolbar {
+.report-layout .rb-admin-section-rail {
+  flex: 0 0 140px;
+}
+.report-layout .rb-admin-split-side {
+  flex: 0 0 220px;
+}
+.report-layout .rb-admin-split-main {
+  flex: 1 1 0;
+}
+.report-config-app .card-header {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+}
+.report-config-app .card-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.report-config-app .card-header .btn-outline-secondary {
+  color: var(--admin-panel-text);
+  border-color: currentColor;
+}
+.report-config-app .card-header .rb-admin-segmented .btn {
+  color: var(--admin-panel-text);
+}
+.report-config-app .card-header .rb-admin-segmented .btn.active {
+  color: var(--admin-panel);
+  background: var(--admin-panel-text);
+}
+.report-path {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin-top: 2px;
+}
+.report-row-actions {
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.report-source-actions {
+  white-space: nowrap;
+}
+.report-list-toolbar {
   margin-bottom: 16px;
 }
-
-.report-search-input {
+.report-list-table {
+  margin-bottom: 0;
+}
+.report-list-table td:first-child {
+  min-width: 200px;
+}
+.report-columns-table {
+  min-width: 540px;
+  margin-bottom: 0;
+}
+.report-columns-table td:nth-child(2) {
+  width: 30%;
+  min-width: 140px;
+}
+.report-drag-handle {
+  color: var(--admin-muted);
+  cursor: grab;
+}
+.report-panel-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.report-panel-fields .rb-admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 0;
+}
+.report-panel-fields .form-check {
+  margin-bottom: 0;
+  font-weight: 400;
+}
+.report-panel-fields .rb-admin-hint {
+  font-weight: 400;
+}
+.report-panel-actions {
+  justify-content: flex-end;
+  width: 100%;
+}
+.report-config-app .table-responsive {
   position: relative;
-  flex: 0 1 288px;
-
-  .fa-magnifying-glass {
-    position: absolute;
-    top: 50%;
-    left: 12px;
-    transform: translateY(-50%);
-    color: var(--bs-secondary-color);
-    font-size: 12px;
-    pointer-events: none;
-  }
-
-  .form-control {
-    padding-left: 32px;
-  }
 }
-
-.report-count {
-  display: inline-block;
-  min-width: 20px;
-  margin-left: 4px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: rgba(var(--bs-emphasis-color-rgb), 0.08);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+.report-filter-empty {
+  padding: 16px;
+  border: 1px dashed var(--admin-line);
+  border-radius: var(--admin-radius);
 }
-
-.active .report-count {
-  background: rgba(255, 255, 255, 0.25);
+.report-filter-empty p:last-child,
+.report-checks p:last-child {
+  margin-bottom: 0;
 }
-
-.report-list-actions {
+.report-preview-table {
+  min-width: 440px;
+}
+.report-preview-table td {
+  min-width: 110px;
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.report-preview-table td:first-child {
+  min-width: 220px;
+}
+.report-preview-footer {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-left: auto;
+  justify-content: space-between;
 }
-
-// Positioned so absolutely placed visually hidden labels stay inside the scroller.
-.report-list-card .table-responsive {
-  position: relative;
+.report-raw-results {
+  min-width: 0;
+  max-width: 100%;
 }
-
-.report-list-table {
-  --bs-table-bg: transparent;
-  margin-bottom: 0;
-
-  > thead th {
-    color: var(--bs-secondary-color);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    border-bottom-color: var(--bs-border-color);
-  }
-
-  > tbody td {
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-
-  > tbody tr:last-child td {
-    border-bottom: 0;
+.report-raw-results pre {
+  max-height: 300px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+.report-parameter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.report-config-app :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 3px;
+}
+#report-workspace-title:focus {
+  outline: none;
+}
+@media (min-width: 1200px) {
+  .report-layout rb-admin-source-card {
+    display: block;
   }
 }
-
-.report-cell-title {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.report-name {
-  color: var(--bs-secondary-color);
-  font-size: 13px;
-}
-
-.report-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--bs-secondary-bg);
-  color: var(--bs-secondary-color);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.report-actions {
-  white-space: nowrap;
-
-  .btn + .btn {
-    margin-left: 6px;
+@media (max-width: 1199px) {
+  .report-layout {
+    flex-wrap: wrap;
+  }
+  .report-layout .rb-admin-split-side {
+    flex: 1 1 100%;
+    max-width: none;
   }
 }
-
-.report-empty {
-  padding: 24px 12px;
-  color: var(--bs-secondary-color);
-  text-align: center;
-}
-
-.report-list-footer {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--bs-border-color-translucent);
-  color: var(--bs-secondary-color);
-  font-size: 12px;
-}
-
-label.required:after {
-  content: ' *';
-  color: var(--bs-danger, #b1101a);
+@media (max-width: 767px) {
+  .report-layout {
+    flex-direction: column;
+  }
+  .report-layout > * {
+    flex: 0 1 auto !important;
+    width: 100%;
+    max-width: none;
+  }
+  .report-layout .rb-admin-section-rail {
+    display: flex;
+    flex-wrap: wrap;
+    position: static;
+  }
+  .report-preview-actions {
+    flex-wrap: wrap;
+  }
+  .report-config-app .card-header {
+    flex-wrap: wrap;
+  }
+  .report-source-actions {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
 }

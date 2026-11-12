@@ -432,6 +432,7 @@ export async function describeGraphqlReport(
     collectionName: 'record',
     name: query.name,
     queryVersion: graphqlQueryVersion(query),
+    compatibleQueryVersions: [graphqlQueryVersion(query), digest(query)],
     parameters: Object.entries(query.graphql.variables).flatMap(([variable, binding]) =>
       binding.ownership === 'consumer'
         ? [

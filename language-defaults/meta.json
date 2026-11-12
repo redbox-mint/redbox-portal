@@ -12165,5 +12165,425 @@
     "category": "Reports",
     "description": "You do not have access to preview this report. Sign in with an account that has report access.",
     "contentFormat": "plain"
+  },
+  "named-queries-heading": {
+    "category": "reports",
+    "description": "Named queries",
+    "contentFormat": "plain"
+  },
+  "report-ux-list-help": {
+    "category": "reports",
+    "description": "Tables of records that people can view and download as CSV.",
+    "contentFormat": "plain"
+  },
+  "report-ux-report": {
+    "category": "reports",
+    "description": "Report",
+    "contentFormat": "plain"
+  },
+  "report-ux-more": {
+    "category": "reports",
+    "description": "More actions",
+    "contentFormat": "plain"
+  },
+  "report-ux-built-on": {
+    "category": "reports",
+    "description": "Built on the named query",
+    "contentFormat": "plain"
+  },
+  "report-ux-from-saved": {
+    "category": "reports",
+    "description": "from the saved query",
+    "contentFormat": "plain"
+  },
+  "report-ux-editor-help": {
+    "category": "reports",
+    "description": "Choose a query, then the columns and filters people will use.",
+    "contentFormat": "plain"
+  },
+  "report-ux-view-report": {
+    "category": "reports",
+    "description": "View report",
+    "contentFormat": "plain"
+  },
+  "report-ux-sections": {
+    "category": "reports",
+    "description": "Report sections",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-basics": {
+    "category": "reports",
+    "description": "Basics",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-source": {
+    "category": "reports",
+    "description": "Data source",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-columns": {
+    "category": "reports",
+    "description": "Columns",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-filters": {
+    "category": "reports",
+    "description": "Filters",
+    "contentFormat": "plain"
+  },
+  "report-ux-section-preview": {
+    "category": "reports",
+    "description": "Preview",
+    "contentFormat": "plain"
+  },
+  "report-ux-title-help": {
+    "category": "reports",
+    "description": "Shown to people viewing the report.",
+    "contentFormat": "plain"
+  },
+  "report-ux-key-help": {
+    "category": "reports",
+    "description": "Used in the report’s web address. Can’t be changed after saving.",
+    "contentFormat": "plain"
+  },
+  "report-ux-browse": {
+    "category": "reports",
+    "description": "Browse…",
+    "contentFormat": "plain"
+  },
+  "report-ux-built-from": {
+    "category": "reports",
+    "description": "built from",
+    "contentFormat": "plain"
+  },
+  "report-ux-choose-columns": {
+    "category": "reports",
+    "description": "Add or remove columns…",
+    "contentFormat": "plain"
+  },
+  "report-ux-order": {
+    "category": "reports",
+    "description": "Reorder column",
+    "contentFormat": "plain"
+  },
+  "report-ux-heading": {
+    "category": "reports",
+    "description": "Column heading",
+    "contentFormat": "plain"
+  },
+  "report-ux-shows": {
+    "category": "reports",
+    "description": "Shows",
+    "contentFormat": "plain"
+  },
+  "report-ux-on-screen": {
+    "category": "reports",
+    "description": "On screen",
+    "contentFormat": "plain"
+  },
+  "report-ux-csv": {
+    "category": "reports",
+    "description": "CSV",
+    "contentFormat": "plain"
+  },
+  "report-ux-hidden": {
+    "category": "reports",
+    "description": "Hidden",
+    "contentFormat": "plain"
+  },
+  "report-ux-reorder-help": {
+    "category": "reports",
+    "description": "Drag or use Alt+↑/↓ on a row to reorder. Edit a column to hide it on screen or customise how it displays.",
+    "contentFormat": "plain"
+  },
+  "report-ux-moved": {
+    "category": "reports",
+    "description": "{{name}} moved to position {{position}} of {{total}}.",
+    "contentFormat": "plain"
+  },
+  "report-ux-no-viewer-filters": {
+    "category": "reports",
+    "description": "This query has no parameters, so there’s nothing for viewers to filter on.",
+    "contentFormat": "plain"
+  },
+  "report-ux-add-viewer-before": {
+    "category": "reports",
+    "description": "To add one, open",
+    "contentFormat": "plain"
+  },
+  "report-ux-the-query": {
+    "category": "reports",
+    "description": "the named query",
+    "contentFormat": "plain"
+  },
+  "report-ux-add-viewer-after": {
+    "category": "reports",
+    "description": "and set a condition to Viewer provides.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-as": {
+    "category": "reports",
+    "description": "Preview as",
+    "contentFormat": "plain"
+  },
+  "report-ux-refresh": {
+    "category": "reports",
+    "description": "Refresh",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-ready": {
+    "category": "reports",
+    "description": "Preview updated. Showing up to 10 rows.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-idle": {
+    "category": "reports",
+    "description": "Refresh to preview your report.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-footer": {
+    "category": "reports",
+    "description": "First 10 of the first page · uses your unsaved changes",
+    "contentFormat": "plain"
+  },
+  "report-ux-raw": {
+    "category": "reports",
+    "description": "Show raw result data",
+    "contentFormat": "plain"
+  },
+  "report-ux-ready": {
+    "category": "reports",
+    "description": "Ready to save. {{count}} columns configured.",
+    "contentFormat": "plain"
+  },
+  "report-ux-access-check": {
+    "category": "reports",
+    "description": "Viewers only see records they’re allowed to see.",
+    "contentFormat": "plain"
+  },
+  "report-ux-export-check": {
+    "category": "reports",
+    "description": "CSV export covers up to 10,000 rows.",
+    "contentFormat": "plain"
+  },
+  "report-ux-saved": {
+    "category": "reports",
+    "description": "No unsaved changes",
+    "contentFormat": "plain"
+  },
+  "report-ux-apply": {
+    "category": "reports",
+    "description": "Apply",
+    "contentFormat": "plain"
+  },
+  "report-ux-columns-note": {
+    "category": "reports",
+    "description": "Only fields the named query returns can be columns. To report on another field, add it in the Record explorer and update the named query.",
+    "contentFormat": "plain"
+  },
+  "report-ux-edit-column": {
+    "category": "reports",
+    "description": "Edit column",
+    "contentFormat": "plain"
+  },
+  "report-ux-display-as": {
+    "category": "reports",
+    "description": "Display as",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-text": {
+    "category": "reports",
+    "description": "Text",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-date": {
+    "category": "reports",
+    "description": "Date",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-datetime": {
+    "category": "reports",
+    "description": "Date and time",
+    "contentFormat": "plain"
+  },
+  "report-ux-format-help": {
+    "category": "reports",
+    "description": "Dates use UTC. CSV keeps the full value unless you add a CSV template.",
+    "contentFormat": "plain"
+  },
+  "report-ux-hide": {
+    "category": "reports",
+    "description": "Hide on screen (still included in CSV)",
+    "contentFormat": "plain"
+  },
+  "report-ux-multiple": {
+    "category": "reports",
+    "description": "When there are several values, show each on its own line",
+    "contentFormat": "plain"
+  },
+  "report-ux-advanced-template": {
+    "category": "reports",
+    "description": "Advanced: custom template",
+    "contentFormat": "plain"
+  },
+  "report-ux-template-help": {
+    "category": "reports",
+    "description": "Write a Handlebars template to customise this column. Insert a field by name below. A display template takes precedence over Display as. Leave the CSV template empty to reuse the display template.",
+    "contentFormat": "plain"
+  },
+  "report-ux-done": {
+    "category": "reports",
+    "description": "Done",
+    "contentFormat": "plain"
+  },
+  "report-ux-edit-filter": {
+    "category": "reports",
+    "description": "Edit filter",
+    "contentFormat": "plain"
+  },
+  "report-ux-filter-help": {
+    "category": "reports",
+    "description": "Choose the query parameter this filter will fill. Viewers enter a value when they open the report.",
+    "contentFormat": "plain"
+  },
+  "report-ux-advanced-binding": {
+    "category": "reports",
+    "description": "Advanced: field binding",
+    "contentFormat": "plain"
+  },
+  "report-ux-invalid-format": {
+    "category": "reports",
+    "description": "Choose Text, Date, or Date and time.",
+    "contentFormat": "plain"
+  },
+  "report-ux-invalid-labels": {
+    "category": "reports",
+    "description": "Choice labels must contain a stored value and a text label.",
+    "contentFormat": "plain"
+  },
+  "report-query-change-help": {
+    "category": "reports",
+    "description": "Columns that still exist in the new query are kept when you change it.",
+    "contentFormat": "plain"
+  },
+  "report-display-context-help": {
+    "category": "reports",
+    "description": "Use the field names below in double braces. For a list, recordTableMeta.val is the current item. The full row and portal web address are also available.",
+    "contentFormat": "plain"
+  },
+  "report-csv-context-help": {
+    "category": "reports",
+    "description": "Use a separate template for CSV values. Leave empty to reuse the display template. The original row and current list item are available.",
+    "contentFormat": "plain"
+  },
+  "report-insert-template-field": {
+    "category": "reports",
+    "description": "Insert a field…",
+    "contentFormat": "plain"
+  },
+  "report-ux-custom-path": {
+    "category": "reports",
+    "description": "Custom field path",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-bounded": {
+    "category": "reports",
+    "description": "This preview shows a limited sample. The full report may contain more rows.",
+    "contentFormat": "plain"
+  },
+  "report-ux-preview-limits": {
+    "category": "reports",
+    "description": "About preview limits",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-rdmp": {
+    "category": "reports",
+    "description": "Research plans",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-dataRecord": {
+    "category": "reports",
+    "description": "Archival data records",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-dataPublication": {
+    "category": "reports",
+    "description": "Data publications",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-party": {
+    "category": "reports",
+    "description": "People",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-funding": {
+    "category": "reports",
+    "description": "Funding",
+    "contentFormat": "plain"
+  },
+  "report-ux-record-type-ror": {
+    "category": "reports",
+    "description": "Organisations",
+    "contentFormat": "plain"
+  },
+  "report-ux-records": {
+    "category": "reports",
+    "description": "Records",
+    "contentFormat": "plain"
+  },
+  "report-ux-stage-summary": {
+    "category": "reports",
+    "description": "{{name}} stage",
+    "contentFormat": "plain"
+  },
+  "report-ux-sort-summary": {
+    "category": "reports",
+    "description": "sorted by {{name}}",
+    "contentFormat": "plain"
+  },
+  "report-graphql-error-ASSISTANCE_UNAVAILABLE": {
+    "category": "reports",
+    "description": "The report preview is temporarily unavailable. Refresh it to try again.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-column": {
+    "category": "reports",
+    "description": "Check “{{name}}” in the preview. This query’s field list cannot confirm the values it will show.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-template-field": {
+    "category": "reports",
+    "description": "Check the custom template for “{{name}}” in Advanced. One of its fields could not be confirmed.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-template-syntax": {
+    "category": "reports",
+    "description": "Check the custom template for “{{name}}” in Advanced. Some template instructions could not be read.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-template-length": {
+    "category": "reports",
+    "description": "The custom template for “{{name}}” is too long to check. Simplify it, then refresh the preview.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-filter": {
+    "category": "reports",
+    "description": "Choose a parameter from this query for the filter “{{name}}”.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-date-filter": {
+    "category": "reports",
+    "description": "The filter “{{name}}” needs parameters that accept dates.",
+    "contentFormat": "plain"
+  },
+  "report-ux-check-multiple": {
+    "category": "reports",
+    "description": "“{{name}}” has several values. Edit the column to choose how to show them.",
+    "contentFormat": "plain"
+  },
+  "report-ux-this-setting": {
+    "category": "reports",
+    "description": "this setting",
+    "contentFormat": "plain"
   }
 }

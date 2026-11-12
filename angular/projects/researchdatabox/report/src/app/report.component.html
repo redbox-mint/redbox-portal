@@ -18,7 +18,7 @@
     </p></div>
     <div class="rb-admin-page-actions">
     @if (graphqlReport) {
-      <div><button id="report-export" type="button" class="btn btn-primary" [disabled]="exporting || !!dateRangeError" aria-describedby="report-export-limit" (click)="downloadCsv()">{{ 'report-csv-download' | i18next }}</button><p id="report-export-limit" class="rb-admin-hint">{{ 'report-graphql-export-limit' | i18next: { count: report.exportMaxRows } }}</p></div>
+      <div><button id="report-export" type="button" class="btn btn-primary" [disabled]="exporting || !!dateRangeError" aria-describedby="report-export-limit" (click)="downloadCsv()">{{ 'report-csv-download' | i18next }}</button><p id="report-export-limit" class="rb-admin-hint">{{ 'report-graphql-export-limit' | i18next: { count: (report.exportMaxRows | number) } }}</p></div>
     } @else { <a class="btn btn-primary" [class.disabled]="!!dateRangeError"
       [attr.aria-disabled]="dateRangeError ? 'true' : null" [attr.tabindex]="dateRangeError ? -1 : null" [attr.href]="getDownloadCSVUrl()"
       (click)="dateRangeError ? $event.preventDefault() : null">{{ 'report-csv-download' | i18next }}</a> }</div>
