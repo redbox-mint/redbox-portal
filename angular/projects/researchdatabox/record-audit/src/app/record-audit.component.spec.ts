@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -396,11 +397,13 @@ describe('RecordAuditComponent', () => {
 
     events[0].message = undefined;
     events[0].errorDetail = 'Historical failure explanation';
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
-    expect(cells[0].textContent).toContain('Historical failure explanation');
+    expect(fixture.nativeElement.querySelector('.rb-trace-event-row .rb-message-cell').textContent).toContain('Historical failure explanation');
     events[0].errorDetail = undefined;
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
     fixture.detectChanges();
-    expect(cells[0].textContent.trim()).toBe('-');
+    expect(fixture.nativeElement.querySelector('.rb-trace-event-row .rb-message-cell').textContent.trim()).toBe('-');
   });
 
   it('shows technical details for an expanded integration event', async () => {
