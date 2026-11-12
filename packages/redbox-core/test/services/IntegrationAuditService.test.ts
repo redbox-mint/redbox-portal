@@ -107,6 +107,51 @@ describe('IntegrationAuditService', function () {
     expect(stored.length).to.be.lessThan(4000);
   });
 
+  it('redacts unquoted multiword credentials through structural delimiters or end of line', async function () {
+    for (const message of [
+      'password: open sesame',
+      'password: open sesame, category rejected',
+      'secret=hidden multiword value; category rejected',
+      'credential: private phrase\ncategory rejected',
+      'authorization: Bearer private credential phrase',
+    ]) {
+      const entry = await auditFigshareFailure({ message }, 400);
+      const stored = JSON.stringify(entry);
+      for (const secret of ['sesame', 'multiword value', 'private phrase', 'credential phrase']) {
+        expect(stored).not.to.contain(secret);
+      }
+      expect(stored).to.contain('REDACTED');
+      if (message.includes('category rejected')) expect(stored).to.contain('category rejected');
+    }
+  });
+
+  it('excludes HTML inside JSON response messages while keeping status and code', async function () {
+    const entry = await auditFigshareFailure({ code: 'ProxyError', message: '<html>private-proxy-page</html>' }, 502);
+    expect(entry.httpStatusCode).to.equal(502);
+    expect(entry.responseSummary.error.code).to.equal('ProxyError');
+    expect(JSON.stringify(entry)).not.to.contain('private-proxy-page');
+    expect(entry.errorDetail).to.contain('put /account/articles/34989604');
+  });
+
+  it('always supplies safe failure details for empty messages and tolerates nonstring endpoints', function () {
+    const ctx = service.startAudit('oid-1', IntegrationAuditAction.syncRecordWithFigshare);
+    (global as any).IntegrationAuditService = service;
+    try {
+      for (const error of [
+        { message: '', responseBody: { payload: 'sensitive-data' } },
+        { message: '   ', responseBody: { payload: 'sensitive-data' }, endpoint: 404 },
+        Object.assign(new Error(''), { responseBody: { payload: 'sensitive-data' }, endpoint: {} }),
+      ]) {
+        failFigshareAudit(ctx, error, {});
+        const entry = mockQueueService.now.lastCall.args[1];
+        expect(entry.errorDetail).to.equal('Integration action failed.');
+        expect(entry.message).to.equal('Integration action failed.');
+        expect(JSON.stringify(entry)).not.to.contain('sensitive-data');
+        expect(entry.responseSummary.error).not.to.have.property('endpoint');
+      }
+    } finally { delete (global as any).IntegrationAuditService; }
+  });
+
   it('retains transport diagnostics without inventing an HTTP status', async function () {
     const entry = await auditFigshareFailure(undefined);
     expect(entry.httpStatusCode).to.equal(undefined);
