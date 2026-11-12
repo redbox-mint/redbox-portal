@@ -163,7 +163,11 @@ export class GroupFieldComponent extends FormFieldBaseComponent<GroupFieldModelV
       const wrapperRef = this.componentContainer.createComponent(FormBaseWrapperComponent<unknown>);
       wrapperRef.instance.defaultComponentConfig = elementFormConfig?.defaultComponentConfig;
       const elemFieldEntry = formGroupMap.completeGroupMap?.[key];
-      const includeInFormControlMap = this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
+      // Related view controls are disabled for presentation, but their models
+      // still carry reference identities and populated display values.
+      const relatedViewControl = !this.getFormComponent.editMode()
+        && elemFieldEntry?.compConfigJson?.component?.config?.relatedViewPreserved === true;
+      const includeInFormControlMap = relatedViewControl || this.formService.shouldIncludeInFormControlMap(elemFieldEntry);
       const elemVal = elemVals?.[key];
       const childModel = elemFieldEntry?.model;
       if (includeInFormControlMap && childModel && !_isUndefined(elemVal)) {

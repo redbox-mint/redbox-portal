@@ -51,7 +51,7 @@ export class RecordSearchComponent extends BaseComponent implements OnDestroy {
     this.initDependencies = [translationService, searchService];
     this.record_type = elm.nativeElement.getAttribute('record_type') || 'rdmp';
     this.search_str = elm.nativeElement.getAttribute('search_str') || '';
-    this.search_url = elm.nativeElement.getAttribute('search_url') || 'record/search';
+    this.search_url = elm.nativeElement.getAttribute('search_url') || '';
     const fullUrl = elm.nativeElement.getAttribute('full_url') || '';
     const urlParts = fullUrl.split('?');
     if (!_isEmpty(urlParts[1])) {
@@ -62,6 +62,12 @@ export class RecordSearchComponent extends BaseComponent implements OnDestroy {
 
   protected override async initComponent(): Promise<void> {
     this.brandingAndPortalUrl = this.searchService.brandingAndPortalUrl;
+    if (!this.search_url.startsWith('/') && !/^[a-z][a-z0-9+.-]*:/i.test(this.search_url)) {
+      // The host supplies a relative route (record/search). Location.go expects
+      // a path, so retain the active brand and portal in browser history.
+      const portalPath = new URL(this.brandingAndPortalUrl, document.baseURI).pathname.replace(/\/$/, '');
+      this.search_url = `${portalPath}/${this.search_url || 'record/search'}`;
+    }
 
     if (_isEmpty(this.search_str) && !_isEmpty(this.queryStr)) {
       const parsedParams = new URLSearchParams(this.queryStr);

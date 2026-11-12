@@ -64,6 +64,8 @@ export function curateEmailRecordData(data: Record<string, unknown>): Record<str
       metaMetadata: _.pick(meta, ['type', 'brandId', 'createdBy', 'createdOn', 'lastSaveDate']),
     };
     const record = prepared['record'] as Record<string, unknown>;
+    // Present only when a notification opted in to related resolution; already access-filtered.
+    if (raw.relatedMetadata != null) record.relatedMetadata = _.cloneDeep(raw.relatedMetadata);
     record.redboxOid = record.oid;
     prepared['oid'] = record.oid;
     // Conventional display values are defaults, not aliases: caller edits always win.
@@ -143,6 +145,9 @@ export async function renderEmailAdminPreview(email: Pick<Services.Email, 'build
     return result;
   } finally { adminPreviewRequests.delete(response); adminPreviewBuildRequests.delete(data); }
 }
+
+import type { RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+import type { RecordModel, UserModel } from '../model';
 
 export namespace Services {
   /**
@@ -512,7 +517,11 @@ export namespace Services {
      * @param data The variables to use when rendering the template.
      * @return A promise that evaluates to the response object with 'status', 'body', and maybe 'ex' set.
      */
-    public async buildPreviewContext(templateName: string, data: Record<string, unknown>, brandId: string): Promise<Record<string, unknown>> {
+    public async buildPreviewContext(templateName: string, data: Record<string, unknown>, brandId: string, user?: Record<string, unknown>): Promise<Record<string, unknown>> {
+      if (user && data.record) {
+        const record = await this.prepareNotificationRecord(data.record as Record<string, unknown>, { template: templateName }, user);
+        data = { ...data, record, imports: { record, oid: data.oid } };
+      }
       const response: Record<string, unknown> = {};
       this.previewContextRequests.set(response, { brandId });
       // Same virtual method dispatch and pre-curation as buildFromTemplate; SCU's override runs here.
@@ -599,12 +608,35 @@ export namespace Services {
         ? handlebarsCompile(template, { strict: true })(this.createRenderData(variables, undefined, false)) : template;
     }
 
+    /** Read-time display view. Post-send hooks always receive the authoritative input record. */
+    protected async prepareNotificationRecord(record: Record<string, unknown>, options: Record<string, unknown>, user: Record<string, unknown>): Promise<Record<string, unknown>> {
+      const templates = sails.config.emailnotification?.templates ?? {};
+      const template = typeof options.template === 'string' && Object.hasOwn(templates, options.template)
+        ? templates[options.template] : undefined;
+      // Admin previews know the selected template, not a particular trigger's
+      // options. Share its server-configured projection with delivery; explicit
+      // per-notification requests (including null opt-out) still take precedence.
+      const relatedMetadata = options.relatedMetadata === undefined ? template?.relatedMetadata : options.relatedMetadata;
+      // Resolve from the supplied candidate so unsaved reference changes are respected.
+      // Keep this rendering view separate from the original mutable hook record.
+      return relatedMetadata == null ? record : await RecordsService.enrichWithRelatedMetadata(
+        record as unknown as RecordModel,
+        {
+          brand: BrandingService.getBrandById(_.get(record, 'metaMetadata.brandId') as string),
+          user: user as unknown as UserModel,
+          audience: 'service',
+          serviceId: 'EmailService',
+        },
+        relatedMetadata as RelatedMetadataRequest,
+      );
+    }
+
     /**
      * Send an email build from the given record data.
      *
      * @param oid The record identifier.
      * @param record The record data.
-     * @param options The email options.
+     * @param options The email options; relatedMetadata optionally selects fresh related data for evaluation.
      * @param user The optional user.
      * @param response The optional response to return.
      * @return The response if provided or the record data.
@@ -619,13 +651,15 @@ export namespace Services {
           return response;
         }
         return record;
-      } else if (this.metTriggerCondition(oid, record, options, user) == "true") {
+      }
+      const evaluationRecord = await this.prepareNotificationRecord(record, options, user);
+      if (this.metTriggerCondition(oid, evaluationRecord, options, user) == "true") {
         const variables = {
           imports: {
-            record: record,
+            record: evaluationRecord,
             oid: oid,
           },
-          record: record,
+          record: evaluationRecord,
           oid: oid,
         };
         this.updateChronicle({ emailNotificationOutcome: 'processing' });

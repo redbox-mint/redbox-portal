@@ -35,12 +35,12 @@ import {
   createFormStatusDirtyRequestEvent,
   FormComponentEventBus,
 } from '../form-state';
-import { CustomSetValueControl } from '../form-state/custom-set-value.control';
+import { ControlSetValueOptions, CustomSetValueControl } from '../form-state/custom-set-value.control';
 import { withWriteOptions } from '../form-state/control-value-notifications';
 import { FormComponent } from '../form.component';
 import { FieldValueChangedEvent, FormComponentEventType } from '../form-state';
 
-type RepeatableSetValueOptions = ModifyOptions;
+type RepeatableSetValueOptions = ControlSetValueOptions;
 /** Applies a row's form-model change, letting replacement observe its final change. */
 type ModelChange = (change: () => void) => void;
 
@@ -78,6 +78,7 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
   }
 
   public async setCustomValue(value: Array<unknown>, options?: RepeatableSetValueOptions): Promise<void> {
+    if (options?.isCurrent?.() === false) return;
     if (this.customValueSetter) {
       await this.customValueSetter(value, options);
       return;
@@ -111,13 +112,13 @@ class RepeatableFormArray extends FormArray<AbstractControl<unknown>> implements
       >
         <ng-container #repeatableContainer></ng-container>
       </div>
-      @if (isStatusReady() && isVisible && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
+      @if (isStatusReady() && isVisible && (getFormComponent.editMode() || !componentDefinition?.config?.readonly) && addButtonShow && (!hideWhenZeroRows || compDefMapEntries.length > 0)) {
         <button
           type="button"
           class="rb-form-repeatable__add btn btn-success"
           (click)="appendNewElement()"
           [attr.aria-label]="'add-button-label' | i18next"
-          [disabled]="isDisabled"
+          [disabled]="isDisabled || isReadonly"
         >
           <span class="fa fa-plus-circle" aria-hidden="true"></span>
           <span>{{ 'add-button-label' | i18next }}</span>
@@ -142,6 +143,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
 
   protected compDefMapEntries: Array<RepeatableElementEntry> = [];
   private syncSourcesUpdatePromise: Promise<void> = Promise.resolve();
+  private replacementWork: Promise<void> = Promise.resolve();
 
   @ViewChild('repeatableContainer', { read: ViewContainerRef, static: true }) repeatableContainer!: ViewContainerRef;
   @ViewChild('removeButtonTemplate', { read: TemplateRef<any>, static: false }) removeButtonTemplate!: TemplateRef<any>;
@@ -549,6 +551,8 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     options?: RepeatableSetValueOptions,
     applyModelChange: ModelChange = change => change()
   ) {
+    if (options?.isCurrent?.() === false) return;
+    if (markFormDirty && (this.isReadonly || this.isDisabled)) return;
     if (!this.elemInitFieldEntry) {
       throw new Error(`${this.logName}: elemInitFieldEntry is not defined. Cannot append new element.`);
     }
@@ -562,7 +566,17 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     }
   }
 
-  public async replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+  public replaceAllElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+    // Row initialisation awaits component creation. Finish it before another
+    // replacement removes rows whose controls have not yet been registered.
+    const replace = () => this.replaceElements(values, options);
+    const work = this.replacementWork.then(replace, replace);
+    this.replacementWork = work;
+    return work;
+  }
+
+  private async replaceElements(values?: unknown[], options?: RepeatableSetValueOptions): Promise<void> {
+    if (options?.isCurrent?.() === false) return;
     const nextValues = Array.isArray(values) ? values : [];
     const control = this.model?.formControl;
 
@@ -604,11 +618,12 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
         }
       }
       for (const [index, value] of appendValues.entries()) {
+        if (options?.isCurrent?.() === false) return;
         const isFinal = index === appendValues.length - 1;
         await this.appendNewElement(value, false, isFinal ? options : rowOptions, isFinal ? applyFinalChange : undefined);
       }
     } finally {
-      if (!finalChangeApplied) {
+      if (!finalChangeApplied && options?.isCurrent?.() !== false) {
         // The final row change failed or was skipped; still publish the resulting state.
         this.rebuildLineagePaths(options);
         this.model?.formControl?.updateValueAndValidity(options);
@@ -771,6 +786,14 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     // TODO: how to know when to apply defaultComponentConfig or not?
     // componentRef.instance.defaultComponentConfig = this.newElementFormConfig?.defaultComponentConfig;
     const compInstance = await wrapperRef.instance.initWrapperComponent(elemFieldEntry);
+    if (options?.isCurrent?.() === false) {
+      wrapperRef.destroy();
+      const index = this.compDefMapEntries.indexOf(elemEntry);
+      if (index !== -1) this.compDefMapEntries.splice(index, 1);
+      this.updateCanRemoveFlags();
+      this.rebuildLineagePaths({ ...options, emitEvent: false });
+      return;
+    }
     this.publishDefinitionChange(options);
     const layoutInstance = elemFieldEntry.layout as RepeatableElementLayoutComponent<Array<unknown>> | undefined;
     if (!layoutInstance) {
@@ -781,9 +804,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
     layoutInstance.removeFn = this.removeElementFn(elemEntry);
     layoutInstance.moveUpFn = this.moveElementFn(elemEntry, -1);
     layoutInstance.moveDownFn = this.moveElementFn(elemEntry, 1);
-    layoutInstance.canRemove = this.shouldKeepAtLeastOneRow()
+    layoutInstance.canRemove = !this.componentDefinition?.config?.readonly && (this.shouldKeepAtLeastOneRow()
       ? this.compDefMapEntries.length > 1
-      : this.compDefMapEntries.length > 0;
+      : this.compDefMapEntries.length > 0);
     elemEntry.layoutInstance = layoutInstance;
     this.updateCanSortFlags();
     if (this.model?.formControl && compInstance?.model) {
@@ -801,6 +824,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public removeElementFn(elemEntry: RepeatableElementEntry, options?: RepeatableSetValueOptions, markFormDirty = true) {
     const that = this;
     return function () {
+      if (markFormDirty && (that.isReadonly || that.isDisabled)) return;
       that.loggerService.debug(`${that.logName}: removeElement called: `, elemEntry.localUniqueId);
       that.loggerService.debug(
         `${that.logName}: removeElement called, matching elemEntry:`,
@@ -841,7 +865,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   public moveElementFn(elemEntry: RepeatableElementEntry, delta: -1 | 1, options?: RepeatableSetValueOptions) {
     const that = this;
     return function () {
-      if (!that.canSort || that.isDisabled) {
+      if (!that.canSort || that.isDisabled || that.isReadonly) {
         return;
       }
       const fromIndex = that.compDefMapEntries.findIndex(entry => entry.localUniqueId === elemEntry.localUniqueId);
@@ -879,9 +903,9 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   }
 
   protected updateCanRemoveFlags() {
-    const canRemove = this.shouldKeepAtLeastOneRow()
+    const canRemove = !this.componentDefinition?.config?.readonly && (this.shouldKeepAtLeastOneRow()
       ? this.compDefMapEntries.length > 1
-      : this.compDefMapEntries.length > 0;
+      : this.compDefMapEntries.length > 0);
     for (const entry of this.compDefMapEntries) {
       if (entry.layoutInstance) {
         entry.layoutInstance.canRemove = canRemove;
@@ -892,7 +916,7 @@ export class RepeatableComponent extends FormFieldBaseComponent<Array<unknown>> 
   protected updateCanSortFlags() {
     for (const [index, entry] of this.compDefMapEntries.entries()) {
       if (entry.layoutInstance) {
-        entry.layoutInstance.canSort = this.canSort;
+        entry.layoutInstance.canSort = this.canSort && !this.componentDefinition?.config?.readonly;
         entry.layoutInstance.canMoveUp = this.canSort && index > 0;
         entry.layoutInstance.canMoveDown = this.canSort && index < this.compDefMapEntries.length - 1;
       }
@@ -1029,7 +1053,7 @@ export interface RepeatableElementEntry {
               (click)="clickedRemove()"
               [attr.aria-label]="'remove-button-label' | i18next"
               [attr.title]="'remove-button-label' | i18next"
-              [disabled]="isDisabled"
+              [disabled]="isDisabled || isReadonly"
             >
               <span class="fa fa-minus-circle" aria-hidden="true"></span>
             </button>

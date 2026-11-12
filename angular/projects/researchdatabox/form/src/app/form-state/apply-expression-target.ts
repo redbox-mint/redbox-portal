@@ -38,6 +38,7 @@ export interface ExpressionTargetHost {
 }
 
 export interface ApplyExpressionTargetContext {
+  isActive?: () => boolean;
   eventBus: Pick<FormComponentEventBus, 'publish'>;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
@@ -73,6 +74,7 @@ export async function applyExpressionTarget(
   host: ExpressionTargetHost,
   ctx: ApplyExpressionTargetContext
 ): Promise<void> {
+  if (ctx.isActive?.() === false) return;
   if (target === FormExpressionsTargetModelValue) {
     // The model.value property must be handled specially.
     if (host.model?.formControl && !isEqual(host.model.formControl.value, targetValue)) {
@@ -81,10 +83,11 @@ export async function applyExpressionTarget(
         // Validate once, retaining Angular's asynchronous validation events.
         await setControlValue(control, targetValue, options);
       }, ctx.cause);
+      if (ctx.isActive?.() === false) return;
       await syncComponentDisplayFromModel(host.displayComponent ?? host.component);
       // Propagate populated values to dependent fields, then refresh form status
       // after asynchronous custom-control/display updates have completed.
-      ctx.broadcastFormStatus?.();
+      if (ctx.isActive?.() !== false) ctx.broadcastFormStatus?.();
     }
 
   } else if (target === FormExpressionsTargetModelDisabled) {
@@ -95,7 +98,7 @@ export async function applyExpressionTarget(
     host.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
     host.displayComponent?.requestRender?.();
     if (control && control.disabled !== wasDisabled) {
-      ctx.broadcastFormStatus?.();
+      if (ctx.isActive?.() !== false) ctx.broadcastFormStatus?.();
     }
 
   } else if (target.startsWith(FormExpressionsTargetLayoutPrefix)) {
@@ -122,7 +125,7 @@ export async function applyExpressionTarget(
     host.model?.setDisabled?.(disabled, { emitEvent: false, onlySelf: true });
     host.displayComponent?.requestRender?.();
     if (control && control.disabled !== wasDisabled) {
-      ctx.broadcastFormStatus?.();
+      if (ctx.isActive?.() !== false) ctx.broadcastFormStatus?.();
     }
 
   } else if (target === FormExpressionsTargetValidationGroups) {

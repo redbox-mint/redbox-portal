@@ -13,6 +13,7 @@ import { jsonld } from './config/jsonld';
 import { FormConfigExports } from './form-config';
 import { getPlaywrightForms, getPlaywrightRegistration } from './playwright/registration';
 export * from './playwright';
+import { namedQuery } from './config/related-record-examples';
 
 export {};
 
@@ -35,6 +36,7 @@ const hook = defineRedboxHook({
       recordtype: scenarioRegistration.recordtype,
       workflow: scenarioRegistration.workflow,
       ...(scenarioRegistration.csp ? { csp: scenarioRegistration.csp } : {}),
+      namedQuery,
       dashboardtype,
       dashboardview,
       workspacetype,

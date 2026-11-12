@@ -54,7 +54,14 @@ export class SaveButtonComponent extends ButtonBaseComponent {
       // Form-level server failures can depend on the requested action (for
       // example activation versus saving a draft). Submission clears these
       // errors and validates again; local and field-level errors still block.
-      const invalid = !dataStatus.valid && !this.getFormComponent.canRetryFormLevelServerErrors();
+      // An action may select a different validation group (for example a
+      // draft save with ["none"]). saveForm applies those validators before
+      // dispatching; the current group's failures cannot disable that action.
+      const requestedGroups = this.componentDefinition?.config?.enabledValidationGroups;
+      const currentGroups = this.getFormComponent.enabledValidationGroups;
+      const changesValidationGroups = requestedGroups !== undefined &&
+        (requestedGroups.length !== currentGroups.length || requestedGroups.some(group => !currentGroups.includes(group)));
+      const invalid = !changesValidationGroups && !dataStatus.valid && !this.getFormComponent.canRetryFormLevelServerErrors();
       return invalid || (!dataStatus.dirty && !hasTargetStep) || isValidationPending || isSaving;
     }
     // When no form validation status is available yet, default to disabled for standard save, but enabled for

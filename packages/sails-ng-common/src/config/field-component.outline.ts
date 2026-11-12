@@ -5,6 +5,8 @@ import {
 } from './base-field-component.outline';
 
 export interface FieldComponentConfigFrame extends BaseFieldComponentConfigFrame {
+  /** Server-derived view carrier: retain this declared related control in disabled groups. */
+  relatedViewPreserved?: boolean;
   onItemSelect?: {
     /** Dot-path into selectedItem.raw (or selectedItem) to extract this field's value */
     rawPath: string;

@@ -1,3 +1,5 @@
+import { inject } from '@angular/core';
+import { RelatedDataStateService, RelatedDataWorkScope } from '../related-records/related-data-state.service';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import {
   FormComponentEvent,
@@ -53,6 +55,11 @@ export interface FormComponentEventJSONataQueryMatchOptions extends FormComponen
  * evaluation context, and target mutation.
  */
 export abstract class FormComponentEventBaseConsumer extends FormComponentEventBaseProducerConsumer {
+  private readonly relatedDataState = inject(RelatedDataStateService, { optional: true });
+  private readonly work = new RelatedDataWorkScope();
+  private bindingGeneration = 0;
+  private destroyed = false;
+  private readonly eventGenerations = new WeakMap<FormComponentEvent, number>();
   private static nextConsumerId = 0;
   /** Distinguishes this binding's expressions in event expression chains. */
   private readonly consumerId = FormComponentEventBaseConsumer.nextConsumerId++;
@@ -72,6 +79,7 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    */
   bind(options: FormComponentEventBindingOptions): void {
     this.destroy();
+    this.destroyed = false;
     try {
       this.setupEventConsumption(options, this.consumedEventType);
     } catch (error) {
@@ -87,6 +95,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
    * Tear down active subscriptions.
    */
   override destroy(): void {
+    this.destroyed = true;
+    ++this.bindingGeneration;
+    this.work.cancel();
     super.destroy();
     this.model = undefined;
     this.compiledItemsCache = undefined;
@@ -346,16 +357,23 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     this.setupQuerySourceUpdateListener();
 
     const sub = this.eventBus.select$(eventType).subscribe(async (event: FormComponentEvent) => {
-      // An expression never reacts to a change caused by its own write, directly or via other handlers.
-      const expressions = this.expressions!.filter(
-        expr => !event.expressionChain?.includes(this.getExpressionChainId(expr))
-      );
-      const hasConditionMatches = await this.getMatchedExpressions(event, expressions);
-      if (hasConditionMatches) {
-        for (const expr of hasConditionMatches) {
-          await this.consumeEvent(event, expr);
+      const generation = this.bindingGeneration;
+      this.eventGenerations.set(event, generation);
+      const release = this.work.begin(this.relatedDataState ?? this.formComp?.relatedDataState);
+      try {
+        // An expression never reacts to a change caused by its own write, directly or via other handlers.
+        const expressions = this.expressions!.filter(
+          expr => !event.expressionChain?.includes(this.getExpressionChainId(expr))
+        );
+        const hasConditionMatches = await this.getMatchedExpressions(event, expressions);
+        if (this.destroyed || generation !== this.bindingGeneration || event.isCurrent?.() === false) return;
+        if (hasConditionMatches) {
+          for (const expr of hasConditionMatches) {
+            if (this.destroyed || generation !== this.bindingGeneration || event.isCurrent?.() === false) return;
+            await this.consumeEvent(event, expr);
+          }
         }
-      }
+      } finally { release?.(); }
     });
     this.subscriptions.set(eventType, sub);
   }
@@ -488,6 +506,9 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
     event: FormComponentEvent,
     expression: FormExpressionsConfigFrame
   ) {
+    const generation = this.eventGenerations.get(event) ?? this.bindingGeneration;
+    const isActive = () => !this.destroyed && generation === this.bindingGeneration && event.isCurrent?.() !== false;
+    if (!isActive()) return;
     // Only publish validation-groups change events in response to scoped change
     // events, don't need to respond to the broadcast events. Only want to
     // respond to events targeted to a specific component.
@@ -509,11 +530,13 @@ export abstract class FormComponentEventBaseConsumer extends FormComponentEventB
         displayComponent: this.options?.component,
       },
       {
+        isActive,
         eventBus: this.eventBus,
         logger: this.loggerService,
         broadcastFormStatus: () => this.formComp?.broadcastFormStatus(),
         eventFieldId: event.fieldId,
         cause: {
+          ...(event.isCurrent ? { isCurrent: isActive } : {}),
           ...(event.behaviourChain ? { behaviourChain: event.behaviourChain } : {}),
           expressionChain: [...(event.expressionChain ?? []), this.getExpressionChainId(expression)],
         },

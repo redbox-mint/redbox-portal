@@ -181,6 +181,49 @@ The settings in this section control the behaviour of the entire form.
 | viewCssClasses          | The CSS classes to apply to each element for styling. These are used in view mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | < message-code >        | A set of key value pairs containing messages to show to the user                                                                                                                                                                 | Yes                      | "saveSuccess": "Saved successfully." |
 
+## Validation summary
+
+`ValidationSummaryComponent` lists the form's blocking validation errors in edit
+mode. Its `component.config` accepts these options:
+
+| Key | Default | Behaviour |
+| --- | --- | --- |
+| `includeTabLabel` | `false` | Include tab labels in summary field labels. Group labels are always included. |
+| `showWhenValid` | `false` | Show an informational message when the form has no blocking validation errors. |
+| `deferErrorsOnNewRecord` | `false` | Hide both the error summary and the informational message on a new record until the first field edit or touch, save request, or save failure. |
+
+For example, to defer the summary on a new record:
+
+```ts
+{
+  name: 'validation_summary',
+  component: {
+    class: 'ValidationSummaryComponent',
+    config: { deferErrorsOnNewRecord: true },
+  },
+}
+```
+
+With `deferErrorsOnNewRecord: true`, a new record has no oid and its summary
+stays hidden while the form is pristine and untouched. Editing or touching any
+field, requesting a save, or receiving a save failure reveals it. Once revealed,
+it stays visible according to the current validation errors and `showWhenValid`,
+even if the form becomes pristine and untouched again.
+
+Existing records show the summary from load as usual. After the first successful
+save assigns an oid to a new record, the same existing-record behaviour applies.
+Leaving the flag out or setting it to `false` keeps the current behaviour on all
+records.
+
+Save buttons stay disabled while the form is invalid. The summary returns on the
+first interaction so the user can see which fields need attention. Deferring the
+summary does not change field-level errors or form validation.
+
+The summary treats any dirty or touched state as an interaction, whatever its
+source. A form that marks itself dirty while loading, for example a behaviour
+that sets a value on form ready, or a typeahead with an on-select config that
+starts with a selected item, reveals the summary straight away.
+
 ## Authoritative server validation operations
 
 Every metadata-changing save is validated by the server against the complete

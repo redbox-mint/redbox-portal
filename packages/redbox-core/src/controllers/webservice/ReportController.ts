@@ -78,7 +78,7 @@ export namespace Controllers {
           });
         }
         const paramMap = _.clone(query);
-        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows);
+        const response = await NamedQueryService.performNamedQueryFromConfig(namedQuery, paramMap, brand, start, rows, req.user);
         this.updateChronicle(req, { namedQueryResponse: summarizeChronicleValue(response) });
         return this.sendResp(req, res, {
           data: response,

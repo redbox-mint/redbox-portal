@@ -176,6 +176,27 @@ export const workflow: WorkflowConfig = {
                 form: 'pw-01-expression-chaining-1.0-draft'
             },
             starting: true
+
+        }
+    },
+    'related-plan': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'related-plan-1.0-draft'
+            }
+        }
+    },
+    'related-activity': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'related-activity-1.0-draft'
+            }
         }
     },
     "rdmp": {

@@ -70,6 +70,11 @@ COPY angular ./angular
 COPY support/build/compileProductionAngular.sh support/build/angular-bundle-stats.cjs ./support/build/
 RUN bash support/build/compileProductionAngular.sh
 
+# Related-record browser tests use Angular's component inspection API to control
+# refreshes and delayed setters. Keep that API in the test image's form bundle.
+FROM angular-builder AS angular-test-builder
+RUN cd angular && node_modules/.bin/ng build @researchdatabox/form --configuration development
+
 # The existing wrapper supports loading these hook/config sources with ts-node.
 # Keep its exact webpack behavior while excluding unrelated backend sources.
 FROM shared-builder AS assets-builder
@@ -251,6 +256,9 @@ FROM runtime AS test
 USER root
 # Mounted regression preparation uses the pinned Angular build Node.
 COPY --from=angular-builder /root/.nvm/versions/node /opt/redbox-build-node
+RUN rm -rf assets/angular/form .tmp/public/angular/form
+COPY --from=angular-test-builder --chown=node:node /opt/redbox-portal/assets/angular/form ./assets/angular/form
+COPY --from=angular-test-builder --chown=node:node /opt/redbox-portal/assets/angular/form ./.tmp/public/angular/form
 COPY --from=runtime-files --chown=node:node /opt/redbox-portal/packages/redbox-hook-dev ./packages/redbox-hook-dev
 COPY --from=builder --chown=node:node /opt/redbox-portal/node_modules ./node_modules
 COPY --from=builder --chown=node:node /opt/redbox-portal/packages/agenda-sqs-backend/node_modules ./packages/agenda-sqs-backend/node_modules

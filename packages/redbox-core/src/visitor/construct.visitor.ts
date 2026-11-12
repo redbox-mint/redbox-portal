@@ -1,4 +1,4 @@
-import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
+import { cloneDeep as _cloneDeep, cloneDeepWith as _cloneDeepWith, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
 import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
@@ -449,9 +449,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     removeOverrides?: boolean;
     preserveDefaultValues?: boolean;
     translate?: (key: string) => string;
+    /** Internal: data has already passed descriptor-scoped server view preparation. */
+    relatedViewPrepared?: boolean;
   }): Promise<FormConfigOutline> {
-    this.data = _cloneDeep(options.data);
-    this.reusableFormDefs = options.reusableFormDefs ?? {};
+    // Authored markers must not change disabled-control registration in legacy forms.
+    const stripMarker = (value: unknown) => value && typeof value === 'object'
+      && Object.prototype.hasOwnProperty.call(value, 'relatedViewPreserved')
+      ? _cloneDeepWith(Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'relatedViewPreserved')), stripMarker)
+      : undefined;
+    this.data = options.relatedViewPrepared ? _cloneDeep(options.data) : _cloneDeepWith(options.data, stripMarker);
+    this.reusableFormDefs = _cloneDeepWith(options.reusableFormDefs ?? {}, stripMarker);
     this.formMode = options.formMode ?? 'view';
     this.translate = options.translate;
 
@@ -626,11 +633,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     const config = currentData.config;
     item.config = new RelatedObjectDataFieldComponentConfig();
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
-    for (const prop of ['template', 'content', 'contentIsTranslationCode', 'translationContentFormat', 'outputFormat', 'dataPath', 'oidProperty', 'relatedFields'] as const) {
+    for (const prop of ['template', 'content', 'contentIsTranslationCode', 'translationContentFormat', 'outputFormat', 'dataPath', 'oidProperty', 'relatedFields', 'relationId', 'required'] as const) {
       this.sharedProps.setPropOverride(prop, item.config, config);
     }
-    item.config.oidProperty ??= 'id';
-    item.config.relatedFields ??= [];
+    if (!item.config.relationId) {
+      item.config.oidProperty ??= 'id';
+      item.config.relatedFields ??= [];
+    }
     item.config.template ??= '{{#each relatedObjects}}<div>{{#if title}}{{title}}{{else}}{{oid}}{{/if}}</div>{{/each}}';
   }
 
@@ -785,6 +794,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
     this.sharedProps.setPropOverride('includeTabLabel', item.config, config);
     this.sharedProps.setPropOverride('showWhenValid', item.config, config);
+    this.sharedProps.setPropOverride('deferErrorsOnNewRecord', item.config, config);
   }
 
   async visitValidationSummaryFormComponentDefinition(

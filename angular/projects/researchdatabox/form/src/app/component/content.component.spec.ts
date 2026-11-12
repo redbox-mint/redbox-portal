@@ -1,3 +1,4 @@
+import { By } from '@angular/platform-browser';
 import {FormConfigFrame, FormFieldComponentStatus, handlebarsCompile, handlebarsPrecompile, handlebarsTemplate, loadMarkdownParser} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
 import { FormService } from "../form.service";
@@ -97,6 +98,25 @@ describe('ContentComponent', () => {
       if (hasEditAccess) expect(link?.getAttribute('href')).toContain(formComponent.oid());
     });
   }
+
+  it('awaits explicit content refresh without a form control change', async () => {
+    const config: FormConfigFrame = { name: 'testing', componentDefinitions: [{ name: 'content',
+      component: { class: 'ContentComponent', config: { content: 'before', template: '{{content}}' } } }] };
+    const assets: DynamicAssetOptions = { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-',
+      callable: (_key, _path, context) => handlebarsCompile('{{content}}')(context),
+    }] };
+    const { fixture } = await createFormAndWaitForReady(config, undefined, undefined, assets);
+    const component = fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent;
+    (component.componentDefinition!.config as { content: string }).content = 'after';
+    await (component as any).refreshContent();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('after');
+    component.ngOnDestroy();
+    (component.componentDefinition!.config as { content: string }).content = 'late';
+    await (component as any).refreshContent();
+    expect(component.content).toBe('after');
+  });
 
   it('should create component', () => {
     setUpDynamicAssets();

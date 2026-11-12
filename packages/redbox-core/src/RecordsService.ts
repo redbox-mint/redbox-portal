@@ -1,3 +1,5 @@
+import type { RelatedMetadata, RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+import type { RelatedRecordReadContext } from './related-records/types';
 import type { RecordFieldWriteResult } from './RecordWriteOptions';
 import StorageServiceResponse from './StorageServiceResponse';
 import { cloneDeep, isEqual } from 'lodash';
@@ -181,12 +183,26 @@ export function createRecordMetadataDelta(
   return delta;
 }
 
+/** Trusted server lifecycle facts; never populated from HTTP request parameters. */
+export interface RelatedMetadataOperationOptions {
+  /** Previously loaded authoritative root; its ACL is checked again during resolution. */
+  readonly loadedRoot?: RecordModel;
+  /** Shared operation start, including root/configuration lookups before resolution. */
+  readonly startedAt?: number;
+}
+
 /**
  * Service interface for Records operations.
  * Note: This interface uses `unknown` types extensively for backward compatibility.
  * Type safety will be improved incrementally in future phases.
  */
 export interface RecordsService {
+  /** Explicit fresh resolution from the supplied candidate, including unsaved references. */
+  resolveRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest, options?: RelatedMetadataOperationOptions): Promise<RelatedMetadata>;
+  /** Return a detached enriched view without mutating the candidate. */
+  enrichWithRelatedMetadata(record: Readonly<RecordModel>, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RecordModel>;
+  /** Load the root once and explicitly enrich it; ordinary getMeta remains raw. */
+  getMetaWithRelatedMetadata(oid: string, context: RelatedRecordReadContext, request: RelatedMetadataRequest): Promise<RecordModel>;
   triggerPreSaveTriggers(
     oid: string,
     record: RecordInput,
@@ -278,6 +294,9 @@ export interface RecordsService {
     filterMode?: unknown,
     deletionFilters?: { deletedWithin?: string; deletedBy?: string }
   ): Promise<StorageServiceResponse>;
+  /** Detached, authorized consumer presentation only; never use for persistence. */
+  getConsumerView(record: AnyRecord, brand: unknown, user: unknown): Promise<AnyRecord>;
+  getRecordsForDisplay(...args: Parameters<RecordsService['getRecords']>): Promise<StorageServiceResponse>;
   getRecords(
     workflowState: unknown,
     recordType: unknown,

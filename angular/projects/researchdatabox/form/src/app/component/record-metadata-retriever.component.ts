@@ -1,3 +1,4 @@
+import { RelatedRecordRequests } from '../form-state/related-records/related-record-request';
 import {
   Component,
   inject,
@@ -171,7 +172,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
   public get metadataLoading(): boolean { return this.metadataLoadingValue(); }
   public set metadataLoading(value: boolean) { this.metadataLoadingValue.set(value); }
   private destroyed = false;
-  private requestSequence = 0;
+  private readonly requests = new RelatedRecordRequests();
   private readonly metadataRequests = new Map<FormExpressionsConfigFrame | undefined, MetadataRequest>();
 
   private createCandidate(
@@ -179,24 +180,20 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
     expression: FormExpressionsConfigFrame
   ): MetadataCandidate | undefined {
     if (this.destroyed || !this.shouldHandleExpression(event, expression)) return undefined;
-    const sequence = ++this.requestSequence;
-    const isCurrent = () => !this.destroyed && (this.metadataRequests.get(expression)?.sequence ?? 0) < sequence;
+    const sequence = this.requests.nextSequence();
+    const isCurrent = this.requests.guard(() => (this.metadataRequests.get(expression)?.sequence ?? 0) < sequence);
     return {
       isCurrent,
       accept: () => (isCurrent() ? this.beginRequest(expression, sequence) : undefined),
     };
   }
 
-  private beginRequest(expression?: FormExpressionsConfigFrame, sequence = ++this.requestSequence): MetadataRequest {
+  private beginRequest(expression?: FormExpressionsConfigFrame, sequence = this.requests.nextSequence()): MetadataRequest {
     const previous = this.metadataRequests.get(expression);
     const request: MetadataRequest = {
-      sequence,
-      expression,
-      oid: previous?.oid ?? '',
-      lastFetchedOid: previous?.lastFetchedOid,
-      failed: previous?.failed ?? false,
-      loading: true,
-      isCurrent: () => !this.destroyed && this.metadataRequests.get(expression) === request,
+      sequence, expression, oid: previous?.oid ?? '', lastFetchedOid: previous?.lastFetchedOid,
+      failed: previous?.failed ?? false, loading: true,
+      isCurrent: this.requests.guard(() => this.metadataRequests.get(expression) === request),
     };
     this.metadataRequests.set(expression, request);
     this.updateMetadataStatus();
@@ -253,6 +250,7 @@ export class RecordMetadataRetrieverComponent extends FormFieldBaseComponent<nev
 
   public ngOnDestroy(): void {
     this.destroyed = true;
+    this.requests.dispose();
     this.metadataRequests.clear();
     this.metadataLoading = false;
     this.expressionConsumer?.destroy();

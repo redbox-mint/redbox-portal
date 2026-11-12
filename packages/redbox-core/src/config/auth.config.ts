@@ -61,6 +61,7 @@ export const auth: AuthBootstrapConfig = {
         { path: '/:branding/:portal/record(/*)', role: 'Researcher', can_update: true },
         { path: '/:branding/:portal/record(/*)', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/recordmeta(/*)', role: 'Researcher', can_update: true },
+        { path: '/:branding/:portal/recordmeta(/*)', role: 'Librarians', can_update: true },
         { path: '/:branding/:portal/vocab(/*)', role: 'Researcher', can_read: true },
         { path: '/:branding/:portal/vocab(/*)', role: 'Librarians', can_read: true },
         { path: '/:branding/:portal/vocab(/*)', role: 'Admin', can_read: true },

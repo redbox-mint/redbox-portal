@@ -1,6 +1,8 @@
 import { manualForms } from './pw-remaining-manual';
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 import defaultDraft from './default-1.0-draft';
+import relatedPlan from './related-plan-1.0-draft';
+import relatedActivity from './related-activity-1.0-draft';
 import dataRecordDraft from './dataRecord-1.0-draft';
 import dataPublicationDraft from './dataPublication-1.0-draft';
 import dataPublicationQueued from './dataPublication-1.0-queued';
@@ -49,6 +51,8 @@ export const FormConfigExports: Record<string, FormConfigFrame> = {
   'pw-02-nested-1.0-draft': pw02Nested,
   'pw-01-expression-chaining-1.0-draft': pw01ExpressionChainingDraft,
   'default-1.0-draft': defaultDraft,
+  'related-plan-1.0-draft': relatedPlan,
+  'related-activity-1.0-draft': relatedActivity,
   'dataRecord-1.0-draft': dataRecordDraft,
   'dataPublication-1.0-draft': dataPublicationDraft,
   'dataPublication-1.0-queued': dataPublicationQueued,

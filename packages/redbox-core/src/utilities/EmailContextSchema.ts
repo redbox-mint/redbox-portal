@@ -85,6 +85,10 @@ export function curatedEmailContextSchema(metadata: EmailContextSchema): EmailCo
       createdOn: string(),
       lastSaveDate: string(),
     }),
+    relatedMetadata: {
+      ...object({}, true),
+      description: 'Resolved related records, keyed by relation; present only when the notification opts in',
+    },
   });
   const exposed = object({ appUrl: string() });
   for (const path of sails.config.emailnotification?.settings?.exposedConfigPaths ?? []) {

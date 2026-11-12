@@ -175,10 +175,10 @@ describe('Email template pre-parse complexity policy', () => {
     sinon.assert.notCalled(parse);
   });
 
-  it('keeps all seven core email bodies within the default bounds', () => {
+  it('keeps all eight core email bodies within the default bounds', () => {
     const directory = join(__dirname, '../../../../views/emailTemplates');
     const files = readdirSync(directory).filter(file => file.endsWith('.hbs'));
-    assert.equal(files.length, 7);
+    assert.equal(files.length, 8);
     let expressions = 0;
     let nesting = 0;
     for (const file of files) {
@@ -188,6 +188,7 @@ describe('Email template pre-parse complexity policy', () => {
       nesting = Math.max(nesting, result.nesting);
     }
     assert.equal(expressions, 27);
-    assert.equal(nesting, 2);
+    // relatedPlanExample iterates relations, their records and optional dates.
+    assert.equal(nesting, 3);
   });
 });

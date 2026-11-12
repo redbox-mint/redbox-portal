@@ -147,3 +147,7 @@ export * from './template-path';
 export * from './schema-fields';
 export * from './query-report-context';
 export * from './named-query-assist.model';
+
+export * from './related-records.model';
+export * from './related-display-projection';
+export * from './related-reference-values';

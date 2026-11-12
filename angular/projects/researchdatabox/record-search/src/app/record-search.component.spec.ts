@@ -118,6 +118,21 @@ describe('RecordSearchComponent', () => {
     expect(component.getRecordTypeNames()).not.toContain('hidden');
   });
 
+  it('keeps the active brand and portal in search and reset history', async () => {
+    const fixture = TestBed.createComponent(RecordSearchComponent);
+    const component = fixture.componentInstance;
+    component.search_url = 'record/search';
+    component.ngOnInit();
+    await component.waitForInit();
+    const go = spyOn(fixture.debugElement.injector.get(Location), 'go');
+    component.params.basicSearch = 'Alpha project';
+    component.syncLoc();
+    expect(go.calls.mostRecent().args[0]).toContain('/base/default/rdmp/record/search?');
+    component.resetSearch();
+    expect(go.calls.mostRecent().args[0]).toBe('/base/default/rdmp/record/search');
+    fixture.destroy();
+  });
+
   it('setRecordType should update record_type and params', async () => {
     const fixture = TestBed.createComponent(RecordSearchComponent);
     const component = fixture.componentInstance;
