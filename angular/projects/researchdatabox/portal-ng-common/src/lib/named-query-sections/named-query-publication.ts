@@ -227,6 +227,41 @@ export function visualPublicationProjection<T extends PublicationField>(
   fields: T[]
 ): { document: string; fields: NamedQueryResultField[] } {
   const aliases = new Map<string, string>();
+  // Reading an existing publication must retain its original response paths.
+  const legacy = /\bexplorer_field_\d+\s*:/.test(document);
+  const used = new Set<string>();
+  const names = new Map<string, string>();
+  const keys = [
+    ...new Set(
+      fields.flatMap(field => {
+        if (!field.id.startsWith('metadata:') || field.partial || ['structured', 'unavailable'].includes(field.type))
+          return [];
+        const parts = field.id.slice('metadata:'.length).split('/').slice(1);
+        return parts.map((_, index) => JSON.stringify(parts.slice(0, index + 1)));
+      })
+    ),
+  ].sort();
+  for (const key of keys) {
+    const parts = JSON.parse(key) as string[];
+    const words = parts[parts.length - 1]
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .split(/[^A-Za-z0-9]+/)
+      .filter(Boolean);
+    let base =
+      words
+        .map((word, i) =>
+          i ? word.charAt(0).toUpperCase() + word.slice(1) : word.charAt(0).toLowerCase() + word.slice(1)
+        )
+        .join('') || 'field';
+    if (!/^[A-Za-z_]/.test(base)) base = 'field' + base;
+    if (base.startsWith('__')) base = 'field' + base;
+    let name = base,
+      suffix = 2;
+    while (used.has(name)) name = base + suffix++;
+    used.add(name);
+    names.set(key, name);
+  }
   const common = new Map<string, string>();
   for (const field of fields) {
     if (!field.id.startsWith('metadata:') || field.partial || ['structured', 'unavailable'].includes(field.type))
@@ -235,7 +270,7 @@ export function visualPublicationProjection<T extends PublicationField>(
     for (const selection of field.selections ?? [])
       for (const [index, alias] of selection.responsePath.slice(1).entries()) {
         const key = JSON.stringify(parts.slice(0, index + 1));
-        if (!common.has(key)) common.set(key, 'explorer_field_' + (common.size + 1));
+        if (!common.has(key)) common.set(key, legacy ? 'explorer_field_' + (common.size + 1) : names.get(key)!);
         aliases.set(alias, common.get(key)!);
       }
   }

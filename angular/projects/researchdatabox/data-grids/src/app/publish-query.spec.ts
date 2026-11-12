@@ -77,7 +77,7 @@ describe('Publishing condition defaults and selected result paths', () => {
       'type Query {records:Page} type Page {nodes:[Record]} type Record {metadata:RecordMetadata} union RecordMetadata=A|B type A {title:String} type B {title:String}'
     );
     expect(validate(schema, parse(projected.document))).toEqual([]);
-    expect(projected.fields).toEqual([{ label: 'Title', path: ['metadata', 'explorer_field_1'], type: 'text' }]);
+    expect(projected.fields).toEqual([{ label: 'Title', path: ['metadata', 'title'], type: 'text' }]);
     expect(projected.document).not.toMatch(/g_[ab]/);
     expect(document).toContain('g_a');
   });
