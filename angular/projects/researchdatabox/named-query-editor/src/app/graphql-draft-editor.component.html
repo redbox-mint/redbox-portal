@@ -16,6 +16,7 @@
   </li>
 </ul>
 <div
+  *ngIf="!advanced"
   id="nq-graphql-panel-basics"
   role="tabpanel"
   tabindex="0"
@@ -74,89 +75,91 @@
   aria-labelledby="nq-graphql-tab-variables"
   [hidden]="tab !== 'variables'"
 >
-  <p class="rb-ws-lede">{{ 'named-query-graphql-ownership-help' | i18next }}</p>
-  <p class="rb-ws-lede">{{ 'named-query-graphql-json-help' | i18next }}</p>
-  <section class="rb-ws-item" *ngFor="let variable of variables; trackBy: variableKey">
-    <h3 class="rb-ws-item-title">${{ variable.name }}: {{ variable.inputType }}</h3>
-    <p *ngIf="variable.hasDefault" class="rb-ws-status">{{ 'named-query-graphql-operation-default' | i18next }}</p>
-    <p *ngIf="omissionSatisfied(variable.name)" class="rb-ws-status">
-      {{ 'named-query-graphql-omission-satisfied' | i18next }}
-    </p>
-    <details *ngIf="candidateValues[variable.name] !== undefined" class="rb-ws-disclosure">
-      <summary>{{ 'data-grids-promotion-current-value' | i18next }}</summary>
-      <pre class="rb-ws-json">{{ candidateValues[variable.name] | json }}</pre>
-      <p class="rb-ws-lede">{{ 'data-grids-promotion-value-help' | i18next }}</p>
-    </details>
-    <label class="rb-ws-label" [for]="'nq-owner-' + variable.name">{{
-      'named-query-graphql-ownership' | i18next
-    }}</label>
-    <select
-      class="form-select mb-2"
-      [id]="'nq-owner-' + variable.name"
-      [ngModel]="ownership(variable.name)"
-      (ngModelChange)="classify(variable.name, $event)"
-      [disabled]="ownership(variable.name) === 'server'"
-    >
-      <option value="" disabled>{{ 'named-query-graphql-unclassified' | i18next }}</option>
-      <option value="fixed">{{ 'named-query-graphql-fixed' | i18next }}</option>
-      <option value="consumer">{{ 'named-query-graphql-consumer' | i18next }}</option>
-      <option value="omitted">{{ 'named-query-graphql-omitted' | i18next }}</option>
-      <option value="server" disabled>{{ 'named-query-graphql-server' | i18next }}</option>
-    </select>
-    <nq-graphql-json
-      *ngIf="ownership(variable.name) === 'fixed'"
-      [label]="'named-query-graphql-fixed-value' | i18next"
-      [value]="fixed(variable.name)"
-      (valueChange)="setFixed(variable.name, $event)"
-      (validityChange)="validity('variable:' + variable.name + ':fixed', $event)"
-    ></nq-graphql-json>
-    <ng-container *ngIf="binding(variable.name) as binding">
-      <label class="rb-ws-label" [for]="'nq-parameter-' + variable.name">{{
-        'named-query-graphql-parameter' | i18next
+  <ng-container *ngIf="visitedTabs.has('variables')">
+    <p class="rb-ws-lede">{{ 'named-query-graphql-ownership-help' | i18next }}</p>
+    <p class="rb-ws-lede">{{ 'named-query-graphql-json-help' | i18next }}</p>
+    <section class="rb-ws-item" *ngFor="let variable of variables; trackBy: variableKey">
+      <h3 class="rb-ws-item-title">${{ variable.name }}: {{ variable.inputType }}</h3>
+      <p *ngIf="variable.hasDefault" class="rb-ws-status">{{ 'named-query-graphql-operation-default' | i18next }}</p>
+      <p *ngIf="omissionSatisfied(variable.name)" class="rb-ws-status">
+        {{ 'named-query-graphql-omission-satisfied' | i18next }}
+      </p>
+      <details *ngIf="candidateValues[variable.name] !== undefined" class="rb-ws-disclosure">
+        <summary>{{ 'data-grids-promotion-current-value' | i18next }}</summary>
+        <pre class="rb-ws-json">{{ candidateValues[variable.name] | json }}</pre>
+        <p class="rb-ws-lede">{{ 'data-grids-promotion-value-help' | i18next }}</p>
+      </details>
+      <label class="rb-ws-label" [for]="'nq-owner-' + variable.name">{{
+        'named-query-graphql-ownership' | i18next
       }}</label>
-      <input
-        class="form-control mb-2"
-        [id]="'nq-parameter-' + variable.name"
-        [(ngModel)]="binding.parameter"
-        (ngModelChange)="draftChange.emit()"
-      />
-      <label class="rb-ws-label" [for]="'nq-type-' + variable.name">{{
-        'named-query-graphql-input-type' | i18next
-      }}</label>
-      <input
-        class="form-control mb-2"
-        [id]="'nq-type-' + variable.name"
-        [(ngModel)]="binding.inputType"
-        (ngModelChange)="draftChange.emit()"
-      />
-      <div class="form-check mb-2">
-        <input
-          class="form-check-input"
-          type="checkbox"
-          [id]="'nq-required-' + variable.name"
-          [(ngModel)]="binding.required"
-          (ngModelChange)="draftChange.emit()"
-        /><label class="form-check-label" [for]="'nq-required-' + variable.name">{{
-          'named-query-graphql-required' | i18next
-        }}</label>
-      </div>
+      <select
+        class="form-select mb-2"
+        [id]="'nq-owner-' + variable.name"
+        [ngModel]="ownership(variable.name)"
+        (ngModelChange)="classify(variable.name, $event)"
+        [disabled]="ownership(variable.name) === 'server'"
+      >
+        <option value="" disabled>{{ 'named-query-graphql-unclassified' | i18next }}</option>
+        <option value="fixed">{{ 'named-query-graphql-fixed' | i18next }}</option>
+        <option value="consumer">{{ 'named-query-graphql-consumer' | i18next }}</option>
+        <option value="omitted">{{ 'named-query-graphql-omitted' | i18next }}</option>
+        <option value="server" disabled>{{ 'named-query-graphql-server' | i18next }}</option>
+      </select>
       <nq-graphql-json
-        [label]="'named-query-graphql-default' | i18next"
-        [optional]="true"
-        [value]="binding.defaultValue"
-        (valueChange)="setDefault(variable.name, $event)"
-        (validityChange)="validity('variable:' + variable.name + ':default', $event)"
+        *ngIf="ownership(variable.name) === 'fixed'"
+        [label]="'named-query-graphql-fixed-value' | i18next"
+        [value]="fixed(variable.name)"
+        (valueChange)="setFixed(variable.name, $event)"
+        (validityChange)="validity('variable:' + variable.name + ':fixed', $event)"
       ></nq-graphql-json>
-      <p class="rb-ws-lede mt-2">{{ 'named-query-graphql-default-help' | i18next }}</p>
-    </ng-container>
-    <nq-diagnostics [diagnostics]="diagnostics" [location]="'graphql.variables.' + variable.name"></nq-diagnostics>
-  </section>
-  <div class="rb-ws-item" *ngFor="let name of staleVariables">
-    <code>${{ name }}</code>
-    <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeVariable(name)">
-      {{ 'named-query-graphql-remove-stale' | i18next }}
-    </button>
-  </div>
+      <ng-container *ngIf="binding(variable.name) as binding">
+        <label class="rb-ws-label" [for]="'nq-parameter-' + variable.name">{{
+          'named-query-graphql-parameter' | i18next
+        }}</label>
+        <input
+          class="form-control mb-2"
+          [id]="'nq-parameter-' + variable.name"
+          [(ngModel)]="binding.parameter"
+          (ngModelChange)="draftChange.emit()"
+        />
+        <label class="rb-ws-label" [for]="'nq-type-' + variable.name">{{
+          'named-query-graphql-input-type' | i18next
+        }}</label>
+        <input
+          class="form-control mb-2"
+          [id]="'nq-type-' + variable.name"
+          [(ngModel)]="binding.inputType"
+          (ngModelChange)="draftChange.emit()"
+        />
+        <div class="form-check mb-2">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            [id]="'nq-required-' + variable.name"
+            [(ngModel)]="binding.required"
+            (ngModelChange)="draftChange.emit()"
+          /><label class="form-check-label" [for]="'nq-required-' + variable.name">{{
+            'named-query-graphql-required' | i18next
+          }}</label>
+        </div>
+        <nq-graphql-json
+          [label]="'named-query-graphql-default' | i18next"
+          [optional]="true"
+          [value]="binding.defaultValue"
+          (valueChange)="setDefault(variable.name, $event)"
+          (validityChange)="validity('variable:' + variable.name + ':default', $event)"
+        ></nq-graphql-json>
+        <p class="rb-ws-lede mt-2">{{ 'named-query-graphql-default-help' | i18next }}</p>
+      </ng-container>
+      <nq-diagnostics [diagnostics]="diagnostics" [location]="'graphql.variables.' + variable.name"></nq-diagnostics>
+    </section>
+    <div class="rb-ws-item" *ngFor="let name of staleVariables">
+      <code>${{ name }}</code>
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeVariable(name)">
+        {{ 'named-query-graphql-remove-stale' | i18next }}
+      </button>
+    </div>
+  </ng-container>
 </div>
 <div
   id="nq-graphql-panel-mappings"
@@ -165,80 +168,82 @@
   aria-labelledby="nq-graphql-tab-mappings"
   [hidden]="tab !== 'mappings'"
 >
-  <p class="rb-ws-lede">{{ 'named-query-graphql-path-help' | i18next }}</p>
-  <div class="rb-ws-section">
-    <nq-graphql-json
-      [label]="'named-query-graphql-result-path' | i18next"
-      [path]="true"
-      [value]="operation.resultPath"
-      (valueChange)="setResultPath($event)"
-      (validityChange)="validity('resultPath', $event)"
-    ></nq-graphql-json>
-  </div>
-  <div class="rb-ws-section" *ngFor="let target of mappingTargets">
-    <nq-graphql-json
-      [label]="'named-query-graphql-mapping-' + target | i18next"
-      [path]="true"
-      [optional]="true"
-      [value]="operation.mappings?.[target]"
-      (valueChange)="setMapping(target, $event)"
-      (validityChange)="validity('mapping:' + target, $event)"
-    ></nq-graphql-json>
-  </div>
-  <div class="rb-ws-section">
-    <label class="form-check-label"
-      ><input
-        type="checkbox"
-        class="form-check-input me-2"
-        [ngModel]="!!operation.lookup"
-        (ngModelChange)="toggleLookup($event)"
-      />{{ 'named-query-graphql-lookup-adapter' | i18next }}</label
-    >
-    <p class="rb-ws-lede mt-2">{{ 'named-query-graphql-page-help' | i18next }}</p>
-    <ng-container *ngIf="operation.lookup as lookup">
-      <div class="mb-3" *ngFor="let field of pagePaths">
-        <nq-graphql-json
-          [label]="'named-query-graphql-' + field | i18next"
-          [path]="true"
-          [optional]="field === 'endCursorPath'"
-          [value]="lookup[field]"
-          (valueChange)="setPagePath(field, $event)"
-          (validityChange)="validity('lookup:' + field, $event)"
-        ></nq-graphql-json>
-      </div>
-      <label class="rb-ws-label" for="nq-graphql-first">{{ 'named-query-graphql-first-variable' | i18next }}</label>
-      <select
-        id="nq-graphql-first"
-        class="form-select mb-2"
-        [ngModel]="lookup.firstVariable"
-        (ngModelChange)="setPageVariable('firstVariable', $event)"
+  <ng-container *ngIf="visitedTabs.has('mappings')">
+    <p class="rb-ws-lede">{{ 'named-query-graphql-path-help' | i18next }}</p>
+    <div class="rb-ws-section">
+      <nq-graphql-json
+        [label]="'named-query-graphql-result-path' | i18next"
+        [path]="true"
+        [value]="operation.resultPath"
+        (valueChange)="setResultPath($event)"
+        (validityChange)="validity('resultPath', $event)"
+      ></nq-graphql-json>
+    </div>
+    <div class="rb-ws-section" *ngFor="let target of mappingTargets">
+      <nq-graphql-json
+        [label]="'named-query-graphql-mapping-' + target | i18next"
+        [path]="true"
+        [optional]="true"
+        [value]="operation.mappings?.[target]"
+        (valueChange)="setMapping(target, $event)"
+        (validityChange)="validity('mapping:' + target, $event)"
+      ></nq-graphql-json>
+    </div>
+    <div class="rb-ws-section">
+      <label class="form-check-label"
+        ><input
+          type="checkbox"
+          class="form-check-input me-2"
+          [ngModel]="!!operation.lookup"
+          (ngModelChange)="toggleLookup($event)"
+        />{{ 'named-query-graphql-lookup-adapter' | i18next }}</label
       >
-        <option value="">{{ 'named-query-graphql-choose-variable' | i18next }}</option>
-        <option *ngFor="let variable of variables; trackBy: variableKey" [value]="variable.name">
-          ${{ variable.name }}: {{ variable.inputType }}
-        </option>
-      </select>
-      <label class="rb-ws-label" for="nq-graphql-after">{{ 'named-query-graphql-after-variable' | i18next }}</label>
-      <select
-        id="nq-graphql-after"
-        class="form-select mb-2"
-        [ngModel]="lookup.afterVariable"
-        (ngModelChange)="setPageVariable('afterVariable', $event)"
-      >
-        <option value="">{{ 'named-query-graphql-choose-variable' | i18next }}</option>
-        <option *ngFor="let variable of variables; trackBy: variableKey" [value]="variable.name">
-          ${{ variable.name }}: {{ variable.inputType }}
-        </option>
-      </select>
-      <label class="rb-ws-label" for="nq-graphql-search-parameter">{{
-        'named-query-graphql-search-parameter' | i18next
-      }}</label
-      ><input
-        id="nq-graphql-search-parameter"
-        class="form-control"
-        [(ngModel)]="lookup.searchParameter"
-        (ngModelChange)="draftChange.emit()"
-      />
-    </ng-container>
-  </div>
+      <p class="rb-ws-lede mt-2">{{ 'named-query-graphql-page-help' | i18next }}</p>
+      <ng-container *ngIf="operation.lookup as lookup">
+        <div class="mb-3" *ngFor="let field of pagePaths">
+          <nq-graphql-json
+            [label]="'named-query-graphql-' + field | i18next"
+            [path]="true"
+            [optional]="field === 'endCursorPath'"
+            [value]="lookup[field]"
+            (valueChange)="setPagePath(field, $event)"
+            (validityChange)="validity('lookup:' + field, $event)"
+          ></nq-graphql-json>
+        </div>
+        <label class="rb-ws-label" for="nq-graphql-first">{{ 'named-query-graphql-first-variable' | i18next }}</label>
+        <select
+          id="nq-graphql-first"
+          class="form-select mb-2"
+          [ngModel]="lookup.firstVariable"
+          (ngModelChange)="setPageVariable('firstVariable', $event)"
+        >
+          <option value="">{{ 'named-query-graphql-choose-variable' | i18next }}</option>
+          <option *ngFor="let variable of variables; trackBy: variableKey" [value]="variable.name">
+            ${{ variable.name }}: {{ variable.inputType }}
+          </option>
+        </select>
+        <label class="rb-ws-label" for="nq-graphql-after">{{ 'named-query-graphql-after-variable' | i18next }}</label>
+        <select
+          id="nq-graphql-after"
+          class="form-select mb-2"
+          [ngModel]="lookup.afterVariable"
+          (ngModelChange)="setPageVariable('afterVariable', $event)"
+        >
+          <option value="">{{ 'named-query-graphql-choose-variable' | i18next }}</option>
+          <option *ngFor="let variable of variables; trackBy: variableKey" [value]="variable.name">
+            ${{ variable.name }}: {{ variable.inputType }}
+          </option>
+        </select>
+        <label class="rb-ws-label" for="nq-graphql-search-parameter">{{
+          'named-query-graphql-search-parameter' | i18next
+        }}</label
+        ><input
+          id="nq-graphql-search-parameter"
+          class="form-control"
+          [(ngModel)]="lookup.searchParameter"
+          (ngModelChange)="draftChange.emit()"
+        />
+      </ng-container>
+    </div>
+  </ng-container>
 </div>

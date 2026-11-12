@@ -21,6 +21,10 @@ describe('GraphQL editor presentation', () => {
       conditionLabels(draft, { 'metadata:/title': 'Project title' }, key => (key === 'op-contains' ? 'Contains' : key))
     ).toEqual({ condition_1: 'Project title contains' });
   });
+  it('uses resolved catalogue labels for selected response paths', () => {
+    expect(selectedResultFields(draft, [{ path: ['oid'], label: 'OID', type: 'text' }])
+      .find(field => field.path.join('.') === 'oid')?.label).toBe('OID');
+  });
   it('offers literal response aliases and excludes internal type names and __typename', () => {
     const fields = selectedResultFields(draft);
     expect(fields.some(field => JSON.stringify(field.path) === JSON.stringify(['metadata', 'label']))).toBeTrue();

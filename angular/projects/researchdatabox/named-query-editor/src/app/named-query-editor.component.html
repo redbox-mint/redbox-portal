@@ -123,9 +123,12 @@
       </li>
       <li>{{ 'admin-nav-records' | i18next }}</li>
       <li>
-        <button type="button" class="btn rb-admin-ghost" (click)="closeEditModal()" [disabled]="saving">
+        <a
+          [href]="brandingAndPortalUrl + '/admin/named-query'"
+          (click)="$event.preventDefault(); !saving && closeEditModal()"
+        >
           {{ 'named-query-list-title' | i18next }}
-        </button>
+        </a>
       </li>
       <li aria-current="page">{{ (isNew ? 'named-query-create-title' : draft.name) | i18next }}</li>
     </ol>
@@ -173,6 +176,17 @@
           (nameChange)="activeGraphqlBuffer.name = $event; draftChanged()"
           (useChange)="setGraphqlUse($event)"
         ></rb-named-query-basics>
+        <details *ngIf="!linkedSource" class="rb-admin-form-section">
+          <summary>{{ 'named-query-source' | i18next }}</summary>
+          <label class="rb-admin-field mt-2"
+            >{{ 'named-query-source' | i18next }}
+            <select class="form-select" [ngModel]="source" (ngModelChange)="changeSource($event)" [disabled]="saving">
+              <option value="database">{{ 'named-query-source-database' | i18next }}</option>
+              <option value="graphql">{{ 'named-query-source-graphql' | i18next }}</option>
+            </select>
+          </label>
+          <p class="rb-admin-hint">{{ 'named-query-source-buffers-help' | i18next }}</p>
+        </details>
       </div>
       <section id="nq-section-source" tabindex="-1" class="rb-admin-form-section" aria-labelledby="nq-source-title">
         <header class="rb-admin-form-section-header">
@@ -182,6 +196,7 @@
           </button>
         </header>
         <div class="rb-admin-form-section-body">
+          <p *ngIf="sourcePreparing" role="status">{{ 'nq-ux-preparing' | i18next }}</p>
           <ng-container *ngIf="linkedSource as linked; else handwrittenSource">
             <div *ngIf="linked.missing" class="alert alert-warning" role="status">
               <h3>{{ 'nq-ux-source-missing' | i18next }}</h3>
@@ -194,11 +209,16 @@
                 {{ 'nq-ux-mode-' + linked.mode | i18next }}
               </p>
               <p class="rb-admin-hint">
-                {{ 'nq-ux-updated' | i18next }}:
-                {{ linked.updatedAt ? (linked.updatedAt | date: 'medium') : ('nq-ux-not-recorded' | i18next)
-                }}<span *ngIf="linked.updatedBy">
-                  · {{ linked.updatedBy.displayName || linked.updatedBy.username }}</span
-                >
+                {{
+                  (linked.updatedBy ? 'nq-ux-updated-by' : 'nq-ux-updated-at')
+                    | i18next
+                      : {
+                          date: linked.updatedAt
+                            ? (linked.updatedAt | date: 'd MMM yyyy')
+                            : ('nq-ux-not-recorded' | i18next),
+                          user: linked.updatedBy?.displayName || linked.updatedBy?.username,
+                        }
+                }}
               </p>
               <a class="btn btn-outline-secondary" [href]="explorerUrl">{{ 'nq-ux-open-explorer' | i18next }}</a>
             </div>
@@ -252,17 +272,6 @@
             <ng-container *ngIf="schemaComponent && graphqlSdl"
               ><ng-container *ngComponentOutlet="schemaComponent; inputs: { sdl: graphqlSdl }"></ng-container
             ></ng-container>
-          </details>
-          <details class="mt-3">
-            <summary>{{ 'named-query-source' | i18next }}</summary>
-            <label class="rb-admin-field mt-2"
-              >{{ 'named-query-source' | i18next }}
-              <select class="form-select" [ngModel]="source" (ngModelChange)="changeSource($event)" [disabled]="saving">
-                <option value="database">{{ 'named-query-source-database' | i18next }}</option>
-                <option value="graphql">{{ 'named-query-source-graphql' | i18next }}</option>
-              </select>
-            </label>
-            <p class="rb-admin-hint">{{ 'named-query-source-buffers-help' | i18next }}</p>
           </details>
         </div>
       </section>
@@ -376,7 +385,7 @@
 }
 
 <section
-  *ngIf="isEditing"
+  *ngIf="isEditing && databaseWorkspaceOpened"
   [hidden]="source !== 'database'"
   class="nq-workspace card panel-style panel-default rb-ws"
   aria-labelledby="named-query-workspace-title"

@@ -1,3 +1,4 @@
+import { formatNamedQuerySort } from './named-query-sections.model';
 import { NamedQueryBasicsSectionComponent } from './named-query-basics-section.component';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
@@ -7,6 +8,13 @@ import { NamedQueryParametersSectionComponent } from './named-query-parameters-s
 import { NamedQueryLookupSectionComponent } from './named-query-lookup-section.component';
 
 describe('Shared named-query sections', () => {
+  it('uses one sentence-case sorting summary in both publishing workspaces', () => {
+    const labels = { title: 'Title', oid: 'OID' };
+    const text = (key: string) => key.endsWith('descending') ? 'Descending' : 'Ascending';
+    expect(formatNamedQuerySort([{ field: 'title', direction: 'ASC' }], labels, text)).toBe('Title, ascending');
+    expect(formatNamedQuerySort([{ field: 'oid', direction: 'DESC' }], labels, text)).toBe('OID, descending');
+    expect(formatNamedQuerySort([null], labels, text)).toBe('');
+  });
   it('keeps the short publishing basics and allows the full editor to retain descriptions', async () => {
     TestBed.configureTestingModule({
       imports: [NamedQueryBasicsSectionComponent],
@@ -20,8 +28,8 @@ describe('Shared named-query sections', () => {
     const fixture = TestBed.createComponent(NamedQueryBasicsSectionComponent);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('textarea')).toBeNull();
-    fixture.componentInstance.showDescription = true;
-    fixture.componentInstance.description = 'Existing description';
+    fixture.componentRef.setInput('showDescription', true);
+    fixture.componentRef.setInput('description', 'Existing description');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

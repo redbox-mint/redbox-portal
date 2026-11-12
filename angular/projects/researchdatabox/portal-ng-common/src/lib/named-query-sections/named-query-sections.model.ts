@@ -21,3 +21,23 @@ export interface NamedQueryBindingChange {
   variable: string;
   binding: GraphqlNamedQueryVariable;
 }
+
+/** One sentence-case sorting summary for explorer publication and named-query editing. */
+export function formatNamedQuerySort(
+  values: readonly unknown[],
+  labels: Record<string, string>,
+  text: (key: string) => string
+): string {
+  return values
+    .flatMap(value => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+      const sort = value as { field?: string; direction?: string };
+      const field = sort.field ?? '';
+      return [
+        (labels[field] ?? field) +
+          ', ' +
+          text(sort.direction === 'DESC' ? 'data-grids-descending' : 'data-grids-ascending').toLocaleLowerCase(),
+      ];
+    })
+    .join('; ');
+}

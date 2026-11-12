@@ -504,7 +504,10 @@ describe('NamedQueryEditorComponent', () => {
     spyOn(api, 'validate').and.resolveTo({ valid: true, source: 'graphql', diagnostics: [], capabilities: { lookup: false, diagnostics: [{ code: 'LOOKUP_MAPPING', field: 'graphql.mappings.title', reason: 'Provide a lookup label.', severity: 'warning', line: 0, column: 0 }] } });
     const preview = spyOn(api, 'preview'); const update = spyOn(api, 'update').and.resolveTo({ name: 'gql' });
     fixture.detectChanges(); await component.waitForInit(); await component.openQuery('gql'); await component.validateDraft(); fixture.detectChanges();
-    expect(component.canSave).toBeTrue(); expect(fixture.nativeElement.textContent).toContain('named-query-graphql-nonlookup'); expect(fixture.nativeElement.textContent).toContain('Provide a lookup label.');
+    expect(component.canSave).toBeTrue(); expect(fixture.nativeElement.textContent).toContain('nq-ux-checks-passed');
+    expect(component.capabilities?.lookup).toBeFalse();
+    expect(fixture.nativeElement.textContent).not.toContain('Provide a lookup label.');
+    expect(fixture.nativeElement.querySelector('.nq-workspace.rb-ws')).toBeNull();
     expect(preview).not.toHaveBeenCalled(); await component.save(); expect(update).toHaveBeenCalled();
   });
   it('keeps malformed GraphQL preview input blocked after a rendered binding default edit until corrected', async () => {
@@ -691,6 +694,7 @@ describe('NamedQueryEditorComponent', () => {
     fixture.detectChanges(); await component.waitForInit(); component.newQuery(); component.draft.name = 'mounted'; component.changeSource('graphql');
     Object.assign(component.activeGraphqlBuffer.graphql, graphqlDraft().graphql); component.draftChanged(); fixture.detectChanges();
     const editor = fixture.debugElement.query(By.directive(GraphqlDraftEditorComponent)).componentInstance as GraphqlDraftEditorComponent;
+    editor.tab = 'mappings'; fixture.detectChanges();
     editor.tab = 'variables'; fixture.detectChanges(); await fixture.whenStable();
     const path = fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent))
       .find(node => node.componentInstance.label === 'named-query-graphql-result-path')!.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
@@ -1509,8 +1513,8 @@ describe('NamedQueryEditorComponent', () => {
           recordType: null,
           recordTypeLabel: 'Research plans',
           mode: 'graphql',
-          updatedAt: null,
-          updatedBy: null,
+          updatedAt: '2026-11-11T12:00:00.000Z',
+          updatedBy: { username: 'admin', displayName: 'Local Admin' },
           missing: state === 'missing',
           changedSincePublished: state === 'changed',
         };
@@ -1525,11 +1529,20 @@ describe('NamedQueryEditorComponent', () => {
       expect(schema).not.toHaveBeenCalled();
       expect(source.textContent).not.toContain('graphql.variables');
       expect(source.textContent).not.toContain('Blocking error');
-      if (state === 'handwritten')
+      const crumbs = f.nativeElement.querySelectorAll('.nq-graphql-workspace .rb-admin-crumbs a');
+      expect(crumbs[1].getAttribute('href')).toContain('/admin/named-query');
+      expect(f.nativeElement.querySelector('.nq-graphql-workspace .rb-admin-crumbs button')).toBeNull();
+      expect(f.nativeElement.querySelector('.nq-workspace.rb-ws')).toBeNull();
+      expect(source.querySelector('select option[value="database"]')).toBeNull();
+      if (state === 'handwritten') {
         expect(source.querySelector('#nq-graphql-document')?.hasAttribute('readonly')).toBeFalse();
+        expect(f.nativeElement.querySelector('#nq-section-basics select option[value="database"]')).not.toBeNull();
+      }
       else {
         expect(source.querySelector('nq-graphql-draft-editor')).toBeNull();
         expect(source.querySelector('textarea')?.readOnly).toBeTrue();
+        expect(f.nativeElement.querySelector('#nq-section-basics select option[value="database"]')).toBeNull();
+        if (state !== 'missing') expect(source.textContent).toContain('nq-ux-updated-by');
       }
       if (state === 'missing') expect(source.textContent).toContain('nq-ux-source-missing-help');
       if (state === 'changed') expect(source.textContent).toContain('nq-ux-review-update');

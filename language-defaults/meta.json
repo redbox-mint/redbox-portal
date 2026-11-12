@@ -11882,5 +11882,13 @@
   "nq-ux-diagnostic-GRAPHQL_SCHEMA_UNAVAILABLE": {
     "category": "Named queries",
     "description": "The current schema could not be loaded. Your draft is kept; try again."
+  },
+  "nq-ux-updated-by": {
+    "category": "Named queries",
+    "description": "Updated {{date}} by {{user}}"
+  },
+  "nq-ux-updated-at": {
+    "category": "Named queries",
+    "description": "Updated {{date}}"
   }
 }

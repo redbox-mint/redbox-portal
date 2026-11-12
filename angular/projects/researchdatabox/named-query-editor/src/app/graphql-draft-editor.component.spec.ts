@@ -159,7 +159,34 @@ describe('detached GraphQL named-query editor', () => {
     fixture.detectChanges();
     expect(editor.tab).toBe('basics');
   });
+  it('mounts advanced forms on first visit and retains their invalid input after leaving', () => {
+    expect(fixture.nativeElement.querySelector('#nq-graphql-panel-mappings textarea')).toBeNull();
+    editor.tab = 'mappings';
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('#nq-graphql-panel-mappings textarea') as HTMLTextAreaElement;
+    input.value = '[unfinished';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.tab = 'document';
+    fixture.detectChanges();
+    editor.tab = 'mappings';
+    fixture.detectChanges();
+    expect(input.isConnected).toBeTrue();
+    expect(input.value).toBe('[unfinished');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+  });
+  it('reuses parsed variables until the document or selected operation changes', () => {
+    const variables = editor.variables;
+    expect(editor.variables).toBe(variables);
+    editor.setDocument('query A($one: String) { a } query B($two: Int) { b }');
+    editor.setOperationName('A');
+    expect(editor.variables.map(variable => variable.name)).toEqual(['one']);
+    editor.setOperationName('B');
+    expect(editor.variables.map(variable => variable.name)).toEqual(['two']);
+  });
   it('requires literal segment arrays without converting paths or swallowing null values', () => {
+    editor.tab = 'mappings';
+    fixture.detectChanges();
     const json = fixture.debugElement.query(By.directive(GraphqlJsonInputComponent))
       .componentInstance as GraphqlJsonInputComponent;
     const change = jasmine.createSpy('change');

@@ -4600,5 +4600,7 @@
   "nq-ux-diagnostic-UNSAFE_PATH": "Choose a valid result field. Paths must use literal property names.",
   "nq-ux-diagnostic-VARIABLE_OWNERSHIP": "Choose how each condition gets its value. Paging variables are managed by ReDBox.",
   "nq-ux-diagnostic-GRAPHQL_DISABLED": "Record queries are disabled. Ask an administrator to enable GraphQL.",
-  "nq-ux-diagnostic-GRAPHQL_SCHEMA_UNAVAILABLE": "The current schema could not be loaded. Your draft is kept; try again."
+  "nq-ux-diagnostic-GRAPHQL_SCHEMA_UNAVAILABLE": "The current schema could not be loaded. Your draft is kept; try again.",
+  "nq-ux-updated-by": "Updated {{date}} by {{user}}",
+  "nq-ux-updated-at": "Updated {{date}}"
 }

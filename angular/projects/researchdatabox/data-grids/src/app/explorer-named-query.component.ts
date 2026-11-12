@@ -18,6 +18,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
+  formatNamedQuerySort,
   AdminModalDirective,
   AdminSidePanelComponent,
   I18NextPipe,
@@ -225,19 +226,8 @@ export class ExplorerNamedQueryComponent implements OnInit, OnChanges, OnDestroy
     }
     if (variable.name === 'sort' && Array.isArray(variable.value))
       return (
-        variable.value
-          .map(value => {
-            if (!value || typeof value !== 'object' || Array.isArray(value)) return '';
-            const id = String(value['field']);
-            return (
-              (this.fieldLabels[id] ?? id) +
-              ', ' +
-              this.text(
-                value['direction'] === 'DESC' ? 'data-grids-descending' : 'data-grids-ascending'
-              ).toLocaleLowerCase()
-            );
-          })
-          .join('; ') || this.text('data-grids-default-order')
+        formatNamedQuerySort(variable.value, this.fieldLabels, key => this.text(key)) ||
+        this.text('data-grids-default-order')
       );
     const match = /^condition_(\d+)$/.exec(variable.name);
     const filter =

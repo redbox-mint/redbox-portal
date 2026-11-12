@@ -79,3 +79,20 @@ a.badge {
     grid-template-columns: 1fr;
   }
 }
+
+.nq-start-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.nq-start-modal .modal-header button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.rb-admin-segmented-field {
+  flex: 0 0 auto;
+}
+.rb-admin-segmented {
+  flex-wrap: nowrap;
+}

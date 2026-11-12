@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18NextPipe } from '../i18next.pipe';
 
 @Component({
   selector: 'rb-named-query-basics',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, I18NextPipe],
   styleUrls: ['./named-query-sections.scss'],
   template: ` <section class="rb-admin-form-section" aria-labelledby="nq-basics-title">

@@ -40,7 +40,15 @@ export class GraphqlDraftEditorComponent implements OnChanges {
   get tabs() {
     return this.advanced ? ['document', 'variables', 'mappings'] : ['basics', 'document', 'variables', 'mappings'];
   }
-  tab = 'basics';
+  readonly visitedTabs = new Set(['basics']);
+  private activeTab = 'basics';
+  get tab(): string {
+    return this.activeTab;
+  }
+  set tab(value: string) {
+    this.activeTab = value;
+    this.visitedTabs.add(value);
+  }
   readonly mappingTargets: Array<keyof GraphqlNamedQueryMappings> = [
     'oid',
     'title',
@@ -53,6 +61,7 @@ export class GraphqlDraftEditorComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['draft']) {
       this.invalid.clear();
+      this.visitedTabs.clear();
       this.tab = this.advanced ? 'document' : 'basics';
     }
   }
@@ -62,31 +71,43 @@ export class GraphqlDraftEditorComponent implements OnChanges {
   get operation() {
     return this.draft.graphql;
   }
-  get variables() {
+  private parsedDocument = '';
+  private parsedName?: string;
+  private parsedVariables: { name: string; inputType: string; required: boolean; hasDefault: boolean }[] = [];
+  private parsedNames: string[] = [];
+  private refreshDocument(): void {
+    if (this.parsedDocument === this.operation.document && this.parsedName === this.operation.operationName) return;
+    this.parsedDocument = this.operation.document;
+    this.parsedName = this.operation.operationName;
+    this.parsedVariables = [];
+    this.parsedNames = [];
     try {
-      const ast = getOperationAST(parse(this.operation.document, { maxTokens: 2000 }), this.operation.operationName);
-      return (ast?.variableDefinitions ?? []).map(variable => ({
+      const document = parse(this.operation.document, { maxTokens: 2000 });
+      const operation = getOperationAST(document, this.operation.operationName);
+      this.parsedVariables = (operation?.variableDefinitions ?? []).map(variable => ({
         name: variable.variable.name.value,
         inputType: print(variable.type),
         required: variable.type.kind === 'NonNullType',
         hasDefault: variable.defaultValue !== undefined,
       }));
+      this.parsedNames = document.definitions.flatMap(node =>
+        node.kind === 'OperationDefinition' && node.name ? [node.name.value] : []
+      );
     } catch {
-      return [];
+      /* Invalid documents stay editable without repeated parsing. */
     }
+  }
+  get variables() {
+    this.refreshDocument();
+    return this.parsedVariables;
   }
   get staleVariables(): string[] {
     const declared = new Set(this.variables.map(variable => variable.name));
     return Object.keys(this.operation.variables).filter(name => !declared.has(name));
   }
   get operationNames(): string[] {
-    try {
-      return parse(this.operation.document, { maxTokens: 2000 }).definitions.flatMap(node =>
-        node.kind === 'OperationDefinition' && node.name ? [node.name.value] : []
-      );
-    } catch {
-      return [];
-    }
+    this.refreshDocument();
+    return this.parsedNames;
   }
   ownership(name: string): string {
     if ([this.operation.lookup?.firstVariable, this.operation.lookup?.afterVariable].includes(name)) return 'server';

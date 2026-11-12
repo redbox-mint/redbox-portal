@@ -14,7 +14,7 @@
     <div class="modal-content">
       <header class="modal-header">
         <h2 id="nq-start-title" class="modal-title h4">
-          {{ (replacing ? 'nq-ux-change-source' : 'nq-ux-how-start') | i18next }}
+          {{ (replacing ? 'nq-ux-change-source' : 'named-query-create-button') | i18next }}
         </h2>
         <button
           type="button"
@@ -51,8 +51,8 @@
                 (ngModelChange)="filtersChanged()"
                 [disabled]="busy"
             /></label>
-            <div class="rb-admin-field">
-              <span id="nq-mode-label">{{ 'nq-ux-built-with' | i18next }}</span>
+            <div class="rb-admin-field rb-admin-segmented-field">
+              <span id="nq-mode-label" class="rb-admin-filter-label">{{ 'nq-ux-built-with' | i18next }}</span>
               <div class="rb-admin-segmented" role="group" aria-labelledby="nq-mode-label">
                 <button
                   *ngFor="let kind of ['', 'visual', 'graphql']"

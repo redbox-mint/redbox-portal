@@ -56,6 +56,9 @@ describe('Saved query chooser', () => {
     await f.whenStable();
     f.detectChanges();
     const c = f.componentInstance;
+    expect(f.nativeElement.querySelector('#nq-start-title').textContent.trim()).toBe('named-query-create-button');
+    expect(f.nativeElement.querySelector('legend').textContent.trim()).toBe('nq-ux-how-start');
+    expect(f.nativeElement.querySelector('.rb-admin-segmented-field .rb-admin-filter-label')).not.toBeNull();
     expect(c.start).toBe('saved');
     expect(c.selected).toBeNull();
     const emit = spyOn(c.chosen, 'emit');
