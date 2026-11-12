@@ -432,6 +432,16 @@ jobs:
           name: Install npm dependencies
           command: npm ci --ignore-scripts --strict-peer-deps
       - run:
+          name: Compile server dependencies for browser PDF tests
+          command: |
+            npm run compile:raido
+            npm run compile:rva
+            npm run compile:sails-ng-common
+            npm run compile:agenda-sqs
+            npm run compile:core
+            npm run compile:dev-tools
+            npm run compile:pdfgen-hook
+      - run:
           <<: *installCodecov
       - run:
           name: Setup test directories
