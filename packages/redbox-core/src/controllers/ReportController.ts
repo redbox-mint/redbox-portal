@@ -1,6 +1,21 @@
 import { Controllers as controllers } from '../CoreController';
 import { BrandingModel, ReportModel } from '../model';
 import { from } from 'rxjs';
+import { GraphqlReportError } from '../services/reports/graphql';
+import { GraphqlNamedQueryExecutionError, namedQueryRequestCaller } from '../services/named-query/graphql-execution';
+import { GraphqlNamedQueryInputError } from '../services/named-query/graphql-input';
+import { GraphqlNamedQueryValidationError } from '../services/named-query/graphql-validation';
+
+function reportErrorMessage(error: unknown): string {
+  if (error instanceof GraphqlReportError || error instanceof GraphqlNamedQueryExecutionError || error instanceof GraphqlNamedQueryInputError || error instanceof GraphqlNamedQueryValidationError) return error.code;
+  return error instanceof Error ? error.message : String(error);
+}
+
+function reportErrorResponse(error: unknown, message: string) {
+  const status = typeof error === 'object' && error !== null && 'status' in error ? Number(error.status) : 200;
+  return { status, data: { status: false, message },
+    ...(status >= 400 ? { displayErrors: [{ code: message, status: String(status) }] } : {}) };
+}
 
 
 export namespace Controllers {
@@ -61,7 +76,7 @@ export namespace Controllers {
       this.updateChronicle(req, {reportName: name, reportPagingStart: start, reportPagingRows: rows});
 
       // TODO: Passing the full req object to the service layer is not ideal. We should refactor this to only pass the necessary parameters to avoid tight coupling between the controller and service layers.
-      const response = from(ReportsService.getResults(brand, name, req, start, rows, req.user));
+      const response = from(ReportsService.getResults(brand, name, req, start, rows, namedQueryRequestCaller(req, brand), req.user));
       return response.subscribe((responseObject: unknown) => {
         if (responseObject) {
           const response = responseObject as globalThis.Record<string, unknown>;
@@ -88,10 +103,10 @@ export namespace Controllers {
           });
         }
       }, (error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error);
-        // Keep the existing response; the error is only recorded in the request chronicle.
+        const message = reportErrorMessage(error);
+        // GraphQL failures carry safe codes and explicit status; legacy errors retain their status.
         this.updateChronicle(req, {}, [error]);
-        this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
+        this.sendResp(req, res, { ...reportErrorResponse(error, message), headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       });
     }
 
@@ -103,19 +118,20 @@ export namespace Controllers {
 
         this.updateChronicle(req, {reportName: name});
 
-        const results = await ReportsService.getCSVResult(brand, name, req, undefined, undefined, req.user);
+        const results = await ReportsService.getCSVResult(brand, name, req, 0, undefined, namedQueryRequestCaller(req, brand), req.user);
         const fileName = name + '.csv';
         this.updateChronicle(req, {reportDownloadFilename: fileName});
 
+        res.set('Cache-Control', 'no-store');
         res.attachment(fileName);
         res.set('Content-Type', 'text/csv');
         res.status(200).send(results);
         return res
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        // Keep the existing response; the error is only recorded in the request chronicle.
+        const message = reportErrorMessage(error);
+        // GraphQL failures carry safe codes and explicit status; legacy errors retain their status.
         this.updateChronicle(req, {}, [error]);
-        return this.sendResp(req, res, { data: { status: false, message }, headers: this.getNoCacheHeaders() });
+        return this.sendResp(req, res, { ...reportErrorResponse(error, message), headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       }
     }
 
@@ -175,7 +191,7 @@ export namespace Controllers {
         const brand = BrandingService.getBrand(req.session.branding as string);
         const params = { param: (name: string) => req.query?.[name] };
         return this.sendResp(req, res, { data: await ReportsService.previewConfig(brand, req.body, params, {
-          portal: String(req.param('portal') ?? ''), caller: { brand, user: req.user } as unknown as import('../services/FormsService').FormRecordAccessContext
+          graphqlCaller: namedQueryRequestCaller(req, brand), portal: String(req.session.portal ?? ''), caller: { brand, user: req.user } as unknown as import('../services/FormsService').FormRecordAccessContext
         }), headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
       } catch (error: unknown) {
         return this.sendReportConfigError(req, res, error);
@@ -190,8 +206,8 @@ export namespace Controllers {
     private sendReportConfigError(req: Sails.Req, res: Sails.Res, error: unknown) {
       sails.log.error(error);
       const status = typeof error === 'object' && error !== null && 'status' in error ? Number((error as { status: number }).status) : 500;
-      const message = error instanceof Error ? error.message : String(error);
-      return this.sendResp(req, res, { status, data: { status: false, message }, headers: this.getNoCacheHeaders() });
+      const message = reportErrorMessage(error);
+      return this.sendResp(req, res, { status, data: { status: false, message }, displayErrors: [{code: message, status: String(status)}], headers: { ...this.getNoCacheHeaders(), 'Cache-Control': 'no-store' } });
     }
 
     /**

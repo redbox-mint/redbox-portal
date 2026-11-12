@@ -21,7 +21,7 @@ import { Observable, firstValueFrom } from 'rxjs';
 import { ListAPIResponse } from '../model/ListAPIResponse';
 import { ReportConfig, ReportFilterType, ReportSource, ReportResult } from '../model/config/ReportConfig';
 import type { ReportDefinition } from '../config/report.config';
-import { NamedQueryConfig } from './NamedQueryService';
+import { NamedQueryConfig, type ResolvedNamedQueryConfig } from './NamedQueryService';
 import { ReportModel } from '../model/storage/ReportModel';
 import type { ReportWaterlineModel } from '../waterline-models/RBReport';
 import { SearchService } from '../SearchService';
@@ -57,6 +57,9 @@ import {
   reportTemplateAdvice,
   displayedReportDiagnostics,
 } from '../utilities/ReportConfigAssistance';
+
+import type { ReadCaller } from '../record-graphql/read-record';
+import { graphqlReportPage, graphqlReportCsv, assertReportQueryVersion, describeGraphqlReport, graphqlReportLimits } from './reports/graphql';
 
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
@@ -108,7 +111,7 @@ export type ReportConfigDto = {
   name: string;
   title: string;
   reportSource: 'database' | 'solr';
-  databaseQuery: { queryName: string } | null;
+  databaseQuery: { queryName: string; queryVersion?: string } | null;
   solrQuery: { baseQuery: string; searchCore: string } | null;
   filter: ReportConfigFilterDto[];
   columns: ReportConfigColumnDto[];
@@ -343,8 +346,10 @@ export namespace Services {
       guidance?: NamedQuerySchemaSelection
     ): Promise<ReportNamedQueryDescription> {
       checkDraftBudget({ name, property, multivalue, guidance });
+      const saved = await NamedQueryService.getNamedQueryConfig(brand, name);
+      if (saved?.source === 'graphql') return describeGraphqlReport(brand, portal, caller, saved, property, multivalue);
       const description = await NamedQueryEditorService.describeSaved(brand, portal, caller, name, guidance);
-      if (description.source === 'graphql') throw new Error('GraphQL named queries do not support reports.');
+      if (description.source === 'graphql') throw new ReportConfigServiceError(409, 'REPORT_QUERY_CHANGED');
       return {
         ...description,
         templateContexts: {
@@ -385,9 +390,19 @@ export namespace Services {
             ),
           ],
         };
-      if (saved.source === 'graphql') return { valid: false, diagnostics: [reportDiagnostic('UNSUPPORTED_QUERY_SOURCE', 'databaseQuery.queryName', 'GraphQL named queries do not support reports or CSV exports.', 'error')] };
+      if (saved.source === 'graphql') {
+        const description = await describeGraphqlReport(brand, portal, caller, saved);
+        const versionMatches = normalized.databaseQuery!.queryVersion === description.queryVersion;
+        if (!versionMatches) diagnostics.push(reportDiagnostic('REPORT_QUERY_CHANGED', 'databaseQuery.queryVersion', 'report-graphql-query-changed', 'error'));
+        diagnostics.push(...description.diagnostics);
+        return { valid: description.valid && versionMatches, diagnostics: displayedReportDiagnostics(diagnostics) };
+      }
+      if (normalized.databaseQuery?.queryVersion) {
+        diagnostics.push(reportDiagnostic('REPORT_QUERY_CHANGED', 'databaseQuery.queryVersion', 'report-graphql-query-changed', 'error'));
+        return { valid: false, diagnostics: displayedReportDiagnostics(diagnostics) };
+      }
       const description = await NamedQueryEditorService.describeSaved(brand, portal, caller, queryName);
-      if (description.source === 'graphql') throw new Error('GraphQL named queries do not support reports.');
+      if (description.source === 'graphql') throw new ReportConfigServiceError(409, 'REPORT_QUERY_CHANGED');
       diagnostics.push(
         ...reportBindingAdvice(normalized, description, Object.keys(saved.resultObjectMapping ?? {}).length > 0)
       );
@@ -398,7 +413,7 @@ export namespace Services {
       brand: BrandingModel,
       config: ReportConfigDto,
       req: Sails.ReqParamProvider,
-      context?: { portal: string; caller: FormRecordAccessContext }
+      context?: { portal: string; caller: FormRecordAccessContext; graphqlCaller?: ReadCaller }
     ): Promise<ReportConfigPreviewDto> {
       checkDraftBudget(config);
       const { dto: normalized, namedQuery } = await this.validateMutableConfig(brand, config, false);
@@ -407,7 +422,7 @@ export namespace Services {
       if (!context?.caller?.user?.username || String(context.caller.brand?.id) !== String(brand.id))
         throw new NamedQueryAssistanceError('FORBIDDEN', 403);
       let budget = new NamedQueryExecutionBudget();
-      const deadlineEnforced = !previewDeadlineIssue({ ...namedQuery });
+      const deadlineEnforced = namedQuery.source === 'graphql' || !previewDeadlineIssue({ ...namedQuery });
       const templateDiagnostics = budget.run(() =>
         normalized.columns.flatMap((column, i) =>
           (['template', 'exportTemplate'] as const).flatMap(key =>
@@ -435,6 +450,8 @@ export namespace Services {
               ),
             ],
           }
+        : namedQuery.source === 'graphql'
+          ? await graphqlReportPage(brand, normalized, namedQuery, paramMap, undefined, 25, context.graphqlCaller, budget)
         : !deadlineEnforced
           ? await this.previewLegacyReportQuery(brand, namedQuery, paramMap, context.caller.user)
           : await NamedQueryEditorService.previewDraft(
@@ -447,8 +464,7 @@ export namespace Services {
               },
               budget
             );
-      if (('source' in sample && sample.source === 'graphql') || sample.summary.numFound === null)
-        throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
+
       // Legacy Waterline/hook execution has no enforceable DB deadline. Start the
       // bounded rendering window after it returns, without claiming to cancel it.
       if (!deadlineEnforced) budget = new NamedQueryExecutionBudget();
@@ -539,7 +555,7 @@ export namespace Services {
         // Relation filters authorize declared related-record reads as the caller.
         user
       );
-      if (result.source === 'graphql') throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
+      if (result.source === 'graphql') throw new ReportConfigServiceError(409, 'REPORT_QUERY_CHANGED');
       const truncationReasons: Array<'rows' | 'bytes'> =
         result.summary.numFound > NAMED_QUERY_PREVIEW_LIMITS.rows ? ['rows'] : [];
       return {
@@ -551,7 +567,7 @@ export namespace Services {
       };
     }
 
-    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: NamedQueryConfig }> {
+    private async validateMutableConfig(brand: BrandingModel, config: ReportConfigDto, isUpdate: boolean): Promise<{ dto: ReportConfigDto; namedQuery: ResolvedNamedQueryConfig }> {
       const normalized = this.normalizeReportConfigDto(config);
       if (_.isEmpty(normalized.name) || !/^[A-Za-z0-9_-]+$/.test(normalized.name)) {
         throw new ReportConfigServiceError(400, 'Report name is required and must be URL safe');
@@ -569,7 +585,7 @@ export namespace Services {
       if (!namedQuery) {
         throw new ReportConfigServiceError(400, `Named query '${normalized.databaseQuery.queryName}' not found`);
       }
-      if (namedQuery.source === 'graphql') throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
+      if (namedQuery.source === 'graphql' || normalized.databaseQuery.queryVersion) assertReportQueryVersion(normalized, namedQuery);
       for (const column of normalized.columns) {
         if (_.isEmpty(column.label) || _.isEmpty(column.property)) {
           throw new ReportConfigServiceError(400, 'Report columns require label and property');
@@ -657,7 +673,7 @@ export namespace Services {
       return params;
     }
 
-    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10, user?: Sails.Req['user']) {
+    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10, caller?: ReadCaller, user: Sails.Req['user'] = caller?.user) {
       const reportModel = this.getReportModel();
       const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
         key: brand.id + "_" + name
@@ -676,7 +692,12 @@ export namespace Services {
         if (!namedQueryConfig) {
           throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
         }
-        if (namedQueryConfig.source === 'graphql') throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
+        if (report.databaseQuery.queryVersion) assertReportQueryVersion(report, namedQueryConfig);
+        if (namedQueryConfig.source === 'graphql') {
+          if (start !== 0) throw new ReportConfigServiceError(400, 'REPORT_OFFSET_UNSUPPORTED');
+          const page = await graphqlReportPage(brand, report, namedQueryConfig, this.buildNamedQueryParamMap(req, report), req.param('cursor'), rows, caller);
+          return { total: null, pageNum: 1, recordsPerPage: page.records.length, records: page.records, pagination: page.pagination };
+        }
         const paramMap = this.buildNamedQueryParamMap(req, report)
         const dbResult = await NamedQueryService.performNamedQueryFromConfig(this.withReportSort(namedQueryConfig, report, req), paramMap, brand, start, rows, user);
         return this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
@@ -782,7 +803,7 @@ export namespace Services {
       return legacyReport;
     }
 
-    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000, user?: Sails.Req['user']) {
+    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000, caller?: ReadCaller, user: Sails.Req['user'] = caller?.user) {
       const reportModel = this.getReportModel();
       let report: ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
         key: brand.id + "_" + name
@@ -801,7 +822,12 @@ export namespace Services {
         if (!namedQueryConfig) {
           throw new Error(`Named query '${report.databaseQuery.queryName}' not found`);
         }
-        if (namedQueryConfig.source === 'graphql') throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
+        if (report.databaseQuery.queryVersion) assertReportQueryVersion(report, namedQueryConfig);
+        if (namedQueryConfig.source === 'graphql') {
+          if (start !== 0 || req.param('cursor')) throw new ReportConfigServiceError(400, 'REPORT_OFFSET_UNSUPPORTED');
+          return graphqlReportCsv(brand, report, namedQueryConfig, this.buildNamedQueryParamMap(req, report), caller, records =>
+            stringify([this.getCSVHeaderRow(report), ...this.getDataRows(report, records, this.buildOptTemplateData(req))]));
+        }
         const paramMap = this.buildNamedQueryParamMap(req, report);
         const dbResult = await NamedQueryService.performNamedQueryFromConfig(this.withReportSort(namedQueryConfig, report, req), paramMap, brand, start, rows, user);
         result = this.getTranslateDatabaseResultToReportResult(dbResult as unknown as ListAPIResponse<Record<string, unknown>>, report);
@@ -1081,15 +1107,17 @@ export namespace Services {
       const source = report.reportSource === ReportSource.database ? ReportSource.database : ReportSource.solr;
       const query = source === ReportSource.database && report.databaseQuery
         ? await NamedQueryService.getNamedQueryConfig(brand, report.databaseQuery.queryName) : undefined;
-      if (query?.source === 'graphql') throw new ReportConfigServiceError(400, 'GraphQL named queries do not support reports or CSV exports');
-      const fields = reportSortFields(report, query ?? undefined,
+      const graphql = query?.source === 'graphql';
+      const fields = reportSortFields(report, graphql ? undefined : query ?? undefined,
         report.solrQuery ? sails.config.solr?.cores[report.solrQuery.searchCore]?.schema : undefined);
       // Deliberate allowlist: report viewers never receive query bodies or connection details.
       return Object.assign(new ReportDto(), {
         name: report.name, title: report.title, filter: report.filter,
         reportSource: source,
+        querySource: graphql ? 'graphql' : source,
+        ...(graphql ? { exportMaxRows: graphqlReportLimits().maxRows } : {}),
         databaseQuery: source === ReportSource.database && report.databaseQuery ? { queryName: report.databaseQuery.queryName } : null,
-        columns: report.columns.map(column => ({ ...column, sortable: fields.has(column.property) }))
+        columns: report.columns.map(column => ({ ...column, sortable: !graphql && fields.has(column.property) }))
       });
     }
 

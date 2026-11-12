@@ -13,6 +13,8 @@ export class ReportDto {
   title: string;
   name: string;
   reportSource?: 'database' | 'solr';
+  querySource?: 'database' | 'graphql' | 'solr';
+  exportMaxRows?: number;
   databaseQuery?: { queryName: string } | null;
   filter: ReportFilterDto[];
   columns: RecordPropViewMetaDto[];
@@ -48,6 +50,7 @@ export interface ReportConfigColumnDto {
 
 export interface ReportConfigDatabaseQueryDto {
   queryName: string;
+  queryVersion?: string;
 }
 
 export interface ReportConfigSolrQueryDto {
@@ -97,7 +100,11 @@ export interface ReportConfigValidation {
 }
 
 /** Extends the saved-query DTO; property/multivalue select an ephemeral column context. */
-export interface ReportNamedQueryDescription extends NamedQueryDescription {
+export interface ReportNamedQueryDescription extends Omit<NamedQueryDescription, 'source'> {
+  source?: 'database' | 'graphql';
+  queryVersion?: string;
+  sourceSavedQuery?: { id: string; name: string };
+  sourceExplorerUrl?: string;
   templateContexts: { display: FieldDescription; csv: FieldDescription };
 }
 /**
@@ -105,4 +112,5 @@ export interface ReportNamedQueryDescription extends NamedQueryDescription {
  */
 export interface ReportResultDto extends RecordPageDto {
   recordsPerPage: number;
+  pagination?: { mode: 'cursor'; hasNextPage: boolean; nextCursor: string | null; start: number };
 }

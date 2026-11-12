@@ -25,6 +25,7 @@ export interface ReportColumnConfig {
 
 export interface ReportDatabaseQuery {
     queryName: string;
+    queryVersion?: string;
 }
 
 export interface ReportSolrQuery {

@@ -7,12 +7,15 @@ export interface RecordGraphqlConfig {
   maxVariants: number;
   /** Shared across instances. Required for collection cursors; never exposed in discovery. */
   cursorSecret?: string;
+  /** Hard bounds for complete GraphQL report CSV exports. */
+  reportExport?: { maxRows: number; maxPages: number; timeoutMs: number; maxBytes: number };
 }
 
 export const recordGraphql: RecordGraphqlConfig = {
   enabled: false,
   cacheEntries: 16,
   maxVariants: 100,
+  reportExport: { maxRows: 10000, maxPages: 400, timeoutMs: 30000, maxBytes: 16777216 },
 };
 
 export function validateRecordGraphqlConfig(value: RecordGraphqlConfig): void {

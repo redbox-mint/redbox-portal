@@ -52,6 +52,6 @@ export interface RecordPropViewMetaDto {
  */
 export interface RecordPageDto {
   records: unknown[];
-  total: number;
+  total: number | null;
   pageNum: number;
 }

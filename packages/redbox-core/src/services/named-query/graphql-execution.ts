@@ -77,7 +77,8 @@ export async function executeGraphqlNamedQuery(
   rows: number | undefined,
   caller?: ReadCaller,
   budget = new NamedQueryExecutionBudget(QUERY_LIMITS.timeoutMs),
-  transport = true
+  transport = true,
+  continuation?: { after: string | null; cursor: (value: string | null) => void }
 ): Promise<GraphqlNamedQueryResult<GraphqlNamedQueryRecord>> {
   if (!completeGraphqlCaller(caller, brand)) throw new GraphqlNamedQueryExecutionError('GRAPHQL_CONTEXT_REQUIRED', 401);
   // No offset traversal, fractional bounds or operation-default cursors are allowed.
@@ -108,10 +109,11 @@ export async function executeGraphqlNamedQuery(
     const variables = budget.run(() => bindGraphqlNamedQuery(prepared, parameters, transport));
     const config = prepared.definition.graphql;
     const page = config.lookup;
-    if (!prepared.validation.capabilities?.lookup || !page)
+    const reportCompatible = continuation && prepared.validation.capabilities?.diagnostics.every(item => item.code === 'LOOKUP_SEARCH_BINDING');
+    if ((!prepared.validation.capabilities?.lookup && !reportCompatible) || !page)
       throw new GraphqlNamedQueryExecutionError('GRAPHQL_LOOKUP_UNSUPPORTED');
     variables[page.firstVariable] = first;
-    variables[page.afterVariable] = null;
+    variables[page.afterVariable] = continuation?.after ?? null;
     const body = { query: config.document, operationName: config.operationName, variables };
     if (boundedJsonBytes(body, QUERY_LIMITS.bytes) > QUERY_LIMITS.bytes)
       throw new GraphqlNamedQueryExecutionError('QUERY_LIMIT', 413);
@@ -157,6 +159,10 @@ export async function executeGraphqlNamedQuery(
       const cursor = graphqlPath(data, page.endCursorPath);
       if (hasNextPage ? typeof cursor !== 'string' || !cursor : cursor !== null)
         throw new GraphqlNamedQueryExecutionError('GRAPHQL_RESULT_INVALID');
+    }
+    if (continuation) {
+      if (!page.endCursorPath) throw new GraphqlNamedQueryExecutionError('GRAPHQL_REPORT_PAGING_REQUIRED');
+      continuation.cursor(graphqlPath(data, page.endCursorPath) as string | null);
     }
     const records = list.map(item => {
       if (!object(item)) throw new GraphqlNamedQueryExecutionError('GRAPHQL_ROW_INVALID');
