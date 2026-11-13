@@ -50,6 +50,12 @@ function withNestedValue(value: unknown, parts: string[], nextValue: unknown): R
   return root;
 }
 
+function isEmptyFillTarget(value: unknown): boolean {
+  if (value === undefined || value === null || value === '') return true;
+  if (Array.isArray(value)) return value.length === 0;
+  return typeof value === 'object' && Object.keys(value).length === 0;
+}
+
 interface InitialValueChange {
   control: AbstractControl;
   fieldId: string;
@@ -123,7 +129,8 @@ export class GenerationPatchApplierService {
 
     for (const item of items) {
       const target = this.resolvePatchTarget(form, executionSnapshot, item.metadataPointer);
-      if (!target || target.control.disabled || !isEqual(target.control.value, target.expectedValue)) {
+      if (!target || target.control.disabled || !isEqual(target.control.value, target.expectedValue) ||
+        (item.origin === 'generation' && !isEmptyFillTarget(target.control.value))) {
         conflictFieldIds.push(item.fieldId);
         continue;
       }

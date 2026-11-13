@@ -20,6 +20,7 @@ describe('GenerationSidePanelComponent', () => {
   let api: jasmine.SpyObj<GenerationApiService>;
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
   let applier: jasmine.SpyObj<GenerationPatchApplierService>;
+  let provenance: jasmine.SpyObj<GenerationProvenanceStoreService>;
   let saveSuccess$: Subject<ReturnType<typeof createFormSaveSuccessEvent>>;
 
   const question: GenerationQuestion = {
@@ -58,7 +59,7 @@ describe('GenerationSidePanelComponent', () => {
     )) as typeof eventBus.select$);
     applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
     applier.apply.and.returnValue({ changedFieldIds: [], conflictFieldIds: [] });
-    const provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>(
+    provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>(
       'GenerationProvenanceStoreService',
       ['clear', 'setPending', 'markReviewed', 'markEdited', 'load'],
       { byPointer: signal({}) },
@@ -245,6 +246,28 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.effectiveSession()).toBeNull();
     expect(component.documents()).toEqual([]);
   });
+  it('creates pending provenance only for applied fields while retaining the original commit candidate', async () => {
+    const patch = {
+      runId: 'provenance-run', candidateDigest: 'original-digest', baseTargetDigest: 'base',
+      items: ['applied', 'conflicted'].map((fieldId) => ({
+        fieldId, metadataPointer: `/${fieldId}`, value: `Generated ${fieldId}`, operation: 'fill' as const,
+        valueHash: `hash-${fieldId}`, groundingState: 'sourceBacked' as const,
+        reviewRequired: false, rationale: 'Evidence', evidence: [],
+      })),
+    };
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    component.run.set(run(patch.runId, 'draft', []));
+    applier.apply.and.returnValue({ changedFieldIds: ['applied'], conflictFieldIds: ['conflicted'] });
+    api.execute.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch });
+
+    await component.generate();
+
+    expect(provenance.setPending).toHaveBeenCalledOnceWith({ ...patch, items: [patch.items[0]] });
+    expect(component.candidate()).toBe(patch);
+    expect(component.candidate()?.candidateDigest).toBe('original-digest');
+    expect(component.conflicts()).toEqual(['conflicted']);
+  });
+
   it('applies a candidate returned directly by a fast execution', async () => {
     const form = component.form();
     if (!form) throw new Error('Expected a test form');

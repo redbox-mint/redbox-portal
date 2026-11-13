@@ -487,7 +487,8 @@ export class GenerationSidePanelComponent implements OnDestroy {
     );
     this.candidate.set(candidate);
     this.conflicts.set(result.conflictFieldIds);
-    this.provenance.setPending(candidate);
+    const conflicts = new Set(result.conflictFieldIds);
+    this.provenance.setPending({ ...candidate, items: candidate.items.filter((item) => !conflicts.has(item.fieldId)) });
     this.store.dispatch(GenerationActions.patchApplied({ candidate, conflictFieldIds: result.conflictFieldIds }));
   }
 

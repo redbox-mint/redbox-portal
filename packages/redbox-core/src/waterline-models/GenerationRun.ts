@@ -67,6 +67,7 @@ export class GenerationRunClass {
   @Attr({ type: 'string' }) public errorCode?: string;
   @Attr({ type: 'string' }) public errorSummary?: string;
   @Attr({ type: 'boolean', defaultsTo: false }) public retryable!: boolean;
+  @Attr({ type: 'boolean', defaultsTo: false }) public admissionPending!: boolean;
   @Attr({ type: 'string' }) public queuedAt?: string;
   @Attr({ type: 'string' }) public startedAt?: string;
   @Attr({ type: 'string' }) public completedAt?: string;
@@ -87,7 +88,7 @@ export interface GenerationRunAttributes extends Sails.WaterlineAttributes {
   phase: GenerationRunPhase; attemptCount: number; queueJobId?: string; cancelRequestedAt?: string; inputDigest?: string;
   candidateDigest?: string; candidateSummary?: Record<string, number>; requestedProvider?: string; requestedModel?: string;
   actualProvider?: string; actualModel?: string; routerMetadata?: Record<string, unknown>; usage?: Record<string, number>;
-  errorCode?: string; errorSummary?: string; retryable: boolean; queuedAt?: string; startedAt?: string; completedAt?: string;
+  errorCode?: string; errorSummary?: string; retryable: boolean; admissionPending?: boolean; queuedAt?: string; startedAt?: string; completedAt?: string;
   committedAt?: string; commitToken?: string; commitLeaseExpiresAt?: string; commitStartedAt?: string;
   commitReviewedFieldIds?: string[]; lastHeartbeatAt?: string; artifactExpiresAt: string; diagnosticRetentionDays: number;
 }

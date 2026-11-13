@@ -78,7 +78,6 @@ export namespace Services {
       if (!targetFormName) {
         throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Generation target form is unavailable');
       }
-      await this.assertLimits(input.actor);
       const expiresAt = new Date(Date.now() + sails.config.generation.artifacts.operationalExpiryMinutes * 60_000).toISOString();
       const run = await GenerationRun.create({
         brandId: input.actor.brandId,
@@ -102,6 +101,13 @@ export namespace Services {
         artifactExpiresAt: expiresAt,
         diagnosticRetentionDays: sails.config.generation.artifacts.diagnosticRetentionDays,
       }).fetch();
+      // Reserve the draft before counting, so concurrent admissions see each other.
+      try {
+        await this.assertLimits(input.actor);
+      } catch (error) {
+        await GenerationRun.destroyOne({ id: run.id, brandId: input.actor.brandId, status: 'draft', attemptCount: 0 });
+        throw error;
+      }
       const contextService = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
       const defaults = contextService.buildQuestionDefaults(authorized.profileVersion.definition, authorized.source?.metadata ?? {});
       const questions: GenerationQuestion[] = authorized.profileVersion.definition.questions.map((question) => ({
@@ -230,80 +236,82 @@ export namespace Services {
       if (run.status === 'failed' && run.attemptCount >= sails.config.generation.provider.maxRetries + 1) {
         throw new GenerationError('GENERATION_INVALID_STATE', 'Generation retry limit has been reached');
       }
-      if (run.targetDescriptor.recordType !== input.targetForm.recordType || run.targetDescriptor.formName !== input.targetForm.formName) {
-        throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Generation target does not match this creation intent');
-      }
-      const profile = await GenerationProfileVersion.findOne({ id: run.profileVersionId, brandId: input.actor.brandId });
-      if (!profile) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Pinned generation profile is unavailable');
-      await this.assertSourceAccess(input.actor, run);
-      const artifact = await GenerationRunArtifact.findOne({ brandId: input.actor.brandId, runId: run.id });
-      if (!artifact || Date.parse(artifact.expiresAt) <= Date.now()) throw new GenerationError('GENERATION_ARTIFACT_EXPIRED', 'Generation context expired');
-      const crypto = requireService<CryptoLike>('generationcryptoservice', ['encrypt', 'decrypt']);
-      const existing = await crypto.decrypt<GenerationArtifactPayload & { questions?: GenerationQuestion[] }>(input.actor.brandId, run.id, envelopeFromArtifact(artifact));
-      if (input.sourceOid !== undefined && input.sourceOid !== (run.sourceRefs[0]?.oid ?? null)) {
-        if (input.sourceOid !== null && (typeof input.sourceOid !== 'string' || !input.sourceOid.trim())) {
-          throw new GenerationError('GENERATION_REQUEST_INVALID', 'Source selection is invalid');
+      return this.withRetryAdmission(input.actor, run, async () => {
+        if (run.targetDescriptor.recordType !== input.targetForm.recordType || run.targetDescriptor.formName !== input.targetForm.formName) {
+          throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Generation target does not match this creation intent');
         }
-        const binding = await GenerationBinding.findOne({ id: run.bindingId, brandId: input.actor.brandId });
-        if (!binding) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Generation binding is unavailable');
-        const bindings = requireService<BindingLike>('generationbindingservice', ['authorizeLaunch', 'buildCompletionValues']);
-        const selected = await bindings.authorizeLaunch({
-          actor: input.actor, brand: input.brand, user: input.user, bindingKey: binding.key,
-          ...(input.sourceOid ? { sourceOid: input.sourceOid } : {}),
-        });
-        if (selected.profileVersion.id !== run.profileVersionId) {
-          throw new GenerationError('GENERATION_INVALID_STATE', 'The generation profile changed; start a new run');
+        const profile = await GenerationProfileVersion.findOne({ id: run.profileVersionId, brandId: input.actor.brandId });
+        if (!profile) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Pinned generation profile is unavailable');
+        await this.assertSourceAccess(input.actor, run);
+        const artifact = await GenerationRunArtifact.findOne({ brandId: input.actor.brandId, runId: run.id });
+        if (!artifact || Date.parse(artifact.expiresAt) <= Date.now()) throw new GenerationError('GENERATION_ARTIFACT_EXPIRED', 'Generation context expired');
+        const crypto = requireService<CryptoLike>('generationcryptoservice', ['encrypt', 'decrypt']);
+        const existing = await crypto.decrypt<GenerationArtifactPayload & { questions?: GenerationQuestion[] }>(input.actor.brandId, run.id, envelopeFromArtifact(artifact));
+        if (input.sourceOid !== undefined && input.sourceOid !== (run.sourceRefs[0]?.oid ?? null)) {
+          if (input.sourceOid !== null && (typeof input.sourceOid !== 'string' || !input.sourceOid.trim())) {
+            throw new GenerationError('GENERATION_REQUEST_INVALID', 'Source selection is invalid');
+          }
+          const binding = await GenerationBinding.findOne({ id: run.bindingId, brandId: input.actor.brandId });
+          if (!binding) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Generation binding is unavailable');
+          const bindings = requireService<BindingLike>('generationbindingservice', ['authorizeLaunch', 'buildCompletionValues']);
+          const selected = await bindings.authorizeLaunch({
+            actor: input.actor, brand: input.brand, user: input.user, bindingKey: binding.key,
+            ...(input.sourceOid ? { sourceOid: input.sourceOid } : {}),
+          });
+          if (selected.profileVersion.id !== run.profileVersionId) {
+            throw new GenerationError('GENERATION_INVALID_STATE', 'The generation profile changed; start a new run');
+          }
+          run.sourceRefs = input.sourceOid ? [{
+            slotId: String(binding.sourceRelationship?.sourceSlotId ?? ''), recordType: String(binding.sourceRecordType), oid: input.sourceOid,
+          }] : [];
+          existing.completionValues = bindings.buildCompletionValues(binding, selected.source?.metadata ?? {});
         }
-        run.sourceRefs = input.sourceOid ? [{
-          slotId: String(binding.sourceRelationship?.sourceSlotId ?? ''), recordType: String(binding.sourceRecordType), oid: input.sourceOid,
-        }] : [];
-        existing.completionValues = bindings.buildCompletionValues(binding, selected.source?.metadata ?? {});
-      }
-      const documentIds = input.documentIds ?? [];
-      if (!Array.isArray(documentIds) || documentIds.some((id) => typeof id !== 'string') || new Set(documentIds).size !== documentIds.length) {
-        throw new GenerationError('GENERATION_REQUEST_INVALID', 'Document selection is invalid');
-      }
-      const documents = documentIds.map((id) => {
-        const document = existing.documents?.find((candidate) => candidate.id === id);
-        if (!document) throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Document is unavailable for this run');
-        return document;
-      });
-      if (documents.length && input.documentsReviewed !== true) {
-        throw new GenerationError('GENERATION_DOCUMENT_REVIEW_REQUIRED', 'Review document context before generating');
-      }
-      const context = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
-      const frozenInput = await context.prepare({
-        actor: input.actor, brand: input.brand, user: input.user, sourceRefs: run.sourceRefs,
-        definition: profile.definition, answers: input.answers, targetForm: input.targetForm, targetDraft: input.targetDraft,
-        documents, documentNotes: input.documentNotes,
-      });
-      const envelope = await crypto.encrypt(input.actor.brandId, run.id, { ...existing, frozenInput });
-      const saved = await GenerationRunArtifact.updateOne({ id: artifact.id, brandId: input.actor.brandId, runId: run.id, ciphertext: artifact.ciphertext }).set({
-        ...envelope, contentKinds: ['questionDefaults', 'frozenInput', 'completionValues', ...(documents.length ? ['documents'] : [])],
-      });
-      if (!saved) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation context changed concurrently');
-      const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
-      const attemptCount = run.attemptCount + 1;
-      await persistence.transitionRun(input.actor.brandId, run.id, run.status, 'queued', {
-        phase: 'context', attemptCount, retryable: false, errorCode: '', errorSummary: '',
-        inputDigest: canonicalHash(frozenInput), queuedAt: new Date().toISOString(),
-        sourceRefs: run.sourceRefs.map((sourceRef) => {
-          const source = frozenInput.sources.find((candidate) => candidate.slotId === sourceRef.slotId && candidate.oid === sourceRef.oid);
-          return source ? { ...sourceRef, payloadHash: canonicalHash(source.values) } : sourceRef;
-        }),
-        targetDescriptor: { ...run.targetDescriptor, initialTargetHash: frozenInput.baseTargetDigest },
-      }, run.attemptCount);
-      try {
-        const queue = requireService<QueueLike>('agendaqueueservice', ['now']);
-        const job = await queue.now(sails.config.generation.queue.executeJobName, { brandId: input.actor.brandId, runId: run.id });
-        const queueJobId = String(job?.attrs?._id ?? job?.attrs?.id ?? '');
-        if (queueJobId) await GenerationRun.updateOne({ id: run.id, brandId: input.actor.brandId, status: 'queued' }).set({ queueJobId });
-      } catch {
-        await persistence.transitionRun(input.actor.brandId, run.id, 'queued', 'failed', {
-          phase: 'context', retryable: true, errorCode: 'GENERATION_PROVIDER_UNAVAILABLE', errorSummary: 'Generation could not be queued',
+        const documentIds = input.documentIds ?? [];
+        if (!Array.isArray(documentIds) || documentIds.some((id) => typeof id !== 'string') || new Set(documentIds).size !== documentIds.length) {
+          throw new GenerationError('GENERATION_REQUEST_INVALID', 'Document selection is invalid');
+        }
+        const documents = documentIds.map((id) => {
+          const document = existing.documents?.find((candidate) => candidate.id === id);
+          if (!document) throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Document is unavailable for this run');
+          return document;
         });
-      }
-      return this.getForActor(input.actor, run.id);
+        if (documents.length && input.documentsReviewed !== true) {
+          throw new GenerationError('GENERATION_DOCUMENT_REVIEW_REQUIRED', 'Review document context before generating');
+        }
+        const context = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
+        const frozenInput = await context.prepare({
+          actor: input.actor, brand: input.brand, user: input.user, sourceRefs: run.sourceRefs,
+          definition: profile.definition, answers: input.answers, targetForm: input.targetForm, targetDraft: input.targetDraft,
+          documents, documentNotes: input.documentNotes,
+        });
+        const envelope = await crypto.encrypt(input.actor.brandId, run.id, { ...existing, frozenInput });
+        const saved = await GenerationRunArtifact.updateOne({ id: artifact.id, brandId: input.actor.brandId, runId: run.id, ciphertext: artifact.ciphertext }).set({
+          ...envelope, contentKinds: ['questionDefaults', 'frozenInput', 'completionValues', ...(documents.length ? ['documents'] : [])],
+        });
+        if (!saved) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation context changed concurrently');
+        const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
+        const attemptCount = run.attemptCount + 1;
+        await persistence.transitionRun(input.actor.brandId, run.id, run.status, 'queued', {
+          phase: 'context', attemptCount, retryable: false, admissionPending: false, errorCode: '', errorSummary: '',
+          inputDigest: canonicalHash(frozenInput), queuedAt: new Date().toISOString(),
+          sourceRefs: run.sourceRefs.map((sourceRef) => {
+            const source = frozenInput.sources.find((candidate) => candidate.slotId === sourceRef.slotId && candidate.oid === sourceRef.oid);
+            return source ? { ...sourceRef, payloadHash: canonicalHash(source.values) } : sourceRef;
+          }),
+          targetDescriptor: { ...run.targetDescriptor, initialTargetHash: frozenInput.baseTargetDigest },
+        }, run.attemptCount);
+        try {
+          const queue = requireService<QueueLike>('agendaqueueservice', ['now']);
+          const job = await queue.now(sails.config.generation.queue.executeJobName, { brandId: input.actor.brandId, runId: run.id });
+          const queueJobId = String(job?.attrs?._id ?? job?.attrs?.id ?? '');
+          if (queueJobId) await GenerationRun.updateOne({ id: run.id, brandId: input.actor.brandId, status: 'queued' }).set({ queueJobId });
+        } catch {
+          await persistence.transitionRun(input.actor.brandId, run.id, 'queued', 'failed', {
+            phase: 'context', retryable: true, errorCode: 'GENERATION_PROVIDER_UNAVAILABLE', errorSummary: 'Generation could not be queued',
+          });
+        }
+        return this.getForActor(input.actor, run.id);
+      });
     }
 
     public async requestCancel(actor: GenerationActorContext, runId: string): Promise<GenerationRunView> {
@@ -362,7 +370,7 @@ export namespace Services {
             artifactExpiresAt: { '<=': expiredAt },
           }).set({
             status: interrupted ? 'failed' : run.status === 'cancelRequested' ? 'cancelled' : 'expired',
-            retryable: false,
+            retryable: false, admissionPending: false,
             ...(interrupted ? {
               errorCode: 'GENERATION_ARTIFACT_EXPIRED', errorSummary: 'Generation context expired',
             } : {}),
@@ -385,18 +393,42 @@ export namespace Services {
       await authorizeRun(run);
     }
 
-    private async assertLimits(actor: GenerationActorContext): Promise<void> {
-      const activeStatuses = ['draft', 'queued', 'running', 'validating', 'completed', 'committing'];
-      const userActive = await GenerationRun.count({ brandId: actor.brandId, initiatedByUserId: actor.userId, status: { in: activeStatuses } });
-      const brandActive = await GenerationRun.count({ brandId: actor.brandId, status: { in: activeStatuses } });
+    private async withRetryAdmission<T>(actor: GenerationActorContext, run: GenerationRunAttributes, action: () => Promise<T>): Promise<T> {
+      if (run.status !== 'failed') return action();
+      const criteria = {
+        id: run.id, brandId: actor.brandId, status: 'failed', attemptCount: run.attemptCount,
+      };
+      if (run.admissionPending) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation retry admission is already pending');
+      const reserved = await GenerationRun.updateOne({
+        ...criteria, admissionPending: run.admissionPending ?? null,
+      }).set({ admissionPending: true });
+      if (!reserved) {
+        throw new GenerationError('GENERATION_INVALID_STATE', 'Generation retry admission changed concurrently');
+      }
+      try {
+        await this.assertLimits(actor, false);
+        return await action();
+      } finally {
+        await GenerationRun.updateOne({ ...criteria, admissionPending: true }).set({ admissionPending: false });
+      }
+    }
+
+    private async assertLimits(actor: GenerationActorContext, daily = true): Promise<void> {
+      const active = { or: [
+        { status: { in: ['draft', 'queued', 'running', 'validating', 'cancelRequested', 'completed', 'committing'] } },
+        { status: 'failed', admissionPending: true },
+      ] };
+      const userActive = await GenerationRun.count({ brandId: actor.brandId, initiatedByUserId: actor.userId, ...active });
+      const brandActive = await GenerationRun.count({ brandId: actor.brandId, ...active });
+      if (userActive > sails.config.generation.limits.perUserConcurrentRuns || brandActive > sails.config.generation.limits.perBrandConcurrentRuns) {
+        throw new GenerationError('GENERATION_RATE_LIMITED', 'Too many generation runs are active', true);
+      }
+      if (!daily) return;
       const startOfDay = new Date();
       startOfDay.setUTCHours(0, 0, 0, 0);
       const userDaily = await GenerationRun.count({ brandId: actor.brandId, initiatedByUserId: actor.userId, createdAt: { '>=': startOfDay.toISOString() } });
       const brandDaily = await GenerationRun.count({ brandId: actor.brandId, createdAt: { '>=': startOfDay.toISOString() } });
-      if (userActive >= sails.config.generation.limits.perUserConcurrentRuns || brandActive >= sails.config.generation.limits.perBrandConcurrentRuns) {
-        throw new GenerationError('GENERATION_RATE_LIMITED', 'Too many generation runs are active', true);
-      }
-      if (userDaily >= sails.config.generation.limits.perUserDailyRuns || brandDaily >= sails.config.generation.limits.perBrandDailyRuns) {
+      if (userDaily > sails.config.generation.limits.perUserDailyRuns || brandDaily > sails.config.generation.limits.perBrandDailyRuns) {
         throw new GenerationError('GENERATION_RATE_LIMITED', 'The daily generation limit has been reached', true);
       }
     }

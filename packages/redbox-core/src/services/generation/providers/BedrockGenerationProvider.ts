@@ -20,6 +20,7 @@ import {
   GenerationProviderResponse,
 } from './types';
 import { GenerationError } from '../../../model/generation';
+import { readBoundedResponse } from './read-bounded-response';
 
 const BLOCKED_HEADERS = new Set([
   'authorization',
@@ -256,20 +257,7 @@ export class BedrockGenerationProvider implements GenerationProviderAdapter {
         );
       }
       const response = await fetchImplementation(request, { ...init, redirect: 'error' });
-      const declaredLength = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declaredLength) && declaredLength > maxResponseBytes) {
-        throw new GenerationError(
-          'GENERATION_OUTPUT_PARSE_FAILED',
-          'Generation provider response exceeded the configured limit',
-        );
-      }
-      const body = await response.text();
-      if (Buffer.byteLength(body, 'utf8') > maxResponseBytes) {
-        throw new GenerationError(
-          'GENERATION_OUTPUT_PARSE_FAILED',
-          'Generation provider response exceeded the configured limit',
-        );
-      }
+      const body = await readBoundedResponse(response, maxResponseBytes, init?.signal);
       return new Response(body, {
         status: response.status,
         statusText: response.statusText,

@@ -22,6 +22,7 @@ describe('Generation run lifecycle', () => {
 
   function matches(row: Record<string, any>, criteria: Record<string, any>): boolean {
     return Object.entries(criteria).every(([key, value]) => {
+      if (key === 'or') return value.some((branch: Record<string, any>) => matches(row, branch));
       if (value && typeof value === 'object') {
         if ('in' in value) return value.in.includes(row[key]);
         if ('<=' in value) return row[key] <= value['<='];
@@ -84,10 +85,14 @@ describe('Generation run lifecycle', () => {
     });
     Reflect.set(globalThis, 'GenerationRun', {
       create: (values: Record<string, unknown>) => ({ fetch: async () => {
-        const row = { id: 'run-1', ...structuredClone(values) };
+        const row = { id: `run-${rows.length + 1}`, createdAt: new Date().toISOString(), admissionPending: false, ...structuredClone(values) };
         rows.push(row);
         return structuredClone(row);
       } }),
+      destroyOne: async (criteria: Record<string, unknown>) => {
+        const index = rows.findIndex(row => matches(row, criteria));
+        return index < 0 ? null : rows.splice(index, 1)[0];
+      },
       count: async (criteria: Record<string, unknown>) => rows.filter(row => matches(row, criteria)).length,
       findOne: async (criteria: Record<string, unknown>) => structuredClone(rows.find(row => matches(row, criteria)) ?? null),
       find: async (criteria: Record<string, unknown>) => structuredClone(rows.filter(row => matches(row, criteria))),
@@ -144,6 +149,111 @@ describe('Generation run lifecycle', () => {
     await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
     expect(rows[0].targetDescriptor.formName).to.equal('summary-special');
     expect(buildTargetUrl.firstCall.args[0].targetFormName).to.equal('summary-special');
+  });
+
+  for (const limit of ['perUserConcurrentRuns', 'perBrandConcurrentRuns', 'perUserDailyRuns', 'perBrandDailyRuns']) {
+    it(`does not admit simultaneous launches above ${limit}`, async () => {
+      Reflect.get(globalThis, 'sails').config.generation.limits[limit] = 1;
+      const results = await Promise.allSettled([1, 2].map(() => service.launch({
+        actor, brand: {} as any, user: {} as any, bindingKey: binding.key,
+      })));
+      expect(results.filter(result => result.status === 'fulfilled').length).to.be.at.most(1);
+      expect(rows.length).to.be.at.most(1);
+    });
+  }
+
+  it('does not queue a failed retry when another run fills the concurrent quota', async () => {
+    const runtime = Reflect.get(globalThis, 'sails');
+    runtime.config.generation.limits.perUserConcurrentRuns = 1;
+    await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+    Object.assign(rows[0], { status: 'failed', attemptCount: 1, retryable: true });
+    await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+    let rejection: unknown;
+    try {
+      await service.execute({
+        actor, brand: {} as any, user: {} as any, runId: 'run-1', answers: [],
+        targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' }, targetDraft: {},
+      });
+    } catch (error) { rejection = error; }
+    expect(rejection).to.have.property('code', 'GENERATION_RATE_LIMITED');
+    expect(runtime.services.agendaqueueservice.now.called).to.equal(false);
+    expect(runtime.services.generationcontextservice.prepare.called).to.equal(false);
+    expect(rows[0].admissionPending).to.equal(false);
+    expect(rows[0].status).to.equal('failed');
+  });
+
+  for (const limit of ['perUserConcurrentRuns', 'perBrandConcurrentRuns']) {
+    it(`does not admit simultaneous failed retries above ${limit}`, async () => {
+      const runtime = Reflect.get(globalThis, 'sails');
+      for (let index = 0; index < 2; index++) {
+        await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+        Object.assign(rows[index], { status: 'failed', attemptCount: 1, retryable: true });
+      }
+      runtime.config.generation.limits[limit] = 1;
+      await Promise.allSettled(rows.map(row => service.execute({
+        actor, brand: {} as any, user: {} as any, runId: row.id, answers: [],
+        targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' }, targetDraft: {},
+      })));
+      expect(rows.filter(row => row.status === 'queued').length).to.be.at.most(1);
+      expect(runtime.services.agendaqueueservice.now.callCount).to.be.at.most(1);
+      expect(rows.every(row => row.admissionPending === false)).to.equal(true);
+    });
+  }
+
+  it('does not charge a retry as a new daily creation intent', async () => {
+    const runtime = Reflect.get(globalThis, 'sails');
+    runtime.config.generation.limits.perUserDailyRuns = 1;
+    runtime.config.generation.limits.perBrandDailyRuns = 1;
+    await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+    Object.assign(rows[0], { status: 'failed', attemptCount: 1, retryable: true });
+    const result = await service.execute({
+      actor, brand: {} as any, user: {} as any, runId: 'run-1', answers: [],
+      targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' }, targetDraft: {},
+    });
+    expect(result.status).to.equal('queued');
+    expect(rows.length).to.equal(1);
+  });
+
+  it("does not clear another request's pending retry admission", async () => {
+    const runtime = Reflect.get(globalThis, 'sails');
+    await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+    Object.assign(rows[0], { status: 'failed', attemptCount: 1, retryable: true });
+    let prepared!: () => void;
+    let release!: () => void;
+    const reachedPreparation = new Promise<void>(resolve => { prepared = resolve; });
+    const continuePreparation = new Promise<void>(resolve => { release = resolve; });
+    runtime.services.generationcontextservice.prepare.callsFake(async () => {
+      prepared(); await continuePreparation;
+      return { sources: [], baseTargetDigest: 'base-target' };
+    });
+    const input = {
+      actor, brand: {} as any, user: {} as any, runId: 'run-1', answers: [],
+      targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' as const }, targetDraft: {},
+    };
+    const winner = service.execute(input);
+    await reachedPreparation;
+    let rejection: unknown;
+    try { await service.execute(input); } catch (error) { rejection = error; }
+    expect(rejection).to.have.property('code', 'GENERATION_INVALID_STATE');
+    expect(rows[0].admissionPending).to.equal(true);
+    release();
+    expect((await winner).status).to.equal('queued');
+    expect(rows[0].admissionPending).to.equal(false);
+    expect(runtime.services.agendaqueueservice.now.callCount).to.equal(1);
+  });
+
+  it('holds concurrent capacity until requested cancellation is acknowledged', async () => {
+    Reflect.get(globalThis, 'sails').config.generation.limits.perUserConcurrentRuns = 1;
+    const launch = () => service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+    await launch();
+    rows[0].status = 'cancelRequested';
+    let rejection: unknown;
+    try { await launch(); } catch (error) { rejection = error; }
+    expect(rejection).to.have.property('code', 'GENERATION_RATE_LIMITED');
+    expect(rows.length).to.equal(1);
+    rows[0].status = 'cancelled';
+    expect(await launch()).to.have.property('runId');
+    expect(rows.filter(row => row.status === 'draft').length).to.equal(1);
   });
 
   for (const maxRetries of [0, 1]) {
@@ -224,6 +334,13 @@ describe('Generation run lifecycle', () => {
       expect(rows[0].status).to.equal('committing');
     });
   }
+
+  it('clears a crashed retry admission when its failed run expires', async () => {
+    rows.push({ id: 'pending-run', brandId: actor.brandId, status: 'failed', attemptCount: 1,
+      artifactExpiresAt: past, admissionPending: true });
+    await service.expireAbandonedRuns();
+    expect(rows[0]).to.include({ status: 'expired', admissionPending: false });
+  });
 
   it('preserves live work even when its last heartbeat is older than the queue lock', async () => {
     for (const status of ['queued', 'running', 'validating', 'cancelRequested']) {
