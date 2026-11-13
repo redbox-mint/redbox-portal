@@ -72,6 +72,12 @@ export namespace Services {
         ['authorizeLaunch', 'buildTargetUrl', 'buildCompletionValues'],
       );
       const authorized = await bindingService.authorizeLaunch(input);
+      const workflow = sails.config.workflow[authorized.binding.targetRecordType];
+      const starting = workflow && Object.values(workflow).find(stage => stage.starting);
+      const targetFormName = authorized.binding.targetFormName ?? starting?.config.form;
+      if (!targetFormName) {
+        throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Generation target form is unavailable');
+      }
       await this.assertLimits(input.actor);
       const expiresAt = new Date(Date.now() + sails.config.generation.artifacts.operationalExpiryMinutes * 60_000).toISOString();
       const run = await GenerationRun.create({
@@ -89,7 +95,7 @@ export namespace Services {
         }] : [],
         targetDescriptor: {
           recordType: authorized.binding.targetRecordType,
-          formName: authorized.binding.targetFormName,
+          formName: targetFormName,
           mode: 'create',
         },
         status: 'draft', phase: 'context', attemptCount: 0, retryable: false,
@@ -119,7 +125,10 @@ export namespace Services {
         ...envelope,
         contentKinds: ['questionDefaults', 'completionValues'],
       }).fetch();
-      return { runId: run.id, targetUrl: bindingService.buildTargetUrl(authorized.binding, input.actor, run.id) };
+      return {
+        runId: run.id,
+        targetUrl: bindingService.buildTargetUrl({ ...authorized.binding, targetFormName }, input.actor, run.id),
+      };
     }
 
     public async getForActor(actor: GenerationActorContext, runId: string): Promise<GenerationRunView> {
@@ -314,13 +323,36 @@ export namespace Services {
     }
 
     public async expireAbandonedRuns(): Promise<void> {
+      const expiredAt = new Date().toISOString();
       const runs = requireWaterlineRows<GenerationRunAttributes>(
-        await GenerationRun.find({ artifactExpiresAt: { '<=': new Date().toISOString() }, status: { in: ['draft', 'completed', 'failed'] } }),
+        await GenerationRun.find({
+          artifactExpiresAt: { '<=': expiredAt },
+          status: { in: ['draft', 'queued', 'running', 'validating', 'cancelRequested', 'completed', 'failed'] },
+        }),
         'GenerationRun',
       );
       const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
       for (const run of runs) {
-        try { await persistence.transitionRun(run.brandId, run.id, run.status, 'expired'); } catch { /* another worker won */ }
+        try {
+          const interrupted = run.status === 'running' || run.status === 'validating';
+          // A queue lock can expire during a live provider call. Only the existing
+          // operational artifact deadline makes this work unusable and safe to settle.
+          // Recheck expiry together with status and attempt so a newer run cannot be lost.
+          const updated = await GenerationRun.updateOne({
+            id: run.id, brandId: run.brandId, status: run.status, attemptCount: run.attemptCount,
+            artifactExpiresAt: { '<=': expiredAt },
+          }).set({
+            status: interrupted ? 'failed' : run.status === 'cancelRequested' ? 'cancelled' : 'expired',
+            retryable: false,
+            ...(interrupted ? {
+              errorCode: 'GENERATION_ARTIFACT_EXPIRED', errorSummary: 'Generation context expired',
+            } : {}),
+          });
+          // Keep the closed transition graph: active work first fails, then expires.
+          if (updated && interrupted) {
+            await persistence.transitionRun(run.brandId, run.id, 'failed', 'expired', {}, run.attemptCount);
+          }
+        } catch { /* another worker won */ }
       }
     }
 

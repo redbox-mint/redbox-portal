@@ -22,7 +22,7 @@ describe('GenerationProvenanceStoreService', () => {
     service = new GenerationProvenanceStoreService(api);
   });
 
-  it('tracks pending generated provenance and clears it after an edit', () => {
+  it('retains original provenance and resolves review after an edit', () => {
     service.setPending(pendingCandidate());
     expect(service.byPointer()['/sharing']).toEqual(jasmine.objectContaining({
       id: 'pending:run-1:sharing', displayState: 'generated', reviewRequired: true,
@@ -30,7 +30,9 @@ describe('GenerationProvenanceStoreService', () => {
 
     service.markEdited('/sharing', 'User-authored sharing statement');
 
-    expect(service.byPointer()['/sharing']).toBeUndefined();
+    expect(service.byPointer()['/sharing']).toEqual(jasmine.objectContaining({
+      displayState: 'edited', reviewRequired: false, rationale: 'No applicable consent guidance.',
+    }));
   });
 
   it('reviews pending fields locally and clears provenance when the value is removed', async () => {
@@ -60,7 +62,9 @@ describe('GenerationProvenanceStoreService', () => {
     expect(service.byPointer()['/summary'].reviewRequired).toBeFalse();
 
     service.markEdited('/summary', 'Researcher-authored summary');
-    expect(service.byPointer()['/summary']).toBeUndefined();
+    expect(service.byPointer()['/summary']).toEqual(jasmine.objectContaining({
+      displayState: 'edited', reviewRequired: false, rationale: 'Uses policy.',
+    }));
   });
   it('ignores a provenance response after the form is cleared', async () => {
     let finish!: (value: { recordOid: string; fields: GenerationFieldProvenanceView[] }) => void;
@@ -98,7 +102,9 @@ describe('GenerationProvenanceStoreService', () => {
     service.markEdited('/sharing', 'New author value');
     finish({ ...field, reviewRequired: false });
     await reviewing;
-    expect(service.byPointer()).toEqual({});
+    expect(service.byPointer()['/sharing']).toEqual(jasmine.objectContaining({
+      displayState: 'edited', reviewRequired: false,
+    }));
   });
 
   it('does not apply a completed review to a replacement record', async () => {
@@ -115,6 +121,19 @@ describe('GenerationProvenanceStoreService', () => {
     await reviewing;
     expect(service.byPointer()['/sharing'].id).toBe('pending:run-1:sharing');
     expect(service.byPointer()['/sharing'].reviewRequired).toBeTrue();
+  });
+
+  it('loads edited provenance with the review flag resolved and evidence intact', async () => {
+    service.setPending(pendingCandidate());
+    const field: GenerationFieldProvenanceView = {
+      ...service.byPointer()['/sharing'], id: 'committed', displayState: 'edited',
+      evidence: [{ id: 'record:title', kind: 'source', label: 'Research title' }],
+    };
+    api.provenance.and.resolveTo({ recordOid: 'record-1', fields: [field] });
+
+    await service.load('record-1');
+
+    expect(service.byPointer()['/sharing']).toEqual({ ...field, reviewRequired: false });
   });
 
 });
