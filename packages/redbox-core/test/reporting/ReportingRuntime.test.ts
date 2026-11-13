@@ -35,6 +35,7 @@ describe('Reporting runtime form and identity boundaries', () => {
     restoreSails = installReportingTestSails();
     sails.config = {
       ...sails.config,
+      auth: { ...sails.config.auth, defaultPortal: 'default' },
       reporting: configuration,
       recordtype: recordTypes,
       reusableFormDefinitions: {},
