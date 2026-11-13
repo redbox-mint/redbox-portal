@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { Worker } from 'node:worker_threads';
+import { startBoundedDocumentParser } from './bounded-document-parser';
 import type {
   GenerationDocument,
   GenerationDocumentFormat,
@@ -10,7 +10,7 @@ import { GenerationError } from '../../model/generation';
 
 let activeExtractions = 0;
 
-/** Bound expensive parsers separately from the application event loop. No file is retained. */
+/** Bound parsers by Linux address space, V8 heap, time, and concurrency. No file is retained. */
 export async function extractGenerationDocument(
   filename: string,
   bytes: Buffer,
@@ -32,53 +32,71 @@ export async function extractGenerationDocument(
   ) {
     throw new GenerationError('GENERATION_DOCUMENT_INVALID', 'Document format is not supported');
   }
+  if (process.platform !== 'linux') {
+    throw new GenerationError(
+      'GENERATION_DOCUMENT_UNREADABLE',
+      'Document extraction requires the bounded Linux parser runtime'
+    );
+  }
   if (activeExtractions >= limits.concurrency) {
     throw new GenerationError('GENERATION_RATE_LIMITED', 'Document extraction is busy', true);
   }
   activeExtractions++;
   try {
     const passages = await new Promise<GenerationDocument['passages']>((resolve, reject) => {
-      const worker = new Worker(require.resolve('./document-extractor-worker'), {
-        workerData: {
-          bytes,
-          format,
-          maxTextBytes: Math.min(policy.maxTextBytes, limits.maxTextBytes),
-          maxPages: limits.maxPages,
-        },
-        resourceLimits: { maxOldGenerationSizeMb: 128 },
-        execArgv: __filename.endsWith('.ts')
-          ? ['--no-experimental-strip-types', '--require', 'ts-node/register/transpile-only']
-          : [],
-        stdout: true,
-        stderr: true,
-      });
-      // Parser diagnostics can include source text; discard them rather than logging uploads.
-      worker.stdout.resume();
-      worker.stderr.resume();
+      const parser = startBoundedDocumentParser(require.resolve('./document-extractor-worker'));
+      let result: { passages?: GenerationDocument['passages']; error?: string } | undefined;
+      let failure: GenerationError | undefined;
+      const stop = (error?: GenerationError) => {
+        failure ??= error;
+        parser.kill('SIGKILL');
+      };
       const timer = setTimeout(() => {
-        void worker.terminate();
-        reject(new GenerationError('GENERATION_DOCUMENT_LIMIT', 'Document extraction exceeded its time limit'));
+        stop(new GenerationError('GENERATION_DOCUMENT_LIMIT', 'Document extraction exceeded its time limit'));
       }, limits.timeoutMs);
-      worker.once('message', (result: { passages?: GenerationDocument['passages']; error?: string }) => {
+      parser.once('message', (message: typeof result) => {
         clearTimeout(timer);
-        void worker.terminate();
-        if (result.passages?.length) resolve(result.passages);
-        else
+        result = message;
+        stop();
+      });
+      parser.once('error', () => {
+        stop(new GenerationError('GENERATION_DOCUMENT_UNREADABLE', 'Document extraction could not start'));
+      });
+      // Keep the concurrency slot until the bounded process has actually been reaped.
+      parser.once('close', (code, signal) => {
+        clearTimeout(timer);
+        if (failure) reject(failure);
+        else if (result?.passages?.length) resolve(result.passages);
+        else if (result)
           reject(
             new GenerationError(
               result.error === 'limit' ? 'GENERATION_DOCUMENT_LIMIT' : 'GENERATION_DOCUMENT_UNREADABLE',
               'Document text could not be extracted'
             )
           );
+        else
+          reject(
+            new GenerationError(
+              signal || (code !== 0 && code !== 70 && code !== 127)
+                ? 'GENERATION_DOCUMENT_LIMIT'
+                : 'GENERATION_DOCUMENT_UNREADABLE',
+              code === 70 || code === 127
+                ? 'Document extraction sandbox could not start'
+                : 'Document extraction stopped'
+            )
+          );
       });
-      worker.once('error', () => {
-        clearTimeout(timer);
-        reject(new GenerationError('GENERATION_DOCUMENT_UNREADABLE', 'Document text could not be extracted'));
-      });
-      worker.once('exit', () => {
-        clearTimeout(timer);
-        reject(new GenerationError('GENERATION_DOCUMENT_UNREADABLE', 'Document extraction stopped'));
-      });
+      parser.send(
+        {
+          bytes,
+          format,
+          maxTextBytes: Math.min(policy.maxTextBytes, limits.maxTextBytes),
+          maxPages: limits.maxPages,
+        },
+        error => {
+          if (error) stop(new GenerationError('GENERATION_DOCUMENT_UNREADABLE', 'Document extraction could not start'));
+        }
+      );
     });
     return { id: randomUUID(), name, contentHash: createHash('sha256').update(bytes).digest('hex'), passages };
   } finally {

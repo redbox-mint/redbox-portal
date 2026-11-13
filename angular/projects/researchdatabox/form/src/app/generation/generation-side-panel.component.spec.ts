@@ -1,11 +1,14 @@
 import { NO_ERRORS_SCHEMA, Pipe, PipeTransform, signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { EMPTY, Subject } from 'rxjs';
 import { GenerationCandidatePatch, GenerationFieldProvenanceView, GenerationQuestion, GenerationRunView } from '@researchdatabox/sails-ng-common';
+import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
+import { FormComponentValueChangeEventProducer } from '../form-state/events/form-component-change-event-producer';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import {
+  createFieldValueChangedEvent,
   createFormSaveSuccessEvent,
   FormComponentEventType,
 } from '../form-state/events/form-component-event.types';
@@ -23,6 +26,8 @@ describe('GenerationSidePanelComponent', () => {
   let provenance: jasmine.SpyObj<GenerationProvenanceStoreService>;
   let provenanceFields: WritableSignal<Record<string, GenerationFieldProvenanceView>>;
   let saveSuccess$: Subject<ReturnType<typeof createFormSaveSuccessEvent>>;
+
+  let fieldChanges$: Subject<ReturnType<typeof createFieldValueChangedEvent>>;
 
   const question: GenerationQuestion = {
     id: 'objective',
@@ -54,9 +59,11 @@ describe('GenerationSidePanelComponent', () => {
       'launch', 'getRun', 'execute', 'cancel', 'commit', 'addDocument', 'removeDocument',
     ]);
     saveSuccess$ = new Subject<ReturnType<typeof createFormSaveSuccessEvent>>();
+    fieldChanges$ = new Subject<ReturnType<typeof createFieldValueChangedEvent>>();
     eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
     eventBus.select$.and.callFake(((eventType: string) => (
-      eventType === FormComponentEventType.FORM_SAVE_SUCCESS ? saveSuccess$.asObservable() : EMPTY
+      eventType === FormComponentEventType.FORM_SAVE_SUCCESS ? saveSuccess$.asObservable()
+        : eventType === FormComponentEventType.FIELD_VALUE_CHANGED ? fieldChanges$.asObservable() : EMPTY
     )) as typeof eventBus.select$);
     applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
     applier.apply.and.returnValue({ changedFieldIds: [], conflictFieldIds: [] });
@@ -72,6 +79,7 @@ describe('GenerationSidePanelComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [GenerationSidePanelComponent],
       providers: [
+        { provide: LoggerService, useValue: jasmine.createSpyObj<LoggerService>('LoggerService', ['debug']) },
         { provide: GenerationApiService, useValue: api },
         { provide: GenerationPatchApplierService, useValue: applier },
         { provide: GenerationProvenanceStoreService, useValue: provenance },
@@ -89,6 +97,87 @@ describe('GenerationSidePanelComponent', () => {
     fixture.componentRef.setInput('formName', 'edit');
     fixture.componentRef.setInput('launches', [{ bindingKey: 'rdmp-from-activity', sourcePointer: '/researchActivity' }]);
     fixture.detectChanges();
+  });
+
+  function trackPointers(pointers: string[]): void {
+    component.candidate.set({
+      runId: 'edited-run', candidateDigest: 'digest', baseTargetDigest: 'base',
+      items: pointers.map((metadataPointer) => ({
+        fieldId: metadataPointer, metadataPointer, value: 'Generated', operation: 'fill',
+        valueHash: 'hash', groundingState: 'requiresReview', reviewRequired: true, rationale: 'Review', evidence: [],
+      })),
+    });
+  }
+
+  function nestedTitles(): FormGroup {
+    return new FormGroup({
+      a: new FormGroup({ title: new FormControl('Generated A') }),
+      b: new FormGroup({ title: new FormControl('Generated B') }),
+    });
+  }
+
+  it('does not attribute an ambiguous leaf edit to the first generated sibling', () => {
+    fixture.componentRef.setInput('form', nestedTitles());
+    fixture.detectChanges();
+    trackPointers(['/a/title', '/b/title']);
+    fieldChanges$.next(createFieldValueChangedEvent({ fieldId: 'title', value: 'Edited' }));
+    expect(provenance.markEdited).not.toHaveBeenCalled();
+    expect(TestBed.inject(Store).dispatch).not.toHaveBeenCalled();
+  });
+
+  it('includes non-generated siblings when checking whether a leaf edit is ambiguous', () => {
+    fixture.componentRef.setInput('form', nestedTitles());
+    fixture.detectChanges();
+    trackPointers(['/a/title']);
+    fieldChanges$.next(createFieldValueChangedEvent({ fieldId: 'title', value: 'Edited B' }));
+    expect(provenance.markEdited).not.toHaveBeenCalled();
+  });
+
+  it('matches canonical edits exactly and retains unique legacy leaf edits', () => {
+    fixture.componentRef.setInput('form', nestedTitles());
+    fixture.detectChanges();
+    trackPointers(['/a/title', '/b/title', '/summary']);
+    fieldChanges$.next(createFieldValueChangedEvent({ fieldId: '/b/title', value: 'Edited B' }));
+    fieldChanges$.next(createFieldValueChangedEvent({ fieldId: 'summary', value: 'Edited summary' }));
+    expect(provenance.markEdited.calls.allArgs()).toEqual([
+      ['/b/title', 'Edited B'], ['/summary', 'Edited summary'],
+    ]);
+  });
+
+  it('resolves real control events with layout lineage to the correct nested metadata pointer', () => {
+    const form = nestedTitles();
+    fixture.componentRef.setInput('form', form);
+    fixture.detectChanges();
+    trackPointers(['/a/title', '/b/title']);
+    const bus = TestBed.runInInjectionContext(() => new FormComponentEventBus());
+    const subscription = bus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe(event => fieldChanges$.next(event));
+    const producer = TestBed.runInInjectionContext(() => new FormComponentValueChangeEventProducer(bus));
+    try {
+      producer.bind({ definition: {
+        compConfigJson: { name: 'title' }, model: { formControl: form.get(['b', 'title']) },
+        lineagePaths: { angularComponentsJsonPointer: '/tab/b/title' },
+      } as unknown as FormFieldCompMapEntry });
+      form.get(['b', 'title'])?.setValue('Edited B');
+      expect(provenance.markEdited).toHaveBeenCalledWith('/b/title', 'Edited B');
+      expect(provenance.markEdited.calls.allArgs().every(args => args[0] === '/b/title')).toBeTrue();
+      expect(TestBed.inject(Store).dispatch).toHaveBeenCalledWith(jasmine.objectContaining({ fieldId: '/b/title' }));
+    } finally {
+      producer.destroy(); subscription.unsubscribe(); bus.ngOnDestroy();
+    }
+  });
+
+  it('preserves escaped pointer segments and array indices in layout-prefixed edits', () => {
+    fixture.componentRef.setInput('form', new FormGroup({
+      'a/b': new FormGroup({ 'title~name': new FormControl('Generated') }),
+      rows: new FormArray([new FormGroup({ title: new FormControl('Generated') })]),
+    }));
+    fixture.detectChanges();
+    trackPointers(['/a~1b/title~0name', '/rows/0/title']);
+    fieldChanges$.next(createFieldValueChangedEvent({ fieldId: '/tab/a~1b/title~0name', value: 'Escaped edit' }));
+    fieldChanges$.next(createFieldValueChangedEvent({ fieldId: '/tab/rows/0/title', value: 'Array edit' }));
+    expect(provenance.markEdited.calls.allArgs()).toEqual([
+      ['/a~1b/title~0name', 'Escaped edit'], ['/rows/0/title', 'Array edit'],
+    ]);
   });
 
   it('launches a fresh run after failure and preserves questionnaire answers', async () => {
