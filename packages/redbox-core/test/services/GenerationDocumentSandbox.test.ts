@@ -22,7 +22,10 @@ linuxDescribe('Generation document process memory isolation', function () {
       const fs = require('node:fs');
       const { inflateRawSync } = require('node:zlib');
       const vmKiB = Number(fs.readFileSync('/proc/self/status', 'utf8').match(/^VmSize:\\s+(\\d+)/m)[1]);
-      process.send({ ready: true, vmKiB, pools: [process.env.UV_THREADPOOL_SIZE, process.env.RAYON_NUM_THREADS, process.env.MALLOC_ARENA_MAX] });
+      process.send({ ready: true, vmKiB, pools: [process.env.UV_THREADPOOL_SIZE, process.env.RAYON_NUM_THREADS, process.env.MALLOC_ARENA_MAX],
+        credentialPresent: ['REDBOX_PARSER_PROBE_SECRET', 'AWS_SECRET_ACCESS_KEY', 'OPENAI_API_KEY'].some(name => process.env[name] !== undefined),
+        runtimeEnv: Object.fromEntries(['NODE_OPTIONS', 'NODE_PATH', 'TS_NODE_PROJECT', 'TS_NODE_COMPILER_OPTIONS', 'TS_NODE_TRANSPILE_ONLY', 'LANG', 'LC_ALL', 'TZ'].map(name => [name, process.env[name]]))
+      });
       process.once('message', input => {
         process.send({ inflating: true });
         const expanded = inflateRawSync(input.bytes);
@@ -50,13 +53,15 @@ linuxDescribe('Generation document process memory isolation', function () {
     expect(parser.spawnargs).to.include('--disable-wasm-trap-handler');
     expect(parser.spawnargs.at(-1)).to.equal(script);
     return new Promise<{
-      ready?: { vmKiB: number; pools: string[] };
+      ready?: { vmKiB: number; pools: string[]; credentialPresent?: boolean; runtimeEnv?: Record<string, string> };
       expandedBytes?: number;
       inflating: boolean;
       code: number | null;
       signal: string | null;
     }>((resolve, reject) => {
-      let ready: { vmKiB: number; pools: string[] } | undefined;
+      let ready:
+        | { vmKiB: number; pools: string[]; credentialPresent?: boolean; runtimeEnv?: Record<string, string> }
+        | undefined;
       let expandedBytes: number | undefined;
       let inflating = false;
       const timer = setTimeout(() => {
@@ -65,9 +70,22 @@ linuxDescribe('Generation document process memory isolation', function () {
       }, 10000);
       parser.on(
         'message',
-        (message: { ready?: boolean; vmKiB: number; pools: string[]; expandedBytes?: number; inflating?: boolean }) => {
+        (message: {
+          ready?: boolean;
+          vmKiB: number;
+          pools: string[];
+          expandedBytes?: number;
+          inflating?: boolean;
+          credentialPresent?: boolean;
+          runtimeEnv?: Record<string, string>;
+        }) => {
           if (message.ready) {
-            ready = { vmKiB: message.vmKiB, pools: message.pools };
+            ready = {
+              vmKiB: message.vmKiB,
+              pools: message.pools,
+              credentialPresent: message.credentialPresent,
+              runtimeEnv: message.runtimeEnv,
+            };
             if (bytes) parser.send!({ bytes });
             else parser.kill('SIGKILL');
           } else if (message.inflating) inflating = true;
@@ -91,6 +109,40 @@ linuxDescribe('Generation document process memory isolation', function () {
     expect(result.ready?.vmKiB).to.be.greaterThan(0);
     expect(result.ready?.vmKiB).to.be.lessThan(1024 * 1024);
     expect(result.ready?.pools).to.deep.equal(['1', '1', '1']);
+  });
+
+  it('omits portal credentials while preserving the parser runtime environment', async () => {
+    const runtime = {
+      NODE_OPTIONS: '--no-warnings',
+      NODE_PATH: '/tmp/parser-probe-runtime-path',
+      TS_NODE_PROJECT: '/tmp/parser-probe-tsconfig.json',
+      TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}',
+      TS_NODE_TRANSPILE_ONLY: 'true',
+      LANG: 'C.UTF-8',
+      LC_ALL: 'C.UTF-8',
+      TZ: 'UTC',
+    };
+    const values = {
+      ...runtime,
+      REDBOX_PARSER_PROBE_SECRET: 'synthetic-private-provider-credential',
+      AWS_SECRET_ACCESS_KEY: 'synthetic-aws-secret',
+      OPENAI_API_KEY: 'synthetic-provider-key',
+    };
+    const previous = new Map(Object.keys(values).map(name => [name, process.env[name]]));
+    try {
+      Object.assign(process.env, values);
+      const result = await probe();
+      expect(result.ready?.credentialPresent).to.equal(false);
+      // NYC legitimately appends its own --require preload when wrapping spawn.
+      expect(result.ready?.runtimeEnv?.NODE_OPTIONS).to.include(runtime.NODE_OPTIONS);
+      expect({ ...result.ready?.runtimeEnv, NODE_OPTIONS: runtime.NODE_OPTIONS }).to.deep.equal(runtime);
+      expect(result.ready?.pools).to.deep.equal(['1', '1', '1']);
+    } finally {
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
   });
 
   it('contains external-buffer decompression failure without terminating the caller', async () => {

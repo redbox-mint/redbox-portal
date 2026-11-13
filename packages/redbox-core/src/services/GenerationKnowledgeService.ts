@@ -77,7 +77,7 @@ export namespace Services {
       if (!['text/plain', 'text/markdown'].includes(document.mediaType ?? 'text/markdown')) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Only plain text and Markdown knowledge are supported');
       }
-      if (!document.content.trim() || maxChunkBytes <= 0) {
+      if (!document.content.trim() || !Number.isSafeInteger(maxChunkBytes) || maxChunkBytes <= 0) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Knowledge content and a positive chunk bound are required');
       }
       const blocks = document.content.replace(/\r\n/g, '\n').split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
@@ -86,14 +86,19 @@ export namespace Services {
       for (const block of blocks) {
         if (Buffer.byteLength(block, 'utf8') > maxChunkBytes) {
           if (current) { chunks.push(current); current = ''; }
-          let remainder = block;
-          while (Buffer.byteLength(remainder, 'utf8') > maxChunkBytes) {
-            let end = Math.min(remainder.length, maxChunkBytes);
-            while (end > 1 && Buffer.byteLength(remainder.slice(0, end), 'utf8') > maxChunkBytes) end--;
-            chunks.push(remainder.slice(0, end));
-            remainder = remainder.slice(end);
+          let piece = '';
+          let pieceBytes = 0;
+          for (const character of block) {
+            const bytes = Buffer.byteLength(character, 'utf8');
+            if (bytes > maxChunkBytes) {
+              throw new GenerationError('GENERATION_PROFILE_INVALID', 'Knowledge chunk bound cannot hold a Unicode character');
+            }
+            if (pieceBytes + bytes > maxChunkBytes) {
+              chunks.push(piece); piece = ''; pieceBytes = 0;
+            }
+            piece += character; pieceBytes += bytes;
           }
-          if (remainder) current = remainder;
+          current = piece;
         } else if (!current || Buffer.byteLength(`${current}\n\n${block}`, 'utf8') <= maxChunkBytes) {
           current = current ? `${current}\n\n${block}` : block;
         } else {

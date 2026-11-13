@@ -3,7 +3,7 @@ import { canonicalHash, decodeJsonPointer, GenerationError, GenerationOutputType
 import type { GenerationProfileAttributes } from '../waterline-models/GenerationProfile';
 import type { GenerationProfileVersionAttributes } from '../waterline-models/GenerationProfileVersion';
 import { requireWaterlineRows } from './generation/require-service';
-import { GENERATION_DOCUMENT_FORMATS } from '@researchdatabox/sails-ng-common';
+import { GENERATION_DOCUMENT_FORMATS, GENERATION_QUESTION_TYPES } from '@researchdatabox/sails-ng-common';
 
 const SUPPORTED_OUTPUTS = new Set(['string', 'richText', 'boolean', 'date', 'enum', 'enumArray', 'object', 'objectArray']);
 const EXCLUDED_COMPONENT_PARTS = ['attachment', 'file', 'map', 'recordselector', 'workspace', 'button', 'integration', 'identifier'];
@@ -22,13 +22,25 @@ export namespace Services {
     ];
 
     public validateDefinition(definition: GenerationProfileDefinitionV1, poc = false): GenerationProfileDefinitionV1 {
-      if (!definition || !definition.purpose?.trim() || !definition.systemInstructions?.trim()) {
+      if (!definition || typeof definition !== 'object' || Array.isArray(definition) ||
+        typeof definition.purpose !== 'string' || !definition.purpose.trim() ||
+        typeof definition.systemInstructions !== 'string' || !definition.systemInstructions.trim()) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Profile purpose and system instructions are required');
       }
-      if (!Array.isArray(definition.sourceSlots) || (!definition.sourceSlots.length && !definition.documentSources)) {
+      if (!Array.isArray(definition.sourceSlots) || !Array.isArray(definition.questions) || !Array.isArray(definition.targetFields) ||
+        !Array.isArray(definition.knowledgeCollectionVersionIds) || definition.knowledgeCollectionVersionIds.some(id => typeof id !== 'string' || !id.trim()) ||
+        [definition.sourceSlots, definition.questions, definition.targetFields].some(items =>
+          items.some(item => !item || typeof item !== 'object' || Array.isArray(item) || typeof item.id !== 'string')) ||
+        !definition.contextLimits || typeof definition.contextLimits !== 'object' || Array.isArray(definition.contextLimits)) {
+        throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation profile arrays and context are invalid');
+      }
+      if (!definition.sourceSlots.length && !definition.documentSources) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'At least one source slot is required');
       }
       const documents = definition.documentSources;
+      if (documents !== undefined && (!documents || typeof documents !== 'object' || Array.isArray(documents))) {
+        throw new GenerationError('GENERATION_PROFILE_INVALID', 'Document source configuration is invalid');
+      }
       if (documents) {
         const limits = sails.config.generation.documents;
         if (!Array.isArray(documents.formats) || !documents.formats.length ||
@@ -52,27 +64,28 @@ export namespace Services {
         if (slot.required !== undefined && typeof slot.required !== 'boolean') {
           throw new GenerationError('GENERATION_PROFILE_INVALID', 'Source required flag must be boolean');
         }
-        if (!slot.recordType?.trim() || slot.maxBytes <= 0 || slot.maxBytes > sails.config.generation.context.maxFieldBytes ||
-          !slot.allowedPaths.length || new Set(slot.allowedPaths).size !== slot.allowedPaths.length) {
+        if (typeof slot.recordType !== 'string' || !slot.recordType.trim() || !Number.isSafeInteger(slot.maxBytes) ||
+          slot.maxBytes <= 0 || slot.maxBytes > sails.config.generation.context.maxFieldBytes ||
+          !Array.isArray(slot.allowedPaths) || !slot.allowedPaths.length || new Set(slot.allowedPaths).size !== slot.allowedPaths.length) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Source slot '${slot.id}' is incomplete`);
         }
         slot.allowedPaths.forEach((pointer) => this.assertPointer(pointer, 'source'));
       }
       for (const question of definition.questions) {
-        if (!question.labelKey?.trim() || !question.type || (question.maxLength !== undefined && question.maxLength <= 0)) {
+        if (typeof question.labelKey !== 'string' || !question.labelKey.trim() || !GENERATION_QUESTION_TYPES.includes(question.type) ||
+          (question.maxLength !== undefined && (!Number.isSafeInteger(question.maxLength) || question.maxLength <= 0)) ||
+          (question.options !== undefined && !Array.isArray(question.options))) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' is invalid`);
         }
         const isChoice = question.type === 'enum' || question.type === 'multiEnum';
         const options = question.options ?? [];
-        if ((isChoice && (!options.length || new Set(options.map((option) => option.value)).size !== options.length ||
-          options.some((option) => !option.value?.trim() || !option.labelKey?.trim()))) || (!isChoice && options.length > 0)) {
+        if ((isChoice && (!options.length ||
+          options.some(option => !option || typeof option.value !== 'string' || !option.value.trim() || typeof option.labelKey !== 'string' || !option.labelKey.trim()) ||
+          new Set(options.map(option => option.value)).size !== options.length)) || (!isChoice && options.length > 0)) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' has invalid options`);
         }
         if (question.maxLength !== undefined && question.type !== 'text' && question.type !== 'textarea') {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Question '${question.id}' has an unsupported length limit`);
-        }
-        if (question.sourceDefaultExpression?.includes('condition')) {
-          throw new GenerationError('GENERATION_PROFILE_INVALID', 'Conditional questions are not supported in the POC');
         }
         if (question.sourceDefaultExpression) {
           this.assertPointer(question.sourceDefaultExpression, 'question default');
@@ -86,12 +99,12 @@ export namespace Services {
         if (field.operation !== 'fill' || !SUPPORTED_OUTPUTS.has(field.output?.kind)) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' uses an unsupported operation or type`);
         }
-        if (!field.expectedComponentClasses.length || field.expectedComponentClasses.some((component) =>
-          EXCLUDED_COMPONENT_PARTS.some((part) => component.toLowerCase().includes(part)))) {
+        if (!Array.isArray(field.expectedComponentClasses) || !field.expectedComponentClasses.length || field.expectedComponentClasses.some((component) =>
+          typeof component !== 'string' || EXCLUDED_COMPONENT_PARTS.some((part) => component.toLowerCase().includes(part)))) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' references an unsupported component`);
         }
         this.validateOutput(field.output, field.id);
-        if (field.reviewedAnswerIds && (new Set(field.reviewedAnswerIds).size !== field.reviewedAnswerIds.length ||
+        if (field.reviewedAnswerIds !== undefined && (!Array.isArray(field.reviewedAnswerIds) || new Set(field.reviewedAnswerIds).size !== field.reviewedAnswerIds.length ||
           field.reviewedAnswerIds.some((id) => !definition.questions.some((question) => question.id === id)))) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' references an unknown reviewed answer`);
         }
@@ -99,10 +112,11 @@ export namespace Services {
           throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${field.id}' fallback must require review`);
         }
       }
-      if (!definition.modelDeploymentId?.trim()) {
+      if (typeof definition.modelDeploymentId !== 'string' || !definition.modelDeploymentId.trim()) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'A model deployment is required');
       }
-      if (definition.contextLimits.totalBytes <= 0 || definition.contextLimits.totalBytes > sails.config.generation.context.maxTotalBytes ||
+      if (![definition.contextLimits.totalBytes, definition.contextLimits.maxKnowledgeChunks, definition.contextLimits.maxChunkBytes].every(Number.isSafeInteger) ||
+        definition.contextLimits.totalBytes <= 0 || definition.contextLimits.totalBytes > sails.config.generation.context.maxTotalBytes ||
         definition.contextLimits.maxKnowledgeChunks < 0 || definition.contextLimits.maxKnowledgeChunks > sails.config.generation.context.maxKnowledgeChunks ||
         definition.contextLimits.maxChunkBytes <= 0 || definition.contextLimits.maxChunkBytes > sails.config.generation.context.maxChunkBytes) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Context limits are invalid');
@@ -208,18 +222,19 @@ export namespace Services {
       const fail = (): never => {
         throw new GenerationError('GENERATION_PROFILE_INVALID', `Target field '${fieldId}' has an invalid output contract`);
       };
+      if (!output || typeof output !== 'object' || Array.isArray(output) || !SUPPORTED_OUTPUTS.has(output.kind)) fail();
       if (output.kind === 'string' || output.kind === 'richText') {
         if (output.maxLength !== undefined && (!Number.isInteger(output.maxLength) || output.maxLength <= 0)) fail();
         return;
       }
       if (output.kind === 'enum' || output.kind === 'enumArray') {
-        if (!output.values.length || output.values.some((value) => !value.trim()) || new Set(output.values).size !== output.values.length) fail();
+        if (!Array.isArray(output.values) || !output.values.length || output.values.some(value => typeof value !== 'string' || !value.trim()) || new Set(output.values).size !== output.values.length) fail();
         if (output.kind === 'enumArray' && output.maxItems !== undefined &&
           (!Number.isInteger(output.maxItems) || output.maxItems <= 0 || output.maxItems > output.values.length)) fail();
         return;
       }
       if (output.kind === 'object' || output.kind === 'objectArray') {
-        if (!Object.keys(output.properties).length) fail();
+        if (!output.properties || typeof output.properties !== 'object' || Array.isArray(output.properties) || !Object.keys(output.properties).length) fail();
         for (const [key, nested] of Object.entries(output.properties)) {
           if (!key.trim()) fail();
           this.validateOutput(nested, `${fieldId}.${key}`);

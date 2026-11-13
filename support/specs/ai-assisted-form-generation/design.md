@@ -612,7 +612,7 @@ For OpenRouter, the POC adapter configures `@ai-sdk/openai-compatible` with the 
 2. JSON parsing with no repair-by-default;
 3. dynamic Zod/platform envelope validation;
 4. exact stable field ID set and duplicate/missing handling;
-5. evidence ID membership and content-hash verification;
+5. evidence ID membership and allowed-source/grounding validation against the pinned evidence context; evidence hashes are captured when that context is built;
 6. server-derived grounding/review state;
 7. target type, enum, cardinality, length, and format validation;
 8. rich text sanitisation/conversion where applicable;
@@ -688,7 +688,7 @@ Native Mongo compare-and-set updates include brand, run ID, expected status, and
 
 Add jobs to `packages/redbox-core/src/config/agendaQueue.config.ts`:
 
-- `GenerationRunService-Execute` -> `generationworkerservice.executeQueuedRun`, with a provider-appropriate lock lifetime, bounded concurrency, and heartbeat;
+- `GenerationRunService-Execute` -> `generationworkerservice.executeQueuedRun`, with a provider-appropriate lock lifetime, bounded concurrency, execution-attempt fencing, and artifact deadlines;
 - `GenerationRunService-ExpireArtifacts` -> `generationrunservice.expireAbandonedRuns`, scheduled periodically on Mongo-backed Agenda only;
 - optional `GenerationRunService-PurgeDiagnostics` if TTL/index verification requires explicit fallback cleanup.
 
@@ -816,7 +816,7 @@ These REST routes belong to the post-POC administration milestone. The POC uses 
 
 ### Authn/authz and policies
 
-Add Admin read/update path rules for `/:branding/:portal/api/generation(/*)` in `packages/redbox-core/src/config/auth.config.ts`. The controller also verifies Admin role and active brand. Diagnostics additionally require an explicit `generation.allowAdminDiagnostics` configuration flag and create a safe audit event.
+Add Admin read/update path rules for `/:branding/:portal/api/generation(/*)` in `packages/redbox-core/src/config/auth.config.ts`. The controller also verifies Admin role and active brand. Diagnostics additionally require an explicit reserved `generation.diagnostics.allowAdminDiagnostics` (administration roadmap; not an implemented diagnostics API) configuration flag and create a safe audit event.
 
 ### Error handling and controller conventions
 
@@ -876,11 +876,11 @@ For `draft`, `questions` contains the profile-defined five questions and mapped 
 
 #### `POST /:branding/:portal/generation/runs/:id/execute`
 
-Request contains `answers`, `targetForm` descriptor, and the current target draft. The service ignores payload brand/profile/provider/model values. Success returns `202` with queued state and `Retry-After`. If a prior attempt failed, the same endpoint may retry only when `retryable` is true; completed runs return `409 GENERATION_ALREADY_COMPLETED`.
+Request contains `answers`, `targetForm` descriptor, and the current target draft. The service ignores payload brand/profile/provider/model values. Success returns `202` with queued state. No `Retry-After` header is emitted; the form uses bounded polling. If a prior attempt failed, the same endpoint may retry only when `retryable` is true; completed runs return `409 GENERATION_ALREADY_COMPLETED`.
 
 #### `POST /:branding/:portal/generation/runs/:id/cancel`
 
-Sets `cancelRequested` for queued/running runs and returns `202`; cancels a draft synchronously; is idempotent for terminal cancellation. The worker acknowledges cancellation before invocation or after the provider call returns and discards output after a cancellation request. An in-process call may continue until its response or configured timeout.
+Sets `cancelRequested` for queued/running runs and returns `200` with the updated run; cancels a draft synchronously; is idempotent for terminal cancellation. The worker acknowledges cancellation before invocation or after the provider call returns and discards output after a cancellation request. An in-process call may continue until its response or configured timeout.
 
 #### `POST /:branding/:portal/generation/runs/:id/commit`
 
@@ -1077,7 +1077,7 @@ The default editor should be approachable for technical administrators: progress
 ### State management and error handling
 
 - Poll only active runs; stop on terminal state, component destroy, logout, or brand change.
-- Use exponential/bounded polling informed by `Retry-After`; do not leave intervals alive after navigation.
+- Use bounded polling (750–4000 ms in the implemented form), with pause/resume controls; do not leave intervals alive after navigation.
 - Closing a running panel preserves server run state; reopening resumes polling.
 - An expired artifact yields an explanation and requires launching a new target creation intent.
 - Client validation improves UX but never substitutes for server authorization/schema validation.

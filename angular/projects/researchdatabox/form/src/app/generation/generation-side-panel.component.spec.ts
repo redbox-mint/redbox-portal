@@ -457,6 +457,33 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.conflicts()).toEqual(['conflicted']);
   });
 
+  it('excludes skipped generation fields from pending and saved provenance after a colliding completion edit', async () => {
+    const form = new FormGroup({ summary: new FormControl('Researcher summary'), contributor_pi: new FormControl('') });
+    fixture.componentRef.setInput('form', form);
+    fixture.detectChanges();
+    const patch: GenerationCandidatePatch = {
+      runId: 'collision-run', candidateDigest: 'digest', baseTargetDigest: 'base',
+      items: [{ fieldId: 'contributor_pi', metadataPointer: '/summary', value: 'Generated summary', operation: 'fill',
+        valueHash: 'hash', groundingState: 'sourceBacked', reviewRequired: false, rationale: 'Source', evidence: [] }],
+    };
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    component.run.set(run(patch.runId, 'draft', []));
+    const realApplier = new GenerationPatchApplierService();
+    applier.apply.and.callFake((...args) => realApplier.apply(...args));
+    api.execute.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch,
+      completionValues: [{ metadataPointer: '/contributor_pi', value: 'Copied PI' }],
+    });
+    api.commit.and.resolveTo({ runId: patch.runId, targetOid: 'record-1', committed: true, provenanceCount: 0 });
+
+    await component.generate();
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'record-1' }));
+    await fixture.whenStable();
+
+    expect(form.getRawValue()).toEqual({ summary: 'Researcher summary', contributor_pi: 'Copied PI' });
+    expect(provenance.setPending).toHaveBeenCalledOnceWith({ ...patch, items: [] });
+    expect(api.commit).toHaveBeenCalledWith(patch.runId, jasmine.objectContaining({ appliedFieldIds: [] }));
+  });
+
   it('commits only applied fields, retains edited applied fields, and never infers review from missing provenance', async () => {
     const patch: GenerationCandidatePatch = {
       runId: 'receipt-run', candidateDigest: 'original-digest', baseTargetDigest: 'base',

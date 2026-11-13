@@ -3,6 +3,11 @@ import { Attr, BeforeCreate, BeforeUpdate, Entity, buildInvalidNewRecordError, t
 import { containsEmbeddedSecret, normalizeStableEntity } from './generation-model-helpers';
 
 const normalize = (record: Record<string, unknown>, callback: (error?: Error) => void) => {
+  if (record.timeoutMs !== undefined && (typeof record.timeoutMs !== 'number' || !Number.isInteger(record.timeoutMs) ||
+    record.timeoutMs < 1 || record.timeoutMs > 2_147_483_647)) {
+    callback(buildInvalidNewRecordError('Generation connection timeoutMs must be an integer between 1 and 2147483647'));
+    return;
+  }
   if (containsEmbeddedSecret(record.nonSecretHeaders) || containsEmbeddedSecret(record.dataPolicy)) {
     callback(buildInvalidNewRecordError('Embedded secret values are prohibited; use secretRef'));
     return;

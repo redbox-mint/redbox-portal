@@ -127,6 +127,27 @@ describe('GenerationPatchApplierService', () => {
     }));
   });
 
+  it('does not report a blocked generated field as applied when a completion leaf shares its profile ID', () => {
+    const collisionForm = new FormGroup({
+      summary: new FormControl('Researcher summary'),
+      contributor_pi: new FormControl(''),
+    });
+    const patch = { ...candidate(), items: [{
+      ...candidate().items[0], fieldId: 'contributor_pi', metadataPointer: '/summary',
+    }] };
+
+    const result = service.apply(patch, collisionForm, collisionForm.getRawValue(), eventBus, [
+      { metadataPointer: '/contributor_pi', value: 'Copied PI' },
+    ]);
+
+    expect(collisionForm.getRawValue()).toEqual({ summary: 'Researcher summary', contributor_pi: 'Copied PI' });
+    expect(result.changedFieldIds).toEqual([]);
+    expect(result.conflictFieldIds).toEqual(['contributor_pi']);
+    expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({
+      type: 'field.value.changed', fieldId: 'contributor_pi', origin: 'system', value: 'Copied PI',
+    }));
+  });
+
   it('copies completion values into flat contributor controls without overwriting edits made during generation', () => {
     const contributorForm = new FormGroup({
       contributor_ci: new FormControl({ text_full_name: 'Manually selected person' }),
@@ -149,7 +170,7 @@ describe('GenerationPatchApplierService', () => {
       },
     ]);
 
-    expect(result).toEqual({ changedFieldIds: ['contributors'], conflictFieldIds: ['contributor_ci'] });
+    expect(result).toEqual({ changedFieldIds: [], conflictFieldIds: ['contributor_ci'] });
     expect(contributorForm.get('contributor_ci')?.value).toEqual({ text_full_name: 'Manually selected person' });
     expect(contributorForm.get('contributors')?.value).toEqual(copiedContributors);
     expect(eventBus.publish).toHaveBeenCalledWith(jasmine.objectContaining({

@@ -364,7 +364,7 @@ Implement:
 - freeze/encrypt artifact;
 - enqueue with only brand/run ID;
 - cancel request;
-- state transition/heartbeat/error helpers;
+- state transition/attempt-fencing/error helpers;
 - terminal cleanup/expiry;
 - commit orchestration delegated to provenance service.
 
@@ -393,7 +393,7 @@ Do not apply the patch or save a record.
 
 ### 9.3 Register Agenda jobs
 
-Update `packages/redbox-core/src/config/agendaQueue.config.ts` with execution and cleanup jobs. Set lock lifetime longer than provider timeout plus validation margin, heartbeat before expiry, bounded concurrency, and no recurring SQS schedule assumption. Add Agenda integration tests for enqueue, redelivery, terminal no-op, failure retry, cancel, and expiry.
+Update `packages/redbox-core/src/config/agendaQueue.config.ts` with execution and cleanup jobs. Set lock lifetime longer than provider timeout plus validation margin, execution-attempt fencing and artifact deadlines, bounded concurrency, and no recurring SQS schedule assumption. Add Agenda integration tests for enqueue, redelivery, terminal no-op, failure retry, cancel, and expiry.
 
 ### 9.4 Implement `GenerationProvenanceService`
 
