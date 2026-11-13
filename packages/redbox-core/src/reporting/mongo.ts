@@ -84,8 +84,16 @@ function filterMatch(filter: ReportingFilter, registry: ReportingRegistry): Docu
     return { $expr: { $in: [value, inputs.map(input => reportingDate(String(input)))] } };
   }
   if (filter.operator === 'between') throw new ReportingError('INVALID_QUERY');
-  // Scalars are always operator values, never object fragments or expression strings.
-  return { [field.path]: filter.operator === 'eq' ? { $eq: filter.value } : { $in: filter.values } };
+  if (field.array) return { [field.path]: filter.operator === 'eq' ? { $eq: filter.value } : { $in: filter.values } };
+  // Scalar drilldowns share grouping's type contract. Treat caller strings as
+  // literals, including values beginning with Mongo's expression prefix "$".
+  const value = typedValue(field.path, field.type);
+  return {
+    $expr:
+      filter.operator === 'eq'
+        ? { $eq: [value, { $literal: filter.value }] }
+        : { $in: [value, { $literal: filter.values }] },
+  };
 }
 /** Only trusted code generates stages. Revalidates DSL even for direct storage callers. */
 export function compileReportingPipeline(

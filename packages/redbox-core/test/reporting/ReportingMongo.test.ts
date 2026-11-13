@@ -305,6 +305,54 @@ import { principal, registry, storedRecord } from './fixtures';
         expect(present).to.have.property('items').that.has.members(['valid-0', 'valid-1']);
       });
     }
+    for (const [field, value, groupable] of [
+      ['faculty', '$metadata.faculty', true],
+      ['sensitiveData', false, true],
+      ['amount', 0, false],
+    ] as const) {
+      it(`keeps ${field} equality drilldowns consistent with scalar groups`, async () => {
+        const isolated = client.db(dbName).collection(`scalar_equality_${field}`);
+        const records = ['valid', 'array', 'null', 'hidden'].map(id => {
+          const record = storedRecord(id);
+          record.metadata = { [field]: id === 'array' ? [value] : id === 'null' ? null : value };
+          if (id === 'hidden') record.authorization.view = ['bob'];
+          return record;
+        });
+        await isolated.insertMany(records);
+        const local = new MongoReportingProvider(isolated, registry);
+        if (groupable) {
+          const groups = await local.executeReporting(principal, {
+            operation: 'group',
+            recordType: 'rdmp',
+            groupBy: [field],
+          });
+          expect(groups)
+            .to.have.property('items')
+            .that.deep.includes({
+              dimensions: { [field]: value },
+              metrics: { count: 1 },
+            });
+        }
+        for (const filter of [
+          { field, operator: 'eq' as const, value },
+          { field, operator: 'in' as const, values: [value] },
+        ]) {
+          expect(
+            await local.executeReporting(principal, {
+              operation: 'count',
+              recordType: 'rdmp',
+              filters: [filter],
+            })
+          ).to.deep.equal({ count: 1 });
+          const page = await local.executeReporting(principal, {
+            operation: 'records',
+            recordType: 'rdmp',
+            filters: [filter],
+          });
+          expect(page).to.have.property('items').that.deep.equals(['valid']);
+        }
+      });
+    }
     it('reports pagination and empty results explicitly, and returns only authorized IDs for drilldown', async () => {
       const result = await provider.executeReporting(principal, {
         operation: 'group',
