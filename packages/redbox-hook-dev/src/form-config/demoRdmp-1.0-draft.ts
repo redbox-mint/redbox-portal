@@ -55,7 +55,7 @@ const formConfig: FormConfigFrame = {
     {
       name: 'sensitivityClassification',
       layout: { class: 'DefaultLayout', config: { label: 'generation-demo-rdmp-sensitivity', helpText: 'generation-demo-rdmp-sensitivity-help' } },
-      model: { class: 'DropdownInputModel', config: { defaultValue: 'internal' } },
+      model: { class: 'DropdownInputModel', config: { defaultValue: null } },
       component: { class: 'DropdownInputComponent', config: { options: [
         { label: 'generation-demo-class-public', value: 'public' },
         { label: 'generation-demo-class-internal', value: 'internal' },

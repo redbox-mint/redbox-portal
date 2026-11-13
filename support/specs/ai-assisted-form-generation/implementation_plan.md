@@ -1,14 +1,16 @@
 # AI-assisted form generation implementation plan
 
-Status: proposed
+Status: POC implemented in draft review; historical delivery plan and future administration roadmap
 
 Design: [design.md](design.md)
 
 Requirements: [requirements.md](requirements.md)
 
+This plan records the original phase sequencing, including proposed work that was deferred or superseded. The [README](README.md) describes the implemented POC: Bedrock and OpenRouter adapters, JSON-pointer question defaults, `generation/state/` Angular state, and flat bootstrap manifests. Milestone B and administration endpoints below remain roadmap items.
+
 ## 1. Delivery strategy
 
-Deliver a narrow but real researcher experience first, behind disabled-by-default core configuration. The POC must use persisted/versioned configuration, a real queue, the real ReDBox form lifecycle, and a real OpenRouter adapter implemented through the Vercel AI SDK. It may defer the full admin application, additional providers, conditional questionnaires, saved-record regeneration, and vector retrieval.
+Deliver a narrow but real researcher experience first, behind disabled-by-default core configuration. The POC must use persisted/versioned configuration, a real queue, the real ReDBox form lifecycle, and real OpenRouter and Bedrock adapters implemented through the Vercel AI SDK. It may defer the full admin application, further providers, conditional questionnaires, saved-record regeneration, and vector retrieval.
 
 The implementation is divided into two release milestones:
 

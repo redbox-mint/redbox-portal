@@ -1580,7 +1580,13 @@ describe('FormComponent', () => {
     { name: 'enabled for an unsaved form', meta: { generationEnabled: true }, oid: '', loads: false },
   ]) {
     it(`gates automatic generation provenance when ${scenario.name}`, async () => {
-      const config: FormConfigFrame = { name: 'generation-provenance-gate', componentDefinitions: [] };
+      const config: FormConfigFrame = {
+        name: 'generation-provenance-gate',
+        componentDefinitions: [{
+          name: 'title', model: { class: 'SimpleInputModel', config: { value: 'Saved title' } },
+          component: { class: 'SimpleInputComponent' },
+        }],
+      };
       const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: scenario.oid });
       const formService = TestBed.inject(FormService);
       const provenance = TestBed.inject(GenerationProvenanceStoreService);
@@ -1593,6 +1599,7 @@ describe('FormComponent', () => {
 
       await formComponent.downloadAndCreateFormComponents();
 
+      expect(formComponent.form?.get('title')?.value).toBe('Saved title');
       expect(clear).toHaveBeenCalled();
       if (scenario.loads) expect(load).toHaveBeenCalledOnceWith('saved-record');
       else expect(load).not.toHaveBeenCalled();

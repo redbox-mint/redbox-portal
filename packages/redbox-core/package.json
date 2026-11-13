@@ -43,6 +43,7 @@
     "@ai-sdk/openai-compatible": "3.0.31",
     "@apidevtools/swagger-parser": "13.1.0",
     "@aws-sdk/client-secrets-manager": "3.1162.0",
+    "@aws-sdk/credential-provider-node": "3.972.93",
     "@aws-sdk/s3-request-presigner": "3.1160.0",
     "@jsonjoy.com/json-pointer": "18.24.0",
     "@ocfl/ocfl": "0.4.0",

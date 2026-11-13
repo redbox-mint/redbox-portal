@@ -199,23 +199,25 @@ export namespace Services {
         await GenerationFieldProvenance.find({ brandId: actor.brandId, targetRecordOid: targetOid }),
         'GenerationFieldProvenance',
       );
-      const fields: GenerationFieldProvenanceView[] = rows.map((row) => {
-        const current = getJsonPointer(record.metadata ?? {}, row.metadataPointer);
-        const displayState = current === undefined || current === null || current === ''
-          ? 'removed' as const
-          : canonicalHash(current) === row.generatedValueHash ? 'generated' as const : 'edited' as const;
-        return {
-          id: row.id, runId: row.runId, profileFieldId: row.profileFieldId, metadataPointer: row.metadataPointer,
-          displayState, groundingState: row.groundingState, reviewRequired: row.reviewRequired,
-          reviewReasonCode: row.reviewReasonCode, reviewedAt: row.reviewedAt, rationale: row.rationale,
-          evidence: row.evidenceRefs.map((item) => ({
-            id: String(item.id ?? ''), label: String(item.label ?? ''),
-            kind: item.kind === 'knowledge' ? 'knowledge' as const : 'source' as const,
-          })),
-          generatedAt: row.generatedAt, committedAt: row.committedAt,
-        };
-      });
+      const fields = rows.map(row => this.toFieldView(row, record.metadata ?? {}));
       return { recordOid: targetOid, fields };
+    }
+
+    private toFieldView(row: GenerationFieldProvenanceAttributes, metadata: Record<string, unknown>): GenerationFieldProvenanceView {
+      const current = getJsonPointer(metadata, row.metadataPointer);
+      const displayState = current === undefined || current === null || current === ''
+        ? 'removed' as const
+        : canonicalHash(current) === row.generatedValueHash ? 'generated' as const : 'edited' as const;
+      return {
+        id: row.id, runId: row.runId, profileFieldId: row.profileFieldId, metadataPointer: row.metadataPointer,
+        displayState, groundingState: row.groundingState, reviewRequired: row.reviewRequired,
+        reviewReasonCode: row.reviewReasonCode, reviewedAt: row.reviewedAt, rationale: row.rationale,
+        evidence: row.evidenceRefs.map((item) => ({
+          id: String(item.id ?? ''), label: String(item.label ?? ''),
+          kind: item.kind === 'knowledge' ? 'knowledge' as const : 'source' as const,
+        })),
+        generatedAt: row.generatedAt, committedAt: row.committedAt,
+      };
     }
 
     public async review(
@@ -223,7 +225,7 @@ export namespace Services {
       user: UserModel,
       brand: BrandingModel,
       provenanceId: string,
-    ): Promise<GenerationFieldProvenanceAttributes> {
+    ): Promise<GenerationFieldProvenanceView> {
       const provenance = await GenerationFieldProvenance.findOne({ id: provenanceId, brandId: actor.brandId });
       if (!provenance) throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Generation provenance was not found');
       const records = requireService<RecordsLike>('recordsservice', ['getMeta', 'hasViewAccess', 'hasEditAccess']);
@@ -233,7 +235,7 @@ export namespace Services {
         reviewRequired: false, reviewedBy: actor.userId, reviewedAt: new Date().toISOString(),
       });
       if (!updated) throw new GenerationError('GENERATION_TARGET_FORBIDDEN', 'Generation provenance changed concurrently');
-      return updated;
+      return this.toFieldView(updated, record.metadata ?? {});
     }
   }
 }

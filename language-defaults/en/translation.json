@@ -1991,7 +1991,7 @@
   "generation-error-generation-commit-invalid": "The draft was saved, but its provenance could not be recorded.",
   "generation-complete-title": "Draft added to the form",
   "generation-complete-body": "Review every value, resolve any flagged content, make edits, then save normally.",
-  "generation-conflicts": "These fields changed while generation was running and were not overwritten",
+  "generation-conflicts": "These fields already contain values or changed while generation was running and were not overwritten",
   "generation-review-required": "Review required",
   "generation-mark-reviewed": "Mark reviewed",
   "generation-provenance-generated": "AI generated",
