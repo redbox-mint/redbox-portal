@@ -246,6 +246,8 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.documents()).toEqual([]);
   });
   it('applies a candidate returned directly by a fast execution', async () => {
+    const form = component.form();
+    if (!form) throw new Error('Expected a test form');
     const candidate = { runId: 'fast-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
     component.activeSession.set({ runId: 'fast-run', bindingKey: 'documents', autoOpen: true, initialValues: [] });
     component.run.set(run('fast-run', 'draft', []));
@@ -253,13 +255,15 @@ describe('GenerationSidePanelComponent', () => {
 
     await component.generate();
 
-    expect(applier.apply).toHaveBeenCalledOnceWith(candidate, component.form(), { researchActivity: 'activity-1' }, eventBus, []);
+    expect(applier.apply).toHaveBeenCalledOnceWith(candidate, form, { researchActivity: 'activity-1' }, eventBus, []);
     expect(component.candidate()).toEqual(candidate);
     expect(api.getRun).not.toHaveBeenCalled();
   });
 
   for (const status of ['queued', 'running', 'validating'] as const) {
     it(`resumes a reopened ${status} run and applies its completed candidate`, async () => {
+      const form = component.form();
+      if (!form) throw new Error('Expected a test form');
       const candidate = { runId: 'resumed-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
       api.getRun.and.returnValues(
         Promise.resolve(run('resumed-run', status, [])),
@@ -270,7 +274,7 @@ describe('GenerationSidePanelComponent', () => {
       await new Promise<void>((resolve) => setTimeout(resolve, 800));
 
       expect(api.getRun).toHaveBeenCalledTimes(2);
-      expect(applier.apply).toHaveBeenCalledOnceWith(candidate, component.form(), { researchActivity: 'activity-1' }, eventBus, []);
+      expect(applier.apply).toHaveBeenCalledOnceWith(candidate, form, { researchActivity: 'activity-1' }, eventBus, []);
       expect(component.completed()).toBeTrue();
       expect(component.busy()).toBeFalse();
       expect(api.execute).not.toHaveBeenCalled();
