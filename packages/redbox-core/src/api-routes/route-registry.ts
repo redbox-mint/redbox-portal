@@ -21,6 +21,7 @@ import { integrationAuditApiRoutes } from './groups/integration-audit';
 import { notificationApiRoutes } from './groups/notifications';
 import { relatedRecordsApiRoutes } from './groups/related-records';
 import { recordApiRoutes } from './groups/records';
+import { recordGraphqlApiRoutes } from './groups/record-graphql';
 import { recordSchemaApiRoutes } from './groups/record-schemas';
 import { recordTypeApiRoutes } from './groups/recordtypes';
 import { reportsApiRoutes } from './groups/reports';
@@ -43,6 +44,7 @@ const coreApiRouteGroups = [
   dashboardRecordsApiRoutes,
   deletedRecordsApiRoutes,
   recordSchemaApiRoutes,
+  recordGraphqlApiRoutes,
   userApiRoutes,
   adminUsersApiRoutes,
   searchApiRoutes,
