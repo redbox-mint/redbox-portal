@@ -23,6 +23,20 @@ export async function oidcFixture() {
     email: subject === 'denied' ? 'denied@outside.invalid' : subject.toUpperCase() + '@EXAMPLE.INVALID',
     department: { name: 'Research' },
   });
+  const metadata = (endpoints: Partial<import('openid-client').ServerMetadata> = {}) => ({
+    issuer,
+    authorization_endpoint: issuer + '/authorize',
+    token_endpoint: issuer + '/token',
+    userinfo_endpoint: issuer + '/userinfo',
+    jwks_uri: issuer + '/jwks',
+    end_session_endpoint: issuer + '/logout',
+    response_types_supported: ['code'],
+    subject_types_supported: ['public'],
+    id_token_signing_alg_values_supported: ['RS256'],
+    token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
+    code_challenge_methods_supported: ['S256'],
+    ...endpoints,
+  });
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url!, issuer);
@@ -33,19 +47,7 @@ export async function oidcFixture() {
       if (url.pathname === '/.well-known/openid-configuration') {
         calls.discovery++;
         if (mode === 'discovery-error') return json({ error: 'discovery-failed' }, 500);
-        return json({
-          issuer,
-          authorization_endpoint: issuer + '/authorize',
-          token_endpoint: issuer + '/token',
-          userinfo_endpoint: issuer + '/userinfo',
-          jwks_uri: issuer + '/jwks',
-          end_session_endpoint: issuer + '/logout',
-          response_types_supported: ['code'],
-          subject_types_supported: ['public'],
-          id_token_signing_alg_values_supported: ['RS256'],
-          token_endpoint_auth_methods_supported: ['client_secret_post', 'client_secret_basic'],
-          code_challenge_methods_supported: ['S256'],
-        });
+        return json(metadata());
       }
       if (url.pathname === '/jwks')
         return json({ keys: [{ ...keys.publicKey.export({ format: 'jwk' }), kid, alg: 'RS256', use: 'sig' }] });
@@ -148,6 +150,7 @@ export async function oidcFixture() {
   issuer = `http://127.0.0.1:${address.port}`;
   return {
     issuer,
+    metadata,
     calls,
     setMode(value: string) {
       mode = value;

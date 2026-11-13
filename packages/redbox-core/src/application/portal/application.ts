@@ -42,6 +42,7 @@ import { resolvePortalInstallation, type PortalFastifySelection } from './instal
 import type { ProductionExtensionLoadingOptions } from './compositionInputs';
 
 export interface PortalApplicationContext {
+  readonly models: ConfigModelRegistry;
   readonly owner: PersistenceOwner;
   readonly config: Readonly<import('../../configuration/portal').PortalConfiguration>;
   readonly data: ReturnType<typeof portalDataPlan>;
@@ -309,7 +310,7 @@ async function buildPortalApplication<R extends LifecycleResolution>(
   for (const job of Object.values(config.agendaQueue.jobs))
     if (!Object.hasOwn(jobs, job.fnName)) throw new Error('Unregistered Agenda operation: ' + job.fnName);
   const plans = [...data.modules, ...providers.modules];
-  const resolved = await select({ owner, config, data, providers, log: options.log, plans });
+  const resolved = await select({ owner, config, data, providers, models, log: options.log, plans });
   const storage = resolved.modules.find(item => item.declaration.name === 'storage');
   if (!storage) throw new Error('Select an installed storage extension.');
   const storageExports = installed.entrypoints.get(storage.provider);

@@ -6,17 +6,7 @@ import { AuthenticationRejected } from '../../authentication/Accounts';
 import { apiNoCacheHeaders } from './responses';
 import { httpAction } from './middleware';
 
-export const authenticationRoutes = [
-  ['post', '/user/login_local', 'localLogin'],
-  ['post', '/user/login_aaf', 'aafLogin'],
-  ['get', '/user/login_oidc', 'openidConnectLogin'],
-  ['get', '/user/begin_oidc', 'beginOidc'],
-  ['head', '/user/begin_oidc', 'disallowedHeadRequestHandler'],
-  ['get', '/user/info', 'info'],
-  ['get', '/:branding/:portal/user/info', 'info'],
-  ['post', '/:branding/:portal/user/logout', 'logout'],
-  ['get', '/:branding/:portal/user/logout', 'logout'],
-].map(([method, path, action]) => ({ method, path, action, controller: 'UserController' }));
+export { authenticationRoutes } from '../authenticationRoutes';
 
 export interface AuthenticationHttpInput {
   readonly passport: Pick<ReturnType<typeof createHttpAuthentication>['passport'], 'authenticate'>;
@@ -98,7 +88,7 @@ export function mountAuthenticationRoutes(router: Router, input: AuthenticationH
   const strategy = (req: Request) => {
     const id = req.query.id;
     if (id === undefined || id === '') return 'oidc';
-    if (typeof id !== 'string' || id.length > 4096 || (/[\r\n]/.test(id) || id.includes('\u0000')))
+    if (typeof id !== 'string' || id.length > 4096 || /[\r\n]/.test(id) || id.includes('\u0000'))
       throw new URIError('Invalid OIDC identifier');
     return 'oidc-' + id;
   };

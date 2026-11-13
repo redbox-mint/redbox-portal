@@ -25,6 +25,7 @@ import { prepareNativeSessions, type NativeSessionConfiguration } from '../../ht
 import {
   prepareNativeAuthentication,
   installNativeAuthenticationRoutes,
+  createNativeAuthenticationActions,
   type NativeAuthentication,
   type NativeAuthenticationRoutesInput,
 } from '../../http/fastify/authentication';
@@ -313,7 +314,7 @@ export async function createPortalFastifyHost(
         });
         authentication = await prepareNativeAuthentication(app, input.authentication());
         app.get(rootContext + '/csrfToken', csrf.token);
-        installNativeAuthenticationRoutes(app, authentication, {
+        const authenticationInput = {
           identity: input.authentication().identity,
           validContext: input.login.validContext,
           brandId: input.login.brandId,
@@ -356,7 +357,10 @@ export async function createPortalFastifyHost(
             ...portal.config.redboxSession.cookie,
           },
           csrf: csrf.protect,
-        } satisfies ProductionAuthenticationRoutesInput);
+        } satisfies ProductionAuthenticationRoutesInput;
+        if (resolved.pages)
+          resolved.pages.authentication = createNativeAuthenticationActions(authentication, authenticationInput);
+        else installNativeAuthenticationRoutes(app, authentication, authenticationInput);
         if (resolved.raw?.companion)
           prepareCompanionRoutes(app, {
             uploads: resolved.raw.companion,

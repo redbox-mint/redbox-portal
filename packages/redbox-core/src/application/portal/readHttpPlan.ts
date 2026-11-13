@@ -1,3 +1,6 @@
+import { combineBrowserInput } from './pageHttpPlan';
+import * as browserControllers from '../../http/controllers/BrowserControllers';
+import type { BrowserPageBinding } from '../../http/controllers/BrowserControllers';
 import type { PortalApplicationContext } from './application';
 import type { RecordReadInput } from '../../http/actions/recordReads';
 import type { QueryReadInput } from '../../http/actions/queryReads';
@@ -110,7 +113,8 @@ export const combineHttpInputs = <A extends object, B extends object>(a: A, b: B
 export function portalReadControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
-  uploads?: DatastreamControllerInput
+  uploads?: DatastreamControllerInput,
+  browser?: BrowserPageBinding
 ) {
   const inputs = portalReadHttpInputs(portal);
   const metadata = portalHttpPlan(portal, {}).metadata,
@@ -142,7 +146,12 @@ export function portalReadControllers(
       )
     ),
     bindControllerFactory(c.apiExportReadController, inputs.records),
-    bindControllerFactory(c.exportReadController, inputs.records),
+    browser
+      ? bindControllerFactory(
+          browserControllers.exportReadBrowserController,
+          combineBrowserInput(inputs.records, browser)
+        )
+      : bindControllerFactory(c.exportReadController, inputs.records),
     bindControllerFactory(c.apiRecordSchemaReadController, inputs.records),
     bindControllerFactory(c.apiReportReadController, inputs.queries),
     bindControllerFactory(c.reportReadController, inputs.queries),
@@ -151,7 +160,12 @@ export function portalReadControllers(
     bindControllerFactory(c.apiSiemReadController, inputs.queries),
     bindControllerFactory(c.apiSearchReadController, inputs.queries),
     bindControllerFactory(c.apiIntegrationAuditReadController, inputs.queries),
-    bindControllerFactory(c.recordAuditReadController, inputs.queries),
+    browser
+      ? bindControllerFactory(
+          browserControllers.recordAuditReadBrowserController,
+          combineBrowserInput(inputs.queries, browser)
+        )
+      : bindControllerFactory(c.recordAuditReadController, inputs.queries),
   ].filter(binding => selected.has(binding.factory.name));
   return { controllers: bindings.map(binding => binding.factory), bindings };
 }

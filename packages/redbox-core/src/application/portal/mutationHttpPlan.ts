@@ -1,3 +1,6 @@
+import { combineBrowserInput } from './pageHttpPlan';
+import * as browserControllers from '../../http/controllers/BrowserControllers';
+import type { BrowserPageBinding } from '../../http/controllers/BrowserControllers';
 import type { PortalApplicationContext } from './application';
 import { bindControllerFactory, defineController } from '../../http/controllers';
 import * as c from '../../http/controllers/MutationControllers';
@@ -98,7 +101,8 @@ export function portalMutationControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
   actions: Readonly<Record<string, ConfiguredAction>>,
-  uploads?: DatastreamControllerInput
+  uploads?: DatastreamControllerInput,
+  browser?: BrowserPageBinding
 ) {
   const input = portalMutationHttpInputs(portal, actions),
     reads = portalReadHttpInputs(portal),
@@ -130,16 +134,36 @@ export function portalMutationControllers(
     uploads
       ? bindControllerFactory(mutationUploadController, combine(apiRecords, uploads))
       : bindControllerFactory(c.apiRecordMutationController, apiRecords),
-    bindControllerFactory(c.recordMutationController, browserRecords),
+    browser
+      ? bindControllerFactory(
+          browserControllers.recordMutationBrowserController,
+          combineBrowserInput(browserRecords, browser)
+        )
+      : bindControllerFactory(c.recordMutationController, browserRecords),
     bindControllerFactory(c.apiAppConfigMutationController, combine(refs.configuration, input.configuration)),
-    bindControllerFactory(c.appConfigMutationController, combine(refs.configuration, input.configuration)),
+    browser
+      ? bindControllerFactory(
+          browserControllers.appConfigMutationBrowserController,
+          combineBrowserInput(combine(refs.configuration, input.configuration), browser)
+        )
+      : bindControllerFactory(c.appConfigMutationController, combine(refs.configuration, input.configuration)),
     bindControllerFactory(c.apiTranslationMutationController, combine(refs.configuration, input.configuration)),
     bindControllerFactory(c.translationMutationController, combine(refs.metadata, input.configuration)),
     bindControllerFactory(c.apiDashboardMutationController, combine(refs.metadata, input.configuration)),
-    bindControllerFactory(c.dashboardMutationController, combine(refs.metadata, input.configuration)),
+    browser
+      ? bindControllerFactory(
+          browserControllers.dashboardMutationBrowserController,
+          combineBrowserInput(combine(refs.metadata, input.configuration), browser)
+        )
+      : bindControllerFactory(c.dashboardMutationController, combine(refs.metadata, input.configuration)),
     bindControllerFactory(c.apiNamedQueryMutationController, combine(reads.queries, input.queries)),
     bindControllerFactory(c.apiReportMutationController, combine(reads.queries, input.queries)),
-    bindControllerFactory(c.reportMutationController, combine(reads.queries, input.queries)),
+    browser
+      ? bindControllerFactory(
+          browserControllers.reportMutationBrowserController,
+          combineBrowserInput(combine(reads.queries, input.queries), browser)
+        )
+      : bindControllerFactory(c.reportMutationController, combine(reads.queries, input.queries)),
     bindControllerFactory(c.actionController, input.actions),
   ].filter(binding => selected.has(binding.factory.name));
   return { controllers: bindings.map(binding => binding.factory), bindings };

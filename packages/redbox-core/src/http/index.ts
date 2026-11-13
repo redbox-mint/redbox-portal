@@ -62,3 +62,5 @@ export {
 } from '../pages/rendering';
 export { prepareNativePage, sendPageResponse, sendPageError } from './fastify/pages';
 export { PageArtifacts } from '../pages/Artifacts';
+
+export * from './controllers/BrowserControllers';

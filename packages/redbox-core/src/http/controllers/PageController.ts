@@ -1,67 +1,56 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { defineController } from '../controllers';
-import { renderPageShell, type PageRenderingInput } from '../../pages/rendering';
-import { prepareNativePage, sendPageResponse, pagePreparationFailure } from '../fastify/pages';
+import { browserPage, shellPage, type BrowserPageInput, type BrowserPageOperation } from '../../pages/browser';
+import type { RouteBinding } from '../fastify/routes';
+import { nativePageRequest, sendPageResponse, pagePreparationFailure } from '../fastify/pages';
 import { sendLoginRedirect } from '../fastify/responses';
-import { pageRoutes } from '../express/pages';
+import { pageRoutes } from '../pageRoutes';
 import { coreRouteName } from '../fastify/routes';
-import { requestContext } from '../context';
-import { recordServiceChronicle } from '../../utilities/serviceChronicle';
 import { requestPathname } from '../fastify/router';
 
 export interface PageControllerInput {
-  readonly rendering: PageRenderingInput;
+  readonly rendering: BrowserPageInput;
   csrfToken(request: FastifyRequest): string;
 }
 export interface PageRootControllerInput {
   readonly rootContext: string;
   readonly landingPath: string;
 }
-/** Representative page shells; remaining browser families are selected in FM-030. */
-export const representativePageRoutes = pageRoutes.filter(route =>
-  ['/home', '/researcher/home'].some(suffix => route.path === '/:branding/:portal' + suffix)
-);
+/** Live request facts enter the shared guarded browser operation after hooks. */
+export async function runNativePage(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  input: PageControllerInput,
+  operation: BrowserPageOperation = shellPage,
+  mode: 'shell' | 'edit' | 'dashboard' | 'legacy' = 'shell'
+) {
+  const binding = (request.routeOptions.config as { redboxRoute?: RouteBinding }).redboxRoute;
+  const route = pageRoutes.find(route => coreRouteName(route.method, route.path) === binding?.route.declaration.name);
+  if (!route) throw new Error('Page declaration unavailable.');
+  let result;
+  try {
+    result = await browserPage(
+      nativePageRequest(request, input.rendering, () => input.csrfToken(request)),
+      input.rendering,
+      route,
+      operation,
+      headers => reply.headers(headers),
+      mode
+    );
+  } catch (error) {
+    return pagePreparationFailure(request, reply, error);
+  }
+  if (result.status === 302) {
+    reply.headers(result.headers);
+    return sendLoginRedirect(request, reply, result.headers.Location);
+  }
+  if (result.body === undefined && !Object.keys(result.headers).length) return reply.code(result.status).send();
+  return sendPageResponse(request, reply, result);
+}
 export class PageController {
   constructor(protected readonly input: PageControllerInput) {}
-  async render(request: FastifyRequest, reply: FastifyReply) {
-    const binding = (request.routeOptions.config as { redboxRoute?: unknown }).redboxRoute as {
-      route: { declaration: { name: string } };
-    };
-    const route = representativePageRoutes.find(
-      route => coreRouteName(route.method, route.path) === binding.route.declaration.name
-    );
-    if (!route) throw new Error('Page declaration unavailable.');
-    const { actor, brand } = requestContext(request);
-    if (actor && !actor.roles.some(role => role.brandId === brand.id)) return reply.code(403).send();
-    if (Object.values(request.query as Record<string, unknown>).some(value => typeof value !== 'string'))
-      return reply.code(400).send();
-    const facts = this.input.rendering;
-    let page;
-    try {
-      page = await prepareNativePage(request, reply, facts, () => this.input.csrfToken(request));
-    } catch (error) {
-      return pagePreparationFailure(request, reply, error);
-    }
-    try {
-      return sendPageResponse(
-        request,
-        reply,
-        renderPageShell(page, route.view, route.title ? page.t(route.title) : '')
-      );
-    } catch (failure) {
-      recordServiceChronicle(
-        facts.log,
-        {
-          pageController: route.controller,
-          pageAction: route.action,
-          pageView: route.view,
-          pageFailureCategory:
-            failure instanceof SyntaxError ? 'syntax' : failure instanceof TypeError ? 'type' : 'backend-or-template',
-        },
-        [new Error('Page rendering failed')]
-      );
-      return sendPageResponse(request, reply, page.error(500));
-    }
+  render(request: FastifyRequest, reply: FastifyReply) {
+    return runNativePage(request, reply, this.input);
   }
 }
 export const pageController = defineController({

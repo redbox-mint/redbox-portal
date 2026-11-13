@@ -2,21 +2,51 @@ import path from 'node:path';
 import type { ApplicationModule } from '../Application';
 import type { PortalApplicationContext } from './application';
 import { PageArtifacts } from '../../pages/Artifacts';
-import type { PageRenderingInput } from '../../pages/rendering';
+import type { BrowserPageInput } from '../../pages/browser';
+import { firstValueFrom } from 'rxjs';
+import { BrandingModel } from '../../model/storage/BrandingModel';
 
 export interface PortalPageOptions {
   readonly viewRoots?: readonly string[];
   readonly assetRoots?: readonly string[];
 }
 /** Shared production operations; getters borrow the initialized reference domain. */
-export function portalPageRenderingInput(
-  portal: PortalApplicationContext,
-  artifacts: PageArtifacts
-): PageRenderingInput {
+export function portalPageRenderingInput(portal: PortalApplicationContext, artifacts: PageArtifacts): BrowserPageInput {
   const { data, config, log } = portal;
   const ref = data.reference;
   const origin = new URL(config.server.publicUrl).origin;
   return {
+    get forms() {
+      return ref.forms.get();
+    },
+    get dashboards() {
+      return ref.dashboards.get();
+    },
+    get reports() {
+      return ref.reports.get();
+    },
+    loadRecord: oid => data.records.get().getMeta(oid),
+    canCreate: async (context, name) => {
+      if (!context.actor) return false;
+      const brand = Object.assign(new BrandingModel(), context.brand);
+      const type = await firstValueFrom(ref.types.get().get(brand, name));
+      if (!type) return false;
+      const step = await firstValueFrom(ref.workflows.get().getFirst(type));
+      return (
+        !!step &&
+        data.records.get().hasCreateAccess(
+          brand,
+          { ...context.actor },
+          context.actor.roles.map(role => ({ ...role })),
+          name,
+          step.name
+        )
+      );
+    },
+    configModel: async key => {
+      const model = portal.models.getModelInfo(key);
+      return model ? { title: model.title ?? model.modelName } : undefined;
+    },
     artifacts,
     rootContext: config.server.rootContext,
     origin,
@@ -36,7 +66,8 @@ export function portalPageRenderingInput(
 export class PortalPages implements ApplicationModule {
   csrfToken!: (request: import('fastify').FastifyRequest) => string;
   artifacts!: PageArtifacts;
-  rendering!: PageRenderingInput;
+  rendering!: BrowserPageInput;
+  authentication!: import('../../http/fastify/authentication').NativeAuthenticationActions;
   constructor(
     private readonly portal: PortalApplicationContext,
     private readonly appPath: string,
@@ -61,4 +92,14 @@ export class PortalPages implements ApplicationModule {
   async close() {
     await this.artifacts?.close();
   }
+}
+
+/** Preserve lazy domain getters while binding an optional browser surface. */
+export function combineBrowserInput<T extends object>(
+  input: T,
+  browser: import('../../http/controllers/BrowserControllers').BrowserPageBinding
+): T & { readonly browser: import('../../http/controllers/BrowserControllers').BrowserPageBinding } {
+  return Object.defineProperties({ browser }, Object.getOwnPropertyDescriptors(input)) as T & {
+    readonly browser: import('../../http/controllers/BrowserControllers').BrowserPageBinding;
+  };
 }

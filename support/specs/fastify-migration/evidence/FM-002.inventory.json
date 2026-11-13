@@ -154,21 +154,21 @@
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
     "packages/redbox-core/src/application/migrations.ts": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
-    "packages/redbox-core/src/application/portal/application.ts": "166df7c3ccbf40f4b37753c0c73ccd9707cb8b349e286bd9ae1ca4f5d5895b59",
+    "packages/redbox-core/src/application/portal/application.ts": "d577e1c969fbe81288c70f56a38972288bbce84e3fe5544e1607de81934ac248",
     "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "d3429ebf09dd7a0e52c6eaffcb2fd2a7625cdbd4a7bfb9153cb5fec3302d88c5",
+    "packages/redbox-core/src/application/portal/host.ts": "53fa02d0a6d0da9b9a449b3c508187a040249d338efe15f30f13484a3bf7b8c9",
     "packages/redbox-core/src/application/portal/http.ts": "a54cd017f3d78703a74bc2ce5059cc9cfa14cce708118a6b26238f4ffcef7eb1",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
-    "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "ccba41e6c4147f32dc6fce0079f07e7bd2660c839d449bf4c4fa408225655022",
-    "packages/redbox-core/src/application/portal/installation.ts": "1b25a6f931a57e9823d8d689925270065f7e8142c4114f6b6e7f27cb47706b53",
-    "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "89b65cbd158d68f57e63993d6b1ccba62c7c5a8c323a7dc91ed570da0f7ead33",
-    "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "3e6e0372d163e95038f78eaf378bc9668c598cde9948297330f740086de47459",
-    "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "d32569a345f6809f86172d7f74eff88ebdf8e9137d71afdc02afe596ed8e8b6c",
+    "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "761d10210d97f1f932e959ca81e63ad2f54d86f2774955e88c972261ce8b126b",
+    "packages/redbox-core/src/application/portal/installation.ts": "fa0f1f387f2846428773ac7c2d6547251ea605d746dcfa31f34b1d85c2440d44",
+    "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "a2e043a7b46293f7d263ba4ec3b54166449270eab9021b0340ef140ab1dc2eb5",
+    "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "e8a68994c4732044635ae328f63a624b3e5246afcc09493dfc98eb29b772ec34",
+    "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "b798c62bfcb360c85727e3416b1ea899abd3b36715b8602a8cc32c8ac659d681",
     "packages/redbox-core/src/application/portal/providers.ts": "32daf1c9dab7936148e14ef13a49c3744f74ea9292ef47006457bde1edb20ccd",
     "packages/redbox-core/src/application/portal/rawHttp.ts": "f2b163d9e8f9c1869cecd74cab2215966a107149147a7b82f5e7ded269ab889b",
-    "packages/redbox-core/src/application/portal/readHttpPlan.ts": "a999ea860249f5bfe943a7a03229bd44dff1679b04b30e322cb81abc35ec8de5",
+    "packages/redbox-core/src/application/portal/readHttpPlan.ts": "c7ca54f28c718e5f353a0f9f3a56783989940931429f7596ce2cb86e31b7de20",
     "packages/redbox-core/src/application/portal/recordOperations.ts": "a7379086d95a222254cdd3b6fcfab5b66082edc2d634209f892e247d6ddeba3a",
     "packages/redbox-core/src/application/portal/reference.ts": "ae4b2e65f0cce567530a993b82f8c67d7543de972d792eb4071aeb3faf99e96f",
     "packages/redbox-core/src/application/portal/referenceHttpPlan.ts": "8955373b254db84a6b63dd91c1d00b3853500ac92a132aaae945a4a2b359eb74",
@@ -302,13 +302,15 @@
     "packages/redbox-core/src/http/actions/vocabularyIntegrations.ts": "62ee6100cdf59ec9468f0acfa3d30430c714f44fac8f0225d58062adb6d4c308",
     "packages/redbox-core/src/http/actors.ts": "8c8502f1046199cb4f56beee67486de9f109d6e3d21d79c2fac81c6af89f14e3",
     "packages/redbox-core/src/http/apiResponses.ts": "dd8ed234f7c8d2946f7e9a4b71b3ae1f81b0dfb12831d244ad2f7ff59512d130",
+    "packages/redbox-core/src/http/authenticationRoutes.ts": "c43a7b30234dbf378c30932757f7c6de73686d78762b4713b4920da1fa129bb8",
     "packages/redbox-core/src/http/brandingDeliveryCache.ts": "d804e84540f5f26526a870c54499fdc68eb95edfeb713a5a3b88ae6f9d621cf5",
     "packages/redbox-core/src/http/context.ts": "f0b15b9456a8ebb91b238ddb4354b6265549b91ba564b0ab61a7c43a3e5b37af",
     "packages/redbox-core/src/http/controllers.ts": "4295649161b5d152609c007a22727d683f386a51210e29131bbbf3a7bb856ba3",
+    "packages/redbox-core/src/http/controllers/BrowserControllers.ts": "e06b4aab81c41fc85ec247cace89d51656c47ccffcec55f27ef0aed43a5cbdf0",
     "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts": "a2d9d270fc0ef06fcbf86c79aaae3f6893017cfaae2eab6983631f1857e2bae7",
     "packages/redbox-core/src/http/controllers/IntegrationControllers.ts": "ea19fed4d21607b901c50a356e3fcf3ba8d019ae49705e9282bbdde5d9091f15",
     "packages/redbox-core/src/http/controllers/MutationControllers.ts": "2987f75547193ab44331a05a8fac8438a9fbd499faabd34abebe54a7ca24e11f",
-    "packages/redbox-core/src/http/controllers/PageController.ts": "a5406f64b849aaa8bea48cc1d3d98e17c5eb705af5d1e4d8eb8175e9d7ed47b0",
+    "packages/redbox-core/src/http/controllers/PageController.ts": "3c24571990273364b5e65c21850f2de47da0af2319055e167c4b36ade55a4753",
     "packages/redbox-core/src/http/controllers/ProgressController.ts": "e1dba5e6771bb39f34c6f59275783caa60ad6f3d9c560cafb5299b215bdccb53",
     "packages/redbox-core/src/http/controllers/ReadControllers.ts": "fbf5c2cfef34835e9144b7f3e344699355a42dfbcf5d7ce095b34df859a733d5",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "a5b9b2fdda355fdd72e7a6bdcfe5d520f6307e138f25789ff9bcc3e130f2a7b6",
@@ -340,14 +342,14 @@
     "packages/redbox-core/src/http/express/identityProviders.ts": "1ac43bc01e995e2e2b2b0e105044a8221216394b19c01410b7a6ef06d9b3012b",
     "packages/redbox-core/src/http/express/index.ts": "587e9e8a1e27eae3f3bfd09a84e97c9963747fa99bad813e063bd3fb1418ca70",
     "packages/redbox-core/src/http/express/integrationOperations.ts": "fc86eb1dbbc2681f42d566a3e60edb3f8ee3a74fa9d20e0cebbc5f5d0aa56253",
-    "packages/redbox-core/src/http/express/login.ts": "25300a9855ed98323040630bb42bb48cc4c7fa8a55e3bb205a35e8da5389ebc5",
+    "packages/redbox-core/src/http/express/login.ts": "6061ba201bd4ff852ef4cc8a7813ff608d29e0d1d859750b47b0ec435a6627e0",
     "packages/redbox-core/src/http/express/metadata.ts": "96455a2cfe7a63fd02cdd4b52bd34410c727bb33a55079d14634bdf479982711",
     "packages/redbox-core/src/http/express/middleware.ts": "d40395e9741df1425aa220626d9ecfea1852bf534565f21e7a0e48f972cb73fb",
     "packages/redbox-core/src/http/express/multipart.ts": "78afe9a4d39e919923bbcde10527c65b666b94dcb78963bb996af64b803c5d39",
     "packages/redbox-core/src/http/express/ownedRoutes.ts": "884f929ee19bf48743f4bcb61f1f1cb26271aa2cc972add47df82903c515d16a",
     "packages/redbox-core/src/http/express/pageAssets.ts": "e67fb1178b8b726aa6565b37dfc9752a32adc06d2bd66f68fd741943592ed5c7",
     "packages/redbox-core/src/http/express/pageHeaders.ts": "6ea3ffd6d000c7ba3070909d33877c8a37eb230f652ad963ccb605a40ea885a9",
-    "packages/redbox-core/src/http/express/pages.ts": "c9be6695a349710f0613876e79b196461a8f0c7e52292ce6fd80a1ff8bd942cd",
+    "packages/redbox-core/src/http/express/pages.ts": "e3ddf76f2599bd6b7a29554ceca8ff15ef6cdff6535c7c7e70f5ef308c6eeb4d",
     "packages/redbox-core/src/http/express/policies.ts": "7b526b8d03bf7cba4883cdd184166391a305c58bd04c7e165f5e05a9b10d22c5",
     "packages/redbox-core/src/http/express/progressOperations.ts": "8cba7261d11bf655a47dba8a1d786e8654fb4ac2c5c93b385d28b434614d05d8",
     "packages/redbox-core/src/http/express/progressSockets.ts": "d77bb8ddfac931ad3dd26bd5f98fc1de11aa6e26ff684f2d8af3dff485acae3a",
@@ -368,7 +370,7 @@
     "packages/redbox-core/src/http/express/vocabularyIntegrations.ts": "17899dbdbb6aacc59e2fe9310336a48feb4f98ba15fbd75913f7e397bae41a99",
     "packages/redbox-core/src/http/fastify/FastifyHost.ts": "21e21276301067c29bb5a1ad5a6676275781d2c4077269073c916529189cbc00",
     "packages/redbox-core/src/http/fastify/actionReply.ts": "49fd0f32e55a234a38dc6aae6d2b908e21989de747186a93e3616b3d5f47df2e",
-    "packages/redbox-core/src/http/fastify/authentication.ts": "3f255b334e1b04ae38560c78ad2e9856329893006f93d40366ffd9f1d1b6fb80",
+    "packages/redbox-core/src/http/fastify/authentication.ts": "c3f763cb3df4b11f1f799cfff4f726babc2b09f95e3b82f4cbb4f908d6f6f126",
     "packages/redbox-core/src/http/fastify/composition.ts": "773b59eb9c44ef9f54bbfe6fd6cdb4fbdf0f460c558fc85dd88f7dd42b795d1d",
     "packages/redbox-core/src/http/fastify/coreNamespaces.ts": "aa898f182d6f04bbf41f37767632e6c721f35db6b5e75da3ebb1c0651df7ca65",
     "packages/redbox-core/src/http/fastify/csrf.ts": "e190bb256c553c9accff701279bcadab4e833e810531cb13eed996f5f405525b",
@@ -393,7 +395,7 @@
     "packages/redbox-core/src/http/fastify/registration.ts": "0f1c7a4f7430d99730ddea74a3a3751e7bd679d7af38b28ee8541e8656811189",
     "packages/redbox-core/src/http/fastify/registry.ts": "c8f096b36fac285e7ddae15f312ce17597fb1a4cf5cefae4c1182074cae8fc49",
     "packages/redbox-core/src/http/fastify/requestOwnership.ts": "055827dcc8622c6b50847984ecc094965d7bea349dac4e99a52018f4464b7787",
-    "packages/redbox-core/src/http/fastify/responses.ts": "77c0b36408cff0b6345d13b432cbebaae342aa778aee105d2092022f57dfa210",
+    "packages/redbox-core/src/http/fastify/responses.ts": "3dbd807c4ac174e79f7ddb54d8add1de7fcc22ae0c396ae4f8c537f9f9043c0c",
     "packages/redbox-core/src/http/fastify/router.ts": "b716b5eac0b18f79fda8954b8631ce59f942e024074d425c4dc007cf09bc50f2",
     "packages/redbox-core/src/http/fastify/routes.ts": "7bfc2cc1cf3d3d06ee55e35cb1ba7eec4c9c7409132a71d2b8f0b0dbda1f5f54",
     "packages/redbox-core/src/http/fastify/session.ts": "eb24c918a9dfb5ed0e9c84166d3c1d0b258e2bb1adb712e83597ea035c868055",
@@ -408,6 +410,7 @@
     "packages/redbox-core/src/http/integrations/companion/uploads.ts": "a9427161069dac85c1a8ecf02b69a8638e7196d65934ca6f40f539fcda6fe8c4",
     "packages/redbox-core/src/http/language.ts": "293f7d0b0b00080a3f269f9183c73c3dd051ae78c523323849bc04848b669db7",
     "packages/redbox-core/src/http/mutationRoutes.ts": "3c810038bf0b1aba1f88177e884fd690a2b524f55a3954b9807b147a180d1a88",
+    "packages/redbox-core/src/http/pageRoutes.ts": "3a12eb0c29ba3524005b0c3cca641afe9cea4cefbac24edfd724af2299791875",
     "packages/redbox-core/src/http/policyConfiguration.ts": "a4d9223d24f2c2e978f1d984f4120eed3866766f0722b6a90a19e2cec3662c54",
     "packages/redbox-core/src/http/readRoutes.ts": "e24b6f9b7a8d83ab6bc327d5e272bf8689c25ee9724c6e52986c6653be8abea4",
     "packages/redbox-core/src/http/referenceRoutes.ts": "150e3906d9209a3475e57830e3b15041173ffbd65b9bebed40e5ea555ae90e3a",
@@ -503,6 +506,7 @@
     "packages/redbox-core/src/navigation/Navigation.ts": "211072b2a7bd557bc33811b13b68db6eb50108eb6dacec3d48b3f57a13754f1e",
     "packages/redbox-core/src/pages/Artifacts.ts": "1f2e89f20eae74311736032638d64529193eeb01b7427a0c2bccca8d7c61d33f",
     "packages/redbox-core/src/pages/Templates.ts": "1bda3bb950f2e7b4ab66b6bb2264de6f6efebce6a4b8ef7df83d4ccd5be8d3d8",
+    "packages/redbox-core/src/pages/browser.ts": "def43799e9e317af193ce4bade453b3d68fdab7b72a1407d73ba9b2ecf8160e8",
     "packages/redbox-core/src/pages/clientConfiguration.ts": "a141ac9640c7a7750e98b1ecb593dbb5641671eb97b4c40227556ba1787f9d56",
     "packages/redbox-core/src/pages/csp.ts": "6964e829e4cb6a50500b329ddecc4f93de0a329d98d592b934863797c008eed3",
     "packages/redbox-core/src/pages/headers.ts": "8198c2ec4cab6c474007c47f7afe7e70d38360535d0b20a29388d11a97517db1",
@@ -737,7 +741,7 @@
     "packages/sails-hook-redbox-storage-mongo/src/persistence/schemaConstants.ts": "3de282c87fdd6d3b35f5f2af34a709e40ef432f803cf8a029f549dce2d057c10",
     "packages/sails-ng-common/src/siem.model.ts": "46dbc853c564cb6d7dd5122762402d49f441c781785ea1a77e89ae962505ecc2",
     "support/documentation/examples/hook-override.ts": "323dd08878d5fd2f86bcb32d3723f0ec551496874fe2eb35b14ad1068f6688fb",
-    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "691bcd18e07ea37d1e4645253b85add1149273c9a22f4d2e652b9330f7ba6bad"
+    "support/specs/fastify-migration/evidence/generate-FM-002.cjs": "fd12d9ad1bad1296683bf0dcb9695065fd3cd63b3aa0e6999e100dfc1b7167a7"
   },
   "counts": {
     "routes": 335,
@@ -38587,9 +38591,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 0
       },
       "apiDeclaration": null,
@@ -38604,10 +38608,19 @@
       "deploymentPath": "${rootContext}/user/login_local",
       "controller": "UserController",
       "action": "localLogin",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "localLogin",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38622,9 +38635,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38665,9 +38678,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 1
       },
       "apiDeclaration": null,
@@ -38682,10 +38695,19 @@
       "deploymentPath": "${rootContext}/user/login_aaf",
       "controller": "UserController",
       "action": "aafLogin",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "aafLogin",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38700,9 +38722,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38743,9 +38765,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 2
       },
       "apiDeclaration": null,
@@ -38760,10 +38782,19 @@
       "deploymentPath": "${rootContext}/user/login_oidc",
       "controller": "UserController",
       "action": "openidConnectLogin",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "openidConnectLogin",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38778,9 +38809,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38825,9 +38856,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 3
       },
       "apiDeclaration": null,
@@ -38842,10 +38873,19 @@
       "deploymentPath": "${rootContext}/user/begin_oidc",
       "controller": "UserController",
       "action": "beginOidc",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "beginOidc",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38860,9 +38900,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38903,9 +38943,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 4
       },
       "apiDeclaration": null,
@@ -38920,10 +38960,19 @@
       "deploymentPath": "${rootContext}/user/begin_oidc",
       "controller": "UserController",
       "action": "disallowedHeadRequestHandler",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "disallowedHeadRequestHandler",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -38938,9 +38987,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -38981,9 +39030,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 5
       },
       "apiDeclaration": null,
@@ -38998,10 +39047,19 @@
       "deploymentPath": "${rootContext}/user/info",
       "controller": "UserController",
       "action": "info",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "info",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39016,9 +39074,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39063,9 +39121,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 6
       },
       "apiDeclaration": null,
@@ -39080,10 +39138,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/user/info",
       "controller": "UserController",
       "action": "info",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "info",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39098,9 +39165,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39145,9 +39212,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 7
       },
       "apiDeclaration": null,
@@ -39162,10 +39229,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/user/logout",
       "controller": "UserController",
       "action": "logout",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "logout",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39180,9 +39256,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39223,9 +39299,9 @@
       "kind": "browser-or-integration",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/login.ts",
+        "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
         "export": "authenticationRoutes",
-        "line": 9,
+        "line": 1,
         "index": 8
       },
       "apiDeclaration": null,
@@ -39240,10 +39316,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/user/logout",
       "controller": "UserController",
       "action": "logout",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "logout",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/login.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39258,9 +39343,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/login.ts",
+          "file": "packages/redbox-core/src/http/authenticationRoutes.ts",
           "export": "authenticationRoutes",
-          "line": 9
+          "line": 1
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39480,9 +39565,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 0
       },
       "apiDeclaration": null,
@@ -39500,10 +39585,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/home",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39523,9 +39617,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39590,9 +39684,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 1
       },
       "apiDeclaration": null,
@@ -39610,10 +39704,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/user/login",
       "controller": "UserController",
       "action": "login",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "login",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39633,9 +39736,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39680,9 +39783,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 2
       },
       "apiDeclaration": null,
@@ -39699,10 +39802,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/researcher/home",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39724,9 +39836,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39791,9 +39903,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 3
       },
       "apiDeclaration": null,
@@ -39810,10 +39922,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/search",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39835,9 +39956,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39902,9 +40023,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 4
       },
       "apiDeclaration": null,
@@ -39921,10 +40042,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/availableServicesList",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -39946,9 +40076,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40013,9 +40143,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 5
       },
       "apiDeclaration": null,
@@ -40032,10 +40162,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/getAdvice",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40057,9 +40196,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40124,9 +40263,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 6
       },
       "apiDeclaration": null,
@@ -40142,10 +40281,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/user/profile",
       "controller": "UserController",
       "action": "profile",
-      "selectedFactory": null,
+      "selectedFactory": "UserController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "UserController",
+        "action": "profile",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40167,9 +40315,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40234,9 +40382,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 7
       },
       "apiDeclaration": null,
@@ -40252,10 +40400,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40277,9 +40434,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40344,9 +40501,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 8
       },
       "apiDeclaration": null,
@@ -40362,10 +40519,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/harvest-runs",
       "controller": "AdminController",
       "action": "harvestRunsIndex",
-      "selectedFactory": null,
+      "selectedFactory": "AdminController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AdminController",
+        "action": "harvestRunsIndex",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40387,9 +40553,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40454,9 +40620,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 9
       },
       "apiDeclaration": null,
@@ -40472,10 +40638,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/roles",
       "controller": "AdminController",
       "action": "rolesIndex",
-      "selectedFactory": null,
+      "selectedFactory": "AdminController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AdminController",
+        "action": "rolesIndex",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40497,9 +40672,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40564,9 +40739,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 10
       },
       "apiDeclaration": null,
@@ -40583,10 +40758,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/siem",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40608,9 +40792,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40675,9 +40859,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 11
       },
       "apiDeclaration": null,
@@ -40693,10 +40877,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/translation",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40718,9 +40911,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40785,9 +40978,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 12
       },
       "apiDeclaration": null,
@@ -40803,10 +40996,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/users",
       "controller": "AdminController",
       "action": "usersIndex",
-      "selectedFactory": null,
+      "selectedFactory": "AdminController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AdminController",
+        "action": "usersIndex",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40828,9 +41030,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40895,9 +41097,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 13
       },
       "apiDeclaration": null,
@@ -40913,10 +41115,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/api-docs",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -40938,9 +41149,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40985,9 +41196,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 14
       },
       "apiDeclaration": null,
@@ -41003,10 +41214,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/branding",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41028,9 +41248,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41075,9 +41295,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 15
       },
       "apiDeclaration": null,
@@ -41093,10 +41313,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/dashboard-config",
       "controller": "DashboardConfigController",
       "action": "editor",
-      "selectedFactory": null,
+      "selectedFactory": "DashboardConfigController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "DashboardConfigController",
+        "action": "editor",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41118,9 +41347,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41165,9 +41394,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 16
       },
       "apiDeclaration": null,
@@ -41183,10 +41412,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/deletedRecords",
       "controller": "RecordController",
       "action": "renderDeletedRecords",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "renderDeletedRecords",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41208,9 +41446,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41255,9 +41493,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 17
       },
       "apiDeclaration": null,
@@ -41273,10 +41511,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/export",
       "controller": "ExportController",
       "action": "index",
-      "selectedFactory": null,
+      "selectedFactory": "ExportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ExportController",
+        "action": "index",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41298,9 +41545,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41345,9 +41592,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 18
       },
       "apiDeclaration": null,
@@ -41364,10 +41611,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/integrations/figshare/vocabularies",
       "controller": "RenderViewController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RenderViewController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RenderViewController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41389,9 +41645,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41436,9 +41692,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 19
       },
       "apiDeclaration": null,
@@ -41454,10 +41710,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/named-query",
       "controller": "NamedQueryController",
       "action": "editor",
-      "selectedFactory": null,
+      "selectedFactory": "NamedQueryController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "NamedQueryController",
+        "action": "editor",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41479,9 +41744,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41526,9 +41791,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 20
       },
       "apiDeclaration": null,
@@ -41544,10 +41809,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/report/:name",
       "controller": "ReportController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "ReportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41569,9 +41843,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41616,9 +41890,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 21
       },
       "apiDeclaration": null,
@@ -41634,10 +41908,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/reports",
       "controller": "ReportsController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "ReportsController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ReportsController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41659,9 +41942,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41706,9 +41989,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 22
       },
       "apiDeclaration": null,
@@ -41724,10 +42007,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/vocabulary/manager",
       "controller": "VocabularyController",
       "action": "manager",
-      "selectedFactory": null,
+      "selectedFactory": "VocabularyController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "VocabularyController",
+        "action": "manager",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41749,9 +42041,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41796,9 +42088,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 23
       },
       "apiDeclaration": null,
@@ -41814,10 +42106,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/admin/appconfig/edit/:appConfigId",
       "controller": "AppConfigController",
       "action": "editAppConfig",
-      "selectedFactory": null,
+      "selectedFactory": "AppConfigController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "AppConfigController",
+        "action": "editAppConfig",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41839,9 +42140,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41886,9 +42187,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 24
       },
       "apiDeclaration": null,
@@ -41904,10 +42205,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/export",
       "controller": "ExportController",
       "action": "index",
-      "selectedFactory": null,
+      "selectedFactory": "ExportController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "ExportController",
+        "action": "index",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -41929,9 +42239,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41976,9 +42286,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 25
       },
       "apiDeclaration": null,
@@ -41994,10 +42304,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/:recordType/edit",
       "controller": "RecordController",
       "action": "edit",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "edit",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42019,9 +42338,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42066,9 +42385,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 26
       },
       "apiDeclaration": null,
@@ -42084,10 +42403,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/edit/:oid",
       "controller": "RecordController",
       "action": "edit",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "edit",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42109,9 +42437,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42156,9 +42484,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 27
       },
       "apiDeclaration": null,
@@ -42174,10 +42502,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/finalise/:recordType/edit/:oid",
       "controller": "RecordController",
       "action": "edit",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "edit",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42199,9 +42536,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42246,9 +42583,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 28
       },
       "apiDeclaration": null,
@@ -42264,10 +42601,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/view/:oid",
       "controller": "RecordController",
       "action": "view",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "view",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42289,9 +42635,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42356,9 +42702,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 29
       },
       "apiDeclaration": null,
@@ -42374,10 +42720,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/view-orig/:oid",
       "controller": "RecordController",
       "action": "view",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "view",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42399,9 +42754,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42466,9 +42821,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 30
       },
       "apiDeclaration": null,
@@ -42484,10 +42839,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/record/viewAudit/:oid",
       "controller": "RecordAuditController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RecordAuditController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordAuditController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42509,9 +42873,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42556,9 +42920,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 31
       },
       "apiDeclaration": null,
@@ -42574,10 +42938,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/dashboard/consolidated",
       "controller": "RecordController",
       "action": "redirectLegacyConsolidatedDashboard",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "redirectLegacyConsolidatedDashboard",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42599,9 +42972,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42646,9 +43019,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 32
       },
       "apiDeclaration": null,
@@ -42664,10 +43037,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/dashboard-view/:dashboardView",
       "controller": "RecordController",
       "action": "renderDashboardView",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "renderDashboardView",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42689,9 +43071,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42736,9 +43118,9 @@
       "kind": "page",
       "provider": "@researchdatabox/redbox-core",
       "source": {
-        "file": "packages/redbox-core/src/http/express/pages.ts",
+        "file": "packages/redbox-core/src/http/pageRoutes.ts",
         "export": "pageRoutes",
-        "line": 75,
+        "line": 60,
         "index": 33
       },
       "apiDeclaration": null,
@@ -42754,10 +43136,19 @@
       "deploymentPath": "${rootContext}/:branding/:portal/dashboard/:recordType",
       "controller": "RecordController",
       "action": "render",
-      "selectedFactory": null,
+      "selectedFactory": "RecordController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "RecordController",
+        "action": "render",
+        "file": "packages/redbox-core/src/http/controllers/BrowserControllers.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42779,9 +43170,9 @@
       "validation": {
         "requestRef": null,
         "reference": {
-          "file": "packages/redbox-core/src/http/express/pages.ts",
+          "file": "packages/redbox-core/src/http/pageRoutes.ts",
           "export": "pageRoutes",
-          "line": 75
+          "line": 60
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42828,7 +43219,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRootRoute",
-        "line": 98
+        "line": 30
       },
       "apiDeclaration": null,
       "original": {
@@ -42840,10 +43231,19 @@
       "deploymentPath": "${rootContext}/",
       "controller": null,
       "action": null,
-      "selectedFactory": null,
+      "selectedFactory": "PageRootController",
+      "nativeBinding": {
+        "count": 1,
+        "factory": "PageRootController",
+        "action": "redirect",
+        "file": "packages/redbox-core/src/http/controllers/PageController.ts",
+        "productionBinding": "packages/redbox-core/src/application/portal/installation.ts",
+        "differential": "packages/redbox-core/test/http/fastify/BrowserDifferentialMongo.test.ts",
+        "migratedBy": "FM-030"
+      },
       "implementation": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
-        "kind": "explicit Express adapter; no controller factory exists at this revision"
+        "kind": "shared transport-neutral named action; Express and native production adapters"
       },
       "access": {
         "declaredPolicy": null,
@@ -42860,7 +43260,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRootRoute",
-          "line": 98
+          "line": 30
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -46262,7 +46662,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "mountPageNotFound",
-        "line": 313
+        "line": 130
       },
       "method": "all",
       "path": "/:branding/:portal{/*pageNotFound}",

@@ -1,3 +1,6 @@
+import { combineBrowserInput } from './pageHttpPlan';
+import * as browserControllers from '../../http/controllers/BrowserControllers';
+import type { BrowserPageBinding } from '../../http/controllers/BrowserControllers';
 import { integrationDeclarations } from '../../http/integrationRoutes';
 import { prepareReferenceRequest } from '../../http/actions/requestPreparation';
 import { readRequest, applyPreparedReadRequest, readAction } from '../../http/fastify/readActions';
@@ -80,14 +83,17 @@ export function portalIntegrationHttpInputs(portal: PortalApplicationContext) {
 export function portalIntegrationControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
-  cache: BrandingDeliveryCache
+  cache: BrandingDeliveryCache,
+  browser?: BrowserPageBinding
 ) {
   const input = portalIntegrationHttpInputs(portal),
     combine = combineHttpInputs;
   const vocabulary = combine(input.vocabulary, input.rva);
   const bindings = [
     bindControllerFactory(c.apiVocabularyController, vocabulary),
-    bindControllerFactory(c.vocabularyController, vocabulary),
+    browser
+      ? bindControllerFactory(browserControllers.vocabularyBrowserController, combineBrowserInput(vocabulary, browser))
+      : bindControllerFactory(c.vocabularyController, vocabulary),
     bindControllerFactory(c.apiBrandingController, input.branding),
     bindControllerFactory(c.brandingAppController, input.branding),
     bindControllerFactory(c.brandingController, input.branding),
@@ -96,10 +102,18 @@ export function portalIntegrationControllers(
     bindControllerFactory(c.apiSearchController, combine(portalReadHttpInputs(portal).queries, input.operations)),
     bindControllerFactory(c.emailController, input.operations),
     bindControllerFactory(c.formVocabularyController, input.lookups),
-    bindControllerFactory(
-      c.userController,
-      combine(portalIdentityHttpInputs(portal, () => cache.invalidate()).users, input.lookups)
-    ),
+    browser
+      ? bindControllerFactory(
+          browserControllers.userBrowserController,
+          combineBrowserInput(
+            combine(portalIdentityHttpInputs(portal, () => cache.invalidate()).users, input.lookups),
+            browser
+          )
+        )
+      : bindControllerFactory(
+          c.userController,
+          combine(portalIdentityHttpInputs(portal, () => cache.invalidate()).users, input.lookups)
+        ),
   ].filter(binding => selected.has(binding.factory.name));
   const preparations = new Map(
     integrationDeclarations.flatMap(route =>

@@ -368,6 +368,24 @@ function collectInventory() {
     'application/portal/mutationHttpPlan.ts',
   ])
     inputs.add(prefix + file);
+  const browserFactories = [
+    ...Object.values(fromSource(prefix + 'http/controllers/BrowserControllers.ts')),
+    ...Object.values(fromSource(prefix + 'http/controllers/PageController.ts')),
+  ].filter(
+    value => value && typeof value === 'object' && Array.isArray(value.actions) && typeof value.create === 'function'
+  );
+  for (const file of [
+    'http/pageRoutes.ts',
+    'http/authenticationRoutes.ts',
+    'http/controllers/BrowserControllers.ts',
+    'http/controllers/PageController.ts',
+    'pages/browser.ts',
+    'pages/rendering.ts',
+    'http/fastify/pages.ts',
+    'http/fastify/authentication.ts',
+    'application/portal/pageHttpPlan.ts',
+  ])
+    inputs.add(prefix + file);
   const routes = collections.flatMap(collection => {
     assert(owners[collection.export], 'Unassigned source collection: ' + collection.export);
     inputs.add(collection.file);
@@ -383,6 +401,27 @@ function collectInventory() {
       );
       const effectivePolicies = accessFor(route, collection.export, configuration);
       let nativeBinding = null;
+      if (owners[collection.export][0] === 'FM-030') {
+        const factoryName = route.controller ?? 'PageRootController';
+        const action = route.action ?? 'redirect';
+        const factories = browserFactories.filter(
+          factory => factory.name === factoryName && factory.actions.includes(action)
+        );
+        assert.equal(factories.length, 1, 'Exactly one FM-030 factory/action: ' + route.path);
+        nativeBinding = {
+          count: 1,
+          factory: factoryName,
+          action,
+          file:
+            prefix +
+            (['RenderViewController', 'PageRootController'].includes(factoryName)
+              ? 'http/controllers/PageController.ts'
+              : 'http/controllers/BrowserControllers.ts'),
+          productionBinding: prefix + 'application/portal/installation.ts',
+          differential: test('http/fastify/BrowserDifferentialMongo.test.ts'),
+          migratedBy: 'FM-030',
+        };
+      }
       if (owners[collection.export][0] === 'FM-027') {
         const declarations = integrationDeclarations.filter(
           item => identity(item.method, item.path) === identity(route.method, route.path)

@@ -8,6 +8,7 @@ import { safeHttpErrorStatus } from './errorBoundary';
 export { safeHttpErrorStatus, nativeClientErrors } from './errorBoundary';
 
 const fresh: (request: Record<string, unknown>, response: Record<string, unknown>) => boolean = require('fresh');
+const encodeUrl: (target: string) => string = require('encodeurl');
 
 /** JSON is serialized by the caller's action guard before freshness/HEAD handling. */
 export function sendSerializedJson(
@@ -37,10 +38,22 @@ export function sendSerializedJson(
 export const requestAccepts = (request: FastifyRequest) =>
   accepts({ headers: { accept: requestText(request.headers.accept) } } as Parameters<typeof accepts>[0]);
 
+/** Express Location encoding preserves URL punctuation and valid percent escapes. */
+function redirectLocation(reply: FastifyReply, target: string) {
+  const location = encodeUrl(target);
+  reply.code(302).header('Location', location);
+  return location;
+}
+
+/** Passport initiation redirects have no negotiated representation. */
+export function sendProviderRedirect(reply: FastifyReply, target: string) {
+  redirectLocation(reply, target);
+  return reply.header('Content-Length', '0').send();
+}
+
 /** Preserve the current browser denial's negotiated redirect representation. */
 export function sendLoginRedirect(request: FastifyRequest, reply: FastifyReply, target: string) {
-  const location = encodeURI(target).replace(/%25([0-9a-f]{2})/gi, '%$1');
-  reply.code(302).header('Location', location);
+  const location = redirectLocation(reply, target);
   const vary = (requestText(reply.getHeader('Vary')) ?? '').split(/,\s*/).filter(Boolean);
   if (!vary.some(name => name.toLowerCase() === 'accept')) vary.push('Accept');
   reply.header('Vary', vary.join(', '));

@@ -39,7 +39,7 @@ const migratedDeclarations = Object.freeze([
 assert(migratedDeclarations.every(Boolean));
 const docsPath = value => value.replace(/:([A-Za-z0-9_]+)\*/g, '{$1}').replace(/:([A-Za-z0-9_]+)/g, '{$1}');
 
-async function offlineApplication(declarations = migratedDeclarations) {
+async function offlineApplication(declarations = migratedDeclarations, browser = false) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'fm028-reconciliation-'));
   try {
     const provider = path.join(directory, 'node_modules/fm028-storage');
@@ -88,7 +88,7 @@ async function offlineApplication(declarations = migratedDeclarations) {
       files: { application: config },
       env: {},
       argv: [],
-      http: { declarations },
+      http: { declarations, ...(browser ? { pages: {} } : {}) },
     });
     assert.equal(source('persistence/runtime').persistenceStatus(portal.owner).pools, 0);
     return { portal, close: () => fs.rm(directory, { recursive: true, force: true }) };

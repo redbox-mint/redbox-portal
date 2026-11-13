@@ -1,6 +1,7 @@
+import { authenticationRoutes } from '../authenticationRoutes';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import cookie from '@fastify/cookie';
-import { requestAccepts } from './responses';
+import { sendLoginRedirect, sendProviderRedirect, sendSerializedJson, requestAccepts } from './responses';
 import { requestString } from '../requestValues';
 import type { AuthenticatedActor, HttpIdentity } from '../express/identity';
 import { AuthenticationRejected } from '../../authentication/Accounts';
@@ -8,6 +9,13 @@ import { RequestChronicleHelper } from '../../utilities/RequestChronicle';
 import type { FastifyPreparation } from './preparation';
 import { prepareNativeIdentityProviders, type NativeIdentityProvidersInput } from './identityProviders';
 
+function authJson(request: FastifyRequest, reply: FastifyReply, body: unknown) {
+  return sendSerializedJson(request, reply, {
+    status: reply.statusCode,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    json: JSON.stringify(body),
+  });
+}
 const noCache = { 'Cache-Control': 'no-cache, private', Pragma: 'no-cache', Expires: '0' };
 declare module 'fastify' {
   interface Session {
@@ -121,8 +129,7 @@ export interface NativeAuthenticationRoutesInput {
 /** Qualified provider routes only. They use the existing owned route/hooks and
  * Session methods: no new Fastify decoration, callbacks or registration APIs.
  */
-export function installNativeAuthenticationRoutes(
-  app: FastifyPreparation,
+export function createNativeAuthenticationActions(
   authentication: NativeAuthentication,
   input: NativeAuthenticationRoutesInput
 ) {
@@ -163,12 +170,13 @@ export function installNativeAuthenticationRoutes(
     reason: 'authorized-email-denied' | 'authentication-rejected' = 'authentication-rejected'
   ) => {
     await observeLoginFailure(request);
-    if (local) return reply.headers(noCache).send({ message: 'Incorrect username/password', user: false });
+    if (local)
+      return authJson(request, reply.headers(noCache), { message: 'Incorrect username/password', user: false });
     if (input.renderAuthenticationFailure && requestAccepts(request).types(['html', 'json']) === 'html') {
       await input.renderAuthenticationFailure(request, reply, reason);
       return reply;
     }
-    return reply.headers(noCache).code(403).send({ message: 'Authentication rejected', user: false });
+    return authJson(request, reply.headers(noCache).code(403), { message: 'Authentication rejected', user: false });
   };
   const login = (kind: 'local' | 'aaf' | 'oidc') => async (request: FastifyRequest, reply: FastifyReply) => {
     const chronicle = RequestChronicleHelper.existing(request);
@@ -181,7 +189,7 @@ export function installNativeAuthenticationRoutes(
           ? { brand, portal }
           : null
         : context(request);
-    if (!selected) return reply.code(400).send({ message: 'Invalid branding or portal' });
+    if (!selected) return authJson(request, reply.code(400), { message: 'Invalid branding or portal' });
     Object.assign(data(request.params), { branding: selected.brand, portal: selected.portal });
     const fields = [input.credentialFields?.[0] || 'username', input.credentialFields?.[1] || 'password'];
     const username = kind === 'local' ? credential(request, fields[0]) : undefined;
@@ -191,7 +199,7 @@ export function installNativeAuthenticationRoutes(
       [username, password].some(value => typeof value !== 'string' || !value || value.length > 4096)
     ) {
       await observeLoginFailure(request);
-      return reply.code(400).send({ message: 'Invalid login parameters' });
+      return authJson(request, reply.code(400), { message: 'Invalid login parameters' });
     }
     let actor: AuthenticatedActor | false = false;
     let reason: 'authorized-email-denied' | 'authentication-rejected' = 'authentication-rejected';
@@ -205,7 +213,7 @@ export function installNativeAuthenticationRoutes(
       ) {
         const redirect = await authentication.providers.begin(request, data(request.query).id);
         await request.session.save();
-        return reply.redirect(redirect);
+        return sendProviderRedirect(reply, redirect);
       }
       const user =
         kind === 'local'
@@ -259,21 +267,18 @@ export function installNativeAuthenticationRoutes(
     }
     chronicle?.addInfo({ userLoginSuccess: true });
     return kind === 'local' && request.headers['x-source'] === 'jsclient'
-      ? reply.headers(noCache).send({ user: profile, message: 'Login OK', url: redirect })
-      : reply.redirect(redirect);
+      ? authJson(request, reply.headers(noCache), { user: profile, message: 'Login OK', url: redirect })
+      : sendLoginRedirect(request, reply, redirect);
   };
-  app.post(root + '/user/login_local', { preHandler: input.csrf }, login('local'));
-  app.post(root + '/user/login_aaf', async (request, reply) => {
+  const aafLogin = async (request: FastifyRequest, reply: FastifyReply) => {
     const assertion = data(request.body).assertion;
     if (typeof assertion !== 'string' || !assertion || assertion.length > 65536)
-      return reply.code(400).send({ message: 'Invalid assertion' });
+      return authJson(request, reply.code(400), { message: 'Invalid assertion' });
     return login('aaf')(request, reply);
-  });
-  app.route({ method: ['GET', 'HEAD'], url: root + '/user/login_oidc', handler: login('oidc') });
-  app.route({ method: 'HEAD', url: root + '/user/begin_oidc', handler: (_request, reply) => reply.code(405).send() });
-  app.get(root + '/user/begin_oidc', async (request, reply) => {
+  };
+  const beginOidc = async (request: FastifyRequest, reply: FastifyReply) => {
     const selected = context(request);
-    if (!selected) return reply.code(400).send({ message: 'Invalid branding or portal' });
+    if (!selected) return authJson(request, reply.code(400), { message: 'Invalid branding or portal' });
     request.session.set('branding', selected.brand);
     request.session.set('portal', selected.portal);
     if (typeof data(request.query).redirUrl === 'string')
@@ -283,28 +288,22 @@ export function installNativeAuthenticationRoutes(
       );
     const redirect = await authentication.providers.begin(request, data(request.query).id);
     await request.session.save();
-    return reply.redirect(redirect);
-  });
+    return sendProviderRedirect(reply, redirect);
+  };
   const info = async (request: FastifyRequest, reply: FastifyReply) => {
     const actor = await input.identity.session(authentication.actor(request)?.id ?? '');
-    if (!actor) return reply.code(403).send({ message: 'error-please-login' });
+    if (!actor) return authJson(request, reply.code(403), { message: 'error-please-login' });
     if (data(request.params).branding) {
       const selected = context(request);
       if (!selected || !actor.roles.some(role => role.brandId === input.brandId(selected.brand)))
         return reply.code(403).send();
     }
     RequestChronicleHelper.existing(request)?.addInfo({ userInfoSuccess: true, userUsername: actor.username });
-    return reply.headers(noCache).send({ user: await input.identity.profile(actor.id) });
+    return authJson(request, reply.headers(noCache), { user: await input.identity.profile(actor.id) });
   };
-  for (const path of ['/user/info', '/:branding/:portal/user/info'])
-    app.route({ method: ['GET', 'HEAD'], url: root + path, handler: info });
-  app.route({
-    method: ['GET', 'HEAD'],
-    url: root + '/:branding/:portal/user/logout',
-    handler: (_request, reply) =>
-      reply.header('Allow', 'POST').code(405).type('text/plain; charset=utf-8').send('Method Not Allowed'),
-  });
-  app.post(root + '/:branding/:portal/user/logout', { preHandler: input.csrf }, async (request, reply) => {
+  const logout = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (request.method !== 'POST')
+      return reply.header('Allow', 'POST').code(405).type('text/plain; charset=utf-8').send('Method Not Allowed');
     const selected = context(request);
     if (!selected) return reply.code(400).send();
     const actor = await input.identity.session(authentication.actor(request)?.id ?? '');
@@ -323,6 +322,43 @@ export function installNativeAuthenticationRoutes(
     await request.session.destroy();
     await input.audit('logout', actor, request);
     clear(reply);
-    return reply.headers(noCache).redirect(redirect);
-  });
+    reply.headers(noCache);
+    return sendLoginRedirect(request, reply, redirect);
+  };
+  return {
+    localLogin: login('local'),
+    aafLogin,
+    openidConnectLogin: login('oidc'),
+    beginOidc,
+    disallowedHeadRequestHandler: (request: FastifyRequest, reply: FastifyReply) =>
+      sendSerializedJson(request, reply, {
+        status: 405,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        json: undefined,
+        bytes: Buffer.from('Method Not Allowed'),
+      }),
+    info,
+    logout,
+  };
+}
+export type NativeAuthenticationActions = ReturnType<typeof createNativeAuthenticationActions>;
+
+/** Retained pilot entrypoint. Production pages bind these same operations through
+ * the explicit UserController and resolved declarations. */
+export function installNativeAuthenticationRoutes(
+  app: FastifyPreparation,
+  authentication: NativeAuthentication,
+  input: NativeAuthenticationRoutesInput
+) {
+  const actions = createNativeAuthenticationActions(authentication, input);
+  for (const route of authenticationRoutes)
+    app.route({
+      method:
+        route.method === 'get' && route.action !== 'beginOidc'
+          ? ['GET', 'HEAD']
+          : (route.method.toUpperCase() as 'GET' | 'POST' | 'HEAD'),
+      url: (input.rootContext ?? '') + route.path,
+      ...(route.method === 'post' && route.action !== 'aafLogin' ? { preHandler: input.csrf } : {}),
+      handler: actions[route.action],
+    });
 }

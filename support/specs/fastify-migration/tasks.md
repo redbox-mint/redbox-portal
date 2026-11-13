@@ -250,7 +250,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
   - Acceptance: representative branded page and error rendering, canonical-origin
     behavior, redirect destinations and locals match the compatibility matrix.
 
-- [ ] **FM-030 — Migrate browser controller families.**
+- [x] **FM-030 — Migrate browser controller families.**
   - Dependencies: FM-029.
   - Work: port login/logout, branded pages, dashboards, forms and browser operations
     with explicit actions and existing access/CSRF rules.

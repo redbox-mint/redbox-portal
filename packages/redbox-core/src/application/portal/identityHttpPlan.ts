@@ -1,3 +1,6 @@
+import { combineBrowserInput } from './pageHttpPlan';
+import * as browserControllers from '../../http/controllers/BrowserControllers';
+import type { BrowserPageBinding } from '../../http/controllers/BrowserControllers';
 import type { PortalApplicationContext } from './application';
 import { bindControllerFactory } from '../../http/controllers';
 import * as c from '../../http/controllers/IdentityAdministrationControllers';
@@ -38,7 +41,8 @@ export function portalIdentityHttpInputs(portal: PortalApplicationContext, inval
 export function portalIdentityControllers(
   portal: PortalApplicationContext,
   selected: ReadonlySet<string>,
-  cache: BrandingDeliveryCache
+  cache: BrandingDeliveryCache,
+  browser?: BrowserPageBinding
 ) {
   const inputs = portalIdentityHttpInputs(portal, () => cache.invalidate());
   const reads = portalReadHttpInputs(portal).queries;
@@ -58,7 +62,12 @@ export function portalIdentityControllers(
   };
   const bindings = [
     bindControllerFactory(c.apiUserManagementController, inputs.users),
-    bindControllerFactory(c.adminIdentityController, inputs.users),
+    browser
+      ? bindControllerFactory(
+          browserControllers.adminIdentityBrowserController,
+          combineBrowserInput(inputs.users, browser)
+        )
+      : bindControllerFactory(c.adminIdentityController, inputs.users),
     bindControllerFactory(c.userIdentityController, inputs.users),
     bindControllerFactory(c.apiAdminOperationsController, inputs.administration),
     bindControllerFactory(c.apiSiemAdministrationController, siem),

@@ -1,5 +1,8 @@
+import { pageRoutes } from '../../http/pageRoutes';
+import { authenticationRoutes } from '../../http/authenticationRoutes';
+import { namedQueryPageController, reportsPageController } from '../../http/controllers/BrowserControllers';
 import { PortalPages, type PortalPageOptions } from './pageHttpPlan';
-import { pageController, pageRootController, representativePageRoutes } from '../../http/controllers/PageController';
+import { pageController, pageRootController } from '../../http/controllers/PageController';
 import { resolveEffectivePolicies } from '../../http/express/policies';
 import { integrationDeclarations } from '../../http/integrationRoutes';
 import { portalIntegrationControllers } from './integrationHttpPlan';
@@ -42,7 +45,7 @@ export interface PortalFastifySelection {
   readonly declarations: readonly ApiRouteSource[];
   /** Select the owned Socket.IO progress channel and its grant endpoint. */
   readonly progress?: boolean;
-  /** FM-029 representative pages and reusable rendering infrastructure. */
+  /** Browser controller families and reusable rendering infrastructure. */
   readonly pages?: PortalPageOptions;
   readonly actions?: Readonly<Record<string, import('../../http/actions/configuredActions').ConfiguredAction>>;
   readonly policyConfiguration?: PoliciesConfig;
@@ -75,6 +78,12 @@ export async function resolvePortalInstallation(
           context.data.reference.entries.declaration.name,
           context.data.reference.translation.declaration.name,
           context.data.reference.branding.declaration.name,
+          context.data.reference.forms.declaration.name,
+          context.data.reference.types.declaration.name,
+          context.data.reference.workflows.declaration.name,
+          context.data.reference.dashboards.declaration.name,
+          context.data.reference.reports.declaration.name,
+          context.data.records.declaration.name,
         ],
         create: () => pages!,
       }
@@ -85,6 +94,14 @@ export async function resolvePortalInstallation(
     },
     csrfToken: (request: import('fastify').FastifyRequest) => pages!.csrfToken(request),
   };
+  const browser = input.pages
+    ? {
+        pages: pageInput,
+        get authentication() {
+          return pages!.authentication;
+        },
+      }
+    : undefined;
   const rawDeclaration =
     upload || input.progress || context.config.companion.enabled
       ? {
@@ -156,14 +173,22 @@ export async function resolvePortalInstallation(
       .filter(route => integrationDeclarations.some(item => item.method === route.method && item.path === route.path))
       .map(route => route.controller)
   );
-  const mutations = portalMutationControllers(context, mutationTargets, input.actions ?? {}, uploadInputs);
+  if (browser) {
+    for (const name of ['RecordController', 'AppConfigController', 'DashboardConfigController', 'ReportController'])
+      mutationTargets.add(name);
+    for (const name of ['UserController', 'VocabularyController']) integrationTargets.add(name);
+    identityTargets.add('AdminController');
+    for (const name of ['ExportController', 'RecordAuditController']) readTargets.add(name);
+  }
+  const mutations = portalMutationControllers(context, mutationTargets, input.actions ?? {}, uploadInputs, browser);
   const assetCache = new BrandingDeliveryCache();
   const identities = portalIdentityControllers(
     context,
     new Set([...identityTargets].filter(name => !integrationTargets.has(name))),
-    assetCache
+    assetCache,
+    browser
   );
-  const integrations = portalIntegrationControllers(context, integrationTargets, assetCache);
+  const integrations = portalIntegrationControllers(context, integrationTargets, assetCache, browser);
   const reads = portalReadControllers(
     context,
     new Set(
@@ -171,7 +196,8 @@ export async function resolvePortalInstallation(
         name => !identityTargets.has(name) && !mutationTargets.has(name) && !integrationTargets.has(name)
       )
     ),
-    uploadInputs
+    uploadInputs,
+    browser
   );
   const reference = portalReferenceControllers(
     context,
@@ -233,7 +259,20 @@ export async function resolvePortalInstallation(
     })),
     ...(input.pages
       ? [
-          ...representativePageRoutes.map(route => {
+          ...authenticationRoutes.map(route => ({
+            provider: '@researchdatabox/redbox-core',
+            declaration: {
+              name: coreRouteName(route.method, route.path),
+              ...route,
+              access: { kind: 'public' as const },
+            },
+            effectivePolicies: [],
+            effectiveCsrf:
+              route.action === 'localLogin' || (route.action === 'logout' && route.method === 'post')
+                ? 'protect'
+                : 'none',
+          })),
+          ...pageRoutes.map(route => {
             const mandatory = [
               'nocache',
               'brandingandportal',
@@ -250,8 +289,8 @@ export async function resolvePortalInstallation(
                 name: coreRouteName(route.method, route.path),
                 method: route.method,
                 path: route.path,
-                controller: pageController.name,
-                action: 'render',
+                controller: route.controller,
+                action: route.action,
                 access: {
                   kind: 'policies' as const,
                   names: [mandatory[0], ...mandatory.slice(1)] as [string, ...string[]],
@@ -277,6 +316,26 @@ export async function resolvePortalInstallation(
         ]
       : []),
   ];
+  // Browser pages precede crossed parameterized API aliases in retained Express.
+  // Order the selected declarations by the frozen, source-derived precedence
+  // graph; the router still proves each named overlap against find-my-way.
+  if (input.pages) {
+    const remaining = [...coreRoutes];
+    const ordered: typeof coreRoutes = [];
+    while (remaining.length) {
+      const index = remaining.findIndex(
+        route =>
+          !coreRoutePrecedence.some(
+            edge =>
+              edge.over === route.declaration.name &&
+              remaining.some(candidate => candidate.declaration.name === edge.winner)
+          )
+      );
+      if (index < 0) throw new TypeError('Core browser precedence contains a cycle.');
+      ordered.push(...remaining.splice(index, 1));
+    }
+    coreRoutes.splice(0, coreRoutes.length, ...ordered);
+  }
   const bindings = Object.freeze([
     ...(metadataOnly
       ? [
@@ -298,6 +357,8 @@ export async function resolvePortalInstallation(
     ...(input.pages
       ? [
           bindControllerFactory(pageController, pageInput),
+          bindControllerFactory(namedQueryPageController, { browser: browser! }),
+          bindControllerFactory(reportsPageController, { browser: browser! }),
           bindControllerFactory(pageRootController, {
             rootContext: context.config.server.rootContext,
             landingPath: context.config.page.landingPath,
@@ -341,7 +402,9 @@ export async function resolvePortalInstallation(
             ...(pageDeclaration ? [pageDeclaration] : []),
           ],
           controllers: [
-            ...(input.pages ? [pageController, pageRootController] : []),
+            ...(input.pages
+              ? [pageController, pageRootController, namedQueryPageController, reportsPageController]
+              : []),
             ...(metadataOnly ? [recordFactory] : []),
             ...reads.controllers,
             ...reference.controllers,

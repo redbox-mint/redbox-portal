@@ -285,7 +285,20 @@ export async function referenceProductionFixture(
           credentialFields: ['username', 'password'],
           validContext: (b, p) => (b === 'default' || b === 'other') && p === 'rdmp',
           brandId: name => (name === 'other' ? otherBrand.id : brand.id),
-          postLoginPath: () => portal.config.server.rootContext + '/default/rdmp/home',
+          postLoginPath: (brand, selectedPortal) =>
+            scope?.pages
+              ? portal.config.server.rootContext +
+                '/' +
+                brand +
+                '/' +
+                selectedPortal +
+                '/' +
+                (
+                  data.reference.appConfigs.get().getAppConfigurationForBrand(brand).auth?.local?.postLoginRedir ??
+                  portal.config.brandingConfigurationDefaults.auth.local?.postLoginRedir ??
+                  'home'
+                ).replace(/^\//, '')
+              : portal.config.server.rootContext + '/default/rdmp/home',
           audit: async (action, actor) => {
             await data.users.get().addUserAuditEvent({ ...actor }, action, { brandId: brand.id });
           },
