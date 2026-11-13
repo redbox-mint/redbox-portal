@@ -33,13 +33,24 @@ function expectTabbable(control: HTMLElement): string {
     control: control.outerHTML,
     focusable: checker.isFocusable(control),
     tabIndex: control.tabIndex,
+    inertAncestor: control.closest('[inert]')?.tagName,
     frame: frame?.outerHTML,
     frameWidth: frame?.offsetWidth,
     frameHeight: frame?.offsetHeight,
     frameVisible: frame && checker.isVisible(frame),
+    documentFocused: document.hasFocus(),
   });
   expect(checker.isTabbable(control)).withContext(context).toBeTrue();
   return context;
+}
+
+function expectFocusWrap(anchor: HTMLElement, control: HTMLElement): void {
+  const focused = jasmine.createSpy('sentinel focus');
+  anchor.addEventListener('focus', focused, { once: true });
+  anchor.focus();
+  const active = document.activeElement;
+  expect(focused).toHaveBeenCalledTimes(1);
+  expect(active).withContext(expectTabbable(control)).toBe(control);
 }
 
 describe('Admin offcanvas focus management', () => {
@@ -55,6 +66,9 @@ describe('Admin offcanvas focus management', () => {
         },
       ],
     }).compileComponents();
+    window.focus();
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    expect(document.hasFocus()).toBeTrue();
     trigger = document.createElement('button');
     document.body.append(trigger);
     trigger.focus();
@@ -67,6 +81,8 @@ describe('Admin offcanvas focus management', () => {
     const fixture = TestBed.createComponent(SidePanelHostComponent);
     fixture.detectChanges();
     await fixture.whenStable();
+    // Zone stability does not include the browser's native focus/render cycle.
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="dialog"]');
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('Columns');
@@ -77,8 +93,7 @@ describe('Admin offcanvas focus management', () => {
     const anchors: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.cdk-focus-trap-anchor');
     expect(anchors.length).toBe(2);
     for (const anchor of Array.from(anchors)) {
-      anchor.focus();
-      expect(document.activeElement).withContext(expectTabbable(close)).toBe(close);
+      expectFocusWrap(anchor, close);
     }
     const closed = fixture.componentInstance.closed;
     fixture.componentInstance.busy = true;
@@ -101,6 +116,7 @@ describe('Admin offcanvas focus management', () => {
     fixture.componentInstance.withContent = true;
     fixture.detectChanges();
     await fixture.whenStable();
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="dialog"]');
     const close = dialog.querySelector('button')!;
     const content = dialog.querySelector<HTMLButtonElement>('.panel-content')!;
@@ -110,10 +126,8 @@ describe('Admin offcanvas focus management', () => {
     expect(document.activeElement).toBe(close);
     content.focus();
     expect(document.activeElement).toBe(content);
-    anchors[0].focus();
-    expect(document.activeElement).withContext(expectTabbable(footer)).toBe(footer);
-    anchors[1].focus();
-    expect(document.activeElement).withContext(expectTabbable(close)).toBe(close);
+    expectFocusWrap(anchors[0], footer);
+    expectFocusWrap(anchors[1], close);
     trigger.focus();
     expect(document.activeElement).toBe(close);
     fixture.destroy();
