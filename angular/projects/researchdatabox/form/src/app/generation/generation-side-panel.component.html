@@ -105,11 +105,19 @@
               <span>{{ progressLabel() | i18next }}</span>
             </div>
           }
+          @if (statusChecksPaused()) {
+            <div class="alert alert-info" role="status" aria-live="polite">
+              <p>{{ 'generation-status-checks-paused' | i18next }}</p>
+              <button type="button" class="btn btn-outline-primary" [disabled]="busy()" (click)="resumeStatusChecks()">
+                {{ 'generation-resume-status-checks' | i18next }}
+              </button>
+            </div>
+          }
           @if (error()) {
             <div class="alert alert-danger" role="alert">{{ error()! | i18next }}</div>
           }
           <div class="rb-generation-panel__actions">
-            <button type="submit" class="btn btn-primary" [disabled]="!effectiveSession() || busy() || questionForm.invalid || documentNotes.invalid || (documents().length > 0 && !documentsReviewed())">
+            <button type="submit" class="btn btn-primary" [disabled]="!effectiveSession() || busy() || activeRun() || questionForm.invalid || documentNotes.invalid || (documents().length > 0 && !documentsReviewed())">
               {{ (busy() ? 'generation-generating' : restartRequired() ? 'generation-retry' : 'generation-generate') | i18next }}
             </button>
             <button type="button" class="btn btn-link" (click)="cancel()">{{ 'cancel' | i18next }}</button>

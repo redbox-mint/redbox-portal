@@ -1,6 +1,6 @@
-import { signal, WritableSignal } from '@angular/core';
+import { NO_ERRORS_SCHEMA, Pipe, PipeTransform, signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { EMPTY, Subject } from 'rxjs';
 import { GenerationCandidatePatch, GenerationFieldProvenanceView, GenerationQuestion, GenerationRunView } from '@researchdatabox/sails-ng-common';
@@ -147,6 +147,90 @@ describe('GenerationSidePanelComponent', () => {
       appliedFieldIds: [],
       reviewedFieldIds: [],
     });
+  });
+
+  it('does not resend an acknowledged receipt when persisted review state changes on a later save', async () => {
+    const patch: GenerationCandidatePatch = {
+      runId: 'review-run', candidateDigest: 'review-digest', baseTargetDigest: 'base',
+      items: [{ fieldId: 'summary', metadataPointer: '/summary', value: 'Generated', operation: 'fill',
+        valueHash: 'hash', groundingState: 'requiresReview', reviewRequired: true, rationale: 'Review', evidence: [] }],
+    };
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run(patch.runId, 'draft', []));
+    applier.apply.and.returnValue({ changedFieldIds: ['summary'], conflictFieldIds: [] });
+    api.execute.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch });
+    api.commit.and.resolveTo({ runId: patch.runId, targetOid: 'saved-record', committed: true, provenanceCount: 1 });
+    await component.generate();
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    await fixture.whenStable();
+    provenanceFields.set({ '/summary': {
+      id: 'saved-provenance', runId: patch.runId, profileFieldId: 'summary', metadataPointer: '/summary',
+      displayState: 'generated', groundingState: 'requiresReview', reviewRequired: false,
+      rationale: 'Review', evidence: [], generatedAt: '2026-11-13T00:00:00Z',
+    } });
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    await fixture.whenStable();
+
+    expect(api.commit).toHaveBeenCalledOnceWith(patch.runId, {
+      targetOid: 'saved-record', candidateDigest: patch.candidateDigest, appliedFieldIds: ['summary'], reviewedFieldIds: [],
+    });
+    expect(component.candidate()).toBe(patch);
+    expect(component.completed()).toBeTrue();
+  });
+
+  it('shares an in-flight commit across simultaneous save events', async () => {
+    component.candidate.set({ runId: 'pending-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] });
+    let acknowledge = () => {};
+    api.commit.and.returnValue(new Promise((resolve) => {
+      acknowledge = () => resolve({ runId: 'pending-run', targetOid: 'saved-record', committed: true, provenanceCount: 0 });
+    }));
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    expect(api.commit.calls.count()).toBe(1);
+    acknowledge();
+    await fixture.whenStable();
+    expect(api.commit.calls.count()).toBe(1);
+  });
+
+  it('does not resend a durable receipt when refreshing provenance fails after acknowledgment', async () => {
+    const patch: GenerationCandidatePatch = { runId: 'refresh-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] };
+    component.candidate.set(patch);
+    api.commit.and.resolveTo({ runId: patch.runId, targetOid: 'saved-record', committed: true, provenanceCount: 0 });
+    provenance.load.and.rejectWith(new Error('Temporary provenance read failure'));
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    await new Promise<void>((resolve) => setTimeout(resolve, 550));
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    await Promise.resolve();
+
+    expect(api.commit.calls.count()).toBe(1);
+    expect(component.candidate()).toBe(patch);
+    expect(component.completed()).toBeTrue();
+    fixture.destroy();
+  });
+
+  it('does not let an old in-flight commit block or acknowledge a replacement form receipt', async () => {
+    component.candidate.set({ runId: 'old-commit', candidateDigest: 'old-digest', baseTargetDigest: 'base', items: [] });
+    let acknowledgeOld = () => {};
+    api.commit.and.returnValue(new Promise((resolve) => {
+      acknowledgeOld = () => resolve({ runId: 'old-commit', targetOid: 'old-record', committed: true, provenanceCount: 0 });
+    }));
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'old-record' }));
+    fixture.componentRef.setInput('form', new FormGroup({ title: new FormControl('Replacement') }));
+    fixture.detectChanges();
+    const replacement: GenerationCandidatePatch = { runId: 'new-commit', candidateDigest: 'new-digest', baseTargetDigest: 'base', items: [] };
+    component.candidate.set(replacement);
+    api.commit.and.resolveTo({ runId: replacement.runId, targetOid: 'new-record', committed: true, provenanceCount: 0 });
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'new-record' }));
+    await fixture.whenStable();
+    acknowledgeOld();
+    await fixture.whenStable();
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'new-record' }));
+    await fixture.whenStable();
+
+    expect(api.commit.calls.count()).toBe(2);
+    expect(provenance.load).toHaveBeenCalledOnceWith('new-record');
+    expect(component.candidate()).toBe(replacement);
+    expect(component.completed()).toBeTrue();
   });
 
   it('starts a document-only run in the same target form without a source record', async () => {
@@ -308,6 +392,82 @@ describe('GenerationSidePanelComponent', () => {
     });
     expect(component.candidate()).toBe(patch);
     expect(form.get('edited')?.value).toBe('Researcher edited after generation');
+  });
+
+  it('pauses exhausted status checks and resumes reads without re-executing or replacing the edit baseline', async () => {
+    const form = new FormGroup({ summary: new FormControl('') });
+    fixture.componentRef.setInput('form', form);
+    fixture.detectChanges();
+    const patch: GenerationCandidatePatch = {
+      runId: 'slow-run', candidateDigest: 'digest', baseTargetDigest: 'base',
+      items: [{ fieldId: 'summary', metadataPointer: '/summary', value: 'Generated summary', operation: 'fill',
+        valueHash: 'hash', groundingState: 'sourceBacked', reviewRequired: false, rationale: 'Source', evidence: [] }],
+    };
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run(patch.runId, 'draft', []));
+    spyOn(component as unknown as { waitForPoll(delayMs: number): Promise<void> }, 'waitForPoll').and.resolveTo();
+    api.execute.and.resolveTo(run(patch.runId, 'running', []));
+    api.getRun.and.resolveTo(run(patch.runId, 'running', []));
+    applier.apply.and.callFake((...args) => new GenerationPatchApplierService().apply(...args));
+
+    await component.generate();
+
+    expect(api.getRun.calls.count()).toBe(80);
+    expect(component.busy()).toBeFalse();
+    expect(component.statusChecksPaused()).toBeTrue();
+    form.get('summary')?.setValue('Researcher edit after waiting');
+    api.getRun.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch });
+    await component.resumeStatusChecks();
+
+    expect(api.execute.calls.count()).toBe(1);
+    expect(api.getRun.calls.count()).toBe(81);
+    expect(component.statusChecksPaused()).toBeFalse();
+    expect(component.busy()).toBeFalse();
+    expect(applier.apply).toHaveBeenCalledWith(patch, form, { summary: '' }, eventBus, []);
+    expect(form.get('summary')?.value).toBe('Researcher edit after waiting');
+    expect(component.conflicts()).toEqual(['summary']);
+  });
+
+  it('can cancel an active run after automatic status checks pause', async () => {
+    component.activeSession.set({ runId: 'cancel-paused', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run('cancel-paused', 'draft', []));
+    spyOn(component as unknown as { waitForPoll(delayMs: number): Promise<void> }, 'waitForPoll').and.resolveTo();
+    api.execute.and.resolveTo(run('cancel-paused', 'running', []));
+    api.getRun.and.resolveTo(run('cancel-paused', 'running', []));
+    api.cancel.and.resolveTo(run('cancel-paused', 'cancelled', []));
+    await component.generate();
+    expect(component.statusChecksPaused()).toBeTrue();
+
+    await component.cancel();
+
+    expect(api.cancel).toHaveBeenCalledOnceWith('cancel-paused');
+    expect(component.statusChecksPaused()).toBeFalse();
+    expect(component.run()?.status).toBe('cancelled');
+    expect(component.effectiveSession()).toBeNull();
+  });
+
+  it('ignores a resumed status response after its form is replaced', async () => {
+    component.activeSession.set({ runId: 'old-paused', bindingKey: 'documents', autoOpen: true, initialValues: [] });
+    component.run.set(run('old-paused', 'draft', []));
+    spyOn(component as unknown as { waitForPoll(delayMs: number): Promise<void> }, 'waitForPoll').and.resolveTo();
+    api.execute.and.resolveTo(run('old-paused', 'running', []));
+    api.getRun.and.resolveTo(run('old-paused', 'running', []));
+    await component.generate();
+    let finish = (_run: GenerationRunView) => {};
+    api.getRun.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const resume = component.resumeStatusChecks();
+    await Promise.resolve();
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('Replacement form') }));
+    fixture.detectChanges();
+    finish({ ...run('old-paused', 'completed', []), result: {
+      runId: 'old-paused', candidateDigest: 'digest', baseTargetDigest: 'base', items: [],
+    } });
+    await resume;
+
+    expect(applier.apply).not.toHaveBeenCalled();
+    expect(component.candidate()).toBeNull();
+    expect(component.statusChecksPaused()).toBeFalse();
+    expect(api.execute.calls.count()).toBe(1);
   });
 
   it('applies a candidate returned directly by a fast execution', async () => {
@@ -500,4 +660,61 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.effectiveSession()).toBeNull();
   });
 
+});
+
+@Pipe({ name: 'i18next', standalone: true })
+class StatusTestTranslationPipe implements PipeTransform {
+  transform(value: string): string { return value; }
+}
+
+describe('Generation paused-status rendering', () => {
+  it('renders paused feedback and a resume button that reads status while generation remains disabled', async () => {
+    const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['getRun', 'execute']);
+    api.getRun.and.resolveTo({ runId: 'paused-render', status: 'completed', phase: 'population',
+      attemptCount: 1, retryable: false, questions: [], result: null });
+    const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
+    eventBus.select$.and.returnValue(EMPTY);
+    const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
+    store.selectSignal.and.returnValue(signal(true));
+    const applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
+    const provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>('GenerationProvenanceStoreService', ['clear'], { byPointer: signal({}) });
+    await TestBed.configureTestingModule({
+      declarations: [GenerationSidePanelComponent],
+      imports: [ReactiveFormsModule, StatusTestTranslationPipe],
+      schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        { provide: GenerationApiService, useValue: api },
+        { provide: FormComponentEventBus, useValue: eventBus },
+        { provide: Store, useValue: store },
+        { provide: GenerationPatchApplierService, useValue: applier },
+        { provide: GenerationProvenanceStoreService, useValue: provenance },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(GenerationSidePanelComponent);
+    const component = fixture.componentInstance;
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('') }));
+    fixture.detectChanges();
+    component.activeSession.set({ runId: 'paused-render', bindingKey: 'documents', initialValues: [], autoOpen: true });
+    component.run.set({ runId: 'paused-render', status: 'running', phase: 'provider',
+      attemptCount: 1, retryable: false, questions: [], result: null });
+    component.statusChecksPaused.set(true);
+    spyOn(component as unknown as { waitForPoll(delayMs: number): Promise<void> }, 'waitForPoll').and.resolveTo();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    const resume = host.querySelector<HTMLButtonElement>('.alert-info button');
+    const generate = host.querySelector<HTMLButtonElement>('button[type="submit"]');
+
+    expect(host.querySelector('.alert-info')?.textContent).toContain('generation-status-checks-paused');
+    expect(resume?.textContent).toContain('generation-resume-status-checks');
+    expect(resume?.disabled).toBeFalse();
+    expect(generate?.disabled).toBeTrue();
+    resume?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(api.getRun).toHaveBeenCalledOnceWith('paused-render');
+    expect(api.execute).not.toHaveBeenCalled();
+    expect(host.querySelector('.alert-info')).toBeNull();
+    fixture.destroy();
+  });
 });

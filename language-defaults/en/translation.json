@@ -1964,6 +1964,8 @@
   "generation-generate": "Generate draft",
   "generation-generating": "Generating…",
   "generation-retry": "Try again",
+  "generation-status-checks-paused": "Status checks are paused. Your drafting request is still active. Resume status checks to retrieve its result, or cancel the request.",
+  "generation-resume-status-checks": "Resume status checks",
   "generation-return-to-form": "Return to form",
   "generation-request-failed": "The drafting request could not be started. Please try again.",
   "generation-commit-failed": "The draft was saved, but its provenance could not be recorded.",

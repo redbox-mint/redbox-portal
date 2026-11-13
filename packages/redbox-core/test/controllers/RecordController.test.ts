@@ -1,3 +1,4 @@
+import { GenerationError } from '../../src/model/generation';
 import { getEffectiveRelatedClientForm } from '../../src/related-records/effective-form';
 import { RelatedDisplayWriteError } from '../../src/related-records/normalize-display-writes';
 import { deletedRecordSummary } from '../../src/DeletedRecordSummary';
@@ -1694,12 +1695,20 @@ describe('RecordController getWorkflowSteps', () => {
       await controller.getForm(request({ edit: 'true', generationRunId: ' run-1 ' }), {} as Sails.Res);
 
       expect(sendResp.calledOnce).to.equal(true);
-      expect(sendResp.firstCall.args[2].meta).to.deep.include({ generationSession, generationLaunches });
+      expect(sendResp.firstCall.args[2].meta).to.deep.include({ generationEnabled: true, generationSession, generationLaunches });
       expect(resolveTargetSession.firstCall.args.slice(1)).to.deep.equal(['run-1', 'dataset', 'dataset-draft']);
       expect(resolveCreateLaunches.calledOnce).to.equal(true);
       expect(resolveCreateLaunches.firstCall.args).to.deep.equal([
         resolveTargetSession.firstCall.args[0], 'dataset', 'dataset-draft',
       ]);
+    });
+
+    it('signals disabled generation without resolving optional metadata', async () => {
+      sails.config.generation.enabled = false;
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+      expect(sendResp.firstCall.args[2].meta.generationEnabled).to.equal(false);
+      expect(resolveCreateLaunches.called).to.equal(false);
+      expect(resolveTargetSession.called).to.equal(false);
     });
 
     it('keeps launch definitions available for an ordinary editable create form', async () => {
@@ -1716,6 +1725,58 @@ describe('RecordController getWorkflowSteps', () => {
       expect(sendResp.firstCall.args[2].meta.generationSession).to.deep.equal(generationSession);
       expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationLaunches');
       expect(resolveCreateLaunches.called).to.equal(false);
+    });
+
+    it('loads an ordinary create form when optional launch metadata lookup fails', async () => {
+      resolveCreateLaunches.rejects(new Error('MongoDB credential must remain private'));
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+      const response = sendResp.firstCall.args[2];
+      expect(response.data).to.deep.equal({ type: 'dataset', componentDefinitions: [] });
+      expect(response.meta.generationEnabled).to.equal(false);
+      expect(response.meta).not.to.have.property('generationLaunches');
+      expect(response.meta).not.to.have.property('generationSession');
+      expect((sails.log.warn as sinon.SinonStub).calledWithExactly('record_generation_metadata_unavailable')).to.equal(true);
+    });
+
+    for (const edit of ['true', 'false']) {
+      it(`loads an ordinary stored-record form in edit=${edit} when optional action lookup fails`, async () => {
+        (controller.recordsService.getMeta as sinon.SinonStub).resolves({
+          redboxOid: 'oid-1', metaMetadata: { brandId: 'brand-1', type: 'dataset', form: 'dataset-draft' }, metadata: {},
+        });
+        (FormsService.getForm as sinon.SinonStub).resolves({ name: 'dataset-draft', configuration: { type: 'dataset', componentDefinitions: [] } });
+        (sails.services.generationbindingservice as any).resolveActions.rejects(new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Private source details'));
+        const req = request({ edit });
+        (req.param as sinon.SinonStub).withArgs('oid').returns('oid-1');
+        await controller.getForm(req, {} as Sails.Res);
+        const response = sendResp.firstCall.args[2];
+        expect(response.data).to.deep.equal({ type: 'dataset', componentDefinitions: [] });
+        expect(response.meta).not.to.have.property('runtimeActions');
+        expect((sails.log.warn as sinon.SinonStub).calledWithExactly('record_generation_metadata_unavailable')).to.equal(true);
+      });
+    }
+
+    it('loads an ordinary form without a generation service during an optional subsystem outage', async () => {
+      Reflect.deleteProperty(sails.services, 'generationbindingservice');
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+      expect(sendResp.firstCall.args[2].data).to.deep.equal({ type: 'dataset', componentDefinitions: [] });
+      expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationLaunches');
+    });
+
+    it('preserves explicit missing-run errors without returning form or partial launch metadata', async () => {
+      resolveTargetSession.rejects(new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Run not available'));
+      await controller.getForm(request({ edit: 'true', generationRunId: 'missing-run' }), {} as Sails.Res);
+      expect(sendResp.firstCall.args[2].status).to.equal(404);
+      expect(sendResp.firstCall.args[2].data.error.code).to.equal('GENERATION_ACTION_NOT_AVAILABLE');
+      expect(sendResp.firstCall.args[2]).not.to.have.property('meta');
+      expect(resolveCreateLaunches.called).to.equal(false);
+    });
+
+    it('keeps explicit run requests strict if later launch metadata fails', async () => {
+      resolveCreateLaunches.rejects(new Error('Generation database unavailable'));
+      await controller.getForm(request({ edit: 'true', generationRunId: 'run-1' }), {} as Sails.Res);
+      expect(resolveTargetSession.calledOnce).to.equal(true);
+      expect(sendResp.firstCall.args[2].status).to.equal(500);
+      expect(sendResp.firstCall.args[2]).not.to.have.property('meta');
     });
 
     it('does not resolve or expose launch definitions when target-session authorization fails', async () => {

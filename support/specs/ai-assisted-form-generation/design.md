@@ -1,6 +1,6 @@
 # Design
 
-Status: proposed
+Status: implemented POC in draft review; future administration extensions remain proposed
 
 Requirements: [requirements.md](requirements.md)
 
@@ -313,7 +313,7 @@ File: `packages/redbox-core/src/waterline-models/GenerationRunArtifact.ts`
 
 This model is intentionally separate from the durable audit. It contains:
 
-- `brandId`, `runId`, `expiresAt`;
+- `brandId`, `runId`, ISO `expiresAt`, and BSON date `expiresAtDate`;
 - `encryptionKeyId`, `iv`, `authTag`, and `ciphertext` for an AES-256-GCM envelope;
 - `payloadVersion` and a non-sensitive `contentKinds` array.
 
@@ -332,7 +332,7 @@ Operational input/candidate content exists only until commit, cancellation, aban
 Indexes:
 
 - unique `{ brandId: 1, runId: 1 }`;
-- TTL `{ expiresAt: 1 }` with `expireAfterSeconds: 0`.
+- TTL `{ expiresAtDate: 1 }` with `expireAfterSeconds: 0`; `expiresAt` remains the ISO API value.
 
 The TTL index is verified in `GenerationPersistenceService.bootstrap()` using the native Mongo manager, following the existing Agenda index pattern. The feature fails closed if artifact encryption is enabled but no valid key can be resolved. Plaintext fallback is prohibited.
 
@@ -880,7 +880,7 @@ Request contains `answers`, `targetForm` descriptor, and the current target draf
 
 #### `POST /:branding/:portal/generation/runs/:id/cancel`
 
-Sets `cancelRequested` for queued/running runs and returns `202`; cancels a draft synchronously; is idempotent for terminal cancellation. The worker aborts an in-process adapter when possible and always discards output after a cancellation request.
+Sets `cancelRequested` for queued/running runs and returns `202`; cancels a draft synchronously; is idempotent for terminal cancellation. The worker acknowledges cancellation before invocation or after the provider call returns and discards output after a cancellation request. An in-process call may continue until its response or configured timeout.
 
 #### `POST /:branding/:portal/generation/runs/:id/commit`
 

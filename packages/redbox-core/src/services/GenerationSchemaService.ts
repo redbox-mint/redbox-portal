@@ -256,7 +256,7 @@ export namespace Services {
         case 'string':
         case 'richText':
           if (typeof value !== 'string' || value.length > (field.maxLength ?? output.maxLength ?? Number.MAX_SAFE_INTEGER) ||
-            /<(script|iframe|object|embed|style|link|meta)\b|\bon\w+\s*=|javascript\s*:/i.test(value)) fail();
+            /<(script|iframe|object|embed|style|link|meta)\b|<[a-z](?:[^"'<>]|"[^"]*"|'[^']*')*?[\s/]on\w+\s*=|javascript\s*:/i.test(value)) fail();
           return;
         case 'boolean': if (typeof value !== 'boolean') fail(); return;
         case 'date': if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ||
@@ -278,8 +278,8 @@ export namespace Services {
 
     private validateObjectValue(value: unknown, properties: Record<string, GenerationOutputType>, fail: () => never): void {
       if (!value || typeof value !== 'object' || Array.isArray(value) ||
-        Object.keys(value as Record<string, unknown>).some((key) => !(key in properties)) ||
-        Object.keys(properties).some((key) => !(key in (value as Record<string, unknown>)))) fail();
+        Object.keys(value as Record<string, unknown>).some((key) => !Object.prototype.hasOwnProperty.call(properties, key)) ||
+        Object.keys(properties).some((key) => !Object.prototype.hasOwnProperty.call(value, key))) fail();
       for (const [key, output] of Object.entries(properties)) {
         this.validateValue({
           id: key, metadataPointer: `/${key}`, expectedComponentClasses: ['GroupComponent'], output,

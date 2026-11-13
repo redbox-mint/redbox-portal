@@ -1,7 +1,7 @@
 import type { FormRuntimeAction, GenerationLaunchDefinition, GenerationRuntimeInitialValue, GenerationRuntimeSession } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import type { BrandingModel, UserModel } from '../model';
-import { GenerationActorContext, GenerationError } from '../model/generation';
+import { decodeJsonPointer, getJsonPointer, GenerationActorContext, GenerationError } from '../model/generation';
 import type { GenerationBindingAttributes } from '../waterline-models/GenerationBinding';
 import type { GenerationProfileVersionAttributes } from '../waterline-models/GenerationProfileVersion';
 import { firstValueFrom } from 'rxjs';
@@ -19,14 +19,6 @@ interface SchemaLike {
     definition: GenerationProfileVersionAttributes['definition'],
     form: NonNullable<FormAttributes['configuration']>,
   ): Map<string, { disabled: boolean }>;
-}
-
-function pointerGet(value: unknown, pointer: string): unknown {
-  if (!pointer.startsWith('/')) return undefined;
-  return pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'))
-    .reduce<unknown>((current, key) => current && typeof current === 'object'
-      ? (current as Record<string, unknown>)[key]
-      : undefined, value);
 }
 
 function pointersOverlap(left: string, right: string): boolean {
@@ -61,6 +53,11 @@ export namespace Services {
       }
       if (input.sourceRecordType && (!input.sourceRelationship?.metadataPointer || !String(input.sourceRelationship.metadataPointer).startsWith('/'))) {
         throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation source relationship mapping is invalid');
+      }
+      if (input.sourceRelationship?.metadataPointer) decodeJsonPointer(String(input.sourceRelationship.metadataPointer));
+      for (const mapping of input.sourceValueMappings ?? []) {
+        decodeJsonPointer(mapping.sourceMetadataPointer);
+        decodeJsonPointer(mapping.targetMetadataPointer);
       }
       const profile = await GenerationProfile.findOne({ id: input.profileId, brandId });
       if (!profile) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation binding profile was not found');
@@ -156,6 +153,7 @@ export namespace Services {
           const allowDocumentsOnly = !!profile.definition.documentSources && profile.definition.sourceSlots.every((slot) => slot.required === false);
           const sourcePointer = String(binding.sourceRelationship?.metadataPointer ?? '').trim();
           if (!sourcePointer.startsWith('/') && !allowDocumentsOnly) continue;
+          if (sourcePointer) decodeJsonPointer(sourcePointer);
           launches.push({ bindingKey: binding.key, ...(sourcePointer ? { sourcePointer } : {}), ...(allowDocumentsOnly ? { allowDocumentsOnly: true } : {}) });
         } catch (error) {
           if (!(error instanceof GenerationError)) throw error;
@@ -205,6 +203,7 @@ export namespace Services {
       if (!sourceOid) return [];
       const pointer = String(binding.sourceRelationship?.metadataPointer ?? '');
       if (!pointer.startsWith('/')) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation relationship mapping is invalid');
+      decodeJsonPointer(pointer);
       return [{ metadataPointer: pointer, value: sourceOid }];
     }
 
@@ -213,7 +212,8 @@ export namespace Services {
       sourceMetadata: Record<string, unknown>,
     ): GenerationRuntimeInitialValue[] {
       const values = (binding.sourceValueMappings ?? []).flatMap((mapping) => {
-        const value = pointerGet(sourceMetadata, mapping.sourceMetadataPointer);
+        decodeJsonPointer(mapping.targetMetadataPointer);
+        const value = getJsonPointer(sourceMetadata, mapping.sourceMetadataPointer);
         return value === undefined
           ? []
           : [{ metadataPointer: mapping.targetMetadataPointer, value: structuredClone(value) }];

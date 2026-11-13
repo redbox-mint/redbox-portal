@@ -1,6 +1,6 @@
 # AI-assisted form generation requirements and decisions
 
-Status: proposed
+Status: implemented POC in draft review; future administration extensions remain proposed
 
 Date: 2026-08-19
 
@@ -128,7 +128,7 @@ Sections 5.1–5.5 describe the record-based POC. The source-input capability in
 2. Edits are ordinary form edits. No edit is sent back to the provider or captured as training/evaluation data.
 3. The researcher saves through the existing `form.save.requested` lifecycle.
 4. On `form.save.success`, a generation effect commits the one-time generation receipt against the newly created record.
-5. The server verifies brand, actor, target record, candidate hashes, and saved values before storing field provenance.
+5. The server verifies brand, actor, target record, candidate hashes, and the applied/reviewed receipt before storing field provenance. Saved values may include deliberate edits; provenance retains the generated-value hash and reports the current display state on reload.
 6. If provenance commit temporarily fails, the saved RDMP remains valid and the client retries the idempotent commit; the record save is never rolled back.
 
 ### 5.5 Reopen

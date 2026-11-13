@@ -580,7 +580,7 @@ export class FormComponent extends BaseComponent implements OnDestroy {
         actions: meta?.runtimeActions ?? [],
         session: meta?.generationSession ?? null,
       }));
-      if (this.trimmedParams.oid()) {
+      if (meta?.generationEnabled === true && this.trimmedParams.oid()) {
         try {
           await this.generationProvenance.load(this.trimmedParams.oid());
         } catch (error) {

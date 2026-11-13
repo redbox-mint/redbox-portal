@@ -136,7 +136,7 @@ describe('AI-assisted form generation', function () {
     const manager = GenerationRunArtifact.getDatastore().manager;
     const artifactIndexes = await manager.collection(GenerationRunArtifact.tableName).indexes();
     const provenanceIndexes = await manager.collection(GenerationFieldProvenance.tableName).indexes();
-    expect(artifactIndexes.some((index: any) => index.name === 'generation_artifact_expiry_ttl' && index.expireAfterSeconds === 0)).to.equal(true);
+    expect(artifactIndexes.some((index: any) => index.name === 'generation_artifact_expiry_date_ttl' && index.expireAfterSeconds === 0 && index.key.expiresAtDate === 1)).to.equal(true);
     expect(artifactIndexes.some((index: any) => index.name === 'generation_artifact_brand_run' && index.unique === true)).to.equal(true);
     expect(provenanceIndexes.some((index: any) => index.name === 'generation_provenance_run_field' && index.unique === true)).to.equal(true);
 
@@ -189,6 +189,10 @@ describe('AI-assisted form generation', function () {
     const launch = await GenerationRunService.launch({ actor, brand, user, bindingKey: BINDING_KEY, sourceOid });
     createdRunIds.push(String(launch.runId));
     expect(launch.targetUrl).to.contain(`/record/demoRdmp/edit?generationRunId=${launch.runId}`);
+    const nativeArtifact = await GenerationRunArtifact.getDatastore().manager
+      .collection(GenerationRunArtifact.tableName).findOne({ brandId: actor.brandId, runId: launch.runId });
+    expect(nativeArtifact.expiresAtDate).to.be.instanceOf(Date);
+    expect(nativeArtifact.expiresAtDate.toISOString()).to.equal(nativeArtifact.expiresAt);
     const draft = await GenerationRunService.getForActor(actor, launch.runId);
     expect(draft.questions).to.have.length(5);
 

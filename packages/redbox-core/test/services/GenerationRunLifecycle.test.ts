@@ -110,6 +110,10 @@ describe('Generation run lifecycle', () => {
         artifacts.push(artifact);
         return structuredClone(artifact);
       } }),
+      destroyOne: async (criteria: Record<string, unknown>) => {
+        const index = artifacts.findIndex(row => matches(row, criteria));
+        return index < 0 ? null : artifacts.splice(index, 1)[0];
+      },
       findOne: async (criteria: Record<string, unknown>) => structuredClone(artifacts.find(row => matches(row, criteria)) ?? null),
       updateOne: (criteria: Record<string, unknown>) => ({ set: async (values: Record<string, unknown>) => {
         const artifact = artifacts.find(row => matches(row, criteria));
@@ -131,6 +135,50 @@ describe('Generation run lifecycle', () => {
       if (value === undefined) Reflect.deleteProperty(globalThis, name);
       else Reflect.set(globalThis, name, value);
     }
+  });
+
+  for (const failure of ['defaults', 'encryption', 'artifact', 'target-url']) {
+    it(`reclaims draft quota and artifacts after repeated launch ${failure} failures`, async () => {
+      const runtime = Reflect.get(globalThis, 'sails');
+      runtime.config.generation.limits.perUserConcurrentRuns = 1;
+      runtime.config.generation.limits.perUserDailyRuns = 1;
+      const holder = failure === 'defaults' ? runtime.services.generationcontextservice
+        : failure === 'encryption' ? runtime.services.generationcryptoservice
+        : failure === 'artifact' ? Reflect.get(globalThis, 'GenerationRunArtifact')
+        : runtime.services.generationbindingservice;
+      const method = failure === 'defaults' ? 'buildQuestionDefaults' : failure === 'encryption' ? 'encrypt'
+        : failure === 'artifact' ? 'create' : 'buildTargetUrl';
+      const original = holder[method];
+      const fault = new Error(`injected ${failure} failure`);
+      holder[method] = failure === 'artifact' ? () => ({ fetch: async () => { throw fault; } })
+        : failure === 'encryption' ? async () => { throw fault; } : () => { throw fault; };
+      for (let index = 0; index < 2; index++) {
+        let rejection: unknown;
+        try { await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key }); }
+        catch (error) { rejection = error; }
+        expect(rejection).to.equal(fault);
+        expect(rows).to.have.length(0);
+        expect(artifacts).to.have.length(0);
+      }
+      holder[method] = original;
+      expect(await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key })).to.have.property('runId');
+      expect(rows).to.have.length(1);
+      expect(artifacts).to.have.length(1);
+    });
+  }
+
+  it('does not delete a run or its artifact after a concurrent request advances the draft', async () => {
+    const runtime = Reflect.get(globalThis, 'sails');
+    runtime.services.generationbindingservice.buildTargetUrl = () => {
+      rows[0].status = 'queued'; rows[0].attemptCount = 1;
+      throw new Error('late failed launch');
+    };
+    let rejection: unknown;
+    try { await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key }); }
+    catch (error) { rejection = error; }
+    expect(rejection).to.be.instanceOf(Error);
+    expect(rows[0]).to.include({ status: 'queued', attemptCount: 1 });
+    expect(artifacts).to.have.length(1);
   });
 
   it('pins the starting workflow form for an omitted binding form and executes the resolved client target', async () => {

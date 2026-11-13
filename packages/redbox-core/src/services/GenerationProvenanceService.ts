@@ -93,10 +93,6 @@ export namespace Services {
       }
       const appliedIds = new Set(request.appliedFieldIds);
       const appliedItems = payload.candidate.items.filter(item => appliedIds.has(item.fieldId));
-      for (const item of appliedItems) {
-        const savedValue = getJsonPointer(record.metadata ?? {}, item.metadataPointer);
-        if (savedValue !== undefined) canonicalHash(savedValue);
-      }
       const validReviewIds = new Set(appliedItems.filter(item => item.reviewRequired).map(item => item.fieldId));
       if (request.reviewedFieldIds.some(id => !validReviewIds.has(id))) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Reviewed generation fields are invalid');

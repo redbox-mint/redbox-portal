@@ -104,37 +104,40 @@ export namespace Services {
       // Reserve the draft before counting, so concurrent admissions see each other.
       try {
         await this.assertLimits(input.actor);
+        const contextService = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
+        const defaults = contextService.buildQuestionDefaults(authorized.profileVersion.definition, authorized.source?.metadata ?? {});
+        const questions: GenerationQuestion[] = authorized.profileVersion.definition.questions.map((question) => ({
+          id: question.id, labelKey: question.labelKey, helpTextKey: question.helpTextKey, type: question.type,
+          required: question.required, options: question.options, maxLength: question.maxLength,
+          defaultValue: defaults.find((item) => item.id === question.id)?.value as GenerationQuestion['defaultValue'],
+        }));
+        const completionValues = bindingService.buildCompletionValues(
+          authorized.binding,
+          authorized.source?.metadata ?? {},
+        );
+        const crypto = requireService<CryptoLike>('generationcryptoservice', ['encrypt', 'decrypt']);
+        const envelope = await crypto.encrypt(input.actor.brandId, run.id, {
+          questions,
+          completionValues,
+        } satisfies GenerationArtifactPayload & { questions: GenerationQuestion[] });
+        await GenerationRunArtifact.create({
+          brandId: input.actor.brandId,
+          runId: run.id,
+          expiresAt,
+          ...envelope,
+          contentKinds: ['questionDefaults', 'completionValues'],
+        }).fetch();
+        return {
+          runId: run.id,
+          targetUrl: bindingService.buildTargetUrl({ ...authorized.binding, targetFormName }, input.actor, run.id),
+        };
       } catch (error) {
-        await GenerationRun.destroyOne({ id: run.id, brandId: input.actor.brandId, status: 'draft', attemptCount: 0 });
+        const abandoned = await GenerationRun.destroyOne({
+          id: run.id, brandId: input.actor.brandId, status: 'draft', attemptCount: 0,
+        });
+        if (abandoned) await GenerationRunArtifact.destroyOne({ brandId: input.actor.brandId, runId: run.id });
         throw error;
       }
-      const contextService = requireService<ContextLike>('generationcontextservice', ['buildQuestionDefaults', 'prepare']);
-      const defaults = contextService.buildQuestionDefaults(authorized.profileVersion.definition, authorized.source?.metadata ?? {});
-      const questions: GenerationQuestion[] = authorized.profileVersion.definition.questions.map((question) => ({
-        id: question.id, labelKey: question.labelKey, helpTextKey: question.helpTextKey, type: question.type,
-        required: question.required, options: question.options, maxLength: question.maxLength,
-        defaultValue: defaults.find((item) => item.id === question.id)?.value as GenerationQuestion['defaultValue'],
-      }));
-      const completionValues = bindingService.buildCompletionValues(
-        authorized.binding,
-        authorized.source?.metadata ?? {},
-      );
-      const crypto = requireService<CryptoLike>('generationcryptoservice', ['encrypt', 'decrypt']);
-      const envelope = await crypto.encrypt(input.actor.brandId, run.id, {
-        questions,
-        completionValues,
-      } satisfies GenerationArtifactPayload & { questions: GenerationQuestion[] });
-      await GenerationRunArtifact.create({
-        brandId: input.actor.brandId,
-        runId: run.id,
-        expiresAt,
-        ...envelope,
-        contentKinds: ['questionDefaults', 'completionValues'],
-      }).fetch();
-      return {
-        runId: run.id,
-        targetUrl: bindingService.buildTargetUrl({ ...authorized.binding, targetFormName }, input.actor, run.id),
-      };
     }
 
     public async getForActor(actor: GenerationActorContext, runId: string): Promise<GenerationRunView> {

@@ -19,6 +19,7 @@ export interface GenerationRuntimeSession {
 }
 
 export interface FormRuntimeMeta extends Record<string, unknown> {
+  generationEnabled?: boolean;
   runtimeActions?: FormRuntimeAction[];
   generationLaunches?: GenerationLaunchDefinition[];
   generationSession?: GenerationRuntimeSession;
