@@ -26,31 +26,15 @@ class SidePanelHostComponent {
   closed = jasmine.createSpy('closed');
 }
 
-function expectTabbable(control: HTMLElement): string {
-  const checker = TestBed.inject(InteractivityChecker);
-  const frame = window.frameElement as HTMLElement | null;
-  const context = JSON.stringify({
-    control: control.outerHTML,
-    focusable: checker.isFocusable(control),
-    tabIndex: control.tabIndex,
-    inertAncestor: control.closest('[inert]')?.tagName,
-    frame: frame?.outerHTML,
-    frameWidth: frame?.offsetWidth,
-    frameHeight: frame?.offsetHeight,
-    frameVisible: frame && checker.isVisible(frame),
-    documentFocused: document.hasFocus(),
-  });
-  expect(checker.isTabbable(control)).withContext(context).toBeTrue();
-  return context;
-}
-
 function expectFocusWrap(anchor: HTMLElement, control: HTMLElement): void {
-  const focused = jasmine.createSpy('sentinel focus');
-  anchor.addEventListener('focus', focused, { once: true });
   anchor.focus();
-  const active = document.activeElement;
-  expect(focused).toHaveBeenCalledTimes(1);
-  expect(active).withContext(expectTabbable(control)).toBe(control);
+  // An unfocused headless document updates activeElement without firing focus.
+  // Deliver the event to CDK's real listener, then assert its actual focus move.
+  anchor.dispatchEvent(new FocusEvent('focus'));
+  expect(document.activeElement).toBe(control);
+  const checker = TestBed.inject(InteractivityChecker);
+  expect(checker.isFocusable(control)).toBeTrue();
+  expect(checker.isTabbable(control)).toBeTrue();
 }
 
 describe('Admin offcanvas focus management', () => {
@@ -66,9 +50,6 @@ describe('Admin offcanvas focus management', () => {
         },
       ],
     }).compileComponents();
-    window.focus();
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-    expect(document.hasFocus()).toBeTrue();
     trigger = document.createElement('button');
     document.body.append(trigger);
     trigger.focus();
@@ -81,8 +62,6 @@ describe('Admin offcanvas focus management', () => {
     const fixture = TestBed.createComponent(SidePanelHostComponent);
     fixture.detectChanges();
     await fixture.whenStable();
-    // Zone stability does not include the browser's native focus/render cycle.
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="dialog"]');
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('Columns');
@@ -116,7 +95,6 @@ describe('Admin offcanvas focus management', () => {
     fixture.componentInstance.withContent = true;
     fixture.detectChanges();
     await fixture.whenStable();
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="dialog"]');
     const close = dialog.querySelector('button')!;
     const content = dialog.querySelector<HTMLButtonElement>('.panel-content')!;
