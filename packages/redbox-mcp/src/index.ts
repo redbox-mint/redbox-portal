@@ -44,6 +44,7 @@ const hook = defineRedboxHook({
     routes: {
       '/mcp': { controller: 'McpController', action: 'handle', csrf: false },
       'get /.well-known/oauth-protected-resource/mcp': { controller: 'McpController', action: 'handle', csrf: false },
+      'options /.well-known/oauth-protected-resource/mcp': { controller: 'McpController', action: 'handle', csrf: false },
     },
     policies: { McpController: { '*': [] } },
   }),

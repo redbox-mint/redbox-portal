@@ -87,6 +87,11 @@ describe('ReDBox MCP hook registration', () => {
     assert.equal(typeof hook.createReportingMcpServer, 'function');
     assert.equal(hook.registerRedboxConfig().mcp.enabled, false);
     assert.ok(hook.registerRedboxConfig().routes['/mcp']);
+    assert.deepEqual(hook.registerRedboxConfig().routes['options /.well-known/oauth-protected-resource/mcp'], {
+      controller: 'McpController',
+      action: 'handle',
+      csrf: false,
+    });
     assert.deepEqual(hook.registerRedboxConfig().policies, { McpController: { '*': [] } });
     assert.ok(hook.registerRedboxControllers().McpController);
   });
