@@ -23,7 +23,7 @@ export function setJsonPointer(target: Record<string, unknown>, pointer: string,
     if (index === parts.length - 1) current[part] = value;
     else {
       const child = current[part];
-      current[part] = child && typeof child === 'object' && !Array.isArray(child) ? child : {};
+      current[part] = child && typeof child === 'object' ? child : {};
       current = current[part] as Record<string, unknown>;
     }
   });
