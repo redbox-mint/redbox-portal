@@ -67,8 +67,10 @@ describe('Report view AJAX sorting', function () {
       })
     );
     agent = supertest.agent((sails as any).hooks.http.app);
+    const loginCsrf = (await agent.get('/csrfToken?branding=default&portal=rdmp')).body._csrf;
     await agent
       .post('/user/login_local')
+      .set('X-CSRF-Token', loginCsrf)
       .set('X-Source', 'jsclient')
       .send({ username: 'admin', password: 'rbadmin', branding: 'default', portal: 'rdmp' })
       .expect(200);

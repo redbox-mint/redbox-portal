@@ -487,8 +487,8 @@ describe('NamedQueryService', function() {
       const result = await NamedQueryService.update(brand, 'test-query', config);
 
       expect(mockNamedQuery.updateOne.calledOnce).to.be.true;
-      expect(mockNamedQuery.updateOne.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
-      expect(mockNamedQuery.updateOne.firstCall.args[0].key).to.equal('brand-1_test-query');
+      expect(mockNamedQuery.updateOne.firstCall.args[0]).to.deep.equal({ where: { key: 'brand-1_test-query' } });
+      expect(mockNamedQuery.updateOne.firstCall.args[0].where.key).to.equal('brand-1_test-query');
       const queryObj = mockNamedQuery.updateOne.firstCall.returnValue;
       expect(queryObj.set.calledOnce).to.be.true;
       expect(queryObj.set.firstCall.args[0].mongoQuery).to.equal('{"type":"updated"}');

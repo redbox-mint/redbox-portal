@@ -1,0 +1,43 @@
+meta {
+  name: Reject Changed Reviewed Draft
+  type: http
+  seq: 4.6
+}
+
+put {
+  url: {{host}}/default/rdmp/api/named-query/bruno-test-query
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  X-ReDBox-Api-Version: 2.0
+  X-ReDBox-Named-Query-Confirmation: {{queryUpdateConfirmation}}
+}
+
+body:json {
+  {
+    "name": "bruno-test-query",
+    "description": "Changed after review",
+    "collectionName": "user",
+    "mongoQuery": {
+      "type": "researcher"
+    },
+    "queryParams": {},
+    "resultObjectMapping": {
+      "name": "{{record.name}}"
+    },
+    "brandIdFieldPath": "branding",
+    "sort": [],
+    "expandRelations": false,
+    "relatedRecordFilters": []
+  }
+}
+
+tests {
+  test("Changed draft requires a fresh acknowledgement", () => {
+    expect(res.getStatus()).to.equal(409);
+    expect(res.getBody().errors[0].code).to.equal("NAMED_QUERY_CONFIRMATION_REQUIRED");
+  });
+}

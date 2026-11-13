@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, NgModule, Output, OnChanges, SimpleChanges } from '@angular/core';
+import { inject, Component, EventEmitter, Input, NgModule, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -6,11 +6,13 @@ import {
   CodeEditorComponent,
   FieldTreeComponent,
   I18NextPipe,
+  TranslationService,
   type CompletionSource,
   type FieldNode,
   fieldInsertion,
 } from '@researchdatabox/portal-ng-common';
-import { ContextSchemaField, EditorDiagnostic, lookupPath, storedRecordPath } from '@researchdatabox/sails-ng-common';
+import type { ContextSchemaField, EditorDiagnostic } from '@researchdatabox/sails-ng-common';
+import { lookupPath, storedRecordPath } from '@researchdatabox/sails-ng-common/dist/src/query-report-context';
 
 let nextAssistanceControlId = 0;
 
@@ -31,16 +33,23 @@ let nextAssistanceControlId = 0;
       [class.fa-circle-xmark]="d.severity !== 'warning'"
       aria-hidden="true"
     ></i>
-    <strong class="rb-ws-diagnostic-label">{{
-      (d.severity === 'warning' ? 'named-query-advisory' : 'named-query-blocking') | i18next
-    }}</strong>
-    <span>{{ d.reason }}</span>
+    <span>{{ message(d) }}</span>
+    <span *ngIf="d.line > 0 && d.column > 0">{{
+      'named-query-diagnostic-location' | i18next: { line: d.line, column: d.column }
+    }}</span>
     <span *ngIf="d.suggestion">
       {{ 'named-query-suggestion' | i18next }} <code>{{ d.suggestion }}</code></span
     >
   </div>`,
 })
 export class QueryDiagnosticsComponent {
+  private readonly translation = inject(TranslationService);
+  message(diagnostic: EditorDiagnostic): string {
+    return diagnostic.field.startsWith('graphql')
+      ? String(this.translation.t('nq-ux-diagnostic-' + diagnostic.code, diagnostic.reason))
+      : diagnostic.reason;
+  }
+
   @Input() diagnostics: EditorDiagnostic[] = [];
   @Input() location = '';
   get matching(): EditorDiagnostic[] {
@@ -53,7 +62,8 @@ export class QueryDiagnosticsComponent {
 @Component({
   selector: 'nq-path-input',
   standalone: false,
-  template: `<label class="visually-hidden" [for]="controlId">{{ label }}</label><input
+  template: `<label class="visually-hidden" [for]="controlId">{{ label }}</label
+    ><input
       [id]="controlId"
       #control
       type="text"
@@ -116,8 +126,10 @@ export class QueryPathInputComponent implements OnChanges {
 @Component({
   selector: 'nq-typed-value',
   standalone: false,
-  template: `<div class="nq-typed-value-row"><label class="visually-hidden" [for]="controlId">{{ label }}</label>
-      <input [id]="controlId"
+  template: `<div class="nq-typed-value-row">
+      <label class="visually-hidden" [for]="controlId">{{ label }}</label>
+      <input
+        [id]="controlId"
         *ngIf="inputType !== 'boolean' && inputType !== 'object' && inputType !== 'array'"
         class="form-control form-control-sm"
         [attr.aria-label]="label"
@@ -125,7 +137,8 @@ export class QueryPathInputComponent implements OnChanges {
         [ngModel]="value"
         (ngModelChange)="change($event)"
       />
-      <select [id]="controlId"
+      <select
+        [id]="controlId"
         *ngIf="inputType === 'boolean'"
         class="form-select form-select-sm"
         [attr.aria-label]="label"
@@ -136,7 +149,8 @@ export class QueryPathInputComponent implements OnChanges {
         <option [ngValue]="true">true</option>
         <option [ngValue]="false">false</option>
       </select>
-      <textarea [id]="controlId"
+      <textarea
+        [id]="controlId"
         *ngIf="inputType === 'object' || inputType === 'array'"
         class="form-control form-control-sm font-monospace"
         [attr.aria-label]="label"
@@ -152,7 +166,9 @@ export class QueryPathInputComponent implements OnChanges {
         {{ unsetLabel | i18next }}
       </button>
     </div>
-    <small *ngIf="error" class="nq-field-hint text-danger" role="alert">{{ 'named-query-invalid-json' | i18next }}</small>
+    <small *ngIf="error" class="nq-field-hint text-danger" role="alert">{{
+      'named-query-invalid-json' | i18next
+    }}</small>
     <small *ngIf="template" class="nq-field-hint">{{ 'named-query-template-value-help' | i18next }}</small>
     <small *ngIf="type === 'date'" class="nq-field-hint">{{
       (format === 'days' ? 'named-query-date-days-help' : 'named-query-date-iso-help') | i18next

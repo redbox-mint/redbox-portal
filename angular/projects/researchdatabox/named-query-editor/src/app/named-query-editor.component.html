@@ -5,16 +5,31 @@
     [attr.aria-hidden]="isDeleteModalOpen ? 'true' : null"
     [attr.inert]="isDeleteModalOpen ? '' : null"
   >
-    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
-      <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li><li>{{ 'admin-nav-records' | i18next }}</li>
-      <li><span aria-current="page">{{ 'named-query-list-title' | i18next }}</span></li>
-    </ol></nav>
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
+      <ol>
+        <li>
+          <a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a>
+        </li>
+        <li>{{ 'admin-nav-records' | i18next }}</li>
+        <li>
+          <span aria-current="page">{{ 'named-query-list-title' | i18next }}</span>
+        </li>
+      </ol>
+    </nav>
     <header class="rb-admin-page-header">
-      <div><h1>{{ 'named-query-list-title' | i18next }}</h1><p>{{ 'admin-named-query-description' | i18next }}</p></div>
-      <div class="rb-admin-page-actions"><button id="named-query-create" class="btn btn-primary" type="button" (click)="newQuery()">{{ 'named-query-create-button' | i18next }}</button></div>
+      <div>
+        <h1>{{ 'named-query-list-title' | i18next }}</h1>
+        <p>{{ 'admin-named-query-description' | i18next }}</p>
+      </div>
+      <div class="rb-admin-page-actions">
+        <button id="named-query-create" class="btn btn-primary" type="button" (click)="openCreateChooser()">
+          {{ 'named-query-create-button' | i18next }}
+        </button>
+      </div>
     </header>
     <div *ngIf="message" class="alert alert-success" role="status">{{ message }}</div>
     <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+    <nq-diagnostics [diagnostics]="catalogueDiagnostics"></nq-diagnostics>
     <nq-list
       [total]="totalQueries"
       [collections]="collections"
@@ -38,6 +53,7 @@
   aria-modal="true"
   aria-labelledby="deleteNamedQueryModalTitle"
   aria-describedby="deleteNamedQueryModalDescription"
+  rbAdminModal
   (keydown.escape)="cancelDelete()"
 >
   <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
@@ -65,14 +81,25 @@
         </p>
         <div *ngIf="pendingDeleteConsumers.length" class="alert alert-warning mt-3 mb-0" role="alert">
           <p>{{ 'named-query-in-use-warning' | i18next }}</p>
-          <ul class="mb-0"><li *ngFor="let consumer of pendingDeleteConsumers"><a [href]="brandingAndPortalUrl + consumer.path">{{ ('named-query-consumer-' + consumer.type) | i18next }}: {{ consumer.name | i18next }}</a></li></ul>
+          <ul class="mb-0">
+            <li *ngFor="let consumer of pendingDeleteConsumers">
+              <a [href]="brandingAndPortalUrl + consumer.path"
+                >{{ 'named-query-consumer-' + consumer.type | i18next }}: {{ consumer.name | i18next }}</a
+              >
+            </li>
+          </ul>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="cancelDelete()" cdkFocusInitial>
           {{ 'named-query-cancel' | i18next }}
         </button>
-        <button type="button" class="btn rb-admin-danger-confirm" [disabled]="pendingDeleteConsumers.length > 0" (click)="confirmDelete()">
+        <button
+          type="button"
+          class="btn rb-admin-danger-confirm"
+          [disabled]="pendingDeleteConsumers.length > 0"
+          (click)="confirmDelete()"
+        >
           {{ 'named-query-delete' | i18next }}
         </button>
       </div>
@@ -83,12 +110,283 @@
 
 <section
   *ngIf="isEditing"
+  [hidden]="source !== 'graphql'"
+  class="nq-workspace nq-graphql-workspace"
+  [attr.aria-hidden]="pendingReview ? 'true' : null"
+  [attr.inert]="pendingReview ? '' : null"
+  aria-labelledby="named-query-workspace-title"
+>
+  <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
+    <ol>
+      <li>
+        <a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a>
+      </li>
+      <li>{{ 'admin-nav-records' | i18next }}</li>
+      <li>
+        <a
+          [href]="brandingAndPortalUrl + '/admin/named-query'"
+          (click)="$event.preventDefault(); !saving && closeEditModal()"
+        >
+          {{ 'named-query-list-title' | i18next }}
+        </a>
+      </li>
+      <li aria-current="page">{{ (isNew ? 'named-query-create-title' : draft.name) | i18next }}</li>
+    </ol>
+  </nav>
+  <header class="rb-admin-page-header">
+    <div>
+      <div class="nq-editor-heading">
+        <h1 [attr.id]="source === 'graphql' ? 'named-query-workspace-title' : null" tabindex="-1">
+          {{ isNew ? ('named-query-create-title' | i18next) : draft.name }}
+        </h1>
+        <span class="badge rb-admin-badge-primary">{{ 'named-query-source-graphql' | i18next }}</span>
+      </div>
+      <p *ngIf="linkedSource && !linkedSource.missing">
+        {{ 'nq-ux-built-from-prefix' | i18next }} <a [href]="explorerUrl">{{ linkedSource.name }}</a>
+      </p>
+      <p *ngIf="!linkedSource">{{ 'nq-ux-written-by-hand' | i18next }}</p>
+    </div>
+    <div class="rb-admin-page-actions">
+      <a class="btn btn-outline-secondary" [href]="explorerUrl">{{ 'nq-ux-open-explorer' | i18next }}</a>
+    </div>
+  </header>
+  <div *ngIf="error" class="alert alert-danger" role="alert">{{ error }}</div>
+  <div *ngIf="assistanceError" class="alert alert-warning" role="status">{{ assistanceError }}</div>
+  <div class="rb-admin-split nq-editor-layout">
+    <nav class="rb-admin-section-rail" [attr.aria-label]="'nq-ux-sections' | i18next">
+      <a
+        *ngFor="let section of sections"
+        [href]="'#nq-section-' + section"
+        (click)="selectSection($event, section)"
+        [attr.aria-current]="activeSection === section ? 'location' : null"
+        >{{ 'nq-ux-section-' + section | i18next }}</a
+      >
+    </nav>
+    <div class="rb-admin-split-main">
+      <div id="nq-section-basics" tabindex="-1">
+        <rb-named-query-basics [attempted]="saveAttempted"
+          [showDescription]="true"
+          [description]="activeGraphqlBuffer.description || ''"
+          (descriptionChange)="activeGraphqlBuffer.description = $event; draftChanged()"
+          [headingLevel]="2"
+          [name]="activeGraphqlBuffer.name || ''"
+          [isNew]="isNew"
+          [use]="graphqlUse"
+          [disabled]="saving"
+          (nameChange)="activeGraphqlBuffer.name = $event; draftChanged()"
+          (useChange)="setGraphqlUse($event)"
+        ></rb-named-query-basics>
+        <details *ngIf="!linkedSource" class="rb-admin-form-section">
+          <summary>{{ 'named-query-source' | i18next }}</summary>
+          <label class="rb-admin-field mt-2"
+            >{{ 'named-query-source' | i18next }}
+            <select class="form-select" [ngModel]="source" (ngModelChange)="changeSource($event)" [disabled]="saving">
+              <option value="database">{{ 'named-query-source-database' | i18next }}</option>
+              <option value="graphql">{{ 'named-query-source-graphql' | i18next }}</option>
+            </select>
+          </label>
+          <p class="rb-admin-hint">{{ 'named-query-source-buffers-help' | i18next }}</p>
+        </details>
+      </div>
+      <section id="nq-section-source" tabindex="-1" class="rb-admin-form-section" aria-labelledby="nq-source-title">
+        <header class="rb-admin-form-section-header">
+          <h2 id="nq-source-title">{{ 'nq-ux-section-source' | i18next }}</h2>
+          <button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="changeSavedSource()">
+            {{ 'nq-ux-change' | i18next }}
+          </button>
+        </header>
+        <div class="rb-admin-form-section-body">
+          <p *ngIf="sourcePreparing" role="status">{{ 'nq-ux-preparing' | i18next }}</p>
+          <ng-container *ngIf="linkedSource as linked; else handwrittenSource">
+            <div *ngIf="linked.missing" class="alert alert-warning" role="status">
+              <h3>{{ 'nq-ux-source-missing' | i18next }}</h3>
+              <p>{{ 'nq-ux-source-missing-help' | i18next }}</p>
+            </div>
+            <rb-admin-source-card *ngIf="!linked.missing" [name]="linked.name || ''">
+              {{ linked.recordTypeLabel || linked.recordType || 'nq-ux-unknown-type' | i18next }} · {{ 'nq-ux-mode-' + linked.mode | i18next }}
+              <span class="d-block">{{ (linked.updatedBy ? 'nq-ux-updated-by' : 'nq-ux-updated-at') | i18next: { date: linked.updatedAt ? (linked.updatedAt | date: 'd MMM yyyy') : ('nq-ux-not-recorded' | i18next), user: linked.updatedBy?.displayName || linked.updatedBy?.username } }}</span>
+              <a sourceActions class="btn btn-sm btn-outline-secondary" [href]="explorerUrl">{{ 'nq-ux-open-explorer' | i18next }}</a>
+            </rb-admin-source-card>
+            <div *ngIf="linked.changedSincePublished" class="alert alert-warning mt-3" role="status">
+              <p>{{ 'nq-ux-source-changed-help' | i18next }}</p>
+              <button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="changeSavedSource()">
+                {{ 'nq-ux-review-update' | i18next }}
+              </button>
+            </div>
+            <p *ngIf="sourceDraftUpdated" class="alert alert-info" role="status">
+              {{ 'nq-ux-source-draft-updated' | i18next }}
+            </p>
+            <p class="rb-admin-hint mt-3">{{ 'nq-ux-source-independent' | i18next }}</p>
+            <h3 class="h5 mt-3">{{ 'data-grids-conditions' | i18next }}</h3>
+            <ul class="nq-condition-summary">
+              <li *ngFor="let row of graphqlSummaryRows">{{ row.label }}: {{ valueLabel(row) }}</li>
+            </ul>
+            <details class="mt-3">
+              <summary>{{ 'nq-ux-advanced-document' | i18next }}</summary>
+              <p class="rb-admin-hint">{{ 'nq-ux-linked-readonly' | i18next }}</p>
+              <label class="rb-admin-field"
+                >{{ 'named-query-graphql-document' | i18next
+                }}<textarea
+                  class="form-control nq-document"
+                  rows="14"
+                  readonly
+                  [value]="activeGraphqlBuffer.graphql.document"
+                ></textarea>
+              </label>
+            </details>
+          </ng-container>
+          <ng-template #handwrittenSource
+            ><p>{{ 'nq-ux-handwritten-help' | i18next }}</p></ng-template
+          >
+          <details *ngIf="!linkedSource" class="nq-manual-source" open>
+            <summary>{{ 'nq-ux-edit-graphql' | i18next }}</summary>
+            <nq-graphql-draft-editor
+              [advanced]="true"
+              [draft]="activeGraphqlBuffer"
+              [isNew]="isNew"
+              [diagnostics]="diagnostics"
+              [description]="graphqlDescription"
+              (draftChange)="draftChanged()"
+              (validityChange)="sourceValidityChanged('graphql', $event)"
+            ></nq-graphql-draft-editor>
+          </details>
+          <details class="mt-3" (toggle)="$any($event.target).open && !graphqlSdl && loadGraphqlSchema()">
+            <summary>{{ 'nq-ux-advanced-schema' | i18next }}</summary>
+            <p *ngIf="schemaLoading" role="status">{{ 'named-query-graphql-schema-loading' | i18next }}</p>
+            <p *ngIf="schemaError" role="status">{{ schemaError }}</p>
+            <ng-container *ngIf="schemaComponent && graphqlSdl"
+              ><ng-container *ngComponentOutlet="schemaComponent; inputs: { sdl: graphqlSdl }"></ng-container
+            ></ng-container>
+          </details>
+        </div>
+      </section>
+      <div id="nq-section-parameters" tabindex="-1">
+        <rb-named-query-parameters
+          [headingLevel]="2"
+          [rows]="graphqlRows"
+          [disabled]="saving"
+          (bindingChange)="setGraphqlBinding($event)"
+        ></rb-named-query-parameters>
+      </div>
+      <div id="nq-section-lookup" tabindex="-1">
+        <rb-named-query-lookup-fields
+          [headingLevel]="2"
+          [mappings]="activeGraphqlBuffer.graphql.mappings || {}"
+          [fields]="graphqlResultFields"
+          [disabled]="saving"
+          (mappingsChange)="activeGraphqlBuffer.graphql.mappings = $event; draftChanged()"
+          (validityChange)="sourceValidityChanged('graphql', $event)"
+        ></rb-named-query-lookup-fields>
+        <label *ngIf="activeGraphqlBuffer.graphql.lookup as lookup" class="rb-admin-field mb-3"
+          >{{ 'nq-ux-search-parameter' | i18next
+          }}<select
+            class="form-select"
+            [(ngModel)]="lookup.searchParameter"
+            (ngModelChange)="draftChanged()"
+            [disabled]="saving"
+          >
+            <option value="">{{ 'nq-section-none' | i18next }}</option>
+            <option *ngFor="let parameter of graphqlPreviewParameters" [value]="parameter.name">
+              {{ parameter.label }}
+            </option>
+          </select></label
+        >
+      </div>
+      <section id="nq-section-used-by" tabindex="-1" class="rb-admin-form-section" aria-labelledby="nq-used-title">
+        <header class="rb-admin-form-section-header">
+          <a *ngIf="!isNew && selectedQuery" class="btn btn-outline-primary" [href]="brandingAndPortalUrl + '/admin/reports#create-from=' + selectedQuery.name">{{ 'report-create-from-query' | i18next }}</a>
+          <h2 id="nq-used-title">{{ 'named-query-used-by' | i18next }}</h2>
+        </header>
+        <div class="rb-admin-form-section-body">
+          <p *ngIf="!selectedQuery?.usedBy?.length">{{ 'named-query-not-used' | i18next }}</p>
+          <ul *ngIf="selectedQuery?.usedBy?.length">
+            <li *ngFor="let consumer of selectedQuery?.usedBy">
+              <a [href]="brandingAndPortalUrl + consumer.path"
+                >{{ 'named-query-consumer-' + consumer.type | i18next }}: {{ consumer.name | i18next }}</a
+              >
+            </li>
+          </ul>
+          <p class="rb-admin-hint">{{ 'named-query-untracked-callers-note' | i18next }}</p>
+        </div>
+      </section>
+    </div>
+    <aside class="rb-admin-split-side">
+      <div id="nq-section-preview" tabindex="-1">
+        <rb-named-query-preview
+          [headingLevel]="2"
+          [parameters]="graphqlPreviewParameters"
+          [values]="graphqlPreviewValues"
+          [busy]="previewing"
+          [disabled]="saving || pendingInput || !activeGraphqlBuffer.graphql.document"
+          [valid]="graphqlReady"
+          [error]="''"
+          [result]="graphqlPreviewData"
+          (valueChange)="testParameterChanged($event.name, $event.value)"
+          (run)="previewGraphql()"
+        ></rb-named-query-preview>
+      </div>
+      <section class="card mt-3" aria-labelledby="nq-checks-title">
+        <header class="card-header">
+          <h2 id="nq-checks-title">{{ 'nq-ux-checks' | i18next }}</h2>
+        </header>
+        <div class="card-body" aria-live="polite">
+          <p *ngIf="validating" role="status">{{ 'named-query-validating' | i18next }}</p>
+          <p *ngIf="graphqlReady">{{ 'nq-ux-checks-passed' | i18next }}</p>
+          <nq-diagnostics [diagnostics]="graphqlDiagnostics"></nq-diagnostics>
+          <p class="rb-admin-hint">{{ 'named-query-graphql-auth-help' | i18next }}</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+  <p *ngIf="saveBlockReason" [attr.id]="source === 'graphql' ? 'nq-save-blocker' : null" tabindex="-1" class="alert alert-warning" role="status">{{ saveBlockReason | i18next }}</p>
+  <footer class="rb-admin-save-bar">
+    <span class="rb-admin-save-state">{{
+      (saving ? 'data-grids-saving' : dirty ? 'named-query-unsaved' : 'named-query-immediate-save') | i18next
+    }}</span>
+    <div class="rb-admin-page-actions">
+      <button type="button" class="btn btn-outline-secondary" [disabled]="saving" (click)="closeEditModal()">
+        {{ 'named-query-cancel' | i18next }}</button
+      ><button
+        [attr.id]="source === 'graphql' ? 'named-query-save' : null"
+        type="button"
+        class="btn btn-primary"
+        [disabled]="saving || !!pendingReview"
+        aria-describedby="nq-save-blocker"
+        (click)="save()"
+      >
+        {{ 'named-query-save' | i18next }}
+      </button>
+    </div>
+  </footer>
+</section>
+
+@defer (when chooserOpen) {
+  <nq-saved-query-chooser
+    *ngIf="chooserOpen"
+    [replacing]="chooserReplacing"
+    [selectedId]="chooserReplacing ? linkedSource?.id || '' : ''"
+    (closed)="chooserOpen = false"
+    (database)="createDatabase()"
+    (publishedSelected)="chooserOpen = false; openQuery($event)"
+    (chosen)="chooseSavedSource($event)"
+  ></nq-saved-query-chooser>
+}
+
+<section
+  *ngIf="isEditing && databaseWorkspaceOpened"
+  [hidden]="source !== 'database'"
   class="nq-workspace card panel-style panel-default rb-ws"
   aria-labelledby="named-query-workspace-title"
+  [attr.aria-hidden]="pendingReview ? 'true' : null"
+  [attr.inert]="pendingReview ? '' : null"
 >
   <div class="card-header rb-ws-header">
     <div class="rb-ws-heading">
-      <h1 id="named-query-workspace-title" tabindex="-1" class="card-title rb-ws-title">
+      <h1
+        [attr.id]="source === 'database' ? 'named-query-workspace-title' : null"
+        tabindex="-1"
+        class="card-title rb-ws-title"
+      >
         <i class="fa-solid fa-database" aria-hidden="true"></i
         >{{ isNew ? ('named-query-create-title' | i18next) : draft.name }}
       </h1>
@@ -114,15 +412,32 @@
     <p *ngIf="pendingInput" class="alert alert-warning rb-ws-alert">{{ 'named-query-pending-input' | i18next }}</p>
 
     <div class="rb-ws-grid" [class.rb-ws-with-help]="helpOpen">
-      <main
+      <div
+        role="region"
         class="rb-ws-main nq-editing-area"
         (input)="inputChanged($event)"
         (change)="inputChanged($event)"
         [attr.aria-label]="'named-query-workspace' | i18next"
       >
         <fieldset class="nq-fieldset" [disabled]="saving">
-          <nq-detail [brandingAndPortalUrl]="brandingAndPortalUrl"
-            *ngFor="let current of [draft]"
+          <div class="rb-ws-section mb-3">
+            <label for="named-query-source" class="rb-ws-label">{{ 'named-query-source' | i18next }}</label>
+            <select
+              id="named-query-source"
+              class="form-select"
+              [ngModel]="source"
+              (ngModelChange)="changeSource($event)"
+            >
+              <option value="database">{{ 'named-query-source-database' | i18next }}</option>
+              <option value="graphql">{{ 'named-query-source-graphql' | i18next }}</option>
+            </select>
+            <p class="rb-ws-lede mt-2">{{ 'named-query-source-buffers-help' | i18next }}</p>
+            <p *ngIf="!isNew" class="rb-ws-lede">{{ 'named-query-immediate-save' | i18next }}</p>
+          </div>
+          <nq-detail #databaseDetail [attempted]="saveAttempted"
+            [brandingAndPortalUrl]="brandingAndPortalUrl"
+            *ngFor="let current of [activeDatabaseBuffer]"
+            [hidden]="source !== 'database'"
             [draft]="current"
             [isNew]="isNew"
             [collections]="collections"
@@ -135,10 +450,21 @@
             (draftChange)="draftChanged()"
             (collectionChange)="collectionChanged()"
             (foreignContextChange)="foreignContextChanged($event)"
-            (validityChange)="validityChanged($event)"
+            (validityChange)="sourceValidityChanged('database', $event)"
           ></nq-detail>
         </fieldset>
-      </main>
+        <section *ngIf="!isNew && source === 'graphql'" class="rb-ws-section mt-3" aria-labelledby="nq-graphql-used-by">
+          <h2 id="nq-graphql-used-by" class="rb-ws-section-title">{{ 'named-query-used-by' | i18next }}</h2>
+          <ul>
+            <li *ngFor="let consumer of selectedQuery?.usedBy">
+              <a [href]="brandingAndPortalUrl + consumer.path"
+                >{{ 'named-query-consumer-' + consumer.type | i18next }}: {{ consumer.name | i18next }}</a
+              >
+            </li>
+          </ul>
+          <p class="rb-ws-lede">{{ 'named-query-untracked-callers-note' | i18next }}</p>
+        </section>
+      </div>
 
       <aside
         id="nq-field-panel"
@@ -158,7 +484,7 @@
           ></button>
         </div>
         <div class="card-body">
-          <ng-container *ngIf="draft.collectionName === 'record'; else manualHelp">
+          <ng-container *ngIf="source === 'database' && draft.collectionName === 'record'; else manualHelp">
             <div class="rb-ws-section">
               <h3 class="rb-ws-section-title">{{ 'named-query-guidance-heading' | i18next }}</h3>
               <p class="rb-ws-lede">{{ 'named-query-guidance-only' | i18next }}</p>
@@ -224,17 +550,15 @@
             </div>
           </ng-container>
           <ng-template #manualHelp
-            ><p class="rb-ws-lede mb-0">{{ 'named-query-manual-collection' | i18next }}</p></ng-template
+            ><p *ngIf="source === 'database'" class="rb-ws-lede mb-0">
+              {{ 'named-query-manual-collection' | i18next }}
+            </p></ng-template
           >
         </div>
       </aside>
     </div>
 
-    <section
-      class="card rb-ws-pane nq-results"
-      aria-labelledby="nq-results-title"
-      aria-live="polite"
-    >
+    <section class="card rb-ws-pane nq-results" aria-labelledby="nq-results-title" aria-live="polite">
       <div class="card-header">
         <h2 id="nq-results-title" class="rb-ws-pane-title">
           <i class="fa-solid fa-stethoscope" aria-hidden="true"></i>{{ 'named-query-results' | i18next }}
@@ -247,6 +571,14 @@
             <span class="spinner-border" aria-hidden="true"></span>{{ 'named-query-validating' | i18next }}
           </p>
           <nq-diagnostics [diagnostics]="diagnostics"></nq-diagnostics>
+          <ng-container *ngIf="source === 'graphql' && capabilities">
+            <p role="status" class="rb-ws-lede">
+              {{
+                (capabilities.lookup ? 'named-query-graphql-lookup-ready' : 'named-query-graphql-nonlookup') | i18next
+              }}
+            </p>
+            <nq-diagnostics [diagnostics]="capabilities.diagnostics"></nq-diagnostics>
+          </ng-container>
           <p *ngIf="!validating && !diagnostics.length" class="rb-ws-status nq-diagnostics-ok">
             <i class="fa-solid fa-check" aria-hidden="true"></i>{{ 'named-query-no-diagnostics' | i18next }}
           </p>
@@ -267,7 +599,16 @@
                 <div class="nq-test-parameter-label">
                   <span class="fw-semibold">{{ param.key }}</span> <code>{{ param.path }}</code>
                 </div>
+                <nq-graphql-json
+                  *ngIf="source === 'graphql'"
+                  [label]="param.key"
+                  [optional]="true"
+                  [value]="testParameters[param.key]"
+                  (valueChange)="graphqlTestValue(param.key, $event)"
+                  (validityChange)="testParameterValidity(param.key, $event)"
+                ></nq-graphql-json>
                 <nq-typed-value
+                  *ngIf="source === 'database'"
                   [label]="param.key"
                   [value]="testParameters[param.key]"
                   [type]="param.type"
@@ -285,9 +626,16 @@
           </p>
           <ng-container *ngIf="previewResult as result">
             <nq-diagnostics *ngIf="!result.valid" [diagnostics]="result.diagnostics"></nq-diagnostics>
-            <p *ngIf="!result.valid" class="alert alert-danger" role="alert">{{ 'named-query-preview-refused' | i18next }}</p>
+            <p *ngIf="!result.valid" class="alert alert-danger" role="alert">
+              {{ 'named-query-preview-refused' | i18next }}
+            </p>
+            <p *ngIf="result.source === 'graphql'" class="rb-ws-lede" role="status">
+              {{ 'named-query-graphql-preview-bound' | i18next }}
+            </p>
             <p *ngIf="result.truncated" class="alert alert-warning" role="status">
-              {{ 'named-query-truncated' | i18next }} {{ result.truncationReasons.join(', ') }} ({{ result.limits.rows }})
+              {{ 'named-query-truncated' | i18next }} {{ result.truncationReasons.join(', ') }} ({{
+                result.limits.rows
+              }})
             </p>
             <p *ngIf="result.valid" class="nq-preview-count">
               {{ 'named-query-preview-count' | i18next: { count: result.records.length } }}
@@ -321,6 +669,7 @@
       </div>
     </section>
 
+    <p *ngIf="saveBlockReason" [attr.id]="source === 'database' ? 'nq-save-blocker' : null" tabindex="-1" class="alert alert-warning" role="status">{{ saveBlockReason | i18next }}</p>
     <div class="rb-ws-footer">
       <div class="rb-ws-footer-status">
         <span *ngIf="dirty">{{ 'named-query-unsaved' | i18next }}</span>
@@ -337,10 +686,63 @@
         >
           <i class="fa-solid fa-play me-1" aria-hidden="true"></i>{{ 'named-query-preview' | i18next }}
         </button>
-        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="!canSave">
+        <button
+          [attr.id]="source === 'database' ? 'named-query-save' : null"
+          type="button"
+          class="btn btn-primary"
+          (click)="save()"
+          [disabled]="saving || !!pendingReview"
+          aria-describedby="nq-save-blocker"
+        >
           {{ 'named-query-save' | i18next }}
         </button>
       </div>
     </div>
   </div>
 </section>
+
+<div
+  *ngIf="pendingReview as pending"
+  class="modal fade show d-block"
+  tabindex="-1"
+  role="alertdialog"
+  aria-modal="true"
+  aria-labelledby="nq-review-title"
+  aria-describedby="nq-review-description"
+  rbAdminModal
+  [rbAdminModalRestoreFocus]="false"
+  (keydown.escape)="cancelSaveReview()"
+>
+  <div class="modal-dialog modal-dialog-centered" role="document" cdkTrapFocus cdkTrapFocusAutoCapture>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h4" id="nq-review-title">{{ 'named-query-review-title' | i18next }}</h2>
+      </div>
+      <div class="modal-body">
+        <p id="nq-review-description">{{ 'named-query-review-description' | i18next }}</p>
+        <ul>
+          <li *ngFor="let change of pending.review.changes">{{ 'named-query-breaking-' + change | i18next }}</li>
+        </ul>
+        <h3 class="h5">{{ 'named-query-used-by' | i18next }}</h3>
+        <p *ngIf="!pending.review.usedBy.length">{{ 'named-query-not-used' | i18next }}</p>
+        <ul>
+          <li *ngFor="let consumer of pending.review.usedBy">
+            <a [href]="brandingAndPortalUrl + consumer.path" target="_blank" rel="noopener"
+              >{{ 'named-query-consumer-' + consumer.type | i18next }}: {{ consumer.name | i18next }}</a
+            >
+          </li>
+        </ul>
+        <p class="mb-0">{{ 'named-query-untracked-callers-note' | i18next }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" cdkFocusInitial (click)="cancelSaveReview()">
+          {{ 'named-query-cancel' | i18next }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmSaveReview()">
+          {{ 'named-query-confirm-immediate-save' | i18next }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div *ngIf="pendingReview" class="modal-backdrop fade show" aria-hidden="true"></div>

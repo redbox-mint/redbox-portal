@@ -1,10 +1,11 @@
-import { Component, ElementRef, HostListener, Inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, Injector } from '@angular/core';
 import {
   BaseComponent,
   LatestRequest,
   LoggerService,
   TranslationService,
   type CompletionSource,
+  type ColumnPickerField,
 } from '@researchdatabox/portal-ng-common';
 import {
   type ContextSchemaField,
@@ -17,7 +18,7 @@ import {
   type ReportNamedQueryDescription,
   lookupPath,
 } from '@researchdatabox/sails-ng-common';
-import { ReportConfigService } from './report-config.service';
+import { ReportConfigService, type ReportQueryChoice } from './report-config.service';
 
 @Component({
   selector: 'report-config',
@@ -31,7 +32,9 @@ export class ReportConfigComponent extends BaseComponent {
   selectedReport: ReportConfigDto | null = null;
   previewResult: ReportConfigPreviewDto | null = null;
   previewFilterValues: Record<string, string> = {};
-  namedQueries: { name: string }[] = [];
+  namedQueries: ReportQueryChoice[] = [];
+  private bindSelectedQuery = false;
+  private parameterLabels: Record<string, string> = {};
   queryChoicesUnavailable = false;
   description: ReportNamedQueryDescription | null = null;
   diagnostics: EditorDiagnostic[] = [];
@@ -39,7 +42,7 @@ export class ReportConfigComponent extends BaseComponent {
   outputSearch = '';
   helpOpen = true;
   searchText = '';
-  sourceFilter: 'all' | 'database' | 'solr' = 'all';
+  sourceFilter: 'all' | 'database' | 'graphql' | 'solr' = 'all';
   errorMessage = '';
   assistanceError = '';
   validationError = '';
@@ -58,13 +61,29 @@ export class ReportConfigComponent extends BaseComponent {
   private saveValidationRequests = new LatestRequest();
   private previewRequests = new LatestRequest();
   private listRequests = new LatestRequest();
+  columnsOpen = false;
+  queryBrowserOpen = false;
+  columnDraft: ReportConfigColumnDto | null = null;
+  columnIndex = -1;
+  filterDraft: ReportConfigFilterDto | null = null;
+  filterIndex = -1;
+  activeSection = 'basics';
+  previewMode: 'screen' | 'csv' = 'screen';
+  columnAnnouncement = '';
+  dragColumnIndex: number | null = null;
+  sourceSummary = '';
+  private previewTimer: ReturnType<typeof setTimeout> | null = null;
+  private fieldDetails = new Map<
+    string,
+    { type: string; group?: string; groupPath?: string[]; choices?: { value: string; label: string }[] }
+  >();
   private validationTimer: ReturnType<typeof setTimeout> | null = null;
 
   get totalReports(): number {
     return this.reports.length;
   }
   get databaseReports(): number {
-    return this.reports.filter(r => r.reportSource === 'database').length;
+    return this.reports.filter(r => this.reportSource(r) === 'database').length;
   }
   get solrReports(): number {
     return this.reports.filter(r => r.reportSource === 'solr').length;
@@ -111,6 +130,7 @@ export class ReportConfigComponent extends BaseComponent {
 
   constructor(
     private readonly elementRef: ElementRef,
+    private readonly reportInjector: Injector,
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(TranslationService) private translationService: TranslationService,
     @Inject(ReportConfigService) private reportConfigService: ReportConfigService
@@ -125,6 +145,18 @@ export class ReportConfigComponent extends BaseComponent {
     this.brandingAndPortalUrl = this.reportConfigService.brandingAndPortalUrl;
     await this.loadReports();
     await this.loadNamedQueries();
+    this.applyFilter();
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const query = hash.get('create-from');
+    if (query && this.isAdmin && this.namedQueries.some(item => item.name === query)) {
+      this.createReport();
+      this.selectQuery(query);
+    }
+    const report = hash.get('report');
+    if (report) {
+      const saved = this.reports.find(item => item.name === report);
+      if (saved) this.editReport(saved);
+    }
   }
 
   override ngOnDestroy(): void {
@@ -146,7 +178,7 @@ export class ReportConfigComponent extends BaseComponent {
   @HostListener('document:click', ['$event'])
   guardNavigation(event: MouseEvent): void {
     const anchor = (event.target as Element)?.closest?.('a[href]');
-    if (anchor && anchor.getAttribute('href') !== '#' && !this.confirmDiscard()) {
+    if (anchor && !anchor.getAttribute('href')?.startsWith('#') && !this.confirmDiscard()) {
       event.preventDefault();
       event.stopPropagation();
     }
@@ -181,11 +213,16 @@ export class ReportConfigComponent extends BaseComponent {
     const search = this.searchText.toLowerCase();
     this.filteredReports = this.reports.filter(
       report =>
-        (this.sourceFilter === 'all' || report.reportSource === this.sourceFilter) &&
-        [report.title, report.name, report.reportSource].some(value => value.toLowerCase().includes(search))
+        (this.sourceFilter === 'all' || this.reportSource(report) === this.sourceFilter) &&
+        [
+          report.title,
+          report.name,
+          this.sourceLabel(this.reportSource(report)),
+          report.databaseQuery?.queryName ?? '',
+        ].some(value => value.toLowerCase().includes(search))
     );
   }
-  setSourceFilter(source: 'all' | 'database' | 'solr'): void {
+  setSourceFilter(source: 'all' | 'database' | 'graphql' | 'solr'): void {
     this.sourceFilter = source;
     this.applyFilter();
   }
@@ -220,9 +257,14 @@ export class ReportConfigComponent extends BaseComponent {
     this.itemRequests.next();
     this.saveValidationRequests.invalidate();
     this.invalidateAssistance();
+    this.bindSelectedQuery = false;
     this.selectedReport = report;
     this.isNewReport = isNew;
     this.isSaving = false;
+    this.columnsOpen = false;
+    this.columnDraft = null;
+    this.filterDraft = null;
+    this.queryBrowserOpen = false;
     this.errorMessage = '';
     this.previewFilterValues = {};
     this.outputSearch = '';
@@ -233,6 +275,11 @@ export class ReportConfigComponent extends BaseComponent {
   }
   cancelEdit(): void {
     if (this.confirmDiscard()) this.closeDraft();
+  }
+  reportsCrumb(event: MouseEvent): void {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    this.cancelEdit();
   }
   private closeDraft(): void {
     this.itemRequests.invalidate();
@@ -269,6 +316,9 @@ export class ReportConfigComponent extends BaseComponent {
     this.cancelValidation();
     this.previewChanged();
     this.description = null;
+    this.fieldDetails.clear();
+    this.sourceSummary = '';
+    this.parameterLabels = {};
     this.describing = false;
     this.diagnostics = [];
     this.validationBlocking = false;
@@ -286,8 +336,15 @@ export class ReportConfigComponent extends BaseComponent {
         this.validationTimer = null;
         void this.validateDraft();
       }, 400);
+    if (this.editable && this.description?.valid && !this.queryVersionChanged)
+      this.previewTimer = setTimeout(() => {
+        this.previewTimer = null;
+        void this.previewReport();
+      }, 600);
   }
   previewChanged(): void {
+    if (this.previewTimer) clearTimeout(this.previewTimer);
+    this.previewTimer = null;
     this.previewRequests.invalidate();
     this.previewResult = null;
     this.isPreviewing = false;
@@ -298,7 +355,8 @@ export class ReportConfigComponent extends BaseComponent {
   }
   selectQuery(name: string): void {
     if (!this.editable || !this.selectedReport) return;
-    this.selectedReport.databaseQuery = { ...this.selectedReport.databaseQuery, queryName: name };
+    this.selectedReport.databaseQuery = { queryName: name };
+    this.bindSelectedQuery = true;
     this.queryChanged();
   }
   async refreshAssistance(): Promise<void> {
@@ -313,12 +371,24 @@ export class ReportConfigComponent extends BaseComponent {
       const description = await this.reportConfigService.describeQuery(name);
       if (this.descriptionRequests.isCurrent(token)) {
         this.description = description;
+        if (description.source === 'graphql') {
+          if (this.bindSelectedQuery || (this.isNewReport && !this.selectedReport!.databaseQuery?.queryVersion)) {
+            this.selectedReport!.databaseQuery!.queryVersion = description.queryVersion;
+            this.bindSelectedQuery = false;
+          }
+          await this.friendlyGraphqlFields(description);
+          if (!this.descriptionRequests.isCurrent(token)) return;
+          void this.validateDraft();
+          if (description.valid && !this.queryVersionChanged) void this.previewReport();
+        }
+
         this.selectedOutputs = new Set(
           [...this.selectedOutputs].filter(path => description.result.fields.some(f => f.path === path))
         );
       }
-    } catch {
-      if (this.descriptionRequests.isCurrent(token)) this.assistanceError = this.t('report-assistance-unavailable');
+    } catch (error: unknown) {
+      if (this.descriptionRequests.isCurrent(token))
+        this.assistanceError = this.getErrorMessage(error, 'report-assistance-unavailable');
     } finally {
       if (this.descriptionRequests.isCurrent(token)) this.describing = false;
     }
@@ -411,9 +481,17 @@ export class ReportConfigComponent extends BaseComponent {
     this.errorMessage = '';
     this.previewResult = null;
     try {
-      const result = await this.reportConfigService.preview(this.clone(this.selectedReport), {
-        ...this.previewFilterValues,
-      });
+      const result = await this.reportConfigService.preview(
+        {
+          ...this.clone(this.selectedReport),
+          ...(this.description?.source === 'graphql'
+            ? { name: this.selectedReport.name || 'preview', title: this.selectedReport.title || 'preview' }
+            : {}),
+        },
+        {
+          ...this.previewFilterValues,
+        }
+      );
       if (!this.previewRequests.isCurrent(token) || fingerprint !== this.fingerprint()) return;
       this.previewResult = result;
       this.diagnostics = result.diagnostics ?? [];
@@ -438,6 +516,7 @@ export class ReportConfigComponent extends BaseComponent {
     }
     this.selectedOutputs = new Set();
     this.draftChanged();
+    if (this.description?.source === 'graphql') void this.previewReport();
   }
   addColumn(): void {
     if (this.editable) {
@@ -456,6 +535,13 @@ export class ReportConfigComponent extends BaseComponent {
     if (!this.editable || !columns || index + offset < 0 || index + offset >= columns.length) return;
     const [column] = columns.splice(index, 1);
     columns.splice(index + offset, 0, column);
+    this.columnAnnouncement = String(
+      this.translationService.t('report-ux-moved', {
+        name: column.label,
+        position: index + offset + 1,
+        total: columns.length,
+      })
+    );
     this.draftChanged();
   }
   addFilter(): void {
@@ -512,8 +598,365 @@ export class ReportConfigComponent extends BaseComponent {
   get saveBlocked(): boolean {
     return this.validationBlocking;
   }
-  private getErrorMessage(error: unknown): string {
-    const response = error as { error?: { message?: string } };
-    return response.error?.message ?? this.t('report-request-failed');
+  get selectedQueryChoice(): ReportQueryChoice | undefined {
+    return this.namedQueries.find(item => item.name === this.selectedReport?.databaseQuery?.queryName);
+  }
+  get queryVersionChanged(): boolean {
+    return (
+      this.description?.source === 'graphql' &&
+      !!this.description.queryVersion &&
+      ![this.description.queryVersion, ...(this.description.compatibleQueryVersions ?? [])].includes(
+        this.selectedReport?.databaseQuery?.queryVersion ?? ''
+      )
+    );
+  }
+  reviewQueryVersion(): void {
+    if (!this.selectedReport?.databaseQuery || !this.description?.queryVersion) return;
+    this.selectedReport.databaseQuery.queryVersion = this.description.queryVersion;
+    this.draftChanged();
+    void this.previewReport();
+  }
+  querySourceLabel(choice?: ReportQueryChoice): string {
+    return this.t(choice?.source === 'graphql' ? 'report-graphql-source' : 'report-source-database');
+  }
+  parameterLabel(parameter: NamedQueryParameterDescription): string {
+    return (
+      this.parameterLabels[parameter.path] ||
+      parameter.sourceField?.title ||
+      parameter.key
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/^./, c => c.toUpperCase())
+    );
+  }
+  addParameterFilter(parameter: NamedQueryParameterDescription): void {
+    if (
+      !this.editable ||
+      !this.selectedReport ||
+      this.selectedReport.filter.some(filter => filter.paramName === parameter.key)
+    )
+      return;
+    this.selectedReport.filter.push({
+      type: 'text',
+      paramName: parameter.key,
+      message: this.parameterLabel(parameter),
+      property: '',
+    });
+    this.draftChanged();
+  }
+  private async friendlyGraphqlFields(description: ReportNamedQueryDescription): Promise<void> {
+    const choice = this.selectedQueryChoice;
+    if (!choice?.graphql) return;
+    // Reuse the explorer's caller-scoped catalogue and named editor's alias/projection logic.
+    try {
+      const presentation = await import('../../../named-query-editor/src/app/graphql-presentation');
+      const draft = { source: 'graphql' as const, graphql: choice.graphql };
+      const type = presentation.recordType(draft);
+      if (!type) return;
+      const { RecordGridService } = await import('../../../data-grids/src/app/record-grid.service');
+      const service = this.reportInjector.get(RecordGridService);
+      await service.waitForInit();
+      const saved = choice.sourceSavedQuery?.id ? await service.read(choice.sourceSavedQuery.id) : null;
+      const scope = {
+        id: type,
+        label: type,
+        recordType: type,
+        fields: [],
+        ...(saved && saved.mode !== 'graphql' && saved.workflowStage ? { workflowStage: saved.workflowStage } : {}),
+      };
+      const [catalogue] = await service.fields(scope);
+      if (this.description !== description) return;
+      const typeKey = 'report-ux-record-type-' + type;
+      const translatedType = this.t(typeKey);
+      const typeLabel =
+        catalogue.recordTypeLabel && catalogue.recordTypeLabel !== type
+          ? catalogue.recordTypeLabel
+          : translatedType !== typeKey
+            ? translatedType
+            : this.t('report-ux-records');
+      const stage = saved && saved.mode !== 'graphql' ? saved.workflowStage : '';
+      const sortBinding = choice.graphql.variables['sort'];
+      const sort = sortBinding?.ownership === 'fixed' && Array.isArray(sortBinding.value) ? sortBinding.value[0] : null;
+      const sortField = sort && typeof sort === 'object' && !Array.isArray(sort) ? String(sort['field'] || '') : '';
+      const sortLabel =
+        catalogue.fields.find(field => field.id === sortField || field.id === 'metadata:/' + sortField)?.label ||
+        presentation.humanLabel(sortField);
+      this.sourceSummary = [
+        typeLabel,
+        stage
+          ? String(this.translationService.t('report-ux-stage-summary', { name: presentation.humanLabel(stage) }))
+          : '',
+        sortLabel ? String(this.translationService.t('report-ux-sort-summary', { name: sortLabel })) : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      const ids = [
+        ...new Set([
+          ...(saved && saved.mode !== 'graphql'
+            ? saved.columns
+            : catalogue.fields
+                .filter(field => field.selectable && !field.repeatingSubfield)
+                .slice(0, 30)
+                .map(field => field.id)),
+          ...catalogue.fields
+            .filter(field => field.selectable && field.id.startsWith('record:'))
+            .map(field => field.id),
+        ]),
+      ].slice(0, 50);
+      const fields = await service.selections(scope, ids);
+      const { visualPublicationProjection } = await import('../../../named-query-editor/src/app/publication-helpers');
+      const known = visualPublicationProjection(choice.graphql.document, fields).fields;
+      const labels = Object.fromEntries(catalogue.fields.map(field => [field.id, field.label]));
+      const parameterLabels = presentation.conditionLabels(draft, labels, key =>
+        String(this.translationService.t('data-grids-' + key))
+      );
+      if (this.description === description) this.parameterLabels = parameterLabels;
+      const selected = presentation.selectedResultFields(draft, [
+        ...known,
+        ...fields.flatMap(field =>
+          (field.selections ?? []).map(selection => ({
+            label: field.label,
+            path: selection.responsePath,
+            type: field.type,
+          }))
+        ),
+      ]);
+      for (const field of selected)
+        for (const [target, path] of Object.entries(choice.graphql.mappings ?? {}) as Array<[string, string[]]>) {
+          if (!path.every((part, index) => field.path[index] === part)) continue;
+          const property = lookupPath(
+            [target, ...field.path.slice(path.length)]
+              .map((part, index) =>
+                /^[A-Za-z_][A-Za-z0-9_]*$/.test(part) ? (index ? '.' : '') + part : '[' + JSON.stringify(part) + ']'
+              )
+              .join('')
+          );
+          const result = description.result.fields.find(item => lookupPath(item.path) === property);
+          if (result) {
+            result.title = field.label;
+            const original = fields.find(item => item.label === field.label);
+            const detail = catalogue.fields.find(item => item.id === original?.id);
+            if (detail) this.fieldDetails.set(property!, detail);
+          }
+        }
+    } catch {
+      /* Schema guidance is advisory; execution and server validation remain authoritative. */
+    }
+  }
+
+  readonly sections = ['basics', 'source', 'columns', 'filters', 'preview'];
+  get graphqlReports(): number {
+    return this.reports.filter(r => this.reportSource(r) === 'graphql').length;
+  }
+  reportSource(report: ReportConfigDto): string {
+    return report.reportSource === 'solr'
+      ? 'solr'
+      : this.namedQueries.find(q => q.name === report.databaseQuery?.queryName)?.source === 'graphql'
+        ? 'graphql'
+        : 'database';
+  }
+  sourceLabel(source: string): string {
+    return this.t(source === 'graphql' ? 'report-graphql-source' : 'report-source-' + source);
+  }
+  queryUrl(name = this.selectedReport?.databaseQuery?.queryName ?? ''): string {
+    return this.brandingAndPortalUrl + '/admin/named-query#query=' + encodeURIComponent(name);
+  }
+  explorerUrl(): string {
+    return (
+      this.brandingAndPortalUrl +
+      '/admin/data-grids#grid=' +
+      encodeURIComponent(this.selectedQueryChoice?.sourceSavedQuery?.id ?? '')
+    );
+  }
+  goSection(event: Event, section: string): void {
+    event.preventDefault();
+    this.activeSection = section;
+    this.elementRef.nativeElement
+      .querySelector('#report-section-' + section)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  get columnFields(): ContextSchemaField[] {
+    return this.fields.filter(
+      f =>
+        lookupPath(f.path) !== null && (!['object', 'array'].includes(f.type) || (f.isArray && f.itemType !== 'object'))
+    );
+  }
+  fieldLabel(property: string): string {
+    if (property === 'oid') return this.t('data-grids-oid');
+    return (
+      this.fields.find(f => lookupPath(f.path) === property)?.title ||
+      property
+        .split('.')
+        .pop()
+        ?.replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/^./, c => c.toUpperCase()) ||
+      property
+    );
+  }
+  get pickerFields(): ColumnPickerField[] {
+    const fields: ColumnPickerField[] = this.columnFields.map(f => ({
+      id: lookupPath(f.path)!,
+      label: this.fieldLabel(lookupPath(f.path)!),
+      path: lookupPath(f.path)!,
+      group:
+        this.fieldDetails.get(lookupPath(f.path)!)?.group ||
+        (['oid', 'workflowStep', 'lastModified', 'createdOn', 'recordType', 'form'].includes(f.path)
+          ? this.t('data-grids-field-group-record')
+          : undefined),
+      groupPath: this.fieldDetails.get(lookupPath(f.path)!)?.groupPath,
+      type:
+        (this.fieldDetails.get(lookupPath(f.path)!)?.choices?.length
+          ? 'choice'
+          : this.fieldDetails.get(lookupPath(f.path)!)?.type) ||
+        (f.type === 'date'
+          ? 'datetime'
+          : f.type === 'number'
+            ? 'number'
+            : f.type === 'boolean'
+              ? 'boolean'
+              : f.isArray
+                ? 'structured'
+                : 'text'),
+      selectable: true,
+    }));
+    // Preserve manual/legacy bindings; assistance is advisory and may be incomplete.
+    for (const column of this.selectedReport?.columns ?? [])
+      if (!fields.some(f => f.id === column.property))
+        fields.push({
+          id: column.property,
+          label: column.label,
+          path: column.property,
+          type: 'text',
+          selectable: true,
+          listed: false,
+        });
+    return fields;
+  }
+  get selectedColumnPaths(): string[] {
+    return this.selectedReport?.columns.map(c => c.property) ?? [];
+  }
+  applyColumns(paths: string[]): void {
+    if (!this.selectedReport) return;
+    this.selectedReport.columns = paths.map(
+      property => this.selectedReport!.columns.find(c => c.property === property) || this.newColumn(property)
+    );
+    this.columnsOpen = false;
+    this.draftChanged();
+  }
+  private newColumn(property: string): ReportConfigColumnDto {
+    const detail = this.fieldDetails.get(property);
+    return {
+      label: this.fieldLabel(property),
+      property,
+      format: 'text',
+      ...(detail?.type === 'datetime' || this.fields.find(f => lookupPath(f.path) === property)?.type === 'date'
+        ? { format: 'date' as const }
+        : {}),
+      ...(detail?.choices?.length ? { valueLabels: detail.choices } : {}),
+    };
+  }
+  editColumn(index: number): void {
+    this.columnIndex = index;
+    this.columnDraft = this.clone(this.selectedReport!.columns[index]);
+  }
+  columnFieldChanged(property: string): void {
+    if (this.columnDraft) Object.assign(this.columnDraft, this.newColumn(property), { label: this.columnDraft.label });
+  }
+  doneColumn(): void {
+    if (this.columnDraft && this.selectedReport) {
+      this.columnDraft.format ??= 'text';
+      this.selectedReport.columns[this.columnIndex] = this.columnDraft;
+      this.columnDraft = null;
+      this.draftChanged();
+    }
+  }
+  formatLabel(column: ReportConfigColumnDto): string {
+    return this.t('report-ux-format-' + (column.format || 'text'));
+  }
+  checkMessage(diagnostic: EditorDiagnostic): string {
+    const messages: Record<string, string> = {
+      UNKNOWN_OUTPUT_COLUMN: 'report-ux-check-column',
+      UNKNOWN_TEMPLATE_REFERENCE: 'report-ux-check-template-field',
+      TEMPLATE_SYNTAX: 'report-ux-check-template-syntax',
+      TEMPLATE_COMPLEXITY: 'report-ux-check-template-length',
+      UNKNOWN_QUERY_PARAMETER: 'report-ux-check-filter',
+      INCOMPATIBLE_DATE_PARAMETER: 'report-ux-check-date-filter',
+      ARRAY_WITHOUT_MULTIVALUE: 'report-ux-check-multiple',
+    };
+    const key = messages[diagnostic.code];
+    if (!key) return this.t(diagnostic.reason);
+    const match = /^(columns|filter)\.(\d+)/.exec(diagnostic.field);
+    const index = Number(match?.[2]);
+    const name =
+      match?.[1] === 'columns'
+        ? this.selectedReport?.columns[index]?.label
+        : this.selectedReport?.filter[index]?.message;
+    return String(this.translationService.t(key, { name: name || this.t('report-ux-this-setting') }));
+  }
+  reorderColumn(event: KeyboardEvent, index: number): void {
+    if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    const offset = event.key === 'ArrowUp' ? -1 : 1;
+    this.moveColumn(index, offset);
+    setTimeout(() =>
+      this.elementRef.nativeElement
+        .querySelectorAll('[data-column-handle]')
+        [Math.max(0, Math.min(index + offset, this.selectedReport!.columns.length - 1))]?.focus()
+    );
+  }
+  dropColumn(event: DragEvent, index: number): void {
+    event.preventDefault();
+    if (this.dragColumnIndex !== null) this.moveColumn(this.dragColumnIndex, index - this.dragColumnIndex);
+    this.dragColumnIndex = null;
+  }
+  openFilter(index = -1): void {
+    this.filterIndex = index;
+    this.filterDraft =
+      index < 0
+        ? { type: 'text', paramName: '', property: '', message: '' }
+        : this.clone(this.selectedReport!.filter[index]);
+  }
+  suggestFilter(parameter: NamedQueryParameterDescription): void {
+    if (!this.filterDraft || this.filterIndex >= 0) return;
+    this.filterDraft = {
+      type: 'text',
+      paramName: parameter.key,
+      property: '',
+      message: this.parameterLabel(parameter),
+    };
+    const pair = this.datePair();
+    if (pair && [pair.from.key, pair.to.key].includes(parameter.key)) {
+      this.filterDraft.type = 'date-range';
+      this.filterDraft.database = { fromProperty: pair.from.key, toProperty: pair.to.key };
+    }
+  }
+  previewFilterLabel(filter: ReportConfigFilterDto): string {
+    return this.t(filter.message).replace(/:\s*$/, '');
+  }
+  doneFilter(): void {
+    if (!this.filterDraft || !this.selectedReport) return;
+    if (this.filterIndex < 0) this.selectedReport.filter.push(this.filterDraft);
+    else this.selectedReport.filter[this.filterIndex] = this.filterDraft;
+    this.filterDraft = null;
+    this.draftChanged();
+  }
+  get previewColumns(): ReportConfigColumnDto[] {
+    return this.selectedReport?.columns.filter(c => this.previewMode === 'csv' || !c.hide) ?? [];
+  }
+  get previewRows() {
+    return this.previewResult?.renderedRows.slice(0, 10) ?? [];
+  }
+  private getErrorMessage(error: unknown, fallback = 'report-request-failed'): string {
+    const response = error as {
+      error?: { message?: string; data?: { message?: string }; errors?: Array<{ code?: string }> };
+    };
+    const message = response.error?.errors?.[0]?.code ?? response.error?.data?.message ?? response.error?.message;
+    const key = 'report-graphql-error-' + message;
+    const translated = this.t(key);
+    if (translated !== key) return translated;
+    if (message && /^(REPORT_|GRAPHQL_|QUERY_|INVALID_GRAPHQL_|COLLECTION_|UNAVAILABLE$)/.test(message))
+      return this.t(fallback);
+    return message ?? this.t(fallback);
   }
 }

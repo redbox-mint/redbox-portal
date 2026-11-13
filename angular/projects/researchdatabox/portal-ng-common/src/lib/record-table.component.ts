@@ -17,6 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { reportDisplayValue } from '@researchdatabox/sails-ng-common';
 import { AdminDateService } from './admin-date.service';
 import {Component, Input, Inject, TemplateRef, ViewChildren, QueryList, inject} from '@angular/core';
 import { BaseComponent } from './base.component';
@@ -73,6 +74,7 @@ export class RecordTableComponent extends BaseComponent {
   @Input() paginationMaxSize:number = 10;
   @Input() paginationRotate: boolean = true;
   @Input() paginationDisabled: boolean = false;
+  @Input() showPagination = true;
   paginationPending = false;
   // which actions to show in the table
   @Input() showActions: {name:string, classes: string, label:string}[] = [];
@@ -83,11 +85,11 @@ export class RecordTableComponent extends BaseComponent {
   // find the header sort elements and provide references to them
   @ViewChildren(HeaderSortComponent) headerSortItems: QueryList<HeaderSortComponent> | undefined;
 
-  get adminTotalPages(): number { return Math.max(1, Math.ceil(this.dataSource.getCurrentPage().total / this.paginationItemsPerPage)); }
+  get adminTotalPages(): number { return Math.max(1, Math.ceil((this.dataSource.getCurrentPage().total ?? 0) / this.paginationItemsPerPage)); }
 
   get adminPageEnd(): number {
     const page = this.dataSource.getCurrentPage();
-    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total);
+    return Math.min(page.pageNum * this.paginationItemsPerPage, page.total ?? 0);
   }
 
   constructor(
@@ -118,12 +120,13 @@ export class RecordTableComponent extends BaseComponent {
     if (col.multivalue) {
       let retVal = [];
       const values = _get(row, col.property);
+      if (col.format && !Array.isArray(values)) return this.getEntryValue(row, col);
       if (Array.isArray(values) || typeof values === 'string') {
         for (let val of values) {
           retVal.push(this.getEntryValue(row, col, val));
         }
       }
-      return retVal.join('');
+      return retVal.join(Array.isArray(values) && col.format && !col.template ? '<br>' : '');
     } else {
       return this.getEntryValue(row, col);
     }
@@ -154,7 +157,7 @@ export class RecordTableComponent extends BaseComponent {
 
   getEntryValue(row: any, col: RecordPropViewMetaDto, val: any = undefined) {
     let retVal = '';
-    if (this.adminPresentation && !col.template && /(?:^|\.)(?:dateCreated|dateModified|lastSaveDate|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
+    if (this.adminPresentation && !col.template && !col.format && /(?:^|\.)(?:dateCreated|dateModified|lastSaveDate|dateDeleted|date_object_created|date_object_modified)$/.test(col.property)) {
       return this.adminDates.format(_get(row, col.property, val));
     }
     if (!_isEmpty(col.template)) {
@@ -170,7 +173,7 @@ export class RecordTableComponent extends BaseComponent {
       const keyParts = this.buildTemplateKeyParts(col);
       retVal = this.handlebarsTemplateService.compileAndRunTemplate(col.template, data, keyParts);
     } else {
-      retVal = _get(row, col.property, val);
+      retVal = reportDisplayValue(col.multivalue && col.format && val !== undefined ? val : _get(row, col.property, val), col) as string;
     }
     return retVal;
   }

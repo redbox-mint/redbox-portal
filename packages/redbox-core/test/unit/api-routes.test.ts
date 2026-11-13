@@ -751,7 +751,7 @@ describe('API routes contract layer', function () {
     });
   });
 
-  it('should keep every non-schema contract API action on the exact no-store validation policy chain', function () {
+  it('should retain the default validation chain outside schema and GraphQL routes', function () {
     const expectedPolicies = [
       'noCache',
       'brandingAndPortal',
@@ -767,10 +767,13 @@ describe('API routes contract layer', function () {
     ];
 
     for (const route of registerCoreApiRoutes()) {
-      if (route.controller === 'webservice/RecordSchemaController') continue;
+      if (['webservice/RecordSchemaController', 'webservice/RecordGraphqlController'].includes(route.controller)) continue;
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
       const expected =
+        route.controller === 'webservice/NamedQueryController' && ['preparePromotion', 'prepareSavedExploration', 'savedExplorations'].includes(route.action)
+          ? [...(route.method === 'get' ? [] : ['namedQueryMutationCsrf']), ...expectedPolicies.filter(policy => policy !== 'isWebServiceAuthenticated')]
+          :
         (route.controller === 'webservice/NamedQueryController' &&
         ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)) ||
         (route.controller === 'webservice/ReportController' && ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action))
@@ -1590,7 +1593,10 @@ describe('API routes contract layer', function () {
 
     const reportRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/report/namedQuery']?.get);
     const reportSchema = asOpenApiSchema(reportRoute.responses?.['200']?.content?.['application/json']?.schema);
-    expect(asOpenApiSchema(reportSchema.properties?.records).items?.properties).to.have.property('metadata');
+    const namedQueryVariants = (reportSchema.anyOf ?? reportSchema.oneOf ?? []) as OpenApiSchema[];
+    expect(namedQueryVariants).to.have.length(2);
+    for (const variant of namedQueryVariants)
+      expect(asOpenApiSchema(variant.properties?.records).items?.properties).to.have.property('metadata');
 
     const integrationAuditRoute = asOpenApiOperation(
       document.paths['/{branding}/{portal}/api/integration-audit/{oid}']?.get
@@ -1801,7 +1807,7 @@ describe('API routes contract layer', function () {
     expect(responseStatuses(getFormRoute)).to.deep.equal([200, 400, 404, 500]);
     expect(responseStatuses(listFormsRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(sendNotificationRoute)).to.deep.equal([200, 400, 500]);
-    expect(responseStatuses(executeNamedQueryRoute)).to.deep.equal([200, 400, 500]);
+    expect(responseStatuses(executeNamedQueryRoute)).to.deep.equal([200, 400, 401, 413, 422, 500, 503]);
     expect(responseStatuses(downloadRecsRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(getRecordTypeRoute)).to.deep.equal([200, 400, 500]);
     expect(responseStatuses(listRecordTypesRoute)).to.deep.equal([200, 400, 500]);

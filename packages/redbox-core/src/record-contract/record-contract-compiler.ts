@@ -10,6 +10,7 @@ import type {
 import { FormOverride, nothingLogger, effectiveReusableComponents } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
 import { compileRelatedDisplayContract } from '../related-records/display-descriptors';
+import { hasWriteOnlyFields, mergeReadNodes } from './read-visibility';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
@@ -49,6 +50,8 @@ export interface RecordContractCompileRequest {
   readonly form: RecordContractEffectiveForm;
   readonly context: RecordContractPublicContext;
   readonly reusableFormDefinitions?: Readonly<Record<string, readonly FormComponentDefinitionFrame[]>>;
+  /** Read contracts retain stored fields from every UI mode. Write behavior defaults to edit. */
+  readonly fieldMode?: 'edit' | 'read';
 }
 
 class CompilerFailure extends Error {
@@ -77,6 +80,9 @@ class CloneDepthLimitError extends Error {
 }
 
 interface CompilerState {
+  readonly readMode: boolean;
+  readonly projectionOwners: ReadonlySet<string> | null;
+  hasViewProjections: boolean;
   readonly definitions: Record<string, ContractNode>;
   readonly diagnostics: RecordContractDiagnostic[];
   readonly fieldOwners: Record<string, ContractOwner>;
@@ -89,6 +95,9 @@ interface CompilerState {
 
 function forkCompilerState(state: CompilerState): CompilerState {
   return {
+    readMode: state.readMode,
+    projectionOwners: state.projectionOwners,
+    hasViewProjections: state.hasViewProjections,
     definitions: { ...state.definitions },
     diagnostics: [...state.diagnostics],
     fieldOwners: { ...state.fieldOwners },
@@ -116,6 +125,7 @@ function commitCompilerState(target: CompilerState, source: CompilerState): void
   source.activeDefinitions.forEach(definition => target.activeDefinitions.add(definition));
   target.propertyCount = source.propertyCount;
   target.partial = source.partial;
+  target.hasViewProjections = source.hasViewProjections;
 }
 
 function asRecord(value: unknown): UnknownRecord {
@@ -268,6 +278,7 @@ function snapshotCompileRequest(request: RecordContractCompileRequest): RecordCo
     // enumerable data; prototype methods never cross the compiler boundary.
     form: cloneCompilerInput(request.form, '$request.form', true),
     context: snapshotRecordContractPublicContext(request.context),
+    ...(request.fieldMode === 'read' ? { fieldMode: 'read' as const } : {}),
     ...(request.reusableFormDefinitions === undefined
       ? {}
       : {
@@ -434,7 +445,10 @@ export class RecordContractCompiler {
   ) {}
 
   public async compile(request: RecordContractCompileRequest): Promise<RecordContractCompileResult> {
-    const state: CompilerState = {
+    const createState = (projectionOwners: ReadonlySet<string> | null): CompilerState => ({
+      readMode: request.fieldMode === 'read',
+      projectionOwners,
+      hasViewProjections: false,
       definitions: {},
       diagnostics: [],
       fieldOwners: {},
@@ -442,7 +456,8 @@ export class RecordContractCompiler {
       activeDefinitions: new Set<string>(),
       propertyCount: 0,
       partial: false,
-    };
+    });
+    let state = createState(null);
 
     try {
       const snapshot = snapshotCompileRequest(request);
@@ -458,14 +473,28 @@ export class RecordContractCompiler {
         );
       }
       this.assertDepth(0, recordContractPointer(''));
-      const root = await this.compileChildren(
+      let root = await this.compileChildren(
         snapshot.form.componentDefinitions ?? [],
         recordContractPointer(''),
         0,
         snapshot,
         state
       );
+      if (snapshot.fieldMode === 'read' && state.hasViewProjections) {
+        // Resolve ownership through the same bounded compiler, including reusable
+        // expansion, transparent containers and name overrides. Only exact owners
+        // from non-projection declarations can suppress a view Content projection.
+        state = createState(new Set(Object.keys(state.fieldOwners)));
+        root = await this.compileChildren(
+          snapshot.form.componentDefinitions ?? [],
+          recordContractPointer(''),
+          0,
+          snapshot,
+          state
+        );
+      }
       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
+      if (snapshot.fieldMode === 'read' && containsPermissiveNode(root)) state.partial = true;
       this.validateNodeBounds(root, 0, recordContractPointer(''));
 
       const contract = freezeDeep<RecordContract>({
@@ -526,12 +555,16 @@ export class RecordContractCompiler {
     const properties: Record<string, ContractNode> = {};
     const roleFilteredComponents = new Map<string, FormComponentDefinitionFrame[]>();
     for (const component of components) {
-      if (this.isRoleFilteredDuplicate(component, roleFilteredComponents)) {
+      if (request.fieldMode !== 'read' && this.isRoleFilteredDuplicate(component, roleFilteredComponents)) {
         continue;
       }
       const contributions = await this.compileComponent(component, parent, depth + 1, request, state);
       for (const [name, node] of contributions) {
         if (Object.hasOwn(properties, name)) {
+          if (request.fieldMode === 'read') {
+            properties[name] = mergeReadNodes(properties[name], node);
+            continue;
+          }
           throw this.invalidFailure(
             'record-contract.path-ownership-collision',
             `Multiple components attempted to own ${joinRecordContractPointer(parent, name)}.`,
@@ -558,7 +591,7 @@ export class RecordContractCompiler {
     state: CompilerState
   ): Promise<Array<readonly [string, ContractNode]>> {
     this.assertDepth(depth, parent);
-    if (!this.isAvailableInEditMode(component)) {
+    if (request.fieldMode !== 'read' && !this.isAvailableInEditMode(component)) {
       return [];
     }
     const reusableName = component.overrides?.reusableFormName;
@@ -567,6 +600,18 @@ export class RecordContractCompiler {
     }
 
     component = this.applyEditModeName(component);
+
+    const viewProjection =
+      request.fieldMode === 'read' &&
+      component.constraints?.allowModes?.length === 1 &&
+      component.constraints.allowModes[0] === 'view' &&
+      component.overrides?.formModeClasses?.view?.component === 'ContentComponent';
+    if (viewProjection) {
+      state.hasViewProjections = true;
+      // The authority pass omits projections. The final pass always invokes their
+      // contributors before deciding whether their storage shape is redundant.
+      if (state.projectionOwners === null) return [];
+    }
 
     const componentType = component.component?.class;
     if (typeof componentType !== 'string' || componentType.trim() === '') {
@@ -672,6 +717,34 @@ export class RecordContractCompiler {
         contributionState
       );
       commitCompilerState(state, contributionState);
+      // Layout containers have no stored node of their own. Retain their
+      // presentation hierarchy on readable children without inventing paths.
+      const config = asRecord(component.component?.config);
+      const layout = asRecord(component.layout?.config);
+      const label = layout.buttonLabel ?? layout.label ?? config.label ?? config.title ?? config.heading;
+      if (
+        request.fieldMode === 'read' &&
+        typeof label === 'string' &&
+        label.trim() &&
+        ['TabComponent', 'TabContentComponent', 'AccordionComponent', 'AccordionPanelComponent'].includes(componentType)
+      ) {
+        return Object.entries(childNode.properties).map(([name, node]) => {
+          const groups = node.annotations?.extensions?.['x-redbox-group-path'];
+          return [
+            name,
+            {
+              ...node,
+              annotations: {
+                ...node.annotations,
+                extensions: {
+                  ...node.annotations?.extensions,
+                  'x-redbox-group-path': [label, ...(Array.isArray(groups) ? groups : [])],
+                },
+              },
+            },
+          ] as const;
+        });
+      }
       return Object.entries(childNode.properties);
     }
 
@@ -730,6 +803,12 @@ export class RecordContractCompiler {
         contributor: identity,
       });
     }
+    // Privacy is part of the contributor contract, even for display projections.
+    // Keep privacy-bearing nodes in the normal deny-wins merge (including nested
+    // and incompatible shapes); only privacy-free redundant shapes may be omitted.
+    if (viewProjection && state.projectionOwners?.has(pointer) && !hasWriteOnlyFields(contribution.node)) {
+      return [];
+    }
     this.claimProperty(pointer, componentType, identity, contributionState);
     for (const owned of contributor.ownedPointers) {
       const ownedPointer = owned === '' ? pointer : appendRecordContractPointer(pointer, recordContractPointer(owned));
@@ -742,7 +821,41 @@ export class RecordContractCompiler {
       contributionState.partial = true;
     }
     commitCompilerState(state, contributionState);
-    return [[fieldName, contribution.node]];
+    const layout = asRecord(component.layout?.config),
+      config = asRecord(component.component?.config);
+    const label = layout.label ?? config.label;
+    const shortLabel = layout.shortLabel ?? config.shortLabel;
+    // Presentation only: preserve option labels without changing the stored
+    // scalar/enum or hydrating remote vocabularies during contract compilation.
+    const options = config.options ?? config.staticOptions;
+    const choiceLabels = Array.isArray(options)
+      ? options.flatMap(option => {
+          const item = asRecord(option);
+          return typeof item.label === 'string' &&
+            (typeof item.value === 'string' || typeof item.value === 'number' || typeof item.value === 'boolean')
+            ? [{ label: item.label, value: item.value }]
+            : [];
+        })
+      : [];
+    const vocabulary = config.inlineVocab === true && typeof config.vocabRef === 'string' ? config.vocabRef : undefined;
+    const node =
+      request.fieldMode === 'read' &&
+      (typeof label === 'string' || typeof shortLabel === 'string' || choiceLabels.length || vocabulary)
+        ? {
+            ...contribution.node,
+            annotations: {
+              ...contribution.node.annotations,
+              extensions: {
+                ...contribution.node.annotations?.extensions,
+                ...(typeof label === 'string' ? { 'x-redbox-label': label } : {}),
+                ...(typeof shortLabel === 'string' ? { 'x-redbox-short-label': shortLabel } : {}),
+                ...(choiceLabels.length ? { 'x-redbox-choice-labels': choiceLabels } : {}),
+                ...(vocabulary ? { 'x-redbox-vocabulary': vocabulary } : {}),
+              },
+            },
+          }
+        : contribution.node;
+    return [[fieldName, node]];
   }
 
   private async compileReusable(
@@ -798,14 +911,17 @@ export class RecordContractCompiler {
         const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}${displayKey}`;
         const referencedNode: ContractNode = { ...node, definitionKey };
         const prior = state.definitions[definitionKey];
-        if (prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {
+        if (request.fieldMode !== 'read' && prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {
           throw this.invalidFailure(
             RECORD_SCHEMA_PROBLEM_CODES.INVALID_CONTRACT,
             `Reusable form definition ${name} property ${propertyName} compiled inconsistently.`,
             parent
           );
         }
-        state.definitions[definitionKey] = referencedNode;
+        state.definitions[definitionKey] =
+          prior && request.fieldMode === 'read'
+            ? { ...mergeReadNodes(prior, referencedNode), definitionKey }
+            : referencedNode;
         return [propertyName, referencedNode] as const;
       });
     } finally {
@@ -949,7 +1065,7 @@ export class RecordContractCompiler {
     state: CompilerState,
     kind: ContractOwner['kind'] = 'component'
   ): void {
-    if (state.fieldOwners[pointer]) {
+    if (!state.readMode && state.fieldOwners[pointer]) {
       throw this.invalidFailure(
         'record-contract.path-ownership-collision',
         `Metadata path ${pointer} already has an owner.`,
@@ -964,7 +1080,8 @@ export class RecordContractCompiler {
         pointer
       );
     }
-    state.fieldOwners[pointer] = { kind, key, ...(contributor ? { contributor } : {}) };
+    if (!state.fieldOwners[pointer])
+      state.fieldOwners[pointer] = { kind, key, ...(contributor ? { contributor } : {}) };
   }
 
   private claimOwnedPointer(
@@ -974,7 +1091,7 @@ export class RecordContractCompiler {
     state: CompilerState
   ): void {
     const existing = state.fieldOwners[pointer];
-    if (existing && existing.contributor?.key !== contributor.key) {
+    if (!state.readMode && existing && existing.contributor?.key !== contributor.key) {
       throw this.invalidFailure(
         'record-contract.path-ownership-collision',
         `Contributor ${contributor.key} attempted to overwrite ${pointer}.`,

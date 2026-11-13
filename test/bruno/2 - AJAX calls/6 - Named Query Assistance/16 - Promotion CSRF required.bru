@@ -1,0 +1,47 @@
+meta {
+  name: Named queries - Promotion CSRF required
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/from-explorer
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "exploration": {
+      "version": 1,
+      "mode": "graphql",
+      "name": "Unsaved explorer",
+      "document": "query Current($type: String!) { records(recordType: $type) { nodes { identity: oid } } }",
+      "variables": {
+        "type": "dataPublication"
+      },
+      "resultPath": [
+        "records",
+        "nodes"
+      ]
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Rejects preparation without CSRF even when global CSRF is disabled", () => {
+    expect(res.getStatus()).to.equal(403);
+    expect(res.getBody().error.code).to.equal("CSRF_MISMATCH");
+  });
+}

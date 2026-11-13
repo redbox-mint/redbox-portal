@@ -1,7 +1,7 @@
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 
-import { formatRecordFormFingerprint } from '../../src/RecordFormFingerprint';
+import { formatRecordFormFingerprint, formatRecordFormCatalogueFingerprint } from '../../src/RecordFormFingerprint';
 
 describe('RecordFormFingerprint', function () {
   it('is stable across object insertion order and changes with the form contract', function () {
@@ -40,5 +40,18 @@ describe('RecordFormFingerprint', function () {
     expect(formatRecordFormFingerprint({ form: { configuration } })).to.match(/^sha256:[0-9a-f]{64}$/);
     expect(accessorInvoked).to.equal(false);
     expect(formatRecordFormFingerprint({ form: { configuration: 'x'.repeat(1_048_577) } })).to.equal(undefined);
+  });
+});
+
+describe('Record form catalogue fingerprint', function () {
+  it('composes a catalogue larger than one form while retaining each form bound', function () {
+    const forms = [{ configuration: 'a'.repeat(600_000) }, { configuration: 'b'.repeat(600_000) }];
+    const fingerprint = formatRecordFormCatalogueFingerprint(forms, {});
+    expect(fingerprint).to.match(/^sha256:[0-9a-f]{64}$/);
+    expect(formatRecordFormCatalogueFingerprint(forms, {})).to.equal(fingerprint);
+    expect(formatRecordFormCatalogueFingerprint([...forms].reverse(), {})).not.to.equal(fingerprint);
+    expect(formatRecordFormCatalogueFingerprint([{ configuration: 'a'.repeat(1_048_577) }], {})).to.equal(undefined);
+    expect(formatRecordFormCatalogueFingerprint(forms, { definition: 'a'.repeat(1_048_577) })).to.equal(undefined);
+    expect(formatRecordFormCatalogueFingerprint(Array(101).fill({}), {})).to.equal(undefined);
   });
 });

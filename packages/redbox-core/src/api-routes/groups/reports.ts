@@ -1,3 +1,4 @@
+import { namedQueryExecutionResultSchema } from '../schemas/named-query';
 import { apiRoute } from '../route-factory';
 import {
   anyField,
@@ -5,8 +6,6 @@ import {
   numberField,
   apiErrorResponseSchema,
   arrayField,
-  listApiResponseSchema,
-  namedQueryResponseRecordSchema,
   objectField,
   responseField,
   stringField,
@@ -19,7 +18,7 @@ const reportConfigBody = objectField(
     name: stringField(),
     title: stringField(),
     reportSource: stringField(),
-    databaseQuery: objectField({ queryName: stringField() }).nullable(),
+    databaseQuery: objectField({ queryName: stringField(), queryVersion: stringField() }).nullable(),
     solrQuery: objectField({ baseQuery: stringField(), searchCore: stringField() }).nullable(),
     filter: arrayField(objectField({}, [], 'Filter object', true)).nullable(),
     columns: arrayField(
@@ -49,12 +48,16 @@ export const executeNamedQueryRoute = apiRoute(
   },
   {
     tags: ['Reports'],
-    summary: 'Execute named query report',
+    summary: 'Execute a saved named query',
     description:
-      'Supply additional query parameters using the names configured in the named query queryParams. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected.',
+      'Supply additional query parameters using the names configured in the named query queryParams or GraphQL consumer bindings. Each filter value must be a scalar string, including empty strings. Objects and arrays are rejected. GraphQL requires authenticated caller context and a lookup-compatible first-page adapter: start must be zero, rows are capped at 25, exact total is null and pagination.hasNextPage is authoritative. Partial data, GraphQL errors and scan/time/size failures are errors. This endpoint remains a first-page interface; GraphQL reports and complete CSV use the dedicated report routes.',
     responses: {
-      200: responseField(listApiResponseSchema(namedQueryResponseRecordSchema), 'Named query results'),
+      200: responseField(namedQueryExecutionResultSchema, 'Source-specific named query results; GraphQL exact totals are unknown'),
       400: badRequestResponse,
+      401: responseField(apiErrorResponseSchema, 'Authenticated GraphQL execution context required'),
+      413: responseField(apiErrorResponseSchema, 'GraphQL byte bound exceeded'),
+      422: responseField(apiErrorResponseSchema, 'Invalid or unsupported GraphQL execution/result'),
+      503: responseField(apiErrorResponseSchema, 'GraphQL service disabled/unavailable or deadline exceeded'),
       500: internalServerErrorResponse,
     },
   }
@@ -191,6 +194,7 @@ const reportSortQuery = objectField(
     name: stringField('Report name'),
     start: stringField(),
     rows: stringField(),
+    cursor: stringField('Opaque report continuation issued for this report, viewer, query version and filters'),
     sortField: anyField(
       'Column property from getReport with sortable=true; unsupported values retain default ordering'
     ),
@@ -206,6 +210,8 @@ const reportViewResponse = objectField(
     name: stringField(),
     title: stringField(),
     reportSource: stringField('database or solr'),
+    querySource: stringField('database, graphql or solr'),
+    exportMaxRows: numberField('GraphQL export row ceiling'),
     databaseQuery: objectField({ queryName: stringField() }, ['queryName']).nullable(),
     filter: arrayField(anyField()),
     columns: arrayField(
@@ -222,7 +228,8 @@ const reportViewResponse = objectField(
 const resultResponse = objectField(
   {
     records: arrayField(anyField()),
-    total: numberField(),
+    total: numberField().nullable(),
+    pagination: objectField({ mode: stringField(), hasNextPage: booleanField(), nextCursor: stringField().nullable(), start: numberField() }),
     pageNum: numberField(),
     recordsPerPage: numberField(),
     success: booleanField(),
@@ -259,7 +266,7 @@ reportsApiRoutes.push(
         tags: ['Reports'],
         summary: 'Get report results',
         description:
-          'Requires report access. Applies a validated sortField and sortDirection before pagination for database and Solr reports. Unsupported columns or malformed sort input retain the existing default order.',
+          'Requires report access. Applies a validated sortField and sortDirection before pagination for database and Solr reports. Unsupported columns or malformed sort input retain the existing default order. GraphQL runs as the authenticated viewer with current record ACLs, returns total=null and one page of up to 25 rows; use pagination.hasNextPage and its opaque nextCursor, with start=0. Tokens bind viewer, report, query version, scope, filters and page size. Invalid tokens return 400; source drift returns 409. GraphQL does not accept custom report sorting.',
         responses: { 200: responseField(resultResponse, 'Report page') },
       }
     ),
@@ -276,7 +283,7 @@ reportsApiRoutes.push(
         tags: ['Reports'],
         summary: 'Download sorted report CSV',
         description:
-          'Requires report access. Accepts the same filters and validated sort as report results, exporting all matching rows in that order.',
+          'Requires report access. Accepts the same filters and validated sort as report results, exporting all matching rows in that order. GraphQL traverses live cursors from the beginning as the viewer, checking current record ACLs and the bound query version. Configured row/page/byte/time limits abort with 413/408 and no partial attachment; source drift returns 409. Records can change during traversal; no snapshot consistency is promised. Client cursors are rejected; export always starts at the beginning regardless of the viewer page.',
         responses: { 200: { description: 'CSV report', content: { 'text/csv': { schema: stringField() } } } },
       }
     ),

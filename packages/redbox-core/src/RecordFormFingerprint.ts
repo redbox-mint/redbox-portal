@@ -96,3 +96,16 @@ export function formatRecordFormFingerprint(value: unknown): RecordFormFingerpri
   const fingerprint = `sha256:${hash.digest('hex')}`;
   return isRecordFormFingerprint(fingerprint) ? fingerprint : undefined;
 }
+
+/** Compose individually bounded form contracts without treating a catalogue as one form. */
+export function formatRecordFormCatalogueFingerprint(
+  candidates: readonly unknown[],
+  reusableFormDefinitions: unknown
+): RecordFormFingerprint | undefined {
+  if (candidates.length > 100) return undefined;
+  const reusable = formatRecordFormFingerprint(reusableFormDefinitions);
+  if (!reusable) return undefined;
+  const forms = candidates.map(candidate => formatRecordFormFingerprint(candidate));
+  if (forms.some(fingerprint => !fingerprint)) return undefined;
+  return formatRecordFormFingerprint({ forms, reusable });
+}

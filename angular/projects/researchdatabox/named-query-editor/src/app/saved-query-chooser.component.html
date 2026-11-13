@@ -1,0 +1,155 @@
+<div class="modal-backdrop show" aria-hidden="true"></div>
+<section
+  class="modal show nq-start-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="nq-start-title"
+  tabindex="-1"
+  rbAdminModal
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+  (keydown.escape)="close($event)"
+>
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="nq-start-title" class="modal-title h4">
+          {{ (replacing ? 'nq-ux-change-source' : 'named-query-create-button') | i18next }}
+        </h2>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          cdkFocusInitial
+          [disabled]="busy"
+          [attr.aria-label]="'named-query-close' | i18next"
+          (click)="close()"
+        >
+          ×
+        </button>
+      </header>
+      <div class="modal-body">
+        <fieldset *ngIf="!replacing" [disabled]="busy" class="nq-start-options">
+          <legend>{{ 'nq-ux-how-start' | i18next }}</legend>
+          <div class="nq-radio-cards">
+            <label *ngFor="let kind of ['saved', 'graphql', 'database']" [class.nq-radio-selected]="start === kind">
+              <input type="radio" name="nq-start" [value]="kind" [(ngModel)]="start" /><span
+                ><strong>{{ 'nq-ux-start-' + kind | i18next }}</strong
+                ><span>{{ 'nq-ux-start-' + kind + '-help' | i18next }}</span></span
+              >
+            </label>
+          </div>
+        </fieldset>
+        <ng-container *ngIf="start === 'saved'">
+          <div class="rb-admin-filter-bar">
+            <label class="rb-admin-field rb-admin-field-grow"
+              >{{ 'nq-ux-search-saved' | i18next
+              }}<input
+                type="search"
+                maxlength="120"
+                class="form-control"
+                [(ngModel)]="search"
+                (ngModelChange)="filtersChanged()"
+                [disabled]="busy"
+            /></label>
+            <div class="rb-admin-field rb-admin-segmented-field">
+              <span id="nq-mode-label" class="rb-admin-filter-label">{{ 'nq-ux-built-with' | i18next }}</span>
+              <div class="rb-admin-segmented" role="group" aria-labelledby="nq-mode-label">
+                <button
+                  *ngFor="let kind of ['', 'visual', 'graphql']"
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  [attr.aria-pressed]="mode === kind"
+                  [disabled]="busy"
+                  (click)="mode = $any(kind); filtersChanged()"
+                >
+                  {{ (kind ? 'nq-ux-mode-' + kind : 'report-source-all') | i18next }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <p role="status" *ngIf="loading">{{ 'nq-ux-loading-saved' | i18next }}</p>
+          <div *ngIf="rows.length" class="table-responsive">
+            <table class="table table-hover" [attr.aria-label]="'nq-ux-saved-table' | i18next">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'nq-ux-saved-query' | i18next }}</th>
+                  <th scope="col">{{ 'data-grids-record-type' | i18next }}</th>
+                  <th scope="col">{{ 'nq-ux-built-with' | i18next }}</th>
+                  <th scope="col">{{ 'nq-ux-updated' | i18next }}</th>
+                  <th scope="col">{{ 'data-grids-status' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows" [class.nq-radio-selected]="selected?.id === row.id">
+                  <th scope="row">
+                    <label class="nq-saved-option"
+                      ><input
+                        type="radio"
+                        name="nq-saved"
+                        [value]="row"
+                        [(ngModel)]="selected"
+                        [disabled]="busy"
+                      /><span>{{ row.name }}</span></label
+                    >
+                  </th>
+                  <td>{{ row.recordTypeLabel || row.recordType || 'nq-ux-unknown-type' | i18next }}</td>
+                  <td>{{ 'nq-ux-mode-' + row.mode | i18next }}</td>
+                  <td>{{ row.updatedAt ? (row.updatedAt | date: 'mediumDate') : ('nq-ux-not-recorded' | i18next) }}</td>
+                  <td>
+                    <a
+                      *ngFor="let published of row.publishedAs"
+                      class="badge rb-admin-badge-primary"
+                      [href]="api.brandingAndPortalUrl + '/admin/named-query#query=' + published.name"
+                      (click)="$event.preventDefault(); publishedSelected.emit(published.name)"
+                      >{{ 'nq-ux-published-as' | i18next: { name: published.name } }}</a
+                    ><span *ngIf="!row.publishedAs.length">{{ 'nq-ux-not-published' | i18next }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="!loading && !rows.length && !error" class="rb-admin-empty">
+            <h3>{{ (search || mode ? 'admin-no-filter-results' : 'nq-ux-no-saved') | i18next }}</h3>
+            <p>{{ 'nq-ux-no-saved-help' | i18next }}</p>
+            <a class="btn btn-outline-secondary" [href]="api.brandingAndPortalUrl + '/admin/data-grids'">{{
+              'nq-ux-open-explorer' | i18next
+            }}</a>
+          </div>
+          <button
+            *ngIf="next"
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="loading || busy"
+            (click)="load(true)"
+          >
+            {{ 'data-grids-load-more' | i18next }}
+          </button>
+          <p class="rb-admin-hint mt-3">{{ 'nq-ux-chooser-help' | i18next }}</p>
+        </ng-container>
+        <div *ngIf="error" class="alert alert-danger" role="alert">
+          {{ error | i18next }}
+          <button
+            *ngIf="error === 'nq-ux-chooser-load-error'"
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="load()"
+          >
+            {{ 'data-grids-retry' | i18next }}
+          </button>
+        </div>
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" [disabled]="busy" (click)="close()">
+          {{ 'named-query-cancel' | i18next }}</button
+        ><button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="busy || loading || (start === 'saved' && !selected)"
+          (click)="continue()"
+        >
+          {{ (busy ? 'nq-ux-preparing' : 'nq-ux-continue') | i18next }}
+        </button>
+      </footer>
+    </div>
+  </div>
+</section>

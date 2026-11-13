@@ -1,0 +1,80 @@
+meta {
+  name: Named queries - Prepare visual exploration
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/from-explorer
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "exploration": {
+      "version": 1,
+      "name": "Unsaved visual explorer",
+      "recordType": "dataPublication",
+      "columns": [
+        "record:oid"
+      ],
+      "filters": [],
+      "sort": null,
+      "pageSize": 25
+    }
+  }
+}
+
+script:pre-request {
+  // The disposable general harness needs the parent's declared runtime grid fields.
+  if (bru.getVar("queryEditorCsrf")) {
+    const axios = require('axios');
+    const schemaUrl = bru.interpolate('{{solrhost}}/solr/redbox/schema');
+    const live = (await axios.get(schemaUrl)).data.schema;
+    const fields = [
+      ...['oid', 'type', 'stage', 'form', 'version'].map(key => ({ name: 'redbox_grid_' + key, type: 'string' })),
+      ...['created', 'modified'].map(key => ({ name: 'redbox_grid_' + key, type: 'pdate' }))
+    ].filter(field => !live.fields.some(existing => existing.name === field.name))
+      .map(field => ({ ...field, indexed: true, stored: true, multiValued: false, docValues: true }));
+    if (fields.length) await axios.post(schemaUrl, { 'add-field': fields });
+  }
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  if (!bru.getVar("queryEditorCsrf")) {
+    test("Fails closed when the general harness cannot issue a CSRF token", () => {
+      expect(res.getStatus()).to.equal(403);
+      expect(res.getBody().error.code).to.equal("CSRF_MISMATCH");
+    });
+  } else {
+    test("Returns an unsaved detached definition with explicit ownership still required", () => {
+      expect(res.getStatus()).to.equal(200);
+      const data = res.getBody().data;
+      expect(data.definition.source).to.equal("graphql");
+      expect(data.definition.name).to.equal("");
+      expect(data.definition.graphql.variables).to.deep.equal({});
+      expect(data.definition.graphql.resultPath).to.deep.equal(["records", "nodes"]);
+      expect(data.variableValues.type).to.equal("dataPublication");
+      expect(res.getHeader("cache-control")).to.include("no-store");
+    });
+  }
+}
+
+docs {
+  Successful preparation requires a CSRF-enabled server and token. The committed
+  general harness disables token issuance, so it must refuse the session request.
+  Mounted NamedQueryPromotion HTTP tests cover successful preparation with real CSRF.
+  Uses the committed general harness and its real Solr schema API. Adds only the
+  parent-declared grid envelope fields if missing, matching SOLR_RECORD_GRID_FIELDS.
+  Run against disposable test Solr/Mongo volumes; down -v removes these fixtures.
+}
