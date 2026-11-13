@@ -1,4 +1,5 @@
 import { of } from 'rxjs';
+import { InteractivityChecker } from '@angular/cdk/a11y';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AdminSidePanelComponent } from './admin-side-panel.component';
@@ -23,6 +24,24 @@ class SidePanelHostComponent {
   busy = false;
   withContent = false;
   closed = jasmine.createSpy('closed');
+}
+
+function expectTabbable(control: HTMLElement): void {
+  const checker = TestBed.inject(InteractivityChecker);
+  const frame = window.frameElement as HTMLElement | null;
+  expect(checker.isTabbable(control))
+    .withContext(
+      JSON.stringify({
+        control: control.outerHTML,
+        focusable: checker.isFocusable(control),
+        tabIndex: control.tabIndex,
+        frame: frame?.outerHTML,
+        frameWidth: frame?.offsetWidth,
+        frameHeight: frame?.offsetHeight,
+        frameVisible: frame && checker.isVisible(frame),
+      })
+    )
+    .toBeTrue();
 }
 
 describe('Admin offcanvas focus management', () => {
@@ -57,6 +76,7 @@ describe('Admin offcanvas focus management', () => {
     expect(trigger.inert).toBeTrue();
     const close = dialog.querySelector('button')!;
     expect(document.activeElement).toBe(close);
+    expectTabbable(close);
     const anchors: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.cdk-focus-trap-anchor');
     expect(anchors.length).toBe(2);
     for (const anchor of Array.from(anchors)) {
@@ -88,6 +108,8 @@ describe('Admin offcanvas focus management', () => {
     const close = dialog.querySelector('button')!;
     const content = dialog.querySelector<HTMLButtonElement>('.panel-content')!;
     const footer = dialog.querySelector<HTMLButtonElement>('.panel-footer')!;
+    expectTabbable(close);
+    expectTabbable(footer);
     const anchors: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.cdk-focus-trap-anchor');
     expect(anchors.length).toBe(2);
     expect(document.activeElement).toBe(close);
