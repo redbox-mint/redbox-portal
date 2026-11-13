@@ -1,0 +1,264 @@
+/** UI contracts, independent of AG Grid state and of the HTTP/GraphQL schema. */
+export type Scalar = string | number | boolean;
+export type FieldType = 'text' | 'number' | 'datetime' | 'boolean' | 'choice' | 'structured' | 'unavailable';
+export type Operator = 'eq' | 'contains' | 'gt' | 'lt' | 'between' | 'in' | 'exists';
+export interface GridField {
+  id: string;
+  label: string;
+  path?: string;
+  type: FieldType;
+  selectable: boolean;
+  repeating?: boolean;
+  integer?: boolean;
+  partial?: boolean;
+  operators: Operator[];
+  sortable: boolean;
+  choices?: { value: string; label: string }[];
+}
+export interface GridScope {
+  id: string;
+  label: string;
+  recordType: string;
+  workflowStage?: string;
+  fields: GridField[];
+  revision?: string;
+}
+export type GridScalarType = 'STRING' | 'NUMBER' | 'INTEGER' | 'BOOLEAN' | 'DATETIME';
+export function scalarTypeFor(field: GridField): GridScalarType | undefined {
+  if (field.type === 'text' || field.type === 'choice') return 'STRING';
+  if (field.type === 'number') return field.integer ? 'INTEGER' : 'NUMBER';
+  if (field.type === 'boolean') return 'BOOLEAN';
+  if (field.type === 'datetime') return 'DATETIME';
+  return undefined;
+}
+export interface GridFilter {
+  /** Missing only for pre-type-binding saved definitions, which require explicit repair. */
+  expectedScalarType?: GridScalarType;
+  fieldId: string;
+  operator: Operator;
+  values: string[];
+}
+export interface GridDefinition {
+  mode?: 'visual';
+  version: 1;
+  id?: string;
+  revision?: number;
+  name: string;
+  recordType: string;
+  workflowStage?: string;
+  columns: string[];
+  filters: GridFilter[];
+  sort: { fieldId: string; direction: 'asc' | 'desc'; expectedScalarType?: GridScalarType } | null;
+  pageSize: number;
+}
+export type JsonValue = null | string | number | boolean | JsonValue[] | { [key: string]: JsonValue };
+export interface RawDefinition {
+  version: 1;
+  mode: 'graphql';
+  id?: string;
+  revision?: number;
+  name: string;
+  document: string;
+  variables: { [key: string]: JsonValue };
+  resultPath: string[];
+}
+export type SavedQuery = GridDefinition | RawDefinition;
+export interface GridListPage {
+  grids: SavedQuery[];
+  next: string | null;
+}
+export interface GridCatalogue {
+  scopes: GridScope[];
+  /** False means list/save are unsupported, not that no saved grids exist. */
+  persistence: boolean;
+}
+export interface GridRow {
+  recordOid?: string;
+  oid: string;
+  values: Record<string, JsonValue>;
+}
+export interface GridPage {
+  rows: GridRow[];
+  pageInfo: { hasNextPage: boolean; endCursor: string | null };
+}
+export interface GridQuery {
+  definition: GridDefinition;
+  filters: { fieldId: string; operator: Operator; value?: Scalar | Scalar[] }[];
+  after: string | null;
+  revision?: string;
+}
+export interface GridIssue {
+  key: string;
+  field?: string;
+}
+export const PAGE_SIZES = [25, 50];
+export const LIMITS = { columns: 30, filters: 10, valueLength: 256, listItems: 20 };
+
+export function emptyGrid(): GridDefinition {
+  return { version: 1, mode: 'visual', name: '', recordType: '', columns: [], filters: [], sort: null, pageSize: 25 };
+}
+export function scopeFor(grid: GridDefinition, scopes: GridScope[]): GridScope | undefined {
+  return scopes.find(scope => scope.recordType === grid.recordType && scope.workflowStage === grid.workflowStage);
+}
+export function copyGrid(grid: GridDefinition): GridDefinition {
+  return structuredClone(grid);
+}
+
+/** RFC3339 subset accepted by the collection endpoint, normalized before range comparison. */
+export function normalizeTimestamp(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/i.exec(value);
+  if (!match) throw new Error('invalid-datetime');
+  const [, year, month, day, hour, minute, second, , zone] = match;
+  const y = Number(year),
+    m = Number(month),
+    d = Number(day);
+  const leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (
+    y < 1 ||
+    m < 1 ||
+    m > 12 ||
+    d < 1 ||
+    d > days[m - 1] ||
+    Number(hour) > 23 ||
+    Number(minute) > 59 ||
+    Number(second) > 59 ||
+    (zone.toUpperCase() !== 'Z' && (Number(zone.slice(1, 3)) > 23 || Number(zone.slice(4)) > 59))
+  )
+    throw new Error('invalid-datetime');
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime()) || date.getUTCFullYear() < 1 || date.getUTCFullYear() > 9999)
+    throw new Error('invalid-datetime');
+  return date.toISOString();
+}
+
+function valueFor(value: string, field: GridField): Scalar {
+  if (new TextEncoder().encode(value).length > LIMITS.valueLength) throw new Error('invalid-value');
+  switch (field.type) {
+    case 'number': {
+      // Decimal input only; do not interpret hexadecimal, Infinity or partial numbers.
+      if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) throw new Error('invalid-number');
+      const number = Number(value);
+      if (!Number.isFinite(number) || (field.integer && !Number.isSafeInteger(number)))
+        throw new Error('invalid-number');
+      return number;
+    }
+    case 'boolean':
+      if (value !== 'true' && value !== 'false') throw new Error('invalid-boolean');
+      return value === 'true';
+    case 'choice':
+      if (!field.choices?.some(choice => choice.value === value)) throw new Error('invalid-choice');
+      return value;
+    case 'datetime':
+      return normalizeTimestamp(value);
+    default:
+      return value;
+  }
+}
+
+export function filterValue(filter: GridFilter, field: GridField): Scalar | Scalar[] | undefined {
+  if (filter.operator === 'exists') {
+    if (filter.values.length !== 1 || !['true', 'false'].includes(filter.values[0])) throw new Error('invalid-exists');
+    return filter.values[0] === 'true';
+  }
+  if (filter.operator === 'contains' && !filter.values[0]?.length) throw new Error('empty-contains');
+  const expected = filter.operator === 'between' ? 2 : 1;
+  if (filter.operator === 'in') {
+    if (!filter.values.length || filter.values.length > LIMITS.listItems) throw new Error('invalid-list');
+    return filter.values.map(value => valueFor(value, field));
+  }
+  if (filter.values.length !== expected) throw new Error('invalid-value-count');
+  const values = filter.values.map(value => valueFor(value, field));
+  if (filter.operator === 'between') {
+    if (values[0] > values[1]) throw new Error('invalid-range');
+    return values;
+  }
+  return values[0];
+}
+
+export function validateGrid(grid: GridDefinition, scope?: GridScope): GridIssue[] {
+  const issues: GridIssue[] = [];
+  if (!grid.name.trim() || grid.name.length > 120) issues.push({ key: 'name-required' });
+  if (!scope || scope.recordType !== grid.recordType || scope.workflowStage !== grid.workflowStage)
+    return [...issues, { key: 'scope-required' }];
+  if (!grid.columns.length || grid.columns.length > LIMITS.columns) issues.push({ key: 'columns-required' });
+  if (new Set(grid.columns).size !== grid.columns.length) issues.push({ key: 'duplicate-columns' });
+  for (const id of grid.columns) {
+    const field = scope.fields.find(item => item.id === id);
+    if (!field?.selectable) issues.push({ key: 'unavailable-column', field: field?.label ?? id });
+  }
+  if (!PAGE_SIZES.includes(grid.pageSize)) issues.push({ key: 'invalid-page-size' });
+  if (grid.filters.length > LIMITS.filters) issues.push({ key: 'too-many-filters' });
+  for (const filter of grid.filters) {
+    const field = scope.fields.find(item => item.id === filter.fieldId);
+    if (!field || field.repeating || !field.operators.includes(filter.operator)) {
+      issues.push({ key: 'unavailable-filter', field: field?.label ?? filter.fieldId });
+      continue;
+    }
+    if (!filter.expectedScalarType || filter.expectedScalarType !== scalarTypeFor(field)) {
+      issues.push({ key: 'filter-type-changed', field: field.label });
+      continue;
+    }
+    try {
+      filterValue(filter, field);
+    } catch {
+      issues.push({ key: 'invalid-filter-value', field: field.label });
+    }
+  }
+  if (grid.sort && !scope.fields.some(field => field.id === grid.sort?.fieldId && field.sortable && !field.repeating))
+    issues.push({ key: 'unavailable-sort', field: grid.sort.fieldId });
+  if (grid.sort) {
+    const field = scope.fields.find(field => field.id === grid.sort?.fieldId);
+    if (field && (!grid.sort.expectedScalarType || grid.sort.expectedScalarType !== scalarTypeFor(field)))
+      issues.push({ key: 'sort-type-changed', field: field.label });
+  }
+  return issues;
+}
+
+export function queryFor(grid: GridDefinition, scope: GridScope, after: string | null): GridQuery {
+  if (validateGrid(grid, scope).length) throw new Error('Invalid grid configuration');
+  return {
+    definition: copyGrid(grid),
+    after,
+    revision: scope.revision,
+    filters: grid.filters.map(filter => ({
+      fieldId: filter.fieldId,
+      operator: filter.operator,
+      value: filterValue(filter, scope.fields.find(field => field.id === filter.fieldId)!),
+    })),
+  };
+}
+
+/** Bound provider results; never silently show a malformed continuation or duplicate record. */
+export function validatePage(page: GridPage, size: number, after: string | null): void {
+  if (
+    !Array.isArray(page.rows) ||
+    page.rows.length > size ||
+    page.rows.some(
+      row =>
+        !row ||
+        typeof row.oid !== 'string' ||
+        !row.oid ||
+        !row.values ||
+        Object.values(row.values).some(value => !validCellValue(value))
+    ) ||
+    new Set(page.rows.map(row => row.oid)).size !== page.rows.length ||
+    typeof page.pageInfo?.hasNextPage !== 'boolean' ||
+    (page.pageInfo.hasNextPage &&
+      (!page.rows.length ||
+        typeof page.pageInfo.endCursor !== 'string' ||
+        !page.pageInfo.endCursor ||
+        page.pageInfo.endCursor === after))
+  ) {
+    throw new Error('Invalid grid page');
+  }
+}
+
+/** Bounded JSON cells retain list/group structure without manufacturing record rows. */
+export function validCellValue(value: unknown, depth = 0): value is JsonValue {
+  if (depth > 30) return false;
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(item => validCellValue(item, depth + 1));
+  return !!value && typeof value === 'object' && Object.values(value).every(item => validCellValue(item, depth + 1));
+}

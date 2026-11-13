@@ -1,3 +1,4 @@
+import type { FormComponentDefinitionFrame } from '@researchdatabox/sails-ng-common';
 import assert from 'node:assert/strict';
 import { printSchema } from 'graphql';
 import {
@@ -42,7 +43,13 @@ const conditional = (thenNode: ContractNode, elseNode: ContractNode): ContractNo
 });
 
 // Synthetic hook contributions pass through the actual contributor compiler.
-async function harness(left: ContractNode, right: ContractNode | undefined, stored: unknown) {
+async function harness(
+  left: ContractNode,
+  right: ContractNode | undefined,
+  stored: unknown,
+  viewProjection = false,
+  privateProjection?: { owner: ContractNode; reverse: boolean; reusable: boolean }
+) {
   const contributor: RecordContractComponentContributor = {
     kind: 'component',
     key: 'graphql.conditional-privacy-fixture',
@@ -55,23 +62,74 @@ async function harness(left: ContractNode, right: ContractNode | undefined, stor
       node: right ? conditional(left, right) : left,
     }),
   };
+  const title = { name: 'title', component: { class: 'SimpleInputComponent' } };
+  let definitions: FormComponentDefinitionFrame[] = [
+    title,
+    { name: 'payload', component: { class: 'PrivacyHookComponent' } },
+  ];
+  let reusableFormDefinitions: Record<string, FormComponentDefinitionFrame[]> | undefined;
+  if (privateProjection) {
+    const projection: FormComponentDefinitionFrame = {
+      name: privateProjection.reusable ? 'display_payload' : 'payload',
+      component: { class: 'PrivacyHookComponent' },
+      constraints: { allowModes: ['view'] },
+      overrides: {
+        ...(privateProjection.reusable ? { replaceName: 'payload' } : {}),
+        formModeClasses: { view: { component: 'ContentComponent', template: '{{content}}' } },
+      },
+    };
+    const owner = {
+      name: 'payload',
+      component: { class: privateProjection.reusable ? 'OwnerHookComponent' : 'SimpleInputComponent' },
+    };
+    const entries = privateProjection.reverse ? [projection, owner] : [owner, projection];
+    if (privateProjection.reusable) {
+      reusableFormDefinitions = Object.fromEntries(entries.map((entry, index) => ['variant' + index, [entry]]));
+      definitions = [
+        title,
+        ...entries.map((_, index) => ({
+          name: 'variant' + index,
+          component: { class: 'ReusableComponent', config: {} },
+          overrides: { reusableFormName: 'variant' + index },
+        })),
+      ];
+    } else definitions = [title, ...entries];
+  } else if (viewProjection)
+    definitions.push({
+      name: 'payload',
+      component: { class: 'SimpleInputComponent' },
+      constraints: { allowModes: ['view'] },
+      overrides: { formModeClasses: { view: { component: 'ContentComponent', template: '{{content}}' } } },
+    });
   const compiler = new RecordContractCompiler(
     new RecordContractContributorRegistry([
       ...createCoreRecordContractContributors().map(contributor => ({ contributor, source: 'core' as const })),
       { contributor, source: 'hook', packageName: '@example/graphql-privacy' },
+      ...(privateProjection
+        ? [
+            {
+              contributor: {
+                ...contributor,
+                key: 'graphql.public-owner',
+                componentType: 'OwnerHookComponent',
+                compile: () => ({ kind: 'node' as const, node: privateProjection.owner }),
+              },
+              source: 'hook' as const,
+              packageName: '@example/graphql-privacy',
+            },
+          ]
+        : []),
     ]),
     recordSchema.limits
   );
   const result = await compiler.compile({
     fieldMode: 'read',
+    reusableFormDefinitions,
     context: gridContracts()[0].context,
     form: {
       name: 'draft-form',
       type: 'grid-fixture',
-      componentDefinitions: [
-        { name: 'title', component: { class: 'SimpleInputComponent' } },
-        { name: 'payload', component: { class: 'PrivacyHookComponent' } },
-      ],
+      componentDefinitions: definitions,
     },
   });
   assert.equal(result.kind, 'compiled', JSON.stringify(result));
@@ -127,6 +185,86 @@ async function harness(left: ContractNode, right: ContractNode | undefined, stor
 }
 
 describe('Conditional hook read privacy', () => {
+  it('retains private parent and child boundaries when excluding a redundant view projection', async () => {
+    const hidden = await harness(scalar(true), undefined, 'private-value', true);
+    assert.ok(
+      !(await hidden.discover()).body.data?.recordFields?.fields.some(field => field.id === 'metadata:/payload')
+    );
+    const denied = await hidden.query('payload');
+    assert.equal(denied.status, 400);
+    assert.equal(denied.reads, 0);
+    const mixed = await harness(
+      object({ public: scalar(), secret: scalar(true) }),
+      undefined,
+      { public: 'visible', secret: 'private-value' },
+      true
+    );
+    const response = await mixed.query('payload { public }');
+    assert.equal(response.body.errors, undefined);
+    assert.deepEqual(response.body.data?.record?.metadata, { payload: { public: 'visible' } });
+    assert.doesNotMatch(printSchema(mixed.schema), /\bsecret\b/);
+    const childDenied = await mixed.query('payload { secret }');
+    assert.equal(childDenied.status, 400);
+    assert.equal(childDenied.reads, 0);
+  });
+  for (const reverse of [false, true]) {
+    for (const scenario of [
+      {
+        name: 'scalar',
+        projection: scalar(true),
+        owner: scalar(),
+        stored: 'private-value',
+        publicSelection: null,
+        privateSelection: 'payload',
+      },
+      {
+        name: 'object',
+        projection: object({ secret: scalar(true) }),
+        owner: object({ public: scalar(), secret: scalar() }),
+        stored: { public: 'visible', secret: 'private-value' },
+        publicSelection: 'payload { public }',
+        privateSelection: 'payload { secret }',
+      },
+      {
+        name: 'array',
+        projection: array(object({ secret: scalar(true) })),
+        owner: array(object({ public: scalar(), secret: scalar() })),
+        stored: [{ public: 'visible', secret: 'private-value' }],
+        publicSelection: 'payload { public }',
+        privateSelection: 'payload { secret }',
+      },
+      {
+        name: 'incompatible',
+        projection: object({ secret: scalar(true) }),
+        owner: scalar(),
+        stored: { secret: 'private-value' },
+        publicSelection: null,
+        privateSelection: 'payload',
+      },
+    ]) {
+      it(`preserves private ${scenario.name} projection restrictions with public owner, reverse ${reverse}`, async () => {
+        const h = await harness(scenario.projection, undefined, scenario.stored, false, {
+          owner: scenario.owner,
+          reverse,
+          reusable: scenario.name !== 'scalar',
+        });
+        const fields = (await h.discover()).body.data?.recordFields?.fields;
+        assert.ok(fields && !fields.some(field => field.id.includes('secret')));
+        if (!scenario.publicSelection) assert.ok(!fields.some(field => field.id === 'metadata:/payload'));
+        else {
+          const visible = await h.query(scenario.publicSelection);
+          assert.equal(visible.body.errors, undefined, JSON.stringify(visible.body));
+          assert.ok(JSON.stringify(visible.body).includes('visible'));
+          assert.ok(!JSON.stringify(visible.body).includes('private-value'));
+        }
+        const denied = await h.query(scenario.privateSelection);
+        assert.equal(denied.status, 400);
+        assert.equal(denied.reads, 0);
+        assert.ok(!JSON.stringify(denied.body).includes('private-value'));
+        assert.doesNotMatch(printSchema(h.schema), /\bsecret\b/);
+      });
+    }
+  }
   for (const reverse of [false, true]) {
     it(`keeps typed private paths excluded across branch order ${reverse}`, async () => {
       const branch = (privateFields: boolean) =>

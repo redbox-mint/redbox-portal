@@ -10,7 +10,7 @@ import type {
 import { FormOverride, nothingLogger, effectiveReusableComponents } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
 import { compileRelatedDisplayContract } from '../related-records/display-descriptors';
-import { mergeReadNodes } from './read-visibility';
+import { hasWriteOnlyFields, mergeReadNodes } from './read-visibility';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
@@ -81,6 +81,8 @@ class CloneDepthLimitError extends Error {
 
 interface CompilerState {
   readonly readMode: boolean;
+  readonly projectionOwners: ReadonlySet<string> | null;
+  hasViewProjections: boolean;
   readonly definitions: Record<string, ContractNode>;
   readonly diagnostics: RecordContractDiagnostic[];
   readonly fieldOwners: Record<string, ContractOwner>;
@@ -94,6 +96,8 @@ interface CompilerState {
 function forkCompilerState(state: CompilerState): CompilerState {
   return {
     readMode: state.readMode,
+    projectionOwners: state.projectionOwners,
+    hasViewProjections: state.hasViewProjections,
     definitions: { ...state.definitions },
     diagnostics: [...state.diagnostics],
     fieldOwners: { ...state.fieldOwners },
@@ -121,6 +125,7 @@ function commitCompilerState(target: CompilerState, source: CompilerState): void
   source.activeDefinitions.forEach(definition => target.activeDefinitions.add(definition));
   target.propertyCount = source.propertyCount;
   target.partial = source.partial;
+  target.hasViewProjections = source.hasViewProjections;
 }
 
 function asRecord(value: unknown): UnknownRecord {
@@ -440,8 +445,10 @@ export class RecordContractCompiler {
   ) {}
 
   public async compile(request: RecordContractCompileRequest): Promise<RecordContractCompileResult> {
-    const state: CompilerState = {
+    const createState = (projectionOwners: ReadonlySet<string> | null): CompilerState => ({
       readMode: request.fieldMode === 'read',
+      projectionOwners,
+      hasViewProjections: false,
       definitions: {},
       diagnostics: [],
       fieldOwners: {},
@@ -449,7 +456,8 @@ export class RecordContractCompiler {
       activeDefinitions: new Set<string>(),
       propertyCount: 0,
       partial: false,
-    };
+    });
+    let state = createState(null);
 
     try {
       const snapshot = snapshotCompileRequest(request);
@@ -465,13 +473,26 @@ export class RecordContractCompiler {
         );
       }
       this.assertDepth(0, recordContractPointer(''));
-      const root = await this.compileChildren(
+      let root = await this.compileChildren(
         snapshot.form.componentDefinitions ?? [],
         recordContractPointer(''),
         0,
         snapshot,
         state
       );
+      if (snapshot.fieldMode === 'read' && state.hasViewProjections) {
+        // Resolve ownership through the same bounded compiler, including reusable
+        // expansion, transparent containers and name overrides. Only exact owners
+        // from non-projection declarations can suppress a view Content projection.
+        state = createState(new Set(Object.keys(state.fieldOwners)));
+        root = await this.compileChildren(
+          snapshot.form.componentDefinitions ?? [],
+          recordContractPointer(''),
+          0,
+          snapshot,
+          state
+        );
+      }
       this.collectValidators(snapshot.form.validators, recordContractPointer(''), snapshot.form, state);
       if (snapshot.fieldMode === 'read' && containsPermissiveNode(root)) state.partial = true;
       this.validateNodeBounds(root, 0, recordContractPointer(''));
@@ -579,6 +600,18 @@ export class RecordContractCompiler {
     }
 
     component = this.applyEditModeName(component);
+
+    const viewProjection =
+      request.fieldMode === 'read' &&
+      component.constraints?.allowModes?.length === 1 &&
+      component.constraints.allowModes[0] === 'view' &&
+      component.overrides?.formModeClasses?.view?.component === 'ContentComponent';
+    if (viewProjection) {
+      state.hasViewProjections = true;
+      // The authority pass omits projections. The final pass always invokes their
+      // contributors before deciding whether their storage shape is redundant.
+      if (state.projectionOwners === null) return [];
+    }
 
     const componentType = component.component?.class;
     if (typeof componentType !== 'string' || componentType.trim() === '') {
@@ -741,6 +774,12 @@ export class RecordContractCompiler {
         componentType,
         contributor: identity,
       });
+    }
+    // Privacy is part of the contributor contract, even for display projections.
+    // Keep privacy-bearing nodes in the normal deny-wins merge (including nested
+    // and incompatible shapes); only privacy-free redundant shapes may be omitted.
+    if (viewProjection && state.projectionOwners?.has(pointer) && !hasWriteOnlyFields(contribution.node)) {
+      return [];
     }
     this.claimProperty(pointer, componentType, identity, contributionState);
     for (const owned of contributor.ownedPointers) {

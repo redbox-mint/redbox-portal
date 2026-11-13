@@ -106,10 +106,23 @@ function nodeHints(
   }
   return output;
 }
-function selection(contract: RecordContract, tokens: readonly (string | null)[]): GridSelection {
+// Only declared shapes can be projected in collection reads; opaque JSON remains unavailable.
+function declaredSelection(shape: ReadShape): string | null {
+  if (shape.kind === 'json') return null;
+  if (shape.kind === 'array') return declaredSelection(shape.items);
+  if (shape.kind !== 'object') return '';
+  const children = Object.entries(shape.properties).map(([name, child]) => {
+    const nested = declaredSelection(child);
+    return nested === null ? null : `${fieldName(name)}${nested ? ` { ${nested} }` : ''}`;
+  });
+  return children.some(child => child === null) ? null : children.join(' ');
+}
+function selection(contract: RecordContract, tokens: readonly (string | null)[], shape: ReadShape): GridSelection {
   const names = tokens.filter((token): token is string => token !== null);
   const aliases = names.map((_, index) => `g_${hash(JSON.stringify([contract.context, names.slice(0, index + 1)]))}`);
-  let result = '';
+  // Keep whole-object results separate from aliases used by selected child columns.
+  if (shape.kind === 'object') aliases[aliases.length - 1] += '_object';
+  let result = shape.kind === 'array' || shape.kind === 'object' ? (declaredSelection(shape) ?? '') : '';
   for (let index = names.length - 1; index >= 0; index--)
     result = `${aliases[index]}: ${fieldName(names[index])}${result ? ` { ${result} }` : ''}`;
   return {
@@ -236,8 +249,13 @@ export function buildCatalogue(
         const existing = fields.get(id);
         if (existing) {
           existing.repeating ||= repeating;
+          existing.selectable &&=
+            !tokens.includes(null) &&
+            (shape.kind === 'array' || shape.kind === 'object'
+              ? declaredSelection(shape) !== null
+              : !['OBJECT', 'JSON'].includes(type));
           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
-          existing.selections.push(selection(contract, tokens));
+          existing.selections.push(selection(contract, tokens, shape));
           existing.choices.push(...(hint?.choices ?? []).map(value => ({ label: String(value), value })));
         } else
           fields.set(id, {
@@ -247,7 +265,11 @@ export function buildCatalogue(
             labelKey: rawLabel?.startsWith('@') ? rawLabel : null,
             scalarType: type,
             availableInAllVariants: false,
-            selectable: !repeating && !['OBJECT', 'JSON'].includes(type),
+            selectable:
+              !tokens.includes(null) &&
+              (shape.kind === 'array' || shape.kind === 'object'
+                ? declaredSelection(shape) !== null
+                : !['OBJECT', 'JSON'].includes(type)),
             nullable: true,
             nested: tokens.length > 1,
             repeating,
@@ -255,7 +277,7 @@ export function buildCatalogue(
             operators: [],
             sortable: false,
             choices: (hint?.choices ?? []).map(value => ({ label: String(value), value })),
-            selections: [selection(contract, tokens)],
+            selections: [selection(contract, tokens, shape)],
             unavailableReason: null,
           });
         if (fields.size > GRID_LIMITS.catalogueFields)
@@ -273,7 +295,7 @@ export function buildCatalogue(
       field.id.startsWith('record:') || new Set(field.selections.map(item => item.variant)).size === scoped.length;
     field.choices = [...new Map(field.choices.map(choice => [JSON.stringify(choice.value), choice])).values()];
     if (field.scalarType === 'MIXED') field.selectable = false;
-    if (!field.selectable || field.repeating) {
+    if (!field.selectable || field.repeating || field.scalarType === 'OBJECT') {
       field.unavailableReason = field.repeating ? 'REPEATING_FIELD' : 'NON_SCALAR_FIELD';
       continue;
     }
