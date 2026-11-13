@@ -460,7 +460,7 @@ sequenceDiagram
     F->>GC: existing record create endpoint
     GC-->>F: form.save.success + targetOid
     F->>GC: POST run/:id/commit(targetOid, reviewed fields)
-    GC->>RS: verify saved values and persist provenance
+    GC->>RS: authorize saved target and persist applied provenance
 ```
 
 ### Public service methods and errors
@@ -895,7 +895,7 @@ Request:
 }
 ```
 
-The service verifies the run actor/brand/status, target record type/form/creator/edit access, source relationship, saved field hashes, and candidate digest. It creates/upserts provenance rows and marks the run committed. Repeating the same commit returns the same result. A different target or digest returns `409`.
+The service verifies the run actor/brand/status, target record type/form/creator/edit access, source relationship, candidate value hashes and digest, and the pinned applied/reviewed field receipt. Saved field values may differ after human edits; provenance retains the generated hash so reload can identify edited values. It creates/upserts provenance rows and marks the run committed. Repeating the same commit returns the same result. A different target or digest returns `409`.
 
 #### `GET /:branding/:portal/record/:oid/generation-provenance`
 

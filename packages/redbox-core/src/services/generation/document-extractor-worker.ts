@@ -1,4 +1,3 @@
-import { parentPort, workerData } from 'node:worker_threads';
 import type { GenerationDocumentFormat } from '@researchdatabox/sails-ng-common';
 
 interface ExtractionInput {
@@ -24,6 +23,7 @@ async function extract(input: ExtractionInput): Promise<Array<{ text: string; lo
       disableFontFace: true,
       useSystemFonts: false,
       verbosity: 0,
+      useWasm: false,
     });
     try {
       const pdf = await task.promise;
@@ -61,8 +61,10 @@ async function extract(input: ExtractionInput): Promise<Array<{ text: string; lo
   return passages;
 }
 
-void extract(workerData as ExtractionInput).then(
-  passages => parentPort?.postMessage({ passages }),
-  (error: unknown) =>
-    parentPort?.postMessage({ error: error instanceof Error && error.message === 'limit' ? 'limit' : 'unreadable' })
-);
+process.once('message', (input: ExtractionInput) => {
+  void extract(input).then(
+    passages => process.send?.({ passages }),
+    (error: unknown) =>
+      process.send?.({ error: error instanceof Error && error.message === 'limit' ? 'limit' : 'unreadable' })
+  );
+});

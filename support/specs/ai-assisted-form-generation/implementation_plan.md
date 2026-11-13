@@ -403,7 +403,7 @@ Implement:
 
 - idempotent commit from completed run to one target OID;
 - target brand/type/form/source relationship/creator/edit-access verification;
-- current saved value hash verification;
+- saved target authorization and candidate hash verification; edited saved values remain permitted;
 - provenance upsert by run/field;
 - reviewed field validation;
 - run `completed -> committing -> committed` transition with retry rollback;

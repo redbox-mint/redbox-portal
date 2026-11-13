@@ -11,7 +11,7 @@ import {
   untracked,
   ViewChild,
 } from '@angular/core';
-import { AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import {
   GenerationCandidatePatch,
   GenerationCommitRequest,
@@ -141,9 +141,8 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.subscriptions.add(this.eventBus.select$(FormComponentEventType.FIELD_VALUE_CHANGED).subscribe((event) => {
       if (event.origin === 'generation') return;
       void this.maybeLaunchFromSelection(event.fieldId);
-      const item = this.candidate()?.items.find((candidateItem) => this.pointerMatchesFieldId(candidateItem.metadataPointer, event.fieldId));
-      const provenancePointer = item?.metadataPointer
-        ?? Object.keys(this.provenance.byPointer()).find((pointer) => this.pointerMatchesFieldId(pointer, event.fieldId));
+      const provenancePointer = this.resolveEditedPointer(event.fieldId);
+      const item = this.candidate()?.items.find((candidateItem) => candidateItem.metadataPointer === provenancePointer);
       if (provenancePointer) {
         this.provenance.markEdited(provenancePointer, event.value);
       }
@@ -153,8 +152,38 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }));
   }
 
-  private pointerMatchesFieldId(pointer: string, fieldId: string): boolean {
-    return pointer === fieldId || this.pointerFieldId(pointer) === fieldId;
+  private resolveEditedPointer(fieldId: string): string | undefined {
+    const tracked = new Set([
+      ...(this.candidate()?.items.map((item) => item.metadataPointer) ?? []),
+      ...Object.keys(this.provenance.byPointer()),
+    ]);
+    const known = new Set(tracked);
+    const visit = (control: AbstractControl, pointer: string): void => {
+      if (pointer) known.add(pointer);
+      if (control instanceof FormGroup || control instanceof FormArray) {
+        Object.entries(control.controls).forEach(([name, child]) => {
+          visit(child, `${pointer}/${name.replace(/~/g, '~0').replace(/\//g, '~1')}`);
+        });
+      }
+    };
+    const form = this.form();
+    if (form) visit(form, '');
+
+    let pointer: string | undefined;
+    if (fieldId.startsWith('/')) {
+      if (known.has(fieldId)) {
+        pointer = fieldId;
+      } else {
+        // Component lineage can prefix a metadata path with layout-only ancestors.
+        // Prefer the complete nested path over a shared leaf name.
+        pointer = [...known].filter((candidate) => fieldId.endsWith(candidate))
+          .sort((left, right) => right.length - left.length)[0];
+      }
+    } else {
+      const matches = [...known].filter((candidate) => this.pointerFieldId(candidate) === fieldId);
+      if (matches.length === 1) pointer = matches[0];
+    }
+    return pointer && tracked.has(pointer) ? pointer : undefined;
   }
 
   public ngOnDestroy(): void {
