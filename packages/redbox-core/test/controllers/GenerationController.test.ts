@@ -123,8 +123,14 @@ describe('GenerationController', () => {
     expect(sendResp.firstCall.args[2].status).to.equal(202);
   });
 
-  it('does not expose unexpected service errors in the response', async () => {
-    runService.getForActor.rejects(new Error('provider response contained private project data'));
+  it('does not expose unexpected service errors in responses or logs', async () => {
+    const privateValue = 'provider response contained private project data';
+    const error = Object.assign(new Error(privateValue), {
+      name: privateValue,
+      stack: privateValue,
+      body: privateValue,
+    });
+    runService.getForActor.rejects(error);
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.getRun(request({ id: 'run-1' }), {} as Sails.Res);
@@ -132,8 +138,13 @@ describe('GenerationController', () => {
     const payload = sendResp.firstCall.args[2];
     expect(payload.status).to.equal(503);
     expect(payload.data.error).to.deep.include({ code: 'GENERATION_PROVIDER_UNAVAILABLE', retryable: false });
-    expect(JSON.stringify(payload)).not.to.contain('private project data');
-    expect((global as any).sails.log.error.calledOnce).to.equal(true);
+    expect(JSON.stringify(payload)).not.to.contain(privateValue);
+    const errorLog = (global as any).sails.log.error;
+    expect(errorLog.calledOnce).to.equal(true);
+    expect(errorLog.firstCall.args).to.deep.equal([
+      'Generation request failed', { code: 'GENERATION_PROVIDER_UNAVAILABLE' },
+    ]);
+    expect(JSON.stringify(errorLog.firstCall.args)).not.to.contain(privateValue);
   });
 
   it('requires an authenticated brand session before resolving services', async () => {

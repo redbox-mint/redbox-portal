@@ -259,7 +259,7 @@ export namespace Controllers {
       } catch (error) {
         const safe = asGenerationError(error);
         if (!(error instanceof GenerationError)) {
-          this.logger.error('Generation request failed', error);
+          this.logger.error('Generation request failed', { code: safe.code });
         }
         return this.sendResp(req, res, {
           status: safe.status,

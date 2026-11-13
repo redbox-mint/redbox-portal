@@ -1,3 +1,6 @@
+@if (completed() && error()) {
+  <div class="alert alert-danger" role="alert">{{ error()! | i18next }}</div>
+}
 @if (documentLaunch() && !effectiveSession() && !completed()) {
   <button type="button" class="btn btn-outline-primary mb-3" [disabled]="busy()" (click)="startWithDocuments()">
     {{ 'generation-use-documents' | i18next }}

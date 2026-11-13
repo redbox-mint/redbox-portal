@@ -846,6 +846,57 @@ describe('Generation paused-status rendering', () => {
     expect(host.querySelector('.alert-info')).toBeNull();
     fixture.destroy();
   });
+  it('shows exhausted commit failures for an applied create flow even after its inline panel closes', async () => {
+    const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['commit']);
+    api.commit.and.rejectWith(new Error('Private receipt failure'));
+    const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
+    eventBus.select$.and.returnValue(EMPTY);
+    const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
+    store.selectSignal.and.returnValue(signal(true));
+    const applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues']);
+    const provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>('GenerationProvenanceStoreService', ['load'], { byPointer: signal({}) });
+    await TestBed.configureTestingModule({
+      declarations: [GenerationSidePanelComponent],
+      imports: [ReactiveFormsModule, StatusTestTranslationPipe], schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        { provide: GenerationApiService, useValue: api },
+        { provide: FormComponentEventBus, useValue: eventBus },
+        { provide: Store, useValue: store },
+        { provide: GenerationPatchApplierService, useValue: applier },
+        { provide: GenerationProvenanceStoreService, useValue: provenance },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(GenerationSidePanelComponent);
+    const component = fixture.componentInstance;
+    fixture.componentRef.setInput('inline', true);
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('Generated') }));
+    fixture.detectChanges();
+    component.activeSession.set({ runId: 'create-run', bindingKey: 'documents', initialValues: [], autoOpen: true });
+    component.inlineOpen.set(true);
+    component.candidate.set({ runId: 'create-run', candidateDigest: 'digest', baseTargetDigest: 'base', items: [] });
+    const commit = () => (component as unknown as { commitAfterSave(oid: string): Promise<void> }).commitAfterSave('saved-record');
+    await commit();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(api.commit.calls.count()).toBe(3);
+    expect(component.completed()).toBeTrue();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('generation-commit-failed');
+    expect(host.textContent).not.toContain('Private receipt failure');
+    expect(host.querySelector('redbox-form-runtime-actions')).toBeNull();
+    component.close();
+    fixture.detectChanges();
+    expect(host.querySelector('aside')).toBeNull();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('generation-commit-failed');
+    expect(store.dispatch).toHaveBeenCalledWith(jasmine.objectContaining({ type: '[Generation] Commit Failed' }));
+
+    api.commit.and.resolveTo({ runId: 'create-run', targetOid: 'saved-record', committed: true, provenanceCount: 0 });
+    await commit();
+    fixture.detectChanges();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(api.commit.calls.count()).toBe(4);
+    fixture.destroy();
+  });
+
   it('renders review failure on the completed panel and keeps the saved field unreviewed until retry succeeds', async () => {
     const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['provenance', 'review']);
     const field: GenerationFieldProvenanceView = {
