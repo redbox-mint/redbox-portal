@@ -1,8 +1,13 @@
 /// <reference path="../sails.ts" />
-import { Attr, BeforeCreate, BeforeUpdate, Entity, toWaterlineModelDef } from '../decorators';
-import { normalizeVersion, rejectPublishedUpdate } from './generation-model-helpers';
+import { Attr, BeforeCreate, BeforeUpdate, Entity, buildInvalidNewRecordError, toWaterlineModelDef } from '../decorators';
+import { generationDeploymentContent, normalizedSlug, normalizeVersion, rejectPublishedUpdate } from './generation-model-helpers';
 
-const normalize = (record: Record<string, unknown>, callback: (error?: Error) => void) => normalizeVersion(record, callback, 'parameters');
+const normalize = (record: Record<string, unknown>, callback: (error?: Error) => void) => {
+  const key = normalizedSlug(record.key);
+  if (!key) return callback(buildInvalidNewRecordError('key must not be empty'));
+  record.key = key;
+  normalizeVersion(record, callback, generationDeploymentContent);
+};
 @BeforeCreate(normalize)
 @BeforeUpdate(rejectPublishedUpdate)
 @Entity('generationmodeldeployment', {

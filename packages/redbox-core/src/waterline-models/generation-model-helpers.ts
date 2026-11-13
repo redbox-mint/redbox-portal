@@ -35,7 +35,7 @@ export function normalizeStableEntity(record: Record<string, unknown>, callback:
 export function normalizeVersion(
   record: Record<string, unknown>,
   callback: LifecycleCallback,
-  contentField: string,
+  contentField: string | ((record: Record<string, unknown>) => unknown),
 ): void {
   const version = Number(record.version);
   const status = String(record.status ?? 'draft');
@@ -48,11 +48,22 @@ export function normalizeVersion(
     return;
   }
   record.status = status;
-  const content = record[contentField];
+  const content = typeof contentField === 'function' ? contentField(record) : record[contentField];
   if (content !== undefined) {
     record.contentHash = canonicalHash(content);
   }
   callback();
+}
+
+/** Behavior-changing deployment configuration, independent of labels and publication audit. */
+export function generationDeploymentContent(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    connectionId: record.connectionId,
+    modelId: record.modelId,
+    parameters: record.parameters ?? {},
+    routingPolicy: record.routingPolicy ?? {},
+    requiredCapabilities: record.requiredCapabilities ?? {},
+  };
 }
 
 export function rejectPublishedUpdate(record: Record<string, unknown>, callback: LifecycleCallback): void {

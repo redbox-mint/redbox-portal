@@ -1,4 +1,5 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
+import { GenerationFieldProvenanceView } from '@researchdatabox/sails-ng-common';
 import { GenerationProvenanceStoreService } from './generation-provenance-store.service';
 
 @Component({
@@ -26,6 +27,9 @@ import { GenerationProvenanceStoreService } from './generation-provenance-store.
                 }
               </ul>
             }
+            @if (reviewError()) {
+              <div class="alert alert-danger" role="alert">{{ reviewError()! | i18next }}</div>
+            }
             @if (item.reviewRequired) {
               <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markReviewed()">
                 {{ 'generation-mark-reviewed' | i18next }}
@@ -45,9 +49,22 @@ export class GenerationProvenanceBadgeComponent {
     return field?.displayState === 'removed' ? undefined : field;
   });
 
+  private readonly failedReview = signal<GenerationFieldProvenanceView | null>(null);
+  readonly reviewError = computed(() => {
+    const field = this.field();
+    return field?.reviewRequired && this.failedReview() === field ? 'generation-review-failed' : null;
+  });
+
   constructor(private readonly store: GenerationProvenanceStoreService) {}
 
   public async markReviewed(): Promise<void> {
-    await this.store.markReviewed(this.metadataPointer());
+    const field = this.field();
+    if (!field?.reviewRequired) return;
+    this.failedReview.set(null);
+    try {
+      await this.store.markReviewed(this.metadataPointer());
+    } catch {
+      if (this.field() === field) this.failedReview.set(field);
+    }
   }
 }

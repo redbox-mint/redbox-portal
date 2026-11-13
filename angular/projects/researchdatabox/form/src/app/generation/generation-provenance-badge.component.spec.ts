@@ -61,4 +61,50 @@ describe('GenerationProvenanceBadgeComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('aside')).toBeNull();
   });
+  it('shows review failure without accepting the review and clears the error when retry succeeds', async () => {
+    const field = {
+      id: 'saved-review', runId: 'run-1', profileFieldId: 'summary', metadataPointer: '/summary',
+      displayState: 'generated' as const, groundingState: 'requiresReview' as const, reviewRequired: true,
+      rationale: 'Review the recommendation.', evidence: [], generatedAt: new Date(0).toISOString(),
+    };
+    api.provenance.and.resolveTo({ recordOid: 'record-1', fields: [field] });
+    await store.load('record-1');
+    api.review.and.rejectWith(new Error('private failure detail'));
+    fixture.detectChanges();
+
+    await expectAsync(fixture.componentInstance.markReviewed()).toBeResolved();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('generation-review-failed');
+    expect(host.textContent).not.toContain('private failure detail');
+    expect(store.byPointer()['/summary'].reviewRequired).toBeTrue();
+    api.review.and.resolveTo({ ...field, reviewRequired: false });
+    await fixture.componentInstance.markReviewed();
+    fixture.detectChanges();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(store.byPointer()['/summary'].reviewRequired).toBeFalse();
+  });
+
+  it('does not show an old failed review against replacement field provenance', async () => {
+    const field = {
+      id: 'old-field', runId: 'old-run', profileFieldId: 'summary', metadataPointer: '/summary',
+      displayState: 'generated' as const, groundingState: 'requiresReview' as const, reviewRequired: true,
+      rationale: 'Old record', evidence: [], generatedAt: new Date(0).toISOString(),
+    };
+    api.provenance.and.resolveTo({ recordOid: 'old-record', fields: [field] });
+    await store.load('old-record');
+    let reject = (_error: Error) => {};
+    api.review.and.returnValue(new Promise((_resolve, rejectReview) => { reject = rejectReview; }));
+    const reviewing = fixture.componentInstance.markReviewed();
+    api.provenance.and.resolveTo({ recordOid: 'new-record', fields: [{ ...field, id: 'new-field', runId: 'new-run' }] });
+    await store.load('new-record');
+    reject(new Error('Old review failure'));
+    await expectAsync(reviewing).toBeResolved();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(store.byPointer()['/summary'].id).toBe('new-field');
+    expect(store.byPointer()['/summary'].reviewRequired).toBeTrue();
+  });
+
 });

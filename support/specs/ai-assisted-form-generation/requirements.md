@@ -63,7 +63,7 @@ The generation capability must support records alone, uploaded documents alone, 
 | Administration | The full feature provides admin screens similar to vocabulary management. For the POC, profiles, bindings, deployments, connections, and knowledge are bootstrap-seeded persisted entities. |
 | Publishing authority | An Admin may draft, test, publish, and retire configuration. No additional approval role or workflow is required. Published versions are immutable. |
 | Provider | The POC calls OpenRouter. The exact model is deliberately selected near completion and stored as deployment configuration, not hard-coded. |
-| Provider extensibility | The architecture uses the Vercel AI SDK behind installed ReDBox adapters and supports OpenRouter initially, followed by Google Vertex AI/Gemini, AWS Bedrock, and generic OpenAI-compatible protocols. Provider support is capability-tested rather than assumed from an SDK/provider name. |
+| Provider extensibility | The architecture uses the Vercel AI SDK behind installed ReDBox adapters and implements OpenRouter and AWS Bedrock, with Google Vertex AI/Gemini and generic OpenAI-compatible protocols planned. Provider support is capability-tested rather than assumed from an SDK/provider name. |
 | Credentials | Credentials and billing arrangements are provider-dependent. Database records contain a secret reference, never a secret value. The POC resolves an OpenRouter API key from environment/secret configuration. |
 | Model tools | None. ReDBox constructs the prompt and the model returns a structured response. Retrieval and all data access are deterministic server responsibilities. |
 | Knowledge | A fictional, approved policy pack for data classification, storage, retention, and sharing. No arbitrary web retrieval. |
@@ -403,7 +403,7 @@ These criteria cover the confirmed capability beyond the record-based POC demons
 - Automatic generation on create, save, workflow transition, or field change.
 - Streaming provider output.
 - Cross-model/provider fallback.
-- Google Vertex AI/Gemini, AWS Bedrock, and generic OpenAI-compatible runtime adapters implemented through their Vercel AI SDK providers.
+- Google Vertex AI/Gemini and generic OpenAI-compatible runtime adapters implemented through their Vercel AI SDK providers.
 - Vector embeddings or an external vector database.
 - Arbitrary web retrieval or model tools.
 - Files, maps, record selectors, workspaces, integration controls, and system fields as targets.
@@ -417,7 +417,7 @@ These criteria cover the confirmed capability beyond the record-based POC demons
 After the researcher experience is accepted:
 
 1. Deliver admin management screens and draft/test/publish/version-history workflows.
-2. Add Google Vertex AI/Gemini, AWS Bedrock, and generic OpenAI-compatible providers behind the same ReDBox capability contract.
+2. Add Google Vertex AI/Gemini and generic OpenAI-compatible providers behind the same ReDBox capability contract.
 3. Add profile test suites, comparison reports, and controlled model-deployment upgrades.
 4. Add knowledge upload/preview/publish/reindex management and optional vector retrieval adapters.
 5. Add saved-record regeneration with three-way merge and explicit replacement review.
@@ -430,7 +430,7 @@ After the researcher experience is accepted:
 - OpenRouter structured outputs: <https://openrouter.ai/docs/guides/features/structured-outputs>
 - OpenRouter provider routing and required-parameter/data controls: <https://openrouter.ai/docs/guides/routing/provider-selection>
 - OpenRouter zero-data-retention controls: <https://openrouter.ai/docs/guides/features/zdr>
-- Amazon Bedrock structured output (future adapter): <https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html>
+- Amazon Bedrock structured output: <https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html>
 - Vercel AI SDK provider architecture: <https://ai-sdk.dev/docs/foundations/providers-and-models>
 - Vercel AI SDK structured output: <https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data>
 - Vercel AI SDK Google Vertex provider: <https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex>

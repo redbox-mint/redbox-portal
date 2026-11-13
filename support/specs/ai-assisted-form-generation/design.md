@@ -368,7 +368,7 @@ No historic user value is copied into provenance. An explicit review updates onl
 
 - Model lifecycle hooks normalise keys, names, statuses, actor identifiers, hashes, and retention bounds.
 - Cross-entity/brand validation belongs in services because Waterline lifecycle hooks cannot safely express all association and authorization checks.
-- Published configuration immutability is enforced twice: model hook and service compare-and-set.
+- Published configuration content is protected by draft-only service compare-and-set criteria; model hooks validate publication payloads without inspecting the stored row.
 - Native compare-and-set updates control run transitions and profile publication.
 - No model hook invokes a provider.
 - No LLM-generated value is created in a Waterline lifecycle hook.
@@ -981,7 +981,7 @@ Add optional `origin` and `correlationId` to field-change events, with backwards
 
 #### NgRx generation feature state
 
-Add `form-state/generation/` or extend the existing form feature with:
+The implemented `generation/state/` feature extends the existing form feature with:
 
 - actions for runtime action launch, panel state, execute/retry/cancel, polling, result, patch application, provenance load/review, and commit;
 - reducer state: available actions, active run, questions/answers, phase/status, candidate, pending provenance, conflicts, and errors;
@@ -1176,7 +1176,8 @@ Brand configuration may hide/reorder it using the existing admin-sidebar mechani
 | Admin REST CRUD | absent; services/bootstrap are tested directly | complete contracts above |
 | Tagged knowledge retrieval | complete | optional keyword/vector adapters |
 | Existing-record regeneration | absent | three-way replacement review |
-| Vertex/Gemini, Bedrock, and generic OpenAI-compatible providers | interfaces and fixtures only | AI SDK-backed implementations |
+| Bedrock | AI SDK-backed implementation | Further capability extensions |
+| Vertex/Gemini and generic OpenAI-compatible providers | interfaces only | AI SDK-backed implementations |
 | Conditional questionnaire | absent | optional versioned capability |
 
 ## Assumptions
@@ -1192,7 +1193,7 @@ Brand configuration may hide/reorder it using the existing admin-sidebar mechani
 
 - Whether a future production deployment should default diagnostic retention to seven days or zero. The model supports both; POC configuration can use seven days for debugging.
 - Whether future administration should be one embedded app with internal sections or several EJS-mounted apps. One app is proposed for shared state and simpler navigation.
-- Which non-OpenRouter provider is delivered first after POC. Google Vertex AI/Gemini is the leading customer model-invocation integration and Bedrock is the leading AWS-hosted demo option; both use the same conformance contract. Confirm whether the client means Gemini models on Vertex AI or the separate Gemini Enterprise search/agent API: the Vercel AI SDK covers the former, while the latter requires a distinct integration contract.
+- Which provider follows the implemented OpenRouter and Bedrock adapters. Google Vertex AI/Gemini is a candidate customer integration using the same conformance contract. Confirm whether the client means Gemini models on Vertex AI or the separate Gemini Enterprise search/agent API: the Vercel AI SDK covers the former, while the latter requires a distinct integration contract.
 - Whether future rich-text targets should accept a restricted structured document model or sanitised HTML. The POC can use textarea controls and avoid deciding this prematurely.
 - Whether a future saved-record regeneration feature permits `replace`, `append`, or `merge` per target. The POC implements only `fill`.
 

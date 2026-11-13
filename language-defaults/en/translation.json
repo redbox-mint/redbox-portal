@@ -1968,6 +1968,8 @@
   "generation-resume-status-checks": "Resume status checks",
   "generation-return-to-form": "Return to form",
   "generation-request-failed": "The drafting request could not be started. Please try again.",
+  "generation-launch-failed": "The drafting request could not be started. Please try again.",
+  "generation-review-failed": "Your review could not be saved. Please try again.",
   "generation-commit-failed": "The draft was saved, but its provenance could not be recorded.",
   "generation-error-generation-request-invalid": "Check the information submitted and try again.",
   "generation-error-generation-not-configured": "AI-assisted drafting is not configured for this portal.",
