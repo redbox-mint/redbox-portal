@@ -1941,6 +1941,7 @@
   "yes": "Yes",
   "no": "No",
   "generation-actions-eyebrow": "Guided workflow",
+  "generation-action-create": "Create draft record",
   "generation-action-create-rdmp": "Create data management plan",
   "generation-action-create-rdmp-help": "Start a new linked plan and review the project context before generating a draft.",
   "generation-use-documents": "Use project documents to draft this form",

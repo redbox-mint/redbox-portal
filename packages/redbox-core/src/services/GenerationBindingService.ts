@@ -13,6 +13,7 @@ type RecordLike = { redboxOid?: string; metadata?: Record<string, unknown>; meta
 interface RecordsLike {
   getMeta(oid: string): Promise<RecordLike>;
   hasViewAccess(brand: BrandingModel, user: UserModel, roles: unknown[], record: RecordLike): boolean;
+  hasEditAccess(brand: BrandingModel, user: UserModel, roles: unknown[], record: RecordLike): boolean;
 }
 interface ProfileLike { resolvePublished(brandId: string, profileId: string): Promise<GenerationProfileVersionAttributes>; }
 interface SchemaLike {
@@ -194,9 +195,14 @@ export namespace Services {
         !records.hasViewAccess(input.brand, input.user, input.user.roles, source)) {
         throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Generation source is not available');
       }
+      const mode = input.mode ?? (binding.sourceModes?.length && !binding.sourceModes.includes('view') ? 'edit' : 'view');
+      if (mode === 'edit' && (typeof records.hasEditAccess !== 'function' ||
+        !records.hasEditAccess(input.brand, input.user, input.user.roles, source))) {
+        throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Generation source cannot be edited');
+      }
       const context: GenerationActionContext = {
         actor: input.actor, brand: input.brand, user: input.user, record: source,
-        formName: String(source.metaMetadata?.form ?? ''), mode: input.mode ?? 'view',
+        formName: String(source.metaMetadata?.form ?? ''), mode,
       };
       this.assertBindingContext(binding, context);
       return { binding, profileVersion, source };

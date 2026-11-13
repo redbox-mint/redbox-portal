@@ -38,6 +38,7 @@ export async function authorizeRun(run: GenerationRunAttributes): Promise<void> 
   const records = requireService<{
     getMeta(oid: string): Promise<{ metaMetadata?: Record<string, unknown> }>;
     hasViewAccess(brand: unknown, user: unknown, roles: unknown[], record: unknown): boolean;
+    hasEditAccess(brand: unknown, user: unknown, roles: unknown[], record: unknown): boolean;
   }>('recordsservice', ['getMeta', 'hasViewAccess']);
   for (const source of run.sourceRefs) {
     const record = await records.getMeta(source.oid);
@@ -46,7 +47,9 @@ export async function authorizeRun(run: GenerationRunAttributes): Promise<void> 
       String(record.metaMetadata?.brandId ?? '') !== run.brandId ||
       binding.sourceRecordType !== source.recordType ||
       String(record.metaMetadata?.type ?? '') !== source.recordType ||
-      !records.hasViewAccess(brand, user, roles, record)
+      !records.hasViewAccess(brand, user, roles, record) ||
+      (binding.sourceModes?.length && !binding.sourceModes.includes('view') &&
+        (typeof records.hasEditAccess !== 'function' || !records.hasEditAccess(brand, user, roles, record)))
     ) {
       throw new GenerationError('GENERATION_SOURCE_FORBIDDEN', 'Generation source authorization changed');
     }
