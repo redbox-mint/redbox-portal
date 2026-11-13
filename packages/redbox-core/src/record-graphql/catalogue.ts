@@ -88,22 +88,66 @@ function nodeHints(
   node: ContractNode,
   shape: ReadShape,
   tokens: readonly (string | null)[] = [],
-  output = new Map<string, { label?: string; choices: Array<string | number | boolean> }>()
+  output = new Map<
+    string,
+    { label?: string; shortLabel?: string; groups?: string[]; vocabulary?: string; choices: GridField['choices'] }
+  >(),
+  groups: string[] = []
 ) {
   if (node.annotations?.writeOnly || (shape.kind === 'json' && shape.reason === 'restricted-shape')) return output;
   const id = metadataFieldId(tokens);
   const hint = output.get(id) ?? { choices: [] };
+  const configuredGroups = node.annotations?.extensions?.['x-redbox-group-path'];
+  const currentGroups = [
+    ...groups,
+    ...(Array.isArray(configuredGroups)
+      ? configuredGroups.filter((group): group is string => typeof group === 'string')
+      : []),
+  ];
+  hint.groups ??= [...new Set(currentGroups)];
+  const shortLabel = node.annotations?.extensions?.['x-redbox-short-label'];
+  if (typeof shortLabel === 'string') hint.shortLabel ??= shortLabel;
   const label = node.annotations?.extensions?.['x-redbox-label'] ?? node.annotations?.description;
   if (typeof label === 'string' && !hint.label) hint.label = label;
-  if (node.kind === 'scalar') hint.choices.push(...(node.enum ?? []));
+  const vocabulary = node.annotations?.extensions?.['x-redbox-vocabulary'];
+  if (typeof vocabulary === 'string') hint.vocabulary ??= vocabulary;
+  if (node.kind === 'scalar')
+    hint.choices.push(
+      ...(node.enum ?? []).filter(value => value !== null).map(value => ({ label: String(value), value }))
+    );
+  const choices = node.annotations?.extensions?.['x-redbox-choice-labels'];
+  if (Array.isArray(choices))
+    for (const choice of choices)
+      if (
+        choice &&
+        typeof choice === 'object' &&
+        !Array.isArray(choice) &&
+        typeof choice.label === 'string' &&
+        ['string', 'number', 'boolean'].includes(typeof choice.value)
+      )
+        hint.choices.push({ label: choice.label, value: choice.value as string | number | boolean });
   output.set(id, hint);
   if (node.kind === 'object' && shape.kind === 'object')
     for (const [key, child] of Object.entries(node.properties))
-      if (Object.hasOwn(shape.properties, key)) nodeHints(child, shape.properties[key], [...tokens, key], output);
-  if (node.kind === 'array' && shape.kind === 'array') nodeHints(node.items, shape.items, [...tokens, null], output);
+      if (Object.hasOwn(shape.properties, key))
+        nodeHints(
+          child,
+          shape.properties[key],
+          [...tokens, key],
+          output,
+          typeof label === 'string' && tokens.length ? [...currentGroups, label] : currentGroups
+        );
+  if (node.kind === 'array' && shape.kind === 'array')
+    nodeHints(
+      node.items,
+      shape.items,
+      [...tokens, null],
+      output,
+      typeof label === 'string' ? [...currentGroups, label] : currentGroups
+    );
   if (node.kind === 'conditional') {
-    nodeHints(node.thenNode, shape, tokens, output);
-    if (node.elseNode) nodeHints(node.elseNode, shape, tokens, output);
+    nodeHints(node.thenNode, shape, tokens, output, groups);
+    if (node.elseNode) nodeHints(node.elseNode, shape, tokens, output, groups);
   }
   return output;
 }
@@ -217,6 +261,13 @@ export function buildCatalogue(
       path: name,
       label,
       labelKey: null,
+      displayLabel: label,
+      displayLabelKey: null,
+      group: 'Record',
+      groupKey: '@data-grids-field-group-record',
+      groupPath: ['@data-grids-field-group-record'],
+      repeatingSubfield: false,
+      repeatingGroupId: null,
       scalarType: type,
       selectable: true,
       availableInAllVariants: true,
@@ -226,7 +277,7 @@ export function buildCatalogue(
       filterable: false,
       operators: [],
       sortable: false,
-      choices: [],
+      choices: name === 'workflowStep' ? (environment.workflowLabels ?? []) : [],
       selections: [{ variant: '', workflowStage: '', form: '', selection: name, responsePath: [name] }],
       unavailableReason: null,
     });
@@ -246,6 +297,30 @@ export function buildCatalogue(
             : String(tokens.at(-1) ?? tokens.at(-2))
                 .replace(/[_-]/g, ' ')
                 .replace(/([a-z])([A-Z])/g, '$1 $2');
+        const fallbackLabel = String(tokens.at(-1) ?? tokens.at(-2))
+          .split(':')
+          .at(-1)!
+          .replace(/^dmpt[-_]/i, '')
+          .replace(/[_-]/g, ' ')
+          .replace(/([a-z])([A-Z])/g, '$1 $2');
+        const property = String(tokens.at(-1) ?? tokens.at(-2));
+        const short =
+          hint?.shortLabel ??
+          (rawLabel?.startsWith('@') ||
+          (rawLabel && rawLabel !== property && rawLabel.length <= 80 && !/[?\n<>]/.test(rawLabel))
+            ? rawLabel
+            : undefined);
+        const displayLabel =
+          short && !short.startsWith('@')
+            ? short
+            : fallbackLabel.charAt(0).toUpperCase() + fallbackLabel.slice(1).toLowerCase();
+        const groupPath = hint?.groups?.length ? hint.groups : ['@data-grids-field-group-metadata'];
+        const rawGroup = groupPath.at(-1)!;
+        const group = rawGroup.startsWith('@')
+          ? rawGroup === '@data-grids-field-group-metadata'
+            ? 'Metadata'
+            : rawGroup.slice(1)
+          : rawGroup;
         const type = scalarType(shape);
         const existing = fields.get(id);
         if (existing) {
@@ -257,12 +332,19 @@ export function buildCatalogue(
               : !['OBJECT', 'JSON'].includes(type));
           if (existing.scalarType !== type) existing.scalarType = 'MIXED';
           existing.selections.push(selection(contract, tokens, shape));
-          existing.choices.push(...(hint?.choices ?? []).map(value => ({ label: String(value), value })));
+          existing.choices.push(...(hint?.choices ?? []));
         } else
           fields.set(id, {
             id,
             path: pointer(tokens),
             label,
+            displayLabel,
+            displayLabelKey: short?.startsWith('@') ? short : null,
+            group,
+            groupKey: rawGroup.startsWith('@') ? rawGroup : null,
+            groupPath,
+            repeatingSubfield: tokens.includes(null),
+            repeatingGroupId: tokens.includes(null) ? metadataFieldId(tokens.slice(0, tokens.indexOf(null))) : null,
             labelKey: rawLabel?.startsWith('@') ? rawLabel : null,
             scalarType: type,
             availableInAllVariants: false,
@@ -277,7 +359,8 @@ export function buildCatalogue(
             filterable: false,
             operators: [],
             sortable: false,
-            choices: (hint?.choices ?? []).map(value => ({ label: String(value), value })),
+            choices: hint?.choices ?? [],
+            ...(hint?.vocabulary ? { vocabulary: hint.vocabulary } : {}),
             selections: [selection(contract, tokens, shape)],
             unavailableReason: null,
           });
@@ -359,6 +442,10 @@ export function buildCatalogue(
   }
   const catalogue: GridCatalogue = {
     recordType,
+    recordTypeLabel: environment.recordTypeLabel?.startsWith('@')
+      ? recordType
+      : environment.recordTypeLabel || recordType,
+    recordTypeLabelKey: environment.recordTypeLabel?.startsWith('@') ? environment.recordTypeLabel : null,
     fields: [...fields.values()].sort((a, b) => a.id.localeCompare(b.id)),
     variants: scoped.map(contract => ({
       typeName: metadataTypeName(contract),

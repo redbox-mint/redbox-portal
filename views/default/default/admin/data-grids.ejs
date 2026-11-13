@@ -4,11 +4,13 @@ const promotionBrand = BrandingService.getBrand(req.session.branding);
 const canCreateNamedQuery = req.isAuthenticated() && NamedQueryEditorService.canCreate(promotionBrand, req.session.portal, req.user);
 %>
 <%- include('layout/start.ejs') %>
-    <data-grids can-create-named-query="<%= canCreateNamedQuery ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
-      <div class="col-xs-12">
-        <img class="center-block" src="<%= BrandingService.getRootContext() %>/images/loading.svg"
-             alt="<%= TranslationService.t('loading-alt-text') %>">
-      </div>
+    <data-grids initial-title="<%= TranslationService.t('data-grids-title') %>" initial-intro="<%= TranslationService.t('data-grids-intro') %>" initial-loading="<%= TranslationService.t('data-grids-loading') %>" can-create-named-query="<%= canCreateNamedQuery ? 'true' : 'false' %>" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>ngCspNonce="<%= contentSecurityPolicyNonce %>"<% } %>>
+      <nav class="rb-admin-crumbs" aria-label="<%= TranslationService.t('data-grids-breadcrumbs') %>"><ol><li><%= TranslationService.t('menu-admin') %></li><li><%= TranslationService.t('data-grids-records-reporting') %></li><li aria-current="page"><%= TranslationService.t('data-grids-title') %></li></ol></nav>
+      <header class="rb-admin-page-header">
+        <div><h1><%= TranslationService.t('data-grids-title') %></h1>
+          <p><%= TranslationService.t('data-grids-intro') %></p></div>
+        <div class="rb-admin-page-actions"><button type="button" class="btn btn-primary" disabled><%= TranslationService.t('data-grids-new') %></button></div>
+      </header>
     </data-grids>
 <%- include('layout/end.ejs') %>
 <script src="<%= BrandingService.getRootContext() %>/angular/<%= appName %>/browser/polyfills<%= CacheService.getNgAppFileHash(appName, 'polyfills', '-') %>.js" type="module" <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>></script>

@@ -180,6 +180,7 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     color: var(--admin-ink); background-color: var(--admin-bg); border-color: var(--admin-control-border); border-radius: var(--admin-radius);
     &:focus { border-color: var(--admin-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--admin-primary) 20%, var(--admin-bg)); }
   }
+  .form-control[readonly] { background-color: var(--admin-surface); border-color: var(--admin-line); }
   input:not([type="submit"]):not([type="button"]), select, textarea, .form-check-input { border-color: var(--admin-control-border); }
   .form-check-input:checked { border-color: var(--admin-control-border); }
   .rb-admin-save-content { padding-bottom: var(--admin-save-height); min-width: 0; }
@@ -286,7 +287,11 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-field label, .rb-admin-field .rb-admin-filter-label { font-size: 12.5px; font-weight: 700; }
   .rb-admin-empty { text-align: center; padding: 40px 24px; color: var(--admin-muted); }
   .rb-admin-empty h3 { font-size: 17px; margin: 10px 0 4px; }
-  .rb-admin-empty p { margin: 0 auto 14px; max-width: 440px; }
+  .rb-admin-empty p { margin: 0 auto 14px; max-width: 60ch; }
+  .rb-admin-check { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
+  .rb-admin-check > i { flex: none; }
+  .rb-admin-check-success > i { color: var(--admin-success); }
+  .rb-admin-check-warning > i { color: color-mix(in srgb, var(--admin-warning) 35%, var(--admin-ink)); }
   .rb-admin-split { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
   .rb-admin-section-rail {
     flex: 1 1 200px; max-width: 240px; position: sticky; top: 16px;
@@ -436,6 +441,13 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
   .rb-admin-overflow > div > .btn { justify-content: flex-start; }
   .rb-admin-sub { display: block; color: var(--admin-muted); font-size: 13px; }
   code { color: var(--admin-muted); font-size: 13px; background: transparent; padding: 0; }
+  .rb-admin-path { display: inline; width: auto; color: var(--admin-muted); background: transparent; border: 0; padding: 0; overflow-wrap: anywhere; }
+  .rb-admin-secondary { display: block; margin-top: 2px; }
+  .rb-admin-icon-button { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; }
+  .rb-admin-icon-button > i { line-height: inherit; }
+  .rb-admin-overflow:has(> .rb-admin-icon-button) { display: inline-flex; }
+  .rb-admin-overflow > summary.rb-admin-icon-button.btn-sm { min-height: 0; color: var(--admin-heading); border-color: var(--admin-line); }
+  th.text-end { text-align: right; }
   a > code { color: inherit; }
   // The legacy portal .show utility forces opacity: 1 !important.
   .modal-backdrop.show { opacity: .45 !important; background: var(--admin-heading); }
@@ -449,6 +461,10 @@ body:has(.rb-admin .modal) > .modal-backdrop.show {
     &:hover, &:focus-visible { background: color-mix(in srgb, var(--admin-panel-text) 15%, transparent); border-color: var(--admin-panel-text); }
   }
   .rb-admin-segmented .btn { border-radius: 0; & + .btn { margin-left: -1px; } &:first-child { border-radius: var(--admin-radius) 0 0 var(--admin-radius); } &:last-child { border-radius: 0 var(--admin-radius) var(--admin-radius) 0; } }
+  .card-header .rb-admin-segmented .btn-outline-secondary {
+    border-color: var(--admin-panel-text);
+    &[aria-pressed='true'] { color: var(--admin-panel); background: var(--admin-panel-text); }
+  }
 
   .rb-admin-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 16px; }
   .rb-admin-tile { border: 1px solid var(--admin-line); border-radius: var(--admin-radius); background: var(--admin-bg); overflow: hidden; }

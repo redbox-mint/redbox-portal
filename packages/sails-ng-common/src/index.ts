@@ -157,3 +157,5 @@ export * from './named-query.model';
 export * from './record-grid-query';
 
 export * from './record-grid-filter';
+
+export * from './report-display';

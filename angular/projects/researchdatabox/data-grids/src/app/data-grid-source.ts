@@ -18,6 +18,8 @@ export interface DataGridSource {
   generate?(request: GridQuery): Promise<{ query: string; variables: object }>;
   stages?(scope: GridScope): Promise<GridScope[]>;
   fields?(scope: GridScope): Promise<GridScope[]>;
+  selection?(scope: GridScope, id: string): Promise<import('./data-grid.model').GridField>;
+  selections?(scope: GridScope, ids: string[]): Promise<import('./data-grid.model').GridField[]>;
   catalogue(): Promise<GridCatalogue>;
   read(id: string): Promise<SavedQuery>;
   remove(definition: SavedQuery): Promise<void>;

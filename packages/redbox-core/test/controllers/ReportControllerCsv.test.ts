@@ -137,7 +137,9 @@ describe('ReportController CSV request context', () => {
 
     assert.equal(returned, response);
     sinon.assert.calledOnceWithExactly(response.attachment, 'rdmpRecords.csv');
-    sinon.assert.calledOnceWithExactly(response.set, 'Content-Type', 'text/csv');
+    sinon.assert.calledWithExactly(response.set, 'Content-Type', 'text/csv');
+    sinon.assert.calledWithExactly(response.set, 'Cache-Control', 'no-store');
+    sinon.assert.calledTwice(response.set);
     sinon.assert.calledOnceWithExactly(response.status, 200);
     sinon.assert.calledOnce(response.send);
     assert.equal(typeof response.send.firstCall.args[0], 'string');

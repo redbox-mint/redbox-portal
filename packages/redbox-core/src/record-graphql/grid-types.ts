@@ -61,6 +61,14 @@ export interface GridField {
   path: string;
   label: string;
   labelKey: string | null;
+  /** Additive presentation hints; existing label/path/selection semantics remain. */
+  displayLabel?: string;
+  displayLabelKey?: string | null;
+  group?: string;
+  groupKey?: string | null;
+  groupPath?: string[];
+  repeatingSubfield?: boolean;
+  repeatingGroupId?: string | null;
   scalarType: GridScalar;
   selectable: boolean;
   availableInAllVariants: boolean;
@@ -71,6 +79,8 @@ export interface GridField {
   operators: GridOperator[];
   sortable: boolean;
   choices: Array<{ label: string; value: string | number | boolean }>;
+  /** Internal presentation reference, never exposed as a selectable metadata path. */
+  vocabulary?: string;
   selections: GridSelection[];
   unavailableReason: string | null;
 }
@@ -81,6 +91,8 @@ export interface GridVariant {
 }
 export interface GridCatalogue {
   recordType: string;
+  recordTypeLabel?: string;
+  recordTypeLabelKey?: string | null;
   revision: string;
   fields: GridField[];
   variants: GridVariant[];
@@ -98,6 +110,8 @@ export interface GridIndexPage {
   exhausted: boolean;
 }
 export interface GridEnvironment {
+  recordTypeLabel?: string;
+  workflowLabels?: Array<{ value: string; label: string }>;
   coreId: string;
   config: SolrCoreConfig;
   schema: GridIndexSchema;
@@ -106,4 +120,5 @@ export interface GridEnvironment {
 }
 export interface GridPorts {
   getGridEnvironment: (caller: ReadCaller, recordType: string, deadline: number) => Promise<GridEnvironment>;
+  getChoiceLabels?: (caller: ReadCaller, reference: string, deadline: number) => Promise<GridField['choices']>;
 }

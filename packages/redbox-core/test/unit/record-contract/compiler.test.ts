@@ -674,6 +674,68 @@ describe('RecordContractCompiler and core contributors', function () {
     expect(contract.fieldOwners).not.to.have.property('/details/view_only_note');
   });
 
+  it('retains choice labels and local vocabulary references only as read presentation annotations', async function () {
+    const configured = form([
+      field('retention', 'RadioInputComponent', {
+        inlineVocab: true,
+        vocabRef: 'retention',
+        options: [{ value: '5_years', label: 'Five years' }],
+      }),
+    ]);
+    const read = expectCompiled(
+      await compiler().compile({ form: configured, context: publicContext, fieldMode: 'read' })
+    );
+    expect(read.root.properties.retention.annotations?.extensions?.['x-redbox-choice-labels']).to.deep.equal([
+      { value: '5_years', label: 'Five years' },
+    ]);
+    expect(read.root.properties.retention.annotations?.extensions?.['x-redbox-vocabulary']).to.equal('retention');
+    const write = expectCompiled(await compiler().compile({ form: configured, context: publicContext }));
+    expect(JSON.stringify(write.root)).not.to.contain('x-redbox-choice-labels');
+  });
+  it('retains labelled tab and group presentation only in read contracts', async function () {
+    const tab = {
+      name: 'main',
+      component: {
+        class: 'TabComponent',
+        config: {
+          tabs: [
+            {
+              name: 'project',
+              layout: { class: 'TabContentLayout', config: { buttonLabel: '@project-tab' } },
+              component: {
+                class: 'TabContentComponent',
+                config: {
+                  componentDefinitions: [
+                    field('details', 'GroupComponent', {
+                      label: 'Project details',
+                      componentDefinitions: [
+                        field('projectTitle', 'SimpleInputComponent', {
+                          label: 'What is the title of this project?',
+                          shortLabel: 'Title',
+                        }),
+                      ],
+                    }),
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+    } as FormComponentDefinitionFrame;
+    const read = expectCompiled(
+      await compiler().compile({ form: form([tab]), context: publicContext, fieldMode: 'read' })
+    );
+    const group = read.root.properties.details;
+    expect(group.annotations?.extensions?.['x-redbox-group-path']).to.deep.equal(['@project-tab']);
+    expect(group.annotations?.extensions?.['x-redbox-label']).to.equal('Project details');
+    if (group.kind !== 'object') throw new Error('Expected declared group');
+    expect(group.properties.projectTitle.annotations?.extensions?.['x-redbox-short-label']).to.equal('Title');
+    const write = expectCompiled(await compiler().compile({ form: form([tab]), context: publicContext }));
+    expect(JSON.stringify(write.root)).not.to.contain('x-redbox-group-path');
+    expect(JSON.stringify(write.root)).not.to.contain('x-redbox-short-label');
+  });
+
   it('accepts undefined runtime defaults while traversing edit-mode containers', async function () {
     const tab = {
       name: 'mainTab',

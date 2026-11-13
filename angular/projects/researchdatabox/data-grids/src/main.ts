@@ -1,6 +1,5 @@
-import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
-import { DataGridsModule } from './app/data-grids.module';
+import { bootstrapApplication } from '@angular/platform-browser';
+import { DataGridsComponent } from './app/data-grids.component';
+import { dataGridsConfig } from './app/data-grids.config';
 
-platformBrowserDynamic()
-  .bootstrapModule(DataGridsModule)
-  .catch(err => console.error(err));
+bootstrapApplication(DataGridsComponent, dataGridsConfig).catch(err => console.error(err));

@@ -1,12 +1,20 @@
 import {
   buildSchema,
+  getNamedType,
+  isListType,
+  isNonNullType,
+  type SelectionSetNode,
+  type GraphQLCompositeType,
   getVariableValues,
   GraphQLSchema,
   GraphQLArgument,
   isObjectType,
+  isCompositeType,
+  isInterfaceType,
   isInputObjectType,
   Kind,
   parse,
+  print,
   validate,
   visit,
 } from 'graphql';
@@ -54,50 +62,8 @@ export function schemaFields(schema: GraphQLSchema | null, typeName: string, sea
       description: field.description ?? '',
     }));
 }
-/** Recognize only a direct collection with explicit first/after variables and page-info selections.
- * Fragments/directives/aliased child fields remain usable through non-paginated JSON/grid mode. */
-export function cursorBinding(document: string, variables: Record<string, unknown>, path: string[]) {
-  try {
-    const ast = parse(document, { maxTokens: 2000 });
-    const ops = ast.definitions.filter(node => node.kind === Kind.OPERATION_DEFINITION);
-    if (ops.length !== 1 || ops[0].selectionSet.selections.length !== 1) return null;
-    const root = ops[0].selectionSet.selections[0];
-    if (root.kind !== Kind.FIELD || root.name.value !== 'records' || root.directives?.length) return null;
-    const key = root.alias?.value ?? root.name.value;
-    if (path.join('.') !== `${key}.nodes`) return null;
-    const args = root.arguments ?? [];
-    const first = args.find(arg => arg.name.value === 'first')?.value;
-    const after = args.find(arg => arg.name.value === 'after')?.value;
-    if (first?.kind !== Kind.VARIABLE || after?.kind !== Kind.VARIABLE) return null;
-    let cursorReferences = 0;
-    visit(ast, {
-      Variable(node) {
-        if (node.name.value === after.name.value) cursorReferences++;
-      },
-    });
-    // One declaration and one argument use: paging must not alter another argument.
-    if (cursorReferences !== 2) return null;
-    const cursorDefault = ops[0].variableDefinitions?.find(
-      node => node.variable.name.value === after.name.value
-    )?.defaultValue;
-    if (cursorDefault && cursorDefault.kind !== Kind.NULL) return null;
-    const size = variables[first.name.value];
-    if (size !== 25 && size !== 50) return null;
-    const children = root.selectionSet?.selections;
-    if (
-      !children ||
-      !['nodes', 'hasNextPage', 'endCursor'].every(name =>
-        children.some(
-          node => node.kind === Kind.FIELD && node.name.value === name && !node.alias && !node.directives?.length
-        )
-      )
-    )
-      return null;
-    return { root: key, after: after.name.value, size };
-  } catch {
-    return null;
-  }
-}
+// Publishing only needs cursor syntax, not the GraphQL schema editor.
+export { cursorBinding } from './cursor-binding';
 /** Response property names alone cannot establish identity: aliases may rename any field.
  * Conservatively require direct, unconditional, unaliased records/nodes/oid selections. */
 export function recordIdentityKey(document: string, path: string[]): 'oid' | null {
@@ -196,14 +162,103 @@ export function rawRows(
   if (rows.length && !columns.size) throw new GridRequestError('result-path-invalid');
   return { rows, columns: [...columns] };
 }
-export function rawDefinition(name = ''): RawDefinition {
-  return {
-    version: 1,
-    mode: 'graphql',
-    name,
-    document:
-      'query Explore($type: String!, $first: Int, $after: String) {\n  records(recordType: $type, first: $first, after: $after) {\n    nodes { oid recordType workflowStep }\n    hasNextPage endCursor\n  }\n}',
-    variables: { type: '', first: 25, after: null },
-    resultPath: ['records', 'nodes'],
-  };
+export { rawDefinition } from './raw-definition';
+
+export function queryRecordType(document: string, variables: Record<string, unknown>): string | null {
+  try {
+    const ast = parse(document, { maxTokens: 2000 });
+    const op = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION);
+    if (!op || op.kind !== Kind.OPERATION_DEFINITION) return null;
+    const root = op.selectionSet.selections.find(n => n.kind === Kind.FIELD && n.name.value === 'records');
+    if (!root || root.kind !== Kind.FIELD) return null;
+    const value = root.arguments?.find(a => a.name.value === 'recordType')?.value;
+    const type =
+      value?.kind === Kind.STRING ? value.value : value?.kind === Kind.VARIABLE ? variables[value.name.value] : null;
+    return typeof type === 'string' ? type : null;
+  } catch {
+    return null;
+  }
+}
+export function insertRecordField(document: string, selections: { selection: string }[], metadata: boolean): string {
+  const ast = parse(document, { maxTokens: 2000 });
+  const snippets = [...new Set(selections.map(s => s.selection))].join(' ');
+  if (!snippets) return document;
+  const addition = parse(`{ ${metadata ? 'metadata { __typename ' + snippets + ' }' : snippets} }`);
+  const op = addition.definitions[0];
+  if (op.kind !== Kind.OPERATION_DEFINITION) return document;
+  return print(
+    visit(ast, {
+      Field(node) {
+        return node.name.value === 'nodes' && node.selectionSet
+          ? {
+              ...node,
+              selectionSet: {
+                ...node.selectionSet,
+                selections: [...node.selectionSet.selections, ...op.selectionSet.selections],
+              },
+            }
+          : undefined;
+      },
+    })
+  );
+}
+
+/** Selected response paths, including aliases, independent of whether a preview has run. */
+export function selectedResultFields(
+  schema: GraphQLSchema | null,
+  document: string,
+  resultPath: string[]
+): { label: string; path: string[]; type: string; sourcePath?: string }[] {
+  if (!schema) return [];
+  try {
+    const ast = parse(document, { maxTokens: 2000 });
+    const op = ast.definitions.find(n => n.kind === Kind.OPERATION_DEFINITION);
+    if (!op || op.kind !== Kind.OPERATION_DEFINITION) return [];
+    let set = op.selectionSet,
+      type = schema.getQueryType();
+    for (const segment of resultPath) {
+      const field = set.selections.find(n => n.kind === Kind.FIELD && (n.alias?.value ?? n.name.value) === segment);
+      if (!field || field.kind !== Kind.FIELD || !field.selectionSet || !type) return [];
+      const next = getNamedType(type.getFields()[field.name.value]?.type);
+      if (!isObjectType(next)) return [];
+      type = next;
+      set = field.selectionSet;
+    }
+    const result: { label: string; path: string[]; type: string; sourcePath?: string }[] = [];
+    const present = (field: { description?: string | null }, path: string[], type: string) => {
+      let sourcePath: string | undefined;
+      try {
+        const value = JSON.parse(field.description?.split('Stored metadata pointer (JSON string): ')[1] ?? 'null');
+        if (typeof value === 'string') sourcePath = value;
+      } catch {
+        /* Handwritten fields need no stored path. */
+      }
+      return { label: path.join('.'), path, type, ...(sourcePath ? { sourcePath } : {}) };
+    };
+    const walk = (selection: SelectionSetNode, parent: GraphQLCompositeType, prefix: string[], depth: number) => {
+      if (depth > 12) return;
+      for (const node of selection.selections) {
+        if (node.kind === Kind.INLINE_FRAGMENT) {
+          const next = node.typeCondition ? schema.getType(node.typeCondition.name.value) : parent;
+          if (isCompositeType(next)) walk(node.selectionSet, next, prefix, depth + 1);
+          continue;
+        }
+        if (node.kind !== Kind.FIELD || node.name.value === '__typename') continue;
+        const field = isObjectType(parent) || isInterfaceType(parent) ? parent.getFields()[node.name.value] : undefined;
+        if (!field) continue;
+        const named = getNamedType(field.type),
+          path = [...prefix, node.alias?.value ?? node.name.value];
+        const unwrapped = isNonNullType(field.type) ? field.type.ofType : field.type;
+        if (isListType(unwrapped)) continue;
+        if (isCompositeType(named)) {
+          result.push(present(field, path, 'object'));
+          if (node.selectionSet) walk(node.selectionSet, named, path, depth + 1);
+        } else result.push(present(field, path, ['JSON', 'StoredJSON'].includes(named.name) ? 'object' : 'text'));
+      }
+    };
+    if (type) walk(set, type, [], 0);
+    return result;
+  } catch {
+    return [];
+  }
 }

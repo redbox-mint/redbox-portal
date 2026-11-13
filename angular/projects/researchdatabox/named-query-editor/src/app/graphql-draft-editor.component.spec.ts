@@ -159,7 +159,34 @@ describe('detached GraphQL named-query editor', () => {
     fixture.detectChanges();
     expect(editor.tab).toBe('basics');
   });
+  it('mounts advanced forms on first visit and retains their invalid input after leaving', () => {
+    expect(fixture.nativeElement.querySelector('#nq-graphql-panel-mappings textarea')).toBeNull();
+    editor.tab = 'mappings';
+    fixture.detectChanges();
+    const input = fixture.nativeElement.querySelector('#nq-graphql-panel-mappings textarea') as HTMLTextAreaElement;
+    input.value = '[unfinished';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    editor.tab = 'document';
+    fixture.detectChanges();
+    editor.tab = 'mappings';
+    fixture.detectChanges();
+    expect(input.isConnected).toBeTrue();
+    expect(input.value).toBe('[unfinished');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+  });
+  it('reuses parsed variables until the document or selected operation changes', () => {
+    const variables = editor.variables;
+    expect(editor.variables).toBe(variables);
+    editor.setDocument('query A($one: String) { a } query B($two: Int) { b }');
+    editor.setOperationName('A');
+    expect(editor.variables.map(variable => variable.name)).toEqual(['one']);
+    editor.setOperationName('B');
+    expect(editor.variables.map(variable => variable.name)).toEqual(['two']);
+  });
   it('requires literal segment arrays without converting paths or swallowing null values', () => {
+    editor.tab = 'mappings';
+    fixture.detectChanges();
     const json = fixture.debugElement.query(By.directive(GraphqlJsonInputComponent))
       .componentInstance as GraphqlJsonInputComponent;
     const change = jasmine.createSpy('change');
@@ -175,5 +202,87 @@ describe('detached GraphQL named-query editor', () => {
     expect(json.invalid).toBeTrue();
     json.change('null');
     expect(change).toHaveBeenCalledWith(null);
+  });
+
+  it('edits result, mapping and lookup paths through JSON controls without splitting literal keys', () => {
+    editor.tab = 'mappings';
+    editor.toggleLookup(true);
+    fixture.detectChanges();
+    const controls = fixture.debugElement.queryAll(By.directive(GraphqlJsonInputComponent));
+    const change = (label: string, text: string) => {
+      const node = controls.find(node => node.componentInstance.label === label)!;
+      const input = node.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+      input.value = text;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+    change('named-query-graphql-result-path', '["records","literal.nodes"]');
+    change('named-query-graphql-mapping-title', '["metadata","dc:title"]');
+    change('named-query-graphql-collectionPath', '["records"]');
+    change('named-query-graphql-hasNextPagePath', '["records","more"]');
+    change('named-query-graphql-endCursorPath', '["records","cursor"]');
+    expect(editor.operation.resultPath).toEqual(['records', 'literal.nodes']);
+    expect(editor.operation.mappings!.title).toEqual(['metadata', 'dc:title']);
+    expect(editor.operation.lookup!.collectionPath).toEqual(['records']);
+    expect(editor.operation.lookup!.hasNextPagePath).toEqual(['records', 'more']);
+    expect(editor.operation.lookup!.endCursorPath).toEqual(['records', 'cursor']);
+    change('named-query-graphql-mapping-title', '');
+    change('named-query-graphql-endCursorPath', '');
+    expect(Object.hasOwn(editor.operation.mappings!, 'title')).toBeFalse();
+    expect(Object.hasOwn(editor.operation.lookup!, 'endCursorPath')).toBeFalse();
+  });
+
+  it('removes stale bindings through their button and recovers validity without clearing unrelated errors', () => {
+    editor.operation.variables['removed'] = { ownership: 'fixed', value: false };
+    editor.validity('variable:removed:fixed', false);
+    editor.validity('mapping:title', false);
+    const validity = spyOn(editor.validityChange, 'emit');
+    const changed = spyOn(editor.draftChange, 'emit');
+    editor.tab = 'variables';
+    fixture.detectChanges();
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find(node => node.textContent!.includes('named-query-graphql-remove-stale'))!;
+    expect(button.parentElement!.textContent).toContain('$removed');
+    button.click();
+    fixture.detectChanges();
+    expect(editor.staleVariables).toEqual([]);
+    expect(Object.hasOwn(editor.operation.variables, 'removed')).toBeFalse();
+    expect(changed).toHaveBeenCalledOnceWith();
+    expect(validity).toHaveBeenCalledWith(false);
+    editor.validity('mapping:title', true);
+    expect(validity.calls.mostRecent().args).toEqual([true]);
+  });
+
+  it('removes only lookup errors when the adapter is disabled', () => {
+    editor.toggleLookup(true);
+    editor.validity('lookup:collectionPath', false);
+    editor.validity('resultPath', false);
+    const validity = spyOn(editor.validityChange, 'emit');
+    editor.toggleLookup(false);
+    expect(editor.operation.lookup).toBeUndefined();
+    expect(validity).toHaveBeenCalledWith(false);
+    editor.validity('resultPath', true);
+    expect(validity.calls.mostRecent().args).toEqual([true]);
+  });
+
+  it('drops invalid controls when a document no longer declares their variable', () => {
+    editor.classify('search', 'fixed');
+    editor.validity('variable:search:fixed', false);
+    const validity = spyOn(editor.validityChange, 'emit');
+    editor.setDocument('query { records(recordType:"rdmp") { nodes { oid } } }');
+    expect(editor.variables).toEqual([]);
+    expect(editor.staleVariables).toEqual(['search']);
+    expect(validity).toHaveBeenCalledOnceWith(true);
+  });
+
+  it('resets advanced editing to the document panel when a replacement draft arrives', () => {
+    editor.tab = 'mappings';
+    fixture.componentRef.setInput('advanced', true);
+    fixture.componentRef.setInput('draft', structuredClone(editor.draft));
+    fixture.detectChanges();
+    expect(editor.tab).toBe('document');
+    expect(fixture.nativeElement.querySelector('#nq-graphql-panel-basics')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#nq-graphql-panel-document').hidden).toBeFalse();
+    expect(fixture.nativeElement.querySelector('#nq-graphql-panel-mappings textarea')).toBeNull();
   });
 });

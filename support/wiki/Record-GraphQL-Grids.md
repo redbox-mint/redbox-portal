@@ -1,6 +1,49 @@
 # Record GraphQL grids
 
-The authenticated read-only endpoint `POST /:branding/:portal/api/graphql` supports `record(oid: ID!)`, `records(...)` and `recordFields(...)`. These last two operations provide a backend for a visual query builder and paginated data grid. This change adds no UI or saved-grid persistence. Mutations, subscriptions, public discovery, relationship traversal and REST projection remain outside its scope.
+The authenticated read-only endpoint `POST /:branding/:portal/api/graphql` supports `record(oid: ID!)`, `records(...)` and `recordFields(...)`. These last two operations provide a backend for a visual query builder and paginated data grid. The admin Record explorer uses these operations and saves reusable visual or GraphQL queries through the scoped saved-grid API. Mutations, subscriptions, public discovery, relationship traversal and REST projection remain outside its scope.
+
+## Record explorer workspace
+
+Open **Admin → Records and reporting → Record explorer**
+(`/:branding/:portal/admin/data-grids`). The left rail contains saved queries,
+search, publication badges and a link to Named queries. Selecting a saved query
+loads its current definition and results. The query card holds Save, Publish or
+Update, and an overflow menu with Save as, Rename and Delete. Changes stay in the
+draft until saved. Publication metadata does not itself make a query dirty.
+
+**Visual** and **GraphQL** are two views of one query. Choose a record type,
+workflow stage, sort and row limit; edit condition chips and selected columns;
+then **Run query**. The Results card offers Grid and JSON in either view, with
+cursor paging below it. Results are marked stale after query changes. New queries
+prefer Title, Workflow stage, Last modified and OID where available; existing
+saved column choices are preserved.
+
+**Edit columns** opens a side panel. Search grouped fields, expand a group and
+select fields. Repeating child fields sit behind an explanation; select the
+supported parent group where appropriate. Reorder shown chips by drag, arrow
+keys, Home or End. **Apply and run** commits the detached selection and reruns;
+Cancel/Escape retains the prior selection and restores focus. Grid detail buttons
+open a labelled dialog for structured values and return focus on Escape.
+
+Generated GraphQL follows Visual and stays read-only. **Unlink and edit** makes
+GraphQL canonical and Visual read-only. Variables and full schema details are
+under disclosures; the field list uses friendly labels. Switching views retains
+query identity, dirty state and results. Schema loading and validation happen on
+demand; unchanged documents are not reparsed on every render.
+
+**Publish as named query…** first saves an unsaved source, then opens a side panel
+with Basics, Parameters, Lookup fields and Preview. Publishing retains the link;
+**Published as** opens the named editor. Named queries can also select a saved
+source through Create. **Open in explorer** and Built from links use
+`#grid=<saved-query-id>` to reopen the correct source and run its results. See
+[Configuring Named Queries](Configuring-Named-Queries#create-and-edit-in-admin)
+for publication, review/update and missing-source behavior.
+
+The default sidebar groups both screens together. Persisted institution sidebar
+overrides need their own navigation update. Hook logo/footer partials should
+provide meaningful image alt text and avoid inline style attributes; core's
+banner and footer landmarks contain their rendered content. HTTP demo origins
+cannot satisfy Lighthouse's HTTPS and COOP checks; production needs HTTPS.
 
 ## Enable and prepare the index
 
@@ -250,3 +293,34 @@ Core regression tests: `npm --prefix packages/redbox-core run test:record-graphq
 See [Configuring Solr](Configuring-Solr), [Record Schema Contract Contributors](Record-Schema-Contract-Contributors), [Solr cursor pagination](https://solr.apache.org/guide/solr/latest/query-guide/pagination-of-results.html), [Solr query parsers](https://solr.apache.org/guide/solr/latest/query-guide/other-parsers.html) and [Solr field properties](https://solr.apache.org/guide/solr/latest/indexing-guide/field-type-definitions-and-properties.html).
 
 GraphQL-backed reusable definitions and detached explorer promotion are documented in [Configuring Named Queries](Configuring-Named-Queries#graphql-source). Form lookups expose only the first25 suggestions with unknown totals; this does not add GraphQL reports or CSV export.
+
+
+### Explorer presentation metadata
+
+`recordFields` adds nullable `recordTypeLabel` and `recordTypeLabelKey`. The label
+uses configured `recordtype[type].labels.name`, falling back to the type ID. A
+translation reference is returned separately as the key.
+
+Each field adds nullable `displayLabel`, `displayLabelKey`, `group`, `groupKey`,
+`groupPath: [String!]`, `repeatingSubfield`, and `repeatingGroupId`. Existing `label`,
+`labelKey`, IDs, paths and execution capabilities retain their meanings. Request
+these additions explicitly in GraphQL selections; old clients remain valid.
+
+- Display label uses an explicit `shortLabel` annotation/config where present,
+  otherwise a short existing label/translation reference, then a readable field
+  name when the configured label contains a long question or markup. Full question
+  text remains in `label`. Treat labels as text, never HTML.
+- Group paths retain labelled form tabs (`layout.config.buttonLabel`), accordion
+  sections and stored groups. `group` is the nearest heading; `groupPath` contains
+  the outer-to-inner path. Translation references start with `@`; companion key
+  fields identify translated leaf headings. Fields without form hierarchy fall
+  back to translated Metadata; system fields to translated Record.
+- A selectable repeating group retains `repeatingSubfield:false`. Its descendants
+  have `repeatingSubfield:true` and `repeatingGroupId` pointing to the outer group,
+  allowing a UI to hide disabled children behind one note. These hints grant no
+  new selection/filter/sort capabilities. Private fields remain excluded.
+
+Presentation hierarchy is attached to read contracts only. Write validation and
+stored record paths do not change. The default admin sidebar places Record explorer
+and Named queries together; persisted institution sidebar customizations are not
+rewritten.
