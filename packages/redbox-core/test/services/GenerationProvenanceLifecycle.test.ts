@@ -2,7 +2,9 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Services as ProvenanceServices } from '../../src/services/GenerationProvenanceService';
 import { Services as PersistenceServices } from '../../src/services/GenerationPersistenceService';
-import { canonicalHash } from '../../src/model/generation';
+import { canonicalHash, type GenerationProfileDefinitionV1 } from '../../src/model/generation';
+import { Services as SchemaServices } from '../../src/services/GenerationSchemaService';
+import type { FormConfigFrame } from '@researchdatabox/sails-ng-common';
 
 // Real service lifecycle over scoped rows, with database failures and interrupted ownership.
 describe('Generation provenance commit recovery', () => {
@@ -15,12 +17,13 @@ describe('Generation provenance commit recovery', () => {
   let rows: Array<Record<string, any>>;
   let payload: Record<string, any>;
   let service: ProvenanceServices.GenerationProvenanceService;
+  let savedMetadata: Record<string, unknown>;
   let destroy: sinon.SinonStub;
   let artifactUpdate: sinon.SinonStub;
   let beforeCreate: ((values: Record<string, any>) => Promise<void>) | undefined;
   let beforeFinalise: (() => void) | undefined;
   let beforeRunUpdate: (() => void) | undefined;
-  const request = () => ({ targetOid: 'target-1', candidateDigest: run.candidateDigest, reviewedFieldIds: ['title'] });
+  const request = () => ({ targetOid: 'target-1', candidateDigest: run.candidateDigest, reviewedFieldIds: ['title'], appliedFieldIds: ['title', 'description'] });
   const commit = () => service.commit(actor, { roles: [] } as any, {} as any, run.id, request());
 
   function matches(row: Record<string, any>, criteria: Record<string, any>): boolean {
@@ -34,6 +37,7 @@ describe('Generation provenance commit recovery', () => {
   }
   beforeEach(() => {
     originals = new Map(names.map(name => [name, Reflect.get(globalThis, name)]));
+    savedMetadata = { title: 'title value', description: 'description value' };
     rows = []; beforeCreate = undefined; beforeFinalise = undefined; beforeRunUpdate = undefined;
     const items = ['title', 'description'].map(fieldId => ({ fieldId, metadataPointer: '/'+fieldId,
       value: fieldId+' value', valueHash: canonicalHash(fieldId+' value'), reviewRequired: true,
@@ -71,6 +75,7 @@ describe('Generation provenance commit recovery', () => {
     });
     Reflect.set(globalThis, 'GenerationFieldProvenance', {
       count: async () => rows.length,
+      find: async (criteria: Record<string, any>) => structuredClone(rows.filter(row => matches(row, criteria))),
       findOne: async (criteria: Record<string, any>) => structuredClone(rows.find(row => matches(row, criteria)) ?? null),
       create: (values: Record<string, any>) => ({ fetch: async () => {
         await beforeCreate?.(values);
@@ -87,7 +92,7 @@ describe('Generation provenance commit recovery', () => {
     Reflect.set(globalThis, 'GenerationProfileVersion', { findOne: async () => ({ definition: { documentSources: {}, sourceSlots: [] } }) });
     Reflect.set(globalThis, 'User', { findOne: () => ({ populate: async () => ({ roles: [{ name: 'Editor' }] }) }) });
     Reflect.set(globalThis, 'BrandingService', { getBrandById: () => ({ id: actor.brandId }) });
-    sails.services.recordsservice = { getMeta: async () => ({ metadata: { title: 'title value', description: 'description value' },
+    sails.services.recordsservice = { getMeta: async () => ({ metadata: savedMetadata,
       metaMetadata: { brandId: actor.brandId, type: 'plan', createdBy: actor.username } }), hasViewAccess: () => true, hasEditAccess: () => true };
     sails.services.generationcryptoservice = {
       decrypt: async () => structuredClone(payload),
@@ -110,6 +115,84 @@ describe('Generation provenance commit recovery', () => {
     expect(failed).to.equal(true);
   }
 
+  it('reloads generated provenance for a flat saved field beneath layout-only tabs', async () => {
+    const form: FormConfigFrame = {
+      name: 'tabbed', type: 'plan', componentDefinitions: [{
+        name: 'mainTab', component: { class: 'TabComponent', config: { tabs: [{
+          name: 'details', component: { class: 'TabContentComponent', config: { componentDefinitions: [{
+            name: 'summary', model: { class: 'TextAreaModel', config: {} },
+            component: { class: 'TextAreaComponent', config: {} },
+          }] } },
+        }] } },
+      }],
+    };
+    const definition: GenerationProfileDefinitionV1 = {
+      purpose: 'Summary', systemInstructions: 'Use reviewed context', sourceSlots: [], questions: [],
+      knowledgeCollectionVersionIds: [], modelDeploymentId: 'deployment-1',
+      contextLimits: { totalBytes: 4096, maxKnowledgeChunks: 0, maxChunkBytes: 1024 },
+      targetFields: [{ id: 'summary', metadataPointer: '/summary', expectedComponentClasses: ['TextAreaComponent'],
+        output: { kind: 'string', maxLength: 200 }, operation: 'fill', grounding: 'inferenceAllowed' }],
+    };
+    const targets = new SchemaServices.GenerationSchemaService().validateTargets(definition, form);
+    expect(targets.get('/summary')?.metadataPointer).to.equal('/summary');
+    const item = { ...payload.candidate.items[0], fieldId: 'summary', metadataPointer: '/summary', value: 'Generated summary',
+      valueHash: canonicalHash('Generated summary') };
+    payload.candidate.items = [item];
+    payload.candidate.candidateDigest = canonicalHash([{ fieldId: item.fieldId, value: item.value, valueHash: item.valueHash }]);
+    run.candidateDigest = payload.candidate.candidateDigest; savedMetadata = { summary: item.value };
+    await service.commit(actor, { roles: [] } as any, {} as any, run.id,
+      { ...request(), appliedFieldIds: ['summary'], reviewedFieldIds: ['summary'] });
+    const reloaded = await service.getForRecord(actor, { roles: [] } as any, {} as any, 'target-1');
+    expect(reloaded.fields).to.have.length(1);
+    expect(reloaded.fields[0]).to.include({ metadataPointer: '/summary', displayState: 'generated', reviewRequired: false });
+  });
+  it('persists only applied fields and preserves the original candidate receipt on reload', async () => {
+    savedMetadata.description = 'Preexisting researcher text';
+    const receipt = { ...request(), appliedFieldIds: ['title'] };
+    const result = await service.commit(actor, { roles: [] } as any, {} as any, run.id, receipt);
+    expect(result.provenanceCount).to.equal(1); expect(rows).to.have.length(1);
+    expect(rows[0].profileFieldId).to.equal('title');
+    expect(rows[0].candidateDigest).to.equal(payload.candidate.candidateDigest);
+    expect(run.candidateDigest).to.equal(payload.candidate.candidateDigest);
+    const reloaded = await service.getForRecord(actor, { roles: [] } as any, {} as any, 'target-1');
+    expect(reloaded.fields.map(field => field.profileFieldId)).to.deep.equal(['title']);
+    expect(reloaded.fields[0].displayState).to.equal('generated');
+  });
+  it('retains edited provenance for a field applied and then changed by the researcher', async () => {
+    savedMetadata.title = 'Researcher edited generated draft';
+    await service.commit(actor, { roles: [] } as any, {} as any, run.id, { ...request(), appliedFieldIds: ['title'] });
+    const reloaded = await service.getForRecord(actor, { roles: [] } as any, {} as any, 'target-1');
+    expect(reloaded.fields).to.have.length(1); expect(reloaded.fields[0].displayState).to.equal('edited');
+  });
+  it('rejects review acknowledgements for skipped candidate fields', async () => {
+    let failed = false;
+    try { await service.commit(actor, { roles: [] } as any, {} as any, run.id,
+      { ...request(), appliedFieldIds: ['title'], reviewedFieldIds: ['description'] }); }
+    catch { failed = true; }
+    expect(failed).to.equal(true); expect(rows).to.have.length(0);
+  });
+  for (const appliedFieldIds of [undefined, ['unknown'], ['title', 'title']]) {
+    it(`rejects an invalid applied-field receipt ${JSON.stringify(appliedFieldIds)}`, async () => {
+      let failed = false;
+      try { await service.commit(actor, { roles: [] } as any, {} as any, run.id, { ...request(), appliedFieldIds } as any); }
+      catch { failed = true; }
+      expect(failed).to.equal(true); expect(rows).to.have.length(0);
+    });
+  }
+  it('rejects a changed applied subset for an already committed receipt', async () => {
+    await service.commit(actor, { roles: [] } as any, {} as any, run.id, { ...request(), appliedFieldIds: ['title'] });
+    await rejectCommit(); expect(rows).to.have.length(1);
+  });
+  it('rejects a changed applied subset when retrying a partial commit', async () => {
+    let writes = 0;
+    beforeCreate = async () => { if (++writes === 2) throw new Error('second write failed'); };
+    await rejectCommit(); beforeCreate = undefined;
+    let failed = false;
+    try { await service.commit(actor, { roles: [] } as any, {} as any, run.id, { ...request(), appliedFieldIds: ['title'] }); }
+    catch { failed = true; }
+    expect(failed).to.equal(true); expect(rows).to.have.length(1);
+    await commit(); expect(rows).to.have.length(2);
+  });
   it('pins the target before the first provenance write', async () => {
     beforeCreate = async () => { expect(run.targetDescriptor.targetOid).to.equal('target-1'); };
     await commit(); expect(run.status).to.equal('committed'); expect(rows).to.have.length(2);

@@ -30,5 +30,6 @@ tests {
     expect(data.result.items).to.have.length(9);
     expect(data.result.items.filter((item) => item.reviewRequired)).to.have.length(1);
     bru.setEnvVar("generationCandidateDigest", data.result.candidateDigest);
+    bru.setEnvVar("generationAppliedFieldIds", JSON.stringify(data.result.items.map((item) => item.fieldId)));
   });
 }

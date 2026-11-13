@@ -37,10 +37,21 @@ export namespace Services {
       runId: string,
       request: GenerationCommitRequest,
     ): Promise<GenerationCommitResult> {
+      if (!Array.isArray(request.appliedFieldIds) || request.appliedFieldIds.some(id => typeof id !== 'string') ||
+        new Set(request.appliedFieldIds).size !== request.appliedFieldIds.length ||
+        !Array.isArray(request.reviewedFieldIds) || request.reviewedFieldIds.some(id => typeof id !== 'string') ||
+        new Set(request.reviewedFieldIds).size !== request.reviewedFieldIds.length) {
+        throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation field receipt is invalid');
+      }
       const run = await GenerationRun.findOne({ id: runId, brandId: actor.brandId, initiatedByUserId: actor.userId });
       if (!run) throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation run was not found');
+      const sameIds = (left: string[], right: string[]) => left.length === right.length && left.every(id => right.includes(id));
+      if ((run.commitAppliedFieldIds && !sameIds(run.commitAppliedFieldIds, request.appliedFieldIds)) ||
+        (run.commitReviewedFieldIds && !sameIds(run.commitReviewedFieldIds, request.reviewedFieldIds))) {
+        throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation field receipt does not match its prior commit');
+      }
       if (run.status === 'committed') {
-        if (run.targetDescriptor.targetOid !== request.targetOid || run.candidateDigest !== request.candidateDigest) {
+        if (!run.commitAppliedFieldIds || run.targetDescriptor.targetOid !== request.targetOid || run.candidateDigest !== request.candidateDigest) {
           throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation receipt does not match its prior commit');
         }
         await this.cleanupArtifact(run);
@@ -76,12 +87,18 @@ export namespace Services {
         payload.candidate.items.some((item) => canonicalHash(item.value) !== item.valueHash)) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Generation candidate hashes are invalid');
       }
-      for (const item of payload.candidate.items) {
+      const candidateIds = new Set(payload.candidate.items.map(item => item.fieldId));
+      if (request.appliedFieldIds.some(id => !candidateIds.has(id))) {
+        throw new GenerationError('GENERATION_COMMIT_INVALID', 'Applied generation fields are invalid');
+      }
+      const appliedIds = new Set(request.appliedFieldIds);
+      const appliedItems = payload.candidate.items.filter(item => appliedIds.has(item.fieldId));
+      for (const item of appliedItems) {
         const savedValue = getJsonPointer(record.metadata ?? {}, item.metadataPointer);
         if (savedValue !== undefined) canonicalHash(savedValue);
       }
-      const validReviewIds = new Set(payload.candidate.items.filter((item) => item.reviewRequired).map((item) => item.fieldId));
-      if (request.reviewedFieldIds.some((id) => !validReviewIds.has(id))) {
+      const validReviewIds = new Set(appliedItems.filter(item => item.reviewRequired).map(item => item.fieldId));
+      if (request.reviewedFieldIds.some(id => !validReviewIds.has(id))) {
         throw new GenerationError('GENERATION_COMMIT_INVALID', 'Reviewed generation fields are invalid');
       }
       const now = new Date().toISOString();
@@ -98,11 +115,12 @@ export namespace Services {
         commitLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
         commitStartedAt: run.commitStartedAt || now,
         commitReviewedFieldIds: run.commitReviewedFieldIds ?? request.reviewedFieldIds,
+        commitAppliedFieldIds: run.commitAppliedFieldIds ?? request.appliedFieldIds,
         targetDescriptor: { ...run.targetDescriptor, targetOid: request.targetOid },
       });
       if (!claimed) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation commit changed concurrently', true);
       try {
-        for (const item of payload.candidate.items) {
+        for (const item of appliedItems) {
           const renewed = await GenerationRun.updateOne(owner).set({
             commitLeaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
           });
@@ -138,7 +156,7 @@ export namespace Services {
         });
         if (!committed) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation commit ownership changed', true);
         await this.cleanupArtifact(committed);
-        return { runId, targetOid: request.targetOid, committed: true, provenanceCount: payload.candidate.items.length };
+        return { runId, targetOid: request.targetOid, committed: true, provenanceCount: appliedItems.length };
       } catch (error) {
         // Only this owner can release its claim. The pinned receipt survives retry.
         await GenerationRun.updateOne(owner).set({ status: 'completed', phase: 'population' });

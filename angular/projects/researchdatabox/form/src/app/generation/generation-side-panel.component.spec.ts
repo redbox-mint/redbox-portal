@@ -1,9 +1,9 @@
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { EMPTY, Subject } from 'rxjs';
-import { GenerationQuestion, GenerationRunView } from '@researchdatabox/sails-ng-common';
+import { GenerationCandidatePatch, GenerationFieldProvenanceView, GenerationQuestion, GenerationRunView } from '@researchdatabox/sails-ng-common';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import {
   createFormSaveSuccessEvent,
@@ -21,6 +21,7 @@ describe('GenerationSidePanelComponent', () => {
   let eventBus: jasmine.SpyObj<FormComponentEventBus>;
   let applier: jasmine.SpyObj<GenerationPatchApplierService>;
   let provenance: jasmine.SpyObj<GenerationProvenanceStoreService>;
+  let provenanceFields: WritableSignal<Record<string, GenerationFieldProvenanceView>>;
   let saveSuccess$: Subject<ReturnType<typeof createFormSaveSuccessEvent>>;
 
   const question: GenerationQuestion = {
@@ -59,10 +60,11 @@ describe('GenerationSidePanelComponent', () => {
     )) as typeof eventBus.select$);
     applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues', 'apply']);
     applier.apply.and.returnValue({ changedFieldIds: [], conflictFieldIds: [] });
+    provenanceFields = signal<Record<string, GenerationFieldProvenanceView>>({});
     provenance = jasmine.createSpyObj<GenerationProvenanceStoreService>(
       'GenerationProvenanceStoreService',
       ['clear', 'setPending', 'markReviewed', 'markEdited', 'load'],
-      { byPointer: signal({}) },
+      { byPointer: provenanceFields },
     );
     const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
     store.selectSignal.and.returnValue(signal(true));
@@ -142,6 +144,7 @@ describe('GenerationSidePanelComponent', () => {
     expect(api.commit).toHaveBeenCalledOnceWith('candidate-run', {
       targetOid: 'record-1',
       candidateDigest: 'candidate-digest',
+      appliedFieldIds: [],
       reviewedFieldIds: [],
     });
   });
@@ -266,6 +269,45 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.candidate()).toBe(patch);
     expect(component.candidate()?.candidateDigest).toBe('original-digest');
     expect(component.conflicts()).toEqual(['conflicted']);
+  });
+
+  it('commits only applied fields, retains edited applied fields, and never infers review from missing provenance', async () => {
+    const patch: GenerationCandidatePatch = {
+      runId: 'receipt-run', candidateDigest: 'original-digest', baseTargetDigest: 'base',
+      items: ['applied', 'edited', 'missing', 'conflicted'].map((fieldId) => ({
+        fieldId, metadataPointer: `/${fieldId}`, value: `Generated ${fieldId}`, operation: 'fill',
+        valueHash: `hash-${fieldId}`, groundingState: 'requiresReview',
+        reviewRequired: true, rationale: 'Evidence', evidence: [],
+      })),
+    };
+    const form = new FormGroup({ edited: new FormControl('Generated edited') });
+    fixture.componentRef.setInput('form', form);
+    fixture.detectChanges();
+    component.activeSession.set({ runId: patch.runId, bindingKey: 'rdmp-from-activity', initialValues: [], autoOpen: true });
+    component.run.set(run(patch.runId, 'draft', []));
+    applier.apply.and.returnValue({ changedFieldIds: ['applied', 'edited', 'missing'], conflictFieldIds: ['conflicted'] });
+    api.execute.and.resolveTo({ ...run(patch.runId, 'completed', []), result: patch });
+    api.commit.and.resolveTo({ runId: patch.runId, targetOid: 'saved-record', committed: true, provenanceCount: 3 });
+
+    await component.generate();
+    form.get('edited')?.setValue('Researcher edited after generation');
+    provenanceFields.set(Object.fromEntries(patch.items.slice(0, 2).map((item) => [item.metadataPointer, {
+      id: `pending:${patch.runId}:${item.fieldId}`, runId: patch.runId,
+      profileFieldId: item.fieldId, metadataPointer: item.metadataPointer,
+      displayState: item.fieldId === 'edited' ? 'edited' : 'generated',
+      groundingState: item.groundingState, reviewRequired: false,
+      rationale: item.rationale, evidence: item.evidence, generatedAt: '2026-11-13T00:00:00Z',
+    } satisfies GenerationFieldProvenanceView])));
+    component.close();
+    saveSuccess$.next(createFormSaveSuccessEvent({ oid: 'saved-record' }));
+    await fixture.whenStable();
+
+    expect(api.commit).toHaveBeenCalledOnceWith(patch.runId, {
+      targetOid: 'saved-record', candidateDigest: 'original-digest',
+      appliedFieldIds: ['applied', 'edited', 'missing'], reviewedFieldIds: ['applied', 'edited'],
+    });
+    expect(component.candidate()).toBe(patch);
+    expect(form.get('edited')?.value).toBe('Researcher edited after generation');
   });
 
   it('applies a candidate returned directly by a fast execution', async () => {

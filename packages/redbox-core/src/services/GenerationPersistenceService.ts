@@ -1,3 +1,4 @@
+import type { Db } from 'mongodb';
 import type { GenerationRunStatus } from '@researchdatabox/sails-ng-common';
 import { Services as services } from '../CoreService';
 import { canonicalHash, canonicalJson, GenerationError } from '../model/generation';
@@ -69,12 +70,27 @@ export namespace Services {
     }
 
     public async ensureIndexes(): Promise<void> {
-      const manager = GenerationRunArtifact.getDatastore().manager;
+      const manager = GenerationRunArtifact.getDatastore().manager as unknown as Db;
       const artifacts = manager.collection(GenerationRunArtifact.tableName);
       const runs = manager.collection(GenerationRun.tableName);
       const provenance = manager.collection(GenerationFieldProvenance.tableName);
       await artifacts.createIndex({ brandId: 1, runId: 1 }, { unique: true, name: 'generation_artifact_brand_run' });
-      await artifacts.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'generation_artifact_expiry_ttl' });
+      // Mongo TTL indexes require BSON dates. Keep the public ISO timestamp while
+      // upgrading legacy artifacts to the lifecycle-managed native date companion.
+      const expiryDate = { $convert: { input: '$expiresAt', to: 'date', onError: null, onNull: null } };
+      await artifacts.updateMany({}, [{ $set: { expiresAtDate: expiryDate } }]);
+      // No valid retention deadline exists for these encrypted diagnostic payloads.
+      await artifacts.deleteMany({ $expr: { $eq: [expiryDate, null] } });
+      await artifacts.createIndex({ expiresAtDate: 1 }, { expireAfterSeconds: 0, name: 'generation_artifact_expiry_date_ttl' });
+      for (const index of await artifacts.listIndexes().toArray()) {
+        if (typeof index.name === 'string' && ['generation_artifact_expiry_ttl', 'expiresAt_1'].includes(index.name) &&
+            index.key?.expiresAt === 1 && Object.keys(index.key).length === 1 && index.expireAfterSeconds === 0) {
+          try { await artifacts.dropIndex(index.name); } catch (error) {
+            // Another enabled instance may have completed the same index upgrade.
+            if ((error as { code?: number }).code !== 27) throw error;
+          }
+        }
+      }
       await runs.createIndex({ brandId: 1, status: 1, createdAt: 1 }, { name: 'generation_run_status_created' });
       await provenance.createIndex(
         { brandId: 1, runId: 1, profileFieldId: 1 },

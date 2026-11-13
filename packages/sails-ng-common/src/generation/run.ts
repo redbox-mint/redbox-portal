@@ -68,6 +68,8 @@ export interface GenerationExecuteRequest {
 export interface GenerationCommitRequest {
   targetOid: string;
   candidateDigest: string;
+  /** Candidate fields actually applied to the form, including any subsequently edited fields. */
+  appliedFieldIds: string[];
   reviewedFieldIds: string[];
 }
 

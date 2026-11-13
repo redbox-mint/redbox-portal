@@ -82,7 +82,7 @@ describe('GenerationApiService', () => {
     });
     expect((await cancelPromise).status).toBe('cancelRequested');
 
-    const commitBody = { targetOid: 'target-1', candidateDigest: 'digest', reviewedFieldIds: ['sharing'] };
+    const commitBody = { targetOid: 'target-1', candidateDigest: 'digest', appliedFieldIds: ['sharing'], reviewedFieldIds: ['sharing'] };
     const commitPromise = service.commit('run-1', commitBody);
     await settleRequest();
     expectRequest('/generation/runs/run-1/commit', 'POST', commitBody, {

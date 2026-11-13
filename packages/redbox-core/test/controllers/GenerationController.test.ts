@@ -129,12 +129,30 @@ describe('GenerationController', () => {
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
     await controller.commit(request({ id: 'run-1' }, {
-      targetOid: 'target-1', candidateDigest: 'digest', reviewedFieldIds: [42],
+      targetOid: 'target-1', candidateDigest: 'digest', appliedFieldIds: ['title'], reviewedFieldIds: [42],
     }), {} as Sails.Res);
 
     expect(runService.commit.called).to.equal(false);
     expect(sendResp.firstCall.args[2].status).to.equal(409);
     expect(sendResp.firstCall.args[2].data.error.code).to.equal('GENERATION_COMMIT_INVALID');
+  });
+
+  for (const appliedFieldIds of [undefined, [42]]) {
+    it(`requires explicit string applied-field identifiers ${JSON.stringify(appliedFieldIds)}`, async () => {
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+      await controller.commit(request({ id: 'run-1' }, {
+        targetOid: 'target-1', candidateDigest: 'digest', appliedFieldIds, reviewedFieldIds: [],
+      }), {} as Sails.Res);
+      expect(runService.commit.called).to.equal(false);
+      expect(sendResp.firstCall.args[2].data.error.code).to.equal('GENERATION_COMMIT_INVALID');
+    });
+  }
+  it('passes the explicit applied-field receipt through to the commit service', async () => {
+    sinon.stub(controller as any, 'sendResp');
+    const receipt = { targetOid: 'target-1', candidateDigest: 'digest', appliedFieldIds: ['title'], reviewedFieldIds: [] };
+    await controller.commit(request({ id: 'run-1' }, receipt), {} as Sails.Res);
+    expect(runService.commit.calledOnce).to.equal(true);
+    expect(runService.commit.firstCall.args[4]).to.deep.equal(receipt);
   });
 
   it('allows document-only launch without accepting a blank source identifier', async () => {

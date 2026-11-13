@@ -53,6 +53,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
   readonly error = signal<string | null>(null);
   readonly conflicts = signal<string[]>([]);
   readonly candidate = signal<GenerationCandidatePatch | null>(null);
+  private appliedFieldIds: string[] = [];
   readonly activeSession = signal<GenerationRuntimeSession | null>(null);
   readonly inlineOpen = signal(false);
   private readonly suppliedSession = signal<GenerationRuntimeSession | null>(null);
@@ -306,6 +307,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.stopPollDelay();
     this.busy.set(true);
     this.candidate.set(null);
+    this.appliedFieldIds = [];
     this.conflicts.set([]);
     this.restoreFocusTo = this.document.activeElement instanceof HTMLElement ? this.document.activeElement : null;
     this.provenance.clear();
@@ -392,6 +394,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.suppliedSession.set(null);
     this.run.set(null);
     this.candidate.set(null);
+    this.appliedFieldIds = [];
     this.conflicts.set([]);
     this.questions.set([]);
     for (const question of Object.keys(this.questionForm.controls)) this.questionForm.removeControl(question);
@@ -487,8 +490,10 @@ export class GenerationSidePanelComponent implements OnDestroy {
     );
     this.candidate.set(candidate);
     this.conflicts.set(result.conflictFieldIds);
-    const conflicts = new Set(result.conflictFieldIds);
-    this.provenance.setPending({ ...candidate, items: candidate.items.filter((item) => !conflicts.has(item.fieldId)) });
+    const changed = new Set(result.changedFieldIds);
+    const appliedItems = candidate.items.filter((item) => changed.has(item.fieldId));
+    this.appliedFieldIds = appliedItems.map((item) => item.fieldId);
+    this.provenance.setPending({ ...candidate, items: appliedItems });
     this.store.dispatch(GenerationActions.patchApplied({ candidate, conflictFieldIds: result.conflictFieldIds }));
   }
 
@@ -498,14 +503,20 @@ export class GenerationSidePanelComponent implements OnDestroy {
     if (!candidate || !form || this.destroyed) return;
     const revision = this.operationRevision;
     this.store.dispatch(GenerationActions.commitStarted());
+    const appliedFieldIds = [...this.appliedFieldIds];
+    const applied = new Set(appliedFieldIds);
     const reviewedFieldIds = candidate.items
-      .filter((item) => item.reviewRequired && !this.provenance.byPointer()[item.metadataPointer]?.reviewRequired)
+      .filter((item) => {
+        if (!applied.has(item.fieldId) || !item.reviewRequired) return false;
+        const field = this.provenance.byPointer()[item.metadataPointer];
+        return field?.runId === candidate.runId && field.profileFieldId === item.fieldId && field.reviewRequired === false;
+      })
       .map((item) => item.fieldId);
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       if (!this.isCurrentOperation(revision, form)) return;
       try {
-        await this.api.commit(candidate.runId, { targetOid, candidateDigest: candidate.candidateDigest, reviewedFieldIds });
+        await this.api.commit(candidate.runId, { targetOid, candidateDigest: candidate.candidateDigest, appliedFieldIds, reviewedFieldIds });
         if (!this.isCurrentOperation(revision, form)) return;
         this.store.dispatch(GenerationActions.commitFinished());
         await this.provenance.load(targetOid);

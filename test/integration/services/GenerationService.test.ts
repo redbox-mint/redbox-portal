@@ -249,7 +249,7 @@ describe('AI-assisted form generation', function () {
     const targetOid = String(createResponse.oid);
     createdTargetOids.push(targetOid);
 
-    const receipt = { targetOid, candidateDigest: view.result.candidateDigest, reviewedFieldIds: ['sharingAccess'] };
+    const receipt = { targetOid, candidateDigest: view.result.candidateDigest, appliedFieldIds: view.result.items.map((item: { fieldId: string }) => item.fieldId), reviewedFieldIds: ['sharingAccess'] };
     const committed = await GenerationRunService.commit(actor, user, brand, launch.runId, receipt);
     expect(committed).to.include({ committed: true, provenanceCount: 9, targetOid });
     expect(await GenerationRunService.commit(actor, user, brand, launch.runId, receipt)).to.deep.equal(committed);
@@ -364,7 +364,7 @@ describe('AI-assisted form generation', function () {
       }, recordType, user, false, false);
       expect(saved.isSuccessful()).to.equal(true);
       createdTargetOids.push(String(saved.oid));
-      await GenerationRunService.commit(actor, user, brand, launch.runId, { targetOid: saved.oid, candidateDigest: view.result.candidateDigest, reviewedFieldIds: ['title'] });
+      await GenerationRunService.commit(actor, user, brand, launch.runId, { targetOid: saved.oid, candidateDigest: view.result.candidateDigest, appliedFieldIds: view.result.items.map((item: { fieldId: string }) => item.fieldId), reviewedFieldIds: ['title'] });
       expect(await GenerationRunArtifact.findOne({ brandId: actor.brandId, runId: launch.runId })).to.equal(undefined);
       const provenance = await GenerationProvenanceService.getForRecord(actor, user, brand, saved.oid);
       expect(provenance.fields[0].evidence).to.deep.equal(item.evidence);
