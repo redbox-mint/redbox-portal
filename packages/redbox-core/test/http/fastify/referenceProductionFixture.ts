@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -21,6 +21,7 @@ import { referenceReadDeclarations } from '../../../src/http/referenceRoutes';
 import { persistenceStatus } from '../../../src/persistence/runtime';
 import type { PoliciesConfig } from '../../../src/config/policies.config';
 import { requestContext } from '../../../src/http/context';
+import { requestPathname } from '../../../src/http/fastify/router';
 
 let counter = 0;
 export const referenceOrigin = 'https://portal.example.invalid';
@@ -33,7 +34,13 @@ export async function referenceProductionFixture(
   scope?: {
     readonly declarations: readonly import('../../../src/http/fastify/routes').ApiRouteSource[];
     readonly configuration?: Record<string, unknown>;
+    readonly env?: Record<string, string>;
+    readonly sessionCookie?: Record<string, unknown>;
+    readonly rootContext?: string;
     readonly log?: typeof nothingLogger;
+    readonly pages?: import('../../../src/application/portal/pageHttpPlan').PortalPageOptions;
+    /** Write installed artifacts/configuration only, before production discovery. */
+    readonly artifacts?: (directory: string, providerDirectory: string) => Promise<void>;
     /** Installed API2 provider hooks; no alternate host/controller composition. */
     readonly hooksModule?: string;
     readonly actions?: Readonly<Record<string, import('../../../src/http/actions/configuredActions').ConfiguredAction>>;
@@ -87,13 +94,16 @@ export async function referenceProductionFixture(
         '});'
     );
     for (const name of ['views', 'assets', '.tmp/public']) await mkdir(path.join(directory, name), { recursive: true });
+    if (scope?.pages)
+      await cp(path.resolve(__dirname, '../../../../../views'), path.join(directory, 'views'), { recursive: true });
+    await scope?.artifacts?.(directory, providerDirectory);
     const configFile = path.join(directory, 'config.cjs');
     await writeFile(
       configFile,
       'module.exports=' +
         JSON.stringify({
           server: {
-            rootContext: '/portal',
+            rootContext: scope?.rootContext ?? '/portal',
             hostname: '127.0.0.1',
             port: 0,
             trustProxy: true,
@@ -107,7 +117,7 @@ export async function referenceProductionFixture(
             collection: 'referenceSessions',
             mongoUrl: uri.href,
             secret: 'fm023-root-secret-000000000000000000000001',
-            cookie: { secure: false, httpOnly: true, sameSite: 'lax' },
+            cookie: { secure: false, httpOnly: true, sameSite: 'lax', ...scope?.sessionCookie },
           },
           companion: { enabled: false },
           storage: {
@@ -169,7 +179,7 @@ export async function referenceProductionFixture(
       actions: scope?.actions,
       bindings: scope?.bindings,
       files: { application: configFile },
-      env: {},
+      env: scope?.env ?? {},
       argv: [],
       log: scope?.log ?? nothingLogger,
       localesDirectory: path.join(directory, 'locales'),
@@ -179,12 +189,13 @@ export async function referenceProductionFixture(
           ...options,
           http: {
             declarations: scope?.declarations ?? referenceReadDeclarations,
+            pages: scope?.pages,
             policyConfiguration,
             actions: scope?.actions,
             portals: ['rdmp'],
           },
         })
-      : await createPortalHost({ ...options, policyConfiguration, portals: ['rdmp'] });
+      : await createPortalHost({ ...options, ...scope?.pages, policyConfiguration, portals: ['rdmp'] });
     const { owner, data } = portal;
     stop = () => portal.application.stop();
     await prepareSelectedPersistenceIndexes(owner, 'ensure', {
@@ -265,14 +276,16 @@ export async function referenceProductionFixture(
         authentication: () => ({
           identity,
           accounts: data.accounts.get(),
-          config: { active: ['local'] },
+          config: scope?.pages
+            ? data.reference.appConfigs.get().getAppConfigurationForBrand('default').auth
+            : { active: ['local'] },
           brand: () => data.reference.branding.get().getBrand('default'),
         }),
         login: {
           credentialFields: ['username', 'password'],
           validContext: (b, p) => (b === 'default' || b === 'other') && p === 'rdmp',
           brandId: name => (name === 'other' ? otherBrand.id : brand.id),
-          postLoginPath: () => '/portal/default/rdmp/home',
+          postLoginPath: () => portal.config.server.rootContext + '/default/rdmp/home',
           audit: async (action, actor) => {
             await data.users.get().addUserAuditEvent({ ...actor }, action, { brandId: brand.id });
           },
@@ -290,7 +303,10 @@ export async function referenceProductionFixture(
               eventType,
               source,
               category: 'authorization',
-              requestContext: { method: request.method, path: request.url.split('?')[0].slice('/portal'.length) },
+              requestContext: {
+                method: request.method,
+                path: (requestPathname(request.raw.url ?? '/') ?? '/').slice(portal.config.server.rootContext.length),
+              },
             });
           },
         },
@@ -340,7 +356,7 @@ export async function referenceProductionFixture(
       data,
       brand,
       otherBrand,
-      url: 'http://127.0.0.1:' + host.address()!.port + '/portal',
+      url: 'http://127.0.0.1:' + host.address()!.port + portal.config.server.rootContext,
       close: async () => {
         await host.stop();
         assert.equal(persistenceStatus(owner).pools, 0);

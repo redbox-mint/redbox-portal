@@ -51,6 +51,8 @@ export interface PortalApplicationContext {
 type LifecycleResolution = {
   readonly raw?: import('./rawHttp').PortalRawHttp;
   readonly rawDeclaration?: ExtensionFactory;
+  readonly pages?: import('./pageHttpPlan').PortalPages;
+  readonly pageDeclaration?: ExtensionFactory;
 } & Pick<import('../../extensions').ResolvedExtensions, 'modules' | 'migrations' | 'bootstrap' | 'views' | 'assets'> &
   Partial<Pick<import('../../extensions').ResolvedExtensions, 'handlers' | 'integrations' | 'routes' | 'middleware'>>;
 type InstalledContributions = {
@@ -327,6 +329,10 @@ async function buildPortalApplication<R extends LifecycleResolution>(
       if (registration.declaration !== resolved.rawDeclaration)
         throw new Error('The qualified raw HTTP owner cannot be replaced.');
       create = () => resolved.raw!;
+    } else if (registration.declaration.name === 'portal-pages' && resolved.pages) {
+      if (registration.declaration !== resolved.pageDeclaration)
+        throw new Error('The qualified page owner cannot be replaced.');
+      create = () => resolved.pages!;
     } else if (registration.declaration.name === 'storage') create = data.bindStorage(registration);
     else if (registration.declaration.name === 'pdf')
       create = () => {

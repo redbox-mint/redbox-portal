@@ -45,7 +45,7 @@ export function sendLoginRedirect(request: FastifyRequest, reply: FastifyReply, 
   if (!vary.some(name => name.toLowerCase() === 'accept')) vary.push('Accept');
   reply.header('Vary', vary.join(', '));
   const format = requestAccepts(request).types(['text/plain', 'text/html']);
-  if (!format) return reply.send();
+  if (!format) return reply.header('Content-Length', '0').send();
   const escaped = location.replace(
     /[&<>"']/g,
     char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!

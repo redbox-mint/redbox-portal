@@ -1,3 +1,8 @@
+import { sendPageError } from '../../http/fastify/pages';
+import { httpReplySubmitted } from '../../http/fastify/errorBoundary';
+import { requestContext } from '../../http/context';
+import { applyPageHeaders } from '../../pages/headers';
+import { requestPathname } from '../../http/fastify/router';
 import { integrationDeclarations } from '../../http/integrationRoutes';
 import { integrationGuard } from '../../http/fastify/integrations';
 import { mutationGuard } from '../../http/fastify/mutations';
@@ -114,6 +119,7 @@ export async function createPortalFastifyHost(
     origins: settings.origins,
     authenticateBearer: token => input.authentication().identity.bearer(token),
   } satisfies ProductionCsrfInput);
+  if (resolved.pages) resolved.pages.csrfToken = csrf.generateToken;
   const trustProxy = settings.host.trustProxy;
   const host = await createControllerHost(application, {
     owner,
@@ -139,6 +145,37 @@ export async function createPortalFastifyHost(
     namespaceConfiguration: resolved.namespaceConfiguration,
     routing: resolved.routing,
     actionPreparation: resolved.actionPreparation,
+    pageNotFound: resolved.pages
+      ? async (request, reply) => {
+          const raw = requestPathname(request.raw.url ?? '/');
+          if (raw === undefined || !['GET', 'HEAD'].includes(request.method) || resolved.registry.protects(raw)) return;
+          if (
+            rootContext &&
+            (raw.slice(0, rootContext.length).toLowerCase() !== rootContext.toLowerCase() ||
+              raw[rootContext.length] !== '/')
+          )
+            return;
+          const relative = raw.slice(rootContext.length);
+          const match = /^\/([A-Za-z0-9_-]{1,100})\/([A-Za-z0-9_-]{1,100})(?:\/[^%\\]*)?$/.exec(relative);
+          if (
+            !match ||
+            relative.includes('//') ||
+            [...relative].some(character => character.charCodeAt(0) <= 32 || character.charCodeAt(0) === 127) ||
+            relative.split('/').some(part => part === '.' || part === '..')
+          )
+            return;
+          request.params = { branding: match[1], portal: match[2] };
+          for (const name of ['nocache', 'brandingandportal', 'browseractor', 'checkauth']) {
+            await policies[name]!(request, reply);
+            if (httpReplySubmitted(reply)) return;
+          }
+          const { actor, brand } = requestContext(request);
+          if (actor && !actor.roles.some(role => role.brandId === brand.id)) return reply.code(403).send();
+          if (Object.values(request.query as Record<string, unknown>).some(value => typeof value !== 'string'))
+            return reply.code(400).send();
+          return sendPageError(request, reply, resolved.pages!.rendering, () => csrf.generateToken(request), 404);
+        }
+      : undefined,
     guards: async (binding, request, reply) => {
       if (resolved.httpOwners.integrations.includes(binding.route)) return integrationGuard(binding, request, reply);
       if (resolved.httpOwners.identities.includes(binding.route))
@@ -158,6 +195,46 @@ export async function createPortalFastifyHost(
         flatFormPrefixes: resolved.raw?.companion ? [rootContext + portal.config.companion.route] : [],
       },
       prepare: async (app: FastifyPreparation) => {
+        if (resolved.pages)
+          app.addHook('onRequest', async (request, reply) => {
+            const raw = requestPathname(request.raw.url ?? '/');
+            if (raw === undefined) return;
+            if (
+              rootContext &&
+              (raw.slice(0, rootContext.length).toLowerCase() !== rootContext.toLowerCase() ||
+                (raw.length > rootContext.length && raw[rootContext.length] !== '/'))
+            )
+              return;
+            const relative = raw.slice(rootContext.length) || '/';
+            applyPageHeaders(
+              { path: relative },
+              {
+                set: (name: string | Record<string, string>, value?: string) =>
+                  typeof name === 'string' ? reply.header(name, value!) : reply.headers(name),
+                removeHeader: name => reply.removeHeader(name),
+              },
+              {
+                publicUrl: portal.config.server.publicUrl,
+                sessionMaxAgeMs: portal.config.redboxSession.cookie?.maxAge,
+                noCache: resolved.pages!.noCache,
+              }
+            );
+          });
+        if (resolved.pages)
+          app.addHook('onSend', async (request, reply, payload) => {
+            if (
+              payload === undefined &&
+              request.method !== 'HEAD' &&
+              reply.statusCode >= 400 &&
+              (!request.session ||
+                (!request.session.isPersisted() &&
+                  !request.session.isModified() &&
+                  !settings.session.saveUninitialized))
+            ) {
+              reply.removeHeader('Transfer-Encoding').header('Content-Length', '0');
+            }
+            return payload;
+          });
         // Preserve the configured HTTPS header for the FM-023 routes, including
         // policy/parser denials. Full page/asset header conversion stays scoped
         // to its later task. Route identities come from executable declarations.
@@ -244,7 +321,35 @@ export async function createPortalFastifyHost(
           credentialFields: input.login.credentialFields,
           audit: input.login.audit,
           loginFailure: input.login.loginFailure,
-          renderAuthenticationFailure: input.login.renderAuthenticationFailure,
+          renderAuthenticationFailure:
+            input.login.renderAuthenticationFailure ??
+            (resolved.pages
+              ? async (request, reply, reason) => {
+                  const params = request.params as Record<string, unknown>;
+                  request.params = {
+                    ...params,
+                    branding: params.branding ?? request.session.branding ?? portal.config.auth.defaultBrand,
+                    portal: params.portal ?? request.session.portal ?? portal.config.auth.defaultPortal,
+                  };
+                  await policies.brandingandportal!(request, reply);
+                  if (httpReplySubmitted(reply)) return;
+                  await policies.browseractor!(request, reply);
+                  return sendPageError(
+                    request,
+                    reply,
+                    resolved.pages!.rendering,
+                    () => csrf.generateToken(request),
+                    403,
+                    {
+                      message: 'error-auth',
+                      detailedMessage:
+                        reason === 'authorized-email-denied'
+                          ? reason
+                          : 'There was an issue with your user credentials, please try again.',
+                    }
+                  );
+                }
+              : undefined),
           ...settings.login,
           sessionCookie: {
             name: portal.config.redboxSession.name ?? 'redbox.sid',

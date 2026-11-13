@@ -44,3 +44,21 @@ export * from './controllers/MutationControllers';
 export type { ConfiguredAction, ConfiguredActionContext } from './actions/configuredActions';
 
 export * from './controllers/IntegrationControllers';
+
+export {
+  PageController,
+  pageController,
+  PageRootController,
+  pageRootController,
+  type PageControllerInput,
+  type PageRootControllerInput,
+} from './controllers/PageController';
+export {
+  preparePageRendering,
+  renderPageShell,
+  type PageRenderingInput,
+  type PageRequest,
+  type PageResponse,
+} from '../pages/rendering';
+export { prepareNativePage, sendPageResponse, sendPageError } from './fastify/pages';
+export { PageArtifacts } from '../pages/Artifacts';

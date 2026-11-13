@@ -44,6 +44,11 @@ export interface ControllerHostOptions extends Omit<FastifyHostOptions, 'prepare
   readonly routing: Parameters<typeof composeRoutes>[1];
   /** Additional action preludes; native route security always runs first. */
   readonly guards?: RouteGuards;
+  /** Core page error renderer, after reserved method/asset boundaries and API2 fallbacks. */
+  readonly pageNotFound?: (
+    request: import('fastify').FastifyRequest,
+    reply: import('fastify').FastifyReply
+  ) => Promise<unknown>;
   /** Declaration-derived preparation runs once after hooks, before final validation. */
   readonly actionPreparation?: {
     applies(binding: Parameters<RouteGuards>[0]): boolean;
@@ -79,6 +84,7 @@ export async function createControllerHost(
     routing,
     guards,
     actionPreparation,
+    pageNotFound,
     security,
     hooks = [],
     fallbacks = [],
@@ -248,6 +254,10 @@ export async function createControllerHost(
               return instances.action(selected.binding.route.declaration)(request, reply);
             }
             if (httpReplySubmitted(reply)) return reply;
+            if (pageNotFound) {
+              await pageNotFound(request, reply);
+              if (httpReplySubmitted(reply)) return reply;
+            }
             return reply.code(404).send({ error: 'not-found' });
           });
         },

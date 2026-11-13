@@ -124,6 +124,7 @@ export function productionCompositionInputCases() {
         inputs<PortalFastifySelection>(selected.http, {
           declarations: same(selected.http.declarations),
           progress: same(false),
+          pages: same(undefined),
           actions: same(undefined),
           policyConfiguration: same(resolved.policyConfiguration),
           portals: equal(resolved.portals),
@@ -143,6 +144,8 @@ export function productionCompositionInputCases() {
         assert.strictEqual(resolve.firstCall.args[0][1], (await load.firstCall.returnValue).providers[0]);
         inputs<ResolvedPortalInstallation>(resolved, {
           raw: same(undefined),
+          pages: same(undefined),
+          pageDeclaration: same(undefined),
           assetCache: value => assert(value instanceof module('http/brandingDeliveryCache').BrandingDeliveryCache),
           rawDeclaration: same(undefined),
           actionPreparation: value => {
@@ -319,6 +322,7 @@ export function productionCompositionInputCases() {
           namespaceConfiguration: same(resolved.namespaceConfiguration),
           routing: same(resolved.routing),
           guards: callable,
+          pageNotFound: same(undefined),
           actionPreparation: same(resolved.actionPreparation),
           security: same(security),
         });

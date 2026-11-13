@@ -81,6 +81,7 @@ const publicHeaders = new Set([
   'vary',
   'x-content-type-options',
   'content-security-policy',
+  'content-security-policy-report-only',
   'cross-origin-opener-policy',
   // Configuration reads retain this public source marker if JSON encoding fails.
   'x-redbox-config-source',

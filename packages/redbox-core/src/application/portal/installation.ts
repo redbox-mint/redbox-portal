@@ -1,3 +1,6 @@
+import { PortalPages, type PortalPageOptions } from './pageHttpPlan';
+import { pageController, pageRootController, representativePageRoutes } from '../../http/controllers/PageController';
+import { resolveEffectivePolicies } from '../../http/express/policies';
 import { integrationDeclarations } from '../../http/integrationRoutes';
 import { portalIntegrationControllers } from './integrationHttpPlan';
 import { mutationDeclarations } from '../../http/mutationRoutes';
@@ -39,6 +42,8 @@ export interface PortalFastifySelection {
   readonly declarations: readonly ApiRouteSource[];
   /** Select the owned Socket.IO progress channel and its grant endpoint. */
   readonly progress?: boolean;
+  /** FM-029 representative pages and reusable rendering infrastructure. */
+  readonly pages?: PortalPageOptions;
   readonly actions?: Readonly<Record<string, import('../../http/actions/configuredActions').ConfiguredAction>>;
   readonly policyConfiguration?: PoliciesConfig;
   readonly portals?: readonly string[];
@@ -61,6 +66,25 @@ export async function resolvePortalInstallation(
   );
   // Bind the module offline, but select its resources only after route replacement.
   let raw: PortalRawHttp | undefined;
+  let pages: PortalPages | undefined;
+  const pageDeclaration = input.pages
+    ? {
+        name: 'portal-pages',
+        requires: [
+          context.data.reference.appConfigs.declaration.name,
+          context.data.reference.entries.declaration.name,
+          context.data.reference.translation.declaration.name,
+          context.data.reference.branding.declaration.name,
+        ],
+        create: () => pages!,
+      }
+    : undefined;
+  const pageInput = {
+    get rendering() {
+      return pages!.rendering;
+    },
+    csrfToken: (request: import('fastify').FastifyRequest) => pages!.csrfToken(request),
+  };
   const rawDeclaration =
     upload || input.progress || context.config.companion.enabled
       ? {
@@ -162,47 +186,97 @@ export async function resolvePortalInstallation(
     input.declarations.some(route => route.controller === recordController.name) &&
     !readTargets.has(recordController.name) &&
     !mutationTargets.has(recordController.name);
-  const coreRoutes = apiRouteRegistrations({
-    declarations: [...input.declarations, ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : [])],
-    configuration: plan.policyConfiguration,
-    provider: '@researchdatabox/redbox-core',
-  } satisfies ProductionApiRouteOptions).map(route => ({
-    ...route,
-    effectiveCsrf:
-      (route.declaration.api?.controller === updateMetaRoute.controller &&
-        [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
-      (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
-        ? 'apiProtect'
-        : integrationDeclarations.some(item => route.declaration.name === coreRouteName(item.method, item.path))
-          ? route.declaration.method === 'get'
-            ? 'none'
-            : route.declaration.path.includes('/api/')
-              ? 'apiProtect'
-              : 'protect'
-          : mutationDeclarations.some(write => route.declaration.name === coreRouteName(write.method, write.path))
-            ? route.declaration.path.includes('/api/')
-              ? 'apiProtect'
-              : 'protect'
-            : identityAdministrationDeclarations.some(
-                  identity => route.declaration.name === coreRouteName(identity.method, identity.path)
-                )
-              ? route.declaration.controller === 'webservice/AdminController'
-                ? route.declaration.action === 'getAppConfig'
-                  ? 'none'
-                  : 'apiProtect'
-                : route.declaration.method === 'get'
-                  ? 'none'
-                  : route.declaration.path.includes('/api/')
+  const coreRoutes = [
+    ...apiRouteRegistrations({
+      declarations: [
+        ...input.declarations,
+        ...(input.progress ? [{ ...progressSocketGrantRoute, responses: {} }] : []),
+      ],
+      configuration: plan.policyConfiguration,
+      provider: '@researchdatabox/redbox-core',
+    } satisfies ProductionApiRouteOptions).map(route => ({
+      ...route,
+      effectiveCsrf:
+        (route.declaration.api?.controller === updateMetaRoute.controller &&
+          [updateMetaRoute.action, addDataStreamsRoute.action].includes(route.declaration.api?.action ?? '')) ||
+        (input.progress && route.declaration.api?.controller === progressSocketGrantRoute.controller)
+          ? 'apiProtect'
+          : integrationDeclarations.some(item => route.declaration.name === coreRouteName(item.method, item.path))
+            ? route.declaration.method === 'get'
+              ? 'none'
+              : route.declaration.path.includes('/api/')
+                ? 'apiProtect'
+                : 'protect'
+            : mutationDeclarations.some(write => route.declaration.name === coreRouteName(write.method, write.path))
+              ? route.declaration.path.includes('/api/')
+                ? 'apiProtect'
+                : 'protect'
+              : identityAdministrationDeclarations.some(
+                    identity => route.declaration.name === coreRouteName(identity.method, identity.path)
+                  )
+                ? route.declaration.controller === 'webservice/AdminController'
+                  ? route.declaration.action === 'getAppConfig'
+                    ? 'none'
+                    : 'apiProtect'
+                  : route.declaration.method === 'get'
+                    ? 'none'
+                    : route.declaration.path.includes('/api/')
+                      ? 'apiProtect'
+                      : 'protect'
+                : recordQueryReadDeclarations.some(
+                      read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
+                    )
+                  ? route.declaration.path.includes('/api/')
                     ? 'apiProtect'
                     : 'protect'
-              : recordQueryReadDeclarations.some(
-                    read => read.method === 'post' && route.declaration.name === coreRouteName(read.method, read.path)
-                  )
-                ? route.declaration.path.includes('/api/')
-                  ? 'apiProtect'
-                  : 'protect'
-                : 'none',
-  }));
+                  : 'none',
+    })),
+    ...(input.pages
+      ? [
+          ...representativePageRoutes.map(route => {
+            const mandatory = [
+              'nocache',
+              'brandingandportal',
+              'browseractor',
+              ...(route.access === 'public' ? [] : ['browserauthenticated', 'brandactor']),
+              'checkauth',
+            ];
+            const effectivePolicies = [
+              ...new Set([...mandatory, ...resolveEffectivePolicies(route, plan.policyConfiguration)]),
+            ];
+            return {
+              provider: '@researchdatabox/redbox-core',
+              declaration: {
+                name: coreRouteName(route.method, route.path),
+                method: route.method,
+                path: route.path,
+                controller: pageController.name,
+                action: 'render',
+                access: {
+                  kind: 'policies' as const,
+                  names: [mandatory[0], ...mandatory.slice(1)] as [string, ...string[]],
+                },
+              },
+              effectivePolicies,
+              effectiveCsrf: 'protect except GET/HEAD/OPTIONS',
+            };
+          }),
+          {
+            provider: '@researchdatabox/redbox-core',
+            declaration: {
+              name: coreRouteName('all', '/'),
+              method: 'all' as const,
+              path: '/',
+              controller: pageRootController.name,
+              action: 'redirect',
+              access: { kind: 'public' as const },
+            },
+            effectivePolicies: [],
+            effectiveCsrf: 'none',
+          },
+        ]
+      : []),
+  ];
   const bindings = Object.freeze([
     ...(metadataOnly
       ? [
@@ -218,6 +292,15 @@ export async function resolvePortalInstallation(
               return raw!.sockets;
             },
             log: context.log,
+          }),
+        ]
+      : []),
+    ...(input.pages
+      ? [
+          bindControllerFactory(pageController, pageInput),
+          bindControllerFactory(pageRootController, {
+            rootContext: context.config.server.rootContext,
+            landingPath: context.config.page.landingPath,
           }),
         ]
       : []),
@@ -252,8 +335,13 @@ export async function resolvePortalInstallation(
         root: appPath,
         declaration: {
           apiVersion: 2,
-          modules: [...context.plans.map(plan => plan.declaration), ...(rawDeclaration ? [rawDeclaration] : [])],
+          modules: [
+            ...context.plans.map(plan => plan.declaration),
+            ...(rawDeclaration ? [rawDeclaration] : []),
+            ...(pageDeclaration ? [pageDeclaration] : []),
+          ],
           controllers: [
+            ...(input.pages ? [pageController, pageRootController] : []),
             ...(metadataOnly ? [recordFactory] : []),
             ...reads.controllers,
             ...reference.controllers,
@@ -305,6 +393,7 @@ export async function resolvePortalInstallation(
     integrations: Object.freeze([...new Set(integrationDeclarations.flatMap(routesFor))]),
     identities: Object.freeze([...new Set(identityAdministrationDeclarations.flatMap(routesFor))]),
   });
+  if (input.pages) pages = new PortalPages(context, appPath, resolved, input.pages);
   if (rawDeclaration) raw = new PortalRawHttp(context, httpOwners.uploads.length > 0, httpOwners.progress.length > 0);
   // Seal declaration/plan data in place to retain exact factory identities.
   // Class instances (Zod schemas and the request registry) own their runtime state;
@@ -330,6 +419,8 @@ export async function resolvePortalInstallation(
   return Object.freeze({
     ...resolved,
     raw,
+    pages,
+    pageDeclaration,
     assetCache,
     rawDeclaration,
     httpOwners,

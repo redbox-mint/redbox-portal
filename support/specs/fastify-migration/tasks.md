@@ -243,7 +243,7 @@ on a gate, it depends on all required evidence for that gate, not just merged co
 
 ## P4 — Browser, pages and assets
 
-- [ ] **FM-029 — Implement page and response helpers.**
+- [x] **FM-029 — Implement page and response helpers.**
   - Dependencies: G2; relevant P3 response helpers.
   - Work: bind EJS, language, redirects, cookies, CSP/cache/compression/security
     headers and view/asset override precedence without Express transport types.

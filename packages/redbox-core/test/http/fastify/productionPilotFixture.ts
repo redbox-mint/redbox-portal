@@ -149,6 +149,7 @@ export async function productionPilotFixture(
       http: {
         declarations: [getMetaRoute, updateMetaRoute, ...(options.raw ? [addDataStreamsRoute] : [])],
         progress: !!options.raw,
+        pages: undefined,
         actions: undefined,
         policyConfiguration: options.policyConfiguration,
         portals: options.portals,

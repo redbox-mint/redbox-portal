@@ -13,6 +13,7 @@ module.exports = {
     'test/http/fastify/PilotMongo.test.ts',
     'test/http/fastify/G2Mongo.test.ts',
     'test/http/fastify/G3Mongo.test.ts',
+    'test/http/fastify/PageDifferentialMongo.test.ts',
     'test/http/fastify/G3BrunoMongo.test.ts',
     'test/http/fastify/MetadataDifferentialMongo.test.ts',
     'test/http/fastify/ReferenceDifferentialMongo.test.ts',

@@ -154,17 +154,18 @@
     "packages/redbox-core/src/application/Application.ts": "58fea2d2a3a9208f661c7563de810c001208a64be475d952df21daea00e866b2",
     "packages/redbox-core/src/application/index.ts": "b7db592fab351a154318f6662f1d8fec4a048f0fa66861a75bcfedc766db3159",
     "packages/redbox-core/src/application/migrations.ts": "19686a9c2f901177692bbde516d3a74429fdf3f4149b0d8d8c18a32fa16d7221",
-    "packages/redbox-core/src/application/portal/application.ts": "ba6ad9b1572f4489e634c033181909222206ddb42aaddb7b399735192efef211",
+    "packages/redbox-core/src/application/portal/application.ts": "166df7c3ccbf40f4b37753c0c73ccd9707cb8b349e286bd9ae1ca4f5d5895b59",
     "packages/redbox-core/src/application/portal/data.ts": "53ed6b3c5e0b8e7880fd77d1b3680226aeeeb1d484a65377ce314fc7285de76c",
     "packages/redbox-core/src/application/portal/domain.ts": "da897dd73bbd95355192ec2e9bd25372d5495ed066ea6f79ba8aeba20809fa4c",
-    "packages/redbox-core/src/application/portal/host.ts": "5c9abace08e7a7462f5a4919db1adcbf2bc89fbb8c04d81f21d7c18717ac428e",
-    "packages/redbox-core/src/application/portal/http.ts": "cb09e9189661b8edc8ed7611dcbb9cf76895672e59d5259837fc4c2832f5df3e",
+    "packages/redbox-core/src/application/portal/host.ts": "d3429ebf09dd7a0e52c6eaffcb2fd2a7625cdbd4a7bfb9153cb5fec3302d88c5",
+    "packages/redbox-core/src/application/portal/http.ts": "a54cd017f3d78703a74bc2ce5059cc9cfa14cce708118a6b26238f4ffcef7eb1",
     "packages/redbox-core/src/application/portal/httpPlan.ts": "a9223c45b6de5b950eb0e3beb686217a8b87de00ab3412480a85a011197438f1",
     "packages/redbox-core/src/application/portal/httpPolicies.ts": "029bb30571eb6c348e9478fb3fc179477fbe23d8d87d6815bc9f97fe17fecc2b",
     "packages/redbox-core/src/application/portal/identityHttpPlan.ts": "ccba41e6c4147f32dc6fce0079f07e7bd2660c839d449bf4c4fa408225655022",
-    "packages/redbox-core/src/application/portal/installation.ts": "5d9dc4d50aeb65e2a2b0fe22ce1654925cf01f984bd22f23ebbc09d421586173",
+    "packages/redbox-core/src/application/portal/installation.ts": "1b25a6f931a57e9823d8d689925270065f7e8142c4114f6b6e7f27cb47706b53",
     "packages/redbox-core/src/application/portal/integrationHttpPlan.ts": "89b65cbd158d68f57e63993d6b1ccba62c7c5a8c323a7dc91ed570da0f7ead33",
     "packages/redbox-core/src/application/portal/mutationHttpPlan.ts": "3e6e0372d163e95038f78eaf378bc9668c598cde9948297330f740086de47459",
+    "packages/redbox-core/src/application/portal/pageHttpPlan.ts": "d32569a345f6809f86172d7f74eff88ebdf8e9137d71afdc02afe596ed8e8b6c",
     "packages/redbox-core/src/application/portal/providers.ts": "32daf1c9dab7936148e14ef13a49c3744f74ea9292ef47006457bde1edb20ccd",
     "packages/redbox-core/src/application/portal/rawHttp.ts": "f2b163d9e8f9c1869cecd74cab2215966a107149147a7b82f5e7ded269ab889b",
     "packages/redbox-core/src/application/portal/readHttpPlan.ts": "a999ea860249f5bfe943a7a03229bd44dff1679b04b30e322cb81abc35ec8de5",
@@ -307,6 +308,7 @@
     "packages/redbox-core/src/http/controllers/IdentityAdministrationControllers.ts": "a2d9d270fc0ef06fcbf86c79aaae3f6893017cfaae2eab6983631f1857e2bae7",
     "packages/redbox-core/src/http/controllers/IntegrationControllers.ts": "ea19fed4d21607b901c50a356e3fcf3ba8d019ae49705e9282bbdde5d9091f15",
     "packages/redbox-core/src/http/controllers/MutationControllers.ts": "2987f75547193ab44331a05a8fac8438a9fbd499faabd34abebe54a7ca24e11f",
+    "packages/redbox-core/src/http/controllers/PageController.ts": "a5406f64b849aaa8bea48cc1d3d98e17c5eb705af5d1e4d8eb8175e9d7ed47b0",
     "packages/redbox-core/src/http/controllers/ProgressController.ts": "e1dba5e6771bb39f34c6f59275783caa60ad6f3d9c560cafb5299b215bdccb53",
     "packages/redbox-core/src/http/controllers/ReadControllers.ts": "fbf5c2cfef34835e9144b7f3e344699355a42dfbcf5d7ce095b34df859a733d5",
     "packages/redbox-core/src/http/controllers/ReferenceControllers.ts": "a5b9b2fdda355fdd72e7a6bdcfe5d520f6307e138f25789ff9bcc3e130f2a7b6",
@@ -344,8 +346,8 @@
     "packages/redbox-core/src/http/express/multipart.ts": "78afe9a4d39e919923bbcde10527c65b666b94dcb78963bb996af64b803c5d39",
     "packages/redbox-core/src/http/express/ownedRoutes.ts": "884f929ee19bf48743f4bcb61f1f1cb26271aa2cc972add47df82903c515d16a",
     "packages/redbox-core/src/http/express/pageAssets.ts": "e67fb1178b8b726aa6565b37dfc9752a32adc06d2bd66f68fd741943592ed5c7",
-    "packages/redbox-core/src/http/express/pageHeaders.ts": "5b991c38ab58802c882300d5f8025b7ce0d43d99de3ebb135a99b05709d48888",
-    "packages/redbox-core/src/http/express/pages.ts": "b48a4c42444896e5c17619d9b1066c46dd666b8cec2ebfde4a9578793532d41c",
+    "packages/redbox-core/src/http/express/pageHeaders.ts": "6ea3ffd6d000c7ba3070909d33877c8a37eb230f652ad963ccb605a40ea885a9",
+    "packages/redbox-core/src/http/express/pages.ts": "c9be6695a349710f0613876e79b196461a8f0c7e52292ce6fd80a1ff8bd942cd",
     "packages/redbox-core/src/http/express/policies.ts": "7b526b8d03bf7cba4883cdd184166391a305c58bd04c7e165f5e05a9b10d22c5",
     "packages/redbox-core/src/http/express/progressOperations.ts": "8cba7261d11bf655a47dba8a1d786e8654fb4ac2c5c93b385d28b434614d05d8",
     "packages/redbox-core/src/http/express/progressSockets.ts": "d77bb8ddfac931ad3dd26bd5f98fc1de11aa6e26ff684f2d8af3dff485acae3a",
@@ -367,11 +369,11 @@
     "packages/redbox-core/src/http/fastify/FastifyHost.ts": "21e21276301067c29bb5a1ad5a6676275781d2c4077269073c916529189cbc00",
     "packages/redbox-core/src/http/fastify/actionReply.ts": "49fd0f32e55a234a38dc6aae6d2b908e21989de747186a93e3616b3d5f47df2e",
     "packages/redbox-core/src/http/fastify/authentication.ts": "3f255b334e1b04ae38560c78ad2e9856329893006f93d40366ffd9f1d1b6fb80",
-    "packages/redbox-core/src/http/fastify/composition.ts": "01312fd2bbc03e9699f89520c5f3fca322d87111bbc1f83bca51834f5d2d4315",
+    "packages/redbox-core/src/http/fastify/composition.ts": "773b59eb9c44ef9f54bbfe6fd6cdb4fbdf0f460c558fc85dd88f7dd42b795d1d",
     "packages/redbox-core/src/http/fastify/coreNamespaces.ts": "aa898f182d6f04bbf41f37767632e6c721f35db6b5e75da3ebb1c0651df7ca65",
     "packages/redbox-core/src/http/fastify/csrf.ts": "e190bb256c553c9accff701279bcadab4e833e810531cb13eed996f5f405525b",
     "packages/redbox-core/src/http/fastify/datastreamUploads.ts": "89184ebf6e2ff25a6b7439c19013abbd3889135ed65752d6584b207cdc9f9585",
-    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "015037a4db8b832ac6ea61b8d868b13d2618c4071aae537c9ef79113adf0f46e",
+    "packages/redbox-core/src/http/fastify/errorBoundary.ts": "46796d1527e21887050728692b340f208519cd263930b9dab0c517e812d83282",
     "packages/redbox-core/src/http/fastify/fallbacks.ts": "8220c4b6862d880e6cb8a782212d28b85abcf24500906934d26e471c3652662a",
     "packages/redbox-core/src/http/fastify/hooks.ts": "bea4a4d7c4ca29f3ef78172cf729bde2f718197ee67f6ac254f5230f18d072e8",
     "packages/redbox-core/src/http/fastify/identityAdministration.ts": "609032a8fa596d7f388a299d78b13e48e7ac019984480c506ad502c4a3b4c999",
@@ -379,6 +381,7 @@
     "packages/redbox-core/src/http/fastify/integrations.ts": "55c2f326687b3a04f48a3cb3b83042bb169d41f480d74de8f931efd63240be8b",
     "packages/redbox-core/src/http/fastify/logging.ts": "f2f46c880eeb0990026513ff31dee00d23e04d3a7e0ef83ad4ec1d6a4b184091",
     "packages/redbox-core/src/http/fastify/mutations.ts": "568cf80c87d4db26b97a0f6bd175f3953cc6ef47df9ef4152889afb89f54b350",
+    "packages/redbox-core/src/http/fastify/pages.ts": "0c5aeabe231e0bb93fc3d628699e28aeb1281de95ed2225b8f0c0ac08479e8bf",
     "packages/redbox-core/src/http/fastify/parsers.ts": "2220870f08f2b639f05e3a049749ad1cf22876be8906c3245f30d7837f61d697",
     "packages/redbox-core/src/http/fastify/policies.ts": "aba566cebbb20e10b99f55ee4cf240e7ca3a5b1556f9c1754670731efc0e435c",
     "packages/redbox-core/src/http/fastify/precedence.ts": "f22abeb7d3d52c19beed2188d9817d54b8703efcbb45f1215b2ea63729547041",
@@ -390,7 +393,7 @@
     "packages/redbox-core/src/http/fastify/registration.ts": "0f1c7a4f7430d99730ddea74a3a3751e7bd679d7af38b28ee8541e8656811189",
     "packages/redbox-core/src/http/fastify/registry.ts": "c8f096b36fac285e7ddae15f312ce17597fb1a4cf5cefae4c1182074cae8fc49",
     "packages/redbox-core/src/http/fastify/requestOwnership.ts": "055827dcc8622c6b50847984ecc094965d7bea349dac4e99a52018f4464b7787",
-    "packages/redbox-core/src/http/fastify/responses.ts": "315342f90276acb4a2f1b68c4374ccef179e0a7ea9630b4eaf3aa8930c0ee069",
+    "packages/redbox-core/src/http/fastify/responses.ts": "77c0b36408cff0b6345d13b432cbebaae342aa778aee105d2092022f57dfa210",
     "packages/redbox-core/src/http/fastify/router.ts": "b716b5eac0b18f79fda8954b8631ce59f942e024074d425c4dc007cf09bc50f2",
     "packages/redbox-core/src/http/fastify/routes.ts": "7bfc2cc1cf3d3d06ee55e35cb1ba7eec4c9c7409132a71d2b8f0b0dbda1f5f54",
     "packages/redbox-core/src/http/fastify/session.ts": "eb24c918a9dfb5ed0e9c84166d3c1d0b258e2bb1adb712e83597ea035c868055",
@@ -403,6 +406,7 @@
     "packages/redbox-core/src/http/integrations/companion/companionSendToken.ts": "b5c45e3ccae28a18b62fec00cd951543f84c36540c8456252afcd6dfd73bc9bb",
     "packages/redbox-core/src/http/integrations/companion/fastify.ts": "077d9d8777570ac90420703cdcf3380dbbd18a092dcd928f5e82c23588dba0e9",
     "packages/redbox-core/src/http/integrations/companion/uploads.ts": "a9427161069dac85c1a8ecf02b69a8638e7196d65934ca6f40f539fcda6fe8c4",
+    "packages/redbox-core/src/http/language.ts": "293f7d0b0b00080a3f269f9183c73c3dd051ae78c523323849bc04848b669db7",
     "packages/redbox-core/src/http/mutationRoutes.ts": "3c810038bf0b1aba1f88177e884fd690a2b524f55a3954b9807b147a180d1a88",
     "packages/redbox-core/src/http/policyConfiguration.ts": "a4d9223d24f2c2e978f1d984f4120eed3866766f0722b6a90a19e2cec3662c54",
     "packages/redbox-core/src/http/readRoutes.ts": "e24b6f9b7a8d83ab6bc327d5e272bf8689c25ee9724c6e52986c6653be8abea4",
@@ -501,7 +505,9 @@
     "packages/redbox-core/src/pages/Templates.ts": "1bda3bb950f2e7b4ab66b6bb2264de6f6efebce6a4b8ef7df83d4ccd5be8d3d8",
     "packages/redbox-core/src/pages/clientConfiguration.ts": "a141ac9640c7a7750e98b1ecb593dbb5641671eb97b4c40227556ba1787f9d56",
     "packages/redbox-core/src/pages/csp.ts": "6964e829e4cb6a50500b329ddecc4f93de0a329d98d592b934863797c008eed3",
-    "packages/redbox-core/src/pages/locals.ts": "0ea196f0ac9ce53ce33e878dd089c43d74e663067b205168dda1971a3c016709",
+    "packages/redbox-core/src/pages/headers.ts": "8198c2ec4cab6c474007c47f7afe7e70d38360535d0b20a29388d11a97517db1",
+    "packages/redbox-core/src/pages/locals.ts": "444a0acc7ec2e3da5fba31e5440c978fa4dfdf65f3248e4314ee1dace366270f",
+    "packages/redbox-core/src/pages/rendering.ts": "2d313139fe3e3f44a4e21c3496dc74d251fc2d01026634f757342159bc10da13",
     "packages/redbox-core/src/persistence/branding/runtime.ts": "77c0c8a576a7d556d350e0da3bdcf41fb7a9c012640edec043bd63f9b0feb8cf",
     "packages/redbox-core/src/persistence/cache/errors.ts": "f381afb07ecb87d17538867eeff94fdd3de3e2e024fb1d2205f133e0d6e433c3",
     "packages/redbox-core/src/persistence/cache/preflight.ts": "d0edd9cc29324eaa173c25cc5400da3b248c1daa8eeb39edb21a4284558694df",
@@ -39476,7 +39482,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 0
       },
       "apiDeclaration": null,
@@ -39519,7 +39525,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39586,7 +39592,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 1
       },
       "apiDeclaration": null,
@@ -39629,7 +39635,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39676,7 +39682,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 2
       },
       "apiDeclaration": null,
@@ -39720,7 +39726,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39787,7 +39793,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 3
       },
       "apiDeclaration": null,
@@ -39831,7 +39837,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -39898,7 +39904,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 4
       },
       "apiDeclaration": null,
@@ -39942,7 +39948,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40009,7 +40015,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 5
       },
       "apiDeclaration": null,
@@ -40053,7 +40059,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40120,7 +40126,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 6
       },
       "apiDeclaration": null,
@@ -40163,7 +40169,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40230,7 +40236,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 7
       },
       "apiDeclaration": null,
@@ -40273,7 +40279,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40340,7 +40346,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 8
       },
       "apiDeclaration": null,
@@ -40383,7 +40389,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40450,7 +40456,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 9
       },
       "apiDeclaration": null,
@@ -40493,7 +40499,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40560,7 +40566,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 10
       },
       "apiDeclaration": null,
@@ -40604,7 +40610,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40671,7 +40677,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 11
       },
       "apiDeclaration": null,
@@ -40714,7 +40720,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40781,7 +40787,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 12
       },
       "apiDeclaration": null,
@@ -40824,7 +40830,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40891,7 +40897,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 13
       },
       "apiDeclaration": null,
@@ -40934,7 +40940,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -40981,7 +40987,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 14
       },
       "apiDeclaration": null,
@@ -41024,7 +41030,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41071,7 +41077,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 15
       },
       "apiDeclaration": null,
@@ -41114,7 +41120,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41161,7 +41167,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 16
       },
       "apiDeclaration": null,
@@ -41204,7 +41210,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41251,7 +41257,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 17
       },
       "apiDeclaration": null,
@@ -41294,7 +41300,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41341,7 +41347,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 18
       },
       "apiDeclaration": null,
@@ -41385,7 +41391,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41432,7 +41438,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 19
       },
       "apiDeclaration": null,
@@ -41475,7 +41481,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41522,7 +41528,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 20
       },
       "apiDeclaration": null,
@@ -41565,7 +41571,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41612,7 +41618,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 21
       },
       "apiDeclaration": null,
@@ -41655,7 +41661,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41702,7 +41708,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 22
       },
       "apiDeclaration": null,
@@ -41745,7 +41751,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41792,7 +41798,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 23
       },
       "apiDeclaration": null,
@@ -41835,7 +41841,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41882,7 +41888,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 24
       },
       "apiDeclaration": null,
@@ -41925,7 +41931,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -41972,7 +41978,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 25
       },
       "apiDeclaration": null,
@@ -42015,7 +42021,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42062,7 +42068,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 26
       },
       "apiDeclaration": null,
@@ -42105,7 +42111,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42152,7 +42158,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 27
       },
       "apiDeclaration": null,
@@ -42195,7 +42201,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42242,7 +42248,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 28
       },
       "apiDeclaration": null,
@@ -42285,7 +42291,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42352,7 +42358,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 29
       },
       "apiDeclaration": null,
@@ -42395,7 +42401,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42462,7 +42468,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 30
       },
       "apiDeclaration": null,
@@ -42505,7 +42511,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42552,7 +42558,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 31
       },
       "apiDeclaration": null,
@@ -42595,7 +42601,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42642,7 +42648,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 32
       },
       "apiDeclaration": null,
@@ -42685,7 +42691,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42732,7 +42738,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRoutes",
-        "line": 80,
+        "line": 75,
         "index": 33
       },
       "apiDeclaration": null,
@@ -42775,7 +42781,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRoutes",
-          "line": 80
+          "line": 75
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -42822,7 +42828,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "pageRootRoute",
-        "line": 124
+        "line": 98
       },
       "apiDeclaration": null,
       "original": {
@@ -42854,7 +42860,7 @@
         "reference": {
           "file": "packages/redbox-core/src/http/express/pages.ts",
           "export": "pageRootRoute",
-          "line": 124
+          "line": 98
         },
         "owner": "route adapter and selected domain; Zod references retain executable semantics"
       },
@@ -46256,7 +46262,7 @@
       "source": {
         "file": "packages/redbox-core/src/http/express/pages.ts",
         "export": "mountPageNotFound",
-        "line": 454
+        "line": 313
       },
       "method": "all",
       "path": "/:branding/:portal{/*pageNotFound}",
