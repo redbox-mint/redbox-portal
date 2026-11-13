@@ -16,7 +16,9 @@ export const mcpConfigSchema = z.strictObject({
   identityClaim: z.string().regex(/^[A-Za-z][A-Za-z0-9_]*$/),
   usernameToLowercase: z.boolean(),
   algorithms: z.array(z.enum(['RS256', 'ES256', 'PS256'])).min(1),
-  allowedOrigins: z.array(secureUrl).max(20),
+  allowedOrigins: z
+    .array(secureUrl.refine(value => new URL(value).origin === value, 'Use an HTTPS origin without a path'))
+    .max(20),
   maxRequestBytes: z.number().int().min(1024).max(64_000),
 });
 export type McpConfig = z.infer<typeof mcpConfigSchema>;

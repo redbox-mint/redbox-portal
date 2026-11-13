@@ -9,7 +9,7 @@ import {
 } from '../../src/reporting/runtime';
 import { Services as FormServices } from '../../src/services/FormsService';
 import { Services as ProjectionServices } from '../../src/services/FormRecordConsistencyService';
-import { configuration, recordTypes, principal, storedRecord } from './fixtures';
+import { configuration, recordTypes, principal, storedRecord, installReportingTestSails } from './fixtures';
 
 const text = (name: string): FormConfigFrame['componentDefinitions'][number] => ({
   name,
@@ -29,10 +29,10 @@ const outline: FormConfigFrame = {
 describe('Reporting runtime form and identity boundaries', () => {
   const names = ['FormsService', 'FormRecordConsistencyService', 'User', 'UsersService', 'BrandingService'];
   let originals: Map<string, unknown>;
-  let oldConfig: typeof sails.config;
+  let restoreSails: () => void;
   beforeEach(() => {
     originals = new Map(names.map(name => [name, Reflect.get(globalThis, name)]));
-    oldConfig = sails.config;
+    restoreSails = installReportingTestSails();
     sails.config = {
       ...sails.config,
       reporting: configuration,
@@ -52,7 +52,7 @@ describe('Reporting runtime form and identity boundaries', () => {
   });
   afterEach(() => {
     sinon.restore();
-    sails.config = oldConfig;
+    restoreSails();
     for (const [name, value] of originals) {
       if (value === undefined) Reflect.deleteProperty(globalThis, name);
       else Reflect.set(globalThis, name, value);

@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
+import { createRemoteJWKSet, errors, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { ReportingError, resolveReportingPrincipal, type ReportingPrincipal } from '@researchdatabox/redbox-core';
 import type { McpConfig } from './config';
 export class McpAuthError extends Error {
@@ -53,8 +53,19 @@ export class McpAuthenticator {
       return await this.resolve(this.config.usernameToLowercase ? identity.toLowerCase() : identity, this.config.brand);
     } catch (error) {
       if (error instanceof McpAuthError) throw error;
-      if (error instanceof ReportingError) throw new McpAuthError('invalid_token');
-      throw new McpAuthError('invalid_token');
+      if (
+        (error instanceof ReportingError && error.code === 'AUTHENTICATION_REQUIRED') ||
+        error instanceof errors.JWTExpired ||
+        error instanceof errors.JWTClaimValidationFailed ||
+        error instanceof errors.JWTInvalid ||
+        error instanceof errors.JWSInvalid ||
+        error instanceof errors.JWSSignatureVerificationFailed ||
+        error instanceof errors.JOSEAlgNotAllowed ||
+        error instanceof errors.JWKSNoMatchingKey
+      )
+        throw new McpAuthError('invalid_token');
+      // Identity storage and JWKS availability failures must remain retryable 503s.
+      throw error;
     }
   }
 }

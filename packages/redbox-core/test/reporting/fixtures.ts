@@ -1,3 +1,4 @@
+import * as sinon from 'sinon';
 import { BrandingModel, RoleModel, UserModel, type RecordModel } from '../../src/model';
 import { reporting, type ReportingConfig } from '../../src/config/reporting.config';
 import { reportingPrincipal } from '../../src/reporting/authorization';
@@ -108,5 +109,19 @@ export function storedRecord(oid = 'record-1', overrides: Partial<RecordModel> =
       stored: { edit: [], view: [], editRoles: [], viewRoles: [], editPending: [], viewPending: [] },
     },
     ...overrides,
+  };
+}
+
+/** Each reporting suite owns its Sails fixture, including after unrelated suites remove the global. */
+export function installReportingTestSails(): () => void {
+  const previous = Reflect.get(globalThis, 'sails');
+  Reflect.set(globalThis, 'sails', {
+    config: {},
+    services: {},
+    log: { info: sinon.stub(), warn: sinon.stub(), error: sinon.stub(), debug: sinon.stub(), verbose: sinon.stub() },
+  });
+  return () => {
+    if (previous === undefined) Reflect.deleteProperty(globalThis, 'sails');
+    else Reflect.set(globalThis, 'sails', previous);
   };
 }

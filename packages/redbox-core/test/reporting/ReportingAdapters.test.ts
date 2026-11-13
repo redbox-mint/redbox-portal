@@ -10,7 +10,7 @@ import { solr, SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION } from '../../src/c
 import { ReportingError } from '../../src/reporting/types';
 import { reportingApiRoutes } from '../../src/api-routes/groups/reporting';
 import { validateApiRouteRequest } from '../../src/api-routes/validation';
-import { principal } from './fixtures';
+import { principal, installReportingTestSails } from './fixtures';
 
 class TestController extends Controllers.Reporting {
   response!: BuildResponseType;
@@ -22,12 +22,12 @@ class TestController extends Controllers.Reporting {
 describe('Reporting REST and Solr adapters', () => {
   const names = ['User', 'UsersService', 'BrandingService', 'ReportingService'];
   let originals: Map<string, unknown>;
-  let oldConfig: typeof sails.config;
+  let restoreSails: () => void;
   const execute = sinon.stub();
   const schema = sinon.stub();
   beforeEach(() => {
     originals = new Map(names.map(name => [name, Reflect.get(globalThis, name)]));
-    oldConfig = sails.config;
+    restoreSails = installReportingTestSails();
     execute.reset();
     execute.resolves({ count: 10 });
     schema.reset();
@@ -41,7 +41,7 @@ describe('Reporting REST and Solr adapters', () => {
   });
   afterEach(() => {
     sinon.restore();
-    sails.config = oldConfig;
+    restoreSails();
     for (const [name, value] of originals) {
       if (value === undefined) Reflect.deleteProperty(globalThis, name);
       else Reflect.set(globalThis, name, value);

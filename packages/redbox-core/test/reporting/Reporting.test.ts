@@ -10,7 +10,17 @@ import { ReportingError } from '../../src/reporting/types';
 import { validateReportingQuery, resolveReportingRegistry, reportingDate } from '../../src/reporting/registry';
 import { compileReportingPipeline } from '../../src/reporting/mongo';
 import { Services } from '../../src/services/ReportingService';
-import { principal, brand, user, role, registry, storedRecord, configuration, recordTypes } from './fixtures';
+import {
+  principal,
+  brand,
+  user,
+  role,
+  registry,
+  storedRecord,
+  configuration,
+  recordTypes,
+  installReportingTestSails,
+} from './fixtures';
 
 const bad = async (action: () => unknown, code = 'INVALID_QUERY') => {
   try {
@@ -170,12 +180,14 @@ describe('Reporting authorization and validation', () => {
 
 describe('ReportingService safety and independent use', () => {
   let service: Services.Reporting;
+  let restoreSails: () => void;
   const record = storedRecord();
   const getMeta = sinon.stub();
   const project = sinon.stub();
   const search = sinon.stub();
   const executeReporting = sinon.stub();
   beforeEach(() => {
+    restoreSails = installReportingTestSails();
     getMeta.reset();
     project.reset();
     search.reset();
@@ -201,7 +213,10 @@ describe('ReportingService safety and independent use', () => {
       search,
     });
   });
-  afterEach(() => sinon.restore());
+  afterEach(() => {
+    sinon.restore();
+    restoreSails();
+  });
   it('executes directly without MCP and emits bounded schemas without paths', async () => {
     expect(await service.count(principal, { recordType: 'rdmp' })).to.deep.equal({ count: 10 });
     const schema = await service.getReportingSchema(principal, { recordType: 'rdmp' });

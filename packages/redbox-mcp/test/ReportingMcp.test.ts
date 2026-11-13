@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer, request } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { Client, InMemoryTransport, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
+import { createLocalJWKSet, errors, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from 'jose';
 import {
   BrandingModel,
   RoleModel,
@@ -12,7 +12,7 @@ import {
   type ReportingApi,
 } from '@researchdatabox/redbox-core';
 import { createReportingMcpServer } from '../src/server';
-import { McpAuthenticator, McpAuthError } from '../src/auth';
+import { McpAuthenticator, McpAuthError, resolveOidcIdentity } from '../src/auth';
 import { mcpConfigSchema, type McpConfig } from '../src/config';
 import { reportingMcpHttpHandler } from '../src/http';
 
@@ -274,6 +274,129 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       principal.roles.map(role => role.name),
       ['Researcher']
     );
+  });
+  it('distinguishes invalid identities from identity-store and JWKS availability failures', async () => {
+    const bearer = `Bearer ${await token()}`;
+    for (const failure of [new Error('private database credentials'), new ReportingError('UNAVAILABLE')]) {
+      const auth = new McpAuthenticator(
+        config,
+        async () => {
+          throw failure;
+        },
+        keys
+      );
+      await assert.rejects(auth.authenticate(bearer), error => error === failure);
+    }
+    const unknownUser = new McpAuthenticator(
+      config,
+      async () => {
+        throw new ReportingError('AUTHENTICATION_REQUIRED');
+      },
+      keys
+    );
+    await assert.rejects(
+      unknownUser.authenticate(bearer),
+      error => error instanceof McpAuthError && error.code === 'invalid_token'
+    );
+    for (const failure of [new errors.JWKSTimeout(), new errors.JWKSInvalid('private JWKS response')]) {
+      let resolved = false;
+      const auth = new McpAuthenticator(
+        config,
+        async () => {
+          resolved = true;
+          return principal;
+        },
+        async () => {
+          throw failure;
+        }
+      );
+      await assert.rejects(auth.authenticate(bearer), error => error === failure);
+      assert.equal(resolved, false);
+    }
+  });
+  it('maps only existing OIDC usernames and uses their persisted ID for principal refresh', async () => {
+    const names = ['User', 'BrandingService'];
+    const previous = new Map(names.map(name => [name, Reflect.get(globalThis, name)]));
+    try {
+      for (const stored of [null, { id: 42 }]) {
+        Reflect.set(globalThis, 'User', {
+          findOne: async (query: unknown) => {
+            assert.deepEqual(query, { username: 'subject-1', type: 'oidc' });
+            return stored;
+          },
+        });
+        await assert.rejects(resolveOidcIdentity('subject-1', 'a'), McpAuthError);
+      }
+      const failure = new Error('principal refresh unavailable');
+      Reflect.set(globalThis, 'BrandingService', { getBrand: () => brand });
+      Reflect.set(globalThis, 'User', {
+        findOne: (query: { username?: string; id?: string }) => {
+          if (query.username) return Promise.resolve({ id: 'persisted-id' });
+          assert.deepEqual(query, { id: 'persisted-id' });
+          return {
+            populate: async (association: string) => {
+              assert.equal(association, 'roles');
+              throw failure;
+            },
+          };
+        },
+      });
+      await assert.rejects(resolveOidcIdentity('subject-1', 'a'), error => error === failure);
+    } finally {
+      for (const [name, value] of previous) {
+        if (value === undefined) Reflect.deleteProperty(globalThis, name);
+        else Reflect.set(globalThis, name, value);
+      }
+    }
+  });
+  it('returns a safe 503 without an OAuth challenge during an identity-store outage', async () => {
+    const server = createServer();
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    const local = { ...config, resourceUrl: `https://127.0.0.1:${port}/mcp` };
+    const auth = new McpAuthenticator(
+      local,
+      async () => {
+        throw new Error('private connection details');
+      },
+      keys
+    );
+    const handler = reportingMcpHttpHandler(local, reporting, auth);
+    server.on('request', (req, res) => {
+      void handler(req, res);
+    });
+    try {
+      const bearer = await new SignJWT({ scope: config.scope })
+        .setProtectedHeader({ alg: 'RS256', typ: 'at+jwt', kid: 'test-key' })
+        .setIssuer(config.issuer)
+        .setAudience(local.resourceUrl)
+        .setSubject('alice')
+        .setIssuedAt()
+        .setExpirationTime('5m')
+        .sign(privateKey);
+      const response = await fetch(`http://127.0.0.1:${port}/mcp`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${bearer}` },
+        body: '{}',
+      });
+      assert.equal(response.status, 503);
+      assert.equal(response.headers.get('www-authenticate'), null);
+      assert.deepEqual(await response.json(), { error: 'unavailable' });
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+    }
+  });
+  it('requires allowedOrigins to use the exact browser origin representation', () => {
+    assert.equal(mcpConfigSchema.safeParse({ ...config, allowedOrigins: ['https://app.example'] }).success, true);
+    for (const origin of [
+      'https://app.example/',
+      'https://app.example/path',
+      'https://app.example:443',
+      'https://APP.example',
+      'https://app.example?x=1',
+    ]) {
+      assert.equal(mcpConfigSchema.safeParse({ ...config, allowedOrigins: [origin] }).success, false, origin);
+    }
   });
   it('requires secure configured resource/issuer/JWKS URLs and rejects URL credentials', () => {
     assert.equal(mcpConfigSchema.safeParse(config).success, true);
