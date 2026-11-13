@@ -154,6 +154,17 @@ const formConfig: FormConfigFrame = {
     },
 
     {
+      name: 'generated_view_only_details_heading',
+      constraints: { allowModes: ['view'] },
+      component: {
+        class: 'ContentComponent',
+        config: {
+          content: {},
+          template: '<h2>{{t (concat "@lookup-record-details-" runtimeContext.record.type)}}</h2>',
+        },
+      },
+    },
+    {
       name: 'generated_view_only_metadata',
       overrides: {
         reusableFormName: 'generated-view-only-metadata-display',

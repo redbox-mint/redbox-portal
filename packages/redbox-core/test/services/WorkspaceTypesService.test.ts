@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -33,13 +35,7 @@ describe('WorkspaceTypesService', function() {
         },
         workspacetype_services: []
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     // Create mock model with proper query chain support
@@ -67,10 +63,10 @@ describe('WorkspaceTypesService', function() {
   describe('bootstrap', function() {
     it('should destroy existing workspace types and create new ones', function(done) {
       const defBrand = { id: 'brand-1', name: 'default' };
-      
+
       mockWorkspaceType.destroy.returns(createQueryObject([]));
       mockWorkspaceType.create.returns(createQueryObject({ id: 'wt-1' }));
-      
+
       WorkspaceTypesService.bootstrap(defBrand).subscribe({
         next: (result: any) => {
           expect(mockWorkspaceType.destroy.calledOnce).to.be.true;
@@ -84,9 +80,9 @@ describe('WorkspaceTypesService', function() {
     it('should handle empty workspace type configuration', function(done) {
       mockSails.config.workspacetype = {};
       const defBrand = { id: 'brand-1', name: 'default' };
-      
+
       mockWorkspaceType.destroy.returns(createQueryObject([]));
-      
+
       WorkspaceTypesService.bootstrap(defBrand).subscribe({
         next: (result: any) => {
           expect(mockWorkspaceType.create.called).to.be.false;
@@ -108,17 +104,17 @@ describe('WorkspaceTypesService', function() {
         logo: '/assets/test.png',
         externallyProvisioned: true
       };
-      
+
       mockWorkspaceType.create.returns(createQueryObject({
         id: 'wt-1',
         ...workspaceType,
         branding: 'brand-1'
       }));
-      
+
       WorkspaceTypesService.create(brand, workspaceType).subscribe({
         next: (result: any) => {
           expect(mockWorkspaceType.create.calledOnce).to.be.true;
-          
+
           const createArgs = mockWorkspaceType.create.firstCall.args[0];
           expect(createArgs.name).to.equal('test-workspace');
           expect(createArgs.label).to.equal('Test Workspace');
@@ -138,9 +134,9 @@ describe('WorkspaceTypesService', function() {
         { id: 'wt-1', name: 'gitlab', branding: 'brand-1' },
         { id: 'wt-2', name: 'omero', branding: 'brand-1' }
       ];
-      
+
       mockWorkspaceType.find.returns(createQueryObject(mockWorkspaceTypes));
-      
+
       WorkspaceTypesService.get(brand).subscribe({
         next: (result: any) => {
           expect(mockWorkspaceType.find.calledOnce).to.be.true;
@@ -154,9 +150,9 @@ describe('WorkspaceTypesService', function() {
 
     it('should return empty array when no workspace types exist', function(done) {
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       mockWorkspaceType.find.returns(createQueryObject([]));
-      
+
       WorkspaceTypesService.get(brand).subscribe({
         next: (result: any) => {
           expect(result).to.be.an('array').that.is.empty;
@@ -176,9 +172,9 @@ describe('WorkspaceTypesService', function() {
         label: 'GitLab',
         branding: 'brand-1'
       };
-      
+
       mockWorkspaceType.findOne.returns(createQueryObject(mockWorkspaceTypeData));
-      
+
       WorkspaceTypesService.getOne(brand, 'gitlab').subscribe({
         next: (result: any) => {
           expect(mockWorkspaceType.findOne.calledOnce).to.be.true;
@@ -195,9 +191,9 @@ describe('WorkspaceTypesService', function() {
 
     it('should return null when workspace type not found', function(done) {
       const brand = { id: 'brand-1', name: 'default' };
-      
+
       mockWorkspaceType.findOne.returns(createQueryObject(null));
-      
+
       WorkspaceTypesService.getOne(brand, 'nonexistent').subscribe({
         next: (result: any) => {
           expect(result).to.be.null;
@@ -211,7 +207,7 @@ describe('WorkspaceTypesService', function() {
   describe('exports', function() {
     it('should export all public methods', function() {
       const exported = WorkspaceTypesService.exports();
-      
+
       expect(exported).to.have.property('bootstrap');
       expect(exported).to.have.property('create');
       expect(exported).to.have.property('get');

@@ -7,6 +7,7 @@ import { BrandingModel } from '../model/storage/BrandingModel';
 
 export interface VocabExternalEndpoint {
     method: 'get' | 'post';
+    /** URL template: substitutions are component encoded; `${query|solr}` also trims boundaries and escapes literal Solr syntax. */
     url: string;
     options: Record<string, unknown>;
 }
@@ -118,12 +119,12 @@ export const vocab: VocabConfig = {
     external: {
         geonames: {
             method: "get",
-            url: `${baseUrl}?q=basic_name%3A\${query}*&${geonamesDefaultParams}`,
+            url: `${baseUrl}?q=basic_name%3A(\${query|solr}*)&${geonamesDefaultParams}`,
             options: {},
         },
         geonamesCountries: {
             method: "get",
-            url: `${baseUrl}?q=basic_name%3A\${query}*&${geonamesCountryParams}`,
+            url: `${baseUrl}?q=basic_name%3A(\${query|solr}*)&${geonamesCountryParams}`,
             options: {},
         },
     },

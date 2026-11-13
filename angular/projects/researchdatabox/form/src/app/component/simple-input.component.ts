@@ -21,7 +21,7 @@ export class SimpleInputModel extends FormFieldModel<string> {
     template: `
     @if (isVisible) {
       <ng-container *ngTemplateOutlet="getTemplateRef('before')" />
-      <input [type]="inputType" [formControl]="formControl"
+      <input [type]="inputType" [formControl]="formControl" [attr.id]="labelableControlId"
             class="form-control"
             [class.is-valid]="showValidState"
             [class.is-invalid]="!isValid"
@@ -52,6 +52,14 @@ export class SimpleInputComponent extends FormFieldBaseComponent<string> {
     const cfg = (_isUndefined(simpleInputConfig) || _isEmpty(simpleInputConfig)) ? defaultConfig : simpleInputConfig;
     this.inputType = cfg.type || defaultConfig.type || 'text';
     this.placeholder = cfg.placeholder || defaultConfig.placeholder;
+  }
+
+  public override setProperty(name: string, value: unknown): void {
+    super.setProperty(name, value);
+    if (name === 'type') {
+      // Keep the native type and the layout's label eligibility in sync.
+      this.inputType = this.getStringProperty('type') || 'text';
+    }
   }
 
   /**

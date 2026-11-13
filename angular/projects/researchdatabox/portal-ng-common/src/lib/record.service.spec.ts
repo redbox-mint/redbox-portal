@@ -1,6 +1,6 @@
 import { APP_BASE_HREF } from '@angular/common';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, tick, flushMicrotasks, TestBed } from '@angular/core/testing';
 import { ConfigService } from './config.service';
 import { getStubConfigService } from './helper.spec';
 import { LoggerService } from './logger.service';
@@ -38,6 +38,60 @@ describe('RecordService', () => {
 
   afterEach(() => {
     httpTestingController.verify();
+  });
+
+  it('refreshes unsaved references through the CSRF-enabled session endpoint', async () => {
+    const input = { recordType: 'plan', relations: ['activity'], references: { activity: 'new-source' } };
+    const pending = recordService.resolveRelatedMetadata(input);
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/relatedMetadata/resolve`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(input);
+    expect(request.request.headers.get('X-ReDBox-Api-Version')).toBe('2.0');
+    const relatedMetadata = { activity: { status: 'unavailable' as const, records: [], issues: [{ code: 'unavailable' as const }] } };
+    request.flush({ data: { relatedMetadata } });
+    await expectAsync(pending).toBeResolvedTo(relatedMetadata);
+  });
+
+  it('rejects refresh request failures instead of returning a prior source', async () => {
+    const pending = recordService.resolveRelatedMetadata({ oid: 'root', relations: ['activity'] });
+    const rejected = expectAsync(pending).toBeRejected();
+    const request = httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/relatedMetadata/resolve`);
+    request.flush({ errors: [] }, { status: 403, statusText: 'Forbidden' });
+    await rejected;
+  });
+
+  it('requests explicit enriched reads with encoded OIDs and declared relations', async () => {
+    const pending = recordService.getRecordWithRelatedMetadata('root/one', ['activity', 'project']);
+    const request = httpTestingController.expectOne(req => req.url.endsWith('/api/records/resolved/root%2Fone'));
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('relations')).toBe('activity,project');
+    expect(request.request.headers.has('If-None-Match')).toBeFalse();
+    const data = { redboxOid: 'root/one', metadata: {}, metaMetadata: { type: 'plan', brandId: 'default' }, relatedMetadata: {} };
+    request.flush({ data });
+    await expectAsync(pending).toBeResolvedTo(data);
+  });
+
+  it('requests a consumer view only when explicitly selected', async () => {
+    for (const consumerView of [false, true]) {
+      const result = recordService.getRecordMeta('linked-plan', { consumerView });
+      const request = httpTestingController.expectOne(req => req.url.includes('/record/metadata/linked-plan'));
+      expect(request.request.url.includes('consumerView=true')).toBe(consumerView);
+      request.flush({ title: consumerView ? 'Current' : 'Stored' });
+      await expectAsync(result).toBeResolvedTo({ title: consumerView ? 'Current' : 'Stored' });
+    }
+  });
+
+  it('sends the configured dashboard page size and matching offset while preserving the default', async () => {
+    recordService.brandingAndPortalUrl = 'http://localhost/default/rdmp';
+    for (const rows of [undefined, 25, 100]) {
+      const promise = recordService.getRecords('rdmp', 'draft', 3, '', '', '', '', '', '', rows);
+      const request = httpTestingController.expectOne(req => req.url.includes('/listRecords'));
+      const url = new URL(request.request.url);
+      expect(url.searchParams.get('rows')).toBe(String(rows ?? 10));
+      expect(url.searchParams.get('start')).toBe(String(2 * (rows ?? 10)));
+      request.flush({ items: [], currentPage: 3 });
+      await promise;
+    }
   });
 
   it('creates a UUID save request header', async () => {
@@ -515,6 +569,43 @@ describe('RecordService', () => {
     expect(result.isUnknown()).toBeTrue();
     expect(result.isDefinitiveConflict()).toBeFalse();
     expect(result.metadata).toBeNull();
+  });
+
+  for (const [code, expectedOutcome] of [
+    ['scu-rdmp-action-unauthorized', 'none'],
+    ['custom-action-unauthorized', 'none'],
+    ['record-validation-edit-unauthorized-suffix', 'none'],
+    ['record-validation-edit-unauthorized', 'authorization-lost'],
+  ] as const) {
+    it(`classifies typed authorization ${code} without confusing action permission with edit access`, async () => {
+      const updatePromise = recordService.update('oid-123', { title: 'Unsaved title' }, 'closed');
+      const request = httpTestingController.expectOne(request =>
+        request.url === `${recordService.brandingAndPortalUrl}/recordmeta/oid-123`);
+      expect(request.request.params.get('targetStep')).toBe('closed');
+      request.flush({ meta: {
+        outcome: 'not-saved', oid: 'oid-123',
+        problems: [{
+          kind: 'authorization', phase: 'pre-save',
+          issues: [{ code, message: 'You do not have permission to perform this action.' }],
+        }],
+      } }, { status: 403, statusText: 'Forbidden' });
+
+      const result = await updatePromise;
+      expect(result.outcome).toBe('not-saved');
+      expect(result.wasPersisted()).toBeFalse();
+      expect(result.concurrencyOutcome).toBe(expectedOutcome);
+      expect(result.problems[0].issues[0].code).toBe(code);
+    });
+  }
+
+  it('does not infer edit loss from an edit code outside an authorization problem', () => {
+    const result = RecordActionResult.fromResponse({ meta: {
+      outcome: 'not-saved', problems: [{ kind: 'validation', phase: 'pre-save',
+        issues: [{ code: 'record-validation-edit-unauthorized', message: 'Validation issue' }],
+      }],
+    } }, 403);
+    expect(result.concurrencyOutcome).toBe('none');
+    expect(result.problems[0].kind).toBe('validation');
   });
 
   it('synthesises a confirmed non-save for a policy-level 403', async () => {
@@ -1039,5 +1130,77 @@ describe('RecordService', () => {
         },
       ],
     } as any);
+  });  it("propagates failed attachment and metadata reads instead of reporting empty data", async () => {
+    const attachments = recordService.getAttachments("failed");
+    const attachmentAssertion = expectAsync(attachments).toBeRejected();
+    httpTestingController.expectOne(`${recordService.brandingAndPortalUrl}/record/failed/attachments`)
+      .flush("unavailable", { status: 503, statusText: "Unavailable" });
+    await attachmentAssertion;
+    const metadata = recordService.getRecordMeta("failed");
+    const metadataAssertion = expectAsync(metadata).toBeRejected();
+    httpTestingController.expectOne(request => request.url.includes("/record/metadata/failed"))
+      .flush("unavailable", { status: 503, statusText: "Unavailable" });
+    await metadataAssertion;
   });
+  for (const rows of [undefined, 5, 20]) {
+    it(`requests deleted records with consistent offset and page size ${rows ?? 'default'}`, async () => {
+      recordService.brandingAndPortalUrl = 'https://portal.example/default/rdmp';
+      const result = recordService.getDeletedRecords('rdmp', 'deleted', 3, '', '', '', '', '', rows);
+      const request = httpTestingController.expectOne(req => req.url.includes('listDeletedRecords'));
+      const query = new URL(request.request.url).searchParams;
+      expect(request.request.method).toBe('GET');
+      expect(query.get('rows')).toBe(String(rows ?? 10));
+      expect(query.get('start')).toBe(String(2 * (rows ?? 10)));
+      const response = { items: [], totalItems: 0, currentPage: 3, noItems: 0 };
+      request.flush(response);
+      await expectAsync(result).toBeResolvedTo(response);
+    });
+  }
+
+
+  for (const operation of ['restore', 'destroy']) {
+    it(`cancels a stalled typed ${operation} while retaining an uncertain outcome`, fakeAsync(() => {
+      const pending = operation === 'restore'
+        ? recordService.restoreDeletedRecord('deleted', { entityTag: entityTag(3) })
+        : recordService.destroyDeletedRecord('deleted', { entityTag: entityTag(3) });
+      let result: RecordActionResult | undefined;
+      pending.then(value => { result = value; });
+      flushMicrotasks();
+      const request = httpTestingController.expectOne(() => true);
+      expect(request.request.headers.get('If-Match')).toBe(entityTag(3));
+      tick(30_000);
+      flushMicrotasks();
+      expect(request.cancelled).toBeTrue();
+      expect(result?.isUnknown()).toBeTrue();
+      expect(result?.success).toBeFalse();
+    }));
+  }
+
+  it('bulk dispatches exact selected tags with CSRF options and retains preflight failures', fakeAsync(() => {
+    const promise = recordService.bulkDeletedRecords('restore', [{ oid: 'one', revision: 3 }, { oid: 'two', revision: 3 }]);
+    let result: any; promise.then(value => result = value);
+    const first = httpTestingController.expectOne(req => req.url.endsWith('/record/delete/one'));
+    first.flush({ data: {}, meta: { revision: 3, entityTag: entityTag(3) } }, { headers: { ETag: entityTag(3) } });
+    flushMicrotasks();
+    const second = httpTestingController.expectOne(req => req.url.endsWith('/record/delete/two'));
+    second.flush({ data: {}, meta: { revision: 4, entityTag: entityTag(4) } }, { headers: { ETag: entityTag(4) } });
+    flushMicrotasks();
+    const bulk = httpTestingController.expectOne(req => req.url.endsWith('/admin/deletedRecords/bulk'));
+    expect(bulk.request.method).toBe('POST');
+    expect(bulk.request.body).toEqual({ action: 'restore', items: [{ oid: 'one', entityTag: entityTag(3) }] });
+    bulk.flush({ results: [{ oid: 'one', status: 'succeeded', reason: 'completed' }] });
+    flushMicrotasks();
+    expect(result.results).toEqual(jasmine.arrayContaining([{ oid: 'two', status: 'failed', reason: 'record-changed' }, { oid: 'one', status: 'succeeded', reason: 'completed' }]));
+  }));
+
+  it('treats a missing bulk result as unknown and never silently reports success', fakeAsync(() => {
+    let result: any;
+    recordService.bulkDeletedRecords('destroy', [{ oid: 'one', revision: 3 }]).then(value => result = value);
+    httpTestingController.expectOne(req => req.url.endsWith('/record/delete/one')).flush({ data: {}, meta: { revision: 3, entityTag: entityTag(3) } }, { headers: { ETag: entityTag(3) } });
+    flushMicrotasks();
+    httpTestingController.expectOne(req => req.url.endsWith('/admin/deletedRecords/bulk')).flush({ results: [] });
+    flushMicrotasks();
+    expect(result.results).toEqual([{ oid: 'one', status: 'unknown', reason: 'outcome-unknown' }]);
+  }));
+
 });

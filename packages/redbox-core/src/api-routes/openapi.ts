@@ -1,10 +1,12 @@
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { ZodType } from 'zod';
+import { redboxSession } from '../config/redboxSession.config';
 
 import { apiErrorResponseSchema, responseField } from './schemas/common';
 import { ApiResponseDefinition, ApiRouteDefinition } from './types';
 import {
   ensureUniqueApiRoutes,
+  allowsAdditionalObjectProperties,
   getFileConstraintDescription,
   getFileConstraintOpenApiExtension,
   getObjectSchemaShape,
@@ -25,6 +27,7 @@ export interface OpenApiDocument {
   components: {
     securitySchemes: {
       bearerAuth: { type: 'http'; scheme: 'bearer'; bearerFormat?: string };
+      sessionAuth: { type: 'apiKey'; in: 'cookie'; name: string };
     };
     schemas?: Record<string, unknown>;
   };
@@ -226,6 +229,20 @@ function buildParameters(
       }
       params.push(parameter);
     }
+    if (location === 'query' && schema && allowsAdditionalObjectProperties(schema)) {
+      // Form-style exploded objects serialize each configured name directly in
+      // the query string, alongside the explicitly documented parameters.
+      const querySchema = toOpenApiSchema(schema);
+      params.push({
+        name: 'additionalQueryParams',
+        in: 'query',
+        required: false,
+        style: 'form',
+        explode: true,
+        description: 'Additional query parameters sent as top-level name=value pairs.',
+        schema: { type: 'object', additionalProperties: querySchema.additionalProperties },
+      });
+    }
   };
   addParameters('path', route.request?.params);
   addParameters('query', route.request?.query);
@@ -361,6 +378,7 @@ export function buildOpenApiDocument(
   );
 
   const componentSchemas = getComponentSchemas();
+  const sessionConfig = typeof sails === 'undefined' ? undefined : sails.config?.redboxSession;
 
   return sanitizeOpenApiValue(specializeOpenApiDocument({
     openapi: '3.0.3',
@@ -369,6 +387,7 @@ export function buildOpenApiDocument(
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        sessionAuth: { type: 'apiKey', in: 'cookie', name: sessionConfig?.name ?? redboxSession.name },
       },
       ...(componentSchemas ? { schemas: componentSchemas } : {}),
     },

@@ -1,12 +1,21 @@
 import { ChangeDetectorRef } from '@angular/core';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MenuEditorTypeComponent } from './menu-editor.type';
 import { MenuItem } from './menu-item.interface';
 
 describe('MenuEditorTypeComponent', () => {
+  const translationService = {
+    t: (key: string) => ({
+      'menu-admin': 'Administration',
+      'menu-rolemgmt': 'Role management',
+      'menu-create-rdmp': 'Create a new RDMP'
+    } as Record<string, string>)[key] ?? key
+  } as unknown as TranslationService;
+
   const setup = (items: MenuItem[] = []) => {
     const cdr = { detectChanges: jasmine.createSpy('detectChanges') } as unknown as ChangeDetectorRef;
-    const component = new MenuEditorTypeComponent(cdr);
+    const component = new MenuEditorTypeComponent(cdr, translationService);
     Object.defineProperty(component, 'key', { value: 'items' });
     Object.defineProperty(component, 'model', { value: { showSearch: true, items } });
 
@@ -21,9 +30,21 @@ describe('MenuEditorTypeComponent', () => {
     return { component };
   };
 
+  it('resolves preview labels using the application translations', () => {
+    const { component } = setup();
+    expect(component.getResolvedLabel('menu-rolemgmt')).toBe('Role management');
+    expect(component.getResolvedLabel('menu-create-rdmp')).toBe('Create a new RDMP');
+    expect(component.getResolvedLabel('Untranslated literal')).toBe('Untranslated literal');
+    expect(component.getResolvedLabel('missing-key')).toBe('missing-key');
+    expect(component.getResolvedLabel('')).toBe('');
+
+    component.resolveTranslations = false;
+    expect(component.getResolvedLabel('menu-rolemgmt')).toBe('menu-rolemgmt');
+  });
+
   it('initializes with an empty array when model is missing', () => {
     const cdr = { detectChanges: jasmine.createSpy('detectChanges') } as unknown as ChangeDetectorRef;
-    const component = new MenuEditorTypeComponent(cdr);
+    const component = new MenuEditorTypeComponent(cdr, translationService);
     Object.defineProperty(component, 'key', { value: 'items' });
     Object.defineProperty(component, 'model', { value: {} });
     Object.defineProperty(component, 'formControl', { value: new FormControl(null) });

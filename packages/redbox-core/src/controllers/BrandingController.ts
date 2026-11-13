@@ -464,7 +464,8 @@ export namespace Controllers {
           res.contentType(sails.config.static_assets.imageType);
           return res.sendFile(sails.config.appPath + `/assets/images/${sails.config.static_assets.logoName}`);
         }
-        res.contentType((logo.contentType as string) || sails.config.static_assets.imageType);
+        // Legacy uploaded logos without MIME metadata are PNGs, independent of the static default.
+        res.contentType((logo.contentType as string) || 'image/png');
         const etagSeed = expectedSha256 ? expectedSha256 : crypto.createHash('sha256').update(buf).digest('hex');
         const etag = this.generateETag(etagSeed, 'logo-');
         res.set('ETag', etag);

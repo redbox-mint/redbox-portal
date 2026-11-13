@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -5,14 +7,17 @@ import { Controllers } from '../../../src/controllers/webservice/VocabularyContr
 
 function makeReq(req: Record<string, unknown>): Sails.Req {
   return {
+    method: 'GET',
+    isAuthenticated: () => true,
     ...req,
+    params: { branding: 'default', portal: 'rdmp', ...(req.params as Record<string, unknown> ?? {}) },
     apiRequest: (req.apiRequest as Sails.Req['apiRequest']) ?? {
       params: (req.params ?? {}) as Record<string, unknown>,
       query: (req.query ?? {}) as Record<string, unknown>,
       body: req.body,
       files: (req.files as Record<string, unknown[]>) ?? {},
     },
-  } as Sails.Req;
+  } as unknown as Sails.Req;
 }
 
 describe('Webservice VocabularyController', () => {
@@ -39,8 +44,14 @@ describe('Webservice VocabularyController', () => {
           syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' })
         }
       },
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() }
+      log: createSinonStubLogger(sinon),
     };
+    (global as any).PathRulesService = {
+      getRulesFromPath: sinon.stub().returns([{}]),
+      canRead: sinon.stub().returns(true),
+      canWrite: sinon.stub().returns(true),
+    };
+    (global as any).Vocabulary = { findOne: sinon.stub().resolves({ id: 'v1', branding: 'default' }) };
     controller = new Controllers.Vocabulary();
     (global as any).BrandingService = (global as any).sails.services.brandingservice;
     (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
@@ -53,6 +64,8 @@ describe('Webservice VocabularyController', () => {
     delete (global as any).VocabularyService;
     delete (global as any).RvaImportService;
     delete (global as any).sails;
+    delete (global as any).Vocabulary;
+    delete (global as any).PathRulesService;
   });
 
   it('lists vocabularies', async () => {
@@ -67,6 +80,14 @@ describe('Webservice VocabularyController', () => {
     expect(sendResp.firstCall.args[2]?.data?.summary?.numFound).to.equal(0);
     expect(sendResp.firstCall.args[2]?.data?.summary?.start).to.equal(0);
     expect(sendResp.firstCall.args[2]?.data?.summary?.page).to.equal(1);
+  });
+
+  it('returns persisted last successful sync timestamps in the list API without manufacturing one', async () => {
+    const records = [{ id: 'synced', source: 'rva', lastSyncedAt: '2026-11-06T00:00:00Z' }, { id: 'never', source: 'rva' }, { id: 'local', source: 'local' }];
+    (global as any).VocabularyService.list.resolves({ data: records, meta: { total: 3, offset: 0, limit: 25 } });
+    const send = sinon.stub(controller as any, 'sendResp');
+    await controller.list(makeReq({}), {} as Sails.Res);
+    expect(send.firstCall.args[2].data.records).to.deep.equal(records);
   });
 
   it('gets vocabulary details with tree', async () => {

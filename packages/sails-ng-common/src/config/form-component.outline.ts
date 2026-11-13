@@ -50,6 +50,8 @@ interface FormExpressionsBaseConfigFrame {
      * Optional flag to indicate whether the expression will run when the form is ready. Defaults to true.
      */
     runOnFormReady?: boolean;
+    /** Keep this visibility expression when the field is transformed for view mode. */
+    runInViewMode?: boolean;
 }
 
 /**
@@ -382,6 +384,8 @@ export interface FormOverrideConfigOutline extends FormOverrideConfigFrame {
  * The form component interface that provides typing for the object literal and schema.
  */
 export interface FormComponentDefinitionFrame {
+    /** Transient display output while this relation has a selected reference. */
+    relatedDisplay?: { relationId: string };
     /**
      * top-level field name, applies to field and the component, etc.
      */

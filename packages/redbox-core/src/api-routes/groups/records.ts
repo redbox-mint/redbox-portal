@@ -1,4 +1,7 @@
+import { z } from 'zod';
+import { deletedRecordListQuery } from './deleted-records';
 import { apiRoute } from '../route-factory';
+import { defineApiRoute } from '../define';
 import { recordSchemaResolverOpenApiExtension } from '../record-schema-openapi';
 import {
   arrayField,
@@ -254,7 +257,9 @@ export const getMetaRoute = apiRoute(
   '/:branding/:portal/api/records/metadata/:oid',
   'webservice/RecordController',
   'getMeta',
-  { params: oidParams },
+  { params: oidParams, query: z.object({
+    consumerView: z.enum(['true', 'false']).optional().describe('Request a detached current consumer view'),
+  }).passthrough() },
   {
     tags: ['Records'],
     summary: 'Get record metadata',
@@ -280,7 +285,11 @@ export const getRecordAuditRoute = apiRoute(
   {
     tags: ['Records'],
     summary: 'Get record audit',
-    responses: { 200: responseField(listApiResponseSchema(recordAuditEntrySchema), 'Record audit list') },
+    responses: {
+      200: responseField(listApiResponseSchema(recordAuditEntrySchema), 'Record audit list'),
+      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+      404: responseField(apiErrorResponseSchema, 'Record not found in the active brand'),
+    },
   }
 );
 
@@ -306,7 +315,7 @@ export const listDeletedRecordsRoute = apiRoute(
   'webservice/RecordController',
   'listDeletedRecords',
   {
-    query: recordListQuery,
+    query: deletedRecordListQuery,
     legacyParamFallbacks: recordListLegacyFallbacks,
   },
   {
@@ -645,36 +654,40 @@ export const addDataStreamsRoute = apiRoute(
   }
 );
 
-export const getDataStreamRoute = apiRoute(
-  'get',
-  '/:branding/:portal/api/records/datastreams/:oid/:datastreamId',
-  'webservice/RecordController',
-  'getDataStream',
-  {
-    params: datastreamParams,
-    query: recordDownloadQuery,
-    legacyParamFallbacks: recordDownloadLegacyFallbacks,
-  },
-  {
-    tags: ['Records'],
-    summary: 'Download datastream',
-    responses: {
-      200: {
-        description: 'Datastream file download',
-        headers: {
-          'Content-Disposition': stringField('Attachment filename'),
-        },
-        content: {
-          'application/octet-stream': {
-            schema: binaryField('Datastream file contents'),
+export const getDataStreamRoute = defineApiRoute({
+  ...apiRoute(
+    'get',
+    '/:branding/:portal/api/records/datastreams/:oid/:datastreamId',
+    'webservice/RecordController',
+    'getDataStream',
+    {
+      params: datastreamParams,
+      query: recordDownloadQuery,
+      legacyParamFallbacks: recordDownloadLegacyFallbacks,
+    },
+    {
+      tags: ['Records'],
+      summary: 'Download datastream',
+      responses: {
+        200: {
+          description: 'Datastream file download',
+          headers: {
+            'Content-Disposition': stringField('Attachment filename'),
+          },
+          content: {
+            'application/octet-stream': {
+              schema: binaryField('Datastream file contents'),
+            },
           },
         },
+        403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
+        404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
       },
-      403: responseField(apiErrorResponseSchema, 'Record view authorization failure'),
-      404: responseField(apiErrorResponseSchema, 'Record or datastream not found in the active brand'),
-    },
-  }
-);
+    }
+  ),
+  // Datastream identifiers are filenames, including .pdf and other extensions.
+  skipAssets: false,
+});
 
 export const listDatastreamsRoute = apiRoute(
   'get',

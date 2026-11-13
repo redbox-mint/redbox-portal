@@ -146,15 +146,7 @@ type ValidatorFormConfigOptions = {
   transformationOnly?: boolean;
 };
 
-declare const sails: {
-  config?: {
-    record?: {
-      form?: {
-        htmlSanitizationMode?: 'sanitize' | 'reject';
-      };
-    };
-  };
-};
+declare const sails: Sails.Application;
 
 /**
  * Visit each form config component and run its validators.
@@ -339,13 +331,15 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     const model = definitionRecord.model as Record<string, unknown> | undefined;
     const name = typeof definitionRecord.name === 'string' ? definitionRecord.name : '';
     const consumesNamedValue = Boolean(name) && (model !== undefined || component?.class === 'GroupComponent');
-    const value = consumesNamedValue && parentValue !== null && typeof parentValue === 'object' && !Array.isArray(parentValue)
-      ? (parentValue as Record<string, unknown>)[name]
-      : parentValue;
+    const value =
+      consumesNamedValue && parentValue !== null && typeof parentValue === 'object' && !Array.isArray(parentValue)
+        ? (parentValue as Record<string, unknown>)[name]
+        : parentValue;
     if (model) {
-      const config = model.config && typeof model.config === 'object' && !Array.isArray(model.config)
-        ? model.config as Record<string, unknown>
-        : {};
+      const config =
+        model.config && typeof model.config === 'object' && !Array.isArray(model.config)
+          ? (model.config as Record<string, unknown>)
+          : {};
       model.config = config;
       config.value = value;
     }
@@ -930,11 +924,9 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
       // Select the validators for this pass before preparing executable
       // configuration. In particular, an advisory-only JSONata expression
       // must not compile or execute during the blocking pass.
-      const filteredValidators = this.validatorSupport.enabledValidators(
-        availableValidatorGroups,
-        this.enabledValidationGroups,
-        validators
-      ).filter(validator => !this.isValidatorExclusiveToGroups(availableValidatorGroups, validator));
+      const filteredValidators = this.validatorSupport
+        .enabledValidators(availableValidatorGroups, this.enabledValidationGroups, validators)
+        .filter(validator => !this.isValidatorExclusiveToGroups(availableValidatorGroups, validator));
 
       // ensure jsonata-expression validators can be evaluated
       this.validatorSupport.assignJsonataEvaluators(
@@ -989,9 +981,7 @@ export class ValidatorFormConfigVisitor extends FormConfigVisitor {
     // An initial-all group includes ordinary validators by default and can
     // therefore never prove that a validator is advisory-only.
     const excluded = new Set(
-      this.excludedOnlyValidationGroups.filter(
-        groupName => availableGroups[groupName]?.initialMembership !== 'all'
-      )
+      this.excludedOnlyValidationGroups.filter(groupName => availableGroups[groupName]?.initialMembership !== 'all')
     );
     if (excluded.size === 0) return false;
     const includes = validator?.groups?.include ?? [];

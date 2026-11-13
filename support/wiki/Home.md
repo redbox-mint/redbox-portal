@@ -16,8 +16,10 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Architecture Overview](https://github.com/redbox-mint/redbox-portal/wiki/Architecture-Overview)**: High-level system structure and key components.
 - **[Coding Standards and Conventions](https://github.com/redbox-mint/redbox-portal/wiki/Coding-Standards-and-Conventions)**: Shared language and style expectations.
 - **[Configuration Guide](https://github.com/redbox-mint/redbox-portal/wiki/Configuration-Guide)**: Portal configuration and environment settings.
+- **[Background admin CSV exports](Admin-CSV-Exports)**: Prepare large CSVs, choose a StorageManager disk, and configure retention and cleanup.
 - **[Configuring Figshare Publishing](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Figshare-Publishing)**: Admin guide for the Figshare publishing AppConfig screen.
 - **[Migrating from the Legacy Mint Harvest Endpoint](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-from-the-Legacy-Mint-Harvest-Endpoint)**: Migration guide for moving harvest integrations to the new records and harvest-runs endpoints.
+- **[Harvest run administration](https://github.com/redbox-mint/redbox-portal/wiki/Harvest-Run-Administration)**: Browse run history, configure retention, and check MongoDB indexes before deployment.
 - **[Configuring Solr](https://github.com/redbox-mint/redbox-portal/wiki/Configuring-Solr)**: Solr connection, schema initialisation, and metadata-to-index mapping.
 - **[TUS and Uppy Companion Setup](https://github.com/redbox-mint/redbox-portal/wiki/TUS-and-Uppy-Companion-Setup)**: Configure resumable uploads and cloud-provider imports, including security behavior.
 - **[Uppy and TUS Architecture](https://github.com/redbox-mint/redbox-portal/wiki/Uppy-and-TUS-Architecture)**: End-to-end architecture and orchestration flows for local and provider-backed uploads.
@@ -31,6 +33,7 @@ If you're new to RedBox Portal, here's where you can get started:
 - **[Record Schema Contract Contributors](https://github.com/redbox-mint/redbox-portal/wiki/Record-Schema-Contract-Contributors)**: Hook-author contract for component and namespaced-extension registration, dialect-neutral IR, ownership, nullability, deterministic output, diagnostics, limits, and lift failures.
 - **[Concurrent Record Modifications](https://github.com/redbox-mint/redbox-portal/wiki/Concurrent-Record-Modifications)**: Entity-tag clients, record-type modes, adapter contracts, lifecycle recovery, telemetry, canary rollout, and rollback.
 - **[Migrating Save Buttons to Validation Operations](https://github.com/redbox-mint/redbox-portal/wiki/Migrating-Save-Buttons-to-Validation-Operations)**: Add server-owned operation intent while retaining interactive validation groups.
+- **[Request Chronicle Logging](https://github.com/redbox-mint/redbox-portal/wiki/Request-Chronicle-Logging)**: The per-request log event, its fields, retention settings, safe capture rules, and logging work that outlives the response.
 - **[ReDBox Automated Tests](https://github.com/redbox-mint/redbox-portal/wiki/ReDBox-Automated-Tests)**: Test suites, commands, and CI notes.
 - **[Translation Updates Runbook](https://github.com/redbox-mint/redbox-portal/wiki/Translation-Updates-Runbook)**: Translation key, metadata, plural, locale, and verification guidance.
 - **[REST API Documentation](https://github.com/redbox-mint/redbox-portal/wiki/REST-API-Documentation)**: Link to the REST API reference.

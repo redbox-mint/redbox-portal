@@ -1,0 +1,119 @@
+<%
+  const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
+  const rootContext = BrandingService.getRootContext();
+  const headingKey = 'admin-api-docs-heading';
+  const loadingKey = 'admin-api-docs-loading';
+  const headingText = TranslationService.t(headingKey) === headingKey ? 'API Documentation' : TranslationService.t(headingKey);
+  const loadingText = TranslationService.t(loadingKey) === loadingKey ? 'Loading API documentation' : TranslationService.t(loadingKey);
+%>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= headingText %></title>
+    <link rel="stylesheet" href="<%= brandPortalPath %>/styles/theme.css">
+    <% const defaultTypeface = BrandingService.getActiveTypefaceFontInfo(BrandingService.getBrandNameFromReq(req)); %>
+    <% if (defaultTypeface) { %>
+    <link rel="preload" href="<%= defaultTypeface.regularUrl %>" as="font" type="font/woff2" crossorigin>
+    <% } else { %><%- include('../layout/default-fonts.ejs', { fontPath: brandPortalPath + '/fonts/google' }) %><% } %>
+    <% if (!defaultTypeface) { %>
+    <link rel="preload" href="<%= brandPortalPath %>/fonts/google/titillium-web-600-latin-de7b46000b9b.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="<%= brandPortalPath %>/fonts/google/titillium-web-700-latin-902aff22a868.woff2" as="font" type="font/woff2" crossorigin>
+    <% } %>
+    <link rel="preload" href="<%= brandPortalPath %>/admin/api-docs/openapi.json" as="fetch" crossorigin="anonymous">
+    <link rel="stylesheet" href="<%= brandPortalPath %>/styles/default-fonts.css">
+    <style nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>">
+      html { overflow-y: hidden; }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 0;
+        background: var(--rb-body-background-color, #fff);
+        color: var(--rb-body-text-color, #333);
+        font-family: var(--rb-brand-font-family, "Titillium Web", sans-serif);
+      }
+
+      /* Redoc 3's documented design tokens; keep the embedded reference in the admin type scale. */
+      :root:root {
+        --font-family-base: var(--rb-brand-font-family, "Titillium Web", sans-serif);
+        --font-size-base: 14px;
+        --h1-font-size: 24px;
+        --h2-font-size: 20px;
+        --h3-font-size: 18px;
+        --h4-font-size: 16px;
+        --heading-text-color: var(--rb-main-content-heading-text-branding-color, #1b1b1b);
+      }
+
+      /* Redoc's standalone controls have no public hide option in v3. */
+      #redoc [data-testid="color-mode-switcher"],
+      #redoc [data-section-id="/"],
+      #redoc div:has(> div > [data-testid="middle-panel"] > [data-section-id="/"]),
+      #redoc [data-component-name="Sidebar/SidebarActions"],
+      #redoc span:has(> a[href="https://redocly.com/redoc/"]),
+      #redoc a[href="https://redocly.com/redoc/"] { display: none; }
+
+      /* Keep eagerly mounted sections measurable even below the iframe viewport. */
+      #redoc .api-content > div { content-visibility: visible; contain-intrinsic-size: none; }
+      #redoc [data-section-id]:not([data-section-id="/"]) { padding-top: 20px; padding-bottom: 16px; }
+      /* The tag-level "+ Show" duplicates navigation and reserves a large empty row. */
+      #redoc [data-section-id]:has(h2) > button.button-variant-text { display: none; }
+      #redoc [data-testid="middle-panel"]:has(h2) { padding-block: 0; margin-bottom: 0; }
+      #redoc [data-testid="middle-panel"]:has(h2) > div { margin-bottom: 0; }
+      #redoc [data-testid="right-panel"]:has(> [data-testid="items-navigation-list"]) { padding-top: 8px; }
+      #redoc [data-testid="items-navigation-list"] > :first-child { margin-top: 0; }
+
+      #redoc {
+        display: flow-root; /* Contain loading/renderer margins within the frame. */
+        width: 100%;
+        min-height: 600px;
+      }
+
+      #redoc > div { min-height: 0; }
+      #redoc .menu-content { height: var(--admin-api-viewport-height, 600px); }
+      @media (min-width: 640px) {
+        #redoc .menu-content { transform: translateY(var(--admin-api-sidebar-offset, 0px)); }
+      }
+      /* Redoc shares these semantic badge classes between its menu and operation lists.
+         Darken the brand semantic colours against the body surface for small labels. */
+      #redoc :is(.tag-get, .tag-post, .tag-put, .tag-patch, .tag-delete, .tag-head, .tag-options, .tag-trace, .tag-connect) { background: var(--rb-body-background-color, #fff); }
+      #redoc .tag-get { color: color-mix(in srgb, var(--rb-success, #198754) 65%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-post { color: color-mix(in srgb, var(--rb-primary, #0d6efd) 70%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-put { color: color-mix(in srgb, var(--rb-warning, #ffc107) 20%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-patch { color: color-mix(in srgb, var(--rb-primary, #0d6efd) 50%, var(--rb-body-text-color, #333)); }
+      #redoc .tag-delete { color: color-mix(in srgb, var(--rb-danger, #dc3545) 70%, var(--rb-body-text-color, #333)); }
+      #redoc :is(.tag-head, .tag-options, .tag-trace, .tag-connect) { color: var(--rb-body-text-color, #333); }
+      #redoc [hidden] { display: none !important; }
+      #redoc .admin-api-collapsed > a + div { display: none !important; }
+      #redoc .admin-api-collapsed > a svg { transform: none; }
+      #redoc[data-admin-tag-navigation] .menu-content [data-active="true"] {
+        background: transparent; color: var(--menu-item-text-color);
+      }
+      #redoc[data-admin-tag-navigation] .menu-content [data-active="true"] [data-text] { color: inherit; font-weight: normal; }
+      #redoc .menu-content [data-admin-selected] > [data-testid="menu-item-label"] {
+        background: var(--menu-item-bg-color-active); color: var(--menu-item-color-active);
+      }
+      #redoc .menu-content [data-admin-selected] [data-text] { color: inherit; font-weight: 600; }
+      #redoc [data-testid="show-more-operations"] { color: var(--rb-anchor-color, #337ab7); font-size: 14px; justify-content: flex-start; text-align: left; padding: 6px 12px; margin: 0; min-height: 0; }
+      #redoc [data-testid="show-more-operations"]:hover { color: var(--rb-anchor-color-hover, #23527c); text-decoration: underline; }
+
+      .admin-api-docs-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 600px;
+      }
+    </style>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-init.js" type="text/javascript" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
+  </head>
+  <body>
+    <div id="redoc" data-openapi-url="<%= brandPortalPath %>/admin/api-docs/openapi.json">
+      <div class="admin-api-docs-loading">
+        <img class="center-block" src="<%= rootContext %>/images/loading.svg" alt="<%= loadingText %>">
+      </div>
+    </div>
+    <script src="<%= rootContext %>/default/default/js/admin-api-docs-load.js" type="module" nonce="<%= typeof contentSecurityPolicyNonce !== 'undefined' ? contentSecurityPolicyNonce : '' %>"></script>
+  </body>
+</html>

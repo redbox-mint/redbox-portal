@@ -1,3 +1,4 @@
+import type { RecordWriteOptions } from './RecordWriteOptions';
 import {
   isRecordConcurrencyResolution,
   isRecordRevision,
@@ -23,7 +24,7 @@ export interface RecordMutationPrecondition {
   requireRevision: boolean;
 }
 
-export interface RecordStorageMutationOptions {
+export interface RecordStorageMutationOptions extends RecordWriteOptions {
   precondition?: RecordMutationPrecondition;
   /** Correlation only; never an idempotency key. */
   requestId?: string;

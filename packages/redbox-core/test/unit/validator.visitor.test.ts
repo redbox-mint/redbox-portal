@@ -1,1144 +1,1172 @@
-import { cloneDeep as _cloneDeep } from "lodash";
+import { cloneDeep as _cloneDeep } from 'lodash';
 import {
   buildLineagePaths,
   FormConfigFrame,
   formValidatorsSharedDefinitions,
   FormValidatorSummaryErrors,
   jsonataCompile,
-  jsonataEvaluate
-} from "@researchdatabox/sails-ng-common";
-import {ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfigVisitor} from "../../src";
-import { logger } from "./helpers";
-import Services from "../../src/services/DomSanitizerService";
-import * as _ from "lodash";
-import { formConfigExample1} from "./example-data";
+  jsonataEvaluate,
+  consoleLogger,
+} from '@researchdatabox/sails-ng-common';
+import { ConstructFormConfigVisitor, reusableFormDefinitions, ValidatorFormConfigVisitor } from '../../src';
+import Services from '../../src/services/DomSanitizerService';
+import * as _ from 'lodash';
+import { formConfigExample1 } from './example-data';
+import { createSinonStubLogger } from '../logger.test';
+import * as sinon from 'sinon';
 
 const DomSanitizerService = new Services.DomSanitizer();
 
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 
-describe("Validator Visitor", async () => {
-    before(() => {
-        (global as any)._ = _;
-        (global as any).DomSanitizerService = DomSanitizerService;
-        (globalThis as any).DomSanitizerService = DomSanitizerService;
-    });
-    it('validates every repeatable elementTemplate row with indexed Angular and data lineage', async function () {
-        const formConfig: FormConfigFrame = {
-            name: 'repeatable-server-validation',
-            componentDefinitions: [
-                {
-                    name: 'contributors',
-                    component: {
-                        class: 'RepeatableComponent',
-                        config: {
-                            elementTemplate: {
-                                name: '',
-                                component: {
-                                    class: 'GroupComponent',
-                                    config: {
-                                        componentDefinitions: [
-                                            {
-                                                name: 'name',
-                                                component: { class: 'SimpleInputComponent' },
-                                                model: {
-                                                    class: 'SimpleInputModel',
-                                                    config: { validators: [{ class: 'required' }] },
-                                                },
-                                                layout: { class: 'DefaultLayout', config: { label: 'Contributor name' } },
-                                            },
-                                        ],
-                                    },
-                                },
-                                layout: { class: 'DefaultLayout', config: {} },
-                            },
-                        },
-                    },
-                    model: { class: 'RepeatableModel', config: {} },
-                    layout: { class: 'DefaultLayout', config: {} },
-                },
-            ],
-        };
-        const constructed = await new ConstructFormConfigVisitor(logger).start({
-            data: formConfig,
-            formMode: 'edit',
-            record: { contributors: [{ name: 'Ada' }, { name: '' }] },
-        });
-        const actual = await new ValidatorFormConfigVisitor(logger).start({
-            form: constructed,
-            enabledValidationGroups: [],
-            validatorDefinitions: formValidatorsSharedDefinitions,
-        });
-
-        expect(actual).to.have.length(1);
-        expect(actual[0]).to.deep.include({ id: 'name', message: 'Contributor name' });
-        expect(actual[0].lineagePaths).to.deep.equal({
-            formConfig: [
-                'componentDefinitions', '0', 'component', 'config', 'elementTemplate',
-                'component', 'config', 'componentDefinitions', '0',
-            ],
-            dataModel: ['contributors', 1, 'name'],
-            angularComponents: ['contributors', 1, 'name'],
-            angularComponentsJsonPointer: '/contributors/1/name',
-            layout: ['contributors-layout', 1, 'name-layout'],
-            layoutJsonPointer: '/contributors-layout/1/name-layout',
-        });
-    });
-    it('ignores related object data components during server validation', async function () {
-        const formConfig: FormConfigFrame = {
-            name: 'related-object-data-server-validation',
-            componentDefinitions: [
-                {
-                    name: 'workspaces',
-                    component: {
-                        class: 'RelatedObjectDataComponent',
-                        config: {
-                            dataPath: 'metadata.workspaces',
-                            oidProperty: 'id',
-                            relatedFields: ['title'],
-                        },
-                    },
-                    layout: { class: 'DefaultLayout', config: {} },
-                },
-            ],
-        };
-        const constructed = await new ConstructFormConfigVisitor(logger).start({
-            data: formConfig,
-            formMode: 'edit',
-            record: { metadata: { workspaces: [] } },
-        });
-
-        const actual = await new ValidatorFormConfigVisitor(logger).start({
-            form: constructed,
-            validatorDefinitions: formValidatorsSharedDefinitions,
-        });
-
-        expect(actual).to.deep.equal([]);
-    });
-    it('checks the shared deadline around every repeatable row', async function () {
-        const formConfig: FormConfigFrame = {
-            name: 'repeatable-deadline',
-            componentDefinitions: [{
-                name: 'rows',
-                component: {
-                    class: 'RepeatableComponent',
-                    config: {
-                        elementTemplate: {
-                            name: '',
-                            component: {
-                                class: 'GroupComponent',
-                                config: {
-                                    componentDefinitions: [{
-                                        name: 'value',
-                                        component: { class: 'SimpleInputComponent' },
-                                        model: { class: 'SimpleInputModel', config: {} },
-                                    }],
-                                },
-                            },
-                        },
-                    },
-                },
-                model: { class: 'RepeatableModel', config: {} },
-            }],
-        };
-        const constructed = await new ConstructFormConfigVisitor(logger).start({
-            data: formConfig,
-            formMode: 'edit',
-            record: { rows: [{ value: 'one' }, { value: 'two' }] },
-        });
-        let checks = 0;
-
-        let failure: unknown;
-        try {
-            await new ValidatorFormConfigVisitor(logger).startWithResult({
-                form: constructed,
-                transformationOnly: true,
-                checkDeadline: () => {
-                    checks += 1;
-                    if (checks === 2) throw new Error('deadline');
-                },
-            });
-        } catch (error) {
-            failure = error;
-        }
-
-        expect(failure).to.be.instanceOf(Error);
-        expect((failure as Error).message).to.equal('deadline');
-        expect(checks).to.equal(2);
-    });
-    it('does not treat an initial-all advisory group as proof that every validator is advisory-only', async function () {
-        const formConfig: FormConfigFrame = {
-            name: 'malformed-advisory-all',
-            validationGroups: {
-                advisory: { description: 'malformed advisory', initialMembership: 'all' },
-            },
-            componentDefinitions: [{
-                name: 'title',
-                component: { class: 'SimpleInputComponent' },
-                model: {
-                    class: 'SimpleInputModel',
-                    config: { validators: [{ class: 'required' }] },
-                },
-            }],
-        };
-        const constructed = await new ConstructFormConfigVisitor(logger).start({
-            data: formConfig,
-            formMode: 'edit',
-            record: { title: '' },
-        });
-
-        const actual = await new ValidatorFormConfigVisitor(logger).start({
-            form: constructed,
-            enabledValidationGroups: [],
-            excludedOnlyValidationGroups: ['advisory'],
-            validatorDefinitions: formValidatorsSharedDefinitions,
-        });
-
-        expect(actual.map(summary => summary.errors[0].class)).to.deep.equal(['required']);
-    });
-    it('prepares JSONata evaluators only after selecting validators for the current pass', async function () {
-        const formConfig: FormConfigFrame = {
-            name: 'selected-jsonata-preparation',
-            validationGroups: {
-                base: { description: 'blocking', initialMembership: 'none' },
-                advisory: { description: 'advisory', initialMembership: 'none' },
-            },
-            componentDefinitions: [{
-                name: 'title',
-                component: { class: 'SimpleInputComponent' },
-                model: {
-                    class: 'SimpleInputModel',
-                    config: {
-                        validators: [{
-                            class: 'jsonata-expression',
-                            groups: { include: ['advisory'] },
-                            config: { expression: ')' },
-                        }],
-                    },
-                },
-            }],
-        };
-        const constructed = await new ConstructFormConfigVisitor(logger).start({
-            data: formConfig,
-            formMode: 'edit',
-            record: { title: 'safe blocking value' },
-        });
-        let preparations = 0;
-        const evaluatorFactory = () => {
-            preparations += 1;
-            throw new Error('invalid advisory JSONata');
-        };
-
-        const blocking = await new ValidatorFormConfigVisitor(logger).start({
-            form: constructed,
-            enabledValidationGroups: ['base'],
-            excludedOnlyValidationGroups: ['advisory'],
-            validatorDefinitions: formValidatorsSharedDefinitions,
-            jsonataEvaluatorFactory: evaluatorFactory,
-        });
-        expect(blocking).to.deep.equal([]);
-        expect(preparations).to.equal(0);
-
-        let advisoryFailure: unknown;
-        try {
-            await new ValidatorFormConfigVisitor(logger).start({
-                form: constructed,
-                enabledValidationGroups: ['advisory'],
-                validatorDefinitions: formValidatorsSharedDefinitions,
-                jsonataEvaluatorFactory: evaluatorFactory,
-            });
-        } catch (error) {
-            advisoryFailure = error;
-        }
-        expect(advisoryFailure).to.be.instanceOf(Error);
-        expect(preparations).to.equal(1);
-    });
-    it(`should run only expected validators for initial membership none`, async function () {
-        const formConfig: FormConfigFrame = {
-            name: "default-1.0-draft",
-            validationGroups: {
-                minimumCreate: {
-                    description: "Fields that must be valid to create a new record.",
-                    initialMembership: "none",
-                },
-                minimumUpdate: {
-                    description: "Fields that must be valid to update a new record.",
-                    initialMembership: "none",
-                },
-            },
-            componentDefinitions: [
-                {
-                    name: 'text_7',
-                    layout: {
-                        class: 'DefaultLayout',
-                        config: {
-                            label: 'TextField with default wrapper defined',
-                            helpText: 'This is a help text',
-                        }
-                    },
-                    model: {
-                        class: 'SimpleInputModel',
-                        config: {
-                            defaultValue: 'hello world 2!',
-                            validators: [
-                                {
-                                    class: 'pattern',
-                                    config: {
-                                        pattern: "^prefix.*$",
-                                        description: "must start with prefix"
-                                    },
-                                    groups: { include: ["minimumCreate", "minimumUpdate"] },
-                                },
-                                {
-                                    class: 'minLength',
-                                    message: "@validator-error-custom-text_7",
-                                    config: { minLength: 3 },
-                                    groups: { include: ["minimumCreate"] },
-                                },
-                            ]
-                        }
-                    },
-                    component: {
-                        class: 'SimpleInputComponent'
-                    }
-                },
-            ]
-        };
-        const expected: FormValidatorSummaryErrors[] = [
-            {
-                errors: [
-                    {
-                        message: "@validator-error-pattern",
-                        class: "pattern",
-                        params: {
-                            actual: "hello world 2!",
-                            description: "must start with prefix",
-                            requiredPattern: "^prefix.*$",
-                        },
-                    },
-                ],
-                id: "text_7",
-                message: "TextField with default wrapper defined",
-                lineagePaths: {
-                    formConfig: ["componentDefinitions", "0"],
-                    dataModel: ["text_7"],
-                    angularComponents: ["text_7"],
-                    angularComponentsJsonPointer: "/text_7",
-                    layout: ["text_7-layout"],
-                    layoutJsonPointer: "/text_7-layout",
-                },
-            }
-        ];
-
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["minimumCreate", "minimumUpdate"],
-            validatorDefinitions: formValidatorsSharedDefinitions
-        });
-        expect(actual).to.eql(expected);
-    });
-    it(`should run only expected validators for initial membership all`, async function () {
-        const formConfig: FormConfigFrame = {
-            name: "default-1.0-draft",
-            validationGroups: {
-                minimumCreate: {
-                    description: "Fields that must be valid to create a new record.",
-                    initialMembership: "none",
-                },
-                transitionDraftToSubmitted: {
-                    description: "Fields that must be valid to transition from draft to submitted.",
-                    initialMembership: "all",
-                },
-            },
-            componentDefinitions: [
-                {
-                    name: 'text_7',
-                    layout: {
-                        class: 'DefaultLayout',
-                        config: {
-                            label: 'TextField with default wrapper defined',
-                            helpText: 'This is a help text',
-                        }
-                    },
-                    model: {
-                        class: 'SimpleInputModel',
-                        config: {
-                            defaultValue: 'hello world 2!',
-                            validators: [
-                                {
-                                    class: 'pattern',
-                                    config: {
-                                        pattern: "^prefix.*$",
-                                        description: "must start with prefix"
-                                    },
-                                    groups: { include: ['minimumCreate'] },
-                                },
-                                {
-                                    class: 'minLength',
-                                    message: "@validator-error-custom-text_7",
-                                    config: { minLength: 100 }
-                                },
-                            ]
-                        }
-                    },
-                    component: {
-                        class: 'SimpleInputComponent'
-                    }
-                },
-            ]
-        };
-        const expected: FormValidatorSummaryErrors[] = [
-            {
-                errors: [
-                    {
-                        message: "@validator-error-pattern",
-                        class: "pattern",
-                        params: {
-                            actual: "hello world 2!",
-                            description: "must start with prefix",
-                            requiredPattern: "^prefix.*$",
-                        },
-                    },
-                    {
-                        message: "@validator-error-custom-text_7",
-                        class: "minLength",
-                        params: {
-                            actualLength: 14,
-                            requiredLength: 100,
-                        },
-                    },
-                ],
-                id: "text_7",
-                message: "TextField with default wrapper defined",
-                lineagePaths: {
-                    formConfig: ["componentDefinitions", "0"],
-                    dataModel: ["text_7"],
-                    angularComponents: ["text_7"],
-                    angularComponentsJsonPointer: "/text_7",
-                    layout: ["text_7-layout"],
-                    layoutJsonPointer: "/text_7-layout",
-                },
-            }
-        ];
-
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["transitionDraftToSubmitted"],
-            validatorDefinitions: formValidatorsSharedDefinitions
-        });
-        expect(actual).to.eql(expected);
-    });
-    it(`should run expected validators for existing record`, async function () {
-        const formConfig: FormConfigFrame = {
-            name: "default-1.0-draft",
-            componentDefinitions: [
-                {
-                    name: 'text_7',
-                    layout: {
-                        class: 'DefaultLayout',
-                        config: {
-                            label: 'TextField with default wrapper defined',
-                            helpText: 'This is a help text',
-                        }
-                    },
-                    model: {
-                        class: 'SimpleInputModel',
-                        config: {
-                            defaultValue: 'hello world 2!',
-                            validators: [
-                                {
-                                    class: 'pattern',
-                                    config: {
-                                        pattern: "^prefix.*$",
-                                        description: "must start with prefix"
-                                    },
-                                },
-                                {
-                                    class: 'minLength',
-                                    message: "@validator-error-custom-text_7",
-                                    config: { minLength: 100 }
-                                },
-                            ]
-                        }
-                    },
-                    component: {
-                        class: 'SimpleInputComponent'
-                    }
-                },
-            ]
-        };
-        const record = {
-            text_7: "prefix"
-        };
-        const expected: FormValidatorSummaryErrors[] = [
-            {
-                errors: [
-                    {
-                        message: "@validator-error-custom-text_7",
-                        class: "minLength",
-                        params: {
-                            actualLength: 6,
-                            requiredLength: 100,
-                        },
-                    },
-                ],
-                id: "text_7",
-                message: "TextField with default wrapper defined",
-                lineagePaths: {
-                    formConfig: ["componentDefinitions", "0"],
-                    dataModel: ["text_7"],
-                    angularComponents: ["text_7"],
-                    angularComponentsJsonPointer: "/text_7",
-                    layout: ["text_7-layout"],
-                    layoutJsonPointer: "/text_7-layout",
-                },
-            }
-        ];
-
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({ data: formConfig, formMode: "edit", record });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["all"],
-            validatorDefinitions: formValidatorsSharedDefinitions,
-        });
-        expect(actual).to.eql(expected);
-    });
-    it(`should run all the validators in example form config with empty existing record`, async function () {
-        const args = _cloneDeep(formConfigExample1);
-        const record = {};
-        const expected: FormValidatorSummaryErrors[] = [
-            {
-                "errors": [
-                    {
-                        "message": "@validator-error-required",
-                        "class": "required",
-                        "params": { "actual": undefined, "required": true }
-                    }
-                ],
-                "id": "text_1_event",
-                "message": null,
-                lineagePaths: {
-                    "formConfig": [
-                        "componentDefinitions",
-                        "0",
-                        "component",
-                        "config",
-                        "tabs",
-                        "0",
-                        "component",
-                        "config",
-                        "componentDefinitions",
-                        "8",
-                    ],
-                    "dataModel": ["text_1_event"],
-                    "angularComponents": ["main_tab", "tab_1", "text_1_event"],
-                    "angularComponentsJsonPointer": "/main_tab/tab_1/text_1_event",
-                    layout: ["main_tab-layout", "tab_1-layout", "text_1_event-layout"],
-                    layoutJsonPointer: "/main_tab-layout/tab_1-layout/text_1_event-layout",
-                },
-            },
-            {
-                "errors": [
-                    {
-                        "message": "@validator-error-required",
-                        "class": "required",
-                        "params": { "actual": undefined, "required": true },
-                    }
-                ],
-                "id": "text_2_event",
-                "message": null,
-                lineagePaths: {
-                    formConfig: [
-                        "componentDefinitions",
-                        "0",
-                        "component",
-                        "config",
-                        "tabs",
-                        "0",
-                        "component",
-                        "config",
-                        "componentDefinitions",
-                        "11",
-                    ],
-                    dataModel: ["text_2_event"],
-                    angularComponents: ["main_tab", "tab_1", "text_2_event"],
-                    angularComponentsJsonPointer: "/main_tab/tab_1/text_2_event",
-                    layout: ["main_tab-layout", "tab_1-layout", "text_2_event-layout"],
-                    layoutJsonPointer: "/main_tab-layout/tab_1-layout/text_2_event-layout",
-                },
-            },
-            {
-                "errors": [
-                    {
-                        "message": "@validator-error-required",
-                        "class": "required",
-                        "params": { "actual": undefined, "required": true }
-                    }
-                ],
-                "id": "text_3_event",
-                "message": null,
-                lineagePaths: {
-                    formConfig: [
-                        "componentDefinitions",
-                        "0",
-                        "component",
-                        "config",
-                        "tabs",
-                        "0",
-                        "component",
-                        "config",
-                        "componentDefinitions",
-                        "13",
-                    ],
-                    dataModel: ["text_3_event"],
-                    angularComponents: ["main_tab", "tab_1", "text_3_event"],
-                    angularComponentsJsonPointer: "/main_tab/tab_1/text_3_event",
-                    layout: ["main_tab-layout", "tab_1-layout", "text_3_event-layout"],
-                    layoutJsonPointer: "/main_tab-layout/tab_1-layout/text_3_event-layout",
-                },
-            },
-            {
-                "errors": [
-                    {
-                        "message": "@validator-error-required",
-                        "class": "required",
-                        "params": { "actual": undefined, "required": true }
-                    }
-                ],
-                "id": "text_5",
-                "message": "TextField with default wrapper defined",
-                lineagePaths: {
-                    formConfig: [
-                        "componentDefinitions",
-                        "0",
-                        "component",
-                        "config",
-                        "tabs",
-                        "1",
-                        "component",
-                        "config",
-                        "componentDefinitions",
-                        "0",
-                        "component",
-                        "config",
-                        "componentDefinitions",
-                        "2",
-                        "component",
-                        "config",
-                        "componentDefinitions",
-                        "0",
-                    ],
-                    dataModel: ["group_1_component", "group_2_component", "text_5"],
-                    angularComponents: ["main_tab", "tab_2", "group_1_component", "group_2_component", "text_5"],
-                    angularComponentsJsonPointer: "/main_tab/tab_2/group_1_component/group_2_component/text_5",
-                    layout: ["main_tab-layout", "tab_2-layout", "group_1_component-layout", "group_2_component-layout", "text_5-layout"],
-                    layoutJsonPointer: "/main_tab-layout/tab_2-layout/group_1_component-layout/group_2_component-layout/text_5-layout",
-                },
-            },
-            {
-                "errors": [
-                    {
-                        "class": "different-values",
-                        "message": "@validator-error-different-values",
-                        "params": {
-                            "controlCount": 2,
-                            "controlNames": ["text_1_event", "text_2"],
-                            "valueCount": 1,
-                            "values": [undefined],
-                        }
-                    }
-                ],
-                "id": "default-1.0-draft",
-                "message": null,
-                lineagePaths: buildLineagePaths(),
-            },
-        ];
-
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({
-          data: args, formMode: "edit", record, reusableFormDefs: reusableFormDefinitions
-        });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["all"],
-            validatorDefinitions: formValidatorsSharedDefinitions,
-        });
-        expect(actual).to.eql(expected);
-    });
-
-    it("should report typeahead configuration errors for unsupported/invalid config", async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({
-            data: {
-                name: "typeahead-validator",
-                componentDefinitions: [
-                    {
-                        name: "lookup",
-                        component: {
-                            class: "TypeaheadInputComponent",
-                            config: {
-                                sourceType: "namedQuery",
-                                multiSelect: true
-                            }
-                        },
-                        model: { class: "TypeaheadInputModel", config: { defaultValue: null } }
-                    }
-                ]
-            },
-            formMode: "edit",
-            reusableFormDefs: reusableFormDefinitions,
-        });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["all"],
-            validatorDefinitions: formValidatorsSharedDefinitions
-        });
-        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
-        expect(classNames).to.contain("typeaheadQueryId");
-        expect(classNames).to.contain("typeaheadMultiSelect");
-    });
-
-    it("should report external typeahead provider requirement", async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({
-            data: {
-                name: "typeahead-external-validator",
-                componentDefinitions: [
-                    {
-                        name: "countryLookup",
-                        component: {
-                            class: "TypeaheadInputComponent",
-                            config: {
-                                sourceType: "external"
-                            }
-                        },
-                        model: { class: "TypeaheadInputModel", config: { defaultValue: null } }
-                    }
-                ]
-            },
-            formMode: "edit",
-            reusableFormDefs: reusableFormDefinitions,
-        });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["all"],
-            validatorDefinitions: formValidatorsSharedDefinitions
-        });
-        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
-        expect(classNames).to.contain("typeaheadProvider");
-    });
-
-    it("should report service typeahead serviceId requirement", async function () {
-        const constructor = new ConstructFormConfigVisitor(logger);
-        const constructed = await constructor.start({
-            data: {
-                name: "typeahead-service-validator",
-                componentDefinitions: [
-                    {
-                        name: "serviceLookup",
-                        component: {
-                            class: "TypeaheadInputComponent",
-                            config: {
-                                sourceType: "service"
-                            }
-                        },
-                        model: { class: "TypeaheadInputModel", config: { defaultValue: null } }
-                    }
-                ]
-            },
-            formMode: "edit",
-            reusableFormDefs: reusableFormDefinitions,
-        });
-
-        const visitor = new ValidatorFormConfigVisitor(logger);
-        const actual = await visitor.start({
-            form: constructed,
-            enabledValidationGroups: ["all"],
-            validatorDefinitions: formValidatorsSharedDefinitions
-        });
-        const classNames = actual.flatMap((entry) => entry.errors.map((err) => err.class));
-        expect(classNames).to.contain("typeaheadServiceId");
-    });
-
-    describe("HTML Sanitization", () => {
-        const dirtyHtml = '<p>Safe</p><script>alert("xss")</script><img src="x" onerror="alert(1)">';
-        const cleanHtml = '<p>Safe</p><img src="x">';
-        const buildSails = (mode: 'sanitize' | 'reject') => ({
+describe('Validator Visitor', async () => {
+  before(() => {
+    (global as any)._ = _;
+    (global as any).DomSanitizerService = DomSanitizerService;
+    (globalThis as any).DomSanitizerService = DomSanitizerService;
+  });
+  it('validates every repeatable elementTemplate row with indexed Angular and data lineage', async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'repeatable-server-validation',
+      componentDefinitions: [
+        {
+          name: 'contributors',
+          component: {
+            class: 'RepeatableComponent',
             config: {
-                record: { form: { htmlSanitizationMode: mode } },
-                dompurify: {
-                    profiles: {
-                        html: { USE_PROFILES: { html: true } },
-                        svg: { USE_PROFILES: { svg: true } }
-                    },
-                    defaultProfile: 'html'
-                }
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: [
+                      {
+                        name: 'name',
+                        component: { class: 'SimpleInputComponent' },
+                        model: {
+                          class: 'SimpleInputModel',
+                          config: { validators: [{ class: 'required' }] },
+                        },
+                        layout: { class: 'DefaultLayout', config: { label: 'Contributor name' } },
+                      },
+                    ],
+                  },
+                },
+                layout: { class: 'DefaultLayout', config: {} },
+              },
             },
-            log: {
-                error: () => {},
-                warn: () => {},
-                info: () => {},
-                debug: () => {},
-                silly: () => {}
-            }
-        });
-
-        it("should sanitize dangerous HTML in rich text model value and report warning", async function () {
-            const formConfig: any = {
-                name: "sanitization-test",
-                componentDefinitions: [
-                    {
-                        name: 'rich_text',
-                        layout: { class: 'DefaultLayout', config: { label: 'Rich Text' } },
-                        model: {
-                            class: 'RichTextEditorModel',
-                            config: { defaultValue: dirtyHtml }
-                        },
-                        component: { class: 'RichTextEditorComponent' }
-                    }
-                ]
-            };
-
-            const constructor = new ConstructFormConfigVisitor(logger);
-            let constructed;
-            try {
-                constructed = await constructor.start({
-                  data: formConfig, formMode: "edit",
-                  reusableFormDefs: reusableFormDefinitions,
-                });
-            } catch (e) {
-                console.error("CONSTRUCTION ERROR (1):", e);
-                console.error("ERROR STACK (1):", (e as any).stack);
-                throw e;
-            }
-
-            // Ensure sails.config is available for the test
-            (global as any).sails = buildSails('sanitize');
-            (globalThis as any).sails = (global as any).sails;
-
-            const visitor = new ValidatorFormConfigVisitor(logger);
-            const validation = await visitor.startWithResult({
-                form: constructed,
-                enabledValidationGroups: ["all"],
-                validatorDefinitions: formValidatorsSharedDefinitions
-            });
-            const richTextField = constructed.componentDefinitions[0] as any;
-            expect(richTextField.model.config.value).to.not.contain('<script>');
-            expect(richTextField.model.config.value).to.not.contain('onerror');
-            expect(richTextField.model.config.value).to.contain('<p>Safe</p>');
-
-            expect(validation.summaries).to.deep.equal([]);
-            expect(validation.transformations).to.have.length(1);
-            expect(validation.transformations[0]).to.deep.include({
-              kind: 'rich-html-sanitized',
-              dataModelPath: ['rich_text'],
-              sourceValue: dirtyHtml,
-              value: richTextField.model.config.value,
-            });
-            expect(validation.transformations[0].advisorySummary.errors[0].class).to.equal('htmlSanitized');
-        });
-
-        it('runs ordinary validators against the sanitized rich-text value', async function () {
-            const formConfig: FormConfigFrame = {
-                name: 'sanitize-before-validation',
-                componentDefinitions: [{
-                    name: 'rich_text',
-                    component: { class: 'RichTextEditorComponent' },
-                    model: {
-                        class: 'RichTextEditorModel',
-                        config: {
-                            defaultValue: '<script>alert(1)</script>',
-                            validators: [{ class: 'required' }],
-                        },
-                    },
-                }],
-            };
-            const constructed = await new ConstructFormConfigVisitor(logger).start({
-                data: formConfig,
-                formMode: 'edit',
-                reusableFormDefs: reusableFormDefinitions,
-            });
-            (global as any).sails = buildSails('sanitize');
-            (globalThis as any).sails = (global as any).sails;
-
-            const validation = await new ValidatorFormConfigVisitor(logger).startWithResult({
-                form: constructed,
-                enabledValidationGroups: [],
-                validatorDefinitions: formValidatorsSharedDefinitions,
-            });
-
-            expect((constructed.componentDefinitions[0] as any).model.config.value).to.equal('');
-            expect(validation.summaries.map(summary => summary.errors[0].class)).to.deep.equal(['required']);
-            expect(validation.transformations).to.have.length(1);
-        });
-
-        it("should reject dirty HTML when mode is 'reject'", async function () {
-            const formConfig: any = {
-                name: "sanitization-test-reject",
-                componentDefinitions: [
-                    {
-                        name: 'rich_text',
-                        layout: { class: 'DefaultLayout', config: { label: 'Rich Text' } },
-                        model: {
-                            class: 'RichTextEditorModel',
-                            config: { defaultValue: dirtyHtml }
-                        },
-                        component: { class: 'RichTextEditorComponent' }
-                    }
-                ]
-            };
-
-            const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = await constructor.start({
-              data: formConfig, formMode: "edit",
-              reusableFormDefs: reusableFormDefinitions,
-            });
-
-            // Set mode to reject
-            (global as any).sails = buildSails('reject');
-            (globalThis as any).sails = (global as any).sails;
-
-            const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = await visitor.start({
-                form: constructed,
-                enabledValidationGroups: ["all"],
-                validatorDefinitions: formValidatorsSharedDefinitions
-            });
-
-            const richTextField = constructed.componentDefinitions[0] as any;
-            // Value should NOT be mutated
-            expect(richTextField.model.config.value).to.equal(dirtyHtml);
-
-            expect(actual).to.have.length(1);
-            expect(actual[0].errors[0].class).to.equal('htmlUnsafe');
-        });
-
-        it("should not report when content is already clean", async function () {
-            const formConfig: any = {
-                name: "sanitization-test-clean",
-                componentDefinitions: [
-                    {
-                        name: 'rich_text',
-                        layout: { class: 'DefaultLayout', config: { label: 'Rich Text' } },
-                        model: {
-                            class: 'RichTextEditorModel',
-                            config: { defaultValue: cleanHtml }
-                        },
-                        component: { class: 'RichTextEditorComponent' }
-                    }
-                ]
-            };
-
-            const constructor = new ConstructFormConfigVisitor(logger);
-            const constructed = await constructor.start({
-              data: formConfig, formMode: "edit",
-              reusableFormDefs: reusableFormDefinitions,
-            });
-
-            (global as any).sails = buildSails('sanitize');
-            (globalThis as any).sails = (global as any).sails;
-
-            const visitor = new ValidatorFormConfigVisitor(logger);
-            const actual = await visitor.start({
-                form: constructed,
-                enabledValidationGroups: ["all"],
-                validatorDefinitions: formValidatorsSharedDefinitions
-            });
-
-            expect(actual).to.have.length(0);
-        });
+          },
+          model: { class: 'RepeatableModel', config: {} },
+          layout: { class: 'DefaultLayout', config: {} },
+        },
+      ],
+    };
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data: formConfig,
+      formMode: 'edit',
+      record: { contributors: [{ name: 'Ada' }, { name: '' }] },
+    });
+    const actual = await new ValidatorFormConfigVisitor(consoleLogger).start({
+      form: constructed,
+      enabledValidationGroups: [],
+      validatorDefinitions: formValidatorsSharedDefinitions,
     });
 
-    it("should include jsonata-expression validator results", async function () {
-      const expression = "$ = 45";
-      async function jsonataEvaluateCustomFunc(value: unknown){
-        const compiled = jsonataCompile(expression);
-        return await jsonataEvaluate(compiled, value);
+    expect(actual).to.have.length(1);
+    expect(actual[0]).to.deep.include({ id: 'name', message: 'Contributor name' });
+    expect(actual[0].lineagePaths).to.deep.equal({
+      formConfig: [
+        'componentDefinitions',
+        '0',
+        'component',
+        'config',
+        'elementTemplate',
+        'component',
+        'config',
+        'componentDefinitions',
+        '0',
+      ],
+      dataModel: ['contributors', 1, 'name'],
+      angularComponents: ['contributors', 1, 'name'],
+      angularComponentsJsonPointer: '/contributors/1/name',
+      layout: ['contributors-layout', 1, 'name-layout'],
+      layoutJsonPointer: '/contributors-layout/1/name-layout',
+    });
+  });
+  it('ignores related object data components during server validation', async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'related-object-data-server-validation',
+      componentDefinitions: [
+        {
+          name: 'workspaces',
+          component: {
+            class: 'RelatedObjectDataComponent',
+            config: {
+              dataPath: 'metadata.workspaces',
+              oidProperty: 'id',
+              relatedFields: ['title'],
+            },
+          },
+          layout: { class: 'DefaultLayout', config: {} },
+        },
+      ],
+    };
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data: formConfig,
+      formMode: 'edit',
+      record: { metadata: { workspaces: [] } },
+    });
+
+    const actual = await new ValidatorFormConfigVisitor(consoleLogger).start({
+      form: constructed,
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+
+    expect(actual).to.deep.equal([]);
+  });
+  it('checks the shared deadline around every repeatable row', async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'repeatable-deadline',
+      componentDefinitions: [
+        {
+          name: 'rows',
+          component: {
+            class: 'RepeatableComponent',
+            config: {
+              elementTemplate: {
+                name: '',
+                component: {
+                  class: 'GroupComponent',
+                  config: {
+                    componentDefinitions: [
+                      {
+                        name: 'value',
+                        component: { class: 'SimpleInputComponent' },
+                        model: { class: 'SimpleInputModel', config: {} },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          model: { class: 'RepeatableModel', config: {} },
+        },
+      ],
+    };
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data: formConfig,
+      formMode: 'edit',
+      record: { rows: [{ value: 'one' }, { value: 'two' }] },
+    });
+    let checks = 0;
+
+    let failure: unknown;
+    try {
+      await new ValidatorFormConfigVisitor(consoleLogger).startWithResult({
+        form: constructed,
+        transformationOnly: true,
+        checkDeadline: () => {
+          checks += 1;
+          if (checks === 2) throw new Error('deadline');
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).to.be.instanceOf(Error);
+    expect((failure as Error).message).to.equal('deadline');
+    expect(checks).to.equal(2);
+  });
+  it('does not treat an initial-all advisory group as proof that every validator is advisory-only', async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'malformed-advisory-all',
+      validationGroups: {
+        advisory: { description: 'malformed advisory', initialMembership: 'all' },
+      },
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent' },
+          model: {
+            class: 'SimpleInputModel',
+            config: { validators: [{ class: 'required' }] },
+          },
+        },
+      ],
+    };
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data: formConfig,
+      formMode: 'edit',
+      record: { title: '' },
+    });
+
+    const actual = await new ValidatorFormConfigVisitor(consoleLogger).start({
+      form: constructed,
+      enabledValidationGroups: [],
+      excludedOnlyValidationGroups: ['advisory'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+
+    expect(actual.map(summary => summary.errors[0].class)).to.deep.equal(['required']);
+  });
+  it('prepares JSONata evaluators only after selecting validators for the current pass', async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'selected-jsonata-preparation',
+      validationGroups: {
+        base: { description: 'blocking', initialMembership: 'none' },
+        advisory: { description: 'advisory', initialMembership: 'none' },
+      },
+      componentDefinitions: [
+        {
+          name: 'title',
+          component: { class: 'SimpleInputComponent' },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              validators: [
+                {
+                  class: 'jsonata-expression',
+                  groups: { include: ['advisory'] },
+                  config: { expression: ')' },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+      data: formConfig,
+      formMode: 'edit',
+      record: { title: 'safe blocking value' },
+    });
+    let preparations = 0;
+    const evaluatorFactory = () => {
+      preparations += 1;
+      throw new Error('invalid advisory JSONata');
+    };
+
+    const blocking = await new ValidatorFormConfigVisitor(consoleLogger).start({
+      form: constructed,
+      enabledValidationGroups: ['base'],
+      excludedOnlyValidationGroups: ['advisory'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+      jsonataEvaluatorFactory: evaluatorFactory,
+    });
+    expect(blocking).to.deep.equal([]);
+    expect(preparations).to.equal(0);
+
+    let advisoryFailure: unknown;
+    try {
+      await new ValidatorFormConfigVisitor(consoleLogger).start({
+        form: constructed,
+        enabledValidationGroups: ['advisory'],
+        validatorDefinitions: formValidatorsSharedDefinitions,
+        jsonataEvaluatorFactory: evaluatorFactory,
+      });
+    } catch (error) {
+      advisoryFailure = error;
+    }
+    expect(advisoryFailure).to.be.instanceOf(Error);
+    expect(preparations).to.equal(1);
+  });
+  it(`should run only expected validators for initial membership none`, async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'default-1.0-draft',
+      validationGroups: {
+        minimumCreate: {
+          description: 'Fields that must be valid to create a new record.',
+          initialMembership: 'none',
+        },
+        minimumUpdate: {
+          description: 'Fields that must be valid to update a new record.',
+          initialMembership: 'none',
+        },
+      },
+      componentDefinitions: [
+        {
+          name: 'text_7',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            },
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'hello world 2!',
+              validators: [
+                {
+                  class: 'pattern',
+                  config: {
+                    pattern: '^prefix.*$',
+                    description: 'must start with prefix',
+                  },
+                  groups: { include: ['minimumCreate', 'minimumUpdate'] },
+                },
+                {
+                  class: 'minLength',
+                  message: '@validator-error-custom-text_7',
+                  config: { minLength: 3 },
+                  groups: { include: ['minimumCreate'] },
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+      ],
+    };
+    const expected: FormValidatorSummaryErrors[] = [
+      {
+        errors: [
+          {
+            message: '@validator-error-pattern',
+            class: 'pattern',
+            params: {
+              actual: 'hello world 2!',
+              description: 'must start with prefix',
+              requiredPattern: '^prefix.*$',
+            },
+          },
+        ],
+        id: 'text_7',
+        message: 'TextField with default wrapper defined',
+        lineagePaths: {
+          formConfig: ['componentDefinitions', '0'],
+          dataModel: ['text_7'],
+          angularComponents: ['text_7'],
+          angularComponentsJsonPointer: '/text_7',
+          layout: ['text_7-layout'],
+          layoutJsonPointer: '/text_7-layout',
+        },
+      },
+    ];
+
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['minimumCreate', 'minimumUpdate'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    expect(actual).to.eql(expected);
+  });
+  it(`should run only expected validators for initial membership all`, async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'default-1.0-draft',
+      validationGroups: {
+        minimumCreate: {
+          description: 'Fields that must be valid to create a new record.',
+          initialMembership: 'none',
+        },
+        transitionDraftToSubmitted: {
+          description: 'Fields that must be valid to transition from draft to submitted.',
+          initialMembership: 'all',
+        },
+      },
+      componentDefinitions: [
+        {
+          name: 'text_7',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            },
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'hello world 2!',
+              validators: [
+                {
+                  class: 'pattern',
+                  config: {
+                    pattern: '^prefix.*$',
+                    description: 'must start with prefix',
+                  },
+                  groups: { include: ['minimumCreate'] },
+                },
+                {
+                  class: 'minLength',
+                  message: '@validator-error-custom-text_7',
+                  config: { minLength: 100 },
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+      ],
+    };
+    const expected: FormValidatorSummaryErrors[] = [
+      {
+        errors: [
+          {
+            message: '@validator-error-pattern',
+            class: 'pattern',
+            params: {
+              actual: 'hello world 2!',
+              description: 'must start with prefix',
+              requiredPattern: '^prefix.*$',
+            },
+          },
+          {
+            message: '@validator-error-custom-text_7',
+            class: 'minLength',
+            params: {
+              actualLength: 14,
+              requiredLength: 100,
+            },
+          },
+        ],
+        id: 'text_7',
+        message: 'TextField with default wrapper defined',
+        lineagePaths: {
+          formConfig: ['componentDefinitions', '0'],
+          dataModel: ['text_7'],
+          angularComponents: ['text_7'],
+          angularComponentsJsonPointer: '/text_7',
+          layout: ['text_7-layout'],
+          layoutJsonPointer: '/text_7-layout',
+        },
+      },
+    ];
+
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['transitionDraftToSubmitted'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    expect(actual).to.eql(expected);
+  });
+  it(`should run expected validators for existing record`, async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'default-1.0-draft',
+      componentDefinitions: [
+        {
+          name: 'text_7',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            },
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'hello world 2!',
+              validators: [
+                {
+                  class: 'pattern',
+                  config: {
+                    pattern: '^prefix.*$',
+                    description: 'must start with prefix',
+                  },
+                },
+                {
+                  class: 'minLength',
+                  message: '@validator-error-custom-text_7',
+                  config: { minLength: 100 },
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+      ],
+    };
+    const record = {
+      text_7: 'prefix',
+    };
+    const expected: FormValidatorSummaryErrors[] = [
+      {
+        errors: [
+          {
+            message: '@validator-error-custom-text_7',
+            class: 'minLength',
+            params: {
+              actualLength: 6,
+              requiredLength: 100,
+            },
+          },
+        ],
+        id: 'text_7',
+        message: 'TextField with default wrapper defined',
+        lineagePaths: {
+          formConfig: ['componentDefinitions', '0'],
+          dataModel: ['text_7'],
+          angularComponents: ['text_7'],
+          angularComponentsJsonPointer: '/text_7',
+          layout: ['text_7-layout'],
+          layoutJsonPointer: '/text_7-layout',
+        },
+      },
+    ];
+
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit', record });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    expect(actual).to.eql(expected);
+  });
+  it(`should run all the validators in example form config with empty existing record`, async function () {
+    const args = _cloneDeep(formConfigExample1);
+    const record = {};
+    const expected: FormValidatorSummaryErrors[] = [
+      {
+        errors: [
+          {
+            message: '@validator-error-required',
+            class: 'required',
+            params: { actual: undefined, required: true },
+          },
+        ],
+        id: 'text_1_event',
+        message: null,
+        lineagePaths: {
+          formConfig: [
+            'componentDefinitions',
+            '0',
+            'component',
+            'config',
+            'tabs',
+            '0',
+            'component',
+            'config',
+            'componentDefinitions',
+            '8',
+          ],
+          dataModel: ['text_1_event'],
+          angularComponents: ['main_tab', 'tab_1', 'text_1_event'],
+          angularComponentsJsonPointer: '/main_tab/tab_1/text_1_event',
+          layout: ['main_tab-layout', 'tab_1-layout', 'text_1_event-layout'],
+          layoutJsonPointer: '/main_tab-layout/tab_1-layout/text_1_event-layout',
+        },
+      },
+      {
+        errors: [
+          {
+            message: '@validator-error-required',
+            class: 'required',
+            params: { actual: undefined, required: true },
+          },
+        ],
+        id: 'text_2_event',
+        message: null,
+        lineagePaths: {
+          formConfig: [
+            'componentDefinitions',
+            '0',
+            'component',
+            'config',
+            'tabs',
+            '0',
+            'component',
+            'config',
+            'componentDefinitions',
+            '11',
+          ],
+          dataModel: ['text_2_event'],
+          angularComponents: ['main_tab', 'tab_1', 'text_2_event'],
+          angularComponentsJsonPointer: '/main_tab/tab_1/text_2_event',
+          layout: ['main_tab-layout', 'tab_1-layout', 'text_2_event-layout'],
+          layoutJsonPointer: '/main_tab-layout/tab_1-layout/text_2_event-layout',
+        },
+      },
+      {
+        errors: [
+          {
+            message: '@validator-error-required',
+            class: 'required',
+            params: { actual: undefined, required: true },
+          },
+        ],
+        id: 'text_3_event',
+        message: null,
+        lineagePaths: {
+          formConfig: [
+            'componentDefinitions',
+            '0',
+            'component',
+            'config',
+            'tabs',
+            '0',
+            'component',
+            'config',
+            'componentDefinitions',
+            '13',
+          ],
+          dataModel: ['text_3_event'],
+          angularComponents: ['main_tab', 'tab_1', 'text_3_event'],
+          angularComponentsJsonPointer: '/main_tab/tab_1/text_3_event',
+          layout: ['main_tab-layout', 'tab_1-layout', 'text_3_event-layout'],
+          layoutJsonPointer: '/main_tab-layout/tab_1-layout/text_3_event-layout',
+        },
+      },
+      {
+        errors: [
+          {
+            message: '@validator-error-required',
+            class: 'required',
+            params: { actual: undefined, required: true },
+          },
+        ],
+        id: 'text_5',
+        message: 'TextField with default wrapper defined',
+        lineagePaths: {
+          formConfig: [
+            'componentDefinitions',
+            '0',
+            'component',
+            'config',
+            'tabs',
+            '1',
+            'component',
+            'config',
+            'componentDefinitions',
+            '0',
+            'component',
+            'config',
+            'componentDefinitions',
+            '2',
+            'component',
+            'config',
+            'componentDefinitions',
+            '0',
+          ],
+          dataModel: ['group_1_component', 'group_2_component', 'text_5'],
+          angularComponents: ['main_tab', 'tab_2', 'group_1_component', 'group_2_component', 'text_5'],
+          angularComponentsJsonPointer: '/main_tab/tab_2/group_1_component/group_2_component/text_5',
+          layout: [
+            'main_tab-layout',
+            'tab_2-layout',
+            'group_1_component-layout',
+            'group_2_component-layout',
+            'text_5-layout',
+          ],
+          layoutJsonPointer:
+            '/main_tab-layout/tab_2-layout/group_1_component-layout/group_2_component-layout/text_5-layout',
+        },
+      },
+      {
+        errors: [
+          {
+            class: 'different-values',
+            message: '@validator-error-different-values',
+            params: {
+              controlCount: 2,
+              controlNames: ['text_1_event', 'text_2'],
+              valueCount: 1,
+              values: [undefined],
+            },
+          },
+        ],
+        id: 'default-1.0-draft',
+        message: null,
+        lineagePaths: buildLineagePaths(),
+      },
+    ];
+
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({
+      data: args,
+      formMode: 'edit',
+      record,
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    expect(actual).to.eql(expected);
+  });
+
+  it('should report typeahead configuration errors for unsupported/invalid config', async function () {
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({
+      data: {
+        name: 'typeahead-validator',
+        componentDefinitions: [
+          {
+            name: 'lookup',
+            component: {
+              class: 'TypeaheadInputComponent',
+              config: {
+                sourceType: 'namedQuery',
+                multiSelect: true,
+              },
+            },
+            model: { class: 'TypeaheadInputModel', config: { defaultValue: null } },
+          },
+        ],
+      },
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    const classNames = actual.flatMap(entry => entry.errors.map(err => err.class));
+    expect(classNames).to.contain('typeaheadQueryId');
+    expect(classNames).to.contain('typeaheadMultiSelect');
+  });
+
+  it('should report external typeahead provider requirement', async function () {
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({
+      data: {
+        name: 'typeahead-external-validator',
+        componentDefinitions: [
+          {
+            name: 'countryLookup',
+            component: {
+              class: 'TypeaheadInputComponent',
+              config: {
+                sourceType: 'external',
+              },
+            },
+            model: { class: 'TypeaheadInputModel', config: { defaultValue: null } },
+          },
+        ],
+      },
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    const classNames = actual.flatMap(entry => entry.errors.map(err => err.class));
+    expect(classNames).to.contain('typeaheadProvider');
+  });
+
+  it('should report service typeahead serviceId requirement', async function () {
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({
+      data: {
+        name: 'typeahead-service-validator',
+        componentDefinitions: [
+          {
+            name: 'serviceLookup',
+            component: {
+              class: 'TypeaheadInputComponent',
+              config: {
+                sourceType: 'service',
+              },
+            },
+            model: { class: 'TypeaheadInputModel', config: { defaultValue: null } },
+          },
+        ],
+      },
+      formMode: 'edit',
+      reusableFormDefs: reusableFormDefinitions,
+    });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    const classNames = actual.flatMap(entry => entry.errors.map(err => err.class));
+    expect(classNames).to.contain('typeaheadServiceId');
+  });
+
+  describe('HTML Sanitization', () => {
+    const dirtyHtml = '<p>Safe</p><script>alert("xss")</script><img src="x" onerror="alert(1)">';
+    const cleanHtml = '<p>Safe</p><img src="x">';
+    const buildSails = (mode: 'sanitize' | 'reject') => ({
+      config: {
+        record: { form: { htmlSanitizationMode: mode } },
+        dompurify: {
+          profiles: {
+            html: { USE_PROFILES: { html: true } },
+            svg: { USE_PROFILES: { svg: true } },
+          },
+          defaultProfile: 'html',
+        },
+      },
+      log: createSinonStubLogger(sinon),
+    });
+
+    it('should sanitize dangerous HTML in rich text model value and report warning', async function () {
+      const formConfig: any = {
+        name: 'sanitization-test',
+        componentDefinitions: [
+          {
+            name: 'rich_text',
+            layout: { class: 'DefaultLayout', config: { label: 'Rich Text' } },
+            model: {
+              class: 'RichTextEditorModel',
+              config: { defaultValue: dirtyHtml },
+            },
+            component: { class: 'RichTextEditorComponent' },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
+      let constructed;
+      try {
+        constructed = await constructor.start({
+          data: formConfig,
+          formMode: 'edit',
+          reusableFormDefs: reusableFormDefinitions,
+        });
+      } catch (e) {
+        console.error('CONSTRUCTION ERROR (1):', e);
+        console.error('ERROR STACK (1):', (e as any).stack);
+        throw e;
       }
-      const formConfig: FormConfigFrame = {
-        name: "default-1.0-draft",
-        componentDefinitions: [
-          {
-            name: 'text_7',
-            layout: {
-              class: 'DefaultLayout',
-              config: {
-                label: 'TextField with default wrapper defined',
-                helpText: 'This is a help text',
-              }
-            },
-            model: {
-              class: 'SimpleInputModel',
-              config: {
-                defaultValue: 'hello world 2!',
-                validators: [
-                  {
-                    class: 'jsonata-expression',
-                    config: {
-                      description: "the description",
-                      expression: expression,
-                      evaluator: jsonataEvaluateCustomFunc
-                    },
-                  },
-                  {
-                    class: 'minLength',
-                    message: "@validator-error-custom-text_7",
-                    config: { minLength: 100 }
-                  },
-                ]
-              }
-            },
-            component: {
-              class: 'SimpleInputComponent'
-            }
-          },
-        ]
-      };
-      const expected: FormValidatorSummaryErrors[] = [
-        {
-          errors: [
-            {
-              message: "@validator-error-jsonata-expression",
-              class: "jsonata-expression",
-              params: {
-                actual: "hello world 2!",
-                description: "the description",
-                expression: expression,
-              },
-            },
-            {
-              message: "@validator-error-custom-text_7",
-              class: "minLength",
-              params: {
-                actualLength: 14,
-                requiredLength: 100,
-              },
-            },
-          ],
-          id: "text_7",
-          message: "TextField with default wrapper defined",
-          lineagePaths: {
-            formConfig: ["componentDefinitions", "0"],
-            dataModel: ["text_7"],
-            angularComponents: ["text_7"],
-            angularComponentsJsonPointer: "/text_7",
-            layout: ["text_7-layout"],
-            layoutJsonPointer: "/text_7-layout",
-          },
-        }
-      ];
 
-      const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
+      // Ensure sails.config is available for the test
+      (global as any).sails = buildSails('sanitize');
+      (globalThis as any).sails = (global as any).sails;
 
-      const visitor = new ValidatorFormConfigVisitor(logger);
-      const actual = await visitor.start({
+      const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+      const validation = await visitor.startWithResult({
         form: constructed,
-        enabledValidationGroups: ["all"],
-        validatorDefinitions: formValidatorsSharedDefinitions
+        enabledValidationGroups: ['all'],
+        validatorDefinitions: formValidatorsSharedDefinitions,
       });
-      expect(actual).to.eql(expected);
+      const richTextField = constructed.componentDefinitions[0] as any;
+      expect(richTextField.model.config.value).to.not.contain('<script>');
+      expect(richTextField.model.config.value).to.not.contain('onerror');
+      expect(richTextField.model.config.value).to.contain('<p>Safe</p>');
+
+      expect(validation.summaries).to.deep.equal([]);
+      expect(validation.transformations).to.have.length(1);
+      expect(validation.transformations[0]).to.deep.include({
+        kind: 'rich-html-sanitized',
+        dataModelPath: ['rich_text'],
+        sourceValue: dirtyHtml,
+        value: richTextField.model.config.value,
+      });
+      expect(validation.transformations[0].advisorySummary.errors[0].class).to.equal('htmlSanitized');
     });
 
-    it("should include results from multiple validators of the same class on one control", async function () {
+    it('runs ordinary validators against the sanitized rich-text value', async function () {
       const formConfig: FormConfigFrame = {
-        name: "default-1.0-draft",
+        name: 'sanitize-before-validation',
         componentDefinitions: [
           {
-            name: 'text_7',
-            layout: {
-              class: 'DefaultLayout',
-              config: {
-                label: 'TextField with default wrapper defined',
-                helpText: 'This is a help text',
-              }
-            },
+            name: 'rich_text',
+            component: { class: 'RichTextEditorComponent' },
             model: {
-              class: 'SimpleInputModel',
+              class: 'RichTextEditorModel',
               config: {
-                defaultValue: 'hello world 2!',
-                validators: [
-                  {
-                    class: 'pattern',
-                    message: "@must-start-with-prefix",
-                    config: { pattern: "^prefix.*$", description: "must start with prefix" },
-                  },
-                  {
-                    class: 'pattern',
-                    message: "@must-end-with-suffix",
-                    config: { pattern: ".*suffix$", description: "must end with suffix" },
-                  },
-                ]
-              }
+                defaultValue: '<script>alert(1)</script>',
+                validators: [{ class: 'required' }],
+              },
             },
-            component: {
-              class: 'SimpleInputComponent'
-            }
           },
-        ]
+        ],
       };
-      const expected: FormValidatorSummaryErrors[] = [
-        {
-          errors: [
-            {
-              message: "@must-start-with-prefix",
-              class: "pattern",
-              params: {
-                actual: "hello world 2!",
-                description: "must start with prefix",
-                requiredPattern: "^prefix.*$",
-              },
+      const constructed = await new ConstructFormConfigVisitor(consoleLogger).start({
+        data: formConfig,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+      (global as any).sails = buildSails('sanitize');
+      (globalThis as any).sails = (global as any).sails;
+
+      const validation = await new ValidatorFormConfigVisitor(consoleLogger).startWithResult({
+        form: constructed,
+        enabledValidationGroups: [],
+        validatorDefinitions: formValidatorsSharedDefinitions,
+      });
+
+      expect((constructed.componentDefinitions[0] as any).model.config.value).to.equal('');
+      expect(validation.summaries.map(summary => summary.errors[0].class)).to.deep.equal(['required']);
+      expect(validation.transformations).to.have.length(1);
+    });
+
+    it("should reject dirty HTML when mode is 'reject'", async function () {
+      const formConfig: any = {
+        name: 'sanitization-test-reject',
+        componentDefinitions: [
+          {
+            name: 'rich_text',
+            layout: { class: 'DefaultLayout', config: { label: 'Rich Text' } },
+            model: {
+              class: 'RichTextEditorModel',
+              config: { defaultValue: dirtyHtml },
             },
-            {
-              message: "@must-end-with-suffix",
-              class: "pattern",
-              params: {
-                actual: "hello world 2!",
-                description: "must end with suffix",
-                requiredPattern: "^.*suffix$",
-              },
-            },
-          ],
-          id: "text_7",
-          message: "TextField with default wrapper defined",
-          lineagePaths: {
-            formConfig: ["componentDefinitions", "0"],
-            dataModel: ["text_7"],
-            angularComponents: ["text_7"],
-            angularComponentsJsonPointer: "/text_7",
-            layout: ["text_7-layout"],
-            layoutJsonPointer: "/text_7-layout",
+            component: { class: 'RichTextEditorComponent' },
           },
-        }
-      ];
+        ],
+      };
 
-      const constructor = new ConstructFormConfigVisitor(logger);
-      const constructed = await constructor.start({ data: formConfig, formMode: "edit" });
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
+      const constructed = await constructor.start({
+        data: formConfig,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
 
-      const visitor = new ValidatorFormConfigVisitor(logger);
+      // Set mode to reject
+      (global as any).sails = buildSails('reject');
+      (globalThis as any).sails = (global as any).sails;
+
+      const visitor = new ValidatorFormConfigVisitor(consoleLogger);
       const actual = await visitor.start({
         form: constructed,
-        enabledValidationGroups: ["all"],
-        validatorDefinitions: formValidatorsSharedDefinitions
+        enabledValidationGroups: ['all'],
+        validatorDefinitions: formValidatorsSharedDefinitions,
       });
-      expect(actual).to.eql(expected);
+
+      const richTextField = constructed.componentDefinitions[0] as any;
+      // Value should NOT be mutated
+      expect(richTextField.model.config.value).to.equal(dirtyHtml);
+
+      expect(actual).to.have.length(1);
+      expect(actual[0].errors[0].class).to.equal('htmlUnsafe');
     });
+
+    it('should not report when content is already clean', async function () {
+      const formConfig: any = {
+        name: 'sanitization-test-clean',
+        componentDefinitions: [
+          {
+            name: 'rich_text',
+            layout: { class: 'DefaultLayout', config: { label: 'Rich Text' } },
+            model: {
+              class: 'RichTextEditorModel',
+              config: { defaultValue: cleanHtml },
+            },
+            component: { class: 'RichTextEditorComponent' },
+          },
+        ],
+      };
+
+      const constructor = new ConstructFormConfigVisitor(consoleLogger);
+      const constructed = await constructor.start({
+        data: formConfig,
+        formMode: 'edit',
+        reusableFormDefs: reusableFormDefinitions,
+      });
+
+      (global as any).sails = buildSails('sanitize');
+      (globalThis as any).sails = (global as any).sails;
+
+      const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+      const actual = await visitor.start({
+        form: constructed,
+        enabledValidationGroups: ['all'],
+        validatorDefinitions: formValidatorsSharedDefinitions,
+      });
+
+      expect(actual).to.have.length(0);
+    });
+  });
+
+  it('should include jsonata-expression validator results', async function () {
+    const expression = '$ = 45';
+    async function jsonataEvaluateCustomFunc(value: unknown) {
+      const compiled = jsonataCompile(expression);
+      return await jsonataEvaluate(compiled, value);
+    }
+    const formConfig: FormConfigFrame = {
+      name: 'default-1.0-draft',
+      componentDefinitions: [
+        {
+          name: 'text_7',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            },
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'hello world 2!',
+              validators: [
+                {
+                  class: 'jsonata-expression',
+                  config: {
+                    description: 'the description',
+                    expression: expression,
+                    evaluator: jsonataEvaluateCustomFunc,
+                  },
+                },
+                {
+                  class: 'minLength',
+                  message: '@validator-error-custom-text_7',
+                  config: { minLength: 100 },
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+      ],
+    };
+    const expected: FormValidatorSummaryErrors[] = [
+      {
+        errors: [
+          {
+            message: '@validator-error-jsonata-expression',
+            class: 'jsonata-expression',
+            params: {
+              actual: 'hello world 2!',
+              description: 'the description',
+              expression: expression,
+            },
+          },
+          {
+            message: '@validator-error-custom-text_7',
+            class: 'minLength',
+            params: {
+              actualLength: 14,
+              requiredLength: 100,
+            },
+          },
+        ],
+        id: 'text_7',
+        message: 'TextField with default wrapper defined',
+        lineagePaths: {
+          formConfig: ['componentDefinitions', '0'],
+          dataModel: ['text_7'],
+          angularComponents: ['text_7'],
+          angularComponentsJsonPointer: '/text_7',
+          layout: ['text_7-layout'],
+          layoutJsonPointer: '/text_7-layout',
+        },
+      },
+    ];
+
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    expect(actual).to.eql(expected);
+  });
+
+  it('should include results from multiple validators of the same class on one control', async function () {
+    const formConfig: FormConfigFrame = {
+      name: 'default-1.0-draft',
+      componentDefinitions: [
+        {
+          name: 'text_7',
+          layout: {
+            class: 'DefaultLayout',
+            config: {
+              label: 'TextField with default wrapper defined',
+              helpText: 'This is a help text',
+            },
+          },
+          model: {
+            class: 'SimpleInputModel',
+            config: {
+              defaultValue: 'hello world 2!',
+              validators: [
+                {
+                  class: 'pattern',
+                  message: '@must-start-with-prefix',
+                  config: { pattern: '^prefix.*$', description: 'must start with prefix' },
+                },
+                {
+                  class: 'pattern',
+                  message: '@must-end-with-suffix',
+                  config: { pattern: '.*suffix$', description: 'must end with suffix' },
+                },
+              ],
+            },
+          },
+          component: {
+            class: 'SimpleInputComponent',
+          },
+        },
+      ],
+    };
+    const expected: FormValidatorSummaryErrors[] = [
+      {
+        errors: [
+          {
+            message: '@must-start-with-prefix',
+            class: 'pattern',
+            params: {
+              actual: 'hello world 2!',
+              description: 'must start with prefix',
+              requiredPattern: '^prefix.*$',
+            },
+          },
+          {
+            message: '@must-end-with-suffix',
+            class: 'pattern',
+            params: {
+              actual: 'hello world 2!',
+              description: 'must end with suffix',
+              requiredPattern: '^.*suffix$',
+            },
+          },
+        ],
+        id: 'text_7',
+        message: 'TextField with default wrapper defined',
+        lineagePaths: {
+          formConfig: ['componentDefinitions', '0'],
+          dataModel: ['text_7'],
+          angularComponents: ['text_7'],
+          angularComponentsJsonPointer: '/text_7',
+          layout: ['text_7-layout'],
+          layoutJsonPointer: '/text_7-layout',
+        },
+      },
+    ];
+
+    const constructor = new ConstructFormConfigVisitor(consoleLogger);
+    const constructed = await constructor.start({ data: formConfig, formMode: 'edit' });
+
+    const visitor = new ValidatorFormConfigVisitor(consoleLogger);
+    const actual = await visitor.start({
+      form: constructed,
+      enabledValidationGroups: ['all'],
+      validatorDefinitions: formValidatorsSharedDefinitions,
+    });
+    expect(actual).to.eql(expected);
+  });
 });

@@ -5,6 +5,7 @@ import {
   type FormValidatorSummaryErrors,
 } from '@researchdatabox/sails-ng-common';
 import { performance } from 'node:perf_hooks';
+import { issueRouteFormContract } from '../../src/RecordRouteForm';
 import type {
   RecordValidationRequest,
   RecordValidationResult,
@@ -469,7 +470,7 @@ describe('RecordValidationService', function () {
 
   it('continues update form resolution when an irrelevant current-stage policy cannot resolve', async function () {
     configure('enforce');
-    const fixture = createRecordValidationFixture({ workflowSteps: { draft: null } });
+    const fixture = createRecordValidationFixture({ workflowSteps: { draft: null }, startingStep: null });
     const result = await new Services.RecordValidation(fixture.dependencies).resolve(fixture.request);
     expect(result.status).to.equal('resolved');
     expect(result.shouldBlock).to.equal(false);
@@ -479,7 +480,7 @@ describe('RecordValidationService', function () {
     ).to.have.property('severity', 'warning');
     expect(fixture.calls.forms).to.deep.equal([{ formName: 'dataset-2.4-draft', brand: 'brand-1' }]);
 
-    const operationFixture = createRecordValidationFixture({ workflowSteps: { draft: null } });
+    const operationFixture = createRecordValidationFixture({ workflowSteps: { draft: null }, startingStep: null });
     const operationResult = await new Services.RecordValidation(operationFixture.dependencies).resolve({
       ...operationFixture.request,
       validationOperation: 'submit',
@@ -488,6 +489,172 @@ describe('RecordValidationService', function () {
     expect(operationResult.shouldBlock).to.equal(true);
     expect(requireResolved(operationResult).effectiveGroups).to.deep.equal(['submit']);
     expect(operationFixture.calls.validatorGroups).to.deep.equal([['submit']]);
+  });
+
+  describe('route-authorised source contracts', function () {
+    const grant = {
+      oid: 'oid-1',
+      brandId: 'brand-1',
+      username: 'user-1',
+      recordType: 'dataset',
+      storedForm: 'dataset-2.4-draft',
+      stage: 'draft',
+      formName: 'dataset-finalise',
+    };
+
+    it('validates a source-only named operation without persisting the alternate form', async function () {
+      configure('enforce');
+      const fixture = createRecordValidationFixture({
+        form: validationForm({ name: grant.formName }),
+        workflowSteps: {
+          'other-draft': { name: 'other-draft', config: { form: 'other-form', workflow: { stage: 'draft' } } },
+        },
+      });
+      const result = requireResolved(
+        await new Services.RecordValidation(fixture.dependencies).resolve({
+          ...fixture.request,
+          validationOperation: 'submit',
+          routeFormContract: issueRouteFormContract(grant),
+        })
+      );
+      expect(result.shouldBlock).to.equal(false);
+      expect(result.formName).to.equal(grant.formName);
+      expect(result.effectiveGroups).to.deep.equal(['submit']);
+      expect(result.transformedCandidate?.metaMetadata.form).to.equal(grant.storedForm);
+      expect(result.transformedCandidate?.workflow?.stage).to.equal('draft');
+    });
+
+    for (const scenario of ['request-shaped', 'serialized', 'changed-stage', 'changed-form']) {
+      it(`rejects a ${scenario} source-contract capability`, async function () {
+        configure('enforce');
+        const fixture = createRecordValidationFixture({
+          form: validationForm({ name: grant.formName }),
+          candidate: {
+            ...(scenario === 'changed-stage' ? { workflow: { stage: 'published' } } : {}),
+            ...(scenario === 'changed-form'
+              ? {
+                  metaMetadata: {
+                    brandId: 'brand-1',
+                    type: 'dataset',
+                    form: 'dataset-other',
+                  },
+                }
+              : {}),
+          },
+        });
+        const capability = issueRouteFormContract(grant);
+        const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+          ...fixture.request,
+          validationOperation: 'submit',
+          routeFormContract:
+            scenario === 'request-shaped'
+              ? grant
+              : scenario === 'serialized'
+                ? JSON.parse(JSON.stringify(capability))
+                : capability,
+        });
+        expect(result.shouldBlock).to.equal(true);
+        expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.formReferenceDivergence);
+        expect(fixture.calls.forms).to.have.length(0);
+      });
+    }
+
+    it('selects the route form for update schemas while retaining the stored authorization snapshot', async function () {
+      configure('enforce');
+      sails.config.recordSchema = { ...sails.config.recordSchema, unknownProperties: 'declared' };
+      const fixture = createRecordValidationFixture({ form: validationForm({ name: grant.formName }) });
+      const context = await new Services.RecordValidation(fixture.dependencies).resolveContractContext({
+        kind: 'update',
+        brand: 'brand-1',
+        portal: 'portal',
+        oid: 'oid-1',
+        operation: 'submit',
+        actor: { authenticated: true, roles: ['Researcher'] },
+        routeFormContract: issueRouteFormContract(grant),
+      });
+      expect(context.publicContext.form).to.equal(grant.formName);
+      expect(context.publicContext.unknownProperties).to.equal('declared');
+      if (context.publicContext.kind !== 'update') throw new Error('Expected update context');
+      expect(context.resolution.existingRecord?.metaMetadata).to.deep.equal(fixture.request.candidate.metaMetadata);
+    });
+  });
+
+  for (const scenario of ['alias', 'name-collision', 'shared-stage', 'ambiguous-stage']) {
+    it(`resolves persisted workflow stages for named updates (${scenario})`, async function () {
+      configure('enforce');
+      const form = 'dataset-2.4-draft';
+      const fixture = createRecordValidationFixture({
+        candidate: { workflow: { stage: 'under-review' } },
+        workflowSteps: {
+          draft: null,
+          'review-step': {
+            name: 'review-step',
+            config: {
+              form,
+              workflow: { stage: 'under-review' },
+              recordValidation: { operations: { submit: { roles: ['Researcher'] } } },
+            },
+          },
+          ...(scenario === 'name-collision'
+            ? {
+                'under-review': {
+                  name: 'under-review',
+                  config: {
+                    form,
+                    workflow: { stage: 'unrelated' },
+                    recordValidation: { operations: { submit: { roles: ['Admin'] } } },
+                  },
+                },
+              }
+            : {}),
+          ...(['shared-stage', 'ambiguous-stage'].includes(scenario)
+            ? {
+                'other-step': {
+                  name: 'other-step',
+                  config: {
+                    form: scenario === 'shared-stage' ? 'other-form' : form,
+                    workflow: { stage: 'under-review' },
+                    recordValidation: { operations: { submit: { roles: ['Admin'] } } },
+                  },
+                },
+              }
+            : {}),
+        },
+        startingStep: null,
+      });
+      const result = requireResolved(
+        await new Services.RecordValidation(fixture.dependencies).resolve({
+          ...fixture.request,
+          validationOperation: 'submit',
+        })
+      );
+      expect(result.shouldBlock).to.equal(scenario === 'ambiguous-stage');
+      if (scenario !== 'ambiguous-stage') expect(result.resolved.workflowStep).to.equal('review-step');
+    });
+  }
+
+  it('does not borrow permissive named-operation policy from an unrelated same-name stage', async function () {
+    configure('enforce');
+    const fixture = createRecordValidationFixture({
+      candidate: { workflow: { stage: 'under-review' } },
+      workflowSteps: {
+        'review-step': {
+          name: 'review-step',
+          config: {
+            form: 'dataset-2.4-draft',
+            workflow: { stage: 'under-review' },
+            recordValidation: { operations: { submit: { roles: ['Admin'] } } },
+          },
+        },
+        'under-review': { name: 'under-review', config: { workflow: { stage: 'unrelated' } } },
+      },
+    });
+    const result = await new Services.RecordValidation(fixture.dependencies).resolve({
+      ...fixture.request,
+      validationOperation: 'submit',
+    });
+    expect(result.shouldBlock).to.equal(true);
+    expect(codes(result)).to.include(RECORD_VALIDATION_DIAGNOSTIC_CODES.operationRoleUnauthorized);
   });
 
   it('keeps named-operation policy authoritative when the final stage is absent or malformed', async function () {

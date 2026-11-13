@@ -1,6 +1,6 @@
 import { Signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { skipWhile } from 'rxjs';
+import { asapScheduler, observeOn, skipWhile } from 'rxjs';
 import { FormComponentEventBus } from './form-component-event-bus.service';
 import { createFieldItemSelectedEvent } from './form-component-event.types';
 import {
@@ -13,8 +13,9 @@ import {
  *
  * Designed to be owned by `FormBaseWrapperComponent`.
  * Uses `toObservable` with an explicit injector to safely bridge a signal
- * from a non-component class. The initial `null` emission is skipped via
- * `skipWhile(v => v === null)` to avoid spurious clear events on form init.
+ * from a non-component class. Only the initial null emission is skipped to
+ * avoid clearing hydrated siblings on form init. A later explicit null also
+ * clears a pre-populated selection.
  */
 export class FormComponentItemSelectEventProducer extends FormComponentEventBaseProducerConsumer {
   constructor(eventBus: FormComponentEventBus) {
@@ -47,10 +48,22 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
 
     this.fieldId = fieldId;
 
-    const sub = toObservable(component.selectedItem, { injector: options.injector })
-      .pipe(skipWhile(v => v === null))
+    const selectedItemSignal = component.selectedItem;
+    const initialValue = selectedItemSignal();
+    const sub = toObservable(selectedItemSignal, { injector: options.injector })
+      .pipe(
+        skipWhile((value, index) => value === null && index === 0 && initialValue === null),
+        // The signal bridge can emit during Angular's render effect. Sibling
+        // autofill must finish after that render, rather than changing a row's
+        // validation errors after its layout has already been checked.
+        observeOn(asapScheduler),
+      )
       .subscribe(selectedItem => {
-        this.publishItemSelected(selectedItem);
+        // Hydration invalidates queued interactions; only publish the current
+        // selection. Signals can coalesce several writes before this task runs.
+        if (selectedItem !== undefined && Object.is(selectedItemSignal(), selectedItem)) {
+          this.publishItemSelected(selectedItem);
+        }
       });
 
     this.subscriptions.set('field.item.selected', sub);
@@ -64,10 +77,12 @@ export class FormComponentItemSelectEventProducer extends FormComponentEventBase
       return;
     }
 
+    const fieldId = this.options?.definition?.lineagePaths?.angularComponentsJsonPointer;
+    if (!fieldId) return;
     const baseEvent = createFieldItemSelectedEvent({
-      fieldId: this.fieldId,
+      fieldId,
       selectedItem,
-      sourceId: this.fieldId,
+      sourceId: fieldId,
     });
 
     this.eventBus.publish(baseEvent);

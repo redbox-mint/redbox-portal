@@ -1,4 +1,3 @@
-import type { ILogger } from '../Logger';
 import {
   AccordionFieldComponentDefinitionOutline,
   AccordionFormComponentDefinitionOutline,
@@ -35,6 +34,7 @@ import {
   TextAreaFormComponentDefinitionOutline,
   TypeaheadInputFieldModelDefinitionOutline,
   TypeaheadInputFormComponentDefinitionOutline,
+  ILogger,
 } from '@researchdatabox/sails-ng-common';
 
 export class ContextVariablesFormConfigVisitor extends FormConfigVisitor {

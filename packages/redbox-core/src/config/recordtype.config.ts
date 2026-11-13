@@ -54,6 +54,9 @@ export interface RecordHooksConfig {
 }
 
 export interface RecordRelation {
+  /** Lodash property path for object reference identifiers. */
+  oidProperty?: string;
+  resolution?: import('../related-records/types').RelatedRelationResolutionConfig;
   id?: string;
   label?: string;
   recordType: string;

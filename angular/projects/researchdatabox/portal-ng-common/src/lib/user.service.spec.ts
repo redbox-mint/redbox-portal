@@ -60,7 +60,7 @@ describe('UserService testing', () => {
     userService = TestBed.inject(UserService);
 
     const mockCsrfData = { _csrf: 'testCsrfValue' };
-    const mockConfigData = { csrfToken: mockCsrfData._csrf, rootContext: '', someRandomKey: 'someRandomValue', portal: 'rdmp', branding: 'default' };
+    const mockConfigData = { baseUrl: '', csrfToken: mockCsrfData._csrf, rootContext: '', someRandomKey: 'someRandomValue', portal: 'rdmp', branding: 'default' };
 
     const csrfReq = httpTestingController.expectOne(configService.csrfTokenUrl);
     csrfReq.flush(mockCsrfData);
@@ -166,4 +166,31 @@ describe('UserService testing', () => {
   afterEach(() => {
     httpTestingController.verify();
   });
+  it('passes the encoded sign-in filter and disabled flag together', async () => {
+    const result = userService.getUsers({ signIn: 'oidc', includeDisabled: true });
+    const req = httpTestingController.expectOne(userService.brandingAndPortalUrl + '/admin/users/get?includeDisabled=true&signIn=oidc');
+    req.flush([]); await result;
+  });
+
+  it('uses one CSRF-enabled POST for sole-role removal and returns the server roles', async () => {
+    const result = userService.removeRoleMember('role id', 'user id');
+    const req = httpTestingController.expectOne(userService.brandingAndPortalUrl + '/admin/roles/role%20id/users/user%20id/remove');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.context).toBe((userService as any).httpContext);
+    req.flush({ status: true, roles: [{ id: 'g', name: 'Guest' }] });
+    expect((await result).roles[0].name).toBe('Guest');
+  });
+
+  it('requests bounded server pages with search, membership, sort and disabled filters', async () => {
+    const result = userService.getUserPage({ page: 2, pageSize: 25, query: 'Name', role: 'Researcher', includeDisabled: true, sort: 'name', order: 'desc' });
+    const req = httpTestingController.expectOne(request => request.url.endsWith('/admin/users/get'));
+    expect(req.request.params.get('page')).toBe('2');
+    expect(req.request.params.get('role')).toBe('Researcher');
+    expect(req.request.params.get('includeDisabled')).toBe('true');
+    expect(req.request.params.get('order')).toBe('desc');
+    const response = { records: [], summary: { numFound: 140, page: 2, start: 25 }, roleCounts: {} };
+    req.flush(response);
+    expect(await result).toEqual(response);
+  });
+
 });

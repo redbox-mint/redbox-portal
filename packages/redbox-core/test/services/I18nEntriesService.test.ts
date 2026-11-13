@@ -1,18 +1,20 @@
+import { createSinonStubLogger } from '../logger.test';
+
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails, createQueryObject } from './testHelper';
 
-describe('I18nEntriesService', function() {
+describe('I18nEntriesService', function () {
   let mockSails: any;
   let I18nEntriesService: any;
   let mockI18nTranslation: any;
   let mockI18nBundle: any;
   let testLocalesDir: string;
 
-  beforeEach(function() {
+  beforeEach(function () {
     mockSails = createMockSails({
       config: {
         appPath: '/tmp/test-app',
@@ -20,36 +22,30 @@ describe('I18nEntriesService', function() {
           next: {
             init: {
               supportedLngs: ['en', 'fr'],
-              ns: ['translation']
-            }
-          }
-        }
+              ns: ['translation'],
+            },
+          },
+        },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     mockI18nTranslation = {
       findOne: sinon.stub().resolves(null),
       find: sinon.stub().returns({
-        sort: sinon.stub().resolves([])
+        sort: sinon.stub().resolves([]),
       }),
       create: sinon.stub().resolves({ id: 'new-id' }),
       createEach: sinon.stub().resolves([]),
       updateOne: sinon.stub().returns({ set: sinon.stub().resolves({}) }),
-      destroyOne: sinon.stub().resolves({})
+      destroyOne: sinon.stub().resolves({}),
     };
 
     mockI18nBundle = {
       findOne: sinon.stub().resolves(null),
       find: sinon.stub().resolves([]),
       create: sinon.stub().resolves({ id: 'new-bundle' }),
-      updateOne: sinon.stub().returns({ set: sinon.stub().resolves({}) })
+      updateOne: sinon.stub().returns({ set: sinon.stub().resolves({}) }),
     };
 
     setupServiceTestGlobals(mockSails);
@@ -57,13 +53,13 @@ describe('I18nEntriesService', function() {
     (global as any).I18nBundle = mockI18nBundle;
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1' }),
-      getBrandById: sinon.stub().returns({ id: 'brand-1' })
+      getBrandById: sinon.stub().returns({ id: 'brand-1' }),
     };
     (global as any).TranslationService = {
-      reloadResources: sinon.stub()
+      reloadResources: sinon.stub(),
     };
     (global as any).DomSanitizerService = {
-      sanitizeWithProfile: sinon.stub().callsFake((value: string) => value)
+      sanitizeWithProfile: sinon.stub().callsFake((value: string) => value),
     };
 
     const { Services } = require('../../src/services/I18nEntriesService');
@@ -72,7 +68,7 @@ describe('I18nEntriesService', function() {
     fs.rmSync(mockSails.config.appPath, { recursive: true, force: true });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     fs.rmSync(mockSails.config.appPath, { recursive: true, force: true });
     cleanupServiceTestGlobals();
     delete (global as any).I18nTranslation;
@@ -83,77 +79,246 @@ describe('I18nEntriesService', function() {
     sinon.restore();
   });
 
-  describe('resolveBrandingId (private)', function() {
-    it('should resolve branding id from object', function() {
+  describe('leaf and prefix preservation', function () {
+    for (const entries of [
+      [{ key: '@dataPublication-dc:accessRights', value: 'Access rights' }, { key: '@dataPublication-dc:accessRights.help', value: 'Help' }],
+      [{ key: '@dataPublication-dc:accessRights.help', value: 'Help' }, { key: '@dataPublication-dc:accessRights', value: 'Access rights' }],
+    ]) {
+      it('round trips parent labels and dotted child keys in either order', function () {
+        const data = I18nEntriesService.composeNamespace(entries);
+        expect(I18nEntriesService.flatten(data)).to.deep.equal(Object.fromEntries(entries.map(e => [e.key, e.value])));
+      });
+    }
+    it('saving or deleting a child preserves its parent and siblings', function () {
+      const data = { label: 'Parent', 'label.help': 'Help', 'label.other': 'Other' };
+      I18nEntriesService.setNested(data, 'label.help', 'Updated');
+      expect(I18nEntriesService.flatten(data)).to.deep.equal({ label: 'Parent', 'label.help': 'Updated', 'label.other': 'Other' });
+      I18nEntriesService.removeNested(data, 'label.help');
+      expect(I18nEntriesService.flatten(data)).to.deep.equal({ label: 'Parent', 'label.other': 'Other' });
+    });
+    it('full bundle sync does not prune a label after saving its child', async function () {
+      const data = { label: 'Parent', 'label.help': 'Help' };
+      I18nEntriesService.setNested(data, 'label.help', 'Updated');
+      const entries = [{ key: 'label', value: 'Parent' }, { key: 'label.help', value: 'Help' }];
+      mockI18nTranslation.find.returns(Promise.resolve(entries));
+      sinon.stub(I18nEntriesService, 'getEntry').callsFake(async (_b, _l, _n, key) => entries.find(e => e.key === key));
+      sinon.stub(I18nEntriesService, 'setEntry').resolves({});
+      const remove = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
+      await I18nEntriesService.syncEntriesFromBundle({ id: 'b', branding: 'brand-1', locale: 'en', namespace: 'translation', data }, true);
+      expect(remove.called).to.equal(false);
+    });
+  });
+
+  it('updates only metadata with one brand-scoped write', async function () {
+    const set = sinon.stub().resolves({ locale: 'en', namespace: 'translation', displayName: 'English' });
+    mockI18nBundle.updateOne.returns({ set });
+    const result = await I18nEntriesService.updateDisplayName({ id: 'brand-1' }, 'en', 'translation', 'English');
+    expect(mockI18nBundle.updateOne.firstCall.args).to.deep.equal([{ branding: 'brand-1', locale: 'en', namespace: 'translation' }]);
+    expect(set.firstCall.args).to.deep.equal([{ displayName: 'English' }]);
+    expect(result).to.deep.equal({ locale: 'en', namespace: 'translation', displayName: 'English' });
+    expect(mockI18nTranslation.find.called).to.equal(false);
+    expect(mockI18nBundle.findOne.called).to.equal(false);
+    expect((global as any).TranslationService.reloadResources.called).to.equal(false);
+  });
+
+  describe('editor provenance', function () {
+    beforeEach(function () {
+      fs.mkdirSync(path.join(testLocalesDir, 'en'), { recursive: true });
+      fs.mkdirSync(path.join(testLocalesDir, 'fr'), { recursive: true });
+      fs.writeFileSync(path.join(testLocalesDir, 'en', 'translation.json'), JSON.stringify({ same: 'Default', changed: 'Original', missing: 'Missing', absent: 'Absent', label: 'Parent', 'label.help': 'Help', _meta: { same: { category: 'ignored' } } }));
+      fs.writeFileSync(path.join(testLocalesDir, 'fr', 'translation.json'), JSON.stringify({ same: 'Par défaut' }));
+      mockI18nBundle.findOne.resolves({ id: 'b', data: { same: 'Par défaut', changed: 'Custom', missing: '', label: 'Parent', 'label.help': 'Help', extra: 'Extra' } });
+    });
+    it('classifies locale defaults, overrides, empty and absent default keys in one batch', async function () {
+      const rows = await I18nEntriesService.editorEntries({ id: 'brand-1' }, 'fr', 'translation');
+      expect(Object.fromEntries(rows.map(row => [row.key, row.provenance]))).to.deep.equal({ same: 'default', changed: 'override', missing: 'missing', absent: 'missing', label: 'default', 'label.help': 'default', extra: 'override' });
+      expect(rows.find(row => row.key === 'extra').hasDefault).to.equal(false);
+      expect(mockI18nTranslation.find.callCount).to.equal(1);
+      expect(mockI18nTranslation.findOne.called).to.equal(false);
+    });
+    it('counts non-empty values against the union of default and custom keys', async function () {
+      mockI18nBundle.find.resolves([{ locale: 'fr', namespace: 'translation', displayName: 'French', data: { same: 'Par défaut', changed: 'Custom', missing: '  ', extra: 'Extra' } }]);
+      const result = await I18nEntriesService.languageSummaries({ id: 'brand-1' });
+      expect(result.find(row => row.code === 'fr')).to.include({ translated: 3, total: 7 });
+      expect(mockI18nTranslation.find.called).to.equal(false);
+      expect(mockI18nBundle.find.callCount).to.equal(1);
+    });
+    it('reverts using the current localized default and existing sanitization', async function () {
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({ value: 'Par défaut' });
+      await I18nEntriesService.revertEntry({ id: 'brand-1' }, 'fr', 'translation', 'same');
+      expect(save.firstCall.args).to.deep.equal([{ id: 'brand-1' }, 'fr', 'translation', 'same', 'Par défaut']);
+      expect(await I18nEntriesService.revertEntry({ id: 'brand-1' }, 'fr', 'translation', 'extra')).to.equal(null);
+      expect(save.calledOnce).to.equal(true);
+    });
+    it('rejects traversal before reading defaults', async function () {
+      let error;
+      try { await I18nEntriesService.defaultValues('../en', 'translation'); } catch (e) { error = e; }
+      expect(error.message).to.equal('Invalid translation target');
+    });
+  });
+
+  describe('JSON import/export', function () {
+    let bundle: any;
+    beforeEach(function () {
+      bundle = { id: 'b', locale: 'en', namespace: 'translation', data: { same: 'Same', change: 'Before', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>', _meta: { rich: { contentFormat: 'html' } } } };
+      mockI18nBundle.findOne.callsFake(async () => bundle);
+      sinon.stub(I18nEntriesService, 'defaultValues').resolves({ same: 'Same', change: 'Default', added: 'Default', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>' });
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ rich: { contentFormat: 'html' } });
+      mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([{ key: 'rich', contentFormat: 'html' }]) });
+    });
+    const brand = { id: 'brand-1' };
+    async function rejected(operation: Promise<any>, status: number) {
+      let failure;
+      try { await operation; } catch (error) { failure = error; }
+      expect(failure?.status).to.equal(status);
+    }
+    for (const json of ['{', 'null', '[]', '"text"', '{"key":42}', '{"key":true}', '{"key":null}', '{"key":{}}', '{"key":[]}', '{"__proto__":"bad"}', '{"a.constructor.b":"bad"}', '{"_meta":"bad"}', '{"<script>":"bad"}', '{" ":"bad"}']) {
+      it('rejects malformed or non-flat/string-valued JSON: ' + json, async function () {
+        await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', json), 400);
+        expect(mockI18nBundle.updateOne.called).to.equal(false);
+        expect(mockI18nTranslation.create.called).to.equal(false);
+      });
+    }
+    it('rejects oversized UTF-8 input including multibyte characters', async function () {
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify({ key: 'a'.repeat(2 * 1024 * 1024) })), 413);
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify({ key: 'é'.repeat(1100000) })), 413);
+    });
+    it('previews counts, unknown-key exclusion and a sanitized diff without writing', async function () {
+      const json = JSON.stringify({ same: 'Same', change: 'After', added: 'Added', unknown: 'Ignored', rich: '<p>After</p><script>alert(1)</script>' });
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      expect(preview.counts).to.deep.equal({ added: 1, changed: 2, unchanged: 1, unknown: 1, ignored: 1 });
+      expect(preview.sample.find(item => item.key === 'rich').after).not.to.contain('<script>');
+      expect(mockI18nTranslation.create.called).to.equal(false);
+      expect(mockI18nBundle.updateOne.called).to.equal(false);
+      expect((global as any).TranslationService.reloadResources.called).to.equal(false);
+      expect(preview.previewToken).to.match(/^[a-f0-9]{64}$/);
+    });
+    it('caps the diff sample and rejects more than 10000 keys', async function () {
+      const values = Object.fromEntries(Array.from({ length: 25 }, (_, i) => ['key-' + i, 'value']));
+      expect((await I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify(values))).sample).to.have.length(20);
+      const tooMany = Object.fromEntries(Array.from({ length: 10001 }, (_, i) => ['key-' + i, '']));
+      await rejected(I18nEntriesService.previewImport(brand, 'en', 'translation', JSON.stringify(tooMany)), 400);
+    });
+    it('applies only eligible changes and reports every key including failures', async function () {
+      const json = JSON.stringify({ same: 'Same', change: 'After', added: 'Added', unknown: 'Ignored' });
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').callsFake(async (_b, _l, _n, key) => {
+        if (key === 'change') throw new Error('database failure with unsafe detail');
+        return { key, value: 'Added' };
+      });
+      const result = await I18nEntriesService.applyImport(brand, 'en', 'translation', json, false, preview.previewToken);
+      expect(result).to.include({ applied: 1, failed: 1 });
+      expect(result.results.map(item => [item.key, item.status])).to.deep.equal([['added', 'applied'], ['change', 'failed'], ['same', 'unchanged'], ['unknown', 'ignored']]);
+      expect(JSON.stringify(result)).not.to.contain('unsafe detail');
+      expect(save.firstCall.args[5]).to.include({ noReload: true, strictBundleSync: true });
+      expect((global as any).TranslationService.reloadResources.calledOnce).to.equal(true);
+    });
+    it('requires a fresh preview when bundle, input or unknown-key choice changes', async function () {
+      const json = '{"unknown":"New"}';
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', json);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({});
+      await rejected(I18nEntriesService.applyImport(brand, 'en', 'translation', json, true, preview.previewToken), 409);
+      await rejected(I18nEntriesService.applyImport(brand, 'fr', 'translation', json, false, preview.previewToken), 409);
+      bundle.data.same = 'Edited meanwhile';
+      await rejected(I18nEntriesService.applyImport(brand, 'en', 'translation', json, false, preview.previewToken), 409);
+      expect(save.called).to.equal(false);
+    });
+    it('keeps unknown keys only with explicit opt-in', async function () {
+      const preview = await I18nEntriesService.previewImport(brand, 'en', 'translation', '{"unknown":"New"}', true);
+      const save = sinon.stub(I18nEntriesService, 'setEntry').resolves({ key: 'unknown', value: 'New' });
+      const result = await I18nEntriesService.applyImport(brand, 'en', 'translation', '{"unknown":"New"}', true, preview.previewToken);
+      expect(result).to.include({ applied: 1, failed: 0 });
+      expect(save.firstCall.args[3]).to.equal('unknown');
+    });
+    it('exports flat strings without metadata, preserving leaf/prefix keys and empty values', async function () {
+      bundle.data.empty = '';
+      expect(await I18nEntriesService.exportBundle(brand, 'en', 'translation')).to.deep.equal({ same: 'Same', change: 'Before', label: 'Parent', 'label.help': 'Help', rich: '<p>Before</p>', empty: '' });
+      expect(await I18nEntriesService.exportBundle(brand, 'en', 'translation', true)).to.deep.equal({ change: 'Before', empty: '' });
+    });
+    it('reports failure if the bundle disappears during the entry write', async function () {
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves(null) });
+      let failure;
+      try { await I18nEntriesService.setEntry(brand, 'en', 'translation', 'change', 'New', { strictBundleSync: true, noReload: true }); }
+      catch (error) { failure = error; }
+      expect(failure?.message).to.equal('Bundle no longer exists');
+    });
+    it('reports bundle synchronization failure rather than claiming an entry was applied', async function () {
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().rejects(new Error('write failed')) });
+      await rejected(I18nEntriesService.setEntry(brand, 'en', 'translation', 'change', 'New', { strictBundleSync: true, noReload: true }).then(() => { throw Object.assign(new Error('should reject'), { status: 0 }); }, error => { throw Object.assign(error, { status: 500 }); }), 500);
+    });
+  });
+
+  describe('resolveBrandingId (private)', function () {
+    it('should resolve branding id from object', function () {
       const result = I18nEntriesService.resolveBrandingId({ id: 'brand-1' });
       expect(result).to.equal('brand-1');
     });
 
-    it('should resolve branding id from string', function() {
+    it('should resolve branding id from string', function () {
       const result = I18nEntriesService.resolveBrandingId('brand-2');
       expect(result).to.equal('brand-2');
     });
 
-    it('should return global for null/undefined', function() {
+    it('should return global for null/undefined', function () {
       expect(I18nEntriesService.resolveBrandingId(null)).to.equal('global');
       expect(I18nEntriesService.resolveBrandingId(undefined)).to.equal('global');
     });
   });
 
-  describe('buildUid (private)', function() {
-    it('should build correct uid', function() {
+  describe('buildUid (private)', function () {
+    it('should build correct uid', function () {
       const result = I18nEntriesService.buildUid({ id: 'brand-1' }, 'en', 'common', 'welcome');
       expect(result).to.equal('brand-1:en:common:welcome');
     });
 
-    it('should default namespace to translation', function() {
+    it('should default namespace to translation', function () {
       const result = I18nEntriesService.buildUid({ id: 'brand-1' }, 'en', null, 'welcome');
       expect(result).to.equal('brand-1:en:translation:welcome');
     });
   });
 
-  describe('flatten (private)', function() {
-    it('should flatten nested object', function() {
+  describe('flatten (private)', function () {
+    it('should flatten nested object', function () {
       const obj = {
         a: {
           b: {
-            c: 'value'
+            c: 'value',
           },
-          d: 'value2'
+          d: 'value2',
         },
-        e: 'value3'
+        e: 'value3',
       };
       const result = I18nEntriesService.flatten(obj);
       expect(result).to.deep.equal({
         'a.b.c': 'value',
         'a.d': 'value2',
-        'e': 'value3'
+        e: 'value3',
       });
     });
   });
 
-  describe('unflatten (private)', function() {
-    it('should unflatten object', function() {
+  describe('unflatten (private)', function () {
+    it('should unflatten object', function () {
       const flat = {
         'a.b.c': 'value',
         'a.d': 'value2',
-        'e': 'value3'
+        e: 'value3',
       };
       const result = I18nEntriesService.unflatten(flat);
       expect(result).to.deep.equal({
         a: {
           b: { c: 'value' },
-          d: 'value2'
+          d: 'value2',
         },
-        e: 'value3'
+        e: 'value3',
       });
     });
 
     for (const poisonedPart of ['__proto__', 'constructor', 'prototype']) {
-      it(`should ignore paths containing ${poisonedPart}`, function() {
+      it(`should ignore paths containing ${poisonedPart}`, function () {
         const result = I18nEntriesService.unflatten({
           safe: 'kept',
-          [`nested.${poisonedPart}.polluted`]: 'blocked'
+          [`nested.${poisonedPart}.polluted`]: 'blocked',
         });
 
         expect(result).to.deep.equal({ safe: 'kept' });
@@ -162,15 +327,15 @@ describe('I18nEntriesService', function() {
     }
   });
 
-  describe('setNested (private)', function() {
-    it('should set nested property', function() {
+  describe('setNested (private)', function () {
+    it('should set nested property', function () {
       const obj = {};
       I18nEntriesService.setNested(obj, 'a.b.c', 'value');
       expect(obj).to.deep.equal({ a: { b: { c: 'value' } } });
     });
 
     for (const poisonedPart of ['__proto__', 'constructor', 'prototype']) {
-      it(`should ignore paths containing ${poisonedPart}`, function() {
+      it(`should ignore paths containing ${poisonedPart}`, function () {
         const obj = { safe: 'kept' };
 
         I18nEntriesService.setNested(obj, `nested.${poisonedPart}.polluted`, 'blocked');
@@ -181,15 +346,15 @@ describe('I18nEntriesService', function() {
     }
   });
 
-  describe('removeNested (private)', function() {
-    it('should remove nested property', function() {
+  describe('removeNested (private)', function () {
+    it('should remove nested property', function () {
       const obj = { a: { b: { c: 'value', d: 'keep' } } };
       I18nEntriesService.removeNested(obj, 'a.b.c');
       expect(obj).to.deep.equal({ a: { b: { d: 'keep' } } });
     });
 
     for (const poisonedPart of ['__proto__', 'constructor', 'prototype']) {
-      it(`should ignore paths containing ${poisonedPart}`, function() {
+      it(`should ignore paths containing ${poisonedPart}`, function () {
         const obj = { safe: 'kept' };
 
         I18nEntriesService.removeNested(obj, `nested.${poisonedPart}.safe`);
@@ -199,37 +364,37 @@ describe('I18nEntriesService', function() {
     }
   });
 
-  describe('getEntry', function() {
-    it('should call findOne with correct uid', async function() {
+  describe('getEntry', function () {
+    it('should call findOne with correct uid', async function () {
       await I18nEntriesService.getEntry('brand-1', 'en', 'ns', 'key');
       expect(mockI18nTranslation.findOne.calledWith({ uid: 'brand-1:en:ns:key' })).to.be.true;
     });
   });
 
-  describe('setEntry', function() {
-    it('should create new entry if not exists', async function() {
+  describe('setEntry', function () {
+    it('should create new entry if not exists', async function () {
       mockI18nTranslation.findOne.resolves(null);
       mockI18nTranslation.create.resolves({ id: 'new-id' });
       // mock getBundle to return null so it creates a bundle too
       mockI18nBundle.findOne.resolves(null);
-      
+
       await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value');
-      
+
       expect(mockI18nTranslation.create.called).to.be.true;
       expect(mockI18nBundle.create.called).to.be.true;
     });
 
-    it('should update existing entry', async function() {
+    it('should update existing entry', async function () {
       mockI18nTranslation.findOne.resolves({ id: 'existing-id' });
       mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: {} });
-      
+
       await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', 'value');
-      
+
       expect(mockI18nTranslation.updateOne.calledWith({ id: 'existing-id' })).to.be.true;
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
     });
 
-    it('should persist valid contentFormat', async function() {
+    it('should persist valid contentFormat', async function () {
       mockI18nTranslation.findOne.resolves(null);
       mockI18nBundle.findOne.resolves(null);
 
@@ -238,7 +403,7 @@ describe('I18nEntriesService', function() {
       expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
     });
 
-    it('should ignore invalid contentFormat values', async function() {
+    it('should ignore invalid contentFormat values', async function () {
       mockI18nTranslation.findOne.resolves(null);
       mockI18nBundle.findOne.resolves(null);
 
@@ -247,90 +412,198 @@ describe('I18nEntriesService', function() {
       expect(mockI18nTranslation.create.firstCall.args[0]).not.to.have.property('contentFormat');
     });
 
-    it('should sanitize HTML before persisting an entry and its bundle value', async function() {
-      const sanitizer = (global as any).DomSanitizerService.sanitizeWithProfile;
-      sanitizer.returns('<p>Safe</p>');
-      mockI18nTranslation.findOne.resolves(null);
-      mockI18nBundle.findOne.resolves(null);
+    it('should enforce the configured HTML class policy on entry and bundle writes', async function () {
+      mockSails.config.i18n.editor = { allowedClasses: { th: ['classification-public'] } };
+      const html =
+        '<table class="table arbitrary" style="color:red"><tbody><tr>' +
+        '<th class="classification-public arbitrary" onclick="alert(1)">Updated wording</th></tr></tbody></table>';
+      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', html, { contentFormat: 'html' });
+      const saved = mockI18nTranslation.create.firstCall.args[0].value;
+      expect(saved).to.contain('class="table"');
+      expect(saved).to.contain('class="classification-public"');
+      expect(saved).to.contain('Updated wording');
+      expect(saved).not.to.match(/arbitrary|style=|onclick=/);
+      expect(mockI18nBundle.create.firstCall.args[0].data.key).to.equal(saved);
+    });
 
+    it('should apply the stored HTML format when an API update omits contentFormat', async function () {
+      mockI18nTranslation.findOne.resolves({ id: 'entry-1', contentFormat: 'html' });
       await I18nEntriesService.setEntry(
         'brand-1',
         'en',
         'ns',
         'key',
-        '<p>Safe</p><script>alert("xss")</script>'
+        '<p class="alert alert-info" style="color:red">Updated</p>'
       );
+      expect(mockI18nTranslation.updateOne.firstCall.returnValue.set.firstCall.args[0].value).to.equal(
+        '<p class="alert alert-info">Updated</p>'
+      );
+    });
 
-      expect(sanitizer.calledWith('<p>Safe</p><script>alert("xss")</script>', 'html')).to.be.true;
-      expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('<p>Safe</p>');
-      expect(mockI18nBundle.create.firstCall.args[0].data).to.deep.equal({ key: '<p>Safe</p>' });
+    it('should leave plain text translations unchanged', async function () {
+      const value = 'Example: <p style="color:red">literal markup</p>';
+      await I18nEntriesService.setEntry('brand-1', 'en', 'ns', 'key', value, { contentFormat: 'plain' });
+      expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal(value);
     });
   });
 
-  describe('deleteEntry', function() {
-    it('should destroy entry and update bundle', async function() {
+  describe('deleteEntry', function () {
+    it('should destroy entry and update bundle', async function () {
       mockI18nTranslation.destroyOne.resolves({ id: 'deleted' });
       mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: { key: 'value' } });
-      
+
       await I18nEntriesService.deleteEntry('brand-1', 'en', 'ns', 'key');
-      
+
       expect(mockI18nTranslation.destroyOne.called).to.be.true;
       expect(mockI18nBundle.updateOne.called).to.be.true;
     });
   });
 
-  describe('listEntries', function() {
-    it('should find entries with correct query', async function() {
+  describe('listEntries', function () {
+    it('should find entries with correct query', async function () {
       await I18nEntriesService.listEntries('brand-1', 'en', 'ns');
       expect(mockI18nTranslation.find.called).to.be.true;
       const args = mockI18nTranslation.find.firstCall.args[0];
       expect(args.where).to.deep.include({ branding: 'brand-1', locale: 'en', namespace: 'ns' });
     });
 
-    it('should add prefix filter if provided', async function() {
+    it('should add prefix filter if provided', async function () {
       await I18nEntriesService.listEntries('brand-1', 'en', 'ns', 'prefix');
       const args = mockI18nTranslation.find.firstCall.args[0];
       expect(args.where.key).to.have.property('startsWith', 'prefix');
     });
   });
 
-  describe('getBundle', function() {
-    it('should find bundle by uid', async function() {
+  describe('getBundle', function () {
+    it('should find bundle by uid', async function () {
       await I18nEntriesService.getBundle('brand-1', 'en', 'ns');
       expect(mockI18nBundle.findOne.calledWith({ uid: 'brand-1:en:ns' })).to.be.true;
     });
   });
 
-  describe('listBundles', function() {
-    it('should find bundles by branding', async function() {
+  describe('listBundles', function () {
+    it('should find bundles by branding', async function () {
       await I18nEntriesService.listBundles('brand-1');
       expect(mockI18nBundle.find.calledWith({ branding: 'brand-1' })).to.be.true;
     });
   });
 
-  describe('setBundle', function() {
-    it('should create bundle if not exists', async function() {
+  describe('setBundle', function () {
+    for (const options of [{ splitToEntries: false }, { overwriteEntries: false }]) {
+      for (const metadataSource of ['centralized', 'imported']) {
+        it(`should use retained entry formats despite conflicting ${metadataSource} metadata (${JSON.stringify(options)})`, async function () {
+          sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+          sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
+          sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({
+            intro: { contentFormat: 'plain' },
+            literal: { contentFormat: 'html' },
+          });
+          mockI18nTranslation.find.returns({
+            sort: sinon.stub().resolves([
+              { key: 'intro', contentFormat: 'html' },
+              { key: 'literal', contentFormat: 'plain' },
+            ]),
+          });
+          const literal = '<p style="color:red">Literal markup</p>';
+          const data: Record<string, unknown> = {
+            intro: '<p class="alert alert-info evil" style="color:red" onclick="alert(1)">Intro</p>',
+            literal,
+          };
+          if (metadataSource === 'imported') {
+            data._meta = { intro: { contentFormat: 'plain' }, literal: { contentFormat: 'html' } };
+          }
+
+          await I18nEntriesService.setBundle('brand-1', 'en', 'ns', data, undefined, options);
+
+          const saved = mockI18nBundle.create.firstCall.args[0].data;
+          expect(saved.intro).to.equal('<p class="alert alert-info">Intro</p>');
+          expect(saved.literal).to.equal(literal);
+          expect(data.intro).to.contain('onclick=');
+        });
+      }
+    }
+
+    it('should use imported formats when existing entries will be overwritten', async function () {
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
+      mockI18nTranslation.find.returns({
+        sort: sinon.stub().resolves([
+          { key: 'intro', contentFormat: 'plain' },
+          { key: 'literal', contentFormat: 'html' },
+        ]),
+      });
+      const literal = '<p style="color:red">Literal markup</p>';
+
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', {
+        intro: '<p onclick="alert(1)">Intro</p>',
+        literal,
+        _meta: { intro: { contentFormat: 'html' }, literal: { contentFormat: 'plain' } },
+      });
+
+      const saved = mockI18nBundle.create.firstCall.args[0].data;
+      expect(saved.intro).to.equal('<p>Intro</p>');
+      expect(saved.literal).to.equal(literal);
+      expect(I18nEntriesService.syncEntriesFromBundle.calledWith(sinon.match.any, true)).to.be.true;
+    });
+
+    it('should sanitise HTML imports even when splitting into entries is disabled', async function () {
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      mockI18nTranslation.find.returns({ sort: sinon.stub().resolves([{ key: 'intro', contentFormat: 'html' }]) });
+      const data = { intro: '<p class="alert alert-warning evil" style="color:red">Intro</p>', plain: '<literal>' };
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', data, undefined, { splitToEntries: false });
+      expect(mockI18nBundle.create.firstCall.args[0].data).to.deep.equal({
+        intro: '<p class="alert alert-warning">Intro</p>',
+        plain: '<literal>',
+      });
+      expect(data.intro).to.contain('style='); // Do not mutate the caller's data.
+    });
+
+    it('should use HTML format metadata for newly imported entries', async function () {
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      const data = {
+        intro: '<p class="alert alert-info" onclick="alert(1)">Intro</p>',
+        _meta: { intro: { contentFormat: 'html' } },
+      };
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', data, undefined, { splitToEntries: false });
+      expect(mockI18nBundle.create.firstCall.args[0].data.intro).to.equal('<p class="alert alert-info">Intro</p>');
+    });
+
+    it('should preserve flat dotted keys and nested bundle structure during sanitisation', async function () {
+      sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
+      const data = {
+        'flat.intro': '<p style="color:red">Flat</p>',
+        nested: { intro: '<p style="color:red">Nested</p>' },
+        _meta: { 'flat.intro': { contentFormat: 'html' }, 'nested.intro': { contentFormat: 'html' } },
+      };
+      await I18nEntriesService.setBundle('brand-1', 'en', 'ns', data, undefined, { splitToEntries: false });
+      const saved = mockI18nBundle.create.firstCall.args[0].data;
+      expect(saved['flat.intro']).to.equal('<p>Flat</p>');
+      expect(saved).not.to.have.property('flat');
+      expect(saved.nested).to.deep.equal({ intro: '<p>Nested</p>' });
+    });
+
+    it('should create bundle if not exists', async function () {
       mockI18nBundle.findOne.resolves(null);
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
-      
+
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' });
-      
+
       expect(mockI18nBundle.create.called).to.be.true;
       expect(I18nEntriesService.syncEntriesFromBundle.called).to.be.true;
     });
 
-    it('should update bundle if exists', async function() {
+    it('should update bundle if exists', async function () {
       mockI18nBundle.findOne.resolves({ id: 'bundle-1' });
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
-      
+
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', { key: 'val' });
-      
+
       expect(mockI18nBundle.updateOne.calledWith({ id: 'bundle-1' })).to.be.true;
     });
 
-    it('should honour overwriteEntries=false when syncing entries', async function() {
+    it('should honour overwriteEntries=false when syncing entries', async function () {
       mockI18nBundle.findOne.resolves(null);
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
@@ -340,10 +613,10 @@ describe('I18nEntriesService', function() {
       expect(I18nEntriesService.syncEntriesFromBundle.calledWith(sinon.match.any, false)).to.be.true;
     });
 
-    it('should sanitize nested bundle values before persisting them', async function() {
+    it('should sanitize nested bundle values before persisting them', async function () {
       const sanitizer = (global as any).DomSanitizerService.sanitizeWithProfile;
       const unsafeHeading = '<strong>Welcome</strong><script>unsafe()</script>';
-      sanitizer.callsFake((value: string) => value === unsafeHeading ? '<strong>Welcome</strong>' : value);
+      sanitizer.callsFake((value: string) => (value === unsafeHeading ? '<strong>Welcome</strong>' : value));
       mockI18nBundle.findOne.resolves(null);
       sinon.stub(I18nEntriesService, 'getLanguageDisplayName').resolves('English');
       sinon.stub(I18nEntriesService, 'syncEntriesFromBundle').resolves();
@@ -351,30 +624,31 @@ describe('I18nEntriesService', function() {
       await I18nEntriesService.setBundle('brand-1', 'en', 'ns', {
         heading: unsafeHeading,
         nested: { body: '<p>Safe body</p>' },
-        count: 2
+        count: 2,
+        _meta: { heading: { contentFormat: 'html' }, 'nested.body': { contentFormat: 'html' } },
       });
 
       expect(mockI18nBundle.create.firstCall.args[0].data).to.deep.equal({
         heading: '<strong>Welcome</strong>',
         nested: { body: '<p>Safe body</p>' },
-        count: 2
+        count: 2,
+        _meta: { heading: { contentFormat: 'html' }, 'nested.body': { contentFormat: 'html' } },
       });
-      expect(sanitizer.alwaysCalledWithMatch(sinon.match.string, 'html')).to.be.true;
     });
   });
 
-  describe('updateBundleEnabled', function() {
-    it('should update enabled status', async function() {
+  describe('updateBundleEnabled', function () {
+    it('should update enabled status', async function () {
       mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves({ id: 'bundle-1' }) });
-      
+
       await I18nEntriesService.updateBundleEnabled('brand-1', 'en', 'ns', true);
-      
+
       expect(mockI18nBundle.updateOne.called).to.be.true;
     });
 
-    it('should throw if bundle not found', async function() {
+    it('should throw if bundle not found', async function () {
       mockI18nBundle.updateOne.returns({ set: sinon.stub().resolves(null) });
-      
+
       try {
         await I18nEntriesService.updateBundleEnabled('brand-1', 'en', 'ns', true);
         expect.fail('Should have thrown');
@@ -384,65 +658,231 @@ describe('I18nEntriesService', function() {
     });
   });
 
-  describe('composeNamespace', function() {
-    it('should compose namespace from entries', function() {
+  describe('composeNamespace', function () {
+    it('should compose namespace from entries', function () {
       const entries = [
         { key: 'a.b', value: 'v1' },
-        { key: 'c', value: 'v2' }
+        { key: 'c', value: 'v2' },
       ];
       const result = I18nEntriesService.composeNamespace(entries);
       expect(result).to.deep.equal({ a: { b: 'v1' }, c: 'v2' });
     });
   });
 
-  describe('syncEntriesFromBundle', function() {
-    it('should sync entries', async function() {
-      const bundle = { 
-        id: 'bundle-1', 
-        branding: 'brand-1', 
-        locale: 'en', 
-        namespace: 'ns',
-        data: { key: 'value' } 
-      };
-      
-      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
-      mockI18nTranslation.find.returns({
-        sort: sinon.stub().resolves([])
+  describe('syncEntriesFromBundle', function () {
+    for (const suppliedId of [undefined, 'stale-bundle-id']) {
+      it(`should merge missing keys into the stored bundle when the supplied id is ${suppliedId}`, async function () {
+        const stored = {
+          id: 'stored-bundle',
+          data: { section: { title: 'Custom', storedOnly: 'Keep' }, unrelated: 'Retained' },
+        };
+        const data = {
+          section: { title: 'Default', added: 'New', html: '<p onclick="bad()">Safe</p>', nullish: null },
+          _meta: { 'section.html': { contentFormat: 'html' } },
+        };
+        sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+        mockI18nTranslation.find.resolves([{ key: 'section.title', value: 'Custom' }]);
+        mockI18nBundle.findOne.resolves(stored);
+
+        await I18nEntriesService.syncEntriesFromBundle({
+          id: suppliedId,
+          branding: 'brand-1',
+          locale: 'en',
+          namespace: 'ns',
+          data,
+        });
+
+        expect(mockI18nBundle.findOne.calledOnceWithExactly({ uid: 'brand-1:en:ns' })).to.be.true;
+        expect(mockI18nBundle.updateOne.calledOnceWithExactly({ id: 'stored-bundle' })).to.be.true;
+        expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data).to.deep.equal({
+          section: { title: 'Custom', storedOnly: 'Keep', added: 'New', html: '<p>Safe</p>', nullish: 'section.nullish' },
+          unrelated: 'Retained',
+        });
+        const records = mockI18nTranslation.createEach.firstCall.args[0];
+        expect(records.map(record => record.key)).to.deep.equal(['section.added', 'section.html', 'section.nullish']);
+        expect(records.every(record => record.bundle === 'stored-bundle')).to.be.true;
+        expect(records.find(record => record.key === 'section.html').value).to.equal('<p>Safe</p>');
+        expect(stored.data.section).to.deep.equal({ title: 'Custom', storedOnly: 'Keep' });
+        expect(data.section.html).to.contain('onclick=');
       });
-      // Actually find in syncEntriesFromBundle is simple find?
-      // const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      // It returns a promise. My mockI18nTranslation.find default returns { sort: ... }
-      // If the code awaits it, it gets the object with sort.
-      // But map() expects array.
-      
-      // I need to check how find is used in syncEntriesFromBundle.
-      // line 423: const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace });
-      // It DOES NOT chain sort here.
-      // So await returns the mock return value.
-      // If mock returns { sort: ... }, then existingEntries is { sort: ... }.
-      // Then existingEntries.map(...) fails.
-      
-      // I need to handle this.
-      // If I want find to be flexible, I can make it return a thenable that also has sort?
-      // Or I can stub it specifically for this test.
-      
+    }
+
+    it('should create a missing bundle before seeding a bundle-like object without an id', async function () {
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
       mockI18nTranslation.find.resolves([]);
-      
-      mockI18nTranslation.findOne.resolves(null); // no existing key
-      mockI18nTranslation.create.resolves({});
-      
-      await I18nEntriesService.syncEntriesFromBundle(bundle);
-      
-      expect(mockI18nTranslation.create.called).to.be.true;
+
+      await I18nEntriesService.syncEntriesFromBundle({
+        branding: 'brand-1', locale: 'en', namespace: 'ns', data: { key: 'Value', empty: '' },
+      });
+
+      expect(mockI18nBundle.create.calledOnceWithExactly({
+        branding: 'brand-1', locale: 'en', namespace: 'ns', data: { key: 'Value', empty: '' },
+      })).to.be.true;
+      expect(mockI18nBundle.create.calledBefore(mockI18nTranslation.createEach)).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0].every(record => record.bundle === 'new-bundle')).to.be.true;
+      expect(mockI18nBundle.updateOne.called).to.be.false;
     });
 
-    it('should preserve empty-string translations', async function() {
+    it('should persist normalised bundle data before a partial entry failure and recover on retry', async function () {
+      const stored = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { html: '<p onclick="bad()">Safe</p>', nullish: null as unknown },
+      };
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ html: { contentFormat: 'html' } });
+      mockI18nBundle.findOne.resolves(stored);
+      mockI18nBundle.updateOne.returns({ set: sinon.stub().callsFake(async ({ data }) => {
+        stored.data = data;
+        return stored;
+      }) });
+      mockI18nTranslation.find.onFirstCall().resolves([]).onSecondCall().resolves([
+        { key: 'html', value: '<p>Safe</p>', contentFormat: 'html' },
+      ]);
+      const failure = new Error('partial insert');
+      mockI18nTranslation.createEach.onFirstCall().rejects(failure).onSecondCall().resolves([]);
+      let rejected: unknown;
+      try {
+        await I18nEntriesService.syncEntriesFromBundle(stored);
+      } catch (error) {
+        rejected = error;
+      }
+      expect(rejected).to.equal(failure);
+      expect(stored.data).to.deep.equal({ html: '<p>Safe</p>', nullish: 'nullish' });
+
+      await I18nEntriesService.syncEntriesFromBundle(stored);
+
+      expect(mockI18nTranslation.createEach.secondCall.args[0].map(record => record.key)).to.deep.equal(['nullish']);
+      expect(mockI18nBundle.updateOne.calledOnce).to.be.true;
+      expect(stored.data.html).to.equal('<p>Safe</p>');
+    });
+
+    for (const existingBundle of [false, true]) {
+      it(`should reject without seeding or pruning entries if the bundle write fails (existing=${existingBundle})`, async function () {
+        sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+        mockI18nTranslation.find.resolves([{ key: 'obsolete' }]);
+        const prune = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
+        const failure = new Error('bundle write failed');
+        if (existingBundle) {
+          mockI18nBundle.findOne.resolves({ id: 'bundle-1', data: {} });
+          mockI18nBundle.updateOne.returns({ set: sinon.stub().rejects(failure) });
+        } else {
+          mockI18nBundle.create.rejects(failure);
+        }
+        let rejected: unknown;
+        try {
+          await I18nEntriesService.syncEntriesFromBundle({
+            branding: 'brand-1', locale: 'en', namespace: 'ns', data: { added: 'New' },
+          });
+        } catch (error) {
+          rejected = error;
+        }
+        expect(rejected).to.equal(failure);
+        expect(mockI18nTranslation.createEach.called).to.be.false;
+        expect(prune.called).to.be.false;
+      });
+    }
+
+    it('should persist the same imported format used to sanitize an overwrite', async function () {
       const bundle = {
         id: 'bundle-1',
         branding: 'brand-1',
         locale: 'en',
         namespace: 'ns',
-        data: { key: '' }
+        data: { intro: '<p onclick="alert(1)">Intro</p>', _meta: { intro: { contentFormat: 'html' } } },
+      };
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({ intro: { contentFormat: 'plain' } });
+      mockI18nTranslation.find.resolves([{ key: 'intro', contentFormat: 'plain' }]);
+      mockI18nTranslation.findOne.resolves({ id: 'entry-1', contentFormat: 'plain' });
+
+      await I18nEntriesService.syncEntriesFromBundle(bundle, true);
+
+      const saved = mockI18nTranslation.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.contentFormat).to.equal('html');
+      expect(saved.value).to.equal('<p>Intro</p>');
+      expect(mockI18nBundle.create.firstCall.args[0].data.intro).to.equal(saved.value);
+    });
+
+    it('should seed missing entries without overwriting custom translations and prune removed keys', async function () {
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { existing: 'Default', nested: { added: 'Added' } },
+      };
+      mockI18nBundle.findOne.resolves(bundle);
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({
+        'nested.added': { category: 'General', description: 'New default' },
+      });
+      mockI18nTranslation.find.resolves([
+        { id: 'custom-1', key: 'existing', value: 'Custom', contentFormat: 'plain' },
+        { id: 'removed-1', key: 'removed', value: 'Old default' },
+      ]);
+      const prune = sinon.stub(I18nEntriesService, 'deleteEntry').resolves(true);
+
+      await I18nEntriesService.syncEntriesFromBundle(bundle);
+
+      expect(mockI18nTranslation.createEach.firstCall.args[0]).to.deep.equal([
+        {
+          branding: 'brand-1',
+          bundle: 'bundle-1',
+          key: 'nested.added',
+          locale: 'en',
+          namespace: 'ns',
+          value: 'Added',
+          category: 'General',
+          contentFormat: undefined,
+          description: 'New default',
+        },
+      ]);
+      expect(mockI18nTranslation.findOne.called).to.be.false;
+      expect(mockI18nTranslation.updateOne.called).to.be.false;
+      expect(prune.calledOnceWithExactly(sinon.match.any, 'en', 'ns', 'removed')).to.be.true;
+      expect((global as any).TranslationService.reloadResources.calledOnceWithExactly('brand-1')).to.be.true;
+    });
+
+    it('should leave existing entries untouched when there are no missing keys', async function () {
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([{ key: 'key', value: 'Custom' }]);
+      await I18nEntriesService.syncEntriesFromBundle({
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { key: 'Default' },
+      });
+      expect(mockI18nTranslation.createEach.called).to.be.false;
+      expect(mockI18nTranslation.findOne.called).to.be.false;
+      expect(mockI18nBundle.updateOne.called).to.be.false;
+    });
+
+    it('should normalize nullish values in both the entries and the bundle', async function () {
+      sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
+      mockI18nTranslation.find.resolves([]);
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { nested: { key: null } },
+      };
+      mockI18nBundle.findOne.resolves(bundle);
+      await I18nEntriesService.syncEntriesFromBundle(bundle);
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('nested.key');
+      expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data).to.deep.equal({
+        nested: { key: 'nested.key' },
+      });
+    });
+
+    it('should preserve empty-string translations', async function () {
+      const bundle = {
+        id: 'bundle-1',
+        branding: 'brand-1',
+        locale: 'en',
+        namespace: 'ns',
+        data: { key: '' },
       };
 
       sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
@@ -452,26 +892,27 @@ describe('I18nEntriesService', function() {
 
       await I18nEntriesService.syncEntriesFromBundle(bundle);
 
-      expect(mockI18nTranslation.create.called).to.be.true;
-      expect(mockI18nTranslation.create.firstCall.args[0].value).to.equal('');
+      expect(mockI18nTranslation.createEach.called).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('');
     });
 
-    it('should copy contentFormat from bundle metadata', async function() {
+    it('should copy contentFormat from bundle metadata', async function () {
       const bundle = {
         id: 'bundle-1',
         branding: 'brand-1',
         locale: 'en',
         namespace: 'ns',
         data: {
-          key: '<p>value</p>',
+          key: '<p onclick="alert(1)">value</p>',
           _meta: {
             key: {
-              contentFormat: 'html'
-            }
-          }
-        }
+              contentFormat: 'html',
+            },
+          },
+        },
       };
 
+      mockI18nBundle.findOne.resolves(bundle);
       sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
       mockI18nTranslation.find.resolves([]);
       mockI18nTranslation.findOne.resolves(null);
@@ -479,26 +920,28 @@ describe('I18nEntriesService', function() {
 
       await I18nEntriesService.syncEntriesFromBundle(bundle);
 
-      expect(mockI18nTranslation.create.called).to.be.true;
-      expect(mockI18nTranslation.create.firstCall.args[0].contentFormat).to.equal('html');
+      expect(mockI18nTranslation.createEach.called).to.be.true;
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].contentFormat).to.equal('html');
+      expect(mockI18nTranslation.createEach.firstCall.args[0][0].value).to.equal('<p>value</p>');
+      expect(mockI18nBundle.updateOne.firstCall.returnValue.set.firstCall.args[0].data.key).to.equal('<p>value</p>');
     });
   });
 
-  describe('bootstrap additive defaults', function() {
+  describe('bootstrap additive defaults', function () {
     function writeDefaults(locale: string, namespace: string, data: Record<string, unknown>): void {
       const localeDir = path.join(testLocalesDir, locale);
       fs.mkdirSync(localeDir, { recursive: true });
       fs.writeFileSync(path.join(localeDir, `${namespace}.json`), JSON.stringify(data));
     }
 
-    it('should skip bundle update and translation create when no defaults are missing', async function() {
+    it('should skip bundle update and translation create when no defaults are missing', async function () {
       writeDefaults('en', 'translation', { existing: 'default' });
       mockI18nBundle.findOne.resolves({
         id: 'bundle-1',
         branding: 'brand-1',
         locale: 'en',
         namespace: 'translation',
-        data: { existing: 'custom' }
+        data: { existing: 'custom' },
       });
       mockI18nTranslation.find.resolves([{ key: 'existing' }]);
 
@@ -509,14 +952,14 @@ describe('I18nEntriesService', function() {
       expect(mockI18nTranslation.create.called).to.be.false;
     });
 
-    it('should add only missing default keys for existing bundles', async function() {
+    it('should add only missing default keys for existing bundles', async function () {
       writeDefaults('en', 'translation', { existing: 'default', added: 'new' });
       mockI18nBundle.findOne.resolves({
         id: 'bundle-1',
         branding: 'brand-1',
         locale: 'en',
         namespace: 'translation',
-        data: { existing: 'custom' }
+        data: { existing: 'custom' },
       });
       mockI18nBundle.updateOne.returns({
         set: sinon.stub().resolves({
@@ -524,16 +967,16 @@ describe('I18nEntriesService', function() {
           branding: 'brand-1',
           locale: 'en',
           namespace: 'translation',
-          data: { existing: 'custom', added: 'new' }
-        })
+          data: { existing: 'custom', added: 'new' },
+        }),
       });
       mockI18nTranslation.find.resolves([{ key: 'existing' }, { key: 'custom.only' }]);
       sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({
         added: {
           category: 'General',
           description: 'Added key',
-          contentFormat: 'html'
-        }
+          contentFormat: 'html',
+        },
       });
 
       await I18nEntriesService.bootstrap(['en']);
@@ -556,11 +999,11 @@ describe('I18nEntriesService', function() {
         value: 'new',
         category: 'General',
         description: 'Added key',
-        contentFormat: 'html'
+        contentFormat: 'html',
       });
     });
 
-    it('should preserve empty strings and file metadata for new defaults', async function() {
+    it('should preserve empty strings and file metadata for new defaults', async function () {
       writeDefaults('en', 'translation', {
         existing: 'default',
         empty: '',
@@ -568,16 +1011,16 @@ describe('I18nEntriesService', function() {
           empty: {
             category: 'Formatting',
             description: 'May be blank',
-            contentFormat: 'plain'
-          }
-        }
+            contentFormat: 'plain',
+          },
+        },
       });
       mockI18nBundle.findOne.resolves({
         id: 'bundle-1',
         branding: 'brand-1',
         locale: 'en',
         namespace: 'translation',
-        data: { existing: 'custom' }
+        data: { existing: 'custom' },
       });
       mockI18nBundle.updateOne.returns({
         set: sinon.stub().resolves({
@@ -585,8 +1028,12 @@ describe('I18nEntriesService', function() {
           branding: 'brand-1',
           locale: 'en',
           namespace: 'translation',
-          data: { existing: 'custom', empty: '', _meta: { empty: { category: 'Formatting', description: 'May be blank', contentFormat: 'plain' } } }
-        })
+          data: {
+            existing: 'custom',
+            empty: '',
+            _meta: { empty: { category: 'Formatting', description: 'May be blank', contentFormat: 'plain' } },
+          },
+        }),
       });
       mockI18nTranslation.find.resolves([{ key: 'existing' }]);
       sinon.stub(I18nEntriesService, 'loadCentralizedMeta').resolves({});
@@ -601,11 +1048,11 @@ describe('I18nEntriesService', function() {
         value: '',
         category: 'Formatting',
         description: 'May be blank',
-        contentFormat: 'plain'
+        contentFormat: 'plain',
       });
     });
 
-    it('should seed first-time bundles without forcing overwrite mode', async function() {
+    it('should seed first-time bundles without forcing overwrite mode', async function () {
       writeDefaults('en', 'translation', { added: 'new' });
       mockI18nBundle.findOne.resolves(null);
       const setBundleStub = sinon.stub(I18nEntriesService, 'setBundle').resolves({ id: 'bundle-1' } as any);
@@ -616,7 +1063,7 @@ describe('I18nEntriesService', function() {
       expect(setBundleStub.firstCall.args[5]).to.deep.equal({ splitToEntries: true, overwriteEntries: false });
     });
 
-    it('should ignore nested demo locale folders when discovering defaults', async function() {
+    it('should ignore nested demo locale folders when discovering defaults', async function () {
       writeDefaults('en', 'translation', { greeting: 'Hello' });
       writeDefaults('demo/es', 'translation', { greeting: 'Hola' });
       const setBundleStub = sinon.stub(I18nEntriesService, 'setBundle').resolves({ id: 'bundle-1' } as any);

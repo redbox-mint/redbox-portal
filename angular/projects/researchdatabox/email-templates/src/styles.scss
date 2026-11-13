@@ -1,0 +1,7 @@
+// Page typography and colours come from the portal theme loaded by the host EJS
+// shell (it applies the Brand Typeface or the default branding font to body).
+// Don't set body styles here: this bundle loads after theme.css, so any
+// font-family on body would replace the portal font across the whole page.
+
+// Use the same editor frame as named queries and reports.
+@use '../../portal-ng-common/src/lib/schema-assist/admin-workspace';

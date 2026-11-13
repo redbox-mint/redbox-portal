@@ -1,52 +1,11 @@
-<%
-  const brandPortalPath = BrandingService.getBrandAndPortalPath(req);
-  const rootContext = BrandingService.getRootContext();
-  const headingKey = 'admin-api-docs-heading';
-  const loadingKey = 'admin-api-docs-loading';
-  const headingText = TranslationService.t(headingKey) === headingKey ? 'API Documentation' : TranslationService.t(headingKey);
-  const loadingText = TranslationService.t(loadingKey) === loadingKey ? 'Loading API documentation' : TranslationService.t(loadingKey);
-%>
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><%= headingText %></title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        min-height: 100%;
-        background: #fff;
-      }
-
-      body {
-        overflow: hidden;
-      }
-
-      #redoc {
-        width: 100%;
-        min-height: 100vh;
-      }
-
-      .admin-api-docs-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-      }
-    </style>
-    <script src="<%= rootContext %>/default/default/js/admin-api-docs-init.js" type="text/javascript"></script>
-    <script src="<%= rootContext %>/default/default/js/redoc.standalone.js" type="text/javascript"></script>
-  </head>
-  <body>
-    <div id="redoc" data-openapi-url="<%= brandPortalPath %>/admin/api-docs/openapi.json">
-      <div class="admin-api-docs-loading">
-        <img class="center-block" src="<%= rootContext %>/images/loading.svg" alt="<%= loadingText %>">
-      </div>
-    </div>
-    <script src="<%= rootContext %>/default/default/js/admin-api-docs-bootstrap.js" type="text/javascript"></script>
-  </body>
-</html>
+<% const brandPortalPath = BrandingService.getBrandAndPortalPath(req); %>
+<%- include('layout/start.ejs') %>
+<%- include('layout/page-header.ejs', {
+  breadcrumbs: [{ labelKey: 'menu-admin', href: brandPortalPath + '/admin' }, { labelKey: 'admin-nav-developer' }, { labelKey: 'admin-api-docs-heading' }],
+  titleKey: 'admin-api-docs-heading', descriptionKey: 'admin-api-docs-description',
+  actions: [{ labelKey: 'admin-api-docs-json', href: brandPortalPath + '/api-docs.json', download: 'openapi.json' }, { labelKey: 'admin-api-docs-yaml', href: brandPortalPath + '/api-docs.yaml', download: 'openapi.yaml' }, { labelKey: 'admin-api-docs-key', href: brandPortalPath + '/admin/users', primary: true }]
+}) %>
+<div class="rb-admin-api-reference">
+  <iframe class="rb-admin-api-frame" src="<%= brandPortalPath %>/admin/api-docs/reference" title="<%= TranslationService.t('admin-api-docs-heading') %>"></iframe>
+</div>
+<%- include('layout/end.ejs') %>

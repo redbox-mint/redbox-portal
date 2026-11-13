@@ -117,8 +117,9 @@ describe('BrandingAdminComponent typography experience', () => {
         Promise.resolve({ token: 'tok', url: 'u', hash: 'h', previewToken: 'tok', previewUrl: 'u' }),
       publish: (version: number, revision: number) => Promise.resolve(adminState()),
       restore: (id: string, version: number, revision: number) => Promise.resolve(adminState()),
-      uploadLogo: () => Promise.resolve({}),
-      uploadFavicon: () => Promise.resolve({}),
+      uploadLogo: () => Promise.resolve(adminState()),
+      uploadFavicon: () => Promise.resolve(adminState()),
+      resetDraft: () => Promise.resolve(adminState()),
     };
     await TestBed.configureTestingModule({
       imports: [BrandingAdminComponent, FormsModule, HttpClientTestingModule],
@@ -140,6 +141,31 @@ describe('BrandingAdminComponent typography experience', () => {
     component = fixture.componentInstance;
   });
 
+  it('uses roving tabs and supports wrapping, Home and End with focus following selection', async () => {
+    await initWith(adminState());
+    component.activeTab = 'colours';
+    fixture.detectChanges();
+    const tabs: HTMLButtonElement[] = Array.from(fixture.nativeElement.querySelectorAll('[role="tab"]'));
+    expect(tabs.length).toBe(4);
+    expect(tabs.map(tab => tab.tabIndex)).toEqual([0, -1, -1, -1]);
+    tabs[0].focus();
+    tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('history');
+    expect(document.activeElement).toBe(tabs[3]);
+    expect(tabs[3].getAttribute('aria-selected')).toBe('true');
+    tabs[3].dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('colours');
+    tabs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('assets');
+    tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    fixture.detectChanges();
+    expect(component.activeTab).toBe('history');
+    expect(tabs.map(tab => tab.tabIndex)).toEqual([-1, -1, -1, 0]);
+  });
+
   it('saves visible colours before preview and publication using the resulting revision', async () => {
     await initWith(adminState());
     component.draftConfig = { primary: '#0000ff' };
@@ -158,6 +184,25 @@ describe('BrandingAdminComponent typography experience', () => {
     const publish = spyOn(serviceStub, 'publish').and.callThrough();
     await component.publish();
     expect(publish).toHaveBeenCalledWith(1, 4);
+  });
+
+  it('lists each contextual button text colour after its background and saves it before preview', async () => {
+    await initWith(adminState());
+    const contexts = ['primary', 'secondary', 'success', 'info', 'warning', 'danger', 'light', 'dark'];
+    const keys = component.colourGroups.flatMap(group => group.variables).map(variable => variable.key);
+    for (const context of contexts) {
+      expect(keys.indexOf(`${context}-text-color`)).toBe(keys.indexOf(context) + 1);
+    }
+    const input = fixture.nativeElement.querySelector('#info-text-color') as HTMLInputElement;
+    expect(input.value).toBe('#000000');
+    input.value = '#ffffff';
+    input.dispatchEvent(new Event('input'));
+    expect(component.draftConfig['info-text-color']).toBe('#ffffff');
+    const save = spyOn(serviceStub, 'saveColourDraft').and.callThrough();
+    const preview = spyOn(serviceStub, 'createPreview').and.callThrough();
+    await component.createPreview();
+    expect(save).toHaveBeenCalledWith(jasmine.objectContaining({ 'info-text-color': '#ffffff' }), 2);
+    expect(preview).toHaveBeenCalled();
   });
 
   it('keeps local colour edits through independent typography mutations', async () => {
@@ -203,7 +248,7 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.draftConfig).toEqual({ primary: '#0000ff' });
   });
 
-  it('disables shared actions during a deferred upload while keeping image actions independent', async () => {
+  it('disables shared actions during a deferred upload including image actions', async () => {
     await initWith(adminState());
     let finish!: (state: BrandingAdminState) => void;
     const upload = spyOn(serviceStub, 'uploadFace').and.returnValue(
@@ -212,7 +257,7 @@ describe('BrandingAdminComponent typography experience', () => {
       })
     );
     const publish = spyOn(serviceStub, 'publish');
-    const logo = spyOn(serviceStub, 'uploadLogo').and.resolveTo({});
+    const logo = spyOn(serviceStub, 'uploadLogo').and.resolveTo(adminState());
     const inputs = Array.from(
       fixture.nativeElement.querySelectorAll('input[accept=".woff2,font/woff2"]')
     ) as HTMLInputElement[];
@@ -238,11 +283,11 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(inputs[1].files?.length).toBe(1);
     expect(upload).toHaveBeenCalledTimes(1);
     const logoInput = fixture.nativeElement.querySelector('#logoUpload') as HTMLInputElement;
-    expect(logoInput.disabled).toBeFalse();
+    expect(logoInput.disabled).toBeTrue();
     logoInput.files = selectedFiles();
     logoInput.dispatchEvent(new Event('change'));
     await Promise.resolve();
-    expect(logo).toHaveBeenCalledTimes(1);
+    expect(logo).not.toHaveBeenCalled();
     finish(adminState());
     await settled();
     expect(inputs.every(input => !input.disabled)).toBeTrue();
@@ -259,7 +304,7 @@ describe('BrandingAdminComponent typography experience', () => {
     fixture.detectChanges();
     expect(component.conflict).toBeTrue();
     expect(input.disabled).toBeTrue();
-    expect((fixture.nativeElement.querySelector('#faviconUpload') as HTMLInputElement).disabled).toBeFalse();
+    expect((fixture.nativeElement.querySelector('#faviconUpload') as HTMLInputElement).disabled).toBeTrue();
     serviceStub.loadConfig = () => Promise.resolve(adminState());
     await component.reloadState();
     fixture.detectChanges();
@@ -274,6 +319,8 @@ describe('BrandingAdminComponent typography experience', () => {
     serviceStub.loadConfig = () => Promise.resolve(state);
     fixture.detectChanges();
     await fixture.whenStable();
+    component.activeTab = 'typography';
+    component.selectedGroup = 8;
     fixture.detectChanges();
     await fixture.whenStable();
   }
@@ -291,6 +338,52 @@ describe('BrandingAdminComponent typography experience', () => {
     await initWith(adminState());
     expect(component.state?.draft.revision).toBe(2);
     expect(component.draftConfig).toEqual({ primary: '#112233' });
+  });
+
+  it('retains the sidebar colour while filtering legacy typography variables', async () => {
+    const state = adminState();
+    state.draft.variables = {
+      primary: '#123456',
+      'admin-sidebar-text-color': '#654321',
+      'branding-font-family': 'Arial, sans-serif',
+    };
+    await initWith(state);
+    expect(component.draftConfig['admin-sidebar-text-color']).toBe('#654321');
+    expect(component.draftConfig['branding-font-family']).toBeUndefined();
+    expect(component.colourGroups.flatMap(group => group.variables.map(variable => variable.key))).toContain(
+      'admin-sidebar-text-color'
+    );
+  });
+
+  it('displays the inherited sidebar colour in both inputs after clearing the setting', async () => {
+    await initWith(adminState());
+
+    component.selectedGroup = 6;
+    fixture.detectChanges();
+    const picker: HTMLInputElement = fixture.nativeElement.querySelector('#admin-sidebar-text-color');
+    const text: HTMLInputElement = picker.parentElement!.querySelector('input[type="text"]')!;
+    expect(picker.value).toBe('#b1101a');
+    expect(text.value).toBe('#b1101a');
+
+    component.draftConfig = {
+      'panel-branding-background-color': '#123456',
+      'admin-sidebar-text-color': '#abcdef',
+    };
+    fixture.detectChanges();
+    expect(picker.value).toBe('#abcdef');
+    expect(text.value).toBe('#abcdef');
+
+    text.value = '';
+    text.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(component.draftConfig['admin-sidebar-text-color']).toBeUndefined();
+    expect(picker.value).toBe('#123456');
+    expect(text.value).toBe('#123456');
+
+    component.updateVariable('panel-branding-background-color', { target: { value: '#654321' } } as unknown as Event);
+    fixture.detectChanges();
+    expect(picker.value).toBe('#654321');
+    expect(text.value).toBe('#654321');
   });
 
   it('renders default, complete custom, incomplete, and warning states', async () => {
@@ -325,9 +418,9 @@ describe('BrandingAdminComponent typography experience', () => {
     await settled();
     text = fixture.nativeElement.textContent;
     expect(text).toContain('branding-typography-incomplete');
-    const publishButton = fixture.debugElement.query(By.css('button.btn-success'));
+    const publishButton = fixture.debugElement.query(By.css('button.branding-publish'));
     expect(publishButton.nativeElement.disabled).toBe(true);
-    const previewButton = fixture.debugElement.query(By.css('button.btn-info'));
+    const previewButton = fixture.debugElement.query(By.css('button.branding-generate'));
     expect(previewButton.nativeElement.disabled).toBe(true);
 
     const warned = adminState({
@@ -382,7 +475,7 @@ describe('BrandingAdminComponent typography experience', () => {
     await initWith(evil);
     const html = fixture.nativeElement.innerHTML;
     expect(html).not.toContain('<img src=x');
-    expect(fixture.nativeElement.querySelectorAll('img').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('img[src="x"]')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 
@@ -491,7 +584,10 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.pendingRestoreId).toBe('h1');
     await settled();
     expect(fixture.nativeElement.textContent).toContain('branding-restore-confirm');
-    await component.restoreVersion({ ...version, id: 'h1', version: 1 });
+    const dialog: HTMLElement = fixture.nativeElement.querySelector('[role="alertdialog"]');
+    expect(dialog.querySelector('.rb-admin-danger-confirm')).not.toBeNull();
+    expect(dialog.closest('td')).toBeNull();
+    await component.confirmVersionRestore();
     expect(component.pendingRestoreId).toBeNull();
   });
 
@@ -502,9 +598,9 @@ describe('BrandingAdminComponent typography experience', () => {
     expect(component.message).toBe('branding-draft-saved');
     const file = new File(['img'], 'logo.png', { type: 'image/png' });
     await component.uploadLogo({ target: { files: [file] } } as unknown as Event);
-    expect(component.message).toBe('branding-logo-uploaded');
+    expect(component.message).toBe('branding-draft-logo-saved');
     await component.uploadFavicon({ target: { files: [file] } } as unknown as Event);
-    expect(component.message).toBe('branding-favicon-uploaded');
+    expect(component.message).toBe('branding-draft-favicon-saved');
     await component.publish();
     expect(component.message).toBe('branding-published');
   });
@@ -526,5 +622,110 @@ describe('BrandingAdminComponent typography experience', () => {
     await component.createPreview();
     await component.revertTypefaceDraft();
     expect(component.previewCssUrl).toBeUndefined();
+  });
+  it('calculates WCAG contrast without rounding the AA threshold', () => {
+    expect(component.contrastRatio('#000', '#fff')).toBe(21);
+    expect(component.contrastRatio('#FFFFFF', '#ffffff')).toBe(1);
+    expect(component.contrastRatio('#777', '#fff')).toBeCloseTo(4.478, 3);
+    expect(component.contrastRatio('#badhex', '#fff')).toBeNull();
+  });
+
+  it('shows only the selected colour group and updates contrast and preview from unsaved edits', async () => {
+    await initWith(adminState());
+    component.activeTab = 'colours';
+    component.selectedGroup = 1;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#site-branding-area-background-color')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#primary')).toBeNull();
+    const input = fixture.nativeElement.querySelector('#logo-heading-text-color-hex') as HTMLInputElement;
+    input.value = '#b1101a';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(component.contrastChecks[0].ratio).toBe(1);
+    expect(component.localChangeCount).toBe(1);
+    expect(component.draftChangeCount).toBe(1);
+    expect(fixture.nativeElement.querySelector('.branding-mini-band').style.color).toBe('rgb(177, 16, 26)');
+    expect(fixture.nativeElement.querySelector('.branding-contrast .rb-admin-badge-warning')).toBeTruthy();
+    await component.resetDraft();
+    expect(component.localChangeCount).toBe(0);
+  });
+
+  it('counts staged images, previews their exact snapshot and resets the saved draft after confirmation', async () => {
+    const state = adminState();
+    state.draft.dirty.logo = true;
+    state.draft.dirty.favicon = true;
+    await initWith(state);
+    expect(component.draftChangeCount).toBe(2);
+    expect(component.hasDraft).toBeTrue();
+    const reset = spyOn(serviceStub, 'resetDraft').and.resolveTo(adminState());
+    component.pendingAction = 'reset';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]').textContent).toContain('admin-branding-reset-all-help');
+    expect(reset).not.toHaveBeenCalled();
+    await component.confirmAction();
+    expect(reset).toHaveBeenCalledWith(state.active.version, state.draft.revision);
+    expect(component.hasDraft).toBeFalse();
+    serviceStub.createPreview = () => Promise.resolve({ token: 'snapshot', images: { logo: 'data:image/png;base64,bG9nbw==', favicon: null } });
+    await component.createPreview();
+    expect(component.previewLogoUrl).toBe('data:image/png;base64,bG9nbw==');
+  });
+
+  it('resets just the selected group to client defaults and retains other edits', async () => {
+    await initWith(adminState());
+    component.selectedGroup = 1;
+    component.draftConfig['site-branding-area-background-color'] = '#000000';
+    component.draftConfig['body-text-color'] = '#123456';
+    fixture.detectChanges();
+    const reset: HTMLButtonElement = fixture.nativeElement.querySelector('.branding-colour-layout section .card-footer button');
+    expect(reset.classList.contains('btn-outline-secondary')).toBeTrue();
+    reset.click();
+    expect(component.colour('site-branding-area-background-color')).toBe('#b1101a');
+    expect(component.draftConfig['body-text-color']).toBe('#123456');
+    expect(component.draftConfig['primary']).toBe('#112233');
+  });
+
+  it('does not publish when opening or cancelling confirmation and traps focus in the dialog', async () => {
+    await initWith(adminState());
+    const publish = spyOn(serviceStub, 'publish').and.callThrough();
+    fixture.nativeElement.querySelector('.branding-publish').click();
+    fixture.detectChanges();
+    expect(component.pendingAction).toBe('publish');
+    expect(publish).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeTruthy();
+    component.pendingAction = null;
+    fixture.detectChanges();
+    expect(publish).not.toHaveBeenCalled();
+    component.pendingAction = 'publish';
+    await component.confirmAction();
+    expect(publish).toHaveBeenCalledWith(1, 2);
+  });
+
+  it('marks invalid hex and disables save, generate and publish', async () => {
+    await initWith(adminState());
+    component.draftConfig['primary'] = '#oops';
+    fixture.detectChanges();
+    expect(component.invalidColours).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.branding-publish').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.branding-generate').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('#primary-hex').getAttribute('aria-invalid')).toBe('true');
+  });
+  it('warns on page unload only for unsaved local colour edits', async () => {
+    await initWith(adminState());
+    const clean = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(clean);
+    expect(clean.defaultPrevented).toBeFalse();
+    component.draftConfig['primary'] = '#123456';
+    const dirty = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(dirty);
+    expect(dirty.defaultPrevented).toBeTrue();
+    spyOn(serviceStub, 'saveColourDraft').and.callFake(async (variables: Record<string, string>) => {
+      const state = adminState();
+      state.draft.variables = variables;
+      return state;
+    });
+    await component.saveDraft();
+    const saved = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.beforeUnload(saved);
+    expect(saved.defaultPrevented).toBeFalse();
   });
 });

@@ -1,3 +1,4 @@
+import { oniIngestionHeaders, oniIndexStatusUrl } from './connection';
 import axios from 'axios';
 import type { OniIngestionConfig } from '../../configmodels/OniPublishing';
 
@@ -70,7 +71,7 @@ async function waitForIndex(
   now: () => number,
   deadline: number
 ): Promise<OniIndexState> {
-  const statusUrl = `${normalizeApiUrl(config.apiUrl)}/admin/index/${type}`;
+  const statusUrl = oniIndexStatusUrl(config, type);
 
   while (now() < deadline) {
     await delay(Math.min(config.pollIntervalMs, deadline - now()));
@@ -126,10 +127,7 @@ export async function ingestOniRepository(
 ): Promise<OniIngestionResult> {
   validateConfig(config);
   const client = dependencies.httpClient ?? (axios as unknown as OniIngestionHttpClient);
-  const headers = {
-    Authorization: `Bearer ${config.adminToken}`,
-    Accept: 'application/json',
-  };
+  const headers = oniIngestionHeaders(config);
   const runtimeDependencies = {
     delay: dependencies.delay ?? defaultDelay,
     now: dependencies.now ?? Date.now,

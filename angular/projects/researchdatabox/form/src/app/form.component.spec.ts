@@ -16,6 +16,7 @@ import {
   setUpDynamicAssets,
 } from "./helpers.spec";
 import { FormService } from './form.service';
+import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
 import {
   FormComponentEventBus,
   createFormDeleteSuccessEvent,
@@ -186,7 +187,6 @@ describe('FormComponent', () => {
 
   beforeEach(async () => {
     setWindowSearch('');
-    setFormDebugUrl('1');
     const { translationService } = await createTestbedModule(
       {
         declarations: {
@@ -215,6 +215,10 @@ describe('FormComponent', () => {
       '@form-conflict-discard-warning-cancel': 'Keep editing',
       '@form-conflict-navigation-warning': 'Leaving will discard unresolved changes.',
     });
+  });
+
+  afterEach(() => {
+    setWindowSearch('');
   });
 
   afterAll(() => {
@@ -250,6 +254,23 @@ describe('FormComponent', () => {
       expect(fixture.componentInstance.componentsLoaded()).toBeFalse();
     });
   }
+
+  it('keeps PDF readiness pending until a form without related sources has loaded', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    fixture.componentInstance.downloadAndCreateOnInit.set(false);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('pending');
+    fixture.destroy();
+
+    const loaded = await createFormAndWaitForReady({
+      name: 'legacy', componentDefinitions: [{
+        name: 'title', component: { class: 'SimpleInputComponent' }, model: { class: 'SimpleInputModel' },
+      }],
+    });
+    expect(loaded.formComponent.componentsLoaded()).toBeTrue();
+    expect(loaded.fixture.nativeElement.getAttribute('data-rb-related-state')).toBe('ready');
+    loaded.fixture.destroy();
+  });
 
   it('should render basic form config', async () => {
     const formConfig: FormConfigFrame = {
@@ -581,6 +602,85 @@ describe('FormComponent', () => {
     expect(formComponent.conflictState()).toBeNull();
     expect((shell.querySelector('.rb-form-conflict') as HTMLElement).hidden).toBeTrue();
   });
+
+  for (const replacementOid of ['oid-123', 'replacement-oid']) {
+    it(`isolates pending manual conflict resolution when reloading ${replacementOid}`, async () => {
+      const { fixture, formComponent } = await createConcurrencyTestForm();
+      formComponent.form!.get('title')!.setValue('Old local title');
+      formComponent.form!.markAsDirty();
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo(
+        staleSaveResponse({ metadata: { title: 'Old latest title', notes: 'Loaded notes' } })
+      );
+      await formComponent.saveForm();
+      formComponent.reviewConflictChanges();
+      const oldReview = formComponent.conflictReview()!;
+
+      let finishOld!: (result: ServerSyncResult) => void;
+      let finishNew!: (result: ServerSyncResult) => void;
+      const oldSync = new Promise<ServerSyncResult>(resolve => { finishOld = resolve; });
+      const newSync = new Promise<ServerSyncResult>(resolve => { finishNew = resolve; });
+      const sync = TestBed.inject(FormServerSyncService);
+      const apply = sync.applyServerMetadata.bind(sync);
+      let syncCalls = 0;
+      const syncSpy = spyOn(sync, 'applyServerMetadata').and.callFake((...args) => {
+        syncCalls += 1;
+        return syncCalls === 1 ? oldSync : syncCalls === 2 ? newSync : apply(...args);
+      });
+      const oldResolution = formComponent.submitManualConflictResolution({ [oldReview.items[0].id]: 'mine' });
+      expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+
+      const formService = TestBed.inject(FormService);
+      const createComponents = formService.createFormComponentsMap.bind(formService);
+      spyOn(formService, 'createFormComponentsMap').and.callFake(async (...args) => {
+        const map = await createComponents(...args);
+        map.updateConcurrency({
+          entityTag: `"rb-record-v1.4.${'a'.repeat(43)}"`, revision: 4, formFingerprint: 'sha256:form_1',
+        });
+        return map;
+      });
+      formComponent.oid.set(replacementOid);
+      await formComponent.downloadAndCreateFormComponents({
+        name: 'concurrency-rebase', type: 'rdmp', componentDefinitions: [
+          { name: 'title', model: { class: 'SimpleInputModel', config: { value: 'New base title' } },
+            component: { class: 'SimpleInputComponent' } },
+          { name: 'notes', model: { class: 'SimpleInputModel', config: { value: 'New notes' } },
+            component: { class: 'SimpleInputComponent' } },
+        ],
+      });
+      expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+
+      formComponent.form!.get('title')!.setValue('New local title');
+      formComponent.form!.markAsDirty();
+      update.and.resolveTo(staleSaveResponse({
+        oid: replacementOid, metadata: { title: 'New latest title', notes: 'New notes' },
+      }));
+      await formComponent.saveForm();
+      formComponent.reviewConflictChanges();
+      const newReview = formComponent.conflictReview()!;
+      update.and.resolveTo(RecordActionResult.fromResponse({ meta: {
+        oid: replacementOid, outcome: 'saved', metadata: { title: 'New local title', notes: 'New notes' },
+        concurrency: { revision: 6, entityTag: `"rb-record-v1.6.${'c'.repeat(43)}"`, formFingerprint: 'sha256:form_1' },
+      } }, 200));
+      const newResolution = formComponent.submitManualConflictResolution({ [newReview.items[0].id]: 'mine' });
+      const replacementConflict = formComponent.conflictState();
+      expect(syncSpy).toHaveBeenCalledTimes(2);
+      expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+
+      finishOld({ patched: [], skipped: [] });
+      expect(await oldResolution).toBeFalse();
+      expect(formComponent.manualConflictResolutionPending()).toBeTrue();
+      expect(formComponent.conflictState()).toBe(replacementConflict);
+      expect(formComponent.form!.get('title')!.value).toBe('New local title');
+
+      finishNew({ patched: [], skipped: [] });
+      expect(await newResolution).toBeTrue();
+      expect(formComponent.manualConflictResolutionPending()).toBeFalse();
+      expect(update).toHaveBeenCalledTimes(3);
+      expect(formComponent.recordBaseline()?.oid).toBe(replacementOid);
+      expect(formComponent.conflictState()).toBeNull();
+      fixture.destroy();
+    });
+  }
 
   it('submits mine/latest manual resolution with retained local changes and no force request option', async () => {
     const { formComponent } = await createConcurrencyTestForm();
@@ -1264,6 +1364,71 @@ describe('FormComponent', () => {
     expect(formComponent.conflictReview()).toBeNull();
   });
 
+  it('keeps an action-specific typed 403 editable with a form-level error and an ordinary Save retry', async () => {
+    const { fixture, formComponent } = await createConcurrencyTestForm();
+    formComponent.form?.get('title')?.setValue('Unsaved title');
+    formComponent.form?.get('title')?.markAsDirty();
+    const response = RecordActionResult.fromResponse({ meta: {
+      outcome: 'not-saved', oid: 'oid-123',
+      problems: [{
+        kind: 'authorization', phase: 'pre-save',
+        issues: [{ code: 'scu-rdmp-action-unauthorized', message: '@scu-rdmp-action-unauthorized' }],
+      }],
+    } }, 403, '44444444-4444-4444-8444-444444444444');
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+
+    await formComponent.saveForm({ targetStep: 'closed' });
+    fixture.detectChanges();
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(formComponent.saveResponse()?.outcome).toBe('not-saved');
+    expect(formComponent.conflictState()).toBeNull();
+    expect(formComponent.form?.get('title')?.value).toBe('Unsaved title');
+    expect(formComponent.form?.get('title')?.disabled).toBeFalse();
+    expect(formComponent.getValidationErrors()).toContain(jasmine.objectContaining({
+      message: '@validator-error-form-level',
+      errors: jasmine.arrayContaining([jasmine.objectContaining({ message: '@scu-rdmp-action-unauthorized' })]),
+    }));
+    expect(fixture.nativeElement.querySelector('.rb-form-conflict-review')).toBeNull();
+
+    updateSpy.and.resolveTo(RecordActionResult.fromResponse({ meta: {
+      outcome: 'saved', oid: 'oid-123', metadata: { title: 'Unsaved title', notes: 'Loaded notes' },
+      concurrency: { revision: 5, entityTag: `"rb-record-v1.5.${'b'.repeat(43)}"`, formFingerprint: 'sha256:form_1' },
+    } }, 200, '55555555-5555-4555-8555-555555555555'));
+    await formComponent.saveForm();
+
+    expect(updateSpy).toHaveBeenCalledTimes(2);
+    expect(formComponent.saveResponse()?.wasPersisted()).toBeTrue();
+    expect(formComponent.form?.errors).toBeNull();
+    expect(formComponent.conflictState()).toBeNull();
+  });
+
+  for (const deleted of [false, true]) {
+    it(`blocks ordinary and forced retries after typed ${deleted ? 'deletion' : 'edit-access loss'}`, async () => {
+      const { fixture, formComponent } = await createConcurrencyTestForm();
+      formComponent.form?.get('title')?.setValue('Unsaved title');
+      formComponent.form?.get('title')?.markAsDirty();
+      const response = RecordActionResult.fromResponse({ meta: {
+        outcome: 'not-saved', oid: 'oid-123',
+        problems: [{ kind: deleted ? 'conflict' : 'authorization', phase: 'pre-save', issues: [{
+          code: deleted ? 'record-deleted' : 'record-validation-edit-unauthorized', message: 'Edit access was removed.',
+        }] }],
+      } }, deleted ? 412 : 403, '44444444-4444-4444-8444-444444444444');
+      const update = spyOn(formComponent.recordService, 'update').and.resolveTo(response);
+
+      await formComponent.saveForm({ targetStep: 'closed' });
+      fixture.detectChanges();
+      expect(formComponent.conflictState()?.status).toBe(deleted ? 'deleted' : 'permission-lost');
+      expect(formComponent.canRetryFormLevelServerErrors()).toBeFalse();
+      expect(formComponent.form?.get('title')?.value).toBe('Unsaved title');
+      await formComponent.saveForm();
+      await formComponent.saveForm({ force: true, targetStep: 'closed' });
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(formComponent.conflictState()?.status).toBe(deleted ? 'deleted' : 'permission-lost');
+    });
+
+  }
+
   it('keeps deleted and permission-lost outcomes authoritative and retains no returned latest state', async () => {
     for (const variant of ['deleted', 'authorization-lost'] as const) {
       const { fixture, formComponent } = await createConcurrencyTestForm();
@@ -1405,6 +1570,22 @@ describe('FormComponent', () => {
       multi: ['one', 'two'],
       empty: ''
     });
+  });
+
+  it('exposes server role names and the current oid independently of request parameters', async () => {
+    const { formComponent } = await createFormAndWaitForReady({ name: 'runtime-context', componentDefinitions: [
+      { name: 'title', model: { class: 'SimpleInputModel' }, component: { class: 'SimpleInputComponent' } },
+    ] });
+    formComponent.formDefMap!.formConfigMeta = { runtimeContext: { user: { roles: ['Admin', 'Researcher'] } } };
+    formComponent.oid.set('saved-oid');
+    formComponent.refreshRequestParamsFromUrl('http://localhost/?oid=spoofed&rdmpOid=source-oid');
+    expect(formComponent.getExpressionRuntimeContext()).toEqual({
+      user: { roles: ['Admin', 'Researcher'] }, oid: 'saved-oid',
+      requestParams: { oid: 'spoofed', rdmpOid: 'source-oid' },
+    });
+    expect(formComponent.getQuerySource()!.runtimeContext).toEqual(formComponent.getExpressionRuntimeContext());
+    formComponent.oid.set('updated-oid');
+    expect(formComponent.getExpressionRuntimeContext()['oid']).toBe('updated-oid');
   });
 
   it('returns an empty request-param map when the URL has no query string', () => {
@@ -1787,6 +1968,41 @@ describe('FormComponent', () => {
     expect(control.errors?.['server#old']).toBeUndefined();
     expect(control.errors?.['server#0']).toEqual({ class: 'server', message: '@record-save-failed', params: {} });
     expect(control.errors?.['server#1']).toEqual({ class: 'server', message: '@record-save-invalid-hook-configuration', params: {} });
+  });
+
+  it('clears rejected source field errors from display controls outside the saved form on retry', async () => {
+    const fixture = TestBed.createComponent(FormComponent);
+    const formComponent = fixture.componentInstance;
+    const sourceName = new FormControl('Alice Alpha');
+    const sourceEmail = new FormControl('alpha@example.test');
+    const localNote = new FormControl('local edit');
+    formComponent.form = new FormGroup({ localNote });
+    formComponent.oid.set('oid-123');
+    // Disabled/display-only fields can remain in component entries without
+    // belonging to the persisted form tree. Server issues still target them.
+    formComponent.componentDefArr = [{
+      name: 'sourceCi', compConfigJson: { name: 'sourceCi' } as any,
+      formControlMap: { name: sourceName, email: sourceEmail },
+      lineagePaths: { angularComponents: ['sourceCi'], dataModel: ['sourceCi'] } as any,
+    }];
+    (formComponent as any).applyServerSaveProblems({ problems: [{
+      kind: 'validation', phase: 'pre-save', issues: [
+        { pointer: '/metadata/sourceCi/name', message: 'Name is required' },
+        { pointer: '/metadata/sourceCi/email', message: 'Email is required' },
+      ],
+    }] });
+    expect(sourceName.errors?.['server#0']).toBeDefined();
+    expect(sourceEmail.errors?.['server#1']).toBeDefined();
+    // Clearing save problems must retain unrelated client validation.
+    sourceName.setErrors({ ...sourceName.errors, required: true });
+    const updateSpy = spyOn(formComponent.recordService, 'update').and.resolveTo(persistedSaveResponse());
+
+    await formComponent.saveForm({ force: true });
+
+    expect(updateSpy).toHaveBeenCalled();
+    expect(sourceName.errors).toEqual({ required: true });
+    expect(sourceEmail.errors).toBeNull();
+    fixture.destroy();
   });
 
   it('leaves ambiguous repeatable pointer suffixes at form level', function () {
@@ -2526,7 +2742,11 @@ describe('FormComponent', () => {
     });
     const bus = TestBed.inject(FormComponentEventBus);
     const events: FormSaveSuccessEvent[] = [];
-    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => events.push(event));
+    const eventContextOids: unknown[] = [];
+    const sub = bus.select$(FormComponentEventType.FORM_SAVE_SUCCESS).subscribe(event => {
+      events.push(event);
+      eventContextOids.push(formComponent.getQuerySource()?.runtimeContext?.['oid']);
+    });
 
     try {
       const location = fixture.debugElement.injector.get(Location);
@@ -2534,12 +2754,15 @@ describe('FormComponent', () => {
       (formComponent.recordService as any).brandingAndPortalUrl = 'http://localhost/default/rdmp';
       spyOn(formComponent.recordService, 'create').and.resolveTo(persistedSaveResponse({ oid: 'oid-123' }));
 
+      expect(formComponent.getQuerySource()?.runtimeContext?.['oid']).toBe('');
       await formComponent.saveForm({force: true});
 
       expect(formComponent.oid()).toBe('oid-123');
+      expect(formComponent.getQuerySource()!.runtimeContext?.['oid']).toBe('oid-123');
       expect(replaceStateSpy).toHaveBeenCalledWith('/default/rdmp/record/edit/oid-123');
 
       expect(events.length).toBe(1);
+      expect(eventContextOids).toEqual(['oid-123']);
       expect(events[0].type).toEqual(FormComponentEventType.FORM_SAVE_SUCCESS);
       expect(events[0].savedData).toEqual({text_create: 'create value'});
       expect(events[0].oid).toEqual('oid-123');

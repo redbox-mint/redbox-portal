@@ -1,3 +1,7 @@
+<div *ngIf="attachmentsLoadWarning" class="alert alert-warning" role="status" aria-live="polite">
+  PDF attachments could not be loaded. The list may be incomplete; an empty list does not confirm that there are no PDFs.
+  <button type="button" class="btn btn-default" (click)="loadAttachments()" [disabled]="attachmentsLoading">Retry loading PDFs</button>
+</div>
 @if (latestPdf) {
   <div class="rb-pdf-list d-flex flex-wrap align-items-start gap-2">
     @if (!hasHistory) {

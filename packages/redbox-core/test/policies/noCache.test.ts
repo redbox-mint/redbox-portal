@@ -1,6 +1,9 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { noCache } from '../../src/policies/noCache';
+import * as sinon from "sinon";
 
 // Mock sails
 (global as any).sails = {
@@ -9,9 +12,7 @@ import { noCache } from '../../src/policies/noCache';
             noCache: []
         }
     },
-    log: {
-        verbose: () => { }
-    }
+    log: createSinonStubLogger(sinon),
 };
 
 describe('noCache policy', function () {
@@ -25,9 +26,7 @@ describe('noCache policy', function () {
                     noCache: []
                 }
             },
-            log: {
-                verbose: () => { }
-            }
+            log: createSinonStubLogger(sinon),
         };
     });
 

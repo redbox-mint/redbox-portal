@@ -6,61 +6,33 @@
  * Only applies to HTTP requests (not WebSockets)
  */
 
-import { RequestHandler, Request, Response, NextFunction } from 'express';
-import type { PassportStatic } from 'passport';
+import { RequestHandler, Request, Response, NextFunction, json } from 'express';
+import { AsyncResource } from 'node:async_hooks';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as path from 'path';
 import { escapeHtmlText } from '@researchdatabox/sails-ng-common';
 const skipper = require('skipper');
-
+const compression = require('compression');
 import { redboxSession as redboxSessionMiddleware } from '../middleware/redboxSession';
 import { redboxSession as redboxSessionConfigValue } from './redboxSession.config';
-import type { CompanionConfig } from './companion.config';
 import type { CustomConfig } from './custom.config';
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
 import { resolveHookAssetFile } from '../hooks/hookResources';
+import { requestChronicle } from '../middleware/requestChronicle';
+import { RequestChronicleHelper } from '../utilities/RequestChronicle';
 
 // Declare Sails and its config structure
-declare const sails: {
-    config: {
-        appPath: string;
-        passport: PassportStatic; // The passport instance configured by UsersService
-        companion?: CompanionConfig;
-        appUrl?: string;
-        session: {
-            cookie?: {
-                maxAge?: number;
-            };
-        };
-        custom: CustomConfig;
-    };
-    hooks?: {
-        http?: {
-            server?: unknown;
-        };
-    };
-};
+declare const sails: Sails.Application;
 
-// Extended Request interface for custom properties
-interface ExtendedRequest extends Request {
-    options?: {
-        locals?: {
-            branding?: string;
-            portal?: string;
-            [key: string]: unknown;
-        };
-    };
-    [key: string]: unknown;
-}
 declare const BrandingService: BrandingServiceModule.Services.Branding;
 declare const PathRulesService: PathRulesServiceModule.Services.PathRules;
 
 /**
  * Middleware function signature
  */
-export type MiddlewareFunction = (req: Request, res: Response, next: NextFunction) => void;
+export type MiddlewareFunction = (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) => void;
 
 /**
  * Middleware configuration object
@@ -85,6 +57,7 @@ export interface HttpMiddlewareConfig {
     router?: RequestHandler;
     www?: RequestHandler;
     favicon?: RequestHandler;
+    requestChronicle?: MiddlewareFunction;
 
     /** Allow additional custom middleware */
     [key: string]: MiddlewareFunction | RequestHandler | string[] | undefined;
@@ -96,6 +69,10 @@ export interface HttpMiddlewareConfig {
 export interface HttpConfig {
     /** Root context path for the application */
     rootContext: string;
+
+    /** Off in production: nginx is expected to compress. On in development (including docker).
+     * Set true when deploying without a compressing proxy; Sails config/env overrides apply. */
+    compression: { enabled: boolean };
 
     /** Middleware configuration */
     middleware: HttpMiddlewareConfig;
@@ -115,8 +92,12 @@ let _cachedBodyParserSkipPathConfig: CustomConfig['bodyParser']['skipPaths'] | u
 let _cachedBodyParserSkipPathMatchers: RegExp[] = [];
 
 function isStaticAssetPath(reqPath: string): boolean {
+    // Branded locales are dynamic TranslationController routes. Only the direct
+    // locale files and root metadata below belong to the static asset namespace.
     return /^\/(?:[^/]+\/[^/]+\/)?(?:js|styles|images|fonts|angular|icons)\//.test(reqPath) ||
-        /^\/(?:apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath);
+        /^\/locales\//.test(reqPath) ||
+        /^\/(?:android-chrome-|apple-touch-icon|favicon-|site\.webmanifest)/.test(reqPath) ||
+        /^\/(?:favicon\.ico|robots\.txt)$/.test(reqPath);
 }
 
 function normalizeBodyParserPath(value: string): string {
@@ -180,6 +161,70 @@ function resolveBodyParserSkipMatchers(customConfig?: Partial<CustomConfig>): Re
     return _cachedBodyParserSkipPathMatchers;
 }
 
+type UploadUpstream = { upload: (...args: unknown[]) => unknown };
+type UploadRequest = Sails.Req & { file?: (...args: unknown[]) => UploadUpstream };
+
+/** Keep streamed upload completion callbacks in the context where upload() was called. */
+function bindMultipartUploadCallbacks(req: Sails.Req): void {
+    const uploadRequest = req as UploadRequest;
+    const file = uploadRequest.file;
+    if (typeof file !== 'function') {
+        return;
+    }
+    const boundUpstreams = new WeakSet<UploadUpstream>();
+    uploadRequest.file = function (this: UploadRequest, ...args: unknown[]) {
+        const upstream = file.apply(this, args);
+        if (upstream && typeof upstream.upload === 'function' && !boundUpstreams.has(upstream)) {
+            const upload = upstream.upload;
+            upstream.upload = function (this: UploadUpstream, ...uploadArgs: unknown[]) {
+                const last = uploadArgs.length - 1;
+                const callback = uploadArgs[last];
+                if (typeof callback === 'function') {
+                    uploadArgs[last] = AsyncResource.bind(callback as (...args: unknown[]) => unknown);
+                }
+                return upload.apply(this, uploadArgs);
+            };
+            boundUpstreams.add(upstream);
+        }
+        return upstream;
+    };
+}
+
+const bodyParserErrorTypes = [
+    'entity.parse.failed',
+    'entity.too.large',
+    'encoding.unsupported',
+    'charset.unsupported',
+    'parameters.too.many',
+    'request.aborted',
+    'request.size.invalid',
+    'stream.encoding.set',
+    'stream.not.readable',
+];
+
+/** Parser errors may contain the entire body in properties, messages, and stacks. */
+function sanitizeBodyParserError(error: unknown): unknown {
+    if (!error) {
+        return error;
+    }
+    const safeError = new Error('Could not parse request body.');
+    safeError.name = 'RequestBodyParserError';
+    // Keep transport metadata, without forwarding the original error or its cause.
+    if (typeof error === 'object') {
+        const source = error as Record<string, unknown>;
+        for (const key of ['status', 'statusCode']) {
+            const value = source[key];
+            if (typeof value === 'number' && Number.isInteger(value) && value >= 400 && value <= 599) {
+                Object.assign(safeError, { [key]: value });
+            }
+        }
+        if (typeof source.type === 'string' && bodyParserErrorTypes.includes(source.type)) {
+            Object.assign(safeError, { type: source.type });
+        }
+    }
+    return safeError;
+}
+
 export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: string[]): boolean {
     const normalizedRequestPath = normalizeBodyParserPath(requestPath);
     return configuredSkipPaths.some((configuredSkipPath) => {
@@ -189,12 +234,15 @@ export function shouldSkipBodyParser(requestPath: string, configuredSkipPaths: s
 }
 
 export function isImmutableAssetPath(reqPath: string): boolean {
-    if (!isStaticAssetPath(reqPath)) {
-        return false;
-    }
-
-    const fileName = path.posix.basename(reqPath);
-    return /(?:^|[-.])[A-Za-z0-9]{8,}\.[^.]+$/.test(fileName);
+    // Production Angular application builds use [name]-[hash], with esbuild's
+    // eight-character uppercase base32 hash. Limit this convention to the known
+    // JS/CSS bundle names in Angular browser output directories. This recognizes
+    // a build naming convention; it does not verify a hash against file contents.
+    const pathname = reqPath.split('?')[0];
+    // Only bundled default fonts carry the checked-in SHA-256 suffix. Uploaded
+    // brand typefaces and other stable font URLs keep the existing cache policy.
+    if (/^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?fonts\/google\/[a-z0-9-]+-[a-f0-9]{12}\.woff2$/.test(pathname)) return true;
+    return /^\/(?:[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/)?angular\/[A-Za-z0-9_-]+\/browser\/(?:(?:main|polyfills|scripts|chunk)-[A-Z2-7]{8}\.js|styles-[A-Z2-7]{8}\.css)$/.test(pathname);
 }
 
 export interface CompanionAuthorizationDecision {
@@ -418,12 +466,33 @@ function decodeStaticPathPart(value: string): string | null {
     }
 }
 
+// The package also honors no-transform, existing Content-Encoding, MIME type,
+// response size and Accept-Encoding. Keep latency-sensitive streams and file
+// downloads untouched; stream producers can opt out with X-Accel-Buffering: no.
+const compressResponse: RequestHandler = compression({
+    filter: (req: Request, res: Response) => {
+        if (req.headers.range || res.statusCode === 206 ||
+            /^text\/event-stream\b/i.test(String(res.getHeader('Content-Type') || '')) ||
+            /\battachment\b/i.test(String(res.getHeader('Content-Disposition') || '')) ||
+            res.getHeader('X-Accel-Buffering') === 'no') {
+            return false;
+        }
+        return compression.filter(req, res);
+    },
+});
+
 export const http: HttpConfig = {
     rootContext: '',
+    compression: { enabled: process.env.NODE_ENV !== 'production' },
 
     middleware: {
+        compress: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            // app.js uses rc, which leaves nested environment values as strings.
+            if (String(sails.config.http.compression?.enabled) !== 'true') return next();
+            return compressResponse(req, res, next);
+        },
         // Lazy load redboxSession to support async shim generation
-        redboxSession: function (req: Request, res: Response, next: NextFunction) {
+        redboxSession: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             if (!_lazyRedboxSessionMiddleware) {
                 // Initialize the session middleware with the resolved Sails config so environment overrides apply.
                 const resolvedSessionConfig = (sails.config as { redboxSession?: typeof redboxSessionConfigValue }).redboxSession || redboxSessionConfigValue;
@@ -435,15 +504,21 @@ export const http: HttpConfig = {
         // Lazy load passport middleware to use sails.config.passport
         // This ensures we use the same passport instance that has deserializeUser configured
         passportInit: function (req: Request, res: Response, next: NextFunction) {
+            if (typeof sails.config.passport.initialize !== 'function') {
+                throw new Error(`Passport init failed: sails.config.passport.initialize is not a function.`);
+            }
             const middleware = sails.config.passport.initialize() as unknown as RequestHandler;
             return middleware(req, res, next);
         },
         passportSession: function (req: Request, res: Response, next: NextFunction) {
+            if (typeof sails.config.passport.session !== 'function') {
+              throw new Error(`Passport session failed: sails.config.passport.session is not a function.`);
+            }
             const middleware = sails.config.passport.session() as unknown as RequestHandler;
             return middleware(req, res, next);
         },
 
-        companion: function (req: Request, res: Response, next: NextFunction) {
+        companion: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const companionConfig = sails.config.companion;
             if (!companionConfig?.enabled) {
                 return next();
@@ -625,8 +700,8 @@ export const http: HttpConfig = {
             });
         },
 
-        brandingAndPortalAwareStaticRouter: function (req: Request, res: Response, next: NextFunction) {
-            const extendedReq = req as ExtendedRequest;
+        brandingAndPortalAwareStaticRouter: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            const extendedReq = req;
             const existsSync = fs.existsSync;
 
             // Checks the branding and portal parameters if the resource isn't overidden for the required portal and branding,
@@ -677,15 +752,22 @@ export const http: HttpConfig = {
                 if (resolvedPath != null) {
                     req.url = resolvedPath;
                 }
+
+                RequestChronicleHelper.fromReq(sails.log, req).addInfo({
+                    branding: branding ?? extendedReq.options.locals.branding,
+                    portal: portal ?? extendedReq.options.locals.portal,
+                });
             }
             next();
         },
 
-        translate: function (req: Request, res: Response, next: NextFunction) {
+        translate: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             next();
         },
 
         order: [
+            'requestChronicle',
+            'compress',
             'cacheControl',
             'redirectNoCacheHeaders',
             'cookieParser',
@@ -703,26 +785,52 @@ export const http: HttpConfig = {
             'favicon',
         ],
 
-        myBodyParser: function (req: Request, res: Response, next: NextFunction) {
+        myBodyParser: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const requestPath = req.originalUrl ?? req.url;
             const normalizedRequestPath = normalizeBodyParserPath(requestPath);
+            const root = normalizeBodyParserPath(sails.config.http?.rootContext ?? '').replace(/\/$/, '');
+            const relativePath = root && normalizedRequestPath.startsWith(`${root}/`)
+                ? normalizedRequestPath.slice(root.length) : root ? '' : normalizedRequestPath;
+            // Full route structure: root / brand / portal / app / email-templates.
+            const emailAdminPath = /^\/[^/]+\/[^/]+\/app\/email-templates(?:\/|$)/i.test(relativePath);
             const skipMatchers = resolveBodyParserSkipMatchers(sails.config.custom);
-            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) {
-                return next();
+            if (skipMatchers.some((skipMatcher) => skipMatcher.test(normalizedRequestPath))) return next();
+            if (emailAdminPath) {
+                const parser = json({ limit: 8 * 1024 * 1024, strict: true });
+                return parser(req, res, AsyncResource.bind((error?: unknown) => {
+                    if (!error) return next();
+                    const limit = (error as { type?: string }).type === 'entity.too.large';
+                    res.set('Cache-Control', 'no-store');
+                    return res.status(limit ? 413 : 400).json({
+                        error: { code: limit ? 'LENGTH_LIMIT' : 'INVALID_TEMPLATE', message: limit ? 'Request body exceeds 8388608 bytes.' : 'A valid JSON request body is required.' },
+                        diagnostics: [],
+                    });
+                }));
             }
-            const skipperMiddleware = skipper({
-                // strict: true,
-                // ... more Skipper options here ...
-            });
-            return skipperMiddleware(req, res, next);
+            // A 2 MiB JSON file is sent as a JSON string in the import envelope;
+            // escaped quotes/whitespace can double its transport size. Keep this
+            // allowance local to import routes; the controller checks file bytes.
+            const translationImport = /^\/[^/]+\/[^/]+\/admin\/translation\/[^/]+\/[^/]+\/import\/(preview|apply)$/.test(normalizedRequestPath);
+            const partyImport = /^\/[^/]+\/[^/]+\/admin\/parties\/import\/(inspect|preview|apply)$/.test(normalizedRequestPath);
+            const skipperMiddleware = skipper(translationImport || partyImport ? { limit: 5 * 1024 * 1024 } : {});
+            // Multipart parser events originate outside the request's async context.
+            return skipperMiddleware(req, res, AsyncResource.bind((error?: unknown) => {
+                bindMultipartUploadCallbacks(req);
+                if ((translationImport || partyImport) && error) {
+                    const status = (error as { status?: number }).status === 413 ? 413 : 400;
+                    res.status(status).json({ message: status === 413 ? 'Import request exceeds the transport limit' : 'Invalid JSON request' });
+                    return;
+                }
+                next(sanitizeBodyParserError(error));
+            }));
         },
 
-        poweredBy: function (req: Request, res: Response, next: NextFunction) {
+        poweredBy: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             res.set('X-Powered-By', "QCIF");
             return next();
         },
 
-        redirectNoCacheHeaders: function (req: Request, res: Response, next: NextFunction) {
+        redirectNoCacheHeaders: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
             const originalRedirect = res.redirect;
 
             // Patch the redirect function so that it sets the no-cache headers
@@ -739,16 +847,23 @@ export const http: HttpConfig = {
                     return redirect.call(this, statusOrUrl, urlOrStatus);
                 }
                 return redirect.call(this, urlOrStatus);
-            } as Response['redirect'];
+            };
 
             return next();
         },
 
-        cacheControl: function (req: Request, res: Response, next: NextFunction) {
-            const sessionTimeoutSeconds = (_.isUndefined(sails.config.session.cookie) || _.isUndefined(sails.config.session.cookie.maxAge) ? 31536000 : sails.config.session.cookie.maxAge / 1000);
+        cacheControl: function (req: Sails.Req, res: Sails.Res, next: Sails.NextFunction) {
+            const sessionTimeoutSeconds = sails.config.session === false || sails.config.session.cookie?.maxAge === undefined ? 31536000 : sails.config.session.cookie.maxAge / 1000;
             let cacheControlHeaderVal: string | null = null;
             let expiresHeaderVal: string | null = null;
-            const isImmutableAsset = isImmutableAssetPath(req.path);
+            const rootContext = String(sails.config.http?.rootContext || '').replace(/^\/+|\/+$/g, '');
+            const contextPrefix = rootContext ? `/${rootContext}` : '';
+            const requestPath = contextPrefix && req.path.startsWith(`${contextPrefix}/`)
+                ? req.path.slice(contextPrefix.length)
+                : req.path;
+            const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
+            const hasNoStoreOverride = _.some(noCachePaths, suffix => _.endsWith(req.path, suffix));
+            const isImmutableAsset = isImmutableAssetPath(requestPath) && !hasNoStoreOverride;
             if (isImmutableAsset) {
                 cacheControlHeaderVal = 'public, max-age=31536000, immutable';
                 expiresHeaderVal = new Date(new Date().getTime() + (31536000 * 1000)).toUTCString();
@@ -759,9 +874,15 @@ export const http: HttpConfig = {
                     }
                     return originalSetHeader(name, value);
                 } as typeof res.setHeader;
+            } else if (isStaticAssetPath(requestPath)) {
+                // Stable asset URLs can change between deployments. Pragma alone
+                // does not override a positive Cache-Control max-age in browsers.
+                cacheControlHeaderVal = hasNoStoreOverride
+                    ? 'no-cache, no-store'
+                    : 'no-cache';
+                expiresHeaderVal = new Date(0).toUTCString();
             } else if (sessionTimeoutSeconds > 0) {
                 // Warning: sails.config.custom might differ at runtime verify structure
-                const noCachePaths = sails.config.custom?.cacheControl?.noCache || [];
                 const isMatch = _.find(noCachePaths, (path => {
                     return _.endsWith(req.path, path);
                 }));
@@ -793,6 +914,8 @@ export const http: HttpConfig = {
                 res.set('Pragma', 'no-cache');
             }
             return next();
-        }
+        },
+
+        requestChronicle: requestChronicle,
     },
 };

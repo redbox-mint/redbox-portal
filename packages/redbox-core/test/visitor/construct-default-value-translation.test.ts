@@ -1,24 +1,12 @@
+import { nothingLogger } from '@researchdatabox/sails-ng-common';
 let expect: Chai.ExpectStatic;
-import('chai').then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import { FormConfigFrame } from '@researchdatabox/sails-ng-common';
-import type { ILogger } from '../../src/Logger';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { ConstructFormConfigVisitor } from '../../src/visitor/construct.visitor';
 
 describe('ConstructFormConfigVisitor default value translation', () => {
-  const logger: ILogger = {
-    silly: () => undefined,
-    verbose: () => undefined,
-    trace: () => undefined,
-    debug: () => undefined,
-    log: () => undefined,
-    info: () => undefined,
-    warn: () => undefined,
-    error: () => undefined,
-    crit: () => undefined,
-    fatal: () => undefined,
-    silent: () => undefined,
-    blank: () => undefined,
-  };
+  const logger: ILogger = nothingLogger;
 
   const translations: Record<string, string> = {
     '@dataPublication-citation-publisher-default': 'Western Sydney University',
@@ -37,32 +25,32 @@ describe('ConstructFormConfigVisitor default value translation', () => {
           component: { class: 'SimpleInputComponent', config: {} },
           model: {
             class: 'SimpleInputModel',
-            config: { defaultValue: '@dataPublication-citation-publisher-default' }
-          }
+            config: { defaultValue: '@dataPublication-citation-publisher-default' },
+          },
         },
         {
           name: 'accessRights',
           component: { class: 'TextAreaComponent', config: { rows: 3, cols: 40 } },
           model: {
             class: 'TextAreaModel',
-            config: { defaultValue: '@dataPublication-accessRights-prefLabel-default' }
-          }
+            config: { defaultValue: '@dataPublication-accessRights-prefLabel-default' },
+          },
         },
         {
           name: 'naturalLanguageDefault',
           component: { class: 'SimpleInputComponent', config: {} },
           model: {
             class: 'SimpleInputModel',
-            config: { defaultValue: 'Some literal default text' }
-          }
+            config: { defaultValue: 'Some literal default text' },
+          },
         },
         {
           name: 'unknownCodeDefault',
           component: { class: 'SimpleInputComponent', config: {} },
           model: {
             class: 'SimpleInputModel',
-            config: { defaultValue: '@no-such-translation-key' }
-          }
+            config: { defaultValue: '@no-such-translation-key' },
+          },
         },
         {
           name: 'objectDefault',
@@ -72,12 +60,12 @@ describe('ConstructFormConfigVisitor default value translation', () => {
             config: {
               defaultValue: {
                 publisher: '@dataPublication-citation-publisher-default',
-                nested: { rights: '@dataPublication-accessRights-prefLabel-default' }
-              }
-            }
-          }
-        }
-      ]
+                nested: { rights: '@dataPublication-accessRights-prefLabel-default' },
+              },
+            },
+          },
+        },
+      ],
     };
   }
 
@@ -96,7 +84,7 @@ describe('ConstructFormConfigVisitor default value translation', () => {
     expect(valueAt(3)).to.equal('@no-such-translation-key');
     expect(valueAt(4)).to.deep.equal({
       publisher: 'Western Sydney University',
-      nested: { rights: 'Copyright Western Sydney University' }
+      nested: { rights: 'Copyright Western Sydney University' },
     });
   });
 
@@ -104,7 +92,8 @@ describe('ConstructFormConfigVisitor default value translation', () => {
     const constructor = new ConstructFormConfigVisitor(logger as any);
     const constructed = await constructor.start({ data: buildForm(), formMode: 'edit' });
 
-    const publisher = (constructed.componentDefinitions?.[0] as { model?: { config?: { value?: unknown } } })?.model?.config?.value;
+    const publisher = (constructed.componentDefinitions?.[0] as { model?: { config?: { value?: unknown } } })?.model
+      ?.config?.value;
     expect(publisher).to.equal('@dataPublication-citation-publisher-default');
   });
 
@@ -118,7 +107,8 @@ describe('ConstructFormConfigVisitor default value translation', () => {
       translate,
     });
 
-    const publisher = (constructed.componentDefinitions?.[0] as { model?: { config?: { value?: unknown } } })?.model?.config?.value;
+    const publisher = (constructed.componentDefinitions?.[0] as { model?: { config?: { value?: unknown } } })?.model
+      ?.config?.value;
     expect(publisher).to.equal('@dataPublication-citation-publisher-default');
   });
 
@@ -135,13 +125,13 @@ describe('ConstructFormConfigVisitor default value translation', () => {
                 name: '',
                 component: { class: 'SimpleInputComponent', config: {} },
                 model: { class: 'SimpleInputModel', config: { newEntryValue: '@grant-name-default' } },
-                layout: { class: 'RepeatableElementLayout' }
-              }
-            }
+                layout: { class: 'RepeatableElementLayout' },
+              },
+            },
           },
-          model: { class: 'RepeatableModel', config: {} }
-        }
-      ]
+          model: { class: 'RepeatableModel', config: {} },
+        },
+      ],
     };
 
     const constructor = new ConstructFormConfigVisitor(logger as any);

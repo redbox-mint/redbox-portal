@@ -1,0 +1,22 @@
+meta {
+  name: Email templates - Anonymous denied
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/catalogue
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+tests {
+  test("Anonymous access is denied", () => { expect(res.getStatus()).to.equal(403); expect(res.getBody().error.code).to.equal("FORBIDDEN"); });
+}

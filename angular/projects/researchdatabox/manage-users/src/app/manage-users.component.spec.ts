@@ -1,9 +1,13 @@
+import { CommonModule } from '@angular/common';
+import { A11yModule, CdkTrapFocus } from '@angular/cdk/a11y';
+import { AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, AdminCountPipe } from '@researchdatabox/portal-ng-common';
+import { By } from '@angular/platform-browser';
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { ManageUsersComponent } from './manage-users.component';
 import { ApplicationRef, ChangeDetectorRef, Injector, NgZone, runInInjectionContext } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe } from '@researchdatabox/portal-ng-common';
+import { UtilityService, LoggerService, TranslationService, ConfigService, UserService, I18NextPipe, AdminDatePipe } from '@researchdatabox/portal-ng-common';
 import { getStubConfigService, getStubTranslationService, getStubUserService } from '@researchdatabox/portal-ng-common';
 import { ModalModule } from 'ngx-bootstrap/modal';
 
@@ -102,6 +106,7 @@ describe('ManageUsersComponent', () => {
     auditRecords = cloneTestData(baseAuditRecords);
     configService = getStubConfigService();
     translationService = getStubTranslationService({
+      'admin-retry': 'Retry',
       'manage-users-audit-event-login': 'User logged in',
       'manage-users-audit-event-logout': 'User logged out',
       'manage-users-audit-event-disable': 'Admin disabled this account',
@@ -135,10 +140,11 @@ describe('ManageUsersComponent', () => {
       declarations: [
         ManageUsersComponent
       ],
-      imports: [
+      imports: [AdminPagerComponent, AdminDiscardDialogComponent, AdminModalDirective, CommonModule, A11yModule, AdminCountPipe,
         FormsModule,
         ReactiveFormsModule,
         I18NextPipe,
+        AdminDatePipe,
         ModalModule.forRoot()
       ],
       providers: [
@@ -173,9 +179,11 @@ describe('ManageUsersComponent', () => {
     for (const fixture of fixtures) {
       await fixture.whenStable();
       const app = fixture.componentInstance;
-      app.hideDetailsModal();
+      app.confirmDiscard = null;
+      app.pendingUserAction = null;
+      app.hideDetailsModal(true);
       app.onDetailsModalHidden();
-      app.hideNewUserModal();
+      app.hideNewUserModal(true);
       app.onNewUserHidden();
       app.hideLinkModal();
       app.onLinkModalHidden();
@@ -236,6 +244,30 @@ describe('ManageUsersComponent', () => {
     ));
   }
 
+  for (const readMethod of ['getBrandRoles', 'getUsers']) {
+    it(`shows an initial ${readMethod} error and recovers with retry`, async () => {
+      const original = userService[readMethod].bind(userService);
+      const read = spyOn(userService, readMethod).and.rejectWith({ status: 403 });
+      configService.refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+      const fixture = TestBed.createComponent(ManageUsersComponent);
+      const component = fixture.componentInstance;
+      const waiting = expectAsync(component.waitForInit()).toBeRejected();
+      fixture.detectChanges();
+      await waiting;
+      fixture.detectChanges();
+      expect(component.loadPending).toBeFalse();
+      expect(fixture.nativeElement.textContent).toContain('Sign in again');
+      expect(fixture.nativeElement.textContent).toContain('Retry');
+      read.and.callFake(original);
+      await component.retryLoad();
+      await component.waitForInit();
+      expect(component.loadError).toBe('');
+      expect(component.allRoles.length).toBe(baseRolesData.length);
+      expect(configService.refreshConfig).toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
+
   it('should create the app and perform testing of basic functions', async () => {
     const app = createBareComponent();
     expect(app).toBeTruthy();
@@ -270,7 +302,7 @@ describe('ManageUsersComponent', () => {
     app.allUsers = usersData as any;
     app.filteredUsers = usersData as any;
     app.searchFilter.name = 'Local Admin';
-    app.onFilterChange();
+    await app.onFilterChange();
     expect(app.filteredUsers.length).toBeGreaterThan(0);
     expect(app.filteredUsers[0].name).toBe('Local Admin');
   });
@@ -293,6 +325,8 @@ describe('ManageUsersComponent', () => {
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
     app.isAuditLoading = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-loading');
 
@@ -317,6 +351,8 @@ describe('ManageUsersComponent', () => {
     app.auditModalUser = usersData[0] as any;
     app.isAuditModalShown = true;
     app.auditRecords = [auditRecords[0] as any];
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('manage-users-audit-raw-toggle');
@@ -375,6 +411,8 @@ describe('ManageUsersComponent', () => {
     } as any;
     app.setupForms(false);
     app.isDetailsModalShown = true;
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     const textBeforeSubmit = fixture.nativeElement.textContent;
@@ -438,6 +476,58 @@ describe('ManageUsersComponent', () => {
     app.setNewUserMessage('msg2', 'primary');
     expect(app.newUserMsg).toBe('msg2');
     expect(app.newUserMsgType).toBe('primary');
+  });
+
+  it('only describes user controls with error elements currently in the DOM', async () => {
+    const { fixture, app } = await createComponent();
+    function checkReferences() {
+      for (const input of Array.from(fixture.nativeElement.querySelectorAll('input[aria-describedby]')) as HTMLInputElement[]) {
+        for (const id of input.getAttribute('aria-describedby')!.split(/\s+/)) {
+          expect(fixture.nativeElement.querySelector('#' + id)).withContext(id).toBeTruthy();
+        }
+      }
+    }
+    app.newUser(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    app.submitted = false; app.newUserForm!.markAsUntouched(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#newform-username').getAttribute('aria-describedby')).toBeNull();
+    checkReferences();
+    app.newUserForm!.get('passwords.password')!.markAsTouched(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#newform-password').getAttribute('aria-describedby')).toBe('newform-password-error');
+    checkReferences();
+    app.newUserForm!.get('passwords.confirmPassword')!.markAsTouched(); fixture.detectChanges(); checkReferences();
+    app.hideNewUserModal(); fixture.detectChanges(); await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    app.submitted = false; app.updateUserForm!.markAsUntouched(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#detailsform-name').getAttribute('aria-describedby')).toBeNull();
+    checkReferences();
+    app.updateUserForm!.get('name')!.markAsTouched(); fixture.detectChanges(); checkReferences();
+    app.submitted = true; fixture.detectChanges(); checkReferences();
+  });
+
+  it('links invalid fields to their errors and focuses the first invalid field in both user forms', async () => {
+    const { fixture, app } = await createComponent();
+    app.newUser(); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    await app.newUserSubmit({} as any, false);
+    fixture.detectChanges();
+    const username: HTMLInputElement = fixture.nativeElement.querySelector('#newform-username');
+    expect(document.activeElement).toBe(username);
+    expect(username.getAttribute('aria-invalid')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#' + username.getAttribute('aria-describedby'))?.textContent).toContain('manage-users-validation-username');
+    app.newUserForm!.patchValue({ username: 'new-user', name: 'Name', passwords: { password: 'short', confirmPassword: 'different' } });
+    await app.newUserSubmit({} as any, false); fixture.detectChanges();
+    const password: HTMLInputElement = fixture.nativeElement.querySelector('#newform-password');
+    expect(document.activeElement).toBe(password);
+    expect(password.getAttribute('aria-invalid')).toBe('true');
+    for (const id of password.getAttribute('aria-describedby')!.split(' ')) expect(fixture.nativeElement.querySelector('#' + id)).not.toBeNull();
+    const hidden = new Promise<void>(resolve => app.userNewModal!.onHidden.subscribe(() => resolve()));
+    app.hideNewUserModal(true); fixture.detectChanges(); await hidden; await fixture.whenStable();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    app.updateUserForm!.get('name')!.setValue('');
+    await app.updateUserSubmit({} as any, false); fixture.detectChanges();
+    const name: HTMLInputElement = fixture.nativeElement.querySelector('#detailsform-name');
+    expect(document.activeElement).toBe(name);
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(fixture.nativeElement.querySelector('#detailsform-name-error')?.textContent).toContain('manage-users-validation-name');
   });
 
   it('should handle invalid user submit', async () => {
@@ -683,9 +773,204 @@ describe('ManageUsersComponent', () => {
       { value: 'Local Admin', label: 'Local Admin', checked: true }
     ];
 
-    app.resetFilter();
+    await app.resetFilter();
 
     expect(app.filteredUsers.length).toBe(usersData.length);
-    expect(app.searchFilter.users[0].checked).toBeTrue();
+    expect(app.searchFilter.name).toBe('');
+    expect(app.roleFilter).toBe('');
   });
+  it('clears disabled-users and sign-in filters in one refresh', async () => {
+    const app = createBareComponent();
+    app.showDisabledUsers = true;
+    app.signInFilter = 'local';
+    app.roleFilter = 'Admin';
+    app.searchFilter.name = 'someone';
+    const refresh = spyOn(app, 'refreshUsers').and.resolveTo();
+    await app.resetFilter();
+    expect(app.showDisabledUsers).toBeFalse();
+    expect(app.signInFilter).toBe('');
+    expect(app.roleFilter).toBe('');
+    expect(app.searchFilter.name).toBe('');
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('combines role and email filters and retains them after refreshing users', async () => {
+    const app = createBareComponent();
+    app.allUsers = usersData as any;
+    app.roleFilter = 'Admin';
+    app.searchFilter.name = 'alias@example.com';
+    await app.onFilterChange();
+    expect(app.filteredUsers.length).toBe(0);
+    app.roleFilter = '';
+    await app.refreshUsers();
+    expect(app.filteredUsers.map(user => user.username)).toEqual(['alias']);
+    app.searchFilter.name = 'ADMIN';
+    await app.onFilterChange();
+    expect(app.filteredUsers.map(user => user.username)).toEqual(['admin']);
+  });
+
+  it('requires confirmation before disabling and keeps failures available for retry', async () => {
+    const app = createBareComponent();
+    const disable = spyOn(userService, 'disableUser').and.resolveTo({ status: false, message: 'Try again' });
+    app.requestUserAction('disable', usersData[0] as any);
+    expect(disable).not.toHaveBeenCalled();
+    await app.confirmUserAction();
+    expect(app.actionError).toBe('Try again');
+    expect(app.pendingUserAction).not.toBeNull();
+    expect(app.actionPending).toBeFalse();
+    disable.and.resolveTo({ status: true, message: '' });
+    await app.confirmUserAction();
+    expect(disable).toHaveBeenCalledWith('ABC123');
+  });
+
+  it('revokes the selected user key without changing another open user', async () => {
+    const app = createBareComponent();
+    const revoke = spyOn(userService, 'revokeKey').and.resolveTo({ status: true, message: '' });
+    const user = { ...usersData[0], token: 'issued-key' };
+    app.currentUser = { ...usersData[1], token: 'other-key' } as any;
+    app.requestUserAction('revoke', user as any);
+    expect(revoke).not.toHaveBeenCalled();
+    await app.confirmUserAction();
+    expect(user.token).toBe('');
+    expect(app.currentUser?.token).toBe('other-key');
+  });
+
+  it('keeps a delayed generated key associated with its requested user', async () => {
+    const app = createBareComponent();
+    app.currentUser = { ...usersData[0] } as any;
+    let finish: (result: any) => void = () => {};
+    spyOn(userService, 'genKey').and.returnValue(new Promise(resolve => finish = resolve));
+    const pending = app.genKey(usersData[0].id);
+    app.currentUser = { ...usersData[1], token: 'other-key' } as any;
+    finish({ status: true, message: 'generated-secret' });
+    await pending;
+    expect(app.currentUser?.token).toBe('other-key');
+    expect(app.showToken).toBeFalse();
+    expect(app.keyPending).toBeFalse();
+  });
+
+  it('reports a key generation failure and permits another request', async () => {
+    const app = createBareComponent();
+    app.currentUser = usersData[0] as any;
+    const generate = spyOn(userService, 'genKey').and.rejectWith(new Error('Generation failed'));
+    await app.genKey(usersData[0].id);
+    expect(app.updateDetailsMsg).toBe('Generation failed');
+    expect(app.keyPending).toBeFalse();
+    generate.and.resolveTo({ status: true, message: 'generated-secret' });
+    await app.genKey(usersData[0].id);
+    expect(app.currentUser?.token).toBe('generated-secret');
+    expect(app.showToken).toBeTrue();
+  });
+
+  it('suspends the edit trap while confirming and closes only the confirmation on Escape', async () => {
+    const { fixture, app } = await createComponent();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable();
+    app.requestUserAction('disable', app.currentUser!); fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const details = fixture.nativeElement.querySelector('[aria-labelledby="edit-user-title"]');
+    expect(details.inert).toBeTrue();
+    const traps = fixture.debugElement.queryAll(By.directive(CdkTrapFocus)).map(el => el.injector.get(CdkTrapFocus));
+    expect(traps.filter(trap => trap.enabled).length).toBe(1);
+    fixture.nativeElement.querySelector('[aria-labelledby="user-action-title"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    expect(app.pendingUserAction).toBeNull();
+    expect(app.isDetailsModalShown).toBeTrue();
+    expect(details.inert).toBeFalse();
+    expect(traps[0].enabled).toBeTrue();
+  });
+
+  it('keeps dirty editor drafts until discard is explicit, including new users', async () => {
+    const { fixture, app } = await createComponent();
+    app.editUser('admin'); fixture.detectChanges(); await fixture.whenStable();
+    app.updateUserForm!.get('name')!.setValue('Unsaved name');
+    app.hideDetailsModal(); fixture.detectChanges();
+    expect(app.confirmDiscard).toBe('details');
+    expect(app.isDetailsModalShown).toBeTrue();
+    app.keepEditing();
+    expect(app.updateUserForm!.get('name')!.value).toBe('Unsaved name');
+    app.hideDetailsModal();
+    const detailsHidden = new Promise<void>(resolve => app.userDetailsModal!.onHidden.subscribe(() => resolve()));
+    app.discardEditor(); await detailsHidden;
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(app.isDetailsModalShown).toBeFalse();
+    app.newUser(); fixture.detectChanges(); await fixture.whenStable();
+    app.newUserForm!.get('name')!.setValue('New unsaved name');
+    app.hideNewUserModal(); fixture.detectChanges();
+    expect(app.confirmDiscard).toBe('new');
+    app.keepEditing();
+    app.newUserForm!.get('name')!.setValue('');
+    expect(app.newDirty).toBeFalse();
+    const newHidden = new Promise<void>(resolve => app.userNewModal!.onHidden.subscribe(() => resolve()));
+    app.hideNewUserModal(); await newHidden; await fixture.whenStable();
+    expect(app.isNewUserModalShown).toBeFalse();
+  });
+
+  it('uses the brand and portal path for the Admin breadcrumb', async () => {
+    userService.brandingAndPortalUrl = '/default/rdmp';
+    const fixture = TestBed.createComponent(ManageUsersComponent);
+    fixtures.push(fixture);
+    fixture.detectChanges();
+    await fixture.componentInstance.waitForInit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-crumbs a').getAttribute('href')).toBe('/default/rdmp/admin');
+  });
+
+  it('waits for the detail modal to close before opening linked accounts or audit', () => {
+    const app = createBareComponent();
+    app.currentUser = usersData[0] as any;
+    const links = spyOn(app, 'manageLinks').and.resolveTo();
+    const audit = spyOn(app, 'viewAudit').and.resolveTo();
+    app.navigateFromDetails('links');
+    expect(links).not.toHaveBeenCalled();
+    app.onDetailsModalHidden();
+    expect(links).toHaveBeenCalledWith(usersData[0].username);
+    expect(app.detailsDestination).toBeNull();
+    app.navigateFromDetails('audit');
+    expect(audit).not.toHaveBeenCalled();
+    app.onDetailsModalHidden();
+    expect(audit).toHaveBeenCalledWith(app.currentUser!);
+  });
+
+  it('loads enabled methods and sends the sign-in filter to the server', async () => {
+    const { fixture, app } = await createComponent();
+    const read = spyOn(userService, 'getUsers').and.resolveTo(baseUsersData);
+    app.signInFilter = 'local';
+    await app.changeSignInFilter();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: false, signIn: 'local' });
+    expect(app.signInMethods).toEqual(['local', 'aaf', 'oidc']);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#manage-users-sign-in')).toBeTruthy();
+    await app.resetFilter();
+    expect(read).toHaveBeenCalledWith({ includeDisabled: false });
+  });
+
+  it('renders last login in the table and account dialog, with Never when empty', async () => {
+    const { fixture, app } = await createComponent();
+    app.allUsers[0].lastLogin = '2026-11-06T01:02:03Z';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('06/11/2026');
+    expect(fixture.nativeElement.querySelector('tbody').textContent).toContain('admin-users-never');
+    app.editUser('admin'); fixture.detectChanges();
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(document.activeElement?.id).toBe('detailsform-name');
+    expect(fixture.nativeElement.querySelector('.modal-body').textContent).toContain('06/11/2026');
+  });
+
+  it('uses server totals, filters and sort before paging, and discards older responses', async () => {
+    const { fixture, app } = await createComponent();
+    const result = { records: baseUsersData, summary: { numFound: 150, page: 2, start: 25 }, roleCounts: {} };
+    const read = spyOn(userService, 'getUserPage').and.resolveTo(result);
+    await app.changePage(2);
+    expect(app.totalPages).toBe(6); expect(app.pageStart).toBe(26);
+    app.roleFilter = 'Researcher'; app.searchFilter.name = 'test';
+    await app.onFilterChange();
+    expect(read).toHaveBeenCalledWith(jasmine.objectContaining({ page: 1, role: 'Researcher', query: 'test' }));
+    let resolve!: (value: any) => void;
+    read.and.returnValue(new Promise(done => resolve = done));
+    const pending = app.refreshUsers(1);
+    read.and.resolveTo({ ...result, summary: { numFound: 1, page: 1, start: 0 } });
+    await app.refreshUsers(1);
+    resolve(result); await pending;
+    expect(app.totalUsers).toBe(1);
+  });
+
 });

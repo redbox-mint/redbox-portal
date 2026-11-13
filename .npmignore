@@ -28,7 +28,6 @@
 npm-debug.log
 yarn-error.log
 testem.log
-/typings
 
 # e2e
 e2e/*.js

@@ -1,3 +1,10 @@
+export { assertRelatedDisplayBatchAllowed } from './related-records/normalize-display-writes';
+export { normalizeRelatedReferences } from './related-records/references';
+export { withoutRuntimeRecordProperties } from './related-records/runtime-record';
+export type { RelatedRecordReadContext, RelatedRelationResolutionConfig } from './related-records/types';
+export type { RelatedResolutionStatus, RelatedMetadataRecord, RelatedResolutionIssue, RelatedMetadataEntry, RelatedMetadata, RelatedMetadataSelection, RelatedMetadataRequest } from '@researchdatabox/sails-ng-common';
+
+export type { ILogger } from '@researchdatabox/sails-ng-common';
 import './sails';
 
 export { Attachment } from './Attachment';
@@ -78,14 +85,6 @@ export type {
   StorageMutationNonApplicationReason,
   StorageServiceCapabilities,
 } from './RecordStorageConcurrency';
-// Behavioural conformance checks hook-provided storage adapters run against
-// their own dialect before declaring the record-concurrency capability.
-export { STORAGE_CONCURRENCY_CONFORMANCE_CHECKS } from './testing/storageConcurrencyConformance';
-export type {
-  RecordConcurrencyAdapter,
-  StorageConcurrencyConformanceCheck,
-  StorageConcurrencyConformanceHarness,
-} from './testing/storageConcurrencyConformance';
 // Shared concurrency policy/result contracts are re-exported here so server
 // code has one import site for record-save contracts.
 export {
@@ -127,6 +126,7 @@ export { DatastreamService } from './DatastreamService';
 export { QueueService } from './QueueService';
 export { RecordsService, createRecordMetadataDelta } from './RecordsService';
 export { HarvestRunService } from './HarvestRunService';
+export type { HarvestHistoryRetentionOptions, HarvestHistoryRetentionResult } from './HarvestRunService';
 export type {
   RecordRelationshipExpandOptions,
   RecordRelationshipGraph,
@@ -144,7 +144,12 @@ export {
   RECORD_SCHEMA_STORAGE_CAPABILITY_METHODS,
   getMissingRecordSchemaStorageCapabilities,
 } from './StorageService';
-export type { RecordSchemaStorageCapabilityMethod } from './StorageService';
+export type {
+  RecordQueryOptions,
+  RecordRelationQuery,
+  RecordRelationQueryResult,
+  RecordSchemaStorageCapabilityMethod,
+} from './StorageService';
 export { RecordAuditParams } from './RecordAuditParams';
 export { IntegrationAuditParams } from './IntegrationAuditParams';
 export type {
@@ -155,8 +160,6 @@ export type {
   IntegrationOutcomeMapper,
 } from './services/IntegrationAuditService';
 export * from './model/storage/HarvestRunModel';
-export { ILogger } from './Logger';
-
 export * from './model';
 export * from './record-contract';
 export * from './decorator';
@@ -291,3 +294,8 @@ export * from './visitor/visitor-helpers';
 export * from './api-routes';
 
 export * from './reporting';
+export * from './RecordWriteOptions';
+export * from './model/storage/FigshareSyncModel';
+export { EmailTemplateError, EmailTemplateConflictError } from './services/EmailTemplateService';
+export type { EmailTemplateContent, ResolvedEmailTemplate, EmailTemplateErrorCode } from './services/EmailTemplateService';
+export type { EmailRenderContext } from './services/EmailService';

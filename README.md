@@ -37,6 +37,12 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
     ```
     This spins up the application and dependencies (MongoDB, etc.) using Docker Compose.
 
+Set `STARTUP_TIMING=true` in the app process environment to log elapsed time from
+process start through module loading, shim generation, and completion of the Sails
+lift. Use `STARTUP_TIMING=true npm run dev:run` for the Docker development stack,
+or `STARTUP_TIMING=true node app.js` with the usual database configuration.
+`SHIM_VERBOSE=true` adds loader details.
+
 ### Running Tests
 
 - **Backend Mocha Tests**: `npm run test:mocha`
@@ -45,6 +51,23 @@ The [Queensland Cyber Infrastructure Foundation](http://www.qcif.edu.au) (QCIF) 
 
 For detailed testing instructions, see [support/wiki/ReDBox-Automated-Tests.md](support/wiki/ReDBox-Automated-Tests.md).
 
+## Response compression
+
+Production defaults to `http.compression.enabled: false` and expects nginx (or
+another reverse proxy) to compress responses. Development, including the Docker
+development environment, defaults to app compression enabled.
+
+For a production deployment without a compressing proxy, set
+`http: { compression: { enabled: true } }` in `config/env/production.js`, or set
+`sails_http__compression__enabled=true`. Set the same option to `false` to disable
+app compression in development. Both boolean config values and the environment
+strings `true` / `false` are supported. Streaming responses and attachments keep
+their existing compression exclusions.
+
 ## Support
 
 For more information, visit the [Redbox Portal Wiki](https://github.com/redbox-mint/redbox-portal/wiki).
+
+## Queued Figshare synchronisation
+
+See the [configuration and operator runbook](support/wiki/Figshare-Queued-Synchronisation.md) and [verification record](support/figshare/VERIFICATION.md). New processing is disabled until migration and institutional staging checks are complete.

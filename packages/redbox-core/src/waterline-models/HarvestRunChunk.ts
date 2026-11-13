@@ -1,14 +1,10 @@
 /// <reference path="../sails.ts" />
 import { Attr, Entity, toWaterlineModelDef } from '../decorators';
+import { HARVEST_CHUNK_INDEXES } from '../utilities/HarvestRunIndexes';
 import { HarvestChunkStatus } from '../model/storage/HarvestRunModel';
 
 @Entity('harvestrunchunk', {
-  indexes: [
-    { attributes: { runId: 1, contentHash: 1, attempt: 1 }, unique: true },
-    { attributes: { runId: 1, contentHash: 1, status: 1 } },
-    { attributes: { runId: 1, chunkIndex: 1 } },
-    { attributes: { runId: 1, submittedAt: 1 } },
-  ],
+  indexes: HARVEST_CHUNK_INDEXES.map(({ key, ...options }) => ({ attributes: key, ...options })),
 })
 export class HarvestRunChunkClass {
   @Attr({ type: 'string', required: true })

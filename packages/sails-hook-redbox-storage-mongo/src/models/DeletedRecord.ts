@@ -69,6 +69,9 @@ export class DeletedRecordClass {
   @Attr({ type: 'json' })
   public deletedRecordMetadata?: Record<string, unknown>;
 
+  @Attr({ type: 'json' })
+  public deletedBy?: { id?: string; username?: string; brandId: string };
+
   @Attr({ type: 'string', autoCreatedAt: true })
   public dateDeleted!: string;
 }

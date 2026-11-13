@@ -75,11 +75,12 @@ export class ReportService extends HttpClientService {
       this.loggerService.error(`getReportResult() -> Parameter 'name' is empty!`);
       throw new Error('Report name is empty!');
     }
-    let start = (pageNum-1) * rows;
-    var url = `${this.brandingAndPortalUrl}/admin/getReportResults?name=${name}&start=${start}&rows=${rows}`;
-    for(var key in params) {
-      url=url+'&'+key+"="+params[key];
+    const start = (pageNum-1) * rows;
+    const query = new URLSearchParams({ name, start: String(start), rows: String(rows) });
+    for (const key in params) {
+      query.set(key, params[key]);
     }
+    const url = `${this.brandingAndPortalUrl}/admin/getReportResults?${query}`;
     const req = this.http.get(url, this.reqOptsJsonBodyOnly);
     req.pipe(
       map((data:any) => {

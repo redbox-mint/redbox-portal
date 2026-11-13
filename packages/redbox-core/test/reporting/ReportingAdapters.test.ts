@@ -6,7 +6,7 @@ import type { Response } from 'express';
 import type { BuildResponseType } from '../../src/model';
 import { Controllers } from '../../src/controllers/webservice/ReportingController';
 import { Services } from '../../src/services/SolrSearchService';
-import { solr } from '../../src/config/solr.config';
+import { solr, SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION } from '../../src/config/solr.config';
 import { ReportingError } from '../../src/reporting/types';
 import { reportingApiRoutes } from '../../src/api-routes/groups/reporting';
 import { validateApiRouteRequest } from '../../src/api-routes/validation';
@@ -47,6 +47,29 @@ describe('Reporting REST and Solr adapters', () => {
       else Reflect.set(globalThis, name, value);
     }
   });
+  class ReadySolrService extends Services.SolrSearchService {
+    public async verifyReportingSchema(): Promise<void> {
+      Reflect.set(this, 'waitForSolr', async () => undefined);
+      Reflect.set(this, 'getSchema', async () => ({
+        schema: {
+          fields: [
+            ...sails.config.solr.cores.default.schema['add-field'],
+            ...structuredClone(SOLR_EXACT_ACL_FIELDS),
+            sails.config.solr.cores.default.initSchemaFlag,
+          ],
+          fieldTypes: [{ name: 'string', class: 'solr.StrField' }],
+          dynamicFields: sails.config.solr.cores.default.schema['add-dynamic-field'],
+          copyFields: sails.config.solr.cores.default.schema['add-copy-field'],
+        },
+      }));
+      await this.buildSchema();
+    }
+  }
+  async function readySolr(): Promise<ReadySolrService> {
+    const service = new ReadySolrService();
+    await service.verifyReportingSchema();
+    return service;
+  }
   const request = (body: unknown = { operation: 'count', recordType: 'rdmp' }) =>
     ({
       user: { id: principal.user.id },
@@ -92,20 +115,18 @@ describe('Reporting REST and Solr adapters', () => {
   });
   it('quotes hostile text as a literal phrase and selects only bounded IDs with tenant and ACL filters', async () => {
     sails.config = { ...sails.config, solr: structuredClone(solr) };
-    const get = sinon
-      .stub(axios, 'get')
-      .resolves({
-        data: {
-          response: {
-            docs: [
-              { storage_id: ['mongo-internal-id'], redboxOid: 'record-1' },
-              { storage_id: ['another-internal-id'], redboxOid: ['record-2'] },
-              { storage_id: ['internal-id-without-public-oid'] },
-            ],
-          },
+    const get = sinon.stub(axios, 'get').resolves({
+      data: {
+        response: {
+          docs: [
+            { storage_id: ['mongo-internal-id'], redboxOid: 'record-1' },
+            { storage_id: ['another-internal-id'], redboxOid: ['record-2'] },
+            { storage_id: ['internal-id-without-public-oid'] },
+          ],
         },
-      });
-    const service = new Services.SolrSearchService();
+      },
+    });
+    const service = await readySolr();
     expect(
       await service.searchReportingText(principal, 'default', 'rdmp', 'machine learning" OR *:*', 0, 21)
     ).to.deep.equal(['record-1', 'record-2']);
@@ -117,7 +138,10 @@ describe('Reporting REST and Solr adapters', () => {
     // Mongo's unique storage ID keeps timestamp ties stable across offset pages.
     expect(params.get('sort')).to.equal('date_object_modified desc,storage_id asc');
     expect(params.getAll('fq')).to.include('metaMetadata_brandId:"brand-a"');
-    expect(params.getAll('fq').at(-1)).to.include('authorization_viewRoles:("Reporter")');
+    expect(params.get('rbAclVersion')).to.equal(SOLR_EXACT_ACL_VERSION);
+    expect(params.get('rbAclUser')).to.equal(principal.user.username);
+    expect(params.get('rbAclRole0')).to.equal('Reporter');
+    expect(params.getAll('fq').at(-1)).to.include('f=redbox_acl2_view_roles v=$rbAclRole0');
     try {
       await service.searchReportingText(principal, 'default', 'rdmp', 'text', 0, 1000);
       throw new Error('Expected limit');
@@ -129,19 +153,20 @@ describe('Reporting REST and Solr adapters', () => {
   for (const partialResults of [true, 'true', 'omitted']) {
     it(`rejects incomplete Solr reporting pages when partialResults is ${JSON.stringify(partialResults)}`, async () => {
       sails.config = { ...sails.config, solr: structuredClone(solr) };
-      sinon.stub(axios, 'get').resolves({
+      const get = sinon.stub(axios, 'get').resolves({
         data: {
           responseHeader: { partialResults, details: 'private Solr query details' },
           response: { numFound: 42, docs: [{ redboxOid: 'incomplete-record' }] },
         },
       });
-      const service = new Services.SolrSearchService();
+      const service = await readySolr();
       let failure: unknown;
       try {
         await service.searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21);
       } catch (error) {
         failure = error;
       }
+      expect(get.calledOnce).to.equal(true);
       expect(failure).to.be.instanceOf(ReportingError);
       expect(failure).to.have.property('code', 'UNAVAILABLE');
       expect(failure).to.have.property('message', 'UNAVAILABLE');
@@ -156,8 +181,9 @@ describe('Reporting REST and Solr adapters', () => {
         response: { numFound: 1, docs: [{ redboxOid: 'complete-record' }] },
       },
     });
-    expect(
-      await new Services.SolrSearchService().searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21)
-    ).to.deep.equal(['complete-record']);
+    const service = await readySolr();
+    expect(await service.searchReportingText(principal, 'default', 'rdmp', 'text', 0, 21)).to.deep.equal([
+      'complete-record',
+    ]);
   });
 });

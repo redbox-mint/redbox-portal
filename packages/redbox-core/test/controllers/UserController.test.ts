@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -25,7 +27,7 @@ describe('UserController', () => {
                 http: { rootContext: '' },
                 appUrl: 'http://localhost'
             },
-            log: { debug: sinon.stub(), verbose: sinon.stub(), error: sinon.stub() }
+            log: createSinonStubLogger(sinon),
         };
 
         (global as any).sails = mockSails;
@@ -123,7 +125,8 @@ describe('UserController', () => {
 
             const optionsLog = mockSails.log.verbose.args
                 .map((args: unknown[]) => String(args[0]))
-                .find((message: string) => message.startsWith('decodeErrorMappings - options:'));
+                .find((message: string) => message.startsWith('decodeErrorMappings - options:'))
+            ?? '';
 
             expect(optionsLog).to.include('safe-client-id');
             expect(optionsLog).to.include('REDACTED');

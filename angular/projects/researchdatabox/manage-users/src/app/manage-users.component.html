@@ -1,154 +1,46 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">{{ loadError }} <button class="btn btn-outline-secondary" type="button" [disabled]="loadPending" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button></div>
+}
 @if (isReady) {
-  <div class="col-xs-12">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <span class="panel-title">
-          {{ 'manage-users-title' | i18next }}
-        </span>
-      </div>
-      <div class="panel-body overflow-scroll">
-        <!-- Toolbar -->
-        <div class="mu-toolbar">
-          <div class="mu-toolbar-search">
-            <label class="mu-toolbar-label" for="manage-users-search">{{ 'manage-users-filter-name' | i18next }}</label>
-            <div class="mu-toolbar-search-controls">
-              <div class="mu-search-input-wrap">
-                <i class="fa fa-search mu-search-icon"></i>
-                <input
-                  id="manage-users-search"
-                  type="text"
-                  (keyup)="onFilterChange()"
-                  [(ngModel)]="searchFilter.name"
-                  class="form-control mu-search-input"
-                  placeholder="{{ 'manage-users-filter-name-placeholder' | i18next }}"
-                  [attr.aria-label]="'manage-users-filter-name' | i18next"
-                />
-              </div>
-              <button class="btn btn-default" type="button" (click)="resetFilter()">
-                <i class="fa fa-refresh"></i>
-                {{ 'manage-users-filter-reset' | i18next }}
-              </button>
-            </div>
-          </div>
-          <div class="mu-toolbar-actions">
-            <label class="mu-toggle-label">
-              <input
-                type="checkbox"
-                [checked]="showDisabledUsers"
-                (change)="toggleShowDisabled()"
-                class="mu-toggle-input"
-              />
-              <span class="mu-toggle-switch"></span>
-              <span class="mu-toggle-text">{{ 'manage-users-show-disabled' | i18next }}</span>
-            </label>
-            <button class="btn btn-primary" type="button" (click)="newUser()">
-              <i class="fa fa-plus"></i>
-              {{ 'manage-users-add-local' | i18next }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Users Table -->
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped table-hover">
-            <thead>
-              <tr>
-                <th>{{ 'manage-users-name' | i18next }}</th>
-                <th>{{ 'manage-users-email' | i18next }}</th>
-                <th>{{ 'manage-users-role' | i18next }}</th>
-                <th>{{ 'manage-users-account-status' | i18next }}</th>
-                <th>{{ 'manage-users-api' | i18next }}</th>
-                <th>{{ 'manage-users-action' | i18next }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (user of filteredUsers; track user) {
-                <tr>
-                  <td>{{ user.name }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.roleStr }}</td>
-                  <td>
-                    <div class="manage-users-status">
-                      <span
-                        class="manage-users-status-badge"
-                        [class.manage-users-status-badge-info]="getAccountStatusBadgeClass(user) === 'info'"
-                        [class.manage-users-status-badge-default]="getAccountStatusBadgeClass(user) === 'default'"
-                        [class.manage-users-status-badge-danger]="getAccountStatusBadgeClass(user) === 'danger'"
-                      >
-                        {{ getAccountStatusBadge(user) }}
-                      </span>
-                      @if (getAccountStatusContext(user); as statusContext) {
-                        <div class="manage-users-status-context">
-                          <small>{{ statusContext }}</small>
-                        </div>
-                      }
-                    </div>
-                  </td>
-                  <td align="center">
-                    @if (user.token) {
-                      <i class="fa fa-check" style="color: #16a34a" aria-hidden="true"></i>
-                    }
-                  </td>
-                  <td>
-                    <div class="mu-action-group">
-                      <button
-                        type="button"
-                        class="btn btn-xs mu-btn-action mu-btn-action-edit"
-                        (click)="editUser(user.username)"
-                      >
-                        <i class="fa fa-pencil"></i>
-                        {{ 'manage-users-edit-link' | i18next }}
-                      </button>
-                      @if (canManageLinks(user)) {
-                        <button
-                          type="button"
-                          class="btn btn-xs mu-btn-action mu-btn-action-link"
-                          (click)="manageLinks(user.username)"
-                        >
-                          <i class="fa fa-link"></i>
-                          {{ 'manage-users-link-manage' | i18next }}
-                        </button>
-                      }
-                      @if (!isLinkedAlias(user)) {
-                        @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) {
-                          <button
-                            type="button"
-                            class="btn btn-xs mu-btn-action mu-btn-action-enable"
-                            (click)="enableUser(user)"
-                          >
-                            <i class="fa fa-check-circle"></i>
-                            {{ 'manage-users-enable-action' | i18next }}
-                          </button>
-                        }
-                        @if (!isEffectivelyDisabled(user)) {
-                          <button
-                            type="button"
-                            class="btn btn-xs mu-btn-action mu-btn-action-disable"
-                            (click)="disableUser(user)"
-                          >
-                            <i class="fa fa-ban"></i>
-                            {{ 'manage-users-disable-action' | i18next }}
-                          </button>
-                        }
-                      }
-                      <button
-                        type="button"
-                        class="btn btn-xs mu-btn-action mu-btn-action-audit"
-                        (click)="viewAudit(user)"
-                      >
-                        <i class="fa fa-history"></i>
-                        {{ 'manage-users-audit-action' | i18next }}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+<nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+  <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li><li>{{ 'admin-nav-people' | i18next }}</li><li><span aria-current="page">{{ 'admin-nav-users' | i18next }}</span></li>
+</ol></nav>
+<header class="rb-admin-page-header"><div><h1>{{ 'admin-nav-users' | i18next }}</h1><p>{{ 'admin-users-description' | i18next }}</p></div><div class="rb-admin-page-actions"><button class="btn btn-primary" type="button" (click)="newUser()"><i class="fa fa-plus" aria-hidden="true"></i> {{ 'manage-users-add-local' | i18next }}</button></div></header>
+@if (updateDetailsMsg && !isDetailsModalShown) { <div class="alert alert-{{ updateDetailsMsgType }}" role="status">{{ updateDetailsMsg }}</div> }
+<section class="card" [attr.aria-busy]="usersLoading">
+  <div class="card-header"><h2>{{ 'admin-nav-users' | i18next }}</h2><span role="status" aria-live="polite" aria-atomic="true">{{ totalUsers | adminCount: 'user' }}</span></div>
+  <div class="rb-admin-filter-bar">
+    <div class="rb-admin-field rb-admin-field-grow"><label for="manage-users-search">{{ 'admin-users-search' | i18next }}</label><input id="manage-users-search" type="search" class="form-control" [(ngModel)]="searchFilter.name" (ngModelChange)="onFilterChange()" [placeholder]="'admin-users-search-placeholder' | i18next"></div>
+    <div class="rb-admin-field"><label for="manage-users-role">{{ 'manage-users-role' | i18next }}</label><select id="manage-users-role" class="form-select" [(ngModel)]="roleFilter" (ngModelChange)="onFilterChange()"><option value="">{{ 'admin-users-any-role' | i18next }}</option>@for (role of allRoles; track role.id) { <option [value]="role.name">{{ role.name }}</option> }</select></div>
+    <div class="rb-admin-field"><label for="manage-users-sign-in">{{ 'admin-users-sign-in' | i18next }}</label><select id="manage-users-sign-in" class="form-select" [(ngModel)]="signInFilter" (ngModelChange)="changeSignInFilter()"><option value="">{{ 'admin-users-any-sign-in' | i18next }}</option>@for (method of signInMethods; track method) { <option [value]="method">{{ method === 'local' ? ('admin-users-local' | i18next) : method }}</option> }</select></div>
+    <div class="form-check form-switch people-show-disabled"><input id="show-disabled-users" class="form-check-input" type="checkbox" [checked]="showDisabledUsers" (change)="toggleShowDisabled()"><label class="form-check-label" for="show-disabled-users">{{ 'manage-users-show-disabled' | i18next }}</label></div>
+    @if (searchFilter.name || roleFilter || signInFilter || showDisabledUsers) { <button type="button" class="btn rb-admin-ghost" (click)="resetFilter()">{{ 'admin-report-clear' | i18next }}</button> }
   </div>
+  @if (filteredUsers.length) {
+  <div class="table-responsive people-table"><table class="table table-hover">
+    <thead><tr><th [attr.aria-sort]="order === 'asc' ? 'ascending' : 'descending'"><button type="button" class="btn rb-admin-ghost" (click)="sortUsers()">{{ 'admin-users-user' | i18next }} {{ order === 'asc' ? '↑' : '↓' }}</button></th><th>{{ 'admin-users-sign-in' | i18next }}</th><th>{{ 'manage-users-role' | i18next }}</th><th>{{ 'manage-users-account-status' | i18next }}</th><th class="text-nowrap">{{ 'admin-users-api-key' | i18next }}</th><th class="rb-admin-actions-col text-end">{{ 'record-table-results-table-header-actions' | i18next }}</th></tr></thead>
+    <tbody>@for (user of filteredUsers; track user.id) {
+      <tr><td><strong>{{ user.name || user.username }}</strong><span class="rb-admin-sub rb-admin-email" [title]="user.email || user.username">{{ user.email || user.username }}</span><span class="rb-admin-sub">{{ 'admin-users-last-login' | i18next }}: {{ user.lastLogin ? (user.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</span></td><td>@if (user.type) { <span class="badge">{{ user.type === 'local' ? ('admin-users-local' | i18next) : user.type }}</span> }</td>
+        <td><div class="people-badges">@for (role of user.roles; track role.id) { <span class="badge" [class.rb-admin-badge-primary]="role.name === 'Admin'">{{ role.name }}</span> }</div></td>
+        <td><span class="badge" [class.rb-admin-badge-danger]="isEffectivelyDisabled(user)" [class.rb-admin-badge-info]="isLinkedAlias(user)" [class.rb-admin-badge-success]="!isEffectivelyDisabled(user) && !isLinkedAlias(user)">{{ getAccountStatusBadge(user) }}</span>@if (getAccountStatusContext(user); as context) { <span class="rb-admin-sub">{{ context }}</span> }</td>
+        <td><span class="rb-admin-hint">{{ (user.token ? 'admin-users-key-issued' : 'admin-users-key-none') | i18next }}</span></td>
+        <td class="rb-admin-actions-col"><div class="rb-admin-row-actions"><button type="button" class="btn btn-sm btn-outline-secondary" (click)="editUser(user.username)">{{ 'manage-users-edit-link' | i18next }}</button>
+          <details rbAdminOverflow class="rb-admin-overflow people-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: user.name || user.username }">⋯</summary><div>
+            @if (canManageLinks(user)) { <button type="button" class="btn btn-sm rb-admin-ghost" (click)="manageLinks(user.username); actions.open = false">{{ 'manage-users-link-manage' | i18next }}</button> }
+            <button type="button" class="btn btn-sm rb-admin-ghost" (click)="viewAudit(user); actions.open = false">{{ 'manage-users-audit-action' | i18next }}</button>
+            @if (!isLinkedAlias(user)) {
+              <button type="button" class="btn btn-sm rb-admin-ghost" (click)="keyAction(user); actions.open = false">{{ (user.token ? 'manage-users-api-revoke' : 'manage-users-api-generate') | i18next }}</button>
+              @if (isEffectivelyDisabled(user) && isDirectlyDisabled(user)) { <button type="button" class="btn btn-sm rb-admin-ghost" (click)="enableUser(user); actions.open = false">{{ 'manage-users-enable-action' | i18next }}</button> }
+              @if (!isEffectivelyDisabled(user)) { <button type="button" class="btn btn-sm btn-outline-danger" (click)="requestUserAction('disable', user); actions.open = false">{{ 'manage-users-disable-action' | i18next }}</button> }
+            }
+          </div></details>
+        </div></td>
+      </tr>
+    }</tbody>
+  </table></div>
+  } @else { <div class="rb-admin-empty"><i class="fa fa-users fa-2x" aria-hidden="true"></i><h3>{{ 'admin-users-empty' | i18next }}</h3><p>{{ 'admin-users-empty-help' | i18next }}</p><button type="button" class="btn btn-outline-secondary" (click)="resetFilter()">{{ 'manage-users-filter-reset' | i18next }}</button></div> }
+  <div class="card-footer"><span>{{ 'admin-vocabulary-pagination-range' | i18next: { start: pageStart, end: pageStart ? pageStart + filteredUsers.length - 1 : 0, total: totalUsers } }}</span><rb-admin-pager [page]="page" [totalPages]="totalPages" [disabled]="usersLoading" (pageChange)="changePage($event)"></rb-admin-pager></div>
+</section>
 }
 <!-- Manage Links Modal -->
 @if (isLinkModalShown) {
@@ -156,22 +48,23 @@
     <div
       [config]="{ backdrop: 'static', show: true }"
       (onHidden)="onLinkModalHidden()"
-      bsModal
+      [rbAdminModal]="userLinkModal.isShown" (onShown)="userLinkModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal
       #userLinkModal="bs-modal"
       class="modal fade"
       tabindex="-1"
       role="dialog"
+      aria-modal="true"
       aria-labelledby="userlinkform"
     >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header mu-modal-header">
-            <h4 class="modal-title" id="userlinkform">
-              <i class="fa fa-link"></i>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userLinkModalTrap="cdkTrapFocus" [cdkTrapFocus]="userLinkModal.isShown" [cdkTrapFocusAutoCapture]="true">
+        <div class="modal-content rb-admin">
+          <div class="modal-header">
+            <h2 class="modal-title h4" id="userlinkform">
+              <i class="fa fa-link" aria-hidden="true"></i>
               {{ 'manage-users-link-title' | i18next }}
-            </h4>
+            </h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="hideLinkModal()"></button>
           </div>
-          <div class="modal-body mu-modal-body">
+          <div class="modal-body">
             <p>
               <strong>{{ linkPrimaryUser.name }}</strong> ({{ linkPrimaryUser.username }})
             </p>
@@ -193,7 +86,7 @@
               <strong>{{ 'manage-users-link-irreversible' | i18next }}</strong>
             </div>
 
-            <h5>{{ 'manage-users-link-existing' | i18next }}</h5>
+            <h3 class="h5">{{ 'manage-users-link-existing' | i18next }}</h3>
             @if (linkedAccounts.length === 0) {
               <p class="mu-empty-state">{{ 'manage-users-link-no-linked-accounts' | i18next }}</p>
             }
@@ -205,20 +98,18 @@
               </ul>
             }
 
-            <h5>{{ 'manage-users-link-search-title' | i18next }}</h5>
+            <h3 class="h5">{{ 'manage-users-link-search-title' | i18next }}</h3>
             <div class="input-group">
-              <input
+              <input cdkFocusInitial
                 type="text"
                 [(ngModel)]="linkSearchQuery"
                 class="form-control"
                 placeholder="{{ 'manage-users-link-search-placeholder' | i18next }}"
                 [attr.aria-label]="'manage-users-link-search-placeholder' | i18next"
               />
-              <span class="input-group-btn">
-                <button type="button" class="btn btn-primary" (click)="searchCandidates()">
-                  {{ 'manage-users-link-search' | i18next }}
-                </button>
-              </span>
+              <button type="button" class="btn btn-primary" (click)="searchCandidates()">
+                {{ 'manage-users-link-search' | i18next }}
+              </button>
             </div>
 
             @if (isLinkSearchLoading) {
@@ -226,14 +117,14 @@
             }
 
             @if (linkCandidates.length > 0) {
-              <div class="table-responsive" style="margin-top: 15px">
+              <div class="table-responsive mt-3">
                 <table class="table table-bordered table-striped table-hover">
                   <thead>
                     <tr>
                       <th>{{ 'manage-users-name' | i18next }}</th>
                       <th>{{ 'manage-users-email' | i18next }}</th>
                       <th>{{ 'manage-users-account-status' | i18next }}</th>
-                      <th>{{ 'manage-users-action' | i18next }}</th>
+                      <th class="rb-admin-actions-col">{{ 'record-table-results-table-header-actions' | i18next }}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -259,8 +150,8 @@
                             }
                           </div>
                         </td>
-                        <td>
-                          <button type="button" class="btn btn-default btn-sm" (click)="selectLinkCandidate(candidate)">
+                        <td class="rb-admin-actions-col">
+                          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="selectLinkCandidate(candidate)">
                             {{ 'manage-users-link-select' | i18next }}
                           </button>
                         </td>
@@ -272,16 +163,19 @@
             }
 
             @if (selectedLinkCandidate; as selectedLinkCandidate) {
-              <div class="alert alert-info" style="margin-top: 15px">
+              <div class="alert alert-info mt-3">
                 {{ 'manage-users-link-selected' | i18next }}: {{ selectedLinkCandidate.name }} ({{
                   selectedLinkCandidate.username
                 }})
               </div>
             }
 
-            <div class="bg-{{ linkMsgType }} center-block">{{ linkMsg }}</div>
+            @if (linkMsg) { <div class="alert alert-{{ linkMsgType }}" role="status">{{ linkMsg }}</div> }
           </div>
-          <div class="modal-footer mu-modal-footer">
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" (click)="hideLinkModal()">
+              {{ 'manage-users-cancel' | i18next }}
+            </button>
             <button
               type="button"
               class="btn btn-primary"
@@ -289,9 +183,6 @@
               (click)="submitLink()"
             >
               {{ 'manage-users-link-confirm' | i18next }}
-            </button>
-            <button type="button" class="btn btn-default" (click)="hideLinkModal()">
-              {{ 'manage-users-cancel' | i18next }}
             </button>
           </div>
         </div>
@@ -305,22 +196,23 @@
     <div
       [config]="{ backdrop: 'static', show: true }"
       (onHidden)="onAuditModalHidden()"
-      bsModal
+      [rbAdminModal]="userAuditModal.isShown" (onShown)="userAuditModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal
       #userAuditModal="bs-modal"
       class="modal fade"
       tabindex="-1"
       role="dialog"
+      aria-modal="true"
       aria-labelledby="userauditform"
     >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header mu-modal-header">
-            <h4 class="modal-title" id="userauditform">
-              <i class="fa fa-history"></i>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userAuditModalTrap="cdkTrapFocus" [cdkTrapFocus]="userAuditModal.isShown" [cdkTrapFocusAutoCapture]="true">
+        <div class="modal-content rb-admin">
+          <div class="modal-header">
+            <h2 class="modal-title h4" id="userauditform">
+              <i class="fa fa-history" aria-hidden="true"></i>
               {{ getAuditTitle() }}
-            </h4>
+            </h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="hideAuditModal()"></button>
           </div>
-          <div class="modal-body mu-modal-body">
+          <div class="modal-body">
             @if (isAuditLoading) {
               <p>{{ 'manage-users-audit-loading' | i18next }}</p>
             } @else {
@@ -377,8 +269,8 @@
               }
             }
           </div>
-          <div class="modal-footer mu-modal-footer">
-            <button type="button" class="btn btn-default" (click)="hideAuditModal()">
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" (click)="hideAuditModal()">
               {{ 'manage-users-cancel' | i18next }}
             </button>
           </div>
@@ -392,26 +284,28 @@
   @if (currentUser; as currentUser) {
     @if (updateUserForm; as updateUserForm) {
       <div
-        [config]="{ backdrop: 'static', show: true }"
+        [config]="{ backdrop: 'static', show: true, keyboard: false }"
         (onHidden)="onDetailsModalHidden()"
-        bsModal
+        [rbAdminModal]="userDetailsModal.isShown" (onShown)="userDetailsModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal
         #userDetailsModal="bs-modal"
         class="modal fade"
+        [attr.inert]="pendingUserAction || confirmDiscard ? '' : null" (keydown.escape)="$event.stopPropagation(); hideDetailsModal()"
         tabindex="-1"
         role="dialog"
-        aria-labelledby="detailsform"
+      aria-modal="true"
+        aria-labelledby="edit-user-title"
       >
-        <div class="modal-dialog modal-md">
-          <div class="modal-content">
-            <div class="modal-header mu-modal-header">
-              <h4 class="modal-title">
-                <i class="fa fa-user"></i>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userDetailsModalTrap="cdkTrapFocus" [cdkTrapFocus]="userDetailsModal.isShown && !pendingUserAction && !confirmDiscard" [cdkTrapFocusAutoCapture]="true">
+          <div class="modal-content rb-admin">
+            <div class="modal-header">
+              <h2 class="modal-title h4" id="edit-user-title">
+                <i class="fa fa-user" aria-hidden="true"></i>
                 {{ 'manage-users-edit' | i18next }}
-              </h4>
+              </h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="hideDetailsModal()"></button>
             </div>
-            <div class="modal-body mu-modal-body">
+            <div class="modal-body">
               @if (isEffectivelyDisabled(currentUser)) {
-                <div class="alert alert-warning" style="margin-bottom: 16px">
+                <div class="alert alert-warning mb-3">
                   @if (isDisabledViaPrimary(currentUser)) {
                     {{
                       'manage-users-disable-notice-primary'
@@ -423,7 +317,7 @@
                 </div>
               }
               @if (currentUser.accountLinkState === 'linked-alias') {
-                <div class="alert alert-info" style="margin-bottom: 16px">
+                <div class="alert alert-info mb-3">
                   {{
                     'manage-users-edit-linked-notice'
                       | i18next: { primaryUsername: currentUser.effectivePrimaryUsername || currentUser.username }
@@ -436,26 +330,20 @@
                 novalidate
                 (ngSubmit)="updateUserSubmit(updateUserForm.value, updateUserForm.valid)"
               >
-                <div class="mu-form-sections">
+                <div class="people-form-sections">
                   <!-- Account Information -->
-                  <div class="mu-form-section">
-                    <h5 class="mu-form-section-title">
-                      <i class="fa fa-id-card"></i>
+                  <div class="rb-admin-form-section">
+                    <h3 class="h5 rb-admin-form-section-header">
                       {{ 'manage-users-account-information' | i18next }}
-                    </h5>
-                    @if (currentUser.type == 'local') {
-                      <div class="mu-form-group">
-                        <label class="mu-form-label">{{ 'manage-users-username' | i18next }}</label>
-                        <div class="mu-form-value">{{ currentUser.username }}</div>
-                      </div>
-                    }
-                    <div class="mu-form-group">
-                      <label class="mu-form-label">{{ 'manage-users-name' | i18next }}</label>
+                    </h3><div class="rb-admin-form-section-body">
+                    <dl class="people-summary"><dt>{{ 'manage-users-username' | i18next }}</dt><dd>{{ currentUser.username }}</dd><dt>{{ 'admin-users-sign-in' | i18next }}</dt><dd>{{ currentUser.type === 'local' ? ('admin-users-local' | i18next) : currentUser.type }}</dd></dl>
+                    <div class="people-form-group">
+                      <label class="form-label" for="detailsform-name">{{ 'manage-users-name' | i18next }}</label>
                       @if (currentUser.type == 'local') {
-                        <div class="mu-form-control-wrap">
-                          <input type="text" formControlName="name" class="form-control" />
+                        <div class="people-form-control">
+                          <input cdkFocusInitial type="text" id="detailsform-name" formControlName="name" [attr.aria-describedby]="updateUserForm.controls['name'].touched || submitted ? 'detailsform-name-error' : null" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'name')" class="form-control" />
                           @if (updateUserForm.controls['name'].touched || submitted) {
-                            <div class="form-text error text-danger">
+                            <div id="detailsform-name-error" class="form-text error text-danger">
                               @if (updateUserForm.controls['name'].hasError('required')) {
                                 <div>{{ 'manage-users-validation-name' | i18next }}</div>
                               }
@@ -464,16 +352,16 @@
                         </div>
                       }
                       @if (currentUser.type != 'local') {
-                        <div class="mu-form-value">{{ currentUser.name }}</div>
+                        <div class="people-form-value">{{ currentUser.name }}</div>
                       }
                     </div>
-                    <div class="mu-form-group">
-                      <label class="mu-form-label">{{ 'manage-users-email' | i18next }}</label>
+                    <div class="people-form-group">
+                      <label class="form-label" for="detailsform-email">{{ 'manage-users-email' | i18next }}</label>
                       @if (currentUser.type == 'local') {
-                        <div class="mu-form-control-wrap">
-                          <input type="email" formControlName="email" class="form-control" />
+                        <div class="people-form-control">
+                          <input type="email" id="detailsform-email" formControlName="email" [attr.aria-describedby]="updateUserForm.controls['email'].touched || submitted ? 'detailsform-email-error' : null" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'email')" class="form-control" />
                           @if (updateUserForm.controls['email'].touched || submitted) {
-                            <div class="form-text error text-danger">
+                            <div id="detailsform-email-error" class="form-text error text-danger">
                               @if (updateUserForm.controls['email'].hasError('invalidEmail')) {
                                 <div>{{ 'manage-users-validation-email' | i18next }}</div>
                               }
@@ -482,51 +370,51 @@
                         </div>
                       }
                       @if (currentUser.type != 'local') {
-                        <div class="mu-form-value">{{ currentUser.email }}</div>
+                        <div class="people-form-value">{{ currentUser.email }}</div>
                       }
                     </div>
-                  </div>
+                    <div class="people-form-group"><span class="form-label">{{ 'admin-users-last-login' | i18next }}</span><div class="people-form-value">{{ currentUser.lastLogin ? (currentUser.lastLogin | adminDate) : ('admin-users-never' | i18next) }}</div></div>
+                  </div></div>
 
                   <!-- Security -->
-                  <div class="mu-form-section">
-                    <h5 class="mu-form-section-title">
-                      <i class="fa fa-lock"></i>
+                  <div class="rb-admin-form-section">
+                    <h3 class="h5 rb-admin-form-section-header">
                       {{ 'manage-users-security' | i18next }}
-                    </h5>
-                    <div class="mu-form-group">
-                      <label class="mu-form-label">{{ 'manage-users-password' | i18next }}</label>
+                    </h3><div class="rb-admin-form-section-body">
+                    <div class="people-form-group">
+                      <label class="form-label" for="detailsform-password">{{ 'manage-users-password' | i18next }}</label>
                       @if (currentUser.accountLinkState === 'linked-alias') {
-                        <div class="mu-form-value">
+                        <div class="people-form-value">
                           <em>{{ 'manage-users-password-linked-notice' | i18next }}</em>
                         </div>
                       }
                       @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
-                        <div class="mu-form-control-wrap" formGroupName="passwords">
+                        <div class="people-form-control" formGroupName="passwords">
                           <input
                             type="password"
-                            formControlName="password"
+                            id="detailsform-password" formControlName="password" [attr.aria-describedby]="isUpdateUserFormConfirmPasswordTouched() || submitted ? 'detailsform-confirmPassword-error' : null" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'passwords.password')"
                             class="form-control"
                             placeholder="{{ 'manage-users-update-password' | i18next }}"
                           />
                         </div>
                       }
                       @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type != 'local') {
-                        <div class="mu-form-value">{{ 'manage-users-aaf-password' | i18next }}</div>
+                        <div class="people-form-value">{{ 'manage-users-aaf-password' | i18next }}</div>
                       }
                     </div>
                     @if (currentUser.accountLinkState !== 'linked-alias' && currentUser.type == 'local') {
-                      <div class="mu-form-group">
-                        <label class="mu-form-label">{{ 'manage-users-confirm-password' | i18next }}</label>
-                        <div class="mu-form-control-wrap" formGroupName="passwords">
+                      <div class="people-form-group">
+                        <label class="form-label" for="detailsform-confirmPassword">{{ 'manage-users-confirm-password' | i18next }}</label>
+                        <div class="people-form-control" formGroupName="passwords">
                           <input
                             type="password"
-                            formControlName="confirmPassword"
+                            id="detailsform-confirmPassword" formControlName="confirmPassword" [attr.aria-describedby]="isUpdateUserFormConfirmPasswordTouched() || submitted ? 'detailsform-confirmPassword-error' : null" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'passwords.confirmPassword')"
                             class="form-control"
                             placeholder="{{ 'manage-users-confirm-password' | i18next }}"
                           />
                         </div>
                         @if (isUpdateUserFormConfirmPasswordTouched() || submitted) {
-                          <div class="form-text error text-danger">
+                          <div id="detailsform-confirmPassword-error" class="form-text error text-danger">
                             @if (updateUserForm.controls['passwords'].hasError('mismatched')) {
                               <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
                             }
@@ -541,17 +429,17 @@
                         }
                       </div>
                     }
-                    <div class="mu-form-group">
-                      <label class="mu-form-label">{{ 'manage-users-api' | i18next }}</label>
+                    <div class="people-form-group">
+                      <span class="form-label">{{ 'manage-users-api' | i18next }}</span>
                       @if (currentUser.accountLinkState === 'linked-alias') {
-                        <div class="mu-form-value">
+                        <div class="people-form-value">
                           <em>{{ 'manage-users-api-linked-notice' | i18next }}</em>
                         </div>
                       }
                       @if (currentUser.accountLinkState !== 'linked-alias' && !currentUser.token) {
                         <div>
-                          <button type="button" class="btn btn-primary" (click)="genKey(currentUser.id)">
-                            <i class="fa fa-key"></i>
+                          <button type="button" class="btn btn-outline-secondary" [disabled]="keyPending" (click)="genKey(currentUser.id)">
+                            <i class="fa fa-key" aria-hidden="true"></i>
                             {{ 'manage-users-api-generate' | i18next }}
                           </button>
                         </div>
@@ -562,69 +450,72 @@
                             <p>{{ 'manage-users-token-message' | i18next }}</p>
                             <div class="mu-token-display">{{ currentUser.token }}</div>
                           }
-                          <button type="button" class="btn btn-warning" (click)="revokeKey(currentUser.id)">
-                            <i class="fa fa-times-circle"></i>
+                          <button type="button" class="btn btn-outline-danger" (click)="requestUserAction('revoke', currentUser)">
+                            <i class="fa fa-times-circle" aria-hidden="true"></i>
                             {{ 'manage-users-api-revoke' | i18next }}
                           </button>
                         </div>
                       }
                     </div>
-                  </div>
+                  </div></div>
 
                   <!-- Roles & Permissions -->
-                  <div class="mu-form-section">
-                    <h5 class="mu-form-section-title">
-                      <i class="fa fa-shield"></i>
+                  <div class="rb-admin-form-section">
+                    <h3 class="h5 rb-admin-form-section-header">
                       {{ 'manage-users-roles-and-permissions' | i18next }}
-                    </h5>
+                    </h3><div class="rb-admin-form-section-body">
                     @if (currentUser.accountLinkState === 'linked-alias') {
                       <em>{{ 'manage-users-roles-linked-notice' | i18next }}</em>
                     } @else {
-                      <div [formArrayName]="'allRoles'" class="mu-roles-grid">
+                      <div [formArrayName]="'allRoles'" class="people-roles-grid">
                         @for (role of getUpdateUserFormControls(); track role; let i = $index) {
-                          <div [formGroup]="role" class="mu-role-item">
-                            <label class="mu-toggle-label" attr.for="role_{{ role.controls['key'].value }}">
+                          <div [formGroup]="role" class="form-check">
+                            <label class="form-check-label" attr.for="detailsform-role_{{ role.controls['key'].value }}">
                               <input
                                 type="checkbox"
-                                formControlName="checked"
-                                id="role_{{ role.controls['key'].value }}"
-                                class="mu-toggle-input"
+                                formControlName="checked" [attr.aria-describedby]="!updateUserForm.controls['roles'].valid && submitted ? 'detailsform-roles-error' : null" [attr.aria-invalid]="fieldInvalid(updateUserForm, 'roles')"
+                                id="detailsform-role_{{ role.controls['key'].value }}"
+                                class="form-check-input"
                               />
-                              <span class="mu-toggle-switch"></span>
+
                               <span class="mu-toggle-text">{{ role.controls['value'].value }}</span>
                             </label>
                           </div>
                         }
                       </div>
                       @if (!updateUserForm.controls['roles'].valid && submitted) {
-                        <div class="form-text error text-danger" style="margin-top: 8px">
+                        <div id="detailsform-roles-error" class="form-text error text-danger mt-2">
                           <div>{{ 'manage-users-validation-role' | i18next }}</div>
                         </div>
                       }
                     }
-                  </div>
+                  </div></div>
                 </div>
               </form>
-              <div class="bg-{{ updateDetailsMsgType }} center-block">{{ updateDetailsMsg }}</div>
+              <div class="rb-admin-page-actions people-detail-links">
+                @if (canManageLinks(currentUser)) { <button type="button" class="btn btn-sm btn-outline-secondary" (click)="navigateFromDetails('links')">{{ 'manage-users-link-manage' | i18next }}</button> }
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="navigateFromDetails('audit')">{{ 'manage-users-audit-action' | i18next }}</button>
+              </div>
+              @if (updateDetailsMsg) { <div class="alert alert-{{ updateDetailsMsgType }}" role="status">{{ updateDetailsMsg }}</div> }
             </div>
-            <div class="modal-footer mu-modal-footer">
+            <div class="modal-footer">
               @if (!isLinkedAlias(currentUser)) {
                 @if (isEffectivelyDisabled(currentUser) && isDirectlyDisabled(currentUser)) {
-                  <button type="button" class="btn btn-success" (click)="enableUser(currentUser)">
+                  <button type="button" class="btn btn-outline-secondary" (click)="enableUser(currentUser)">
                     {{ 'manage-users-enable-action' | i18next }}
                   </button>
                 }
                 @if (!isEffectivelyDisabled(currentUser)) {
-                  <button type="button" class="btn btn-warning" (click)="disableUser(currentUser)">
+                  <button type="button" class="btn btn-outline-danger" (click)="requestUserAction('disable', currentUser)">
                     {{ 'manage-users-disable-action' | i18next }}
                   </button>
                 }
               }
-              <button type="submit" class="btn btn-primary" form="detailsform">
-                {{ 'manage-users-save' | i18next }}
-              </button>
-              <button type="button" class="btn btn-default" (click)="hideDetailsModal()">
+              <button type="button" class="btn btn-outline-secondary" (click)="hideDetailsModal()">
                 {{ 'manage-users-cancel' | i18next }}
+              </button>
+            <button type="submit" class="btn btn-primary" form="detailsform">
+                {{ 'manage-users-save' | i18next }}
               </button>
             </div>
           </div>
@@ -637,50 +528,51 @@
 @if (isNewUserModalShown) {
   @if (newUserForm; as newUserForm) {
     <div
-      [config]="{ show: true }"
+      [config]="{ backdrop: 'static', show: true, keyboard: false }"
       (onHidden)="onNewUserHidden()"
-      bsModal
+      [rbAdminModal]="userNewModal.isShown" (onShown)="userNewModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal
       #userNewModal="bs-modal"
       class="modal fade"
+      [attr.inert]="confirmDiscard ? '' : null" (keydown.escape)="$event.stopPropagation(); hideNewUserModal()"
       tabindex="-1"
       role="dialog"
+      aria-modal="true"
       [attr.aria-hidden]="!isNewUserModalShown"
       aria-labelledby="newuserform"
     >
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header mu-modal-header">
-            <h4 class="modal-title" id="newuserform">
-              <i class="fa fa-user-plus"></i>
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" #userNewModalTrap="cdkTrapFocus" [cdkTrapFocus]="userNewModal.isShown && !confirmDiscard" [cdkTrapFocusAutoCapture]="true">
+        <div class="modal-content rb-admin">
+          <div class="modal-header">
+            <h2 class="modal-title h4" id="newuserform">
+              <i class="fa fa-user-plus" aria-hidden="true"></i>
               {{ 'manage-users-new' | i18next }}
-            </h4>
+            </h2><button type="button" class="btn-close" [attr.aria-label]="'named-query-close' | i18next" (click)="hideNewUserModal()"></button>
           </div>
-          <div class="modal-body mu-modal-body">
+          <div class="modal-body">
             <form
               id="newform"
               [formGroup]="newUserForm"
               novalidate
               (ngSubmit)="newUserSubmit(newUserForm.value, newUserForm.valid)"
             >
-              <div class="mu-form-sections">
+              <div class="people-form-sections">
                 <!-- Account Details -->
-                <div class="mu-form-section">
-                  <h5 class="mu-form-section-title">
-                    <i class="fa fa-id-card"></i>
+                <div class="rb-admin-form-section">
+                  <h3 class="h5 rb-admin-form-section-header">
                     {{ 'manage-users-account-details' | i18next }}
-                  </h5>
-                  <div class="mu-form-group">
-                    <label class="mu-form-label">{{ 'manage-users-username' | i18next }}</label>
-                    <div class="mu-form-control-wrap">
-                      <input
+                  </h3><div class="rb-admin-form-section-body">
+                  <div class="people-form-group">
+                    <label class="form-label" for="newform-username">{{ 'manage-users-username' | i18next }}</label>
+                    <div class="people-form-control">
+                      <input cdkFocusInitial
                         type="text"
-                        formControlName="username"
+                        id="newform-username" formControlName="username" [attr.aria-describedby]="newUserForm.controls['username'].touched || submitted ? 'newform-username-error' : null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'username')"
                         class="form-control"
                         placeholder="{{ 'manage-users-username' | i18next }}"
                         [attr.aria-label]="'manage-users-username' | i18next"
                       />
                       @if (newUserForm.controls['username'].touched || submitted) {
-                        <div class="form-text error text-danger">
+                        <div id="newform-username-error" class="form-text error text-danger">
                           @if (newUserForm.controls['username'].hasError('required')) {
                             <div>{{ 'manage-users-validation-username' | i18next }}</div>
                           }
@@ -688,18 +580,18 @@
                       }
                     </div>
                   </div>
-                  <div class="mu-form-group">
-                    <label class="mu-form-label">{{ 'manage-users-name' | i18next }}</label>
-                    <div class="mu-form-control-wrap">
+                  <div class="people-form-group">
+                    <label class="form-label" for="newform-name">{{ 'manage-users-name' | i18next }}</label>
+                    <div class="people-form-control">
                       <input
                         type="text"
-                        formControlName="name"
+                        id="newform-name" formControlName="name" [attr.aria-describedby]="newUserForm.controls['name'].touched || submitted ? 'newform-name-error' : null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'name')"
                         class="form-control"
                         placeholder="{{ 'manage-users-name' | i18next }}"
                         [attr.aria-label]="'manage-users-name' | i18next"
                       />
                       @if (newUserForm.controls['name'].touched || submitted) {
-                        <div class="form-text error text-danger">
+                        <div id="newform-name-error" class="form-text error text-danger">
                           @if (newUserForm.controls['name'].hasError('required')) {
                             <div>{{ 'manage-users-validation-name' | i18next }}</div>
                           }
@@ -707,18 +599,18 @@
                       }
                     </div>
                   </div>
-                  <div class="mu-form-group">
-                    <label class="mu-form-label">{{ 'manage-users-email' | i18next }}</label>
-                    <div class="mu-form-control-wrap">
+                  <div class="people-form-group">
+                    <label class="form-label" for="newform-email">{{ 'manage-users-email' | i18next }}</label>
+                    <div class="people-form-control">
                       <input
                         type="email"
-                        formControlName="email"
+                        id="newform-email" formControlName="email" [attr.aria-describedby]="newUserForm.controls['email'].touched || submitted ? 'newform-email-error' : null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'email')"
                         class="form-control"
                         placeholder="{{ 'manage-users-email' | i18next }}"
                         [attr.aria-label]="'manage-users-email' | i18next"
                       />
                       @if (newUserForm.controls['email'].touched || submitted) {
-                        <div class="form-text error text-danger">
+                        <div id="newform-email-error" class="form-text error text-danger">
                           @if (newUserForm.controls['email'].hasError('invalidEmail')) {
                             <div>{{ 'manage-users-validation-email' | i18next }}</div>
                           }
@@ -726,46 +618,45 @@
                       }
                     </div>
                   </div>
-                </div>
+                </div></div>
 
                 <!-- Security -->
-                <div class="mu-form-section">
-                  <h5 class="mu-form-section-title">
-                    <i class="fa fa-lock"></i>
+                <div class="rb-admin-form-section">
+                  <h3 class="h5 rb-admin-form-section-header">
                     {{ 'manage-users-security' | i18next }}
-                  </h5>
-                  <div class="mu-form-group">
-                    <label class="mu-form-label">{{ 'manage-users-password' | i18next }}</label>
-                    <div class="mu-form-control-wrap" formGroupName="passwords">
+                  </h3><div class="rb-admin-form-section-body">
+                  <div class="people-form-group">
+                    <label class="form-label" for="newform-password">{{ 'manage-users-password' | i18next }}</label>
+                    <div class="people-form-control" formGroupName="passwords">
                       <input
                         type="password"
-                        formControlName="password"
+                        id="newform-password" formControlName="password" [attr.aria-describedby]="((getNewUserPasswordFormControls()['confirmPassword'].touched || submitted ? 'newform-confirmPassword-error ' : '') + (getNewUserPasswordFormControls()['password'].touched || submitted ? 'newform-password-error' : '')).trim() || null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'passwords.password')"
                         class="form-control"
                         placeholder="{{ 'manage-users-password' | i18next }}"
                         [attr.aria-label]="'manage-users-password' | i18next"
                       />
                     </div>
                     @if (getNewUserPasswordFormControls()['password'].touched || submitted) {
-                      <div class="form-text error text-danger">
+                      <div id="newform-password-error" class="form-text error text-danger">
                         @if (getNewUserPasswordFormControls()['password'].hasError('required')) {
                           <div>{{ 'manage-users-validation-password' | i18next }}</div>
                         }
                       </div>
                     }
                   </div>
-                  <div class="mu-form-group">
-                    <label class="mu-form-label">{{ 'manage-users-confirm-password' | i18next }}</label>
-                    <div class="mu-form-control-wrap" formGroupName="passwords">
+                  <div class="people-form-group">
+                    <label class="form-label" for="newform-confirmPassword">{{ 'manage-users-confirm-password' | i18next }}</label>
+                    <div class="people-form-control" formGroupName="passwords">
                       <input
                         type="password"
-                        formControlName="confirmPassword"
+                        id="newform-confirmPassword" formControlName="confirmPassword" [attr.aria-describedby]="getNewUserPasswordFormControls()['confirmPassword'].touched || submitted ? 'newform-confirmPassword-error' : null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'passwords.confirmPassword')"
                         class="form-control"
                         placeholder="{{ 'manage-users-confirm-password' | i18next }}"
                         [attr.aria-label]="'manage-users-confirm-password' | i18next"
                       />
                     </div>
                     @if (getNewUserPasswordFormControls()['confirmPassword'].touched || submitted) {
-                      <div class="form-text error text-danger">
+                      <div id="newform-confirmPassword-error" class="form-text error text-danger">
                         @if (newUserForm.controls['passwords'].hasError('mismatched')) {
                           <div>{{ 'manage-users-validation-confirmpassword' | i18next }}</div>
                         }
@@ -779,46 +670,45 @@
                       </div>
                     }
                   </div>
-                </div>
+                </div></div>
 
                 <!-- Roles -->
-                <div class="mu-form-section">
-                  <h5 class="mu-form-section-title">
-                    <i class="fa fa-shield"></i>
+                <div class="rb-admin-form-section">
+                  <h3 class="h5 rb-admin-form-section-header">
                     {{ 'manage-users-roles-and-permissions' | i18next }}
-                  </h5>
-                  <div [formArrayName]="'allRoles'" class="mu-roles-grid">
+                  </h3><div class="rb-admin-form-section-body">
+                  <div [formArrayName]="'allRoles'" class="people-roles-grid">
                     @for (role of getNewUserFormControls(); track role; let i = $index) {
-                      <div [formGroup]="role" class="mu-role-item">
-                        <label class="mu-toggle-label" attr.for="role_{{ role.controls['key'].value }}">
+                      <div [formGroup]="role" class="form-check">
+                        <label class="form-check-label" attr.for="newform-role_{{ role.controls['key'].value }}">
                           <input
                             type="checkbox"
-                            formControlName="checked"
-                            id="role_{{ role.controls['key'].value }}"
-                            class="mu-toggle-input"
+                            formControlName="checked" [attr.aria-describedby]="!newUserForm.controls['roles'].valid && submitted ? 'newform-roles-error' : null" [attr.aria-invalid]="fieldInvalid(newUserForm, 'roles')"
+                            id="newform-role_{{ role.controls['key'].value }}"
+                            class="form-check-input"
                           />
-                          <span class="mu-toggle-switch"></span>
+
                           <span class="mu-toggle-text">{{ role.controls['value'].value }}</span>
                         </label>
                       </div>
                     }
                   </div>
                   @if (!newUserForm.controls['roles'].valid && submitted) {
-                    <div class="form-text error text-danger" style="margin-top: 8px">
+                    <div id="newform-roles-error" class="form-text error text-danger mt-2">
                       <div>{{ 'manage-users-validation-role' | i18next }}</div>
                     </div>
                   }
-                </div>
+                </div></div>
               </div>
             </form>
-            <div class="bg-{{ newUserMsgType }} center-block">{{ newUserMsg }}</div>
+            @if (newUserMsg) { <div class="alert alert-{{ newUserMsgType }}" role="status">{{ newUserMsg }}</div> }
           </div>
-          <div class="modal-footer mu-modal-footer">
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" (click)="hideNewUserModal()">
+              {{ 'manage-users-cancel' | i18next }}
+            </button>
             <button type="submit" class="btn btn-primary" form="newform">
               {{ 'manage-users-save' | i18next }}
-            </button>
-            <button type="button" class="btn btn-default" (click)="hideNewUserModal()">
-              {{ 'manage-users-cancel' | i18next }}
             </button>
           </div>
         </div>
@@ -826,3 +716,15 @@
     </div>
   }
 }
+
+@if (pendingUserAction; as action) {
+  <div [config]="{backdrop: 'static', show: true, keyboard: false}" [rbAdminModal]="userActionModal.isShown" (onShown)="userActionModalTrap.focusTrap.focusInitialElementWhenReady()" bsModal #userActionModal="bs-modal" (onHidden)="pendingUserAction = null" class="modal fade" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-action-title" (keydown.escape)="$event.stopPropagation(); !actionPending && userActionModal.hide()">
+    <div class="modal-dialog modal-dialog-centered" #userActionModalTrap="cdkTrapFocus" [cdkTrapFocus]="userActionModal.isShown" [cdkTrapFocusAutoCapture]="true"><div class="modal-content rb-admin">
+      <div class="modal-header"><h2 class="modal-title" id="user-action-title">{{ (action.kind === 'disable' ? 'admin-users-disable-title' : 'admin-users-revoke-title') | i18next }}</h2><button type="button" class="btn-close" [disabled]="actionPending" [attr.aria-label]="'named-query-close' | i18next" (click)="userActionModal.hide()"></button></div>
+      <div class="modal-body"><p>{{ (action.kind === 'disable' ? 'admin-users-disable-confirm' : 'admin-users-revoke-confirm') | i18next: { name: action.user.name || action.user.username } }}</p>@if (actionError) { <div class="alert alert-danger" role="alert">{{ actionError }}</div> }</div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" [disabled]="actionPending" cdkFocusInitial (click)="userActionModal.hide()">{{ 'manage-users-cancel' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" [disabled]="actionPending" (click)="confirmUserAction()">{{ (action.kind === 'disable' ? 'manage-users-disable-action' : 'manage-users-api-revoke') | i18next }}</button></div>
+    </div></div>
+  </div>
+}
+
+@if (confirmDiscard) { <rb-admin-discard-dialog (keepEditing)="keepEditing()" (discard)="discardEditor()"></rb-admin-discard-dialog> }

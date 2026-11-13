@@ -68,6 +68,7 @@ describe('PDFService Integration Audit', () => {
     mockPage = {
       setRequestInterception: sinon.stub().resolves(),
       on: sinon.stub(),
+      emulateMediaType: sinon.stub().resolves(),
       mainFrame: sinon.stub().returns({}),
       url: sinon.stub().callsFake(() => mockPage.goto.lastCall.args[0]),
       goto: sinon.stub().callsFake(async (url: string) => navigationResponse(url)),

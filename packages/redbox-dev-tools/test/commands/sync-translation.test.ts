@@ -14,8 +14,10 @@ const testRoot = path.join(packageRoot, 'test');
 describe('sync-translation command', () => {
   let tempRoot: string;
   let syncTranslationResources: string;
+  let originalFetchDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {
+    originalFetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'fetch');
     tempRoot = path.join(testRoot, '.tmp', 'sync-translation');
     fs.rmSync(tempRoot, {recursive: true, force: true});
     fs.mkdirSync(tempRoot, {recursive: true});
@@ -24,6 +26,11 @@ describe('sync-translation command', () => {
   });
 
   afterEach(() => {
+    if (originalFetchDescriptor) {
+      Object.defineProperty(globalThis, 'fetch', originalFetchDescriptor);
+    } else {
+      delete (globalThis as any).fetch;
+    }
     fs.rmSync(tempRoot, {recursive: true, force: true});
     sinon.restore();
   });

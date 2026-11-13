@@ -98,6 +98,9 @@ export namespace Services {
     }
 
     private getVariableValue(normalized: Record<string, string>, token: BrandingThemeToken): string {
+      if (token.key === 'admin-sidebar-text-color' && !normalized[token.key]) {
+        return normalized['panel-branding-background-color'] || token.defaultValue;
+      }
       return normalized[token.key] || token.defaultValue;
     }
 
@@ -117,16 +120,42 @@ export namespace Services {
       return lines.join('\n');
     }
 
-    private buildCompatibilityCss(): string {
+    private buildCompatibilityCss(normalized: Record<string, string>): string {
       return compatTokens
         .flatMap(token => [
           `.btn-${token.key} {`,
+          // Preserve Sass-customised contrast colours until the brand opts in.
+          ...(normalized[`${token.key}-text-color`]
+            ? [
+                `  --bs-btn-color: var(--rb-${token.key}-text-color);`,
+                `  --bs-btn-hover-color: var(--rb-${token.key}-text-color);`,
+                `  --bs-btn-active-color: var(--rb-${token.key}-text-color);`,
+                `  --bs-btn-disabled-color: var(--rb-${token.key}-text-color);`,
+                // The compiled theme sets secondary's normal colours directly; override them
+                // together so the configured text sits on the configured background.
+                ...(token.key === 'secondary'
+                  ? [
+                      '  color: var(--rb-secondary-text-color);',
+                      '  background-color: var(--rb-secondary);',
+                      '  border-color: var(--rb-secondary);',
+                    ]
+                  : []),
+              ]
+            : []),
           `  --bs-btn-bg: var(--rb-${token.key});`,
           `  --bs-btn-border-color: var(--rb-${token.key});`,
           `  --bs-btn-hover-bg: var(--rb-${token.key});`,
           `  --bs-btn-hover-border-color: var(--rb-${token.key});`,
           `  --bs-btn-active-bg: var(--rb-${token.key});`,
           `  --bs-btn-active-border-color: var(--rb-${token.key});`,
+          // Only a brand that sets this text colour gets the brand background on disabled
+          // buttons; otherwise disabled buttons keep Bootstrap's default pairing.
+          ...(normalized[`${token.key}-text-color`]
+            ? [
+                `  --bs-btn-disabled-bg: var(--rb-${token.key});`,
+                `  --bs-btn-disabled-border-color: var(--rb-${token.key});`,
+              ]
+            : []),
           '}',
           `.text-${token.key} {`,
           `  color: var(--rb-${token.key}) !important;`,
@@ -144,7 +173,7 @@ export namespace Services {
       const css = [
         typefaceCss,
         this.buildRootCss(normalized, normalizeTypefaceState(opts?.typeface).mode === 'custom'),
-        this.buildCompatibilityCss(),
+        this.buildCompatibilityCss(normalized),
       ]
         .filter(block => block.length > 0)
         .join('\n\n');

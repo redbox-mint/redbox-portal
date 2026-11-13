@@ -59,6 +59,12 @@ export interface SaveButtonFieldComponentConfigFrame extends FieldComponentConfi
    * Default is 3 seconds delay.
    */
   redirectDelaySeconds?: number;
+  /** Ask for confirmation before publishing a save request. Blank or absent skips the dialog. */
+  confirmationMessage?: string;
+  /** Optional confirmation title and button labels; translation keys are supported. */
+  confirmationTitle?: string;
+  cancelButtonMessage?: string;
+  confirmButtonMessage?: string;
 }
 
 export interface SaveButtonFieldComponentConfigOutline extends SaveButtonFieldComponentConfigFrame, FieldComponentConfigOutline {

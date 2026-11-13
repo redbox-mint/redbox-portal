@@ -24,6 +24,55 @@ describe("PDFListComponent", () => {
         });
     });
 
+    it("shows an accessible failure warning, retries with current config, and distinguishes a real empty result", async () => {
+        recordService.getAttachments.and.rejectWith(new Error("offline"));
+        const config: FormConfigFrame = {
+            name: "testing",
+            componentDefinitions: [{ name: "pdfs", component: { class: "PDFListComponent" },
+                model: { class: "PDFListModel", config: { defaultValue: [] } } }]
+        };
+        const { fixture } = await createFormAndWaitForReady(config, { oid: "plan-123", editMode: false } as never);
+        const debug = fixture.debugElement.query(By.directive(PDFListComponent));
+        const component = debug.componentInstance as PDFListComponent;
+        fixture.detectChanges();
+        expect(debug.nativeElement.querySelector('[role="status"]').textContent).toContain("does not confirm");
+        expect(component.attachmentsLoading).toBeFalse();
+        component.startsWith = "custom";
+        recordService.getAttachments.and.resolveTo([{ label: "custom-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-01-01T00:00:00Z" }]);
+        debug.nativeElement.querySelector('button').click();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        expect(component.latestPdf?.label).toContain("custom-");
+        expect(debug.nativeElement.querySelector('[role="status"]')).toBeNull();
+        recordService.getAttachments.and.rejectWith(new Error("offline again"));
+        await component.loadAttachments();
+        expect(component.pdfAttachments.length).toBe(1);
+        expect(component.formControl.value.length).toBe(1);
+        recordService.getAttachments.and.resolveTo([]);
+        await component.loadAttachments();
+        expect(component.pdfAttachments).toEqual([]);
+        expect(component.attachmentsLoadWarning).toBeFalse();
+    });
+
+    it("ignores an older failed attachment request after a newer success", async () => {
+        recordService.getAttachments.and.resolveTo([]);
+        const config: FormConfigFrame = { name: "testing", componentDefinitions: [
+            { name: "pdfs", component: { class: "PDFListComponent" }, model: { class: "PDFListModel" } }
+        ] };
+        const { fixture } = await createFormAndWaitForReady(config, { oid: "plan-123", editMode: false } as never);
+        const component = fixture.debugElement.query(By.directive(PDFListComponent)).componentInstance as PDFListComponent;
+        let rejectOld!: (error: Error) => void;
+        recordService.getAttachments.and.returnValue(new Promise((_, reject) => { rejectOld = reject; }));
+        const old = component.loadAttachments();
+        recordService.getAttachments.and.resolveTo([{ label: "rdmp-pdf-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1.pdf", dateUpdated: "2024-01-01T00:00:00Z" }]);
+        await component.loadAttachments();
+        rejectOld(new Error("old failure"));
+        await old;
+        expect(component.latestPdf).not.toBeNull();
+        expect(component.attachmentsLoadWarning).toBeFalse();
+        expect(component.attachmentsLoading).toBeFalse();
+    });
+
     it("should create component", () => {
         const fixture = TestBed.createComponent(PDFListComponent);
         expect(fixture.componentInstance).toBeDefined();

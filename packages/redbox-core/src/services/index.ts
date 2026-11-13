@@ -1,4 +1,5 @@
 import * as ReportingServiceModule from './ReportingService';
+import * as PartyImportServiceModule from './PartyImportService';
 /**
  * Services index - exports all service classes and creates ServiceExports object
  * for consumption by the redbox-core loader shim generation
@@ -6,6 +7,7 @@ import * as ReportingServiceModule from './ReportingService';
 
 // Import all service modules and re-export
 import * as AgendaQueueServiceModule from './AgendaQueueService';
+import * as ExportServiceModule from './ExportService';
 import * as AttachmentMetadataServiceModule from './AttachmentMetadataService';
 import * as AppConfigServiceModule from './AppConfigService';
 import * as AsynchsServiceModule from './AsynchsService';
@@ -20,6 +22,10 @@ import * as DashboardConfigServiceModule from './DashboardConfigService';
 import * as DashboardTypesServiceModule from './DashboardTypesService';
 import * as DoiServiceModule from './DoiService';
 import * as EmailServiceModule from './EmailService';
+import * as EmailTemplateAdminServiceModule from './EmailTemplateAdminService';
+import * as EmailTemplateServiceModule from './EmailTemplateService';
+import * as NamedQueryEditorServiceModule from './NamedQueryEditorService';
+import * as FieldDescriptionsServiceModule from './FieldDescriptionsService';
 import * as FigshareServiceModule from './FigshareService';
 import * as FigshareVocabularyServiceModule from './FigshareVocabularyService';
 import * as FormVocabularyServiceModule from './FormVocabularyService';
@@ -78,6 +84,7 @@ import * as GenerationWorkerServiceModule from './GenerationWorkerService';
 
 // Re-export all service namespaces
 export { AgendaQueueServiceModule as AgendaQueueService };
+export { ExportServiceModule as ExportService };
 export { AttachmentMetadataServiceModule as AttachmentMetadataService };
 export { AppConfigServiceModule as AppConfigService };
 export { AsynchsServiceModule as AsynchsService };
@@ -92,6 +99,10 @@ export { DashboardConfigServiceModule as DashboardConfigService };
 export { DashboardTypesServiceModule as DashboardTypesService };
 export { DoiServiceModule as DoiService };
 export { EmailServiceModule as EmailService };
+export { EmailTemplateServiceModule as EmailTemplateService };
+export { EmailTemplateAdminServiceModule as EmailTemplateAdminService };
+export { NamedQueryEditorServiceModule as NamedQueryEditorService };
+export { FieldDescriptionsServiceModule as FieldDescriptionsService };
 export { FigshareServiceModule as FigshareService };
 export { FigshareVocabularyServiceModule as FigshareVocabularyService };
 export { FormVocabularyServiceModule as FormVocabularyService };
@@ -205,6 +216,9 @@ export const ServiceExports = {
   get ReportingService() {
     return getOrCreateService('ReportingService', () => new ReportingServiceModule.Services.Reporting().exports());
   },
+  get ExportService() {
+    return getOrCreateService('ExportService', () => new ExportServiceModule.Services.Export().exports());
+  },
   get AgendaQueueService() {
     return getOrCreateService('AgendaQueueService', () =>
       new AgendaQueueServiceModule.Services.AgendaQueue().exports()
@@ -260,6 +274,12 @@ export const ServiceExports = {
   },
   get DoiService() {
     return getOrCreateService('DoiService', () => new DoiServiceModule.Services.Doi().exports());
+  },
+  get EmailTemplateAdminService() {
+    return getOrCreateService('EmailTemplateAdminService', () => new EmailTemplateAdminServiceModule.Services.EmailTemplateAdmin().exports());
+  },
+  get EmailTemplateService() {
+    return getOrCreateService('EmailTemplateService', () => new EmailTemplateServiceModule.Services.EmailTemplates().exports());
   },
   get EmailService() {
     return getOrCreateService('EmailService', () => new EmailServiceModule.Services.Email().exports());
@@ -341,6 +361,16 @@ export const ServiceExports = {
       new RecordTypesServiceModule.Services.RecordTypes().exports()
     );
   },
+  get NamedQueryEditorService() {
+    return getOrCreateService('NamedQueryEditorService', () =>
+      new NamedQueryEditorServiceModule.Services.NamedQueryEditor().exports()
+    );
+  },
+  get FieldDescriptionsService() {
+    return getOrCreateService('FieldDescriptionsService', () =>
+      new FieldDescriptionsServiceModule.Services.FieldDescriptions().exports()
+    );
+  },
   get RecordSchemaService() {
     return getOrCreateService('RecordSchemaService', () =>
       new RecordSchemaServiceModule.Services.RecordSchema(recordSchemaContributorDependencies).exports()
@@ -394,6 +424,7 @@ export const ServiceExports = {
       new VocabularyServiceModule.Services.VocabularyService().exports()
     );
   },
+  get PartyImportService() { return getOrCreateService('PartyImportService', () => new PartyImportServiceModule.Services.PartyImport().exports()); },
   get RvaImportService() {
     return getOrCreateService('RvaImportService', () => new RvaImportServiceModule.Services.RvaImport().exports());
   },

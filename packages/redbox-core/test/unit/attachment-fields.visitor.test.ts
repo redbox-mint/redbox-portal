@@ -1,6 +1,5 @@
 
 import { AttachmentFieldsVisitor } from "../../src/visitor/attachment-fields.visitor";
-import { logger } from "./helpers";
 import {
     FormConfig,
     FileUploadFormComponentDefinition,
@@ -20,7 +19,8 @@ import {
     TabContentFieldComponentConfig,
     RepeatableFormComponentDefinition,
     RepeatableFieldComponentDefinition,
-    RepeatableFieldComponentConfig
+    RepeatableFieldComponentConfig,
+    consoleLogger as testLogger,
 } from "@researchdatabox/sails-ng-common";
 
 let expect: Chai.ExpectStatic;
@@ -35,7 +35,7 @@ describe("AttachmentFieldsVisitor", () => {
         fileUpload.component.config = new FileUploadFieldComponentConfig();
         formConfig.componentDefinitions = [fileUpload];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUpload1");
@@ -57,7 +57,7 @@ describe("AttachmentFieldsVisitor", () => {
         group.component.config.componentDefinitions = [fileUpload];
         formConfig.componentDefinitions = [group];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUploadInGroup");
@@ -85,7 +85,7 @@ describe("AttachmentFieldsVisitor", () => {
         tab.component.config.tabs = [tabContent];
         formConfig.componentDefinitions = [tab];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUploadInTab");
@@ -107,7 +107,7 @@ describe("AttachmentFieldsVisitor", () => {
         repeatable.component.config.elementTemplate = fileUpload;
         formConfig.componentDefinitions = [repeatable];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUploadInRepeatable");
@@ -136,7 +136,7 @@ describe("AttachmentFieldsVisitor", () => {
 
         formConfig.componentDefinitions = [fileUpload1, group];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("fileUpload1");
@@ -148,7 +148,7 @@ describe("AttachmentFieldsVisitor", () => {
         const formConfig = new FormConfig();
         formConfig.componentDefinitions = [];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.be.an("array");
@@ -163,7 +163,7 @@ describe("AttachmentFieldsVisitor", () => {
         dataLocation.component.config = new DataLocationFieldComponentConfig();
         formConfig.componentDefinitions = [dataLocation];
 
-        const visitor = new AttachmentFieldsVisitor(logger);
+        const visitor = new AttachmentFieldsVisitor(testLogger);
         await visitor.start(formConfig);
 
         expect(formConfig.attachmentFields).to.include("dataLocations");

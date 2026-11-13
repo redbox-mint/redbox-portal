@@ -85,7 +85,8 @@ export interface DomPurifyConfig {
     globalSettings: DomPurifyGlobalSettings;
 }
 
-export const safeHtmlUriRegexp = /^(?:(?:https?|ftps?|mailto|tel):|(?:[^a-z:]|[a-z][a-z0-9.+-]*(?:[^a-z0-9.+-:]|$)))/i;
+// A scheme may contain letters, digits, +, . and -; other characters start a relative path.
+export const safeHtmlUriRegexp = /^(?:(?:https?|ftps?|mailto|tel):|(?:[^a-z:]|[a-z][a-z0-9.+-]*(?:[^a-z0-9.+\-:]|$)))/i;
 export const safeSvgUriRegexp = /^(?:#[^\s]*|(?:\.{1,2}\/|\/(?!\/))?[^\\/:?#\s]+(?:\/[^\\/:?#\s]+)*(?:[?#][^\s]*)?)$/i;
 
 export const dompurify: DomPurifyConfig = {
@@ -158,6 +159,29 @@ export const dompurify: DomPurifyConfig = {
             SANITIZE_DOM: true,
             KEEP_CONTENT: false,
             IN_PLACE: false
+        },
+
+        /** Email-safe formatting; external institution images are intentionally supported. */
+        email: {
+            ALLOWED_TAGS: [
+                'a', 'p', 'br', 'hr', 'strong', 'em', 'u', 'i', 'b', 's', 'small', 'span', 'div',
+                'sub', 'sup', 'blockquote', 'pre', 'code', 'ul', 'ol', 'li',
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img',
+                'table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+            ],
+            ALLOWED_ATTR: [
+                'class', 'title', 'style', 'href', 'src', 'alt', 'width', 'height',
+                'align', 'valign', 'border', 'cellpadding', 'cellspacing', 'colspan', 'rowspan',
+                'scope', 'start', 'type',
+            ],
+            FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button',
+                'textarea', 'select', 'option', 'svg', 'math', 'template'],
+            ALLOW_DATA_ATTR: false,
+            ALLOW_UNKNOWN_PROTOCOLS: false,
+            ALLOWED_URI_REGEXP: /^(?:https?:\/\/|mailto:)/i,
+            SANITIZE_DOM: true,
+            KEEP_CONTENT: true,
+            IN_PLACE: false,
         },
 
         /**

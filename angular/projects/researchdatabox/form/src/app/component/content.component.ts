@@ -49,6 +49,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   protected override logName: string = ContentComponentName;
   public content:string = '';
   public isRichTextContent = false;
+  private contentInitialization?: Promise<void>;
+  private renderContent?: () => void;
+  private contentDestroyed = false;
+
+  protected async refreshContent(): Promise<void> {
+    await this.contentInitialization;
+    if (!this.contentDestroyed) this.renderContent?.();
+  }
+
   protected formValueChangesSub?: Subscription;
   protected formBindTimeoutId?: ReturnType<typeof setTimeout>;
 
@@ -65,6 +74,11 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   protected override async initData(): Promise<void> {
+    this.contentInitialization = this.initializeContent();
+    await this.contentInitialization;
+  }
+
+  private async initializeContent(): Promise<void> {
     const config = this.componentDefinition?.config as ContentFieldComponentConfig;
 
     const template = config?.template ?? '';
@@ -82,12 +96,14 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
       const templateLineagePath = [...(this.formFieldCompMapEntry?.lineagePaths?.formConfig ?? []), 'component', 'config', 'template'];
       try {
         const compiledItems = await this.getFormComponent.getRecordCompiledItems();
+        if (this.contentDestroyed) return;
         const renderTemplate = (formData: Record<string, unknown> = {}) => {
           // Build the variables available to the template.
           const context = this.buildTemplateContext(config, formData);
           const extra = {libraries: {handlebars: handlebarsTemplate}};
           this.content = compiledItems.evaluate(templateLineagePath, context, extra)?.toString() ?? "";
         };
+        this.renderContent = () => renderTemplate(this.getFormComponent.form?.getRawValue?.() ?? {});
         const initialForm = this.getFormComponent.form;
         renderTemplate(initialForm?.getRawValue?.() ?? initialForm?.value ?? {});
 
@@ -135,13 +151,15 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   protected buildTemplateContext(config: ContentFieldComponentConfig, formData: Record<string, unknown>): Record<string, unknown> {
     const runtimeContext = this.getRuntimeTemplateContext();
     return {
-      content: config?.content ?? '',
-      formData,
+      content: structuredClone(config?.content ?? ''),
+      formData: structuredClone(formData),
       translationService: this.translationService,
       branding: runtimeContext.branding,
       portal: runtimeContext.portal,
       oid: runtimeContext.oid,
-      workflow: this.formComponent.formConfigMeta['workflow'] ?? {},
+      runtimeContext: this.getFormComponent.getExpressionRuntimeContext(),
+      requestParams: structuredClone(this.getFormComponent.requestParams()),
+      workflow: structuredClone(this.formComponent.formConfigMeta['workflow'] ?? {}),
       outputFormat: config?.outputFormat,
     };
   }
@@ -168,6 +186,8 @@ export class ContentComponent extends FormFieldBaseComponent<string> {
   }
 
   ngOnDestroy(): void {
+    this.contentDestroyed = true;
+    this.renderContent = undefined;
     if (this.formBindTimeoutId) {
       clearTimeout(this.formBindTimeoutId);
     }

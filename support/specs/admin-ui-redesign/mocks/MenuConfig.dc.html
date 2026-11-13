@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Menu configuration</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&amp;family=Roboto+Condensed:wght@400;700&amp;display=swap">
+<style>body{margin:0;background:#fff}</style>
+</helmet>
+<div style="font-family: 'Titillium Web', Arial, sans-serif; color: #333333; background: #ffffff">
+  <dc-import name="Header" hint-size="100%,150px"></dc-import>
+  <div class="adm-body">
+    <dc-import name="Sidebar" active="menu" hint-size="248px,1240px"></dc-import>
+    <main class="adm-main"><div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Admin</a><span>/</span><span>Site &amp; content</span><span>/</span><span>Menu</span></nav>
+      <header class="ph">
+        <div><h1>Navigation</h1><p>Edit the main menu, the home page panels and this admin sidebar. Changes show in the preview before you save.</p></div>
+        <div class="ph-actions"><button class="btn btn-secondary" type="button">Reset to default</button><button class="btn btn-primary" type="button">+ Add menu item</button></div>
+      </header>
+      <nav class="tabs" aria-label="Navigation editors"><a href="#" class="on">Main menu</a><a href="#">Home panels</a><a href="#">Admin sidebar</a></nav>
+
+      <div class="split">
+        <div class="split-main">
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>Global settings</h3></div><label class="switch on"><i></i>Show search bar</label></div>
+          </div>
+          <div class="card">
+            <div class="card-h plain"><h2>Menu items</h2><span class="small muted">Drag ⠿ to reorder · 7 items</span></div>
+            <div class="tbl-wrap"><table class="tbl">
+              <tbody>
+                <tr style="background: #f5f9ff"><td style="width: 28px; color: #8a9099" aria-hidden="true">⠿</td><td><b>Home</b> <span class="sub mono">home-auth · /researcher/home</span></td><td><span class="badge">Signed in</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td style="color: #8a9099" aria-hidden="true">⠿</td><td><b>Plan ▾</b> <span class="sub mono">plan · 3 children</span></td><td><span class="badge">Signed in</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td style="color: #8a9099" aria-hidden="true">⠿</td><td><b>Workspaces ▾</b> <span class="sub mono">org · 2 children</span></td><td><span class="badge">Signed in</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td style="color: #8a9099" aria-hidden="true">⠿</td><td><b>Manage ▾</b> <span class="sub mono">manage · 2 children</span></td><td><span class="badge">Signed in</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td style="color: #8a9099" aria-hidden="true">⠿</td><td><b>Publish and share ▾</b> <span class="sub mono">publish · 2 children</span></td><td><span class="badge">Signed in</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td style="color: #8a9099" aria-hidden="true">⠿</td><td><b>Admin</b> <span class="sub mono">admin · /admin</span></td><td><span class="badge brand">Admin role</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+                <tr><td style="color: #8a9099" aria-hidden="true">⠿</td><td><b>Home</b> <span class="sub mono">home-anon · /home</span></td><td><span class="badge">Signed out</span></td><td class="act"><button class="btn btn-ghost btn-sm" type="button" aria-label="More actions">⋯</button></td></tr>
+              </tbody>
+            </table></div>
+          </div>
+          <div class="fsec">
+            <div class="fsec-h"><div><h3>Edit: Home</h3><p>Selected item</p></div><button class="btn btn-danger btn-sm" type="button">Remove item</button></div>
+            <div class="fsec-b" style="display: flex; flex-direction: column; gap: 14px">
+              <div class="fgrid">
+                <div class="field"><label for="mc-id">ID</label><input id="mc-id" class="inp mono" value="home-auth"></div>
+                <div class="field"><label for="mc-lk">Label key</label><input id="mc-lk" class="inp mono" value="menu-home"><span class="hint">Resolves to “Home”</span></div>
+              </div>
+              <div class="field"><label for="mc-url">URL</label><input id="mc-url" class="inp mono" value="/researcher/home"></div>
+              <fieldset style="border: 0; padding: 0; margin: 0"><legend class="lbl" style="margin-bottom: 6px">Visible to</legend><div class="row"><span class="chip on">Signed-in users</span><span class="chip">Signed-out users</span><span class="chip">Specific roles…</span></div></fieldset>
+            </div>
+          </div>
+          <div class="savebar"><span class="state"><span class="dot" style="color: #ffc107"></span>Unsaved changes</span><div class="row"><button class="btn btn-ghost" type="button">Discard</button><button class="btn btn-primary" type="button">Save changes</button></div></div>
+        </div>
+        <aside class="split-side">
+          <div class="spread"><span class="lbl">Live preview</span><div class="seg" role="group" aria-label="Preview as"><button type="button" class="on">Signed in</button><button type="button">Signed out</button></div></div>
+          <div style="margin-top: 8px; background: #500005; border-radius: 6px; padding: 6px; display: flex; flex-wrap: wrap; gap: 2px">
+            <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; color: #fff; font-size: 12px; text-transform: uppercase; padding: 8px; background: #700007; box-shadow: inset 0 -2px 0 #fff">Home</span>
+            <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; color: #fff; font-size: 12px; text-transform: uppercase; padding: 8px">Plan ▾</span>
+            <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; color: #fff; font-size: 12px; text-transform: uppercase; padding: 8px">Workspaces ▾</span>
+            <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; color: #fff; font-size: 12px; text-transform: uppercase; padding: 8px">Manage ▾</span>
+            <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; color: #fff; font-size: 12px; text-transform: uppercase; padding: 8px">Publish and share ▾</span>
+            <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; color: #fff; font-size: 12px; text-transform: uppercase; padding: 8px">Admin</span>
+          </div>
+          <p class="hint" style="margin-top: 8px">The preview uses the real brand colours. Click an item to select it in the list.</p>
+          <div class="note" style="margin-top: 16px">Home panels and Admin sidebar use the same editor: a reorderable list, a detail form for the selected item, a preview, and one save bar. Today each row carries six outline buttons (Up, Down, Duplicate, Remove…); here they move into the ⋯ menu and drag handles.</div>
+        </aside>
+      </div>
+    </div></main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

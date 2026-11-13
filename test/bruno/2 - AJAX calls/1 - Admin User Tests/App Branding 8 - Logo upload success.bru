@@ -16,12 +16,16 @@ headers {
 }
 
 body:multipart-form {
+  expectedDraftRevision: {{image_revision}}
   logo: @file(attachment.png)
 }
 
 script:pre-request {
   const bruHelper = require("./bruno-helpers.js");
   bruHelper.setCookies({bru, req});
+  const axios = require('axios');
+  const state = await axios.get(bru.interpolate('{{host}}/default/rdmp/app/branding/config'), { headers: req.headers });
+  bru.setVar('image_revision', state.data.draft.revision);
 }
 
 tests {
@@ -36,6 +40,6 @@ tests {
   test("Logo hash returned", function(){
     var raw = res.getBody();
     var body = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    expect(body && typeof body.hash === 'string' && body.hash.length > 10).to.equal(true);
+    expect(body && /^[a-f0-9]{64}$/.test(body.draft.images.logo.sha256)).to.equal(true);
   });
 }

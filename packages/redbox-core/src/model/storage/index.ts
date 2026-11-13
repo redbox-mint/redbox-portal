@@ -5,11 +5,14 @@ export {
   HarvestOutcome,
   HarvestRecordEventModel,
   HarvestRunChunkModel,
+  HarvestRunChunksQuery,
+  HarvestRunChunksResult,
   HarvestRunDetailResult,
   HarvestRunEventsQuery,
   HarvestRunEventsResult,
   HarvestRunListQuery,
   HarvestRunListResult,
+  HarvestRunStatistics,
   HarvestRunModel,
   HarvestRunStatus,
 } from './HarvestRunModel';
@@ -40,6 +43,7 @@ export {
   isDeletedRecordLifecycleState,
 } from './DeletedRecordModel';
 export { AsynchProgressModel } from './AsynchProgressModel';
+export type { ExportJobModel } from './ExportJobModel';
 export { CacheEntryModel } from './CacheEntryModel';
 export { CounterModel } from './CounterModel';
 export { DashboardTypeModel } from './DashboardTypeModel';

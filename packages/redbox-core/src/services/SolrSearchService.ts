@@ -1,5 +1,5 @@
 import { ReportingError } from '../reporting/types';
-import { recordSolrAuthorization, solrLiteral, assertReportingPrincipal } from '../reporting/authorization';
+import { solrLiteral, assertReportingPrincipal } from '../reporting/authorization';
 import type { ReportingPrincipal } from '../reporting/types';
 // Copyright (c) 2020 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
@@ -23,13 +23,13 @@ import type { ReportingPrincipal } from '../reporting/types';
 import { QueueService } from '../QueueService';
 import { SearchService } from '../SearchService';
 import type { SolrSearchConfig, SolrCoreConfig, SolrCoreOptions, SolrCoreSchema, SolrFieldDefinition, SolrCopyFieldDefinition } from '../config/solr.config';
+import { SOLR_EXACT_ACL_FIELDS, SOLR_EXACT_ACL_VERSION } from '../config/solr.config';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { RoleModel } from '../model/storage/RoleModel';
 import { RecordModel } from '../model/storage/RecordModel';
 import { SolrDocument } from '../model/SolrDocument';
 import { Services as services } from '../CoreService';
-import { RecordsService } from '../RecordsService';
 import { DateTime } from 'luxon';
 
 type SolrOptions = SolrCoreOptions;
@@ -37,6 +37,14 @@ type SolrCore = SolrCoreConfig;
 type SolrConfig = SolrSearchConfig;
 
 const axios = require('axios');
+// Bound both socket inactivity and total elapsed time for every startup request.
+// waitTime is already the configured Solr readiness interval; zero must not disable timeouts.
+function solrSetupRequestOptions(): { timeout: number; signal: AbortSignal } {
+  const configured = Number(sails.config.solr.waitTime);
+  const timeout = Number.isFinite(configured) && configured > 0 ? Math.ceil(configured) : 5000;
+  return { timeout, signal: AbortSignal.timeout(timeout) };
+}
+
 type FlatModule = { flatten: (obj: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown> };
 type LuceneEscapeQueryModule = ((value: string) => string) | { escape?: (value: string) => string; default?: (value: string) => string };
 let flat: FlatModule | null = null;
@@ -64,6 +72,18 @@ function normalizeSolrDateValue(value: unknown): unknown {
   const date = DateTime.fromISO(value, { zone: 'utc', setZone: true });
   return date.isValid ? date.toUTC().toISO() ?? value : value;
 }
+
+function exactAclValues(value: unknown): string[] {
+  return (Array.isArray(value) ? value : [value]).filter((entry): entry is string => typeof entry === 'string');
+}
+
+// These names may have incompatible persisted DocValues from the first rollout.
+// Leave their schema untouched and never send them in newly indexed documents.
+const RETIRED_EXACT_ACL_FIELD_NAMES = [
+  'authorization_view_exact', 'authorization_edit_exact',
+  'authorization_viewRoles_exact', 'authorization_editRoles_exact',
+  'metaMetadata_brandId_exact', 'authorization_exact_version'
+];
 
 class SolrClient {
   options: SolrOptions;
@@ -111,7 +131,6 @@ class SolrClient {
       throw err;
     }
   }
-
 }
 // Create a minimal SolrClient class if not already available
 class Solr {
@@ -136,6 +155,7 @@ export namespace Services {
   type PreIndexFlattenSpecialConfig = { field: string; source: string; dest?: string; options?: Record<string, unknown> };
   type SolrSchema = {
     fields?: SolrFieldDefinition[];
+    fieldTypes?: Array<{ name: string; class: string }>;
     dynamicFields?: SolrFieldDefinition[];
     copyFields?: SolrCopyFieldDefinition[];
   };
@@ -162,19 +182,45 @@ export namespace Services {
     private clients: {
       [key: string]: SolrClient;
     } = {};
+    private exactAclSchemaReady = new Set<string>();
+
+    private initialization?: Promise<void>;
 
     constructor() {
       super();
       this.logHeader = "SolrIndexer::";
     }
 
-    public override init() {
-      const that = this;
-      this.registerSailsHook('on', 'ready', async function () {
-        that.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
-        that.initClient();
-        await that.buildSchema(that);
+    public override async init() {
+      // preLiftSetup awaits init; bootstrap record saves run before Sails ready.
+      const configuredSearch = sails.config.search?.serviceName?.toLowerCase();
+      if (!configuredSearch || configuredSearch === 'solrsearchservice') {
+        await this.ensureInitialized();
+      }
+      this.registerSailsHook('on', 'ready', () => {
+        this.queueService = sails.services[sails.config.queue.serviceName] as unknown as QueueService;
       });
+    }
+
+    private ensureInitialized(): Promise<void> {
+      // Inline bootstrap writes and queued workers share the same schema gate.
+      if (!this.initialization) {
+        this.initialization = (async () => {
+          this.initClient();
+          await this.buildSchema();
+        })().catch(err => {
+          this.initialization = undefined;
+          throw err;
+        });
+      }
+      return this.initialization;
+    }
+
+    private async requireIndexSchema(coreId: string): Promise<void> {
+      await this.ensureInitialized();
+      if (!this.exactAclSchemaReady.has(coreId)) {
+        throw new Error('Exact authorization search schema is not ready.');
+      }
     }
 
     protected override async processDynamicImports() {
@@ -198,24 +244,30 @@ export namespace Services {
       for (const coreId of coreNameKeys) {
         const core: SolrCore = solrConfig.cores[coreId];
         const coreName = core.options.core;
+        ref.exactAclSchemaReady.delete(coreId);
         await ref.waitForSolr(coreId, ref);
 
         try {
-          const liveSchema = await ref.getSchema(coreId, ref);
+          let liveSchema = await ref.getSchema(coreId, ref);
           const schemaDef = ref.getMissingSchemaDefinitions(coreId, core, liveSchema.schema, ref);
           if (ref.isSchemaDefinitionEmpty(schemaDef)) {
             sails.log.verbose(`${ref.logHeader} Schema already reconciled for core: ${coreName}.`);
-            continue;
+          } else {
+            const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
+            sails.log.verbose(`${ref.logHeader} Sending missing schema definitions for core: ${coreName}.`);
+            const response = await axios.post(schemaUrl, schemaDef, solrSetupRequestOptions()).then((response: { data: unknown }) => response.data);
+            sails.log.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
+            sails.log.verbose(JSON.stringify(response));
+            // An accepted schema update is not proof of the live field types.
+            liveSchema = await ref.getSchema(coreId, ref);
           }
-
-          const schemaUrl = `${ref.getBaseUrl(core.options)}${coreName}/schema`;
-          sails.log.verbose(`${ref.logHeader} Sending missing schema definitions for core: ${coreName}.`);
-          const response = await axios.post(schemaUrl, schemaDef).then((response: { data: unknown }) => response.data);
-          sails.log.verbose(`${ref.logHeader} Schema reconciliation successful, response: `);
-          sails.log.verbose(JSON.stringify(response));
+          ref.assertExactAclSchema(liveSchema.schema);
+          ref.exactAclSchemaReady.add(coreId);
+          sails.log.verbose(`${ref.logHeader} Exact authorization search schema verified for core: ${coreName}.`);
         } catch (err) {
           sails.log.error(`${ref.logHeader} Failed to reconcile SOLR schema for core: ${coreName}.`);
-          sails.log.error(JSON.stringify(err));
+          sails.log.error(err instanceof Error ? err.message : JSON.stringify(err));
+          throw err;
         }
       }
     }
@@ -228,6 +280,11 @@ export namespace Services {
 
     private getMissingSchemaDefinitions(coreId: string, core: SolrCore, liveSchema: SolrSchema, ref: SolrSearchService = this): SolrCoreSchema {
       const configuredFields = [...(core.schema['add-field'] || [])];
+      for (const field of SOLR_EXACT_ACL_FIELDS) {
+        if (!configuredFields.some(configured => configured.name === field.name)) {
+          configuredFields.push({ ...field });
+        }
+      }
       if (core.initSchemaFlag && !configuredFields.some(field => field.name === core.initSchemaFlag?.name)) {
         configuredFields.push({ ...core.initSchemaFlag });
       }
@@ -273,43 +330,60 @@ export namespace Services {
       });
     }
 
+    private assertExactAclSchema(schema: SolrSchema): void {
+      const stringType = schema.fieldTypes?.find(type => type.name === 'string');
+      if (!stringType || !['solr.StrField', 'org.apache.solr.schema.StrField'].includes(stringType.class)) {
+        throw new Error('Exact authorization search requires a non-analyzed string field type.');
+      }
+      for (const required of SOLR_EXACT_ACL_FIELDS) {
+        const live = schema.fields?.find(field => field.name === required.name);
+        if (!live || !this.schemaFieldsMatch(required, live)) {
+          throw new Error(`Exact authorization search schema is missing or conflicts: ${required.name}.`);
+        }
+        // Solr copyFields run after preIndex and must not add untrusted grants.
+        const hasIncomingCopy = schema.copyFields?.some(copy => {
+          const wildcard = copy.dest.indexOf('*');
+          return wildcard < 0 ? copy.dest === required.name :
+            required.name.startsWith(copy.dest.slice(0, wildcard)) &&
+            required.name.endsWith(copy.dest.slice(wildcard + 1));
+        });
+        if (hasIncomingCopy) {
+          throw new Error(`Exact authorization search field cannot be a copyField destination: ${required.name}.`);
+        }
+      }
+    }
+
     private async getSchema(coreId: string, ref: SolrSearchService = this): Promise<SolrSchemaResponse> {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
-      const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json`;
-      return await axios.get(schemaUrl).then((response: { data: SolrSchemaResponse }) => response.data);
+      const schemaUrl = `${ref.getBaseUrl(core.options)}${core.options.core}/schema?wt=json&showDefaults=true`;
+      return await axios.get(schemaUrl, solrSetupRequestOptions()).then((response: { data: SolrSchemaResponse }) => response.data);
     }
 
     private async waitForSolr(coreId: string, ref: SolrSearchService = this) {
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName: string = core.options.core;
-      let solrUp = false;
-      let tryCtr = 0;
       const urlCheck = `${ref.getBaseUrl(core.options)}admin/cores?action=STATUS&core=${coreName}`;
-      while (!solrUp && tryCtr <= sails.config.solr.maxWaitTries) {
+      const configuredAttempts = Number(solrConfig.maxWaitTries);
+      const maxAttempts = Number.isFinite(configuredAttempts) ? Math.max(1, Math.floor(configuredAttempts)) : 1;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-          tryCtr++;
-          sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${tryCtr}... ${urlCheck}`);
-          const solrStat = await axios.get(urlCheck).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
-          sails.log.verbose(`${ref.logHeader} Response is:`);
-          sails.log.verbose(JSON.stringify(solrStat));
-          if (solrStat.status[coreName].instanceDir) {
+          sails.log.verbose(`${ref.logHeader} Checking if SOLR is up, try #${attempt}... ${urlCheck}`);
+          const solrStat = await axios.get(urlCheck, solrSetupRequestOptions()).then((response: { data: { status: Record<string, { instanceDir?: string }> } }) => response.data);
+          if (solrStat.status[coreName]?.instanceDir) {
             sails.log.info(`${ref.logHeader} SOLR core is available: ${coreName}`);
-            solrUp = true;
-          } else {
-            throw new Error(`SOLR core: ${coreName} is still loading.`);
+            return;
           }
         } catch (err) {
           sails.log.info(`${ref.logHeader} SOLR core: ${coreName} is still down, waiting.`);
           sails.log.info(JSON.stringify(err));
-          if (tryCtr == sails.config.solr.maxWaitTries) {
-            sails.log.error(`${ref.logHeader} SOLR seemed to have failed startup, giving up on waiting.`);
-            break;
-          }
-          await ref.sleep(sails.config.solr.waitTime);
+        }
+        if (attempt < maxAttempts) {
+          await ref.sleep(solrConfig.waitTime);
         }
       }
+      throw new Error(`SOLR core: ${coreName} unavailable after ${maxAttempts} attempts.`);
     }
 
     private getBaseUrl(coreOptions: SolrOptions): string {
@@ -317,9 +391,9 @@ export namespace Services {
     }
 
     public async index(id: string, data: RecordModel): Promise<boolean> {
-      sails.log.verbose(`${this.logHeader} adding indexing job: ${id} with data:`);
+      this.updateChronicle({ solrRecordId: id, solrOperation: 'index' });
       data.id = id;
-      sails.log.verbose(JSON.stringify(data));
+
       return this.enqueueOrRunNow(
         sails.config.solr.createOrUpdateJobName,
         data,
@@ -328,14 +402,13 @@ export namespace Services {
     }
 
     public remove(id: string): void {
-      sails.log.verbose(`${this.logHeader} adding delete-index job: ${id} with data:`);
+      this.updateChronicle({ solrRecordId: id, solrOperation: 'delete' });
       const data = { id: id };
 
-      sails.log.verbose(JSON.stringify(data));
       void this.enqueueOrRunNow(
         sails.config.solr.deleteJobName,
         data,
-        async (job) => this.solrDelete(job as QueueJob<RecordModel>, undefined)
+        async (job) => this.solrDelete(job as QueueJob<RecordModel>)
       );
     }
 
@@ -344,22 +417,23 @@ export namespace Services {
       data: T,
       fallback: (job: QueueJob<T>) => Promise<void>
     ): Promise<boolean> {
+      const usesQueue = this.queueService && typeof this.queueService.now === 'function';
       try {
-        if (this.queueService && typeof this.queueService.now === 'function') {
+        if (usesQueue) {
           await this.queueService.now(jobName, data);
           return true;
         }
 
-        sails.log.warn(`${this.logHeader} queue service unavailable, running job inline: ${jobName}`);
+        this.updateChronicle({ solrJob: jobName, solrJobExecution: 'inline' }, [], 'warn');
         await fallback({ attrs: { data } });
         return true;
       } catch (err) {
-        sails.log.error(`${this.logHeader} index job submission failed: ${jobName}`);
-        sails.log.error(err);
+        if (usesQueue) {
+          this.updateChronicle({ solrJob: jobName, solrJobOutcome: 'submission-failed' }, [err]);
+        }
         return false;
       }
     }
-
 
     public async searchAdvanced(coreId: string = 'default', type: string, query: string | URLSearchParams): Promise<Record<string, unknown>> {
       const solrConfig: SolrConfig = sails.config.solr;
@@ -367,13 +441,16 @@ export namespace Services {
       const coreName = core.options.core;
       const url = `${this.getBaseUrl(core.options)}${coreName}/select`;
       const params = query instanceof URLSearchParams ? query : this.parseQueryFragment(query);
-      sails.log.verbose(`Searching advanced using: ${url}`);
+      this.updateChronicle({ solrCore: coreId, solrSearchMode: 'advanced' });
       const response = await axios.get(url, { params }).then((response: { data: Record<string, unknown> }) => response.data);
       return response;
     }
 
     public async searchFuzzy(coreId: string = 'default', type: string, workflowState: string, searchQuery: string, exactSearches: SearchField[], facetSearches: SearchField[], brand: BrandingModel, user: UserModel, roles: RoleModel[], returnFields: string[], start: number = 0, rows: number = 10): Promise<Record<string, unknown>> {
-      const username = user.username;
+      if (!this.exactAclSchemaReady.has(coreId)) {
+        throw new Error('Exact authorization search schema is not ready.');
+      }
+      const username = user?.username ?? '';
       const solrConfig: SolrConfig = sails.config.solr;
       const core: SolrCore = solrConfig.cores[coreId];
       const coreName = core.options.core;
@@ -412,8 +489,13 @@ export namespace Services {
         params.append(param.key, param.value);
       }
 
-      const url = `${baseUrl}?${params.toString()}`;
-      sails.log.verbose(`Searching fuzzy using: ${url}`);
+      this.updateChronicle({
+        solrCore: coreId,
+        solrSearchMode: 'fuzzy',
+        solrRecordType: type,
+        solrStart: start,
+        solrRows: rows,
+      });
       const response = await axios.get(baseUrl, { params }).then((response: { data: SolrResponse }) => response.data);
       const customResp: { records: Array<Record<string, unknown>>; facets?: Array<{ name: string; values: Array<{ value: string; count: number }> }>; totalItems?: number } = {
         records: []
@@ -453,6 +535,7 @@ export namespace Services {
           });
         });
       }
+      this.updateChronicle({ solrTotalItems: totalItems, solrResultCount: customResp.records.length });
       customResp['totalItems'] = totalItems;
       return customResp;
     }
@@ -462,6 +545,9 @@ export namespace Services {
       assertReportingPrincipal(principal);
       if (typeof text !== 'string' || !text.trim() || text.length > 500 || !Number.isInteger(start) || start < 0 || start > 10000 ||
         !Number.isInteger(rows) || rows < 1 || rows > 101) throw new ReportingError('INVALID_QUERY');
+      if (!this.exactAclSchemaReady.has(coreId)) {
+        throw new ReportingError('UNAVAILABLE');
+      }
       const core = sails.config.solr.cores[coreId];
       if (!core) throw new Error('Reporting search core unavailable');
       const params = new URLSearchParams({
@@ -471,7 +557,7 @@ export namespace Services {
       });
       params.append('fq', `metaMetadata_brandId:${solrLiteral(principal.brand.id)}`);
       params.append('fq', `metaMetadata_type:${solrLiteral(recordType)}`);
-      params.append('fq', recordSolrAuthorization(principal.brand, principal.user.username, principal.roles));
+      this.addAuthParams(params, principal.user.username, principal.roles, principal.brand);
       const response = await axios.get(`${this.getBaseUrl(core.options)}${core.options.core}/select`, {
         params, timeout: 6000,
       }).then((response: { data: SolrResponse }) => response.data);
@@ -488,7 +574,7 @@ export namespace Services {
 
     private clientSleep() {
       if (!_.isUndefined(sails.config.solr.clientSleepTimeMillis)) {
-        sails.log.verbose(`${this.logHeader} sleeping for: ${sails.config.solr.clientSleepTimeMillis}`);
+        this.updateChronicle({ solrClientSleepMs: sails.config.solr.clientSleepTimeMillis });
         return this.sleep(sails.config.solr.clientSleepTimeMillis);
       } else {
         return Promise.resolve();
@@ -497,28 +583,41 @@ export namespace Services {
 
     public async solrAddOrUpdate(job: QueueJob<RecordModel>) {
       try {
+        await this.ensureInitialized();
         const data: RecordModel = job.attrs.data as RecordModel;
         const coreId = String(_.get(data, 'metaMetadata.searchCore', 'default'));
+        if (!this.clients[coreId]) {
+          throw new Error(`Unknown SOLR core: ${coreId}`);
+        }
+        await this.requireIndexSchema(coreId);
         // storage_id is used as the main ID in searches
         const solrDocument: SolrDocument = new SolrDocument(data);
-        sails.log.verbose(`${this.logHeader} adding document: ${solrDocument.id} to index`);
+        this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'index' });
         // flatten the JSON
         const processedData = this.preIndex(solrDocument);
-        sails.log.verbose(JSON.stringify(processedData));
+        this.updateChronicle({ solrIndexFieldCount: Object.keys(processedData).length });
         await this.clients[coreId].add(processedData);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
         await this.clients[coreId].commit();
         await this.clientSleep();
-
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to solrAddOrUpdate, while pre-processing index: `);
-        sails.log.error(JSON.stringify(err));
+        this.updateChronicle({ solrIndexOutcome: 'failed' }, [err]);
+        throw err;
       }
     }
 
-    // TODO: This method shouldn't need to be public 
+    // TODO: This method shouldn't need to be public
     // but can't unit test it easily if it isn't
     public preIndex(data: SolrDocument): Record<string, unknown> {
+      // Snapshot trusted values before templates/moves/copies can touch them.
+      const exactAuthorization = {
+        redbox_acl2_view: exactAclValues(data.authorization?.view),
+        redbox_acl2_edit: exactAclValues(data.authorization?.edit),
+        redbox_acl2_view_roles: exactAclValues(data.authorization?.viewRoles),
+        redbox_acl2_edit_roles: exactAclValues(data.authorization?.editRoles),
+        redbox_acl2_version: SOLR_EXACT_ACL_VERSION
+      };
+      const exactBrand = typeof data.metaMetadata?.brandId === 'string' ? data.metaMetadata.brandId : undefined;
       let processedData: Record<string, unknown> = _.cloneDeep(data) as unknown as Record<string, unknown>;
 
       const coreId = _.get(data, 'metaMetadata.searchCore', 'default');
@@ -537,8 +636,6 @@ export namespace Services {
           } else {
             _.set(processedData, dest, moveData);
           }
-        } else {
-          sails.log.verbose(`${this.logHeader} no data to move from: ${moveConfig.source}, ignoring.`);
         }
       });
       const copyObj = _.get(sails.config.solr.cores, coreId + '.preIndex.copy') as unknown as PreIndexCopyConfig[];
@@ -610,6 +707,12 @@ export namespace Services {
           _.unset(processedData, k);
         }
       });
+      // Reserved fields always come from the original record envelope, after
+      // every configurable transform, including flattening and templates.
+      for (const field of SOLR_EXACT_ACL_FIELDS) delete processedData[field.name];
+      for (const name of RETIRED_EXACT_ACL_FIELD_NAMES) delete processedData[name];
+      Object.assign(processedData, exactAuthorization);
+      if (exactBrand) processedData.redbox_acl2_brand = exactBrand;
       return processedData;
     }
 
@@ -618,12 +721,42 @@ export namespace Services {
     }
 
     protected addAuthParams(allParams: Array<{ key: string; value: string }> | URLSearchParams, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-
-      const fqValue = recordSolrAuthorization(brand, username, roles, editAccessOnly);
-      if (allParams instanceof URLSearchParams) {
-        allParams.append('fq', fqValue);
+      const params = allParams instanceof URLSearchParams ? allParams :
+        new URLSearchParams(allParams.map(param => [param.key, param.value]));
+      // Parameter references must resolve only to server-supplied identities,
+      // including when the URL already contains duplicate/reserved parameters.
+      for (const name of [...params.keys()]) {
+        if (name.startsWith('rbAcl')) params.delete(name);
+      }
+      const clauses: string[] = [];
+      if (typeof username === 'string' && username.length > 0) {
+        params.set('rbAclUser', username);
+        clauses.push('_query_:"{!term f=redbox_acl2_edit v=$rbAclUser}"');
+        if (!editAccessOnly) clauses.push('_query_:"{!term f=redbox_acl2_view v=$rbAclUser}"');
+      }
+      const roleNames = new Set<string>();
+      for (const role of roles ?? []) {
+        const roleBrand = role.branding as BrandingModel | string | undefined;
+        const roleBrandId = typeof roleBrand === 'object' ? roleBrand?.id : roleBrand;
+        if (roleBrandId === brand?.id && typeof role.name === 'string' && role.name.length > 0) roleNames.add(role.name);
+      }
+      [...roleNames].forEach((name, index) => {
+        const parameter = `rbAclRole${index}`;
+        params.set(parameter, name);
+        clauses.push(`_query_:"{!term f=redbox_acl2_edit_roles v=$${parameter}}"`);
+        if (!editAccessOnly) clauses.push(`_query_:"{!term f=redbox_acl2_view_roles v=$${parameter}}"`);
+      });
+      params.set('rbAclVersion', SOLR_EXACT_ACL_VERSION);
+      params.append('fq', '{!term f=redbox_acl2_version v=$rbAclVersion}');
+      if (typeof brand?.id === 'string' && brand.id.length > 0 && clauses.length > 0) {
+        params.set('rbAclBrand', brand.id);
+        params.append('fq', '{!term f=redbox_acl2_brand v=$rbAclBrand}');
+        params.append('fq', `{!lucene}(${clauses.join(' OR ')})`);
       } else {
-        allParams.push({ key: 'fq', value: fqValue });
+        params.append('fq', '{!lucene}(*:* AND -(*:*))');
+      }
+      if (!(allParams instanceof URLSearchParams)) {
+        allParams.splice(0, allParams.length, ...[...params].map(([key, value]) => ({ key, value })));
       }
     }
 
@@ -641,24 +774,29 @@ export namespace Services {
     }
 
     protected addAuthFilter(url: string, username: string, roles: RoleModel[], brand: BrandingModel, editAccessOnly: boolean | undefined = undefined) {
-      const allParams: Array<{ key: string; value: string }> = [];
-      this.addAuthParams(allParams, username, roles, brand, editAccessOnly);
-      return url + allParams.map(param => `&${param.key}=${param.value}`).join('');
+      const parsed = new URL(url);
+      this.addAuthParams(parsed.searchParams, username, roles, brand, editAccessOnly);
+      return parsed.toString();
     }
 
-    public async solrDelete(job: QueueJob<RecordModel>, _done: unknown) {
+    public async solrDelete(job: QueueJob<RecordModel>) {
       try {
+        await this.ensureInitialized();
         const data = job.attrs.data;
         const coreId = String(_.get(data, 'searchCore', 'default'));
+        if (!this.clients[coreId]) {
+          throw new Error(`Unknown SOLR core: ${coreId}`);
+        }
+        await this.requireIndexSchema(coreId);
         const solrDocument: SolrDocument = new SolrDocument(data);
-        sails.log.verbose(`${this.logHeader} deleting document: ${solrDocument.id}`);
+        this.updateChronicle({ solrRecordId: solrDocument.id, solrOperation: 'delete' });
         await this.clients[coreId].delete('id', solrDocument.id);
         // intentionally adding the commit call as the client doesn't respect the 'autoCommit' flag
         await this.clients[coreId].commit();
         await this.clientSleep();
       } catch (err) {
-        sails.log.error(`${this.logHeader} Failed to solrDelete:`);
-        sails.log.error(JSON.stringify(err));
+        this.updateChronicle({ solrDeleteOutcome: 'failed' }, [err]);
+        throw err;
       }
     }
   }

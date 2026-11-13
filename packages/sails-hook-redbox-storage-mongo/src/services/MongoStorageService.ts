@@ -24,10 +24,14 @@ import stream = require('node:stream');
 import { pipeline } from 'node:stream/promises';
 import { Transform, transforms } from 'json2csv';
 import {
+  assertRelatedDisplayBatchAllowed,
+  normalizeRelatedReferences,
+  withoutRuntimeRecordProperties,
   Services as services,
   StorageManagerService as StorageManagerServiceTypes,
   DatastreamService,
   StorageService,
+  type RecordQueryOptions,
   StorageServiceResponse,
   StorageMutationResponse,
   RBValidationError,
@@ -40,6 +44,9 @@ import {
   IntegrationAuditParams,
   RecordModel,
   type DeletedRecordModel,
+  RecordWriteConflict,
+  type RecordFieldWriteResult,
+  assertRecordFieldPaths,
   BrandingModel,
   UserModel,
   RoleModel,
@@ -60,6 +67,8 @@ import {
   type StorageServiceCapabilities,
 } from '@researchdatabox/redbox-core';
 import type {
+  RecordRelationQuery,
+  RecordRelationQueryResult,
   RecordSchemaArtifactInput,
   RecordSchemaArtifactModel,
   RecordSchemaArtifactQuery,
@@ -88,6 +97,8 @@ import {
 
 const { flatten } = transforms;
 const UTF8_BOM = '\uFEFF';
+// Index builds can legitimately be silent for minutes. Mongo drivers 6/7 pass this command override to the socket.
+const indexBuildOptions = { socketTimeoutMS: 0, maxTimeMS: 0 };
 
 const CSV_DANGEROUS_PREFIX = /^[=+\-@\t\r\n]/;
 function sanitizeCsvCell(value: unknown): unknown {
@@ -251,7 +262,13 @@ function indexOptionsEqual(existing: IndexDescriptionInfo, required: mongodb.Ind
   for (const option of PERSISTENT_INDEX_BOOLEAN_OPTIONS) {
     if (Boolean(existing[option]) !== Boolean(required[option])) return false;
   }
-  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option => isDeepStrictEqual(existing[option], required[option]));
+  return PERSISTENT_INDEX_VALUE_OPTIONS.every(option => {
+    if (option === 'collation') {
+      // MongoDB 9 reports the default simple collation explicitly; earlier versions omit it.
+      return isDeepStrictEqual(existing.collation ?? { locale: 'simple' }, required.collation ?? { locale: 'simple' });
+    }
+    return isDeepStrictEqual(existing[option], required[option]);
+  });
 }
 
 function indexDisplayName(index: mongodb.IndexDescription | IndexDescriptionInfo): string {
@@ -280,6 +297,65 @@ type RelatedRecordsContext = {
   visitedRelatedObjectKeys: Set<string>;
 };
 
+// Unimported saves merged into a pending intent. An intent written before per-save tracking counts as one save.
+const priorFigshareSaves = {
+  $cond: [
+    { $eq: ['$figshareSyncIntent.pending', true] },
+    {
+      $ifNull: [
+        '$figshareSyncIntent.saves',
+        {
+          $cond: [
+            { $in: ['$figshareSyncIntent.readiness', ['ready', 'initialising']] },
+            [
+              {
+                saveToken: '$figshareSyncIntent.saveToken',
+                readiness: '$figshareSyncIntent.readiness',
+                requestedAt: '$figshareSyncIntent.requestedAt',
+                intents: { $ifNull: ['$figshareSyncIntent.intents', []] },
+              },
+            ],
+            [],
+          ],
+        },
+      ],
+    },
+    [],
+  ],
+};
+// The intent carries the union of its saves' policies, and is ready only once no save is still initialising.
+// Once every merged save is abandoned nothing remains to import, so the intent is no longer pending.
+const deriveFigshareIntent = {
+  $set: {
+    'figshareSyncIntent.intents': {
+      $reduce: {
+        input: '$figshareSyncIntent.saves',
+        initialValue: [],
+        in: { $setUnion: ['$$value', '$$this.intents'] },
+      },
+    },
+    'figshareSyncIntent.readiness': {
+      $cond: [
+        { $eq: [{ $size: '$figshareSyncIntent.saves' }, 0] },
+        'abandoned',
+        { $cond: [{ $in: ['initialising', '$figshareSyncIntent.saves.readiness'] }, 'initialising', 'ready'] },
+      ],
+    },
+    'figshareSyncIntent.pending': { $gt: [{ $size: '$figshareSyncIntent.saves' }, 0] },
+  },
+};
+const figshareSaveFilter = (saveToken: string, readiness?: 'initialising') => ({
+  'figshareSyncIntent.pending': true,
+  $or: [
+    { 'figshareSyncIntent.saves': { $elemMatch: { saveToken, ...(readiness ? { readiness } : {}) } } },
+    {
+      'figshareSyncIntent.saves': { $exists: false },
+      'figshareSyncIntent.saveToken': saveToken,
+      ...(readiness ? { 'figshareSyncIntent.readiness': readiness } : {}),
+    },
+  ],
+});
+
 export namespace Services {
   export class MongoStorageService extends services.Core.Service implements StorageService, DatastreamService {
     gridFsBucket!: mongodb.GridFSBucket;
@@ -307,9 +383,18 @@ export namespace Services {
       'getTombstone',
       'getLifecycleTombstones',
       'getMeta',
+      'setRecordFields',
+      'scanFigshareRecords',
+      'findFigshareArticleRecords',
+      'readyFigshareIntent',
+      'pendingFigshareIntents',
+      'recoverStaleFigshareIntents',
+      'abandonFigshareIntent',
+      'acknowledgeFigshareIntent',
       'createBatch',
       'provideUserAccessAndRemovePendingAccess',
       'getRelatedRecords',
+      'findRecordsByRelation',
       'delete',
       'updateNotificationLog',
       'getRecords',
@@ -882,8 +967,6 @@ export namespace Services {
         this.recordCol &&
         this.deletedRecordCol &&
         this.recordIdentityCol &&
-        this.recordCol &&
-        this.deletedRecordCol &&
         this.recordSchemaArtifactCol &&
         this.recordSchemaReferenceCol &&
         this.gridFsBucket
@@ -898,13 +981,22 @@ export namespace Services {
         await Record.create(initRec);
         await Record.destroyOne({ redboxOid: uuid });
       }
+      const recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      await recordCol.createIndex(
+        {
+          'figshareSyncIntent.pending': 1,
+          'figshareSyncIntent.readiness': 1,
+          'figshareSyncIntent.requestedAt': 1,
+        },
+        indexBuildOptions
+      );
+      await this.createIndices(this.db);
       this.gridFsBucket = new mongodb.GridFSBucket(this.db);
-      this.recordCol = this.db.collection<MongoRecordDocument>(Record.tableName);
+      this.recordCol = recordCol;
       this.deletedRecordCol = this.db.collection<MongoRecordDocument>(DeletedRecord.tableName);
       this.recordIdentityCol = this.db.collection<MongoRecordDocument>(RECORD_IDENTITY_COLLECTION);
       this.recordSchemaArtifactCol = this.db.collection<MongoRecordDocument>(RecordSchemaArtifact.tableName);
       this.recordSchemaReferenceCol = this.db.collection<MongoRecordDocument>(RecordSchemaReference.tableName);
-      await this.createIndices(this.db);
       await this.createRecordSchemaIndices();
       this._requiredIndicesReady = true;
       sails.emit('hook:redbox:storage:ready');
@@ -931,7 +1023,13 @@ export namespace Services {
       };
       const indices = storageConfig.mongodb?.indices ?? [];
       if (_.size(indices) > 0) {
-        await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices);
+        await db.collection<MongoRecordDocument>(Record.tableName).createIndexes(indices, indexBuildOptions);
+      }
+      try {
+        await db.collection(RecordAudit.tableName).createIndex({ redboxOid: 1, createdAt: 1 }, indexBuildOptions);
+      } catch (err) {
+        sails.log.error(`Failed to create record audit index:`);
+        sails.log.error(JSON.stringify(err));
       }
       const deletedRecordIndices = storageConfig.mongodb?.deletedRecordIndices ?? [];
       if (_.size(deletedRecordIndices) > 0) {
@@ -1503,10 +1601,23 @@ export namespace Services {
       if (precondition && (precondition.requireRevision || precondition.expectedRevision !== undefined)) {
         return this.notApplied(response, 'lifecycle-conflict', 'Record creation does not accept an existing revision');
       }
-      const serverRecord = _.cloneDeep(record);
+      const serverRecord = withoutRuntimeRecordProperties(record);
       // The storage boundary owns creation revision regardless of anything a
       // request candidate supplied.
       serverRecord.revision = INITIAL_RECORD_REVISION;
+      serverRecord.recordVersion = 1;
+      delete serverRecord.figshareSyncIntent;
+      if (options?.figshareIntent) {
+        const { saveToken, readiness, intents } = options.figshareIntent;
+        const requestedAt = new Date().toISOString();
+        serverRecord.figshareSyncIntent = {
+          ...options.figshareIntent,
+          generation: 1,
+          pending: true,
+          requestedAt,
+          saves: [{ saveToken, readiness, requestedAt, intents }],
+        };
+      }
       _.unset(serverRecord, '_id');
       _.unset(serverRecord, 'id');
       _.unset(serverRecord, 'incarnationId');
@@ -1593,7 +1704,7 @@ export namespace Services {
         );
       }
 
-      const candidate = _.cloneDeep(record);
+      const candidate = withoutRuntimeRecordProperties(record);
       // Identity, creation, and revision are owned by storage, never by the
       // candidate; lastSaveDate is reissued with the committing write.
       for (const field of [
@@ -1601,6 +1712,8 @@ export namespace Services {
         'id',
         'redboxOid',
         'revision',
+        'recordVersion',
+        'figshareSyncIntent',
         'incarnationId',
         'lifecycleOperationId',
         'dateCreated',
@@ -1621,18 +1734,46 @@ export namespace Services {
         return this.notApplied(response, 'brand-mismatch', 'Record was not found');
       }
 
-      return this.commitConditionalMutation({
+      const update: JsonMap | JsonMap[] = options?.figshareIntent
+        ? (() => {
+            const intent = options.figshareIntent;
+            const requestedAt = new Date().toISOString();
+            const save = {
+              saveToken: intent.saveToken,
+              readiness: intent.readiness,
+              requestedAt,
+              intents: intent.intents,
+            };
+            const assignments: JsonMap = Object.fromEntries(
+              Object.entries(candidate).map(([key, value]) => [key, { $literal: value }])
+            );
+            assignments.lastSaveDate = { $literal: requestedAt };
+            assignments.revision = { $add: [{ $ifNull: ['$revision', INITIAL_RECORD_REVISION] }, 1] };
+            assignments.recordVersion = { $add: [{ $ifNull: ['$recordVersion', 0] }, 1] };
+            assignments.figshareSyncIntent = {
+              $mergeObjects: [
+                { $literal: { ...intent, pending: true, requestedAt } },
+                {
+                  generation: { $add: [{ $ifNull: ['$figshareSyncIntent.generation', 0] }, 1] },
+                  saves: { $concatArrays: [priorFigshareSaves, [{ $literal: save }]] },
+                },
+              ],
+            };
+            return [{ $set: assignments }, deriveFigshareIntent];
+          })()
+        : {
+            $set: { ...candidate, lastSaveDate: new Date().toISOString() },
+            $inc: { revision: 1, recordVersion: 1 },
+          };
+
+      const selector: JsonMap = this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision);
+      if (options?.expectedVersion != null)
+        selector.recordVersion = options.expectedVersion === 0 ? { $in: [0, null] } : options.expectedVersion;
+      const result = await this.commitConditionalMutation({
         response,
         kind: 'updated',
         dispatch: () =>
-          collection.findOneAndUpdate(
-            this.mutationSelector(this.activeIdentity(brand, oid), expectedRevision),
-            {
-              $set: { ...candidate, lastSaveDate: new Date().toISOString() },
-              $inc: { revision: 1 },
-            },
-            { returnDocument: 'after', includeResultMetadata: false }
-          ),
+          collection.findOneAndUpdate(selector, update, { returnDocument: 'after', includeResultMetadata: false }),
         classify: () => this.classifyActiveNoMatch(brand, oid, expectedRevision),
         expectedRevision,
         onDispatchError: err => {
@@ -1648,6 +1789,9 @@ export namespace Services {
           );
         },
       });
+      if (options?.expectedVersion != null && result.applicationState === 'not-applied')
+        throw new RecordWriteConflict();
+      return result;
     }
 
     /**
@@ -2145,6 +2289,142 @@ export namespace Services {
         .toArray()) as unknown as DeletedRecordModel[];
     }
 
+    public async scanFigshareRecords(afterOid: string, limit: number): Promise<RecordModel[]> {
+      return this.recordCol
+        .find<RecordModel>({ redboxOid: { $gt: afterOid } })
+        .sort({ redboxOid: 1 })
+        .limit(limit)
+        .toArray();
+    }
+    public async findFigshareArticleRecords(path: string, articleId: string): Promise<RecordModel[]> {
+      assertRecordFieldPaths({ [path]: articleId }, [path]);
+      return this.recordCol.find<RecordModel>({ [path]: { $in: [articleId, Number(articleId)] } }).toArray();
+    }
+    public async setRecordFields(
+      oid: string,
+      fields: JsonMap,
+      expectedVersion: number,
+      allowedPaths: string[]
+    ): Promise<RecordFieldWriteResult> {
+      assertRecordFieldPaths(fields, allowedPaths);
+      const result = await this.recordCol.findOneAndUpdate(
+        {
+          ...this.mutationSelector({ redboxOid: oid }, undefined),
+          recordVersion: expectedVersion === 0 ? { $in: [0, null] } : expectedVersion,
+        },
+        {
+          $set: { ...fields, lastSaveDate: new Date().toISOString() },
+          $inc: { recordVersion: 1, revision: 1 },
+        },
+        { returnDocument: 'after', includeResultMetadata: false }
+      );
+      return { updated: result != null, recordVersion: result?.recordVersion };
+    }
+    public async readyFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
+      const result = await this.recordCol.updateOne({ redboxOid: oid, ...figshareSaveFilter(saveToken) }, [
+        {
+          $set: {
+            'figshareSyncIntent.saves': {
+              $map: {
+                input: priorFigshareSaves,
+                as: 'save',
+                in: {
+                  $cond: [
+                    { $eq: ['$$save.saveToken', { $literal: saveToken }] },
+                    { $mergeObjects: ['$$save', { readiness: 'ready' }] },
+                    '$$save',
+                  ],
+                },
+              },
+            },
+          },
+        },
+        deriveFigshareIntent,
+      ]);
+      return result.matchedCount === 1;
+    }
+    public async pendingFigshareIntents(limit: number, afterOid = ''): Promise<RecordModel[]> {
+      return this.recordCol
+        .find<RecordModel>({
+          redboxOid: { $gt: afterOid },
+          'figshareSyncIntent.pending': true,
+          'figshareSyncIntent.readiness': 'ready',
+        })
+        .sort({ redboxOid: 1 })
+        .limit(limit)
+        .toArray();
+    }
+    public async abandonFigshareIntent(oid: string, saveToken: string): Promise<boolean> {
+      // Drop only this save. Other merged saves keep their own policies and readiness.
+      const result = await this.recordCol.updateOne(
+        { redboxOid: oid, ...figshareSaveFilter(saveToken, 'initialising') },
+        [
+          {
+            $set: {
+              'figshareSyncIntent.saves': {
+                $filter: {
+                  input: priorFigshareSaves,
+                  as: 'save',
+                  cond: { $ne: ['$$save.saveToken', { $literal: saveToken }] },
+                },
+              },
+            },
+          },
+          deriveFigshareIntent,
+        ]
+      );
+      return result.matchedCount === 1;
+    }
+    public async recoverStaleFigshareIntents(staleBefore: string): Promise<number> {
+      const result = await this.recordCol.updateMany(
+        {
+          'figshareSyncIntent.pending': true,
+          'figshareSyncIntent.readiness': 'initialising',
+          $or: [
+            {
+              'figshareSyncIntent.saves': {
+                $elemMatch: { readiness: 'initialising', requestedAt: { $lt: staleBefore } },
+              },
+            },
+            { 'figshareSyncIntent.saves': { $exists: false }, 'figshareSyncIntent.requestedAt': { $lt: staleBefore } },
+          ],
+        },
+        [
+          {
+            $set: {
+              'figshareSyncIntent.saves': {
+                $map: {
+                  input: priorFigshareSaves,
+                  as: 'save',
+                  in: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $eq: ['$$save.readiness', 'initialising'] },
+                          { $lt: ['$$save.requestedAt', { $literal: staleBefore }] },
+                        ],
+                      },
+                      { $mergeObjects: ['$$save', { readiness: 'ready' }] },
+                      '$$save',
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          deriveFigshareIntent,
+        ]
+      );
+      return result.modifiedCount;
+    }
+    public async acknowledgeFigshareIntent(oid: string, generation: number): Promise<boolean> {
+      const result = await this.recordCol.updateOne(
+        { redboxOid: oid, 'figshareSyncIntent.generation': generation, 'figshareSyncIntent.readiness': 'ready' },
+        { $set: { 'figshareSyncIntent.pending': false } }
+      );
+      return result.matchedCount === 1;
+    }
+
     public async getMeta(oid: string): Promise<RecordModel> {
       if (_.isEmpty(oid)) {
         const msg = `${this.logHeader} getMeta() -> refusing to search using an empty OID`;
@@ -2179,10 +2459,12 @@ export namespace Services {
       data: JsonMap[],
       harvestIdFldName: string
     ): Promise<StorageMutationResponse> {
+      await assertRelatedDisplayBatchAllowed(type, data);
       const response = new StorageMutationResponse();
       let notAppliedCount = 0;
       let unknownCount = 0;
-      for (const [rowIndex, dataItem] of data.entries()) {
+      for (const [rowIndex, inputItem] of data.entries()) {
+        const dataItem = withoutRuntimeRecordProperties(inputItem);
         dataItem.harvestId = _.get(dataItem, harvestIdFldName, '');
         _.set(dataItem, 'metaMetadata.type', type);
         try {
@@ -2229,6 +2511,112 @@ export namespace Services {
         'capability-unavailable',
         'Permission rewrites require the authoritative RecordsService mutation pipeline'
       );
+    }
+
+    public async findRecordsByRelation(query: RecordRelationQuery): Promise<RecordRelationQueryResult> {
+      const { context, recordType, foreignField, values, limit } = query ?? ({} as RecordRelationQuery);
+      if (
+        !context?.brand?.id ||
+        !context.user?.username ||
+        !Array.isArray(context.user.roles) ||
+        !recordType ||
+        !foreignField ||
+        !Array.isArray(values) ||
+        values.some(value => typeof value !== 'string' || !value.trim()) ||
+        !Number.isSafeInteger(limit) ||
+        limit < 1 ||
+        limit > 1000
+      ) {
+        throw new Error('Invalid authorized relation query.');
+      }
+      if (values.length === 0) return { records: [], complete: true, overflow: false };
+      const collection = this.getNativeRecordCollection();
+      if (!collection) throw new Error('Native relation reads are unavailable.');
+      const matching: JsonMap = {};
+      const tokens = _.toPath(foreignField);
+      if (tokens.some(token => token.includes('.') || token.startsWith('$') || /^(0|[1-9]\d*)$/.test(token))) {
+        // Mongo dotted selectors cannot represent literal keys and make numeric
+        // tokens ambiguous on arrays. Walk Lodash tokens,
+        // retaining any-element matching except where an explicit index selects
+        // one element. Numeric object keys still use exact field lookup.
+        const matches = (input: unknown, remaining: string[]): unknown => {
+          if (remaining.length && /^(0|[1-9]\d*)$/.test(remaining[0])) {
+            const index = Number(remaining[0]);
+            return matches(
+              {
+                $cond: [
+                  { $isArray: input },
+                  // BSON arrays cannot reach indexes beyond Mongo's signed int range.
+                  index <= 2147483647 ? { $arrayElemAt: [input, index] } : null,
+                  {
+                    $cond: [
+                      { $eq: [{ $type: input }, 'object'] },
+                      { $getField: { field: { $literal: remaining[0] }, input } },
+                      null,
+                    ],
+                  },
+                ],
+              },
+              remaining.slice(1)
+            );
+          }
+          return {
+            $anyElementTrue: {
+              $map: {
+                input: { $cond: [{ $isArray: input }, input, [input]] },
+                as: 'item',
+                in: remaining.length
+                  ? {
+                      $cond: [
+                        { $eq: [{ $type: '$$item' }, 'object'] },
+                        matches(
+                          { $getField: { field: { $literal: remaining[0] }, input: '$$item' } },
+                          remaining.slice(1)
+                        ),
+                        false,
+                      ],
+                    }
+                  : { $in: ['$$item', { $literal: [...values] }] },
+              },
+            },
+          };
+        };
+        matching.$expr = matches('$$ROOT', tokens);
+      } else {
+        matching[tokens.join('.')] = { $in: [...values] };
+      }
+      const criteria = {
+        $and: [
+          matching,
+          { 'metaMetadata.type': recordType, 'metaMetadata.brandId': context.brand.id },
+          this.buildRecordReadPermissions(context.user.username, context.user.roles, context.brand),
+        ],
+      };
+      const found = await collection
+        .find(criteria as Filter<MongoRecordDocument>)
+        .sort({ redboxOid: 1 })
+        .limit(limit + 1)
+        .maxTimeMS(10_000)
+        .toArray();
+      const overflow = found.length > limit;
+      const records = found.slice(0, limit);
+      if (foreignField === 'redboxOid') {
+        const order = new Map(values.map((value, index) => [value, index]));
+        records.sort((left, right) => order.get(left.redboxOid) - order.get(right.redboxOid));
+      }
+      return { records: records as unknown as RecordModel[], complete: !overflow, overflow };
+    }
+
+    private buildRecordReadPermissions(username: string, roles: RoleModel[], brand: BrandingModel) {
+      const roleNames = this.getRoleNames(roles, brand);
+      return {
+        $or: [
+          { 'authorization.view': username },
+          { 'authorization.edit': username },
+          { 'authorization.editRoles': { $in: roleNames } },
+          { 'authorization.viewRoles': { $in: roleNames } },
+        ],
+      };
     }
 
     public async getRelatedRecords(
@@ -2396,6 +2784,11 @@ export namespace Services {
         relationship.localField === 'redboxOid' ? record.redboxOid : undefined
       );
       const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+      if (relationship.oidProperty) {
+        const references = normalizeRelatedReferences(rawValue, relationship.oidProperty);
+        if (references.invalidIndices.length) throw new Error('Invalid relationship object reference.');
+        return references.values;
+      }
       return values.map(value => String(value ?? '').trim()).filter(value => value !== '');
     }
 
@@ -2528,13 +2921,23 @@ export namespace Services {
           case 'descending':
             return -1;
         }
-      } else if (direction !== null && typeof direction === 'object' && !Array.isArray(direction) &&
-        '$meta' in direction && typeof direction.$meta === 'string') {
+      } else if (
+        direction !== null &&
+        typeof direction === 'object' &&
+        !Array.isArray(direction) &&
+        '$meta' in direction &&
+        typeof direction.$meta === 'string'
+      ) {
         return { $meta: direction.$meta };
       }
       throw new RBValidationError({
         message: 'Invalid record sort direction',
-        displayErrors: [{ status: '400', detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.' }],
+        displayErrors: [
+          {
+            status: '400',
+            detail: 'Sort direction must be 1, -1, asc, desc, ascending, descending, or a $meta expression.',
+          },
+        ],
       });
     }
 
@@ -2554,25 +2957,33 @@ export namespace Services {
         const [field, direction = '-1'] = parts;
         parsed = { [field]: direction };
       }
-      if (parsed === null || typeof parsed !== 'object' ||
-        (Array.isArray(parsed) && !parsed.every(entry =>
-          Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
-        ))) {
+      if (
+        parsed === null ||
+        typeof parsed !== 'object' ||
+        (Array.isArray(parsed) &&
+          !parsed.every(
+            entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && entry[0].length > 0
+          ))
+      ) {
         throw new RBValidationError({
           message: 'Invalid record sort expression',
           displayErrors: [{ status: '400', detail: 'Sort must be an object or an array of [field, direction] pairs.' }],
         });
       }
       const fields: Record<string, SortDirection> = Object.fromEntries(
-        (Array.isArray(parsed) ? parsed : Object.entries(parsed))
-          .map(([field, direction]) => [field, this.getSortDirection(direction)])
+        (Array.isArray(parsed) ? parsed : Object.entries(parsed)).map(([field, direction]) => [
+          field,
+          this.getSortDirection(direction),
+        ])
       );
       if (!_.isEmpty(secondarySort)) {
         const parts = secondarySort.split(':');
         if (parts.length !== 2 || parts.some(part => part.length === 0)) {
           throw new RBValidationError({
             message: 'Invalid secondary record sort expression',
-            displayErrors: [{ status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' }],
+            displayErrors: [
+              { status: '400', detail: 'Secondary sort must be field:direction with no empty segments.' },
+            ],
           });
         }
         const [field, direction] = parts;
@@ -2600,11 +3011,20 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode: string = 'regex',
-      secondarySort = undefined
+      secondarySort = undefined,
+      deletionFilters: { deletedWithin?: string; deletedBy?: string } = {}
     ) {
       const query = {
         'deletedRecordMetadata.metaMetadata.brandId': brand.id,
       };
+      if (deletionFilters.deletedWithin && deletionFilters.deletedWithin !== 'any') {
+        if (!['7', '30'].includes(deletionFilters.deletedWithin)) throw new TypeError('Invalid deletion period');
+        query['dateDeleted'] = { $gte: new Date(Date.now() - Number(deletionFilters.deletedWithin) * 86400000).toISOString() };
+      }
+      if (deletionFilters.deletedBy) {
+        query['deletedBy.brandId'] = String(brand.id);
+        query['deletedBy.username'] = deletionFilters.deletedBy;
+      }
       const directSortFields = ['_id', 'redboxOid', 'dateDeleted', 'deletedRecordMetadata'];
       const sortAliases = new Map([
         ['title', 'deletedRecordMetadata.metadata.title'],
@@ -2615,11 +3035,15 @@ export namespace Services {
       const options = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
-        sort: Object.fromEntries(Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
-          sortAliases.get(field) ?? (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
-            ? field : `deletedRecordMetadata.${field}`),
-          direction,
-        ])),
+        sort: Object.fromEntries(
+          Object.entries(this.getRecordSort(sort, secondarySort)).map(([field, direction]) => [
+            sortAliases.get(field) ??
+              (directSortFields.includes(field) || field.startsWith('deletedRecordMetadata.')
+                ? field
+                : `deletedRecordMetadata.${field}`),
+            direction,
+          ])
+        ),
       };
 
       const roleNames = this.getRoleNames(roles, brand);
@@ -2654,11 +3078,12 @@ export namespace Services {
         const escapedFilterString = this.escapeRegExp(filterString);
         sails.log.verbose('escapedFilterString ' + escapedFilterString);
         for (const filterField of filterFields) {
+          const storedField = filterField === 'title' ? 'deletedRecordMetadata.metadata.title' : filterField;
           const filterQuery = {};
           if (filterMode == 'equal') {
-            filterQuery[filterField] = filterString;
+            filterQuery[storedField] = filterString;
           } else if (filterMode == 'regex') {
-            filterQuery[filterField] = new RegExp(`.*${escapedFilterString}.*`);
+            filterQuery[storedField] = new RegExp(`.*${escapedFilterString}.*`);
             sails.log.verbose(filterQuery);
           }
           andArray.push(filterQuery);
@@ -2691,21 +3116,77 @@ export namespace Services {
       filterFields = undefined,
       filterString = undefined,
       filterMode = undefined,
-      secondarySort = undefined
+      secondarySort = undefined,
+      queryOptions?: RecordQueryOptions
     ) {
       if (_.isUndefined(filterMode) || _.isNull(filterMode) || _.isEmpty(filterMode)) {
         filterMode = 'regex';
       }
+      // Legacy callers pass a one-element array; never accept query operators as paths.
+      const mode = Array.isArray(filterMode) && filterMode.length === 1 ? filterMode[0] : filterMode;
+      if (!['regex', 'equal', 'all', 'any'].includes(mode)) throw new Error('Invalid filter mode');
+      const validField = (field: unknown): field is string =>
+        typeof field === 'string' &&
+        /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(field) &&
+        !field.split('.').some(segment => ['__proto__', 'prototype', 'constructor'].includes(segment));
+      if (
+        filterFields != null &&
+        (!Array.isArray(filterFields) || filterFields.length > 20 || filterFields.some(field => !validField(field)))
+      ) {
+        throw new Error('Invalid filter fields');
+      }
+      if (
+        queryOptions !== undefined &&
+        (!queryOptions ||
+          typeof queryOptions !== 'object' ||
+          Array.isArray(queryOptions) ||
+          Object.keys(queryOptions).some(key => !['anyOf', 'afterOid', 'count', 'authorization'].includes(key)) ||
+          (queryOptions.count !== undefined && typeof queryOptions.count !== 'boolean') ||
+          (queryOptions.authorization !== undefined && queryOptions.authorization !== 'record-view') ||
+          (queryOptions.afterOid !== undefined &&
+            queryOptions.afterOid !== null &&
+            (typeof queryOptions.afterOid !== 'string' || queryOptions.afterOid.length > 1024)) ||
+          (queryOptions.anyOf !== undefined &&
+            (!Array.isArray(queryOptions.anyOf) ||
+              queryOptions.anyOf.length > 20 ||
+              queryOptions.anyOf.some(
+                term =>
+                  !term ||
+                  typeof term !== 'object' ||
+                  Object.keys(term).some(key => !['field', 'value', 'match'].includes(key)) ||
+                  !validField(term.field) ||
+                  !['contains', 'exact'].includes(term.match) ||
+                  typeof term.value !== 'string' ||
+                  term.value.length > 1024
+              ))))
+      )
+        throw new Error('Invalid record query options');
+      if (filterString != null && (typeof filterString !== 'string' || filterString.length > 1024))
+        throw new Error('Invalid filter');
       const query = {
         'metaMetadata.brandId': brand.id,
       };
-      const options = {
+      const options: FindOptions = {
         limit: _.toNumber(rows),
         skip: _.toNumber(start),
         sort: this.getRecordSort(sort, secondarySort),
       };
 
-      const roleNames = this.getRoleNames(roles, brand);
+      const cursorBatch = queryOptions?.afterOid !== undefined;
+      if (cursorBatch) {
+        if (!Number.isSafeInteger(rows) || rows < 1 || rows > 100 || start !== 0) {
+          throw new Error('OID cursor batches require zero offset and 1 to 100 rows');
+        }
+        query['redboxOid'] = { $type: 'string', $gt: queryOptions.afterOid ?? '' };
+        options.sort = { redboxOid: 1 };
+        options.collation = { locale: 'simple' };
+        options.projection = { _id: 0 };
+        options.maxTimeMS = 5000;
+      }
+      const roleNames =
+        queryOptions?.authorization === 'record-view'
+          ? (brand.roles ?? []).filter(role => roles.some(held => held.id === role.id)).map(role => role.name)
+          : this.getRoleNames(roles, brand);
       const andArray = [];
       const permissions = {
         $or: [
@@ -2715,7 +3196,23 @@ export namespace Services {
           { 'authorization.viewRoles': { $in: roleNames } },
         ],
       };
-      andArray.push(permissions);
+      if (queryOptions?.authorization === 'record-view') {
+        // The legacy flat representation applies only without nested authorization.
+        andArray.push({
+          $or: [
+            permissions,
+            {
+              authorization: null,
+              $or: [
+                { authorization_view: username },
+                { authorization_edit: username },
+                { authorization_editRoles: { $in: roleNames } },
+                { authorization_viewRoles: { $in: roleNames } },
+              ],
+            },
+          ],
+        });
+      } else andArray.push(permissions);
       if (_.isArray(recordType)) {
         if (recordType.length > 1) {
           const typeArray = [];
@@ -2752,23 +3249,32 @@ export namespace Services {
         query['workflow.stage'] = workflowState;
       }
       if (!_.isEmpty(filterString) && !_.isEmpty(filterFields)) {
-        const escapedFilterString = this.escapeRegExp(filterString);
-        sails.log.verbose('escapedFilterString ' + escapedFilterString);
-        for (const filterField of filterFields) {
-          if (filterMode == 'equal') {
-            query[filterField] = filterString;
-          } else if (filterMode == 'regex') {
-            query[filterField] = new RegExp(`.*${escapedFilterString}.*`, 'i');
-          }
+        const value = mode === 'equal' ? filterString : new RegExp(this.escapeRegExp(filterString), 'i');
+        if (mode === 'any') {
+          // Keep search OR separate from the type and authorization OR clauses.
+          andArray.push({ $or: filterFields.map(field => ({ [field]: value })) });
+        } else {
+          // Field filters must narrow, never replace, brand/type/workflow scope.
+          for (const field of filterFields) andArray.push({ [field]: value });
         }
       }
 
+      if (queryOptions?.anyOf?.length) {
+        andArray.push({
+          $or: queryOptions.anyOf.map(term => ({
+            [term.field]: term.match === 'exact' ? term.value : new RegExp(this.escapeRegExp(term.value), 'i'),
+          })),
+        });
+      }
       query['$and'] = andArray;
 
       sails.log.verbose(query);
       sails.log.verbose(`Query: ${JSON.stringify(query)}`);
       sails.log.verbose(`Options: ${JSON.stringify(options)}`);
-      const { items, totalItems } = await this.runRecordQuery(Record.tableName, query, options);
+      const { items, totalItems } =
+        queryOptions?.count === false
+          ? await this.runRecordQuery(Record.tableName, query, options, false)
+          : await this.runRecordQuery(Record.tableName, query, options);
       const response = new StorageServiceResponse();
       response.success = true;
       response.items = items;
@@ -2780,10 +3286,10 @@ export namespace Services {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    protected async runRecordQuery(colName, query, options) {
+    protected async runRecordQuery(colName, query, options, includeCount = true) {
       return {
         items: await this.recordCol.find(query, options).toArray(),
-        totalItems: await this.recordCol.count(query),
+        totalItems: includeCount ? await this.recordCol.count(query) : 0,
       };
     }
 
@@ -2794,13 +3300,15 @@ export namespace Services {
       };
     }
 
-    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false) {
+    private async *fetchAllRecords(query, options, stringifyJSON: boolean = false, checkpoint?: () => Promise<void>) {
       let skip = 0;
       const limit = options.limit;
       options.skip = skip;
+      await checkpoint?.();
       let result = await this.recordCol.find(query, options).toArray();
 
       while (result.length > 0) {
+        await checkpoint?.();
         for (const record of result) {
           if (stringifyJSON) {
             yield JSON.stringify(record);
@@ -2810,11 +3318,12 @@ export namespace Services {
         }
         skip = skip + limit;
         options.skip = skip;
+        await checkpoint?.();
         result = await this.recordCol.find(query, options).toArray();
       }
     }
 
-    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType): stream.Readable {
+    public exportAllPlans(username, roles, brand, format, modBefore, modAfter, recType, checkpoint?: () => Promise<void>): stream.Readable {
       const andArray = [];
       const query = {
         'metaMetadata.brandId': brand.id,
@@ -2864,7 +3373,7 @@ export namespace Services {
             // PassThrough is destroyed there is no point continuing to page Mongo, so both passes
             // bail out when it is no longer writable.
             const isCancelled = () => passThrough.destroyed;
-            const fields = await this.collectCsvFields(query, options, isCancelled);
+            const fields = await this.collectCsvFields(query, options, isCancelled, checkpoint);
             if (isCancelled()) {
               return;
             }
@@ -2884,7 +3393,10 @@ export namespace Services {
             });
             const json2csv = new Transform({ fields, transforms: [flatten()] }, { objectMode: true });
             await pipeline(
-              stream.Readable.from(this.fetchAllRecords(query, { ...options })),
+              stream.Readable.from(this.fetchAllRecords(query, { ...options }, false, async () => {
+                if (isCancelled()) throw new Error('Export stream closed.');
+                await checkpoint?.();
+              })),
               sanitize,
               json2csv,
               passThrough
@@ -2905,10 +3417,10 @@ export namespace Services {
     // First export pass: iterate every matching record and accumulate the union of flattened column
     // keys (first-seen order) so the CSV header covers every record. A clone of options is used
     // because fetchAllRecords mutates options.skip while paging.
-    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false): Promise<string[]> {
+    private async collectCsvFields(query, options, isCancelled: () => boolean = () => false, checkpoint?: () => Promise<void>): Promise<string[]> {
       const flattener = flatten();
       const fields = new Set<string>();
-      for await (const record of this.fetchAllRecords(query, { ...options })) {
+      for await (const record of this.fetchAllRecords(query, { ...options }, false, checkpoint)) {
         // Stop paging Mongo if the consumer has disconnected so cancelled exports don't keep
         // scanning every matching record.
         if (isCancelled()) {
@@ -2926,8 +3438,9 @@ export namespace Services {
 
       for (let i = 0; i < roles.length; i++) {
         const role = roles[i];
-        if (role.branding == brand.id) {
-          roleNames.push(roles[i].name);
+        const brandingId = typeof role.branding === 'object' ? role.branding?.id : role.branding;
+        if (brandingId != null && String(brandingId) === String(brand.id)) {
+          roleNames.push(role.name);
         }
       }
 
@@ -3229,10 +3742,12 @@ export namespace Services {
       return summary;
     }
 
-    private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel {
-      const payload: RecordAuditModel = {
+    private sanitizeRecordAudit(recordAudit: RecordAuditModel): RecordAuditModel & { id?: string } {
+      const payload: RecordAuditModel & { id?: string } = {
         redboxOid: recordAudit.redboxOid,
+        ...(recordAudit.auditId ? { id: recordAudit.auditId } : {}),
         action: recordAudit.action,
+        ...(recordAudit.occurredAt ? { occurredAt: recordAudit.occurredAt } : {}),
         user: this.toJsonSafe(recordAudit.user) as Record<string, unknown> | undefined,
         record: this.toJsonSafe(recordAudit.record) as Record<string, unknown> | undefined,
         executionSummary: this.sanitizeRecordHookExecutionSummary(
@@ -3312,14 +3827,59 @@ export namespace Services {
 
     public async createRecordAudit(recordAudit: RecordAuditModel): Promise<StorageServiceResponse> {
       const response = new StorageServiceResponse();
+      const auditId = recordAudit.auditId;
       const payload = this.sanitizeRecordAudit(recordAudit);
       try {
+        if (payload.id && !/^[a-f0-9]{24}$/.test(payload.id)) {
+          response.retryable = false;
+          throw new Error('Invalid record audit ID');
+        }
         sails.log.verbose(`${this.logHeader} Saving to DB...`);
-        const savedRecordAudit = await RecordAudit.create(payload);
-        response.oid = String(savedRecordAudit._id ?? '');
+        // Waterline renames id to the physical primary key in place. Keep verification data intact.
+        const savedRecordAudit = await RecordAudit.create({ ...payload });
+        response.oid = String(savedRecordAudit.id ?? savedRecordAudit._id ?? '');
         response.success = true;
         sails.log.verbose(`${this.logHeader} Record Audit created...`);
       } catch (err) {
+        // These payload failures cannot be repaired by waiting for Mongo to recover.
+        // Waterline wraps unrecognised Mongo failures in AdapterError.raw.
+        const raw = err != null && typeof err === 'object' && 'raw' in err ? err.raw : undefined;
+        for (const failure of [err, raw]) {
+          if (failure == null || typeof failure !== 'object') continue;
+          const code = 'code' in failure ? failure.code : undefined;
+          const name = 'name' in failure ? failure.name : undefined;
+          if (
+            code === 121 ||
+            code === 10334 ||
+            code === 17419 ||
+            code === 'E_VALIDATION' ||
+            code === 'E_INVALID_NEW_RECORD' ||
+            name === 'BSONError' ||
+            name === 'BSONVersionError'
+          )
+            response.retryable = false;
+        }
+        // Mongo's existing unique primary key makes retries atomic across processes and late inserts.
+        const duplicate =
+          err != null && typeof err === 'object' && 'code' in err && (err.code === 'E_UNIQUE' || err.code === 11000);
+        if (auditId && duplicate) {
+          try {
+            const existing = await RecordAudit.findOne({ id: auditId });
+            if (
+              existing?.redboxOid === payload.redboxOid &&
+              existing.action === payload.action &&
+              existing.occurredAt === payload.occurredAt
+            ) {
+              response.oid = auditId;
+              response.success = true;
+              return response;
+            }
+            if (existing) response.retryable = false;
+          } catch (lookupError) {
+            response.message = this.getErrorMessage(lookupError);
+            return response;
+          }
+        }
         sails.log.error(`${this.logHeader} Failed to create Record Audit:`);
         sails.log.error(JSON.stringify(err));
         response.success = false;

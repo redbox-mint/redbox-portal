@@ -77,7 +77,7 @@ import {
 import { RECORD_SCHEMA_PROBLEM_CODES } from '../record-contract/codes';
 import type { StorageServiceResponse } from '../StorageServiceResponse';
 import type { ConfiguredRecordContractFormCandidate, FormRecordAccessContext } from './FormsService';
-import type { ILogger } from '../Logger';
+import type { ILogger } from '@researchdatabox/sails-ng-common';
 import { isInternalRecordSchemaAuthorizationCapability } from './internal-record-schema-authorization';
 
 declare const RedboxJavaStorageService: unknown;
@@ -912,6 +912,8 @@ export interface ResolveUpdateRecordSchemaRequest {
   readonly branding?: string;
   readonly portal: string;
   readonly oid: string;
+  /** Process-local source-contract capability issued after route-grant validation. */
+  readonly routeFormContract?: unknown;
   readonly operation?: string;
   /** Optional raw If-Match value evaluated against the resolved update schema before persistence. */
   readonly ifMatch?: string;
@@ -2593,6 +2595,7 @@ export namespace Services {
           portal: request.portal,
           oid: request.oid,
           operation: request.operation,
+          ...(request.routeFormContract !== undefined ? { routeFormContract: request.routeFormContract } : {}),
           actor: callerActor(request.caller),
         });
         if (!isUpdateContractContext(resolvedContext)) {

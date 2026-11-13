@@ -4,13 +4,14 @@
  * A custom Formly field type that provides a user-friendly visual editor
  * for managing admin sidebar configuration with support for:
  * - Header configuration
- * - Collapsible sections with items
+ * - Selectable sections with items
  * - Footer links
  * - Live preview
  */
-import { Component, OnInit, ChangeDetectorRef, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './admin-sidebar-item.interface';
 
 @Component({
@@ -20,8 +21,7 @@ import { AdminSidebarItem, AdminSidebarSection, AdminSidebarHeader } from './adm
   standalone: false
 })
 export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> implements OnInit {
-  @ViewChild('modalDialog') modalDialog?: ElementRef;
-  private previousActiveElement: HTMLElement | null = null;
+  readonly previewInitiallyOpen = typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
 
   /** Currently expanded section indices */
   expandedSections: Set<number> = new Set([0]);
@@ -52,7 +52,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     item: {}
   };
 
-  constructor(private cdr: ChangeDetectorRef) {
+  constructor(private cdr: ChangeDetectorRef, private translationService: TranslationService) {
     super();
   }
 
@@ -60,40 +60,6 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     // Initialize model defaults if needed
     if (!this.header) {
       this.updateHeader({ titleKey: 'menu-admin', iconClass: 'fa fa-cog' });
-    }
-  }
-
-  @HostListener('document:keydown', ['$event'])
-  handleKeydown(event: KeyboardEvent) {
-    if (!this.itemEditorState.visible || !this.modalDialog) return;
-
-    if (event.key === 'Escape') {
-      this.closeItemEditor();
-      return;
-    }
-
-    if (event.key === 'Tab') {
-      const dialogElement = this.modalDialog.nativeElement;
-      const focusableElements = dialogElement.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      
-      if (focusableElements.length === 0) return;
-
-      const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-
-      if (event.shiftKey) {
-        if (document.activeElement === firstElement) {
-          lastElement.focus();
-          event.preventDefault();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          firstElement.focus();
-          event.preventDefault();
-        }
-      }
     }
   }
 
@@ -167,13 +133,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
 
   // ============ Section Management ============
   
-  toggleSection(index: number): void {
-    if (this.expandedSections.has(index)) {
-      this.expandedSections.delete(index);
-    } else {
-      this.expandedSections.add(index);
-    }
-  }
+  toggleSection(index: number): void { this.selectParent(index); }
 
   isSectionExpanded(index: number): boolean {
     return this.expandedSections.has(index);
@@ -188,7 +148,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     };
     const sections = [...this.sections, newSection];
     this.updateSections(sections);
-    this.expandedSections.add(sections.length - 1);
+    this.expandedSections = new Set([sections.length - 1]);
   }
 
   removeSection(index: number): void {
@@ -201,7 +161,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
       if (i < index) newExpanded.add(i);
       else if (i > index) newExpanded.add(i - 1);
     });
-    this.expandedSections = newExpanded;
+    this.expandedSections = newExpanded.size ? newExpanded : new Set(sections.length ? [Math.min(index, sections.length - 1)] : []);
   }
 
   duplicateSection(index: number): void {
@@ -214,7 +174,7 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
     const sections = [...this.sections];
     sections.splice(index + 1, 0, section);
     this.updateSections(sections);
-    this.expandedSections.add(index + 1);
+    this.expandedSections = new Set([index + 1]);
   }
 
   moveSection(index: number, direction: 'up' | 'down'): void {
@@ -263,7 +223,6 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   // ============ Section Item Management ============
   
   openItemEditor(sectionIndex: number, itemIndex: number = -1): void {
-    this.previousActiveElement = document.activeElement as HTMLElement;
     const section = this.sections[sectionIndex];
     
     // Validate edit request
@@ -289,30 +248,11 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
           }
     };
     this.cdr.detectChanges();
-    this.focusFirstModalElement();
   }
 
   closeItemEditor(): void {
     this.itemEditorState.visible = false;
     this.cdr.detectChanges();
-    
-    if (this.previousActiveElement) {
-      this.previousActiveElement.focus();
-      this.previousActiveElement = null;
-    }
-  }
-
-  private focusFirstModalElement(): void {
-    setTimeout(() => {
-      if (this.modalDialog) {
-        const focusable = this.modalDialog.nativeElement.querySelector('input, button, [href], [tabindex]:not([tabindex="-1"])');
-        if (focusable) {
-          focusable.focus();
-        } else {
-          this.modalDialog.nativeElement.focus();
-        }
-      }
-    });
   }
 
   saveItem(): void {
@@ -436,7 +376,6 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
   }
 
   openFooterLinkEditor(itemIndex: number = -1): void {
-    this.previousActiveElement = document.activeElement as HTMLElement;
     
     // Validate edit request
     const isEditRequest = itemIndex >= 0;
@@ -459,31 +398,28 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
           }
     };
     this.cdr.detectChanges();
-    this.focusFirstModalElement();
   }
 
   // ============ Preview Helpers ============
   
   getResolvedLabel(labelKey: string): string {
-    if (!this.resolveTranslations) return labelKey;
-    // Simple label resolution - in production this would use TranslationService
-    return labelKey
-      .replace(/^menu-/, '')
-      .replace(/^admin-/, '')
-      .replace(/-/g, ' ')
-      .replace(/\b\w/g, char => char.toUpperCase());
+    if (!this.resolveTranslations || !labelKey) return labelKey;
+    const translated = String(this.translationService.t(labelKey));
+    if (translated !== labelKey) return translated;
+    const label = labelKey.replace(/^(admin-nav-|menu-)/, '').replace(/[-_]+/g, ' ');
+    return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   getVisibleSections(): AdminSidebarSection[] {
     // Filter sections based on visibility criteria for preview
     return this.sections.filter(section => 
-      section.requiresAuth !== false && !section.hideWhenAuth
+      !section.hideWhenAuth
     );
   }
 
   getVisibleItems(section: AdminSidebarSection): AdminSidebarItem[] {
     return (section.items || []).filter(item =>
-      item.requiresAuth !== false && !item.hideWhenAuth
+      !item.hideWhenAuth
     );
   }
 
@@ -493,5 +429,48 @@ export class AdminSidebarEditorTypeComponent extends FieldType<FieldTypeConfig> 
 
   trackById(index: number, item: AdminSidebarSection | AdminSidebarItem): string {
     return (item as any).id || index.toString();
+  }
+
+  selectParent(index: number): void { this.expandedSections = new Set([index]); }
+
+  jumpTo(index: number): void {
+    this.selectParent(index);
+    this.cdr.detectChanges();
+    document.getElementById('navigation-detail')?.focus();
+  }
+
+  parentAction(index: number, action: string): void {
+    if (action === 'up' || action === 'down') this.moveSection(index, action);
+    else if (action === 'duplicate') this.duplicateSection(index);
+    else if (action === 'remove') this.removeSection(index);
+    else if (action === 'add') { this.selectParent(index); this.openItemEditor(index); }
+  }
+
+  childAction(parentIndex: number, childIndex: number, action: string): void {
+    if (action === 'up' || action === 'down') this.moveItem(parentIndex, childIndex, action);
+    else if (action === 'remove') this.removeItem(parentIndex, childIndex);
+    else if (action === 'duplicate') {
+      const parents = [...this.sections];
+      const parent = { ...parents[parentIndex] };
+      const children = [...(parent.items || [])];
+      const child = JSON.parse(JSON.stringify(children[childIndex]));
+      if (child.id) child.id += `-copy-${Date.now()}`;
+      children.splice(childIndex + 1, 0, child);
+      parent.items = children;
+      parents[parentIndex] = parent;
+      this.updateSections(parents);
+    }
+  }
+
+  footerAction(index: number, action: string): void {
+    if (action === 'up' || action === 'down') this.moveFooterLink(index, action);
+    else if (action === 'remove') this.removeFooterLink(index);
+    else if (action === 'duplicate') {
+      const links = [...this.footerLinks];
+      const link = JSON.parse(JSON.stringify(links[index]));
+      if (link.id) link.id += `-copy-${Date.now()}`;
+      links.splice(index + 1, 0, link);
+      this.updateFooterLinks(links);
+    }
   }
 }

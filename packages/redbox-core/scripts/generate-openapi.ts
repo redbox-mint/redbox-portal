@@ -145,10 +145,10 @@ export async function generateOpenApiArtifacts(
   </head>
   <body>
     <div id="redoc"></div>
-    <script src="https://cdn.redoc.ly/redoc/v2.5.2/bundles/redoc.standalone.js"></script>
-    <script>
+    <script type="module">
+      import { init } from 'https://cdn.redoc.ly/redoc/v3.0.1/bundles/redoc.standalone.js';
       // Load the generated OpenAPI JSON from the same folder
-      Redoc.init('openapi.json', {}, document.getElementById('redoc'));
+      init('openapi.json', { disableTelemetry: true }, document.getElementById('redoc'));
     </script>
   </body>
 </html>`;

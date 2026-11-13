@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -36,13 +38,7 @@ describe('NavigationService', function () {
           }
         })
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -102,8 +98,8 @@ describe('NavigationService', function () {
 
       expect(config).to.have.property('sections');
       expect(config.sections).to.be.an('array');
-      const analyzeSection = config.sections.find((section: any) => section.id === 'analyze');
-      expect(analyzeSection?.items).to.deep.include({ id: 'harvest-runs', labelKey: 'menu-harvest-runs', href: '/admin/harvest-runs' });
+      const recordsSection = config.sections.find((section: any) => section.id === 'records');
+      expect(recordsSection?.items).to.deep.include({ id: 'harvest-runs', labelKey: 'admin-nav-harvest-runs', href: '/admin/harvest-runs' });
     });
   });
 
@@ -210,6 +206,72 @@ describe('NavigationService', function () {
       expect(result).to.have.property('footerLinks');
       expect(result.header).to.have.property('title');
       expect(result.header).to.have.property('iconClass');
+    });
+
+    it('uses one default layout for runtime branding and the config editor', function () {
+      const { brandingConfigurationDefaults } = require('../../src/config/brandingConfigurationDefaults.config');
+      expect(brandingConfigurationDefaults.adminSidebar).to.equal(NavigationService.getDefaultAdminSidebarConfig());
+      expect(brandingConfigurationDefaults.adminSidebar.sections.map((section: any) => section.id))
+        .to.deep.equal(['records', 'people', 'site', 'lookups', 'integrations', 'developer']);
+      expect(brandingConfigurationDefaults.adminSidebar.footerLinks).to.deep.equal([]);
+    });
+
+    it('highlights every default route, including each app-config and report detail', async function () {
+      mockSails.config.brandingAware.returns({});
+      const config = NavigationService.getDefaultAdminSidebarConfig();
+      for (const section of config.sections) {
+        for (const item of section.items) {
+          const result = await NavigationService.resolveAdminSidebar({
+            isAuthenticated: () => true, user: { roles: ['Admin'] }, path: '/default/portal' + item.href
+          });
+          const active = result.sections.flatMap((resolved: any) => resolved.items).filter((link: any) => link.active);
+          expect(active.map((link: any) => link.href), item.href).to.deep.equal(['/default/portal' + item.href]);
+        }
+      }
+      const result = await NavigationService.resolveAdminSidebar({
+        isAuthenticated: () => true, user: { roles: ['Admin'] }, path: '/default/portal/admin/report/example'
+      });
+      expect(result.sections.flatMap((section: any) => section.items).filter((link: any) => link.active)
+        .map((link: any) => link.href)).to.deep.equal(['/default/portal/admin/reports']);
+    });
+
+    it('highlights Parties for old bookmarks and saved legacy sidebar links', async function () {
+      for (const href of ['/admin/parties', '/dashboard/party']) {
+        mockSails.config.brandingAware.returns({ adminSidebar: {
+          sections: [{ id: 'lookups', titleKey: 'admin-nav-lookups', items: [{ id: 'party', labelKey: 'admin-nav-party', href }] }]
+        } });
+        for (const route of ['/admin/parties', '/dashboard/party']) {
+          const result = await NavigationService.resolveAdminSidebar({
+            isAuthenticated: () => true, user: { roles: ['Admin'] }, path: '/default/portal' + route
+          });
+          expect(result.sections[0].items[0].active).to.equal(true);
+        }
+      }
+    });
+
+    it('keeps records and reporting visible to other authenticated roles', async function () {
+      mockSails.config.brandingAware.returns({});
+      (global as any).UsersService.hasRole.returns(false);
+      const result = await NavigationService.resolveAdminSidebar({
+        isAuthenticated: () => true, user: { roles: ['Researcher'] }, path: '/default/portal/admin/reports'
+      });
+      expect(result.sections.map((section: any) => section.id)).to.deep.equal(['records']);
+    });
+
+    it('preserves saved sections, footer links and external links without marking them active', async function () {
+      mockSails.config.brandingAware.returns({ adminSidebar: {
+        sections: [{ id: 'custom', titleKey: 'custom', items: [
+          { labelKey: 'custom', href: '/admin/users' },
+          { labelKey: 'external', href: 'https://example.org/admin/users', external: true }
+        ] }], footerLinks: [{ labelKey: 'footer', href: '/admin/branding' }]
+      } });
+      const result = await NavigationService.resolveAdminSidebar({
+        isAuthenticated: () => true, user: { roles: ['Admin'] }, path: '/default/portal/admin/users'
+      });
+      expect(result.sections.map((section: any) => section.id)).to.deep.equal(['custom']);
+      expect(result.sections[0].items.map((item: any) => item.active)).to.deep.equal([true, false]);
+      expect(result.sections[0].items[1].target).to.equal('_blank');
+      expect(result.footerLinks[0].href).to.equal('/default/portal/admin/branding');
     });
 
     it('should return minimal sidebar on error', async function () {

@@ -246,8 +246,14 @@ describe('ReportingService safety and independent use', () => {
     expect(project.called).to.equal(false);
   });
   it('rejects excessive output and audits safe metadata without record values or search text', async () => {
-    const info = sinon.spy(sails.log, 'info');
-    await service.search(principal, { recordType: 'rdmp', text: 'never log this phrase' });
+    const info = sinon.spy();
+    const originalInfo = sails.log.info;
+    sails.log.info = info;
+    try {
+      await service.search(principal, { recordType: 'rdmp', text: 'never log this phrase' });
+    } finally {
+      sails.log.info = originalInfo;
+    }
     const event = info.lastCall.args[0];
     expect(event).to.include({
       userId: 'alice-id',

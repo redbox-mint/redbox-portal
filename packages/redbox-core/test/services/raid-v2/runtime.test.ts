@@ -1,7 +1,8 @@
 import { expect } from 'chai';
-import { Effect, Layer } from 'effect';
+import { Cause, Clock, Effect, Fiber, Layer } from 'effect';
+import * as TestClock from 'effect/testing/TestClock';
 import type { RaidPublishingConfigData } from '../../../src/configmodels/RaidPublishing';
-import { RaidHttpError } from '../../../src/services/raid-v2/errors';
+import { RaidHttpError, RaidTimeoutError } from '../../../src/services/raid-v2/errors';
 import { mintRaidProgram, runRaidProgram } from '../../../src/services/raid-v2/runtime';
 import {
   RaidAuditTag,
@@ -34,26 +35,30 @@ const makeConfig = (): RaidPublishingConfigData => ({
   mapping: { dmp: { title: { dest: 'title[0].text', engine: 'jsonata', expression: 'record.metadata.title' } } },
 });
 
-function makeLayer(overrides: {
-  config?: RaidPublishingConfigData;
-  getMeta?: (oid: string) => Effect.Effect<any, any>;
-  appendToRecord?: (oid: string, value: unknown, path: string) => Effect.Effect<void, any>;
-  map?: (record: any) => Effect.Effect<any, any>;
-  getToken?: (refresh?: boolean) => Effect.Effect<string, any>;
-  mint?: (request: any, token: string, attempt: number) => Effect.Effect<any, any>;
-  schedule?: (data: any) => Effect.Effect<void, any>;
-} = {}) {
+const runContext = {
+  oid: 'record-1',
+  brandId: 'brand-1',
+  brandName: 'default',
+  triggerSource: 'test',
+  attemptCount: 0,
+};
+
+function makeLayer(
+  overrides: {
+    config?: RaidPublishingConfigData;
+    getMeta?: (oid: string) => Effect.Effect<any, any>;
+    appendToRecord?: (oid: string, value: unknown, path: string) => Effect.Effect<void, any>;
+    map?: (record: any) => Effect.Effect<any, any>;
+    getToken?: (refresh?: boolean) => Effect.Effect<string, any>;
+    mint?: (request: any, token: string, attempt: number) => Effect.Effect<any, any>;
+    schedule?: (data: any) => Effect.Effect<void, any>;
+  } = {}
+) {
   const config = overrides.config ?? makeConfig();
   const auditEvents: string[] = [];
   const layer = Layer.mergeAll(
     Layer.succeed(RaidConfigTag, config),
-    Layer.succeed(RaidRunContextTag, {
-      oid: 'record-1',
-      brandId: 'brand-1',
-      brandName: 'default',
-      triggerSource: 'test',
-      attemptCount: 0,
-    }),
+    Layer.succeed(RaidRunContextTag, runContext),
     Layer.succeed(RaidRecordRepositoryTag, {
       getMeta: overrides.getMeta ?? (() => Effect.succeed({ metadata: {} })),
       appendToRecord: overrides.appendToRecord ?? (() => Effect.void),
@@ -63,8 +68,10 @@ function makeLayer(overrides: {
     }),
     Layer.succeed(RaidHttpClientTag, {
       getToken: overrides.getToken ?? (() => Effect.succeed('access-token')),
-      mint: overrides.mint ?? (() =>
-        Effect.succeed({ statusCode: 201, body: { identifier: { id: 'raid-1' } }, identifier: { id: 'raid-1' } })),
+      mint:
+        overrides.mint ??
+        (() =>
+          Effect.succeed({ statusCode: 201, body: { identifier: { id: 'raid-1' } }, identifier: { id: 'raid-1' } })),
     }),
     Layer.succeed(RaidQueueTag, {
       schedule: overrides.schedule ?? (() => Effect.void),
@@ -109,7 +116,7 @@ describe('RAiD Effect runtime', () => {
         },
       },
       config,
-      context: {} as any,
+      context: runContext,
     }).pipe(Effect.provide(layer));
 
     const result: any = await runRaidProgram(program);
@@ -166,7 +173,7 @@ describe('RAiD Effect runtime', () => {
           },
         },
         config,
-        context: {} as any,
+        context: runContext,
       }).pipe(Effect.provide(layer))
     );
 
@@ -201,7 +208,7 @@ describe('RAiD Effect runtime', () => {
         record,
         options: { signal, request: { mappingProfile: 'dmp' } },
         config,
-        context: {} as any,
+        context: runContext,
       }).pipe(Effect.provide(layer))
     );
 
@@ -218,7 +225,7 @@ describe('RAiD Effect runtime', () => {
         record: { metadata: {} },
         options: { request: { sourceOidField: 'metadata.sourceOid' } },
         config: first.config,
-        context: {} as any,
+        context: runContext,
       }).pipe(Effect.provide(first.layer))
     );
     expect(missingSource._tag).to.equal('Failure');
@@ -231,12 +238,127 @@ describe('RAiD Effect runtime', () => {
         record: { metadata: {} },
         options: { request: { mappingProfile: 'unknown' } },
         config,
-        context: {} as any,
+        context: runContext,
       }).pipe(Effect.provide(second.layer))
     );
     expect(missingMapping._tag).to.equal('Failure');
     expect(second.auditEvents).to.include('fail:mintRaid');
   });
+
+  it('bounds retry attempts and caps exponential backoff', async () => {
+    const config = makeConfig();
+    config.connection.retry = { ...config.connection.retry, maxAttempts: 4, baseDelayMs: 10, maxDelayMs: 15 };
+    const times: number[] = [];
+    const failure = new RaidHttpError({
+      message: 'unavailable',
+      statusCode: 503,
+      method: 'POST',
+      path: '/raid',
+      retryable: true,
+    });
+    const { layer } = makeLayer({
+      config,
+      mint: () =>
+        Effect.gen(function* () {
+          times.push(yield* Clock.currentTimeMillis);
+          return yield* Effect.fail(failure);
+        }),
+    });
+    const exit = await Effect.runPromise(
+      Effect.gen(function* () {
+        const fiber = yield* Effect.forkChild(
+          mintRaidProgram({ record: { metadata: {} }, options: {}, config, context: runContext }).pipe(
+            Effect.provide(layer)
+          )
+        );
+        yield* TestClock.adjust(100);
+        return yield* Fiber.await(fiber);
+      }).pipe(Effect.provide(TestClock.layer()))
+    );
+
+    expect(times.map(time => time - times[0])).to.deep.equal([0, 10, 25, 40]);
+    expect(exit._tag).to.equal('Failure');
+    if (exit._tag === 'Failure') {
+      const error = Cause.findErrorOption(exit.cause);
+      expect(error._tag).to.equal('Some');
+      if (error._tag === 'Some') expect(error.value).to.equal(failure);
+    }
+  });
+
+  it('does not retry permanent failures even when more attempts are available', async () => {
+    const config = makeConfig();
+    config.connection.retry.maxAttempts = 4;
+    let attempts = 0;
+    const failure = new RaidHttpError({
+      message: 'bad request',
+      statusCode: 400,
+      method: 'POST',
+      path: '/raid',
+      retryable: false,
+    });
+    const { layer } = makeLayer({
+      config,
+      mint: () => {
+        attempts += 1;
+        return Effect.fail(failure);
+      },
+    });
+    let caught: unknown;
+    try {
+      await runRaidProgram(
+        mintRaidProgram({ record: { metadata: {} }, options: {}, config, context: runContext }).pipe(
+          Effect.provide(layer)
+        )
+      );
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).to.equal(failure);
+    expect(attempts).to.equal(1);
+  });
+
+  for (const operation of ['token', 'mint'] as const) {
+    it(`interrupts and finalizes a timed out ${operation} before reporting its typed failure`, async () => {
+      const config = makeConfig();
+      config.connection.timeoutMs = 10;
+      config.connection.oauth.timeoutMs = 10;
+      let finalized = false;
+      const stalled = Effect.never.pipe(
+        Effect.ensuring(
+          Effect.sync(() => {
+            finalized = true;
+          })
+        )
+      );
+      const { layer, auditEvents } = makeLayer({
+        config,
+        ...(operation === 'token' ? { getToken: () => stalled } : { mint: () => stalled }),
+      });
+      const exit = await Effect.runPromise(
+        Effect.gen(function* () {
+          const fiber = yield* Effect.forkChild(
+            mintRaidProgram({ record: { metadata: {} }, options: {}, config, context: runContext }).pipe(
+              Effect.provide(layer)
+            )
+          );
+          yield* TestClock.adjust(10);
+          return yield* Fiber.await(fiber);
+        }).pipe(Effect.provide(TestClock.layer()))
+      );
+
+      expect(finalized).to.equal(true);
+      expect(exit._tag).to.equal('Failure');
+      if (exit._tag === 'Failure') {
+        const failure = Cause.findErrorOption(exit.cause);
+        expect(failure._tag).to.equal('Some');
+        if (failure._tag === 'Some') {
+          expect(failure.value).to.be.instanceOf(RaidTimeoutError);
+          if (failure.value instanceof RaidTimeoutError) expect(failure.value.operation).to.equal(operation);
+        }
+      }
+      expect(auditEvents).to.include('fail:mintRaid');
+    });
+  }
 
   it('unwraps typed failures from runRaidProgram', async () => {
     const failure = new Error('typed failure');

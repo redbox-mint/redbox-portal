@@ -1,3 +1,7 @@
+import {createSinonStubLogger} from "../logger.test";
+import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
+import { runWithRequestChronicle } from '../../src/utilities/RequestChronicleContext';
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -26,13 +30,7 @@ describe('NamedQueryService', function() {
           bootstrapAlways: false
         }
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       models: {}
     });
 
@@ -166,6 +164,34 @@ describe('NamedQueryService', function() {
       expect(createStub.called).to.be.false;
     });
 
+    it('keeps file seeds ahead of config seeds with the same name', async function() {
+      const file = { collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} };
+      mockSails.config.namedQuery.queries = { same: { ...file, collectionName: 'user' } };
+      stubFileOps({ readdir: sinon.stub().resolves([{ name: 'same.json', isFile: () => true }]), readFile: sinon.stub().resolves(JSON.stringify(file)) });
+      mockNamedQuery.findOne.onFirstCall().resolves(null);
+      mockNamedQuery.findOne.onSecondCall().resolves({ key: 'brand-1_same' });
+      const create = sinon.stub(NamedQueryService, 'create').resolves({});
+      await NamedQueryService.bootstrapData({ id: 'brand-1' });
+      expect(create.calledOnce).to.be.true;
+      expect(create.firstCall.args[2]).to.deep.equal(file);
+    });
+
+    it('loads config seeds even without a file directory and preserves existing entries', async function() {
+      mockSails.config.namedQuery = { queries: {
+        fresh: { collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {} },
+        edited: { collectionName: 'record' },
+        invalid: {}
+      } };
+      stubFileOps({ readdir: sinon.stub().rejects(Object.assign(new Error('missing'), { code: 'ENOENT' })), readFile: sinon.stub() });
+      mockNamedQuery.findOne.resolves(null);
+      mockNamedQuery.findOne.withArgs({ key: 'brand-1_edited' }).resolves({ id: 'existing' });
+      const create = sinon.stub(NamedQueryService, 'create').resolves({});
+      await NamedQueryService.bootstrapData({ id: 'brand-1' });
+      expect(create.calledOnce).to.be.true;
+      expect(create.firstCall.args[1]).to.equal('fresh');
+      expect(mockSails.log.error.called).to.be.true;
+    });
+
     it('should be a no-op when the bootstrap data directory is missing', async function() {
       const defBrand = { id: 'brand-1' };
       const enoent = Object.assign(new Error('not found'), { code: 'ENOENT' });
@@ -178,6 +204,100 @@ describe('NamedQueryService', function() {
       await NamedQueryService.bootstrapData(defBrand);
 
       expect(createStub.called).to.be.false;
+    });
+  });
+
+  describe('legacy authoring contract', function() {
+    it('preserves the legacy user scope field on a no-op save', async function() {
+      const existing = {
+        name: 'listUsers', collectionName: 'user', brandIdFieldPath: 'branding',
+        mongoQuery: '{}', queryParams: '{}', resultObjectMapping: '{}',
+        sort: '', relatedRecordFilters: '', expandRelations: false,
+      };
+      mockNamedQuery.find.returns(createQueryObject([existing]));
+      mockNamedQuery.findOne.resolves(existing);
+      const [definition] = await NamedQueryService.list({ id: 'brand-1' });
+      await NamedQueryService.update({ id: 'brand-1' }, existing.name, definition);
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.brandIdFieldPath).to.equal('branding');
+      // Execution continues to resolve user access through roles, not this legacy field.
+      expect(NamedQueryService.resolveBrandScope('user')).to.deep.equal({ type: 'userRoles', fieldPath: '' });
+    });
+
+    for (const collectionName of ['user', 'record'])
+      it(`ignores an edited legacy scope field when saving ${collectionName}`, async function() {
+        mockNamedQuery.findOne.resolves({ collectionName: 'user', brandIdFieldPath: 'branding' });
+        await NamedQueryService.update({ id: 'brand-1' }, 'listUsers', {
+          collectionName, mongoQuery: {}, queryParams: {}, resultObjectMapping: {},
+          brandIdFieldPath: 'attackerSuppliedPath',
+        });
+        const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+        expect(saved.brandIdFieldPath).to.equal(collectionName === 'user' ? '' : 'metaMetadata.brandId');
+      });
+
+    it('resolves the scope again when the collection changes with an unchanged legacy path', async function() {
+      mockNamedQuery.findOne.resolves({ collectionName: 'user', brandIdFieldPath: 'branding' });
+      await NamedQueryService.update({ id: 'brand-1' }, 'listUsers', {
+        collectionName: 'record', mongoQuery: {}, queryParams: {}, resultObjectMapping: {},
+        brandIdFieldPath: 'branding',
+      });
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.brandIdFieldPath).to.equal('metaMetadata.brandId');
+    });
+
+    for (const omitEmpty of [false, true]) it(`preserves stored JSON bytes on no-op save (omit empty arrays: ${omitEmpty})`, async function() {
+      const existing = {
+        name: 'scu-rdmps', collectionName: 'record', brandIdFieldPath: 'metaMetadata.brandId',
+        mongoQuery: '{\n  "metaMetadata.type": "rdmp"\n}', queryParams: '{ }',
+        resultObjectMapping: '{ "title": "record.metadata.title" }',
+        sort: '[]', relatedRecordFilters: '[ ]', expandRelations: false,
+      };
+      mockNamedQuery.find.returns(createQueryObject([existing]));
+      mockNamedQuery.findOne.resolves(existing);
+      const [definition] = await NamedQueryService.list({ id: 'brand-1' });
+      if (omitEmpty) { definition.sort = undefined; definition.relatedRecordFilters = undefined; }
+      await NamedQueryService.update({ id: 'brand-1' }, existing.name, definition);
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      for (const key of ['mongoQuery', 'queryParams', 'resultObjectMapping', 'sort', 'relatedRecordFilters'])
+        expect(saved[key], key).to.equal(existing[key]);
+    });
+
+    it('serializes changed query values and still permits clearing nonempty sort and related filters', async function() {
+      mockNamedQuery.findOne.resolves({ mongoQuery: '{ "old": true }', sort: '[{"dateCreated":"ASC"}]',
+        relatedRecordFilters: '[{"collectionName":"record"}]' });
+      await NamedQueryService.update({ id: 'brand-1' }, 'changed', {
+        collectionName: 'record', mongoQuery: { 'metaMetadata.type': 'rdmp' },
+        queryParams: {}, resultObjectMapping: {}, sort: [], relatedRecordFilters: [],
+      });
+      const saved = mockNamedQuery.updateOne.firstCall.returnValue.set.firstCall.args[0];
+      expect(saved.mongoQuery).to.equal('{"metaMetadata.type":"rdmp"}');
+      expect(saved.sort).to.equal('');
+      expect(saved.relatedRecordFilters).to.equal('');
+    });
+
+    it('persists malformed expressions without schema or syntax validation', async function() {
+      const config = {
+        collectionName: 'record', mongoQuery: { 'metadata.hookField': { $customOperator: true } },
+        resultObjectMapping: { title: '{{#if broken}}' },
+        queryParams: { custom: { type: 'hook-type', path: 'metadata.custom' } }, sort: { invalid: true },
+      };
+      await NamedQueryService.create({ id: 'brand-1' }, 'legacy', config);
+      expect(mockNamedQuery.create.firstCall.args[0].resultObjectMapping).to.equal(JSON.stringify(config.resultObjectMapping));
+      expect(mockNamedQuery.create.firstCall.args[0].queryParams).to.equal(JSON.stringify(config.queryParams));
+      expect(mockNamedQuery.create.firstCall.args[0].sort).to.equal('');
+      mockNamedQuery.findOne.resolves({ key: 'brand-1_legacy' });
+      await NamedQueryService.update({ id: 'brand-1' }, 'legacy', { collectionName: 'record' });
+      expect(mockNamedQuery.updateOne.calledOnce).to.be.true;
+    });
+    it('requires a brand-scoped collection but does not enforce the editor dropdown', async function() {
+      await NamedQueryService.create({ id: 'brand-1' }, 'custom', { collectionName: 'custommodel' });
+      expect(mockNamedQuery.create.firstCall.args[0].brandIdFieldPath).to.equal('branding');
+      for (const collectionName of ['', 'missing', 'unscopedmodel']) {
+        let error: unknown;
+        try { await NamedQueryService.create({ id: 'brand-1' }, 'invalid', { collectionName }); }
+        catch (caught) { error = caught; }
+        expect(error).to.be.instanceOf(Error);
+      }
     });
   });
 
@@ -378,6 +498,7 @@ describe('NamedQueryService', function() {
   });
 
   describe('delete', function() {
+    beforeEach(() => sinon.stub(NamedQueryService, 'getUsage').resolves({}));
     it('should delete named query by composite key', async function() {
       const brand = { id: 'brand-1' };
 
@@ -390,6 +511,18 @@ describe('NamedQueryService', function() {
       expect(mockNamedQuery.destroyOne.firstCall.args[0]).to.deep.equal({ key: 'brand-1_test-query' });
       expect(result).to.deep.equal({ id: 'deleted-query' });
     });
+  });
+
+  it('refuses deleting a query with configured consumers', async () => {
+    mockNamedQuery.findOne.resolves({ name: 'test-query' });
+    sinon.stub(NamedQueryService, 'getUsage').resolves({ 'test-query': [{ type: 'report', name: 'Report', path: '/admin/report/report' }] });
+    try {
+      await NamedQueryService.delete({ id: 'brand-1' }, 'test-query');
+      throw new Error('Expected deletion to fail');
+    } catch (error) {
+      expect((error as Error).message).to.include('in use');
+      expect(mockNamedQuery.destroyOne.called).to.equal(false);
+    }
   });
 
   describe('getNamedQueryConfig', function() {
@@ -405,11 +538,11 @@ describe('NamedQueryService', function() {
         brandIdFieldPath: 'branding',
         sort: '[]'
       };
-      
+
       mockNamedQuery.findOne.resolves(namedQueryData);
-      
+
       const config = await NamedQueryService.getNamedQueryConfig(brand, 'test');
-      
+
       expect(config).to.be.instanceOf(NamedQueryConfig);
       expect(config.collectionName).to.equal('record');
     });
@@ -437,27 +570,67 @@ describe('NamedQueryService', function() {
   });
 
   describe('performNamedQuery', function() {
+    const declaredRelationQuery = () => {
+      mockRecordsService.getRecordTypeSummary = sinon.stub().resolves({ relatedTo: [{
+        id: 'activities', recordType: 'activity', localField: 'metadata.activityOid',
+        foreignField: 'redboxOid', cardinality: 'one', direction: 'outbound',
+      }] });
+      return NamedQueryService.performNamedQueryFromConfig({
+        collectionName: 'record', mongoQuery: {}, resultObjectMapping: {},
+        relatedRecordFilters: [{ rootRecordType: 'rdmp', relationId: 'activities',
+          mongoQuery: { 'metadata.active': true } }],
+      }, {}, { id: 'brand-1' }, 0, 10, { username: 'reader', roles: [] });
+    };
+
+    it('bounds declared relation source lookup execution as well as result count', async function() {
+      mockRecordNativeCollection.cursor.toArray.resolves([{ redboxOid: 'activity-1' }]);
+
+      await declaredRelationQuery();
+
+      expect(mockRecordNativeCollection.find.firstCall.args[1]).to.deep.equal({ maxTimeMS: 10_000 });
+      expect(mockRecordNativeCollection.cursor.limit.calledOnceWithExactly(1001)).to.equal(true);
+      expect(mockRecordNativeCollection.countDocuments.calledOnce).to.equal(true);
+    });
+
+    it('stops before root count or paging when declared relation source lookup times out', async function() {
+      const timeout = Object.assign(new Error('operation exceeded time limit'), { code: 50, codeName: 'MaxTimeMSExpired' });
+      mockRecordNativeCollection.cursor.toArray.rejects(timeout);
+
+      let failure: unknown;
+      try {
+        await declaredRelationQuery();
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).to.equal(timeout);
+      expect(mockRecordNativeCollection.find.firstCall.args[1]).to.deep.equal({ maxTimeMS: 10_000 });
+      expect(mockRecordNativeCollection.find.calledOnce).to.equal(true);
+      expect(mockRecordNativeCollection.countDocuments.notCalled).to.equal(true);
+      expect(mockRecordNativeCollection.cursor.skip.notCalled).to.equal(true);
+    });
+
     it('should perform query on Record model', async function() {
       const brand = { id: 'brand-1' };
       const mongoQuery = { type: 'test' };
-      
+
       mockRecordNativeCollection.countDocuments.resolves(1);
       mockRecordNativeCollection.cursor.toArray.resolves([
         { redboxOid: 'oid-1', metadata: { title: 'Test Record' }, lastSaveDate: '', dateCreated: '' }
       ]);
-      
+
       const result = await NamedQueryService.performNamedQuery(
-        'branding', 
-        {}, 
-        'record', 
-        mongoQuery, 
-        {}, 
-        {}, 
-        brand, 
-        0, 
+        'branding',
+        {},
+        'record',
+        mongoQuery,
+        {},
+        {},
+        brand,
+        0,
         10
       );
-      
+
       expect(mockRecordNativeCollection.countDocuments.called).to.be.true;
       expect(mockRecordNativeCollection.countDocuments.firstCall.args[0]['metaMetadata.brandId']).to.equal('brand-1');
       expect(mockRecordNativeCollection.find.called).to.be.true;
@@ -493,21 +666,21 @@ describe('NamedQueryService', function() {
           }
         ])
       };
-      
+
       mockUser.find.returns(userQuery);
-      
+
       const result = await NamedQueryService.performNamedQuery(
-        'ignoredClientPath', 
-        {}, 
-        'user', 
-        mongoQuery, 
-        {}, 
-        {}, 
-        brand, 
-        0, 
+        'ignoredClientPath',
+        {},
+        'user',
+        mongoQuery,
+        {},
+        {},
+        brand,
+        0,
         10
       );
-      
+
       expect(mockUser.find.called).to.be.true;
       expect(userQuery.populate.calledOnceWithExactly('roles')).to.be.true;
       expect(result.records).to.have.length(1);
@@ -597,7 +770,7 @@ describe('NamedQueryService', function() {
         0,
         10
       );
-      
+
       expect(mockSails.models.custommodel.count.called).to.be.true;
       expect(mockSails.models.custommodel.count.firstCall.args[0].branding).to.equal('brand-1');
       expect(mockSails.models.custommodel.find.called).to.be.true;
@@ -626,6 +799,21 @@ describe('NamedQueryService', function() {
       }
     });
 
+    it('captures pagination and counts without logging criteria or parameter values', async function() {
+      const item = RequestChronicleHelper.fromReq(mockSails.log, { options: {} } as Sails.Req);
+      item.start();
+      const response = await runWithRequestChronicle(item, () => NamedQueryService.performNamedQueryFromConfig(
+        { collectionName: 'record', mongoQuery: { 'metadata.title': 'PRIVATE TITLE' } },
+        { search: 'PRIVATE SEARCH' },
+        { id: 'brand-1' },
+        0,
+        10
+      ));
+      expect(response.records).to.deep.equal([]);
+      expect(item.data).to.include({ namedQueryCollection: 'record', namedQueryRows: 10, namedQueryParameterCount: 1 });
+      expect(JSON.stringify(item.data)).not.to.include('PRIVATE');
+    });
+
     it('should log when expandRelations is configured for a non-record model', async function() {
       const brand = { id: 'brand-1' };
 
@@ -644,7 +832,7 @@ describe('NamedQueryService', function() {
         true
       );
 
-      expect(mockSails.log.debug.calledWith("expandRelations is only supported for the 'record' collection; ignoring for 'custommodel'")).to.be.true;
+      expect(mockSails.log.debug.calledWithMatch({ info: { namedQueryRelationsIgnored: true } }, 'Service operation')).to.be.true;
     });
 
     it('should expand record relationships when configured', async function() {
@@ -823,9 +1011,9 @@ describe('NamedQueryService', function() {
     it('should not execute legacy lodash templates', function() {
       const template = 'Hello <%= name %>';
       const variables = { name: 'World' };
-      
+
       const result = NamedQueryService.runTemplate(template, variables);
-      
+
       expect(result).to.equal(undefined);
     });
 
@@ -850,9 +1038,9 @@ describe('NamedQueryService', function() {
     it('should get value from path', function() {
       const path = 'user.name';
       const variables = { user: { name: 'John' } };
-      
+
       const result = NamedQueryService.runTemplate(path, variables);
-      
+
       expect(result).to.equal('John');
     });
 
@@ -871,9 +1059,9 @@ describe('NamedQueryService', function() {
         'status': { path: 'status', type: 'string', required: true }
       };
       const paramMap = { status: 'published' };
-      
+
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, paramMap);
-      
+
       expect(mongoQuery.status).to.equal('published');
     });
 
@@ -900,7 +1088,7 @@ describe('NamedQueryService', function() {
         'status': { path: 'status', type: 'string', required: true }
       };
       const paramMap = {};
-      
+
       expect(() => {
         NamedQueryService.setParamsInQuery(mongoQuery, queryParams, paramMap);
       }).to.throw('status is a required parameter');
@@ -913,9 +1101,9 @@ describe('NamedQueryService', function() {
         'tags': { path: 'tags', type: 'array', queryType: '$in' }
       };
       const paramMap = { isActive: 'true', tags: 'science' };
-      
+
       NamedQueryService.setParamsInQuery(mongoQuery, queryParams, paramMap);
-      
+
       expect(mongoQuery.isActive).to.be.true;
       expect(mongoQuery.tags).to.deep.equal({ $in: ['science'] });
     });
@@ -943,6 +1131,64 @@ describe('NamedQueryService', function() {
       });
 
       expect(mongoQuery.constraints).to.deep.equal({ status: 'active', limit: 5 });
+    });
+
+    it('should reject operator objects supplied directly for non-object parameters', function() {
+      const queryParams = { 'title': { path: 'metadata.title', type: 'string' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { title: { $ne: 'x' } }))
+        .to.throw('title must be a literal value of the declared type');
+      const untyped = { 'title': { path: 'metadata.title' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, untyped, { title: { $regex: '.*' } }))
+        .to.throw('title must be a literal value of the declared type');
+      const dated = { 'from': { path: 'lastSaveDate', type: 'date', queryType: '>=' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, dated, { from: { $where: 'sleep(1)' } }))
+        .to.throw('from must be a literal value of the declared type');
+    });
+
+    it('should reject template-selected operators from undeclared request parameters', function() {
+      const mongoQuery: any = { 'metaMetadata.type': 'activity', 'metadata.active': null };
+      const queryParams = { 'flag': { path: 'metadata.active', type: 'string', template: 'paramMap.payload' } };
+      expect(() => NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { flag: 'unused', payload: { $ne: true } }))
+        .to.throw('flag must be a literal value of the declared type');
+      expect(mongoQuery['metadata.active']).to.equal(null);
+    });
+
+    it('should reject operator documents nested in array parameters but keep literal arrays', function() {
+      const queryParams = { 'tags': { path: 'tags', type: 'array', queryType: '$in' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { tags: [{ $gt: '' }] }))
+        .to.throw('tags must be a literal value of the declared type');
+      expect(() => NamedQueryService.setParamsInQuery({}, queryParams, { tags: '[{"$ne":null}]' }))
+        .to.throw('tags must be a literal value of the declared type');
+      const mongoQuery: any = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { tags: '["a","b"]' });
+      expect(mongoQuery.tags).to.deep.equal({ $in: ['a', 'b'] });
+    });
+
+    it('should guard defaults and day offsets while coercing numbers and booleans to literals', function() {
+      const defaulted = { 'title': { path: 'metadata.title', type: 'string', whenUndefined: 'defaultValue', defaultValue: { $ne: null } } };
+      expect(() => NamedQueryService.setParamsInQuery({}, defaulted, {}))
+        .to.throw('title must be a literal value of the declared type');
+      const days = { 'age': { path: 'lastSaveDate', type: 'date', format: 'days', queryType: '>=' } };
+      expect(() => NamedQueryService.setParamsInQuery({}, days, { age: { $gt: 0 } }))
+        .to.throw('age must be a literal value of the declared type');
+      const mongoQuery: any = {};
+      NamedQueryService.setParamsInQuery(mongoQuery, {
+        'count': { path: 'count', type: 'number' },
+        'active': { path: 'active', type: 'boolean' }
+      }, { count: { $gt: 1 }, active: { $ne: false } });
+      expect(mongoQuery.active).to.equal(true);
+      expect(Number.isNaN(mongoQuery.count)).to.equal(true);
+    });
+
+    it('should keep template strings and declared object parameters working', function() {
+      const mongoQuery: any = {};
+      const queryParams = {
+        'title': { path: 'metadata.title', type: 'string', template: '{{value}}-suffix' },
+        'constraints': { path: 'constraints', type: 'object' }
+      };
+      NamedQueryService.setParamsInQuery(mongoQuery, queryParams, { title: 'abc', constraints: { status: 'active' } });
+      expect(mongoQuery['metadata.title']).to.equal('abc-suffix');
+      expect(mongoQuery.constraints).to.deep.equal({ status: 'active' });
     });
 
     it('should reject invalid object parameters', function() {

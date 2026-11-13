@@ -1,0 +1,503 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { mkdtempSync, writeFileSync, readFileSync, rmSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const script = join(__dirname, 'docker-staging.sh');
+const sha = 'a'.repeat(40);
+const layer = `sha256:${'1'.repeat(64)}`;
+const testLayer = `sha256:${'2'.repeat(64)}`;
+const runtimeId = `sha256:${'b'.repeat(64)}`;
+const testedId = `sha256:${'c'.repeat(64)}`;
+const manifestDigest = `sha256:${'d'.repeat(64)}`;
+const pinned = `example/portal@${manifestDigest}`;
+const pipeline = '12345678-1234-1234-1234-123456789abc';
+const staging = (variant, arch, commit = sha, run = pipeline, attempt = '100') =>
+  `example/portal:ci-staging-${commit}-${variant}-${arch}-${run}-${attempt}`;
+
+function run(args, overrides = {}, scriptPath = script) {
+  const directory = mkdtempSync(join(tmpdir(), 'docker-staging-'));
+  const log = join(directory, 'calls');
+  writeFileSync(join(directory, 'docker'), `#!/usr/bin/env bash
+printf '%s\\n' "$*" >> "$DOCKER_TEST_LOG"
+if [[ "$1" == login ]]; then cat >/dev/null; fi
+if [[ "$1" == pull && "$2" == *moby/buildkit:* ]]; then
+  if [[ "\${FAIL_BOOTSTRAP_BOTH:-}" == 1 || ( "$2" == mirror.gcr.io/* && "\${FAIL_BOOTSTRAP_MIRROR:-}" == 1 ) ]]; then
+    echo 'bootstrap image unavailable' >&2
+    exit 1
+  fi
+fi
+if [[ "$1 $2" == 'image inspect' ]]; then
+  if [[ "$*" == *'{{.Id}}'* ]]; then echo '${testedId}'
+  elif [[ "$*" == *redbox-portal:runtime* ]]; then printf '%s\\n' '{"Id":"${runtimeId}","RootFS":{"Layers":["${layer}"]}}'
+  else printf '%s\\n' '{"RootFS":{"Layers":["${layer}","${testLayer}"]}}'; fi
+fi
+if [[ "$*" == *'buildx bake'* && "\${QUOTA_DURING_BUILD:-}" == 1 && ! -f "$DOCKER_TEST_LOG.quota" ]]; then
+  touch "$DOCKER_TEST_LOG.quota"
+  echo 'ERROR: failed to import cache manifest: 429 Too Many Requests' >&2
+  exit 1
+fi
+if [[ "$*" == *'buildx bake'* && "\${QUOTA_THEN_COMPILE_FAILURE:-}" == 1 ]]; then
+  echo 'ERROR importing cache manifest: 429 Too Many Requests' >&2
+  echo 'ERROR: application compilation failed' >&2
+  exit 1
+fi
+if [[ "$*" == *'buildx bake'* && "\${FAIL_BUILD:-}" == 1 ]]; then echo 'application compilation failed' >&2; exit 1; fi
+if [[ "$1" == push || "$1 $2" == "buildx build" ]]; then touch "$DOCKER_TEST_LOG.pushed"; fi
+if [[ "$*" == *'imagetools create'* && "\${FAIL_CREATE_ONCE:-}" == 1 && ! -f "$DOCKER_TEST_LOG.failed" ]]; then
+  touch "$DOCKER_TEST_LOG.failed"
+  exit 1
+fi
+`, { mode: 0o755 });
+  writeFileSync(join(directory, 'node'), `#!/usr/bin/env bash
+if [[ "$1" == *docker-registry.cjs ]]; then
+  printf 'registry %s %s\\n' "$2" "$3" >> "$DOCKER_TEST_LOG"
+  if [[ "$2" == cache ]]; then
+    if [[ "\${QUOTA_CACHE:-}" == 1 ]]; then echo 'Docker Hub pull quota exhausted' >&2; exit 4; fi
+    if [[ "\${MISSING_TEST_CACHE:-}" == 1 && "$3" == *-test ]]; then exit 3; fi
+    echo '${manifestDigest}'; exit 0
+  fi
+  if [[ "\${QUOTA_STAGE:-}" == 1 ]]; then echo 'Docker Hub pull quota exhausted' >&2; exit 4; fi
+  if [[ "\${FAIL_INSPECT:-}" == 1 || "\${FAIL_PREFLIGHT:-}" == 1 ]]; then echo 'registry connection failed' >&2; exit 1; fi
+  if [[ "$2" == config ]]; then
+    printf '{"Id":"%s","rootfs":{"diff_ids":%s}}\\n' "\${STAGED_ID:-${runtimeId}}" "\${STAGED_LAYERS:-[\\\"${layer}\\\"]}"
+    exit 0
+  fi
+  if [[ "\${EXISTING_STAGE:-}" != 1 && ! -f "$DOCKER_TEST_LOG.pushed" && ( "\${TEST_ACTION:-}" == build || "\${TEST_ACTION:-}" == stage-tested ) ]]; then
+    echo 'Registry manifest unknown' >&2; exit 3
+  fi
+  if [[ "\${MISSING_PROMOTION:-}" == 1 ]]; then echo 'Registry manifest unknown' >&2; exit 3; fi
+  echo "\${MANIFEST_DIGEST:-${manifestDigest}}"; exit 0
+fi
+if [[ "$1" == *staging-quota-status.cjs ]]; then
+  if [[ "\${QUOTA_MARKER:-}" == 1 ]]; then echo quota-skipped
+  elif [[ "\${CREDENTIAL_MARKER:-}" == 1 ]]; then echo credential-skipped
+  elif [[ "\${MISSING_ARTIFACT:-}" == 1 ]]; then exit 1
+  else echo "\${PRODUCER_DIGEST:-${manifestDigest}}"; fi
+  exit 0
+fi
+exec '${process.execPath}' "$@"
+`, { mode: 0o755 });
+  try {
+    const result = spawnSync('bash', [scriptPath, ...args], {
+      encoding: 'utf8',
+      cwd: directory,
+      env: {
+        ...process.env,
+        PATH: `${directory}:${process.env.PATH}`,
+        DOCKER_TEST_LOG: log,
+        TEST_ACTION: args[0],
+        TMPDIR: directory,
+        REPO: 'example/portal',
+        CIRCLE_SHA1: sha,
+        CIRCLE_BRANCH: 'chore/ci-build-speed',
+        CIRCLE_TAG: '',
+        STAGING_RUN_ID: pipeline,
+        CIRCLE_BUILD_NUM: '100',
+        DOCKER_USER: 'test-user',
+        DOCKER_PASS: 'test-password',
+        DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS: '2',
+        DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS: '0',
+        ...overrides,
+      },
+    });
+    let calls = [];
+    try { calls = readFileSync(log, 'utf8').trim().split('\n'); } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    let artifact;
+    try { artifact = readFileSync(join(directory, 'ci-staging-status', `${args[1]}-${args[2]}`), 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    return { ...result, calls, artifact };
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test('only exact automatic release branches enable promotion; tags cannot bypass the gate', () => {
+  for (const branch of ['master', 'develop', 'support/5.x', 'support/nested/fix']) {
+    assert.equal(run(['can-promote'], { CIRCLE_BRANCH: branch }).status, 0, branch);
+  }
+  for (const branch of ['', 'chore/ci-build-speed', 'feature/develop', 'develop/fix', 'master-copy', 'support']) {
+    assert.notEqual(run(['can-promote'], { CIRCLE_BRANCH: branch, CIRCLE_TAG: 'v5.0.0' }).status, 0, branch);
+  }
+});
+
+test('staging builds preserve each published Docker target and push only the staging tag', () => {
+  for (const [variant, arch, target] of [
+    ['runtime', 'arm64', 'runtime'],
+    ['pdfgen', 'amd64', 'runtime_pdfgen'], ['pdfgen', 'arm64', 'runtime_pdfgen'],
+  ]) {
+    const result = run(['build', variant, arch]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.calls.some(call => call.startsWith('buildx create --name ci-cache --driver docker-container ')));
+    const build = result.calls.find(call => call.startsWith('buildx build '));
+    assert.ok(build.includes(`--platform linux/${arch} --target ${target}`));
+    assert.ok(build.includes(`--tag ${staging(variant, arch)} --push .`));
+    assert.ok(build.includes(`--cache-from type=registry,ref=${pinned}`));
+    assert.match(result.stdout, /Registry cache import: example\/portal:buildcache-v2-chore-ci-build-speed/);
+    assert.ok(build.includes('--cache-to type=registry,mode=max'));
+    const cache = build.match(/--cache-to (\S+)/)[1];
+    assert.ok(cache.includes(`-${arch}-${variant},`));
+  }
+});
+
+test('a producer can reuse its own attempt tag, and uncertain registry failures cannot overwrite tags', () => {
+  const existing = run(['build', 'pdfgen', 'amd64'], { EXISTING_STAGE: '1' });
+  assert.equal(existing.status, 0, existing.stderr);
+  assert.deepEqual(existing.calls, [
+    'login --username test-user --password-stdin',
+    `registry head ${staging('pdfgen', 'amd64')}`,
+  ]);
+  assert.match(existing.stdout, /Reusing existing staging image/);
+  const failure = run(['build', 'pdfgen', 'amd64'], { FAIL_PREFLIGHT: '1' });
+  assert.notEqual(failure.status, 0);
+  assert.ok(failure.calls.every(call => !call.startsWith('build ') && !call.startsWith('push ')));
+});
+
+test('staging tags isolate commits, pipelines and producer rerun attempts', () => {
+  const otherSha = 'b'.repeat(40);
+  const otherPipeline = '87654321-1234-1234-1234-123456789abc';
+  const first = run(['build', 'pdfgen', 'amd64']);
+  const second = run(['build', 'pdfgen', 'amd64'], { CIRCLE_SHA1: otherSha });
+  const third = run(['build', 'pdfgen', 'amd64'], { STAGING_RUN_ID: otherPipeline });
+  assert.notDeepEqual(first.calls, second.calls);
+  assert.notDeepEqual(first.calls, third.calls);
+  assert.ok(third.calls.some(call => call.includes(`--tag ${staging('pdfgen', 'amd64', sha, otherPipeline)} --push .`)));
+  const rerun = run(['build', 'pdfgen', 'amd64'], { CIRCLE_BUILD_NUM: '101' });
+  assert.equal(rerun.status, 0, rerun.stderr);
+  assert.ok(rerun.calls.some(call => call.includes(`--tag ${staging('pdfgen', 'amd64', sha, pipeline, '101')} --push .`)));
+  assert.ok(staging('runtime', 'amd64').split(':')[1].length <= 128);
+});
+
+test('dry runs verify staging images and print exact promotion commands without writes', () => {
+  for (const variant of ['runtime', 'pdfgen']) {
+    const suffix = variant === 'pdfgen' ? '-pdfgen' : '';
+    for (const arch of ['amd64', 'arm64']) {
+      const result = run(['promote', variant, arch]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /DRY RUN/);
+      assert.ok(result.stdout.includes(`docker buildx imagetools create --prefer-index=false --tag example/portal:chore-ci-build-speed${suffix}-${arch} ${pinned}`));
+      assert.ok(result.calls.includes(`registry head ${pinned}`));
+      assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+    }
+    const manifest = run(['manifest', variant]);
+    assert.equal(manifest.status, 0, manifest.stderr);
+    assert.ok(manifest.stdout.includes(`docker buildx imagetools create --tag example/portal:chore-ci-build-speed${suffix} ${pinned} ${pinned}`));
+    assert.ok(manifest.calls.includes(`registry head ${pinned}`));
+    assert.ok(manifest.calls.every(call => !call.includes('imagetools create')));
+  }
+});
+
+test('release branches promote to existing tags and assemble manifests from staging only', () => {
+  for (const [branch, tag] of [['master', 'master'], ['develop', 'develop'], ['support/5.x', 'support-5.x']]) {
+    for (const variant of ['runtime', 'pdfgen']) {
+      const suffix = variant === 'pdfgen' ? '-pdfgen' : '';
+      const image = run(['promote', variant, 'amd64'], { CIRCLE_BRANCH: branch });
+      assert.equal(image.status, 0, image.stderr);
+      assert.equal(image.calls.at(-1), `buildx imagetools create --prefer-index=false --tag example/portal:${tag}${suffix}-amd64 ${pinned}`);
+      const manifest = run(['manifest', variant], { CIRCLE_BRANCH: branch });
+      assert.equal(manifest.status, 0, manifest.stderr);
+      assert.equal(manifest.calls.at(-1), `buildx imagetools create --tag example/portal:${tag}${suffix} ${pinned} ${pinned}`);
+    }
+  }
+});
+
+test('invalid identifiers and parameters fail before contacting Docker', () => {
+  for (const overrides of [{ CIRCLE_SHA1: '' }, { CIRCLE_SHA1: 'abc' }, { STAGING_RUN_ID: '' }, { STAGING_RUN_ID: 'bad/tag' }]) {
+    const result = run(['build', 'pdfgen', 'amd64'], overrides);
+    assert.notEqual(result.status, 0);
+    assert.deepEqual(result.calls, []);
+  }
+  for (const args of [['build', 'unknown', 'amd64'], ['promote', 'runtime', 'x86'], ['unknown', 'runtime']]) {
+    const result = run(args);
+    assert.notEqual(result.status, 0);
+    assert.deepEqual(result.calls, []);
+  }
+});
+
+test('missing staging images fail closed, including in dry runs', () => {
+  for (const branch of ['develop', 'chore/ci-build-speed']) {
+    const result = run(['promote', 'runtime', 'amd64'], { CIRCLE_BRANCH: branch, FAIL_INSPECT: '1' });
+    assert.notEqual(result.status, 0);
+    assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+  }
+});
+
+test('transient registry creation failures are retried', () => {
+  const result = run(['manifest', 'pdfgen'], { CIRCLE_BRANCH: 'develop', FAIL_CREATE_ONCE: '1' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.calls.filter(call => call.includes('imagetools create')).length, 2);
+});
+
+test('invalid release retry settings fail without publishing', () => {
+  for (const action of [['promote', 'runtime', 'amd64'], ['manifest', 'pdfgen']]) {
+    for (const value of ['0', '-1', '1.5', 'invalid', '01', '99999999999999999999']) {
+      const result = run(action, { CIRCLE_BRANCH: 'develop', DOCKER_MANIFEST_CREATE_MAX_ATTEMPTS: value });
+      assert.notEqual(result.status, 0, value);
+      assert.match(result.stdout + result.stderr, /MAX_ATTEMPTS must be a positive integer/);
+      assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+    }
+    for (const value of ['-1', 'invalid', '01', '99999999999999999999']) {
+      const result = run(action, { CIRCLE_BRANCH: 'develop', DOCKER_MANIFEST_CREATE_BASE_DELAY_SECONDS: value });
+      assert.notEqual(result.status, 0, value);
+      assert.match(result.stdout + result.stderr, /BASE_DELAY_SECONDS must be a nonnegative integer/);
+      assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+    }
+  }
+});
+
+test('staging pushes runtime and verifies the digest-pinned registry layer prefix', () => {
+  const result = run(['stage-tested', 'runtime', 'amd64']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(result.calls.includes(`tag redbox-portal:runtime ${staging('runtime', 'amd64')}`));
+  assert.ok(result.calls.includes(`push ${staging('runtime', 'amd64')}`));
+  assert.ok(result.calls.includes(`registry config ${pinned}`));
+  assert.match(result.stdout, /Verified runtime rootfs prefix: 1 of 2 tested layers/);
+  assert.equal(result.artifact, `${sha}\n${pipeline}\nverified\n${manifestDigest}\n`);
+  const rebuilt = run(['build', 'runtime', 'amd64']);
+  assert.notEqual(rebuilt.status, 0);
+  assert.deepEqual(rebuilt.calls, []);
+});
+
+test('staging reruns reject unrelated, reordered, equal, longer, empty or malformed layers without overwriting tags', () => {
+  for (const layers of [[], ['invalid'], [testLayer], [testLayer, layer], [layer, testLayer], [layer, testLayer, layer], null]) {
+    const mismatch = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: '1', STAGED_LAYERS: JSON.stringify(layers) });
+    assert.notEqual(mismatch.status, 0, JSON.stringify(layers));
+    assert.equal(mismatch.artifact, undefined);
+  }
+  const reused = run(['stage-tested', 'runtime', 'amd64'], { EXISTING_STAGE: '1' });
+  assert.equal(reused.status, 0, reused.stderr);
+  assert.ok(reused.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+  const uncertain = run(['stage-tested', 'runtime', 'amd64'], { FAIL_PREFLIGHT: '1' });
+  assert.notEqual(uncertain.status, 0);
+  assert.ok(uncertain.calls.every(call => !call.startsWith('tag ') && !call.startsWith('push ')));
+  for (const overrides of [{ STAGED_LAYERS: JSON.stringify([testLayer]) }, { MANIFEST_DIGEST: 'invalid' }, { FAIL_INSPECT: '1' }]) {
+    assert.notEqual(run(['stage-tested', 'runtime', 'amd64'], overrides).status, 0);
+  }
+});
+
+test('non-release staging without either Docker credential records a distinct skip', () => {
+  for (const args of [['stage-tested', 'runtime', 'amd64'], ['build', 'runtime', 'arm64'],
+    ['build', 'pdfgen', 'amd64'], ['build', 'pdfgen', 'arm64']]) {
+    for (const credentials of [{ DOCKER_USER: '', DOCKER_PASS: '' }, { DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
+      const result = run(args, credentials);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /Skipping staging image push/);
+      assert.equal(result.artifact, `${sha}\n${pipeline}\ncredential-skipped\n`);
+      assert.deepEqual(result.calls, []);
+      const rebuilt = run(['build', 'runtime', 'amd64'], credentials);
+      assert.notEqual(rebuilt.status, 0);
+      assert.match(rebuilt.stderr, /Use stage-tested/);
+      assert.equal(rebuilt.artifact, undefined);
+    }
+  }
+});
+
+test('release branches fail staging without credentials instead of recording a skip', () => {
+  for (const branch of ['develop', 'master', 'support/5.x']) {
+    for (const args of [['stage-tested', 'runtime', 'amd64'], ['build', 'runtime', 'arm64'],
+      ['build', 'pdfgen', 'amd64'], ['build', 'pdfgen', 'arm64']]) {
+      const result = run(args, { CIRCLE_BRANCH: branch, DOCKER_USER: '', DOCKER_PASS: '' });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /required to stage images on release branches/);
+      assert.equal(result.artifact, undefined);
+      assert.deepEqual(result.calls, []);
+    }
+  }
+});
+
+test('credential-free dry runs inspect anonymously and print commands; writes still require credentials', () => {
+  for (const args of [['promote', 'runtime', 'amd64'], ['manifest', 'runtime'], ['promote', 'pdfgen', 'arm64']]) {
+    const result = run(args, { DOCKER_USER: '', DOCKER_PASS: '' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /inspecting public staging images anonymously/);
+    assert.ok(result.stdout.includes('docker buildx imagetools create'));
+    assert.ok(result.calls.every(call => !call.startsWith('login ') && !call.includes('imagetools create')));
+    const missing = run(args, { DOCKER_USER: '', DOCKER_PASS: '', FAIL_INSPECT: '1' });
+    assert.notEqual(missing.status, 0);
+    const write = run(args, { DOCKER_USER: '', DOCKER_PASS: '', CIRCLE_BRANCH: 'develop' });
+    assert.notEqual(write.status, 0);
+    assert.deepEqual(write.calls, []);
+  }
+});
+
+test('invalid registry digests fail before a promotion command can be written', () => {
+  const result = run(['promote', 'runtime', 'amd64'], { CIRCLE_BRANCH: 'develop', PRODUCER_DIGEST: 'invalid' });
+  assert.notEqual(result.status, 0);
+  assert.ok(result.calls.every(call => !call.includes('imagetools create')));
+});
+
+test('workflow stages the saved test image and removes the independent runtime amd64 build', () => {
+  const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
+  const build = config.split('  generate-api-docs:')[0];
+  assert.match(build, /STAGING_RUN_ID: << pipeline.id >>/);
+  assert.ok(build.indexOf('docker-staging.sh stage-tested runtime amd64') < build.indexOf('docker-test-handoff.sh publish'));
+  assert.match(build, /docker-test-handoff.sh publish/);
+  assert.match(build, /persist_to_workspace:/);
+  assert.doesNotMatch(config, /stage-runtime-amd64/);
+  assert.match(build, /stage_tested_image:\n        type: boolean\n        default: false/);
+  assert.match(build, /condition: << parameters.stage_tested_image >>/);
+  assert.equal((config.match(/stage_tested_image: true/g) || []).length, 1);
+  const automatic = config.split('  build_test_gendocs_and_deploy:')[1].split('  build_test_dependabot:')[0];
+  assert.match(automatic, /- build:\n          stage_tested_image: true/);
+  const release = config.split('  release_build_test_gendocs_and_deploy:')[1];
+  assert.doesNotMatch(release, /stage_tested_image: true/);
+});
+
+test('tag releases publish saved runtime; manual releases keep their runtime target', () => {
+  const config = readFileSync(join(__dirname, '../../.circleci/config.yml'), 'utf8');
+  assert.match(config, /docker tag redbox-portal:runtime "\$\{REPO\}:\$\{DEPLOY_TAG\}-amd64"/);
+  assert.doesNotMatch(config, /docker tag redbox-portal:test/);
+  assert.match(config, /docker-publish-amd64-variant.sh runtime ""/);
+});
+
+test('Buildx uses one Bake graph, isolated branch cache writes, develop fallback and read-only operation without credentials', () => {
+  const ciBuild = join(__dirname, 'docker-build-ci.sh');
+  const normal = run([], {}, ciBuild);
+  assert.equal(normal.status, 0, normal.stderr);
+  assert.equal(normal.calls.filter(call => call.startsWith('buildx bake ')).length, 1);
+  assert.ok(normal.calls.some(call => call.startsWith('buildx create --name ci-cache --driver docker-container ')));
+  assert.match(normal.calls.at(-1), /test.cache-to=type=registry,mode=max/);
+  for (const credentials of [{ DOCKER_USER: '' }, { DOCKER_PASS: '' }]) {
+    const readonly = run([], credentials, ciBuild);
+    assert.equal(readonly.status, 0, readonly.stderr);
+    assert.ok(readonly.calls.every(call => !call.startsWith('login ')));
+    assert.match(readonly.calls.at(-1), /cache-from/);
+    assert.doesNotMatch(readonly.calls.at(-1), /cache-to/);
+  }
+  const weird = run([], { CIRCLE_BRANCH: 'Feature/Foo:bar with spaces?' }, ciBuild);
+  const collision = run([], { CIRCLE_BRANCH: 'Feature-Foo-bar-with-spaces' }, ciBuild);
+  assert.match(weird.calls.at(-1), /buildcache-v2-feature-foo-bar-with-spaces-[a-f0-9]{12}-amd64-test/);
+  assert.notEqual(weird.calls.at(-1), collision.calls.at(-1));
+  const develop = run([], { CIRCLE_BRANCH: 'develop' }, ciBuild);
+  assert.equal(develop.calls.filter(call => call.startsWith('registry cache ')).length, 1);
+});
+
+test('non-release staging quota skips are explicit; releases and non-quota failures remain closed', () => {
+  for (const args of [['stage-tested', 'runtime', 'amd64'], ['build', 'pdfgen', 'arm64'], ['promote', 'runtime', 'amd64']]) {
+    const skipped = run(args, { QUOTA_STAGE: '1' });
+    assert.equal(skipped.status, 0, skipped.stderr);
+    assert.match(skipped.stdout, /skipping optional non-release staging/);
+    assert.ok(skipped.calls.every(call => !call.startsWith('push ') && !call.includes('imagetools create')));
+    for (const branch of ['develop', 'master', 'support/5.x']) {
+      assert.notEqual(run(args, { CIRCLE_BRANCH: branch, QUOTA_STAGE: '1' }).status, 0);
+    }
+    assert.notEqual(run(args, { FAIL_PREFLIGHT: '1' }).status, 0);
+  }
+});
+
+test('cache quota disables reads/writes or retries uncached, without hiding application failures', () => {
+  const script = join(__dirname, 'docker-build-ci.sh');
+  const preflight = run([], { QUOTA_CACHE: '1' }, script);
+  assert.equal(preflight.status, 0, preflight.stderr);
+  assert.match(preflight.stdout, /continues uncached/);
+  assert.doesNotMatch(preflight.calls.find(call => call.startsWith('buildx bake ')), /cache-from|cache-to/);
+  const raced = run([], { QUOTA_DURING_BUILD: '1' }, script);
+  assert.equal(raced.status, 0, raced.stderr);
+  const bakes = raced.calls.filter(call => call.startsWith('buildx bake '));
+  assert.equal(bakes.length, 2);
+  assert.match(bakes[0], /cache-from/);
+  assert.doesNotMatch(bakes[1], /cache-from|cache-to/);
+  assert.match(raced.stdout, /retries uncached/);
+  assert.notEqual(run([], { QUOTA_CACHE: '1', FAIL_BUILD: '1' }, script).status, 0);
+  assert.notEqual(run([], { QUOTA_THEN_COMPILE_FAILURE: '1' }, script).status, 0);
+  assert.notEqual(run([], { CIRCLE_BRANCH: 'develop', QUOTA_CACHE: '1' }, script).status, 0);
+});
+
+test('dry-run tag resolution has one HEAD per source and no extra config or manifest GETs', () => {
+  for (const args of [['promote', 'runtime', 'amd64'], ['manifest', 'runtime']]) {
+    const result = run(args);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.calls.filter(call => call.startsWith('registry head ')).length, args[0] === 'manifest' ? 2 : 1);
+    assert.ok(result.calls.every(call => !call.includes('imagetools inspect') && !call.startsWith('registry config')));
+  }
+});
+
+test('missing sources require matching quota evidence on dry runs; release branches never accept it', () => {
+  const args = ['promote', 'runtime', 'amd64'];
+  const skipped = run(args, { MISSING_ARTIFACT: '1', QUOTA_MARKER: '1' });
+  assert.equal(skipped.status, 0, skipped.stderr);
+  assert.match(skipped.stdout, /source staging was skipped \(quota-skipped\)/);
+  assert.notEqual(run(args, { MISSING_ARTIFACT: '1' }).status, 0);
+  assert.notEqual(run(args, { MISSING_ARTIFACT: '1', QUOTA_MARKER: '1', CIRCLE_BRANCH: 'develop' }).status, 0);
+});
+
+test('cache exports are distinct per target, and import preflight orders own target before siblings and develop', () => {
+  for (const target of ['test', 'runtime', 'pdfgen']) {
+    const result = target === 'test' ? run([], {}, join(__dirname, 'docker-build-ci.sh')) : run(['build', target, 'arm64']);
+    assert.equal(result.status, 0, result.stderr);
+    const refs = result.calls.filter(call => call.startsWith('registry cache '));
+    assert.equal(refs.length, 1);
+    assert.ok(refs[0].endsWith(`-${target}`));
+    const build = result.calls.find(call => /^buildx (build|bake) /.test(call));
+    assert.match(build, new RegExp(`cache-to[^ ]*.*ref=example/portal:buildcache-v2-chore-ci-build-speed-[a-f0-9]{12}-(amd64|arm64)-${target},`));
+    assert.doesNotMatch(build, /cache-from[^ ]*,ref=example\/portal:buildcache-v2/);
+  }
+});
+
+test('a missing own cache falls back to a sibling without sharing its export ref', () => {
+  const result = run([], { MISSING_TEST_CACHE: '1' }, join(__dirname, 'docker-build-ci.sh'));
+  assert.equal(result.status, 0, result.stderr);
+  const refs = result.calls.filter(call => call.startsWith('registry cache '));
+  assert.equal(refs.length, 2);
+  assert.ok(refs[0].endsWith('-test'));
+  assert.ok(refs[1].endsWith('-runtime'));
+  assert.match(result.calls.at(-1), /ref=example\/portal:buildcache-v2-[^ ]+-amd64-test,/);
+});
+
+test('BuildKit bootstrap falls back to the same Hub digest before creating the builder', () => {
+  const ciBuild = join(__dirname, 'docker-build-ci.sh');
+  const ref = 'moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea';
+  for (const mirrorFails of [false, true]) {
+    const result = run([], { FAIL_BOOTSTRAP_MIRROR: mirrorFails ? '1' : '' }, ciBuild);
+    assert.equal(result.status, 0, result.stderr);
+    const pulls = result.calls.filter(call => call.startsWith('pull '));
+    assert.deepEqual(pulls, [`pull mirror.gcr.io/${ref}`, ...(mirrorFails ? [`pull docker.io/${ref}`] : [])]);
+    const create = result.calls.find(call => call.startsWith('buildx create '));
+    assert.ok(create.includes(`--driver-opt image=${mirrorFails ? 'docker.io' : 'mirror.gcr.io'}/${ref}`));
+    assert.ok(result.calls.indexOf(pulls.at(-1)) < result.calls.indexOf(create));
+  }
+  const failed = run([], { FAIL_BOOTSTRAP_BOTH: '1' }, ciBuild);
+  assert.notEqual(failed.status, 0);
+  assert.equal(failed.calls.filter(call => call.startsWith('pull ')).length, 2);
+  assert.ok(failed.calls.every(call => !/^buildx (create|inspect|bake) /.test(call)));
+});
+
+test('every setup_build_cache caller names its cache target', () => {
+  for (const file of ['compare-ci-images.sh', 'docker-build-ci.sh', 'docker-staging.sh']) {
+    const calls = readFileSync(join(__dirname, file), 'utf8').split('\n')
+      .filter(line => /^\s*setup_build_cache\b/.test(line));
+    assert.ok(calls.length > 0, `${file} should call setup_build_cache`);
+    for (const call of calls) assert.match(call, /setup_build_cache\s+\S+/, `${file}: ${call.trim()}`);
+  }
+});
+
+test('same-layer runtime with changed image config is rejected and cannot produce a verified artifact', () => {
+  const result = run(['stage-tested', 'runtime', 'amd64'], { STAGED_ID: testedId });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /config digest differs/);
+  assert.equal(result.artifact, undefined);
+});
+
+test('promotion consumes the producer digest even when another attempt changes a tag', () => {
+  const result = run(['promote', 'runtime', 'amd64'], { CIRCLE_BRANCH: 'develop', MANIFEST_DIGEST: testedId });
+  assert.notEqual(result.status, 0);
+  assert.ok(result.calls.includes(`registry head ${pinned}`));
+  assert.ok(result.calls.every(call => !call.includes(':ci-staging-') && !call.includes('imagetools create')));
+  assert.notEqual(run(['promote', 'runtime', 'amd64'], { MISSING_ARTIFACT: '1' }).status, 0);
+});
+
+test('credential skips allow only non-release promotion and manifest dry runs', () => {
+  for (const args of [['promote', 'runtime', 'amd64'], ['manifest', 'runtime'],
+    ['promote', 'pdfgen', 'arm64'], ['manifest', 'pdfgen']]) {
+    const skipped = run(args, { CREDENTIAL_MARKER: '1', DOCKER_USER: '', DOCKER_PASS: '' });
+    assert.equal(skipped.status, 0, skipped.stderr);
+    assert.match(skipped.stdout, /source staging was skipped \(credential-skipped\)/);
+    assert.deepEqual(skipped.calls, []);
+    for (const branch of ['develop', 'master', 'support/5.x']) {
+      assert.notEqual(run(args, { CREDENTIAL_MARKER: '1', CIRCLE_BRANCH: branch }).status, 0);
+    }
+  }
+});

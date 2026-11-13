@@ -39,6 +39,7 @@ describe("CheckboxTreeComponent", () => {
           component: {
             class: "CheckboxTreeComponent",
             config: {
+              label: '<a href="/help">Research &amp; partners</a>',
               inlineVocab: true,
               leafOnly: true,
               treeData: [
@@ -67,6 +68,7 @@ describe("CheckboxTreeComponent", () => {
 
     const { fixture } = await createFormAndWaitForReady(formConfig);
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[role="tree"]')?.getAttribute('aria-label')).toBe('Research & partners');
     (compiled.querySelector("button") as HTMLButtonElement)?.click();
     await fixture.whenStable();
 

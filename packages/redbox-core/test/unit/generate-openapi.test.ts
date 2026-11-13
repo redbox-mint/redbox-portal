@@ -301,7 +301,11 @@ describe('generate-openapi script', function () {
         expect(writeFile.callCount).to.equal(4);
         expect(writeFile.firstCall.args[0]).to.equal(path.join('/tmp/redbox-openapi', 'openapi.json'));
         expect(writeFile.firstCall.args[1]).to.equal(JSON.stringify(document, null, 2));
-        expect(String(writeFile.getCall(3).args[1])).to.include('https://cdn.redoc.ly/redoc/v2.5.2/bundles/redoc.standalone.js');
+        const html = String(writeFile.getCall(3).args[1]);
+        expect(html).to.include('<script type="module">');
+        expect(html).to.include("import { init } from 'https://cdn.redoc.ly/redoc/v3.0.1/bundles/redoc.standalone.js';");
+        expect(html).to.include("init('openapi.json', { disableTelemetry: true }, document.getElementById('redoc'));");
+        expect(html).to.not.include('Redoc.init');
     });
 
     it('aborts file writes when OpenAPI validation fails', async function () {

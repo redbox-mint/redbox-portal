@@ -1,8 +1,12 @@
+import { createSinonStubLogger } from '../logger.test';
+
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import * as sinon from 'sinon';
 import { of, from } from 'rxjs';
 import { setupServiceTestGlobals, cleanupServiceTestGlobals, createMockSails } from './testHelper';
+import { rejects } from 'node:assert/strict';
+import { RBValidationError } from '../../src/model/RBValidationError';
 
 describe('TriggerService', function () {
   let mockSails: any;
@@ -10,13 +14,7 @@ describe('TriggerService', function () {
 
   beforeEach(function () {
     mockSails = createMockSails({
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
 
     setupServiceTestGlobals(mockSails);
@@ -80,6 +78,34 @@ describe('TriggerService', function () {
   });
 
   describe('validateFieldUsingRegex', function () {
+    it('retains a safe field error code and escaped pointer when translation returns prose', async function () {
+      const translation = Reflect.get(globalThis, 'TranslationService') as { t: sinon.SinonStub };
+      translation.t.returns('Translated validation message');
+      await rejects(
+        TriggerService.validateFieldUsingRegex(
+          'oid',
+          { metadata: { 'a/b~c': null } },
+          {
+            fieldDBName: 'metadata["a/b~c"]',
+            regexPattern: '(?!)',
+            allowNulls: false,
+            errorLanguageCode: '@test-invalid-field',
+          }
+        ),
+        (error: unknown) => {
+          if (!RBValidationError.isRBValidationError(error)) return false;
+          expect(RBValidationError.classify(error)).to.equal('validation');
+          expect(error.displayErrors[0]).to.deep.include({
+            code: 'field-validation',
+            title: '@test-invalid-field',
+            detail: 'Translated validation message',
+            source: { pointer: '/metadata/a~1b~0c' },
+          });
+          return true;
+        }
+      );
+    });
+
     it('should validate field matching regex', async function () {
       const record = { metadata: { field: 'test value' } };
       const options = {

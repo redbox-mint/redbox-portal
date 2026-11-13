@@ -1,6 +1,18 @@
+import { Controllers as AppConfigApiControllers } from '../../src/controllers/webservice/AppConfigController';
+import { AuthorizedDomainsEmails } from '../../src/configmodels/AuthorizedDomainsEmails';
+import { OniPublishing, ONI_PUBLISHING_SCHEMA } from '../../src/configmodels/OniPublishing';
+import { RaidPublishing, RAID_PUBLISHING_SCHEMA } from '../../src/configmodels/RaidPublishing';
+import { INTEGRATION_NOTIFICATION_SCHEMA, IntegrationNotificationConfig } from '../../src/configmodels/IntegrationNotificationConfig';
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
+import { CreateSecretCommand, GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { Services as ConfigServices } from '../../src/services/ConfigService';
+import { Controllers as WebserviceControllers } from '../../src/controllers/webservice/AdminController';
+import { APP_CONFIG_SECRET_CLEAR, APP_CONFIG_SECRET_RETAIN_PREFIX } from '../../src/services/AppConfigService';
 import { APP_CONFIG_SECRET_MASK, Services } from '../../src/services/AppConfigService';
 import { ConfigModels } from '../../src/configmodels/ConfigModels';
 import { DoiPublishing, fromDoiPublishingFormModel, toDoiPublishingFormModel } from '../../src/configmodels/DoiPublishing';
@@ -44,6 +56,766 @@ describe('AppConfigService', function () {
     delete (global as any).AppConfig;
     delete (global as any).BrandingService;
     sinon.restore(); // Restores ConfigModels stubs
+  });
+
+  describe('authorized rules save normalization', () => {
+    const input = () => ({ enabled: true,
+      domainsAaf: [' Uni.EDU.au. ', 'uni.edu.au', 'STAFF.uni.edu.au'],
+      emailsAaf: [' J.Smith@Uni.edu.au ', 'j.smith@uni.edu.au'],
+      domainsOidc: [' UNI.edu.au ', 'uni.edu.au.'],
+      emailsOidc: [' J.Smith@Uni.edu.au ', 'j.smith@uni.edu.au'],
+      futureExtension: { keep: true },
+    });
+    const expected = { enabled: true, domainsAaf: ['uni.edu.au', 'staff.uni.edu.au'],
+      emailsAaf: ['j.smith@uni.edu.au'], domainsOidc: ['uni.edu.au'],
+      emailsOidc: ['j.smith@uni.edu.au'], futureExtension: { keep: true } };
+    beforeEach(() => {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'AuthorizedDomainsEmails', class: AuthorizedDomainsEmails });
+    });
+    for (const mode of ['create', 'upsert', 'update', 'api', 'admin-api']) {
+      it(`normalizes every list independently through ${mode}, without mutating input`, async () => {
+        const body = input(), before = JSON.stringify(body);
+        const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+        (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+        if (mode === 'update') (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'authorizedDomainsEmails', configData: input() }]);
+        if (mode.endsWith('api')) {
+          const previous = (global as any).AppConfigService;
+          (global as any).AppConfigService = service;
+          Object.assign(BrandingService, { getBrandNameFromReq: () => 'default' });
+          try {
+            const controller = mode === 'api' ? new AppConfigApiControllers.AppConfig() : new WebserviceControllers.Admin();
+            const respond = sinon.stub(controller, 'apiRespond');
+            const request = { session: { branding: 'default' }, apiRequest: { params: { appConfigId: 'authorizedDomainsEmails', configKey: 'authorizedDomainsEmails' }, body, query: {} } } as unknown as Sails.Req;
+            if (mode === 'api') await (controller as AppConfigApiControllers.AppConfig).saveAppConfig(request, {} as Sails.Res);
+            else await (controller as WebserviceControllers.Admin).setAppConfig(request, {} as Sails.Res);
+            expect(respond.calledOnce).to.equal(true);
+          } finally { (global as any).AppConfigService = previous; }
+        } else if (mode === 'create') await service.createConfig('default', 'authorizedDomainsEmails', body);
+        else await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'authorizedDomainsEmails', body);
+        const stored = mode === 'update' ? set.firstCall.args[0] : (AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0];
+        expect(stored.configData).to.deep.equal(expected);
+        expect(service.getAppConfigurationForBrand('default').authorizedDomainsEmails).to.deep.include(expected);
+        expect(JSON.stringify(body)).to.equal(before);
+      });
+    }
+    it('preserves partial configurations and blank list entries', async () => {
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'authorizedDomainsEmails', { domainsAaf: [' ', ''] });
+      expect((AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData).to.deep.equal({ domainsAaf: [''] });
+    });
+    for (const invalid of [null, [], { domainsAaf: 'example.org' }, { emailsOidc: [42] }]) {
+      it('rejects non-string lists before writing', async () => {
+        try {
+          await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'authorizedDomainsEmails', invalid as any);
+          expect.fail('Expected rejection');
+        } catch (error) { expect((error as any).status).to.equal(400); }
+        expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+        expect((AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
+      });
+    }
+  });
+
+  for (const [key, Model, schema, patch] of [
+    ['oniPublishing', OniPublishing, ONI_PUBLISHING_SCHEMA, { sites: { 'site.one[2]': { enabled: false, extension: { keep: [false, null, 0] } } } }],
+    ['raidPublishing', RaidPublishing, RAID_PUBLISHING_SCHEMA, { mapping: { dmp: { 'rule.one[2]': { engine: 'jsonata', dest: 'title', expression: 'record.metadata.title', future: { keep: [false, null, 0] } } } } }],
+    ['integrationNotification', IntegrationNotificationConfig, INTEGRATION_NOTIFICATION_SCHEMA, { perIntegration: { oni: { recipients: [], extension: { keep: [false, null, 0] } } } }],
+  ] as const) {
+    it(`${key}: service save and reload round-trip preserves dictionary entries and unknown fields`, async () => {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: key, class: Model, schema });
+      const model = JSON.parse(JSON.stringify({ ...new Model(), ...patch }));
+      const expected = JSON.stringify(model);
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), key, model);
+      const stored = (AppConfig.create as unknown as sinon.SinonStub).lastCall.args[0];
+      expect(JSON.stringify(stored.configData)).to.equal(expected);
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([stored]);
+      service.brandingAppConfigMap.default = await service.loadAppConfigurationModel('brand1') as any;
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), key);
+      expect(JSON.stringify(form.model)).to.equal(expected);
+    });
+  }
+
+  it('retains database secrets through literal-key dictionary rename and rejects non-secret sources', async () => {
+    (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'MockModel', class: class {}, secretFields: ['sites.*.ingestion.adminToken'] });
+    const old = { sites: { 'old.site[0]': { ingestion: { adminToken: 'private-token' } } }, other: 'not-a-secret' };
+    (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: old }]);
+    await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', {
+      sites: { renamed: { ingestion: { adminToken: APP_CONFIG_SECRET_RETAIN_PREFIX + JSON.stringify(['sites', 'old.site[0]', 'ingestion', 'adminToken']) } } }
+    });
+    expect((AppConfig.updateOne as unknown as sinon.SinonStub).lastCall.returnValue.set.lastCall.args[0].configData.sites.renamed.ingestion.adminToken).to.equal('private-token');
+    for (const source of [['other'], ['sites', 'missing', 'ingestion', 'adminToken'], ['anotherBrand', 'token']]) {
+      try {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { sites: { bad: { ingestion: { adminToken: APP_CONFIG_SECRET_RETAIN_PREFIX + JSON.stringify(source) } } } });
+        expect.fail('Expected rejection');
+      } catch (error) { expect((error as any).status).to.equal(400); }
+    }
+  });
+
+  describe('reset to defaults', function () {
+    beforeEach(() => {
+      (global as any).AppConfig.destroy = sinon.stub().resolves([]);
+      mockSails.config.brandingConfigurationDefaults = { test: { enabled: false } };
+      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['test']);
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'MockModel', class: class { enabled = true; style = 'info'; }, schema: {} });
+      service.brandingAppConfigMap.default = { test: { enabled: true }, other: { keep: true } } as any;
+      service.brandingAppConfigMap.other = { test: { enabled: true } } as any;
+    });
+    it('removes all duplicates for just this brand/key and immediately replaces the runtime cache', async () => {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test' }, { configKey: 'test' }]);
+      expect(await service.resetConfig(BrandingService.getBrand('default'), 'test')).to.deep.equal({ reset: true });
+      expect((AppConfig.destroy as unknown as sinon.SinonStub).calledOnceWithExactly({ branding: 'brand1', configKey: 'test' })).to.equal(true);
+      expect((service.getAppConfigurationForBrand('default') as any).test).to.deep.equal({ enabled: false, style: 'info' });
+      expect((service.getAppConfigurationForBrand('default') as any).other).to.deep.equal({ keep: true });
+      expect((service.getAppConfigurationForBrand('other') as any).test.enabled).to.equal(true);
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+      expect(form.model).to.deep.equal({ enabled: false, style: 'info' });
+    });
+    it('succeeds without an override and reports that fact in the form', async () => {
+      expect(await service.resetConfig(BrandingService.getBrand('default'), 'test')).to.deep.equal({ reset: false });
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+      expect(form.hasOverride).to.equal(false);
+    });
+    it('serializes a reset with saves to the same key', async () => {
+      let finishDelete!: () => void;
+      let deletionStarted!: () => void;
+      const started = new Promise<void>(resolve => { deletionStarted = resolve; });
+      (AppConfig.destroy as unknown as sinon.SinonStub).callsFake(() => {
+        deletionStarted();
+        return new Promise<void>(resolve => { finishDelete = resolve; });
+      });
+      const reset = service.resetConfig(BrandingService.getBrand('default'), 'test');
+      await started;
+      const save = service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { enabled: true });
+      await Promise.resolve();
+      expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+      finishDelete(); await reset; await save;
+      expect((service.getAppConfigurationForBrand('default') as any).test.enabled).to.equal(true);
+    });
+    it('preserves a different config saved while the reset deletion awaits', async () => {
+      (AppConfig.destroy as unknown as sinon.SinonStub).callsFake(async () => {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'other', { keep: 'new' });
+      });
+      await service.resetConfig(BrandingService.getBrand('default'), 'test');
+      expect((service.getAppConfigurationForBrand('default') as any).other).to.deep.equal({ keep: 'new' });
+    });
+    it('keeps the cache intact when deletion fails', async () => {
+      (AppConfig.destroy as unknown as sinon.SinonStub).rejects(new Error('DB unavailable'));
+      try { await service.resetConfig(BrandingService.getBrand('default'), 'test'); expect.fail('Expected rejection'); }
+      catch (error) { expect(String(error)).to.contain('DB unavailable'); }
+      expect((service.getAppConfigurationForBrand('default') as any).test.enabled).to.equal(true);
+    });
+    it('rejects unknown, retired and unsafe keys before deletion', async () => {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns(undefined);
+      for (const key of ['unknown', 'menu.items', '__proto__', 'dashboardTableConfig']) {
+        let rejected = false;
+        try { await service.resetConfig(BrandingService.getBrand('default'), key); }
+        catch { rejected = true; }
+        expect(rejected).to.equal(true);
+      }
+      expect((AppConfig.destroy as unknown as sinon.SinonStub).called).to.equal(false);
+    });
+  });
+
+  it('rejects invalid system message styles on all service save paths and accepts legacy configs', async () => {
+    for (const style of ['danger', null, 5, {}]) {
+      for (const write of [() => service.createOrUpdateConfig(BrandingService.getBrand('default'), 'systemMessage', { style }), () => service.createConfig('default', 'systemMessage', { style })]) {
+        try { await write(); expect.fail('Expected rejection'); }
+        catch (error) { expect((error as any).status).to.equal(400); }
+      }
+    }
+    expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+    await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'systemMessage', { enabled: true });
+    expect((AppConfig.create as unknown as sinon.SinonStub).calledOnce).to.equal(true);
+  });
+
+  describe('form field order', function () {
+    for (const order of [undefined, [], ['third', 'unknown', 'first', 'third']]) {
+      it(`preserves all schema properties with order ${JSON.stringify(order)}`, async function () {
+        class Model {}
+        if (order !== undefined) Object.assign(Model, { getFieldOrder: () => order });
+        (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+          modelName: 'OrderedModel', class: Model,
+          schema: { type: 'object', properties: { first: { type: 'string' }, second: { type: 'string' }, third: { type: 'string' } } }
+        });
+        const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+        expect(form.fieldOrder).to.deep.equal(order?.length ? ['third', 'first', 'second'] : ['first', 'second', 'third']);
+      });
+    }
+  });
+
+  it('returns presentation metadata separately from the unchanged masked model', async function () {
+    const schema = { type: 'object', properties: { connection: { type: 'object' } } };
+    const sections = [{ titleKey: 'connection-label', fields: ['connection'] }];
+    (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+      modelName: 'MetadataModel', class: class {}, schema, title: 'Integration',
+      descriptionKey: 'integration-description', sections, secretFields: ['connection.token']
+    });
+    service.brandingAppConfigMap.default = { connection: {} } as any;
+    (service.brandingAppConfigMap.default as any).test = { connection: { token: 'secret', baseUrl: 'https://example.org' } };
+    const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+    expect(form.title).to.equal('Integration');
+    expect(form.descriptionKey).to.equal('integration-description');
+    expect(form.sections).to.deep.equal(sections);
+    expect(form.secretFields).to.deep.equal(['connection.token']);
+    expect(form.model).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK, baseUrl: 'https://example.org' } });
+    expect((service.brandingAppConfigMap.default as any).test.connection.token).to.equal('secret');
+  });
+
+  describe('AWS secret storage', function () {
+    const arn = 'arn:aws:secretsmanager:ap-southeast-2:123456789012:secret:test-123456';
+    const reference = { $appConfigSecret: { provider: 'aws-secrets-manager', arn } };
+    let send: sinon.SinonStub;
+
+    beforeEach(function () {
+      mockSails.config.appConfigSecrets = { provider: 'aws-secrets-manager', namePrefix: 'test/appconfig', region: 'ap-southeast-2' };
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({
+        modelName: 'SecretModel', class: class {}, secretFields: ['connection.token']
+      });
+      send = sinon.stub(SecretsManagerClient.prototype, 'send');
+      send.callsFake(async (command: unknown) => {
+        if (command instanceof CreateSecretCommand) return { ARN: arn };
+        if (command instanceof GetSecretValueCommand) return { SecretString: 'aws-secret' };
+        throw new Error('Unexpected AWS command');
+      });
+    });
+
+    it('replaces an unreadable old ARN in AWS mode without persisting plaintext', async function () {
+      const oldArn = arn + '-deleted';
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: { $appConfigSecret: { provider: 'aws-secrets-manager', arn: oldArn } } } } }]);
+      send.callsFake(async command => {
+        if (command instanceof CreateSecretCommand) return { ARN: arn };
+        if (command instanceof GetSecretValueCommand && command.input.SecretId === oldArn) throw new Error('old secret deleted');
+        return { SecretString: 'replacement' };
+      });
+      const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const result = await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+      expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
+      expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK } });
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('replacement');
+    });
+
+    it('does not downgrade an unreadable ARN in database mode', async function () {
+      mockSails.config.appConfigSecrets.provider = 'database';
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      send.rejects(new Error('old secret deleted'));
+      try {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+        expect.fail('Expected rejection');
+      } catch (error) { expect(String(error)).to.contain('Unable to resolve'); }
+      expect((AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
+      expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+    });
+
+    it('rejects path-like config keys before AWS, DB or cache changes', async function () {
+      const cache = { connection: { token: 'original' } };
+      Object.assign(service.brandingAppConfigMap, { default: { test: cache } });
+      for (const key of ['test.connection', 'test[connection]', '__proto__', 'constructor']) {
+        for (const write of [
+          () => service.createConfig('default', key, { token: 'replacement' }),
+          () => service.createOrUpdateConfig(BrandingService.getBrand('default'), key, { token: 'replacement' })
+        ]) {
+          try { await write(); expect.fail('Expected rejection'); }
+          catch (error) { expect(String(error)).to.contain('single safe configuration name'); }
+        }
+      }
+      expect(cache.connection.token).to.equal('original');
+      expect((AppConfig.find as unknown as sinon.SinonStub).called).to.equal(false);
+      expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+      expect(send.called).to.equal(false);
+    });
+
+    for (const provider of ['database', 'aws-secrets-manager']) {
+      for (const operation of ['create', 'update']) {
+        it(`preserves masked deployment defaults on ${operation} in ${provider} mode`, async function () {
+          mockSails.config.appConfigSecrets.provider = provider;
+          mockSails.config.brandingConfigurationDefaults = { test: { connection: { token: 'aws-secret' } } };
+          const data = { connection: { token: APP_CONFIG_SECRET_MASK } };
+          const result = operation === 'create'
+            ? await service.createConfig('default', 'test', data)
+            : await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', data);
+          const stored = (AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData;
+          expect(stored.connection.token).to.deep.equal(provider === 'database' ? 'aws-secret' : reference);
+          expect(result).to.deep.equal(data);
+          expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
+          expect(mockSails.config.brandingConfigurationDefaults.test.connection.token).to.equal('aws-secret');
+        });
+      }
+    }
+
+    it('hydrates and masks legacy own constructor site keys while refusing new writes', async function () {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'SecretModel', class: class {}, secretFields: ['sites.*.ingestion.adminToken'] });
+      const data = JSON.parse(JSON.stringify({ sites: { constructor: { ingestion: { adminToken: reference } } } }));
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: data }]);
+      const loaded = await service.loadAppConfigurationModel('brand1');
+      expect(_.get(loaded, ['test', 'sites', 'constructor', 'ingestion', 'adminToken'])).to.equal('aws-secret');
+      const masked = await service.getAppConfigByBrandAndKey('brand1', 'test');
+      expect(_.get(masked, ['sites', 'constructor', 'ingestion', 'adminToken'])).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(data.sites.constructor.ingestion.adminToken).to.deep.equal(reference);
+      try {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { sites: { constructor: { ingestion: { adminToken: 'new' } } } });
+        expect.fail('Expected rejection');
+      } catch (error) { expect(String(error)).to.contain('Unsafe'); }
+      expect(Object.prototype).not.to.have.property('ingestion');
+    });
+
+    it('excludes legacy dotted rows from backend configuration, admin views and forms', async function () {
+      (ConfigModels.getConfigKeys as sinon.SinonStub).returns(['test']);
+      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => key === 'test'
+        ? { modelName: 'SecretModel', class: class {}, schema: {}, secretFields: ['connection.token'] }
+        : undefined);
+      const rows = [
+        { configKey: 'test', configData: { connection: { token: reference } } },
+        { configKey: 'test.js', configData: { connection: { token: 'legacy-plaintext' } } },
+        { configKey: 'test[0]', configData: { token: 'legacy-plaintext' } }
+      ];
+      (AppConfig.find as unknown as sinon.SinonStub).resolves(rows);
+      const loaded = await service.loadAppConfigurationModel('brand1');
+      expect(_.get(loaded, 'test.connection.token')).to.equal('aws-secret');
+      expect(_.get(loaded, 'test.js')).to.equal(undefined);
+      expect(JSON.stringify(loaded)).not.to.contain('legacy-plaintext');
+      Object.assign(service.brandingAppConfigMap, { default: loaded });
+      const masked = service.getMaskedAppConfigurationForBrand('default');
+      expect(_.get(masked, 'test.connection.token')).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(JSON.stringify(masked)).not.to.contain('legacy-plaintext');
+      const form = await service.getAppConfigForm(BrandingService.getBrand('default'), 'test');
+      expect(_.get(form.model, 'connection.token')).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(JSON.stringify(form.model)).not.to.contain('legacy-plaintext');
+      expect([...Reflect.get(loaded, Symbol.for('redbox.appConfig.presentKeys'))]).to.deep.equal(['test']);
+      expect(mockSails.log.warn.calledWithMatch('Skipping legacy AppConfig row')).to.equal(true);
+      try { await service.getAppConfigByBrandAndKey('brand1', 'test.js'); expect.fail('Expected rejection'); }
+      catch (error) { expect(String(error)).to.contain('single safe configuration name'); }
+    });
+
+    it('stores only an ARN in the database and masks the create response', async function () {
+      const incoming = { connection: { token: 'aws-secret' }, url: 'example' };
+      const result = await service.createConfig('default', 'test', incoming);
+      expect((AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData)
+        .to.deep.equal({ connection: { token: reference }, url: 'example' });
+      expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK }, url: 'example' });
+      expect(incoming.connection.token).to.equal('aws-secret');
+      const command = send.firstCall.args[0] as CreateSecretCommand;
+      expect(command.input.SecretString).to.equal('aws-secret');
+      expect(command.input.Name).to.match(/^test\/appconfig\/[a-f0-9]+\//);
+    });
+
+    for (const provider of ['database', 'aws-secrets-manager']) {
+      it(`preserves the ARN on unchanged plaintext resubmission in ${provider} mode`, async function () {
+        mockSails.config.appConfigSecrets.provider = provider;
+        (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+        const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+        (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+        const result = await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'aws-secret' } });
+        expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
+        expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK } });
+        expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+        expect(send.callCount).to.equal(1); // Reuse the comparison for hydration.
+        expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
+      });
+    }
+
+    it('makes zero AWS calls when a cached field secret is preserved or resubmitted unchanged', async function () {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      service.brandingAppConfigMap.default = await service.loadAppConfigurationModel('brand1');
+      send.resetHistory();
+      for (const token of [APP_CONFIG_SECRET_MASK, 'aws-secret']) {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token }, label: 'edited' });
+      }
+      expect(send.called).to.equal(false);
+    });
+
+    it('updates only the saved cache key and preserves defaults and present-key metadata', async function () {
+      const symbol = Symbol.for('redbox.appConfig.presentKeys');
+      mockSails.config.brandingConfigurationDefaults = { defaultOnly: { enabled: true } };
+      await service.createConfig('default', 'first', { connection: { token: 'aws-secret' } });
+      const cache = service.getAppConfigurationForBrand('default');
+      const unrelated = { connection: { token: 'previously-hydrated' } };
+      Object.assign(cache, { unrelated });
+      send.resetHistory();
+      send.callsFake(async command => {
+        if (command instanceof GetSecretValueCommand) throw new Error('unrelated secret unavailable');
+        return { ARN: arn };
+      });
+      const result = await service.createConfig('default', 'second', { enabled: true });
+      const updated = service.getAppConfigurationForBrand('default');
+      expect(result).to.deep.equal({ enabled: true });
+      expect(_.get(updated, 'second.enabled')).to.equal(true);
+      expect(_.get(updated, 'defaultOnly.enabled')).to.equal(true);
+      expect(_.get(updated, 'unrelated')).to.equal(unrelated);
+      expect([...Reflect.get(updated, symbol)]).to.deep.equal(['first', 'second']);
+      expect(send.called).to.equal(false);
+    });
+
+    it('retains cache changes from concurrent saves to different keys', async function () {
+      let releaseFirst: () => void;
+      const firstWritten = new Promise<void>(resolve => { releaseFirst = resolve; });
+      (AppConfig.create as unknown as sinon.SinonStub).callsFake(async data => {
+        if (data.configKey === 'first') await firstWritten;
+        return data;
+      });
+      const first = service.createConfig('default', 'first', { value: 1 });
+      await new Promise(resolve => setImmediate(resolve));
+      await service.createConfig('default', 'second', { value: 2 });
+      releaseFirst!();
+      await first;
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'first.value')).to.equal(1);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'second.value')).to.equal(2);
+      expect([...Reflect.get(service.getAppConfigurationForBrand('default'), Symbol.for('redbox.appConfig.presentKeys'))]).to.have.members(['first', 'second']);
+    });
+
+    it('serializes same-key updates through DB replies and cache publication', async function () {
+      mockSails.config.appConfigSecrets.provider = 'database';
+      let persisted = { configKey: 'test', configData: { connection: { token: 'original-secret' }, value: 0 } };
+      (AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => [persisted]);
+      let releaseFirst!: () => void;
+      const firstReply = new Promise<void>(resolve => { releaseFirst = resolve; });
+      const set = sinon.stub().callsFake(async data => {
+        persisted = { configKey: 'test', configData: data.configData };
+        if (data.configData.value === 1) await firstReply;
+        return persisted;
+      });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const brand = BrandingService.getBrand('default');
+      const first = service.createOrUpdateConfig(brand, 'test', { connection: { token: 'new-secret' }, value: 1 });
+      await new Promise(resolve => setImmediate(resolve));
+      const second = service.createOrUpdateConfig(brand, 'test', { connection: { token: APP_CONFIG_SECRET_MASK }, value: 2 });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(set.callCount).to.equal(1);
+      expect((AppConfig.find as unknown as sinon.SinonStub).callCount).to.equal(1);
+      releaseFirst();
+      await Promise.all([first, second]);
+      expect(set.callCount).to.equal(2);
+      expect(persisted.configData).to.deep.equal({ connection: { token: 'new-secret' }, value: 2 });
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test')).to.deep.equal(persisted.configData);
+    });
+
+    it('uses the same write gate for creation and updates of one key', async function () {
+      let persisted: Record<string, unknown> | undefined;
+      (AppConfig.find as unknown as sinon.SinonStub).callsFake(async () => persisted ? [persisted] : []);
+      let releaseCreate!: () => void;
+      const createReply = new Promise<void>(resolve => { releaseCreate = resolve; });
+      (AppConfig.create as unknown as sinon.SinonStub).callsFake(async data => {
+        persisted = data;
+        await createReply;
+        return data;
+      });
+      const set = sinon.stub().callsFake(async data => {
+        persisted = { configKey: 'test', configData: data.configData };
+        return persisted;
+      });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const create = service.createConfig('default', 'test', { value: 1 });
+      await new Promise(resolve => setImmediate(resolve));
+      const update = service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { value: 2 });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(set.called).to.equal(false);
+      releaseCreate();
+      await Promise.all([create, update]);
+      expect((AppConfig.create as unknown as sinon.SinonStub).callCount).to.equal(1);
+      expect(set.calledOnce).to.equal(true);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.value')).to.equal(2);
+    });
+
+    it('releases the same-key write gate after failures', async function () {
+      (AppConfig.create as unknown as sinon.SinonStub).onFirstCall().rejects(new Error('database failed'));
+      const first = service.createConfig('default', 'test', { value: 1 });
+      const failed = first.then(() => expect.fail('Expected rejection'), error => expect(error.message).to.equal('database failed'));
+      const second = service.createConfig('default', 'test', { value: 2 });
+      await Promise.all([failed, second]);
+      expect((AppConfig.create as unknown as sinon.SinonStub).callCount).to.equal(2);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.value')).to.equal(2);
+    });
+
+    it('hydrates a newly created reference from the submitted value without an AWS read-back', async function () {
+      send.withArgs(sinon.match.instanceOf(GetSecretValueCommand)).rejects(new Error('KMS AccessDenied arn:private'));
+      await service.createConfig('default', 'test', { connection: { token: 'aws-secret' } });
+      expect((AppConfig.create as unknown as sinon.SinonStub).calledOnce).to.equal(true);
+      expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
+      expect(send.calledOnce).to.equal(true);
+      expect(send.firstCall.args[0]).to.be.instanceOf(CreateSecretCommand);
+    });
+
+    it('handles nested wildcard secrets with literal dynamic keys through their full lifecycle', async function () {
+      (ConfigModels.getModelInfo as sinon.SinonStub).returns({ modelName: 'Sites', class: class {}, secretFields: ['sites.*.ingestion.adminToken'] });
+      const incoming = { sites: {
+        'site.one[2]': { ingestion: { adminToken: 'aws-secret', endpoint: 'one' }, enabled: true },
+        'site-two': { ingestion: { adminToken: 'aws-secret', endpoint: 'two' } }
+      }, label: 'unchanged' };
+      await service.createConfig('default', 'test', incoming);
+      const stored = (AppConfig.create as unknown as sinon.SinonStub).firstCall.args[0].configData;
+      expect(stored.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
+      expect(stored.sites['site-two'].ingestion.adminToken).to.deep.equal(reference);
+      expect(stored.sites['site.one[2]'].ingestion.endpoint).to.equal('one');
+      const masked = service.getMaskedAppConfigurationForBrand('default', 'test') as typeof incoming;
+      expect(masked.sites['site.one[2]'].ingestion.adminToken).to.equal(APP_CONFIG_SECRET_MASK);
+      expect(incoming.sites['site.one[2]'].ingestion.adminToken).to.equal('aws-secret');
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: stored }]);
+      const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      send.resetHistory();
+      masked.sites['site-two'].ingestion.adminToken = APP_CONFIG_SECRET_CLEAR;
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', masked);
+      const saved = set.firstCall.args[0].configData;
+      expect(saved.sites['site.one[2]'].ingestion.adminToken).to.deep.equal(reference);
+      expect(saved.sites['site-two'].ingestion).to.deep.equal({ endpoint: 'two' });
+      expect(saved.label).to.equal('unchanged');
+      expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+      const loaded = await service.loadAppConfigurationModel('brand1');
+      expect(_.get(loaded, ['test', 'sites', 'site.one[2]', 'ingestion', 'adminToken'])).to.equal('aws-secret');
+      for (const value of [reference, 42]) {
+        try {
+          await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { sites: { 'site.one[2]': { ingestion: { adminToken: value } } } });
+          expect.fail('Expected rejection');
+        } catch (error) { expect(String(error)).to.contain('must be a string'); }
+      }
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([]);
+      try {
+        await service.createConfig('default', 'other', JSON.parse('{"sites":{"__proto__":{"ingestion":{"adminToken":"secret"}}}}'));
+        expect.fail('Expected rejection');
+      } catch (error) { expect(String(error)).to.contain('Unsafe'); }
+      expect(Object.prototype).not.to.have.property('ingestion');
+    });
+
+    it('applies unchanged hook overrides repeatedly without creating secrets and catches override failures', async function () {
+      const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'appconfig-override-'));
+      const override = path.join(temporary, 'node_modules/test-hook/branded-config/default/override');
+      fs.mkdirSync(override, { recursive: true });
+      const file = path.join(override, 'test.js');
+      fs.writeFileSync(file, 'module.exports = { connection: { token: "aws-secret" } };');
+      (ConfigModels.getModelInfo as sinon.SinonStub).callsFake((key: string) => key === 'test' ? { modelName: 'SecretModel', class: class {}, secretFields: ['connection.token'] } : undefined);
+      mockSails.config.appPath = temporary;
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const globals = globalThis as unknown as Record<string, unknown>;
+      const original = globals.AppConfigService;
+      globals.AppConfigService = service;
+      try {
+        const configService = new ConfigServices.Config();
+        for (let i = 0; i < 2; i++) {
+          configService.mergeHookConfig('test-hook', {}, []);
+          await new Promise(resolve => setImmediate(resolve));
+        }
+        expect(set.callCount).to.equal(2);
+        expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+        expect(set.secondCall.args[0].configData.connection.token).to.deep.equal(reference);
+        expect(send.callCount).to.equal(1); // Both later comparisons and hydration reuse this value.
+        set.rejects(new Error('Database unavailable'));
+        configService.mergeHookConfig('test-hook', {}, []);
+        await new Promise(resolve => setImmediate(resolve));
+        expect(mockSails.log.error.calledWithMatch('Failed to apply branded AppConfig override')).to.equal(true);
+        expect(set.callCount).to.equal(3); // Two successes, followed by the failed database attempt.
+      } finally {
+        globals.AppConfigService = original;
+        delete require.cache[file];
+        fs.rmSync(temporary, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects duplicate normalized hook keys per tree before loading files while allowing keys across trees', async function () {
+      const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'appconfig-duplicates-'));
+      const root = path.join(temporary, 'node_modules/test-hook/branded-config/default');
+      const globals = globalThis as unknown as Record<string, unknown>;
+      const original = globals.AppConfigService;
+      const create = sinon.stub().resolves({});
+      const update = sinon.stub().resolves({});
+      globals.AppConfigService = { createConfig: create, createOrUpdateConfig: update };
+      const files: string[] = [];
+      try {
+        for (const tree of ['init-only', 'override']) {
+          const directory = path.join(root, tree);
+          fs.mkdirSync(path.join(directory, 'nested'), { recursive: true });
+          const duplicateJs = path.join(directory, 'duplicate.js');
+          const duplicateJson = path.join(directory, 'nested/duplicate.json');
+          const shared = path.join(directory, 'shared.json');
+          files.push(duplicateJs, duplicateJson, shared);
+          // Collision detection must run before either conflicting module is required.
+          fs.writeFileSync(duplicateJs, 'throw new Error("conflicting module must not load");');
+          fs.writeFileSync(duplicateJson, '{"value":"duplicate"}');
+          fs.writeFileSync(shared, '{"value":"shared"}');
+        }
+        mockSails.config.appPath = temporary;
+        new ConfigServices.Config().mergeHookConfig('test-hook', {}, []);
+        await new Promise(resolve => setImmediate(resolve));
+        expect(create.calledOnce).to.equal(true);
+        expect(update.calledOnce).to.equal(true);
+        expect(create.firstCall.args.slice(0, 2)).to.deep.equal(['default', 'shared']);
+        expect(update.firstCall.args[1]).to.equal('shared');
+        expect(mockSails.log.error.callCount).to.equal(2);
+        expect(mockSails.log.error.firstCall.args[0]).to.contain("Duplicate branded AppConfig key 'duplicate'");
+        expect(mockSails.log.error.firstCall.args[0]).to.contain('init-only');
+        expect(mockSails.log.error.secondCall.args[0]).to.contain('override');
+      } finally {
+        globals.AppConfigService = original;
+        for (const file of files) delete require.cache[file];
+        fs.rmSync(temporary, { recursive: true, force: true });
+      }
+    });
+
+    it('masks webservice single/all responses without mutating the cache and accepts masked round trips', async function () {
+      await service.createConfig('default', 'test', { connection: { token: 'aws-secret' }, visible: true });
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference }, visible: true } }]);
+      const set = sinon.stub().callsFake(async data => ({ configData: data.configData }));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      const globals = globalThis as unknown as Record<string, unknown>;
+      const original = globals.AppConfigService;
+      globals.AppConfigService = service;
+      Object.assign(BrandingService, { getBrandNameFromReq: () => 'default' });
+      const controller = new WebserviceControllers.Admin();
+      const respond = sinon.stub(controller, 'apiRespond');
+      try {
+        for (const configKey of [undefined, 'test', 'test.connection.token']) {
+          const req = { apiRequest: { params: { configKey }, body: {}, query: {} } } as unknown as Sails.Req;
+          await controller.getAppConfig(req, {} as Sails.Res);
+          const result = respond.lastCall.args[2];
+          expect(configKey === 'test.connection.token' ? result : _.get(result, configKey ? 'connection.token' : 'test.connection.token')).to.equal(APP_CONFIG_SECRET_MASK);
+          expect(JSON.stringify(result)).not.to.contain('aws-secret');
+          expect(JSON.stringify(result)).not.to.contain(arn);
+          expect(_.get(service.getAppConfigurationForBrand('default'), 'test.connection.token')).to.equal('aws-secret');
+        }
+        const masked = service.getMaskedAppConfigurationForBrand('default', 'test');
+        send.resetHistory();
+        await controller.setAppConfig({ apiRequest: { params: { configKey: 'test' }, body: masked, query: {} } } as unknown as Sails.Req, {} as Sails.Res);
+        expect(set.lastCall.args[0].configData.connection.token).to.deep.equal(reference);
+        expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+      } finally { globals.AppConfigService = original; }
+    });
+
+    for (const operation of ['store', 'resolve']) {
+      it(`returns a generic API error for AWS ${operation} failures`, async function () {
+        const globals = globalThis as unknown as Record<string, unknown>;
+        const original = globals.AppConfigService;
+        globals.AppConfigService = service;
+        Object.assign(BrandingService, { getBrandNameFromReq: () => 'default' });
+        if (operation === 'resolve') {
+          (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+        }
+        const error = new Error('Access denied for arn:aws:iam::123456789012:role/private; value=aws-secret');
+        error.name = 'AccessDeniedException';
+        send.rejects(error);
+        const controller = new WebserviceControllers.Admin();
+        const respond = sinon.stub(controller, 'sendResp');
+        sinon.stub(controller, 'getNoCacheHeaders').returns({});
+        try {
+          await controller.setAppConfig({ apiRequest: { params: { configKey: 'test' }, body: { connection: { token: operation === 'resolve' ? APP_CONFIG_SECRET_MASK : 'aws-secret' } }, query: {} } } as unknown as Sails.Req, {} as Sails.Res);
+          const response = JSON.stringify(respond.lastCall.args[2]);
+          expect(response).to.contain(`Unable to ${operation} AppConfig secret`);
+          expect(response).not.to.contain('arn:');
+          expect(response).not.to.contain('aws-secret');
+          expect(JSON.stringify(mockSails.log.error.args)).to.contain('AccessDeniedException');
+          expect(JSON.stringify(mockSails.log.error.args)).not.to.contain('arn:');
+          expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+          expect((AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
+        } finally { globals.AppConfigService = original; }
+      });
+    }
+
+    it('hydrates backend configuration without mutating stored references', async function () {
+      const record = { configKey: 'test', configData: { connection: { token: reference } } };
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([record]);
+      const loaded = await service.loadAppConfigurationModel('brand1');
+      expect(_.get(loaded, 'test.connection.token')).to.equal('aws-secret');
+      expect(record.configData.connection.token).to.deep.equal(reference);
+      const result = await service.getAppConfigByBrandAndKey('brand1', 'test');
+      expect(result).to.deep.equal({ connection: { token: APP_CONFIG_SECRET_MASK } });
+      expect(send.calledOnce).to.equal(true); // Admin reads do not need AWS.
+    });
+
+    it('preserves masked references without creating another secret', async function () {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      const set = sinon.stub().resolves({ configData: { connection: { token: reference } } });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: APP_CONFIG_SECRET_MASK } });
+      expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
+      expect(send.getCalls().every(call => call.args[0] instanceof GetSecretValueCommand)).to.equal(true);
+    });
+
+    it('migrates a preserved plaintext secret on the next save', async function () {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: 'legacy-secret' } } }]);
+      const set = sinon.stub().resolves({ configData: { connection: { token: reference } } });
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: APP_CONFIG_SECRET_MASK } });
+      expect((send.firstCall.args[0] as CreateSecretCommand).input.SecretString).to.equal('legacy-secret');
+      expect(set.firstCall.args[0].configData.connection.token).to.deep.equal(reference);
+    });
+
+    it('clears references and leaves empty fields without writing AWS secrets', async function () {
+      const result = await service.createConfig('default', 'test', { connection: { token: APP_CONFIG_SECRET_CLEAR } });
+      expect(result).to.deep.equal({ connection: {} });
+      await service.createConfig('default', 'test', { connection: { token: '' } });
+      expect(send.called).to.equal(false);
+    });
+
+    it('refuses client-supplied references', async function () {
+      try {
+        await service.createConfig('default', 'test', { connection: { token: reference } });
+        expect.fail('Expected rejection');
+      } catch (error) {
+        expect(String(error)).to.contain('must be a string');
+      }
+      expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('does not write plaintext to the database when AWS fails', async function () {
+      send.rejects(new Error('AWS unavailable'));
+      try {
+        await service.createConfig('default', 'test', { connection: { token: 'aws-secret' } });
+        expect.fail('Expected rejection');
+      } catch (error) {
+        expect(String(error)).to.contain('AppConfig secret in AWS Secrets Manager');
+      }
+      expect((AppConfig.create as unknown as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('keeps an old ARN intact when a replacement database write fails', async function () {
+      const existing = { configKey: 'test', configData: { connection: { token: reference } } };
+      service.brandingAppConfigMap = { default: { test: { connection: { token: 'aws-secret' } } } } as unknown as typeof service.brandingAppConfigMap;
+      const previousCache = service.getAppConfigurationForBrand('default');
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([existing]);
+      const set = sinon.stub().rejects(new Error('Database unavailable'));
+      (AppConfig.updateOne as unknown as sinon.SinonStub).returns({ set });
+      send.withArgs(sinon.match.instanceOf(CreateSecretCommand)).resolves({ ARN: arn + '-new' });
+      try {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+        expect.fail('Expected rejection');
+      } catch (error) {
+        expect(String(error)).to.contain('Database unavailable');
+      }
+      expect(set.firstCall.args[0].configData.connection.token.$appConfigSecret.arn).to.equal(arn + '-new');
+      expect(existing.configData.connection.token.$appConfigSecret.arn).to.equal(arn);
+      expect(service.getAppConfigurationForBrand('default')).to.equal(previousCache);
+      expect(send.getCalls().some(call => call.args[0] instanceof CreateSecretCommand)).to.equal(true);
+    });
+
+    it('resolves existing references in database mode but refuses a plaintext downgrade', async function () {
+      mockSails.config.appConfigSecrets.provider = 'database';
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      const loaded = await service.loadAppConfigurationModel('brand1');
+      expect(_.get(loaded, 'test.connection.token')).to.equal('aws-secret');
+      try {
+        await service.createOrUpdateConfig(BrandingService.getBrand('default'), 'test', { connection: { token: 'replacement' } });
+        expect.fail('Expected rejection');
+      } catch (error) {
+        expect(String(error)).to.contain('Enable AWS Secrets Manager');
+      }
+      expect((AppConfig.updateOne as unknown as sinon.SinonStub).called).to.equal(false);
+    });
+
+    it('fails hydration rather than returning an unresolved reference', async function () {
+      (AppConfig.find as unknown as sinon.SinonStub).resolves([{ configKey: 'test', configData: { connection: { token: reference } } }]);
+      send.rejects(new Error('AWS unavailable'));
+      try {
+        await service.loadAppConfigurationModel('brand1');
+        expect.fail('Expected rejection');
+      } catch (error) {
+        expect(String(error)).to.contain('AppConfig secret in AWS Secrets Manager');
+      }
+    });
+  });
+
+  it('registers Oni ingestion tokens as scoped wildcard secrets', function () {
+    (ConfigModels.getModelInfo as sinon.SinonStub).restore();
+    expect(ConfigModels.getModelInfo('oniPublishing')?.secretFields).to.include('sites.*.ingestion.adminToken');
   });
 
   describe('bootstrap', function () {

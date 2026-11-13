@@ -212,6 +212,34 @@ describe('RecordAuditComponent', () => {
     fixture.detectChanges();
   }
 
+  it('hides translated content until initialization succeeds and offers retry after failure', async () => {
+    const translation = TestBed.inject(TranslationService);
+    let rejectInit!: (error: unknown) => void;
+    const init = spyOn(translation, 'waitForInit').and.returnValue(new Promise((_, reject) => { rejectInit = reject; }));
+    const config = TestBed.inject(ConfigService);
+    (config as any).refreshConfig = jasmine.createSpy('refreshConfig').and.resolveTo({});
+    fixture = TestBed.createComponent(RecordAuditComponent);
+    component = fixture.componentInstance;
+    component.oid.set('oid-1');
+    const waiting = expectAsync(component.waitForInit()).toBeRejected();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.record-audit-app')).toBeNull();
+    rejectInit({ status: 403 });
+    await waiting;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Sign in again');
+    expect(fixture.nativeElement.querySelector('.record-audit-app')).toBeNull();
+    expect(recordService.getRecordAuditTab).not.toHaveBeenCalled();
+
+    init.and.resolveTo(translation);
+    await component.retryLoad();
+    await component.waitForInit();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.record-audit-app')).toBeTruthy();
+    expect(recordService.getRecordAuditTab).toHaveBeenCalled();
+  });
+
   it('boots from host attributes and loads the audit tab', async () => {
     await createComponent({ oid: 'oid-1', branding: 'default', portal: 'rdmp', 'is-admin': 'false' });
 
@@ -347,6 +375,30 @@ describe('RecordAuditComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Trace Events');
     expect(fixture.nativeElement.textContent).toContain('publishAfterUploadFilesJob');
+  });
+
+  it('shows failure explanations without opening Technical Data and renders historical events', async () => {
+    await createComponent({ oid: 'oid-1', 'is-admin': 'true' });
+    await component.activateTab('integration');
+    const events = component.integrationTab.data.records[0].events;
+    events[0].message = 'Figshare sync failed.';
+    events[0].errorDetail = 'Entity not found: Not allowed to set category Other engineering in article.';
+    component.toggleIntegrationTrace('trace-1');
+    fixture.detectChanges();
+
+    const cells = fixture.nativeElement.querySelectorAll('.rb-trace-event-row .rb-message-cell');
+    expect(cells[0].textContent).toContain('Figshare sync failed.');
+    expect(cells[0].textContent).toContain('Not allowed to set category Other engineering');
+    expect(cells[1].textContent).toContain('Publish completed');
+    expect(component.integrationTab.expandedEvents['event-1']).toBeFalsy();
+
+    events[0].message = undefined;
+    events[0].errorDetail = 'Historical failure explanation';
+    fixture.detectChanges();
+    expect(cells[0].textContent).toContain('Historical failure explanation');
+    events[0].errorDetail = undefined;
+    fixture.detectChanges();
+    expect(cells[0].textContent.trim()).toBe('-');
   });
 
   it('shows technical details for an expanded integration event', async () => {

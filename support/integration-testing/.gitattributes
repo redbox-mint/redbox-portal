@@ -1,0 +1,2 @@
+# The mounted Mocha entrypoint is executed by Linux Bash, including on CRLF checkouts.
+/run-mocha-redbox.sh text eol=lf

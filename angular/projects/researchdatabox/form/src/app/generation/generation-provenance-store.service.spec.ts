@@ -62,4 +62,59 @@ describe('GenerationProvenanceStoreService', () => {
     service.markEdited('/summary', 'Researcher-authored summary');
     expect(service.byPointer()['/summary']).toBeUndefined();
   });
+  it('ignores a provenance response after the form is cleared', async () => {
+    let finish!: (value: { recordOid: string; fields: GenerationFieldProvenanceView[] }) => void;
+    api.provenance.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    service.setPending(pendingCandidate());
+    const field = service.byPointer()['/sharing'];
+    const loading = service.load('old-record');
+    service.clear();
+    finish({ recordOid: 'old-record', fields: [field] });
+    await loading;
+    expect(service.byPointer()).toEqual({});
+  });
+
+  it('keeps the newest record when provenance requests finish out of order', async () => {
+    let finish!: (value: { recordOid: string; fields: GenerationFieldProvenanceView[] }) => void;
+    service.setPending(pendingCandidate());
+    const field = service.byPointer()['/sharing'];
+    api.provenance.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const older = service.load('old-record');
+    api.provenance.and.resolveTo({ recordOid: 'new-record', fields: [] });
+    await service.load('new-record');
+    finish({ recordOid: 'old-record', fields: [field] });
+    await older;
+    expect(service.byPointer()).toEqual({});
+  });
+
+  it('does not restore a field edited while its review request is in flight', async () => {
+    service.setPending(pendingCandidate());
+    const field = { ...service.byPointer()['/sharing'], id: 'committed-provenance' };
+    api.provenance.and.resolveTo({ recordOid: 'record-1', fields: [field] });
+    await service.load('record-1');
+    let finish!: (value: GenerationFieldProvenanceView) => void;
+    api.review.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const reviewing = service.markReviewed('/sharing');
+    service.markEdited('/sharing', 'New author value');
+    finish({ ...field, reviewRequired: false });
+    await reviewing;
+    expect(service.byPointer()).toEqual({});
+  });
+
+  it('does not apply a completed review to a replacement record', async () => {
+    service.setPending(pendingCandidate());
+    const field = { ...service.byPointer()['/sharing'], id: 'committed-provenance' };
+    api.provenance.and.resolveTo({ recordOid: 'old-record', fields: [field] });
+    await service.load('old-record');
+    let finish!: (value: GenerationFieldProvenanceView) => void;
+    api.review.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const reviewing = service.markReviewed('/sharing');
+    service.clear();
+    service.setPending(pendingCandidate());
+    finish({ ...field, reviewRequired: false });
+    await reviewing;
+    expect(service.byPointer()['/sharing'].id).toBe('pending:run-1:sharing');
+    expect(service.byPointer()['/sharing'].reviewRequired).toBeTrue();
+  });
+
 });

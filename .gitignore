@@ -221,6 +221,8 @@ api/form-config/*.js
 
 attachments/
 docs/
+# Agent planning exports
+*.md.resolved
 test/integration/**/*.test.js
 
 packages/redbox-core/.nyc_output/*
@@ -233,3 +235,6 @@ packages/redbox-dev-tools/.nyc_output/
 packages/redbox-dev-tools/support/junit/
 
 *.tsbuildinfo
+
+# Local Figshare E2E verification reports
+/support/figshare/E2E*.md

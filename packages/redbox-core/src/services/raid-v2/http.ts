@@ -1,6 +1,8 @@
+import { raidConnectionOptions, raidOAuthRequest } from './connection';
 import axios, { AxiosError } from 'axios';
 import { Configuration, RaidApi, type RaidCreateRequest } from '@researchdatabox/raido-openapi-generated-node';
-import { Effect, Layer } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { RaidAuthenticationError, RaidHttpError } from './errors';
 import { RaidConfigTag, RaidHttpClientTag, RaidRunContextTag } from './tags';
 
@@ -8,7 +10,7 @@ type TokenEntry = { token: string; expiresAt: number };
 const tokenCache = new Map<string, TokenEntry>();
 
 function interruptibleRequest<A, E>(run: (signal: AbortSignal) => Promise<A>, mapError: (error: unknown) => E): Effect.Effect<A, E> {
-  return Effect.async<A, E>(resume => {
+  return Effect.callback<A, E>(resume => {
     const controller = new AbortController();
     run(controller.signal).then(
       value => resume(Effect.succeed(value)),
@@ -37,9 +39,8 @@ export function makeHttpLayer() {
         return yield* Effect.fail(new RaidAuthenticationError({ message: 'RAiD OAuth credentials are not configured', retryable: false }));
       }
       return yield* interruptibleRequest(async signal => {
-        const response = await axios.post(oauth.url, new URLSearchParams({ grant_type: 'password', client_id: oauth.clientId, username: oauth.username, password: oauth.password }), {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: oauth.timeoutMs + 5000, signal
-        });
+        const request = raidOAuthRequest(oauth);
+        const response = await axios.post(request.url, request.data, { ...request, signal });
           const token = String(response.data?.access_token ?? '');
           if (!token) throw new Error('OAuth response did not contain access_token');
           tokenCache.set(cacheKey, { token, expiresAt: Date.now() + Math.max(0, Number(response.data?.expires_in ?? 0) * 1000 - oauth.expirySkewMs) });
@@ -58,7 +59,7 @@ export function makeHttpLayer() {
           const api = new RaidApi(new Configuration({ basePath: config.connection.baseUrl, accessToken: token }));
           // The generated client forwards axios request options as the second argument.
           const mint = api.mintRaid.bind(api) as unknown as (value: RaidCreateRequest, options: { signal: AbortSignal; timeout: number }) => ReturnType<RaidApi['mintRaid']>;
-          const response = await mint(request, { signal, timeout: config.connection.timeoutMs + 5000 });
+          const response = await mint(request, { ...raidConnectionOptions(config.connection, token), signal });
           const body = response.data as unknown as Record<string, unknown>;
           return { statusCode: response.status, body, identifier: body.identifier as { id?: string } | undefined };
         }, cause => {

@@ -34,6 +34,16 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
 
     @Input() public override model?: PDFListModel;
 
+    public attachmentsLoadWarning = false;
+    public attachmentsLoading = false;
+    private attachmentsRequest = 0;
+    private attachmentsContext = '';
+
+    public ngOnDestroy(): void {
+        ++this.attachmentsRequest;
+        this.attachmentsLoading = false;
+    }
+
     public startsWith = "rdmp-pdf";
     public recentPdfLimit = 5;
     public showVersionCounter = false;
@@ -99,13 +109,27 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
     }
 
     public async loadAttachments(): Promise<void> {
+        const request = ++this.attachmentsRequest;
         const oid = String(this.getFormComponent.trimmedParams.oid() ?? "").trim();
+        const prefix = this.startsWith;
+        const context = JSON.stringify([oid, prefix]);
+        if (context !== this.attachmentsContext) {
+            this.attachmentsContext = context;
+            this.pdfAttachments = [];
+            this.latestPdf = null;
+            this.attachmentsLoadWarning = false;
+        }
+        const isCurrent = () => request === this.attachmentsRequest &&
+            oid === String(this.getFormComponent.trimmedParams.oid() ?? "").trim() && prefix === this.startsWith;
+        this.attachmentsLoading = false;
         if (!oid) {
+            this.attachmentsLoadWarning = false;
             this.applyAttachments([]);
             return;
         }
 
         const matchingExpression = this.getGeneratedPdfLabelExpression();
+        this.attachmentsLoading = true;
         try {
             const allAttachments = await this.getFormComponent.recordService.getAttachments(oid);
             const pdfAttachments = (allAttachments ?? [])
@@ -113,10 +137,14 @@ export class PDFListComponent extends FormFieldBaseComponent<PDFListModelValueTy
                 .map((attachment: RecordAttachment) => this.toAttachmentView(attachment, matchingExpression))
                 .sort((a: PDFListAttachmentView, b: PDFListAttachmentView) => b.timestampMs - a.timestampMs);
 
+            if (!isCurrent()) return;
             this.applyAttachments(pdfAttachments);
+            this.attachmentsLoadWarning = false;
         } catch (error) {
             this.loggerService.error(`${this.logName}: failed to load PDF attachments for oid '${oid}'.`, error);
-            this.applyAttachments([]);
+            if (isCurrent()) this.attachmentsLoadWarning = true;
+        } finally {
+            if (request === this.attachmentsRequest) this.attachmentsLoading = false;
         }
     }
 

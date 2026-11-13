@@ -1,3 +1,5 @@
+import { compileRelatedDisplayContract, bindRelatedDisplayContract, relatedFormDescriptors, prepareRelatedViewForm, pruneRelatedViewValues, pruneRelatedFormSources } from '../related-records/display-descriptors';
+import { populateRelatedViewContent } from '../related-records/related-view-content';
 // Copyright (c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -20,6 +22,7 @@
 import { Observable, of, firstValueFrom } from 'rxjs';
 import { mergeMap as flatMap, take, tap, map, catchError } from 'rxjs/operators';
 import { Services as services } from '../CoreService';
+import { routeFormContractName } from '../RecordRouteForm';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { UserModel } from '../model/storage/UserModel';
 import { FormAttributes } from '../waterline-models/Form';
@@ -87,6 +90,8 @@ type FormComponentNodeLike = {
   };
 };
 export interface FormRecordAccessContext {
+  /** Trusted root identity/workflow; current candidate metadata is supplied separately. */
+  readonly record?: Readonly<import('../model').RecordModel>;
   readonly user: FormRecordAccessUser;
   readonly brand: BrandingModel;
 }
@@ -115,6 +120,7 @@ export interface ValidationOperationDiscoveryOptions {
   readonly user?: UserModel | Record<string, unknown> | null;
   readonly editable: boolean;
   readonly targetStep?: string;
+  readonly routeFormContract?: unknown;
 }
 
 /** Detached configured-form input for candidate-independent record-contract startup compilation. */
@@ -448,7 +454,9 @@ export namespace Services {
           record?.metaMetadata?.type ?? options.recordType ?? options.form.configuration?.type ?? ''
         ).trim();
         const brandId = String(record?.metaMetadata?.brandId ?? options.brand?.id ?? '').trim();
-        const formName = String(record?.metaMetadata?.form ?? options.form.name ?? '').trim();
+        const routeFormName = record ? routeFormContractName(options.routeFormContract, record) : undefined;
+        if (options.routeFormContract !== undefined && !routeFormName) return [];
+        const formName = String(routeFormName ?? record?.metaMetadata?.form ?? options.form.name ?? '').trim();
         if (!recordTypeName || !brandId || !formName) return [];
         if (record && String(options.form.name ?? '').trim() !== formName) return [];
         if (!record) {
@@ -485,12 +493,13 @@ export namespace Services {
             ...(record?.metaMetadata ?? {}),
             brandId,
             type: recordTypeName,
-            form: formName,
+            form: record?.metaMetadata?.form ?? formName,
           },
           ...(record?.workflow ? { workflow: record.workflow } : {}),
         };
         const operations = await validationService.discoverOperations({
           candidate,
+          routeFormContract: options.routeFormContract,
           writeKind: targetStep ? (record ? 'transition' : 'create') : record ? 'update' : 'create',
           ...(targetStep ? { targetStep } : {}),
           actor: { authenticated: true, roles: normalizedActorRoles },
@@ -898,6 +907,8 @@ export namespace Services {
      * @param userRoles The current user's roles.
      * @param recordMetadata The record metadata.
      * @param reusableFormDefs The reusable form definitions.
+     * @param branding The branding override.
+     * @param contextVariablesMap A mapping of context variable name to value.
      */
     public async buildClientFormConfig(
       item: FormConfigFrame,
@@ -908,31 +919,47 @@ export namespace Services {
       branding?: string,
       contextVariablesMap?: Record<string, unknown>,
       recordAccessContext?: FormRecordAccessContext,
-      preserveDefaultValues = false
+      preserveDefaultValues = false,
+      // Projection reads must not resolve another level of related source data.
+      suppressRelatedResolution = false,
+      options: { hydrateVocabulary?: boolean } = {}
     ): Promise<FormConfigOutline> {
+      // Compile canonical persistence declarations before construction transforms/pruning.
+      const declarations = compileRelatedDisplayContract(item, reusableFormDefs);
+      let relatedRecordType: import('../model/storage/RecordTypeModel').RecordTypeModel | undefined;
+      let relatedRecords: import('@researchdatabox/sails-ng-common').RelatedFormDescriptors | undefined;
+      if (declarations) {
+        if (!recordAccessContext || !item.type) throw new Error('Related form descriptors require trusted brand and record type context');
+        const recordType = await firstValueFrom(RecordTypesService.get(recordAccessContext.brand, item.type));
+        relatedRecordType = recordType;
+        const contract = bindRelatedDisplayContract(declarations, item.type, recordType?.relatedTo ?? []);
+        relatedRecords = relatedFormDescriptors(contract!);
+      }
       const constructor = new ConstructFormConfigVisitor(this.logger);
       const constructed = await constructor.start({
-        data: item,
+        data: formMode === 'view' && relatedRecords ? prepareRelatedViewForm(item, relatedRecords, reusableFormDefs) : item,
         reusableFormDefs,
         formMode,
         record: recordMetadata,
         translate: this.buildFormConfigTranslator(branding),
         preserveDefaultValues,
+        relatedViewPrepared: formMode === 'view' && !!relatedRecords,
       });
-      const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
-      await vocabVisitor.resolveVocabs(constructed, branding, {
-        includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
-      });
+      if (relatedRecords) constructed.relatedRecords = relatedRecords;
+      // Schema assistance needs effective names and nesting, without reading
+      // vocabulary pages. Normal record/client and contract builds still hydrate.
+      if (options.hydrateVocabulary !== false) {
+        const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);
+        await vocabVisitor.resolveVocabs(constructed, branding, {
+          includeHistoricalValues: recordMetadata !== null && recordMetadata !== undefined,
+        });
+      }
       const contextVariablesVisitor = new ContextVariablesFormConfigVisitor(this.logger);
       await contextVariablesVisitor.applyContextVariables(constructed, contextVariablesMap);
-      if (recordMetadata && recordAccessContext) {
-        const recordsService = sails.services.recordsservice as unknown as RecordsService;
-        const relatedVisitor = new RelatedObjectDataInlineFormConfigVisitor(this.logger, recordsService);
-        await relatedVisitor.resolve(constructed, recordMetadata, recordAccessContext);
-      }
       // create the client form config
       const visitor = new ClientFormConfigVisitor(this.logger);
-      const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs });
+      const result = await visitor.start({ form: constructed, formMode, userRoles, reusableFormDefs,
+        deferRelatedViewTransforms: formMode === 'view' && !!relatedRecords });
       if (!result) {
         throw new Error(
           `The form config is invalid because all form fields were removed, ` +
@@ -944,6 +971,40 @@ export namespace Services {
               reusableFormDefs,
             })}`
         );
+      }
+
+      pruneRelatedFormSources(result);
+      if (formMode === 'view' && relatedRecords) pruneRelatedViewValues(result);
+
+      if (recordAccessContext && !suppressRelatedResolution && (recordMetadata || relatedRecords)) {
+        const recordsService = sails.services.recordsservice as unknown as RecordsService;
+        const relatedVisitor = new RelatedObjectDataInlineFormConfigVisitor(this.logger, recordsService);
+        let accessContext = recordAccessContext;
+        if (relatedRecords?.sources.length && !recordAccessContext.record?.redboxOid) {
+          // A new record has no stored workflow. Derive its starting stage from
+          // trusted configuration, just as the starting-form lookup does.
+          const startingStep = await firstValueFrom(WorkflowStepsService.getFirst(relatedRecordType!)) as { name?: string } | null;
+          const stage = String(startingStep?.name ?? '').trim();
+          if (!stage) throw new Error('Related form resolution requires a starting workflow stage');
+          accessContext = {
+            ...recordAccessContext,
+            record: {
+              ...recordAccessContext.record,
+              workflow: { stage },
+            } as import('../model').RecordModel,
+          };
+        }
+        await relatedVisitor.resolve(result, recordMetadata ?? {}, accessContext);
+      }
+
+      if (formMode === 'view' && relatedRecords) {
+        await populateRelatedViewContent(result, recordMetadata ?? {}, {
+          ...contextVariablesMap, user: { ...recordAccessContext?.user, roles: userRoles ?? [] },
+        });
+        // References cannot change in view mode. After authorized hydration,
+        // use the same content presentation as every other view field.
+        visitor.completeRelatedViewTransforms();
+        pruneRelatedFormSources(result);
       }
 
       const componentDefinitions = result.componentDefinitions as unknown[] | undefined;
@@ -993,7 +1054,12 @@ export namespace Services {
         reusableFormDefinitions,
         context.publicContext.brand,
         _.cloneDeep(resolution.contextVariables),
-        recordAccessContext,
+        recordAccessContext ? {
+          ...recordAccessContext,
+          record: context.publicContext.kind === 'update'
+            ? (context.resolution.existingRecord ?? recordAccessContext.record) as import('../model').RecordModel
+            : recordAccessContext.record,
+        } : undefined,
         true
       );
       effectiveForm.componentDefinitions = this.retainSubmittableContractComponents(

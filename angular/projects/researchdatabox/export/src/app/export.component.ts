@@ -17,98 +17,423 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Component, Inject } from '@angular/core';
+import { AdminDateService } from '@researchdatabox/portal-ng-common';
+import { Component, ElementRef, Inject, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-
+import { BsDatepickerConfig } from 'ngx-bootstrap/datepicker';
 import { ConfigService, LoggerService, TranslationService, RecordService, BaseComponent } from '@researchdatabox/portal-ng-common';
-import { map as _map, get as _get } from 'lodash-es';
-import { DateTime } from 'luxon';
+import { ExportJobDto, ExportJobRequest, ExportJobStatus } from '@researchdatabox/sails-ng-common';
+import { ExportService } from './export.service';
+
+interface ExportFormatOption {
+  name: string;
+  id: string;
+  checked?: string | boolean | null;
+}
 
 @Component({
-    selector: 'export',
-    templateUrl: './export.component.html',
-    standalone: false
+  selector: 'export',
+  templateUrl: './export.component.html',
+  styleUrls: ['./export.component.scss'],
+  standalone: false
 })
 export class ExportComponent extends BaseComponent {
-  datePickerPlaceHolder: string = '';
-  criticalError: any;
-  modBefore: any;
-  modAfter: any;
-  datePickerOpts: any;
-  timePickerOpts: any;
-  hasClearButton: boolean = false;
-  recTypeNames: string[] = null as any;
-  record_type: string = null as any;
-  exportFormatTypes: any[] = null as any;
-  export_format: { name: string, id: string, checked: string } = null as any;
-  labelModAfter: string = '';
-  window: any;
+  readonly adminDates = inject(AdminDateService);
+  isAdmin = inject(ElementRef).nativeElement.getAttribute('is-admin') === 'true';
+  pendingCancel: ExportJobDto | null = null;
+  cancelPendingId: string | null = null;
+  cancelErrorKey = '';
+  pendingDelete: ExportJobDto | null = null;
+  private modalTrigger: HTMLElement | null = null;
+  datePickerPlaceHolder = '';
+  modBefore: Date | string | null | undefined = null;
+  modAfter: Date | string | null | undefined = null;
+  datePickerOpts: Partial<BsDatepickerConfig> = {};
+  recTypeNames: string[] = [];
+  record_type = '';
+  exportFormatTypes: ExportFormatOption[] = [];
+  export_format = 'csv';
+  window: Pick<Window, 'open'> | null;
+  jobs: ExportJobDto[] = [];
+  createPending = false;
+  deletePendingId: string | null = null;
+  jobsLoading = false;
+  submissionErrorKey = '';
+  jobsErrorKey = '';
+  deleteErrorKey = '';
+
+  private static readonly statusTones: Record<ExportJobStatus, string> = {
+    queued: 'info', running: 'info', ready: 'success', failed: 'danger', expired: 'warning', cancelled: 'secondary'
+  };
+  private readonly pollIntervalMs = 3000;
+  private refreshPromise: Promise<void> | null = null;
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+  private disposed = false;
+  private pollingBlocked = false;
+
   constructor(
     @Inject(LoggerService) private loggerService: LoggerService,
     @Inject(RecordService) private recordService: RecordService,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(TranslationService) private translationService: TranslationService,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(ExportService) private exportService: ExportService,
+    @Inject(DOCUMENT) document: Document
   ) {
     super();
-    this.loggerService.debug(`Export waiting for deps to init...`); 
-    this.window = this.document.defaultView;
-    this.initDependencies = [this.translationService, this.recordService];
+    this.window = document.defaultView;
+    this.initDependencies = [this.translationService, this.recordService, this.exportService];
   }
 
-  protected override async initComponent():Promise<void> {
+  protected override async initComponent(): Promise<void> {
     const sysConfig = await this.configService.getConfig();
+    this.brandingAndPortalUrl = this.recordService.brandingAndPortalUrl;
     const appName = 'export';
-    const defaultDatePickerOpts = { dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue' };
-    const defaultDatePickerPlaceHolder = 'dd/mm/yyyy';
-    const defaultExportFormatTypes = [{name: 'CSV', id: 'csv', checked: 'true'},{name: 'JSON', id: 'json', checked: null}];
-    this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerOpts', defaultDatePickerOpts);  
-    this.datePickerPlaceHolder = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerPlaceHolder', defaultDatePickerPlaceHolder);
-    this.exportFormatTypes = ConfigService._getAppConfigProperty(sysConfig, appName, 'exportFormatTypes', defaultExportFormatTypes);
-    this.export_format = this.exportFormatTypes[0].id; //set default export format
-    this.labelModAfter = `${this.translationService.t('export-modified-after')}`;
-    const typeConfs = await this.recordService.getAllTypes();
-    this.recTypeNames = _map(typeConfs, (typeConf:any) => { return typeConf.name });
-    this.record_type = this.recTypeNames[0];
-    this.loggerService.debug(`Export initialised`); 
+    this.datePickerOpts = ConfigService._getAppConfigProperty(sysConfig, appName, 'datePickerOpts', {
+      dateInputFormat: 'DD/MM/YYYY', containerClass: 'theme-dark-blue'
+    });
+    this.datePickerOpts = { ...this.datePickerOpts, dateInputFormat: this.adminDates.pickerFormat };
+    this.datePickerPlaceHolder = this.adminDates.placeholder;
+    this.exportFormatTypes = ConfigService._getAppConfigProperty(sysConfig, appName, 'exportFormatTypes', [
+      { name: 'CSV', id: 'csv', checked: 'true' }, { name: 'JSON', id: 'json', checked: null }
+    ]);
+    this.export_format = this.exportFormatTypes[0]?.id ?? 'csv';
+    const typeConfs: { name: string }[] = await this.recordService.getAllTypes();
+    this.recTypeNames = typeConfs.map(typeConf => typeConf.name);
+    this.record_type = this.recTypeNames[0] ?? '';
+    await this.refreshJobs();
+    this.loggerService.debug('Export initialised');
   }
 
-  download() {
-    let before = '';
-    let after = '';
-    if(this.modBefore) {
-      this.modBefore.setHours(23,59,59,999);
-      before = this.modBefore.toISOString();
+  async download(): Promise<void> {
+    if (this.mutationPending || this.disposed) {
+      return;
     }
-    if(this.modAfter) {
-      this.modAfter.setHours(0,0,0,0);
-      after = this.modAfter.toISOString();
+    this.submissionErrorKey = '';
+    const request = this.getSelectedRequest();
+    if (!request) {
+      return;
     }
-    
-    
-    const url = `${this.recordService.brandingAndPortalUrl}/export/record/download/${this.export_format}?before=${before}&after=${after}&recType=${this.record_type}`;
-    this.window.open(url, '_blank');
+    if (this.export_format === 'csv') {
+      await this.prepareExport(request);
+      return;
+    }
+    const query = new URLSearchParams({ before: request.before ?? '', after: request.after ?? '', recType: request.recType });
+    const url = `${this.recordService.brandingAndPortalUrl}/export/record/download/${encodeURIComponent(this.export_format)}?${query}`;
+    this.window?.open(url, '_blank');
   }
 
-  getRecordTypeNames() {
+  async prepareAgain(job: ExportJobDto): Promise<void> {
+    await this.prepareExport({
+      format: 'csv',
+      recType: job.recordType,
+      ...(job.modifiedBefore ? { before: job.modifiedBefore } : {}),
+      ...(job.modifiedAfter ? { after: job.modifiedAfter } : {})
+    });
+  }
+
+  async refreshJobs(): Promise<void> {
+    if (this.disposed || this.mutationPending) {
+      return;
+    }
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+    this.clearRefreshTimer();
+    this.jobsLoading = true;
+    this.pollingBlocked = false;
+    this.refreshPromise = this.loadJobs();
+    try {
+      await this.refreshPromise;
+    } finally {
+      this.refreshPromise = null;
+      this.jobsLoading = false;
+      this.scheduleRefresh();
+    }
+  }
+
+  getDownloadUrl(job: ExportJobDto): string | null {
+    return this.deletePendingId === job.id ? null : this.exportService.downloadUrl(job);
+  }
+
+  get mutationPending(): boolean {
+    return this.createPending || this.deletePendingId !== null || this.cancelPendingId !== null;
+  }
+
+  canDelete(job: ExportJobDto): boolean {
+    const status = this.getStatus(job);
+    return status === 'ready' || status === 'failed' || status === 'expired' || status === 'cancelled';
+  }
+
+  canCancel(job: ExportJobDto): boolean {
+    return this.isAdmin && (job.status === 'queued' || job.status === 'running');
+  }
+
+  requestCancel(job: ExportJobDto): void {
+    if (this.mutationPending || !this.canCancel(job)) { return; }
+    this.modalTrigger = document.activeElement as HTMLElement;
+    this.cancelErrorKey = '';
+    this.pendingCancel = job;
+  }
+
+  dismissCancel(): void {
+    if (this.mutationPending) { return; }
+    this.pendingCancel = null;
+    this.restoreDeleteFocus();
+  }
+
+  async cancelJob(job: ExportJobDto): Promise<void> {
+    if (this.disposed || this.mutationPending || !this.canCancel(job)) { return; }
+    this.cancelPendingId = job.id;
+    this.cancelErrorKey = '';
+    this.clearRefreshTimer();
+    try {
+      // Drain an older list request so it cannot overwrite the cancellation response.
+      await this.refreshPromise;
+      if (this.disposed) { return; }
+      const cancelled = await this.exportService.cancel(job.id);
+      if (!this.disposed) {
+        this.jobs = this.jobs.map(existing => existing.id === job.id ? cancelled : existing);
+        this.pendingCancel = null;
+        this.restoreDeleteFocus();
+        this.pollingBlocked = false;
+      }
+    } catch (error: unknown) {
+      if (!this.disposed) {
+        this.cancelErrorKey = this.isAccessError(error) ? 'export-session-error' : 'export-cancel-error';
+      }
+    } finally {
+      this.cancelPendingId = null;
+      // Refresh immediately, including when completion won the race and cancellation returned 409.
+      if (!this.disposed) { await this.refreshJobs(); }
+    }
+  }
+
+  requestDelete(job: ExportJobDto): void {
+    if (this.mutationPending || !this.canDelete(job)) { return; }
+    const trigger = document.activeElement as HTMLElement;
+    this.modalTrigger = trigger?.closest('details')?.querySelector('summary') ?? trigger;
+    this.deleteErrorKey = '';
+    this.pendingDelete = job;
+  }
+
+  cancelDelete(): void {
+    if (this.mutationPending) { return; }
+    this.pendingDelete = null;
+    this.restoreDeleteFocus();
+  }
+
+  private restoreDeleteFocus(): void {
+    const trigger = this.modalTrigger;
+    this.modalTrigger = null;
+    setTimeout(() => {
+      if (this.disposed) { return; }
+      const target = trigger?.isConnected ? trigger : document.querySelector<HTMLElement>('.export-app button[type="submit"]');
+      target?.focus();
+    }, 0);
+  }
+
+  async deleteJob(job: ExportJobDto): Promise<void> {
+    if (this.disposed || this.mutationPending || !this.canDelete(job)) {
+      return;
+    }
+    this.deletePendingId = job.id;
+    this.deleteErrorKey = '';
+    this.clearRefreshTimer();
+    try {
+      // Drain an older list request before removing the export so it cannot restore the row.
+      await this.refreshPromise;
+      if (this.disposed) {
+        return;
+      }
+      await this.exportService.remove(job.id);
+      if (!this.disposed) {
+        this.jobs = this.jobs.filter(existing => existing.id !== job.id);
+        this.pendingDelete = null;
+        this.restoreDeleteFocus();
+        this.pollingBlocked = false;
+      }
+    } catch (error: unknown) {
+      if (!this.disposed) {
+        this.deleteErrorKey = this.isAccessError(error) ? 'export-session-error' : 'export-delete-error';
+      }
+    } finally {
+      this.deletePendingId = null;
+      this.scheduleRefresh();
+    }
+  }
+
+  getStatus(job: ExportJobDto): ExportJobStatus {
+    return job.status === 'ready' && job.expiresAt && Date.parse(job.expiresAt) <= Date.now() ? 'expired' : job.status;
+  }
+
+  hasActiveJobs(): boolean {
+    return this.jobs.some(job => job.status === 'queued' || job.status === 'running');
+  }
+
+  isUpdatingAutomatically(): boolean {
+    return this.hasActiveJobs() && !this.pollingBlocked && !this.disposed && !this.mutationPending;
+  }
+
+  getStatusBadgeClass(status: ExportJobStatus): string {
+    const tone = ExportComponent.statusTones[status] ?? 'secondary';
+    return `badge rb-admin-badge-${tone}`;
+  }
+
+  formatSize(bytes: number | null): string {
+    if (bytes === null || !Number.isFinite(bytes) || bytes < 0) {
+      return '';
+    }
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit++;
+    }
+    return `${unit === 0 || value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+  }
+
+  getRecordTypeNames(): string[] {
     return this.recTypeNames;
   }
 
-  getExportFormatNames() {
+  getExportFormatNames(): ExportFormatOption[] {
     return this.exportFormatTypes;
   }
 
-  setRecordType(recType:any, e: any) {
-    if (e) {
-      e.preventDefault();
-    }
+  getSelectedFormatName(): string {
+    return this.exportFormatTypes.find(format => format.id === this.export_format)?.name ?? this.export_format.toUpperCase();
+  }
+
+  setRecordType(recType: string, event?: Event): void {
+    event?.preventDefault();
     this.record_type = recType;
   }
 
-  setExportFormat(exportFormat:any, e:any) {
-    if (e) {
-      e.preventDefault();
-    }
+  setExportFormat(exportFormat: string): void {
     this.export_format = exportFormat;
+  }
+
+  override ngOnDestroy(): void {
+    this.disposed = true;
+    this.clearRefreshTimer();
+    super.ngOnDestroy();
+  }
+
+  private async loadJobs(): Promise<void> {
+    try {
+      const jobs = await this.exportService.list();
+      if (!this.disposed) {
+        this.jobs = jobs;
+        this.jobsErrorKey = '';
+        this.deleteErrorKey = '';
+      }
+    } catch (error: unknown) {
+      if (!this.disposed) {
+        this.pollingBlocked = this.isAccessError(error);
+        const loadErrorKey = this.jobs.length ? 'export-load-error' : 'export-list-error';
+        this.jobsErrorKey = this.pollingBlocked ? 'export-session-error' : loadErrorKey;
+      }
+    }
+  }
+
+  private async prepareExport(request: ExportJobRequest): Promise<void> {
+    if (this.mutationPending || this.disposed) {
+      return;
+    }
+    this.createPending = true;
+    this.submissionErrorKey = '';
+    this.clearRefreshTimer();
+    try {
+      // Finish any older read before inserting the accepted job into the visible list.
+      await this.refreshPromise;
+      if (this.disposed) {
+        return;
+      }
+      const job = await this.exportService.create(request);
+      if (!this.disposed) {
+        this.jobs = [job, ...this.jobs.filter(existing => existing.id !== job.id)].slice(0, 20);
+        this.pollingBlocked = false;
+      }
+    } catch (error: unknown) {
+      if (!this.disposed) {
+        this.submissionErrorKey = this.isAccessError(error) ? 'export-session-error' : 'export-submit-error';
+      }
+    } finally {
+      this.createPending = false;
+      this.scheduleRefresh();
+    }
+  }
+
+  private getSelectedRequest(): ExportJobRequest | null {
+    if (!this.record_type) {
+      this.submissionErrorKey = 'export-select-record-type';
+      return null;
+    }
+    const before = this.normalizedDate(this.modBefore, true);
+    const after = this.normalizedDate(this.modAfter, false);
+    if (before === undefined || after === undefined) {
+      this.submissionErrorKey = 'export-invalid-date';
+      return null;
+    }
+    if (before && after && before < after) {
+      this.submissionErrorKey = 'export-invalid-date-order';
+      return null;
+    }
+    return {
+      format: 'csv',
+      recType: this.record_type,
+      ...(before ? { before: before.toISOString() } : {}),
+      ...(after ? { after: after.toISOString() } : {})
+    };
+  }
+
+  private normalizedDate(value: Date | string | null | undefined, endOfDay: boolean): Date | null | undefined {
+    // bsDatepicker reports a cleared input as undefined.
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
+      return undefined;
+    }
+    const result = new Date(value.getTime());
+    result.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+    return result;
+  }
+
+  private scheduleRefresh(): void {
+    this.clearRefreshTimer();
+    if (this.disposed || this.mutationPending || this.pollingBlocked) {
+      return;
+    }
+    let delay: number;
+    if (this.hasActiveJobs()) {
+      delay = this.pollIntervalMs;
+    } else {
+      const expiries = this.jobs.filter(job => this.getStatus(job) === 'ready' && job.expiresAt)
+        .map(job => Date.parse(job.expiresAt!)).filter(Number.isFinite);
+      if (!expiries.length) {
+        return;
+      }
+      // Wake once at expiry so a long-open page removes its download link without continuous polling.
+      const untilExpiry = Math.min(...expiries) - Date.now();
+      delay = untilExpiry > 0 ? Math.min(untilExpiry + 1, 2147483647) : this.pollIntervalMs;
+    }
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = undefined;
+      this.requestRender();
+      void this.refreshJobs();
+    }, delay);
+  }
+
+  private clearRefreshTimer(): void {
+    if (this.refreshTimer !== undefined) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = undefined;
+    }
+  }
+
+  private isAccessError(error: unknown): boolean {
+    return typeof error === 'object' && error !== null && 'status' in error && (error.status === 401 || error.status === 403);
   }
 }

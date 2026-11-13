@@ -1,4 +1,6 @@
-import { Context, Effect, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { FigsharePublishingConfigData } from '../../configmodels/FigsharePublishing';
 import { RBValidationError } from '../../model/RBValidationError';
 import { ResolvedFigsharePublishingConfigData, getBrandName } from './config';
@@ -7,8 +9,8 @@ import { buildMetadataPayload, syncMetadataPhase } from './metadata';
 import { FigshareArticle, FigshareFile, FigsharePublicationPlan, FigshareRunContext, RecordModel } from './types';
 import { runEffectProgram } from '../integration-v2/runtime';
 
-export const FigshareConfigTag = Context.GenericTag<ResolvedFigsharePublishingConfigData>('redbox/FigshareConfig');
-export const FigshareRunContextTag = Context.GenericTag<FigshareRunContext>('redbox/FigshareRunContext');
+export const FigshareConfigTag = Context.Service<ResolvedFigsharePublishingConfigData>('redbox/FigshareConfig');
+export const FigshareRunContextTag = Context.Service<FigshareRunContext>('redbox/FigshareRunContext');
 
 export function isCurationLocked(config: FigsharePublishingConfigData, article: FigshareArticle): boolean {
   const curationLock = config.article.curationLock;

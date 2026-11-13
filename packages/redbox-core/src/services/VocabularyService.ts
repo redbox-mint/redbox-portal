@@ -46,7 +46,7 @@ export namespace Services {
     limit?: number;
     offset?: number;
     sort?: string;
-    branding?: string;
+    branding?: string | number | { id?: string | number; _id?: string | number; name?: string };
   }
 
   export interface VocabularyTreeNode extends VocabularyEntryAttributes {
@@ -146,6 +146,7 @@ export namespace Services {
   }
 
   type VocabularyListWhere = {
+    branding: string;
     type?: VocabularyAttributes['type'];
     source?: VocabularyAttributes['source'];
     or?: Array<
@@ -233,7 +234,7 @@ export namespace Services {
           return String(brandingObject._id);
         }
         if (typeof brandingObject.name === 'string' && brandingObject.name.trim()) {
-          return brandingObject.name.trim();
+          return this.resolveBrandingId(brandingObject.name);
         }
         return '';
       }
@@ -261,15 +262,21 @@ export namespace Services {
       const offset = Number.isInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
       const sort = options.sort || 'name ASC';
 
-      const where: VocabularyListWhere = {};
+      // Omitted branding uses the same default as request brand resolution. Never
+      // turn an empty brand into an unscoped query.
+      const branding = this.resolveBrandingId(options.branding === undefined
+        ? sails.config.auth.defaultBrand
+        : options.branding);
+      if (!branding) {
+        return { data: [], meta: { total: 0, limit, offset } };
+      }
+      const where: VocabularyListWhere = { branding };
       if (options.type && VALID_TYPES.has(options.type as VocabType)) {
         where.type = options.type as VocabularyAttributes['type'];
       }
       if (options.source && VALID_SOURCES.has(options.source as VocabSource)) {
         where.source = options.source as VocabularyAttributes['source'];
       }
-      // Branding is single-tenant for this admin feature; avoid ObjectId/string mismatch
-      // filtering at query time which can hide records in Mongo-backed environments.
       if (options.q) {
         where.or = [
           { name: { contains: options.q } },
@@ -657,6 +664,7 @@ export namespace Services {
       };
 
       const entries = payload.entries ?? [];
+      this.validateReplacementParents(entries);
       delete payload.entries;
 
       const createPayload: Partial<VocabularyAttributes> = {
@@ -761,6 +769,9 @@ export namespace Services {
         throw new Error('Vocabulary not found');
       }
       await this.assertMutableVocabulary(id);
+      if (input.entries) {
+        this.validateReplacementParents(input.entries);
+      }
 
       const updatePayload: Partial<VocabularyInput> = { ...input };
       const entries = updatePayload.entries;
@@ -1007,7 +1018,27 @@ export namespace Services {
       return { created, updated, skipped };
     }
 
-    private async replaceEntries(vocabularyId: string, isFlat: boolean, entries: VocabularyEntryInput[], connection?: Sails.Connection): Promise<void> {
+    // Replacement recreates every entry, so parents must resolve within this payload.
+    // Validate before any writes, including on datastores without transactions.
+    private validateReplacementParents(entries: VocabularyEntryInput[]): void {
+      const flat = this.flattenEntries(entries);
+      const ids = new Set(flat.map(entry => String(entry.id)));
+      if (flat.some(entry => entry.parent && !ids.has(String(entry.parent)))) {
+        throw new Error('VocabularyEntry.parent must belong to the replacement entries');
+      }
+    }
+
+    /**
+     * Replace vocabulary entries while preserving model validation and remapping parent IDs.
+     * Bulk creation requires distinct identifiers. Parent links stay serial for transactions
+     * and graphs that cannot be verified as internal forests.
+     */
+    private async replaceEntries(
+      vocabularyId: string,
+      isFlat: boolean,
+      entries: VocabularyEntryInput[],
+      connection?: Sails.Connection
+    ): Promise<void> {
       const flatEntries = this.flattenEntries(entries);
       if (isFlat && flatEntries.some(entry => entry.parent)) {
         throw new Error('Vocabulary.type = flat does not support parent entries');
@@ -1017,37 +1048,112 @@ export namespace Services {
       await this.executeQuery(destroyQuery, connection);
 
       const oldToNewIds: Record<string, string> = {};
-      for (const entry of flatEntries) {
-        const normalized = entry;
-        if (!normalized.label || normalized.value === null || normalized.value === undefined) {
-          throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
-        }
-
-        const createQuery = VocabularyEntry.create({
-          vocabulary: vocabularyId,
-          label: normalized.label,
-          value: normalized.value,
-          identifier: normalized.identifier,
-          order: normalized.order ?? 0,
-          historical: normalized.historical ?? false
+      const identifiers = flatEntries.map(entry => String(entry.identifier ?? '').trim());
+      // RVA concepts have distinct identifiers, so fetched rows can be matched
+      // without depending on the adapter's return order. Keep serial creation
+      // for other inputs, including duplicates that model callbacks must reject.
+      if (identifiers.every(Boolean) && new Set(identifiers).size === flatEntries.length) {
+        const records = flatEntries.map(entry => {
+          if (!entry.label || entry.value === null || entry.value === undefined) {
+            throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
+          }
+          return {
+            vocabulary: vocabularyId,
+            label: entry.label,
+            value: entry.value,
+            identifier: entry.identifier,
+            order: entry.order ?? 0,
+            historical: entry.historical ?? false,
+          };
         });
-        const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+        const idsByIdentifier = new Map<string, string>();
+        // Waterline runs a model callback per row concurrently. Bound each
+        // batch so large vocabularies do not flood the database connection pool.
+        for (let start = 0; start < records.length; start += 500) {
+          const created = await this.createAndFetch<VocabularyEntryAttributes[]>(
+            VocabularyEntry.createEach(records.slice(start, start + 500)),
+            connection
+          );
+          for (const entry of created) {
+            idsByIdentifier.set(String(entry.identifier).trim(), String(entry.id));
+          }
+        }
+        for (const [index, entry] of flatEntries.entries()) {
+          const id = idsByIdentifier.get(identifiers[index]);
+          if (!id) {
+            throw new Error('Vocabulary entry batch did not return every requested identifier');
+          }
+          oldToNewIds[String(entry.id)] = id;
+        }
+      } else {
+        for (const entry of flatEntries) {
+          const normalized = entry;
+          if (!normalized.label || normalized.value === null || normalized.value === undefined) {
+            throw new Error('VocabularyEntry.label and VocabularyEntry.value are required');
+          }
 
-        oldToNewIds[String(normalized.id)] = String(created.id);
+          const createQuery = VocabularyEntry.create({
+            vocabulary: vocabularyId,
+            label: normalized.label,
+            value: normalized.value,
+            identifier: normalized.identifier,
+            order: normalized.order ?? 0,
+            historical: normalized.historical ?? false,
+          });
+          const created = await this.createAndFetch<VocabularyEntryAttributes>(createQuery, connection);
+
+          oldToNewIds[String(normalized.id)] = String(created.id);
+        }
       }
 
-      for (const entry of flatEntries) {
-        if (!entry.parent) {
-          continue;
+      const entriesWithParents = flatEntries.filter((entry): entry is VocabularyEntryInput & { parent: string } =>
+        Boolean(entry.parent)
+      );
+      const parentsById = new Map(flatEntries.map(entry => [String(entry.id), entry.parent]));
+      let canLinkInParallel = !connection && parentsById.size === flatEntries.length;
+      const checked = new Set<string>();
+      for (const entry of entriesWithParents) {
+        if (!canLinkInParallel) break;
+        const path = new Set<string>();
+        let cursor: string | null | undefined = String(entry.id);
+        while (cursor && !checked.has(cursor)) {
+          if (path.has(cursor) || !parentsById.has(cursor)) {
+            canLinkInParallel = false;
+            break;
+          }
+          path.add(cursor);
+          cursor = parentsById.get(cursor);
         }
+        path.forEach(id => checked.add(id));
+      }
+
+      const linkParent = async (entry: VocabularyEntryInput & { parent: string }): Promise<void> => {
         const entryId = oldToNewIds[String(entry.id)];
         const mappedParentId = oldToNewIds[entry.parent] ?? entry.parent;
         if (!entryId) {
-          continue;
+          return;
         }
         await this.validateParent(vocabularyId, entryId, mappedParentId, connection);
-        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({ parent: mappedParentId }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
+        const updateQuery = VocabularyEntry.updateOne({ id: entryId }).set({
+          parent: mappedParentId,
+        }) as Sails.WaterlinePromise<VocabularyEntryAttributes | null>;
         await this.executeQuery(updateQuery, connection);
+      };
+
+      if (canLinkInParallel) {
+        // An internal forest cannot gain a cycle from concurrent parent writes.
+        // Keep model callbacks and validation, and settle each bounded batch
+        // before propagating failure so create() can clean up safely.
+        for (let start = 0; start < entriesWithParents.length; start += 10) {
+          const results = await Promise.allSettled(entriesWithParents.slice(start, start + 10).map(linkParent));
+          for (const result of results) {
+            if (result.status === 'rejected') throw result.reason;
+          }
+        }
+      } else {
+        for (const entry of entriesWithParents) {
+          await linkParent(entry);
+        }
       }
     }
 

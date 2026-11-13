@@ -1,5 +1,5 @@
 let expect: Chai.ExpectStatic;
-import("chai").then(mod => expect = mod.expect);
+import('chai').then(mod => (expect = mod.expect));
 import fs from 'fs';
 import { createRequire } from 'module';
 import os from 'os';
@@ -62,7 +62,8 @@ describe('CoreController hook view resolution', function () {
 
   beforeEach(function () {
     const { Controllers } = testRequire('../../src/CoreController') as typeof import('../../src/CoreController');
-    class TestController extends Controllers.Core.Controller { }
+    const { createSinonStubLogger } = testRequire('../logger.test') as typeof import('../logger.test');
+    class TestController extends Controllers.Core.Controller {}
 
     originalSails = (global as { sails?: unknown }).sails;
     originalUnderscore = (global as { _?: unknown })._;
@@ -80,14 +81,7 @@ describe('CoreController hook view resolution', function () {
           apps: {},
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as { _?: unknown })._ = testRequire('lodash');
     controller = new TestController();
@@ -190,16 +184,14 @@ describe('CoreController hook view resolution', function () {
 
     expect(res.view.firstCall.args[1].templateDirectoryLocation).to.equal(`${path.dirname(coreView)}${path.sep}`);
     expect(res.view.firstCall.args[1].layoutDirectoryLocation).to.equal(`${path.dirname(coreLayout)}${path.sep}`);
-    expect(res.view.firstCall.args[1].layoutDirectoryLocation)
-      .not.to.equal(res.view.firstCall.args[1].templateDirectoryLocation);
+    expect(res.view.firstCall.args[1].layoutDirectoryLocation).not.to.equal(
+      res.view.firstCall.args[1].templateDirectoryLocation
+    );
   });
 
   it('guards optional branding locals in the core layout head extension point', function () {
     const viewsRoot = path.resolve(__dirname, '../../../../views');
-    const layout = fs.readFileSync(
-      path.join(viewsRoot, 'default/default/layout.ejs'),
-      'utf8'
-    );
+    const layout = fs.readFileSync(path.join(viewsRoot, 'default/default/layout.ejs'), 'utf8');
     const functions = fs.readFileSync(path.join(viewsRoot, 'functions.ejs'), 'utf8');
 
     expect(layout).to.include(
@@ -208,12 +200,8 @@ describe('CoreController hook view resolution', function () {
     expect(layout).to.include(
       "typeof portal !== 'undefined' && portal != null ? portal : BrandingService.getPortalFromReq(req)"
     );
-    expect(functions).to.include(
-      'typeof templateDirectoryLocation !== \'undefined\''
-    );
-    expect(functions).to.include(
-      'sails.config.appPath + "/views/default/default"'
-    );
+    expect(functions).to.include("typeof templateDirectoryLocation !== 'undefined'");
+    expect(functions).to.include('sails.config.appPath + "/views/default/default"');
   });
 
   it('renders a root error view with the hook layout', function () {

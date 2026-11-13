@@ -15,7 +15,15 @@ export interface ListApiResponse<T> {
   records: T[];
 }
 
+export interface HarvestRunStatistics {
+  runsLast7Days: number;
+  failedLast7Days: number;
+  runningNow: number;
+  lastSuccessfulRun: { completedAt: string; sourceName: string } | null;
+}
+
 export interface HarvestRunSummary {
+  historyRetention?: { prunedAt: string; successfulDays: number; failedDays: number; complete: boolean };
   id?: string;
   sourceRunId: string;
   brandId?: string;
@@ -94,7 +102,9 @@ export interface HarvestRunAggregateCounts {
 export interface HarvestRunDetail {
   run: HarvestRunSummary;
   chunks: HarvestRunChunkSummary[];
+  chunksTotal: number;
   events: HarvestRunEvent[];
+  eventsTotal: number;
   aggregateCounts: HarvestRunAggregateCounts;
 }
 
@@ -109,6 +119,7 @@ export interface HarvestRunListQuery {
 }
 
 export interface HarvestRunEventsQuery {
+  chunkId?: string;
   outcome?: string;
   operation?: string;
   harvestId?: string;
@@ -140,6 +151,14 @@ export class HarvestRunApiService extends HttpClientService {
     return this.brandingAndPortalUrl;
   }
 
+  public async getStatistics(): Promise<HarvestRunStatistics> {
+    await this.waitForInit();
+    const response = await firstValueFrom(this.http.get<MaybeWrapped<HarvestRunStatistics>>(
+      this.apiUrl('/summary'), this.getJsonRequestOptions()
+    ));
+    return this.unwrap(response);
+  }
+
   public async listRuns(query: HarvestRunListQuery = {}): Promise<ListApiResponse<HarvestRunSummary>> {
     await this.waitForInit();
     const response = await firstValueFrom(this.http.get<MaybeWrapped<ListApiResponse<HarvestRunSummary>>>(
@@ -159,6 +178,15 @@ export class HarvestRunApiService extends HttpClientService {
       this.getJsonRequestOptions()
     ));
     return this.unwrap(response);
+  }
+
+  public async listRunChunks(id: string, page: number, pageSize: number): Promise<ListApiResponse<HarvestRunChunkSummary>> {
+    await this.waitForInit();
+    const response = await firstValueFrom(this.http.get<MaybeWrapped<ListApiResponse<HarvestRunChunkSummary>>>(
+      this.apiUrl(`/${encodeURIComponent(id)}/chunks`),
+      { ...this.getJsonRequestOptions(), params: this.toHttpParams({ page, pageSize }) }
+    ));
+    return this.normalizeList(this.unwrap(response));
   }
 
   public async listRunEvents(id: string, query: HarvestRunEventsQuery = {}): Promise<ListApiResponse<HarvestRunEvent>> {

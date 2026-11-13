@@ -2,6 +2,7 @@ export * from './AttachmentAccessAudit';
 export * from './AttachmentMetadata';
 export * from './AppConfig';
 export * from './AsynchProgress';
+export * from './ExportJob';
 export * from './BrandingConfig';
 export * from './BrandingConfigHistory';
 export * from './CacheEntry';
@@ -13,6 +14,10 @@ export * from './FigshareVocabularyCrosswalk';
 export * from './FigshareVocabularyCrosswalkMapping';
 export * from './FigshareVocabularySource';
 export * from './FigshareVocabularySyncRun';
+export * from './FigshareSync';
+export * from './EmailTemplate';
+export * from './EmailTemplateDraft';
+export * from './EmailTemplateHistory';
 export * from './Form';
 export * from './HarvestRecordEvent';
 export * from './HarvestRun';
@@ -53,6 +58,7 @@ import { AttachmentAccessAuditWLDef } from './AttachmentAccessAudit';
 import { AttachmentMetadataWLDef } from './AttachmentMetadata';
 import { AppConfigWLDef } from './AppConfig';
 import { AsynchProgressWLDef } from './AsynchProgress';
+import { ExportJobWLDef } from './ExportJob';
 import { BrandingConfigWLDef } from './BrandingConfig';
 import { BrandingConfigHistoryWLDef } from './BrandingConfigHistory';
 import { CacheEntryWLDef } from './CacheEntry';
@@ -64,6 +70,10 @@ import { FigshareVocabularyCrosswalkWLDef } from './FigshareVocabularyCrosswalk'
 import { FigshareVocabularyCrosswalkMappingWLDef } from './FigshareVocabularyCrosswalkMapping';
 import { FigshareVocabularySourceWLDef } from './FigshareVocabularySource';
 import { FigshareVocabularySyncRunWLDef } from './FigshareVocabularySyncRun';
+import { FigshareSyncWLDef } from './FigshareSync';
+import { EmailTemplateDraftWLDef } from './EmailTemplateDraft';
+import { EmailTemplateHistoryWLDef } from './EmailTemplateHistory';
+import { EmailTemplateWLDef } from './EmailTemplate';
 import { FormWLDef } from './Form';
 import { HarvestRecordEventWLDef } from './HarvestRecordEvent';
 import { HarvestRunWLDef } from './HarvestRun';
@@ -107,6 +117,7 @@ export const WaterlineModels = {
   AttachmentMetadata: AttachmentMetadataWLDef,
   AppConfig: AppConfigWLDef,
   AsynchProgress: AsynchProgressWLDef,
+  ExportJob: ExportJobWLDef,
   BrandingConfig: BrandingConfigWLDef,
   BrandingConfigHistory: BrandingConfigHistoryWLDef,
   CacheEntry: CacheEntryWLDef,
@@ -118,6 +129,10 @@ export const WaterlineModels = {
   FigshareVocabularyCrosswalkMapping: FigshareVocabularyCrosswalkMappingWLDef,
   FigshareVocabularySource: FigshareVocabularySourceWLDef,
   FigshareVocabularySyncRun: FigshareVocabularySyncRunWLDef,
+  FigshareSync: FigshareSyncWLDef,
+  EmailTemplate: EmailTemplateWLDef,
+  EmailTemplateDraft: EmailTemplateDraftWLDef,
+  EmailTemplateHistory: EmailTemplateHistoryWLDef,
   Form: FormWLDef,
   HarvestRecordEvent: HarvestRecordEventWLDef,
   HarvestRun: HarvestRunWLDef,

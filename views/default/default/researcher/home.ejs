@@ -1,7 +1,12 @@
+<% const abovePanelsText = TranslationService.t('researcher-home-above-panels');
+   const belowPanelsText = TranslationService.t('researcher-home-below-panels'); %>
 <div class="default-page">
   <div class="header">
     <h1 id="main-title" class="container"><%- TranslationService.t('welcome-title') %></h1>
   </div>
+<% if (typeof abovePanelsText === 'string' && abovePanelsText.trim() && abovePanelsText !== 'researcher-home-above-panels') { %>
+  <div class="container researcher-home-above-panels"><%- abovePanelsText %></div>
+<% } %>
 <div class="row equal">
 <% if (typeof homePanels !== 'undefined' && homePanels && homePanels.panels && homePanels.panels.length > 0) { %>
   <% for (const panel of homePanels.panels) { %>
@@ -86,6 +91,10 @@
     </div>
 <% } %>
 </div>
+
+<% if (typeof belowPanelsText === 'string' && belowPanelsText.trim() && belowPanelsText !== 'researcher-home-below-panels') { %>
+  <div class="container researcher-home-below-panels"><%- belowPanelsText %></div>
+<% } %>
 
 <!-- simple jquery script to make all the panels equal height -->
 <script <% if (typeof contentSecurityPolicyNonce !== "undefined" && contentSecurityPolicyNonce) {%>nonce="<%= contentSecurityPolicyNonce %>"<% } %>>

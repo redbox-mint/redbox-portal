@@ -1,66 +1,260 @@
-<!-- ngIf is needed so init completes and view has all the information it needs -->
+@if (loadError) {
+  <div class="alert alert-danger ex-load-error" role="alert">
+    <span>{{ loadError }}</span>
+    <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="loadPending" (click)="retryLoad()">
+      <i class="fa fa-refresh" aria-hidden="true"></i>
+      {{ 'export-refresh' | i18next }}
+    </button>
+  </div>
+} @else if (!isReady) {
+  <div class="ex-loading ex-loading--page" role="status">
+    <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+    <span>{{ 'export-loading' | i18next }}</span>
+  </div>
+}
 @if (isReady) {
-  <div class="row">
-    <div class="col-xs-1">
-    </div>
-    <div class="col-xs-10">
-      <div class="form-horizontal">
-        <div class="form-group">
-          <label class="col-xs-2 control-label" for="after">{{ 'export-modified-after' | i18next }}</label>
-          <span class="col-xs-2">
-            <input type="text" id="after"
-              [bsConfig]="datePickerOpts"
-              [placeholder] = "datePickerPlaceHolder"
-              [(ngModel)] = "modAfter"
-              bsDatepicker />
-          </span>
-        </div>
-        <div class="form-group">
-          <label class="col-xs-2 control-label" for="before">{{ 'export-modified-before' | i18next }}</label>
-          <span class="col-xs-2">
-            <input type="text" id="before"
-              [bsConfig]="datePickerOpts"
-              [placeholder] = "datePickerPlaceHolder"
-              [(ngModel)] = "modBefore"
-              bsDatepicker />
-          </span>
-        </div>
-        <div class="form-group">
-          <label class="col-xs-2 control-label">{{ 'export-format' | i18next }} </label>
-          <span class="col-xs-2">
-            @for (recExportFormat of getExportFormatNames(); track recExportFormat) {
-              <div  >
-                <input [checked]="recExportFormat.checked" (change)="setExportFormat(recExportFormat.id, $event)" id="format-{{recExportFormat.id}}" name="export-format-radio" type="radio" >
-                <label for="format-{{recExportFormat.id}}" >&nbsp;{{ recExportFormat.name }}</label>
-              </div>
-            }
-          </span>
-        </div>
-        <div class="form-group">
-          <div class="col-xs-2"></div>
-          <div class="col-xs-10 padding-remove">
-            <span class="btn-group">
-              <button (click)="download()" class="btn btn-primary text-nowrap" type="button">
-                {{ 'export-' + record_type  | i18next }}
-              </button>
-              <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="visually-hidden">Toggle Dropdown</span>
-              </button>
-              <ul class="dropdown-menu">
-                @for (recTypeName of getRecordTypeNames(); track recTypeName) {
-                  <li>
-                    <a class="dropdown-item" href="#" (click)="setRecordType(recTypeName, $event)">
-                      {{ 'export-'+ recTypeName  | i18next }}
-                    </a>
-                  </li>
-                }
-              </ul>
-            </span>
+  <div class="export-app">
+  <div [attr.inert]="pendingDelete || pendingCancel ? '' : null"><nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+  <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+  <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'admin-export-title' | i18next }}</span></li>
+</ol></nav>
+<header class="rb-admin-page-header"><div><h1>{{ 'admin-export-title' | i18next }}</h1><p>{{ 'admin-export-description' | i18next }}</p></div></header><div class="ex-layout">
+
+    <!-- Request form -->
+    <section class="card rb-admin-card-secondary ex-panel" aria-labelledby="export-form-title">
+      <div class="card-header">
+        <h2 id="export-form-title">
+          {{ 'admin-export-new' | i18next }}
+        </h2>
+      </div>
+      <div class="card-body">
+        <form class="ex-form" (ngSubmit)="download()" novalidate>
+          <div class="ex-field rb-admin-field">
+            <label for="export-record-type">{{ 'export-record-type' | i18next }}</label>
+            <select class="form-select" id="export-record-type" name="recordType" [(ngModel)]="record_type">
+              @for (recTypeName of getRecordTypeNames(); track recTypeName) {
+                <option [value]="recTypeName">{{ recTypeName + '-title' | i18next }}</option>
+              }
+            </select>
           </div>
+
+          <fieldset class="ex-field rb-admin-field" aria-describedby="export-range-help">
+            <legend>{{ 'admin-export-modified-between' | i18next }}</legend>
+            <div class="ex-range">
+              <div class="ex-range__part">
+                <label class="ex-range__label" for="after">{{ 'export-field-date-from' | i18next }}</label>
+                <input type="text" class="form-control" id="after" name="modAfter" autocomplete="off"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modAfter" bsDatepicker />
+              </div>
+              <div class="ex-range__part">
+                <label class="ex-range__label" for="before">{{ 'export-field-date-to' | i18next }}</label>
+                <input type="text" class="form-control" id="before" name="modBefore" autocomplete="off"
+                  [bsConfig]="datePickerOpts" [placeholder]="datePickerPlaceHolder" [(ngModel)]="modBefore" bsDatepicker />
+              </div>
+            </div>
+            <small class="rb-admin-hint" id="export-range-help">{{ 'admin-export-range-help' | i18next }}</small>
+          </fieldset>
+
+          @if (getExportFormatNames().length > 1) {
+            <fieldset class="ex-field rb-admin-field">
+              <legend>{{ 'export-field-format' | i18next }}</legend>
+              <div class="ex-format">
+                @for (recExportFormat of getExportFormatNames(); track recExportFormat.id) {
+                  <label class="ex-format-choice" [class.ex-format-choice-selected]="export_format === recExportFormat.id" for="format-{{recExportFormat.id}}">
+                    <input type="radio" name="export-format-radio" id="format-{{recExportFormat.id}}"
+                      [checked]="export_format === recExportFormat.id" (change)="setExportFormat(recExportFormat.id)">
+                    <span><b>{{ recExportFormat.name }}</b><span class="rb-admin-sub">{{ (recExportFormat.id === 'csv' ? 'admin-export-csv-help' : 'admin-export-json-help') | i18next }}</span></span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+          }
+
+          @if (submissionErrorKey) {
+            <div class="alert alert-danger ex-alert" role="alert">
+              <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+              {{ submissionErrorKey | i18next }}
+            </div>
+          }
+
+          <div class="ex-submit">
+            <button type="submit" class="btn btn-primary" [disabled]="mutationPending || !record_type">
+              @if (createPending) {
+                <span class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></span>
+                {{ 'export-submitting' | i18next }}
+              } @else if (export_format === 'csv') {
+                <i class="fa fa-download" aria-hidden="true"></i>
+                {{ 'export-prepare' | i18next }}
+              } @else {
+                <i class="fa fa-download" aria-hidden="true"></i>
+                {{ 'export-download-format' | i18next: { format: getSelectedFormatName() } }}
+              }
+            </button>
+          </div>
+
+
+        </form>
+      </div>
+    </section>
+
+    <!-- Recent exports -->
+    <section class="card ex-panel" aria-labelledby="export-recent-title" [attr.aria-busy]="jobsLoading">
+      <div class="card-header">
+        <h2 id="export-recent-title">
+          {{ 'admin-export-recent' | i18next }}
+        </h2>
+        <div class="ex-panel__tools">
+          <span>{{ jobs.length | adminCount: 'export' }}</span>
+          @if (isUpdatingAutomatically()) {
+            <small class="ex-auto-refresh">
+              <span class="fa fa-circle-notch fa-spin" aria-hidden="true"></span>
+              {{ 'export-auto-refresh' | i18next }}
+            </small>
+
+          }
+
+          <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="jobsLoading || mutationPending" (click)="refreshJobs()">
+            <i class="fa fa-refresh" [class.fa-spin]="jobsLoading" aria-hidden="true"></i>
+            {{ (jobsLoading ? 'export-refreshing' : 'export-refresh') | i18next }}
+          </button>
         </div>
       </div>
+      <div>
+        @if (jobsErrorKey) {
+          <div class="alert alert-warning ex-alert" role="alert">
+            <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+            {{ jobsErrorKey | i18next }}
+          </div>
+        }
+        @if (deleteErrorKey) {
+          <div class="alert alert-danger ex-alert" role="alert">
+            <i class="fa fa-exclamation-circle" aria-hidden="true"></i>
+            {{ deleteErrorKey | i18next }}
+          </div>
+        }
+
+        @if (!jobs.length && !jobsErrorKey) {
+          <div class="rb-admin-empty">
+            <i class="fa fa-inbox fa-2x" aria-hidden="true"></i>
+            <h3>{{ 'admin-export-empty' | i18next }}</h3>
+            <p>{{ 'export-no-jobs-hint' | i18next }}</p>
+          </div>
+        }
+        @if (jobs.length) {
+          <div class="table-responsive">
+            <table class="table table-hover ex-jobs">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'export-requested' | i18next }}</th>
+                  <th scope="col">{{ 'export-record-type' | i18next }}</th>
+                  <th scope="col">{{ 'export-status' | i18next }}</th>
+                  <th scope="col" class="rb-admin-actions-col text-end">{{ 'export-actions' | i18next }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (job of jobs; track job.id) {
+                  @let status = getStatus(job);
+                  <tr [class.ex-row--muted]="status === 'expired'">
+                    <td class="text-nowrap">{{ job.createdAt | adminDate }}</td>
+                    <td>
+                      <div>{{ job.recordType + '-title' | i18next }}</div>
+                      @if (status === 'ready' && job.filename) {
+                        <div class="ex-subtext" [title]="job.filename">
+                          <span>{{ job.filename }}</span>
+                          @if (formatSize(job.byteLength); as size) {
+                            <span class="text-nowrap"> · {{ size }}</span>
+                          }
+                        </div>
+                      }
+                      <div class="rb-admin-sub ex-date-range">
+                      @if (job.modifiedAfter && job.modifiedBefore) {
+                        <span class="text-nowrap">{{ job.modifiedAfter | adminDate:true }}</span>
+                        <span class="ex-range-sep" aria-hidden="true">–</span>
+                        <span class="visually-hidden">{{ 'export-range-to' | i18next }}</span>
+                        <span class="text-nowrap">{{ job.modifiedBefore | adminDate:true }}</span>
+                      } @else if (job.modifiedAfter) {
+                        {{ 'export-range-from' | i18next: { date: (job.modifiedAfter | adminDate:true) } }}
+                      } @else if (job.modifiedBefore) {
+                        {{ 'export-range-until' | i18next: { date: (job.modifiedBefore | adminDate:true) } }}
+                      } @else {
+                        <span class="text-muted">{{ 'admin-export-all-dates' | i18next }}</span>
+                      }
+                      </div>
+                    </td>
+                    <td aria-live="polite" aria-atomic="true">
+                      <span [class]="getStatusBadgeClass(status)">
+                        @if (status === 'queued' || status === 'running') {
+                          <span class="fa fa-spinner fa-spin" aria-hidden="true"></span>
+                        }
+                        {{ 'export-status-' + status | i18next }}
+                      </span>
+                      @if (status === 'failed') {
+                        <div class="ex-error-text">{{ job.errorMessage || ('export-failed-hint' | i18next) }}</div>
+                      }
+                      <div class="rb-admin-sub">
+                      @if (job.expiresAt && (status === 'ready' || status === 'expired')) {
+                        {{ 'admin-export-expires' | i18next }}: {{ job.expiresAt | adminDate }}
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                      </div>
+                    </td>
+                    <td class="rb-admin-actions-col text-end">
+                      <div class="rb-admin-row-actions">
+                        @if (getDownloadUrl(job); as downloadUrl) {
+                          <a class="btn btn-outline-secondary btn-sm" [href]="downloadUrl" [attr.download]="job.filename">
+                            {{ 'admin-export-download' | i18next }}
+                          </a>
+                        } @else if (status === 'failed' || status === 'expired') {
+                          <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="mutationPending" (click)="prepareAgain(job)">
+                            <i class="fa fa-redo" aria-hidden="true"></i>
+                            {{ 'export-prepare-again' | i18next }}
+                          </button>
+                        }
+                        @if (canCancel(job)) {
+                          <button class="btn btn-sm rb-admin-ghost" type="button" [disabled]="mutationPending" (click)="requestCancel(job)">{{ 'export-cancel' | i18next }}</button>
+                        }
+                        @if (canDelete(job)) {
+                          <details rbAdminOverflow class="rb-admin-overflow" #actions>
+                            <summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: job.filename || job.recordType }">⋯</summary>
+                            <div><button class="btn btn-sm btn-outline-danger" type="button" [disabled]="mutationPending" (click)="requestDelete(job); actions.open = false">{{ 'export-delete' | i18next }}</button></div>
+                          </details>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+      <div class="card-footer">{{ 'admin-vocabulary-pagination-range' | i18next: { start: jobs.length ? 1 : 0, end: jobs.length, total: jobs.length } }}</div>
+    </section>
+  </div></div>
+  @if (pendingCancel) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="export-cancel-title" aria-describedby="export-cancel-description" (keydown.escape)="dismissCancel()">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-header"><h2 id="export-cancel-title" class="modal-title">{{ 'export-cancel-confirm' | i18next }}</h2><button type="button" class="btn-close" [disabled]="mutationPending" [attr.aria-label]="'named-query-close' | i18next" (click)="dismissCancel()"></button></div>
+        <div class="modal-body"><p id="export-cancel-description">{{ 'export-cancel-description' | i18next }}</p>
+          @if (cancelErrorKey) { <div class="alert alert-danger" role="alert">{{ cancelErrorKey | i18next }}</div> }
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial [disabled]="mutationPending" (click)="dismissCancel()">{{ 'export-keep-preparing' | i18next }}</button><button class="btn rb-admin-danger-confirm" type="button" [disabled]="mutationPending" (click)="cancelJob(pendingCancel)">{{ (mutationPending ? 'export-cancelling' : 'export-cancel') | i18next }}</button></div>
+      </div></div>
     </div>
-    <div class="col-xs-1">
+  }
+  @if (pendingDelete) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" role="dialog" aria-modal="true" aria-labelledby="export-delete-title" aria-describedby="export-delete-description" (keydown.escape)="cancelDelete()">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-header"><h2 id="export-delete-title" class="modal-title">{{ 'admin-export-delete-title' | i18next }}</h2><button type="button" class="btn-close" [disabled]="mutationPending" [attr.aria-label]="'named-query-close' | i18next" (click)="cancelDelete()"></button></div>
+        <div class="modal-body"><p id="export-delete-description">{{ 'admin-export-delete-confirm' | i18next: { name: pendingDelete.filename || pendingDelete.recordType } }}</p>
+          @if (deleteErrorKey) { <div class="alert alert-danger" role="alert">{{ deleteErrorKey | i18next }}</div> }
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" cdkFocusInitial [disabled]="mutationPending" (click)="cancelDelete()">{{ '@cancel-button' | i18next }}</button><button class="btn rb-admin-danger-confirm" type="button" [disabled]="mutationPending" (click)="deleteJob(pendingDelete)">{{ (mutationPending ? 'export-deleting' : 'export-delete') | i18next }}</button></div>
+      </div></div>
     </div>
+  }
   </div>
 }

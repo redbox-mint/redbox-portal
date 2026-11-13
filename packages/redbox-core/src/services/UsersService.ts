@@ -17,19 +17,19 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { Observable, of, from, throwError, firstValueFrom } from 'rxjs';
+import { Observable, of, from, throwError, firstValueFrom, Subscription } from 'rxjs';
 import { mergeMap as flatMap, map, last } from 'rxjs/operators';
 
 import { isObservable } from 'rxjs';
 
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { AuthorizedDomainsEmails } from '../configmodels/AuthorizedDomainsEmails';
+import { evaluateAuthorizedEmail } from '../utilities/AuthorizedEmailAccess';
 import { RoleModel } from '../model/storage/RoleModel';
 import { SearchService } from '../SearchService';
 import { UserModel } from '../model/storage/UserModel';
 import { UserAttributes } from '../waterline-models/User';
 import { Services as services } from '../CoreService';
-import { redactObject } from '../utilities/RedactionUtils';
 
 import * as crypto from 'crypto';
 
@@ -160,6 +160,9 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'bootstrap',
       'updateUserRoles',
+      'recordSuccessfulLogin',
+      'removeRoleForBrand',
+      'updateUserRolesForBrand',
       'updateUserDetails',
       'getUserWithId',
       'getUserWithUsername',
@@ -233,12 +236,16 @@ export namespace Services {
       };
     }
 
+    private readonly signInIdentities = new WeakMap<object, string>();
+
     private async resolveLinkedUserCandidate(user: unknown): Promise<AnyRecord | null> {
       if (_.isEmpty(user)) {
         return null;
       }
       const resolved = await firstValueFrom(this.getEffectiveUser(user));
-      return (resolved as AnyRecord | null) ?? (user as AnyRecord);
+      const candidate = (resolved as AnyRecord | null) ?? (user as AnyRecord);
+      this.signInIdentities.set(candidate, String((user as AnyRecord).id));
+      return candidate;
     }
 
     private rewriteLinkedAuthorization(
@@ -642,8 +649,7 @@ export namespace Services {
         });
         return rows as unknown as UserAuditRow[];
       } catch (error) {
-        sails.log.error('Failed to query direct user audit rows with deep targets enabled.');
-        sails.log.error(error);
+        this.updateChronicle({ usersOperation: 'fetchDirectUserAuditRows', usersOutcome: 'failed' }, [error]);
         throw new Error(
           `Unable to fetch direct audit records for user ${String(selectedUser.id ?? '')} without an unbounded fallback query.`
         );
@@ -735,7 +741,7 @@ export namespace Services {
           id: id,
         })
           .populate('roles')
-          .exec(function (err: unknown, user: unknown) {
+          .exec(async function (err: unknown, user: unknown) {
             if (err != null || _.isEmpty(user)) {
               done(err, user as AnyRecord);
               return;
@@ -784,81 +790,51 @@ export namespace Services {
                   // Gate disabled users
                   that
                     .assertAuthenticationAllowed(foundUserObj as UserAttributes)
-                    .then(() => {
-                      // foundUser.lastLogin = new Date();
+                    .then(async () => {
 
                       const configLocal = _.get(defAuthConfig, 'local', {});
                       if (that.hasPreSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                        that.triggerPreSaveTriggers(foundUserObj, configLocal).then((userAdditionalInfo: AnyRecord) => {
-                          const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                          if (success) {
-                            User.update({
-                              username: username,
-                            })
-                              .set({
-                                lastLogin: new Date(),
-                                additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
+                        that
+                          .triggerPreSaveTriggers(foundUserObj, configLocal)
+                          .then(async (userAdditionalInfo: AnyRecord) => {
+                            const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                            if (success) {
+                              User.update({
+                                username: username,
                               })
-                              .exec(function (err: unknown, user: unknown) {
-                                if (err) {
-                                  sails.log.error('Error updating user:');
-                                  sails.log.error(err);
+                                .set({
+                                  additionalAttributes: _.get(userAdditionalInfo, 'additionalAttributes'),
+                                })
+                                .exec(async function (err: unknown, user: unknown) {
+                                  if (err) {
+                                    that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
+                                      err,
+                                    ]);
+                                    return;
+                                  }
+                                  if (_.isEmpty(user)) {
+                                    that.updateChronicle({ usersOperation: 'localAuthInit', usersOutcome: 'failed' }, [
+                                      'No user found',
+                                    ]);
+                                    return;
+                                  }
+
                                   return;
-                                }
-                                if (_.isEmpty(user)) {
-                                  sails.log.error('No user found');
-                                  return;
-                                }
-                                sails.log.verbose('Done, returning updated user:');
-                                sails.log.verbose(user);
-                                return;
+                                });
+
+                              await that.runLoginPostSaveTriggers(foundUserObj, configLocal, 'onUpdate');
+
+                              return done(null, userAdditionalInfo, {
+                                message: 'Logged In Successfully',
                               });
-
-                            if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                              that.triggerPostSaveTriggers(foundUserObj, configLocal);
+                            } else {
+                              return done(null, false, {
+                                message: 'All required conditions for login not met',
+                              });
                             }
-
-                            if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                              that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
-                            }
-
-                            return done(null, userAdditionalInfo, {
-                              message: 'Logged In Successfully',
-                            });
-                          } else {
-                            return done(null, false, {
-                              message: 'All required conditions for login not met',
-                            });
-                          }
-                        });
-                      } else {
-                        User.update({
-                          username: username,
-                        })
-                          .set({ lastLogin: new Date() })
-                          .exec(function (err: unknown, user: unknown) {
-                            if (err) {
-                              sails.log.error('Error updating user:');
-                              sails.log.error(err);
-                              return;
-                            }
-                            if (_.isEmpty(user)) {
-                              sails.log.error('No user found');
-                              return;
-                            }
-
-                            sails.log.verbose('Done, returning updated user:');
-                            sails.log.verbose(user);
-                            return;
                           });
-
-                        if (that.hasPostSaveTriggerConfigured(configLocal, 'onUpdate')) {
-                          that.triggerPostSaveTriggers(foundUserObj, configLocal);
-                        }
-
-                        if (that.hasPostSaveSyncTriggerConfigured(configLocal, 'onUpdate')) {
-                          that.triggerPostSaveSyncTriggers(foundUserObj, configLocal);
-                        }
+                      } else {
+                        await that.runLoginPostSaveTriggers(foundUserObj, configLocal, 'onUpdate');
 
                         return done(null, foundUserObj, {
                           message: 'Logged In Successfully',
@@ -937,11 +913,8 @@ export namespace Services {
       config: AnyRecord,
       mode: string = 'onUpdate'
     ): Promise<AnyRecord> {
-      sails.log.verbose('Triggering pre save triggers for user login: ');
-      sails.log.verbose(`hooks.${mode}.pre`);
-      sails.log.verbose(JSON.stringify(config));
       const preSaveUpdateHooks = _.get(config, `hooks.${mode}.pre`, null) as unknown[] | null;
-      sails.log.debug(preSaveUpdateHooks);
+      this.updateChronicle({ usersPreSaveMode: mode, usersPreSaveHookCount: preSaveUpdateHooks?.length ?? 0 });
 
       if (_.isArray(preSaveUpdateHooks)) {
         for (let i = 0; i < preSaveUpdateHooks.length; i++) {
@@ -955,23 +928,12 @@ export namespace Services {
               if (_.isUndefined(failureMode) || (failureMode != 'continue' && failureMode != 'stop')) {
                 failureMode = 'continue';
               }
-              sails.log.verbose(
-                `Triggering pre save triggers: ${preSaveUpdateHookFunctionString} failureMode ${failureMode}`
-              );
+
               const hookResponse = preSaveUpdateHookFunction(user, options, failureMode);
               user = (await this.resolveHookResponse(hookResponse)) as AnyRecord;
-              sails.log.debug(`${preSaveUpdateHookFunctionString} response now is:`);
-              try {
-                sails.log.verbose(JSON.stringify(user));
-              } catch (_error) {
-                sails.log.verbose(user);
-              }
-              sails.log.debug(
-                `pre-save sync trigger ${preSaveUpdateHookFunctionString} completed for user: ${_.get(user, 'username')}`
-              );
+              this.updateChronicle({ usersPreSaveHookIndex: i, usersPreSaveOutcome: 'success' });
             } catch (err) {
-              sails.log.error(`pre-save sync trigger ${preSaveUpdateHookFunctionString} failed to complete`);
-              sails.log.error(err);
+              this.updateChronicle({ usersOperation: 'triggerPreSaveTriggers', usersOutcome: 'failed' }, [err]);
               throw err;
             }
           }
@@ -987,38 +949,29 @@ export namespace Services {
       mode: string = 'onUpdate',
       response: unknown = {}
     ) {
-      sails.log.verbose('Triggering post save sync triggers ');
-      sails.log.verbose(`hooks.${mode}.postSync`);
-      sails.log.verbose(JSON.stringify(config));
       const postSaveSyncHooks = _.get(config, `hooks.${mode}.postSync`, null) as unknown[] | null;
+      this.updateChronicle({ usersPostSaveSyncMode: mode, usersPostSaveSyncHookCount: postSaveSyncHooks?.length ?? 0 });
       if (_.isArray(postSaveSyncHooks)) {
         for (let i = 0; i < postSaveSyncHooks.length; i++) {
           const postSaveSyncHook = postSaveSyncHooks[i];
-          sails.log.debug(postSaveSyncHooks);
+
           const postSaveSyncHooksFunctionString = _.get(postSaveSyncHook, 'function', null);
           if (postSaveSyncHooksFunctionString != null) {
             const postSaveSyncHookFunction = eval(postSaveSyncHooksFunctionString);
             const options = _.get(postSaveSyncHook, 'options', {});
             if (_.isFunction(postSaveSyncHookFunction)) {
               try {
-                sails.log.debug(`Triggering post-save sync trigger: ${postSaveSyncHooksFunctionString}`);
                 const hookResponse = postSaveSyncHookFunction(user, options, response);
                 response = await this.resolveHookResponse(hookResponse);
-                sails.log.debug(`${postSaveSyncHooksFunctionString} response now is:`);
-                sails.log.verbose(JSON.stringify(response));
-                sails.log.debug(
-                  `post-save sync trigger ${postSaveSyncHooksFunctionString} completed for user: ${_.get(user, 'username')}`
-                );
+                this.updateChronicle({ usersPostSaveSyncHookIndex: i, usersPostSaveSyncOutcome: 'success' });
               } catch (err) {
-                sails.log.error(`post-save async trigger ${postSaveSyncHooksFunctionString} failed to complete`);
-                sails.log.error(err);
+                this.updateChronicle({ usersOperation: 'triggerPostSaveSyncTriggers', usersOutcome: 'failed' }, [err]);
                 throw err;
               }
             } else {
-              sails.log.error(
-                `Post save function: '${postSaveSyncHooksFunctionString}' did not resolve to a valid function, what I got:`
-              );
-              sails.log.error(postSaveSyncHookFunction);
+              this.updateChronicle({ usersPostSaveSyncOutcome: 'invalid-hook' }, [
+                new Error('Invalid user post-save sync hook.'),
+              ]);
             }
           }
         }
@@ -1026,39 +979,97 @@ export namespace Services {
       return response;
     }
 
-    //Post login and post update/create user
-    public triggerPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string = 'onUpdate'): void {
-      sails.log.verbose('Triggering post save triggers ');
-      sails.log.verbose(`hooks.${mode}.post`);
-      sails.log.verbose(JSON.stringify(config));
-      const postSaveCreateHooks = _.get(config, `hooks.${mode}.post`, null);
-      if (_.isArray(postSaveCreateHooks)) {
-        _.each(postSaveCreateHooks, (postSaveCreateHook: unknown) => {
-          sails.log.debug(postSaveCreateHook);
-          const postSaveCreateHookFunctionString = _.get(postSaveCreateHook, 'function', null);
-          if (postSaveCreateHookFunctionString != null) {
-            const postSaveCreateHookFunction = eval(postSaveCreateHookFunctionString);
-            const options = _.get(postSaveCreateHook, 'options', {});
-            if (_.isFunction(postSaveCreateHookFunction)) {
-              const hookResponse = postSaveCreateHookFunction(user, options);
-              this.resolveHookResponse(hookResponse)
-                .then(_result => {
-                  sails.log.debug(
-                    `post-save trigger ${postSaveCreateHookFunctionString} completed for user: ${_.get(user, 'username')}`
-                  );
-                })
-                .catch(error => {
-                  sails.log.error(`post-save trigger ${postSaveCreateHookFunctionString} failed to complete`);
-                  sails.log.error(error);
-                });
-            } else {
-              sails.log.error(
-                `Post save function: '${postSaveCreateHookFunctionString}' did not resolve to a valid function, what I got:`
-              );
-              sails.log.error(postSaveCreateHookFunction);
+    /**
+     * Run configured user post-save hooks concurrently and return their outcomes in
+     * configuration order. Failures are logged and returned as rejected entries;
+     * they do not reject the aggregate promise or prevent other hooks from running.
+     * Entries without a function are skipped. Observables settle on completion,
+     * yielding their last value (undefined for an empty Observable).
+     * Each hook has an absolute deadline (postHookTimeoutMs, default 30000ms).
+     * Timeout is a rejected outcome; Observable subscriptions are disposed.
+     * Unlike postSync hooks, these hooks do not form a sequential response chain.
+     */
+    public triggerPostSaveTriggers(
+      user: AnyRecord,
+      config: AnyRecord,
+      mode: string = 'onUpdate'
+    ): Promise<PromiseSettledResult<unknown>[]> {
+      const hooks = _.get(config, `hooks.${mode}.post`, null);
+      this.updateChronicle({
+        usersPostSaveMode: mode,
+        usersPostSaveHookCount: Array.isArray(hooks) ? hooks.length : 0,
+      });
+      if (!Array.isArray(hooks)) {
+        return Promise.resolve([]);
+      }
+      const configuredTimeout = config.postHookTimeoutMs;
+      const timeoutMs =
+        typeof configuredTimeout === 'number' &&
+        Number.isInteger(configuredTimeout) &&
+        configuredTimeout > 0 &&
+        configuredTimeout <= 2147483647
+          ? configuredTimeout
+          : 30000;
+      const responses = hooks
+        .filter(hook => _.get(hook, 'function', null) != null)
+        .map(async hook => {
+          const functionString = _.get(hook, 'function');
+          try {
+            const hookFunction = eval(functionString);
+            if (!_.isFunction(hookFunction)) {
+              throw new TypeError(`Post save function: '${functionString}' did not resolve to a valid function`);
             }
+            const hookResponse = hookFunction(user, _.get(hook, 'options', {}));
+            const result = await this.resolvePostHookResponse(hookResponse, timeoutMs);
+            this.updateChronicle({ usersPostSaveOutcome: 'success' });
+            return result;
+          } catch (error) {
+            this.updateChronicle({ usersOperation: 'triggerPostSaveTriggers', usersOutcome: 'failed' }, [error]);
+            throw error;
           }
         });
+      return Promise.allSettled(responses);
+    }
+
+    // Start both groups before awaiting regular hooks. postSync retains its
+    // sequential response chain and background login timing.
+    private async runLoginPostSaveTriggers(user: AnyRecord, config: AnyRecord, mode: string): Promise<void> {
+      const completion = this.triggerPostSaveTriggers(user, config, mode);
+      if (this.hasPostSaveSyncTriggerConfigured(config, mode)) {
+        void this.triggerPostSaveSyncTriggers(user, config, mode).catch(error => {
+          sails.log.error('Login postSync hooks failed to complete');
+          sails.log.error(error);
+        });
+      }
+      await completion;
+    }
+
+    private async resolvePostHookResponse(response: unknown, timeoutMs: number): Promise<unknown> {
+      const subscription = new Subscription();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const deadline = new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error(`User post-save hook timed out after ${timeoutMs}ms`)), timeoutMs);
+        });
+        const completion = isObservable(response)
+          ? new Promise<unknown>((resolve, reject) => {
+              let value: unknown;
+              subscription.add(
+                response.subscribe({
+                  next: next => {
+                    value = next;
+                  },
+                  error: reject,
+                  complete: () => resolve(value),
+                })
+              );
+            })
+          : Promise.resolve(response);
+        // race attaches rejection handlers even when a Promise rejects after timeout.
+        return await Promise.race([completion, deadline]);
+      } finally {
+        clearTimeout(timer);
+        subscription.unsubscribe();
       }
     }
 
@@ -1080,9 +1091,7 @@ export namespace Services {
         // JWT/AAF Strategy
         //
         const that = this;
-        sails.log.verbose(
-          `AAF auth init for default brand "${defaultBrandName}" with active providers: ${JSON.stringify(defAuthConfig.active ?? [])}`
-        );
+
         if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('aaf') != -1) {
           const JwtStrategy = require('passport-jwt').Strategy,
             ExtractJwt = require('passport-jwt').ExtractJwt;
@@ -1101,9 +1110,7 @@ export namespace Services {
             (configuredAafOpts.jsonWebTokenOptions ?? {}) as Record<string, unknown>
           );
           aafOpts.jwtFromRequest = ExtractJwt.fromBodyField('assertion');
-          sails.log.verbose(
-            `Registering Passport strategy "aaf-jwt" with option keys: ${JSON.stringify(Object.keys(aafOpts))}`
-          );
+
           (sails.config.passport as PassportLike).use(
             'aaf-jwt',
             new JwtStrategy(aafOpts, function (req: Sails.Req, jwt_payload: AnyRecord, done: DoneCallback) {
@@ -1113,9 +1120,7 @@ export namespace Services {
 
               const authConfig = that.getAuthConfig(brand.name);
               const aafAttributes = authConfig.aaf?.attributesField ?? DEFAULT_AAF_ATTRIBUTES_FIELD;
-              sails.log.verbose(`Configured roles: ${JSON.stringify(sails.config.auth.roles)}`);
-              sails.log.verbose(`AAF default roles: ${JSON.stringify(authConfig.aaf?.defaultRole)}`);
-              sails.log.verbose(`Brand roles: ${JSON.stringify(brand.roles)}`);
+
               const defaultAuthRole = RolesService.getDefAuthenticatedRole(brand);
               let aafDefRoles = [];
               if (defaultAuthRole != undefined) {
@@ -1129,14 +1134,6 @@ export namespace Services {
                   username: userName,
                 },
                 function (err: unknown, user: unknown) {
-                  sails.log.verbose(`At AAF Strategy verify for brand "${brandName}" using username "${aafUsername}"`);
-                  sails.log.verbose(`AAF resolved attributes field "${aafAttributes}"`);
-                  sails.log.verbose(
-                    `AAF user lookup result: ${user ? `found user id=${String((user as AnyRecord).id ?? 'unknown')}` : 'no user found'}`
-                  );
-                  sails.log.verbose(
-                    `AAF verify error: ${err == null ? 'null' : err instanceof Error ? err.message : String(err)}`
-                  );
                   if (err) {
                     return done(err, false);
                   }
@@ -1145,9 +1142,8 @@ export namespace Services {
                     // Gate disabled users
                     that
                       .assertAuthenticationAllowed(userObj)
-                      .then(() => {
+                      .then(async () => {
                         const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
-                        userObj.lastLogin = new Date();
                         userObj.name = String(attrs.cn ?? '');
                         userObj.email = String(attrs.mail ?? '').toLowerCase();
                         userObj.displayname = _.isNil(attrs.displayname) ? undefined : String(attrs.displayname);
@@ -1166,77 +1162,67 @@ export namespace Services {
 
                         const configAAF = _.get(defAuthConfig, 'aaf', {});
                         if (that.hasPreSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                          that.triggerPreSaveTriggers(userObj, configAAF).then((userAdditionalInfo: AnyRecord) => {
-                            const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
-                            if (success) {
-                              User.update({
-                                username: _.get(userAdditionalInfo, 'username'),
-                              })
-                                .set(userAdditionalInfo)
-                                .exec(function (err: unknown, user: unknown) {
-                                  if (err) {
-                                    sails.log.error('Error updating user:');
-                                    sails.log.error(err);
-                                    return done(err, false, { message: 'Error updating user' });
-                                  }
-                                  if (_.isEmpty(user)) {
-                                    sails.log.error('No user found');
-                                    return done('No user found', false, { message: 'No user found' });
-                                  }
+                          that
+                            .triggerPreSaveTriggers(userObj, configAAF)
+                            .then(async (userAdditionalInfo: AnyRecord) => {
+                              const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
+                              if (success) {
+                                User.update({
+                                  username: _.get(userAdditionalInfo, 'username'),
+                                })
+                                  .set(userAdditionalInfo)
+                                  .exec(async function (err: unknown, user: unknown) {
+                                    if (err) {
+                                      that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [
+                                        err,
+                                      ]);
+                                      return done(err, false, { message: 'Error updating user' });
+                                    }
+                                    if (_.isEmpty(user)) {
+                                      that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
+                                      return done('No user found', false, { message: 'No user found' });
+                                    }
 
-                                  if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                                    that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                                  }
+                                    await that.runLoginPostSaveTriggers(
+                                      user as unknown as AnyRecord,
+                                      configAAF,
+                                      'onUpdate'
+                                    );
 
-                                  if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                                    that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                                  }
-
-                                  sails.log.verbose('Done, returning updated user:');
-                                  sails.log.verbose(user);
-                                  const updatedUsers = user as AnyRecord[];
-                                  that
-                                    .resolveLinkedUserCandidate(updatedUsers[0])
-                                    .then(resolvedUser =>
-                                      done(null, resolvedUser as AnyRecord, {
-                                        message: 'Logged In Successfully',
-                                      })
-                                    )
-                                    .catch((resolveErr: unknown) => done(resolveErr, false));
-                                  return;
+                                    const updatedUsers = user as AnyRecord[];
+                                    that
+                                      .resolveLinkedUserCandidate(updatedUsers[0])
+                                      .then(resolvedUser =>
+                                        done(null, resolvedUser as AnyRecord, {
+                                          message: 'Logged In Successfully',
+                                        })
+                                      )
+                                      .catch((resolveErr: unknown) => done(resolveErr, false));
+                                    return;
+                                  });
+                              } else {
+                                return done('All required conditions for login not met', false, {
+                                  message: 'All required conditions for login not met',
                                 });
-                            } else {
-                              return done('All required conditions for login not met', false, {
-                                message: 'All required conditions for login not met',
-                              });
-                            }
-                          });
+                              }
+                            });
                         } else {
                           User.update({
                             username: userObj.username,
                           })
                             .set(userObj)
-                            .exec(function (err: unknown, user: unknown) {
+                            .exec(async function (err: unknown, user: unknown) {
                               if (err) {
-                                sails.log.error('Error updating user:');
-                                sails.log.error(err);
+                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                                 return done(err, false, { message: 'Error updating user' });
                               }
                               if (_.isEmpty(user)) {
-                                sails.log.error('No user found');
+                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' });
                                 return done('No user found', false, { message: 'No user found' });
                               }
 
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onUpdate')) {
-                                that.triggerPostSaveTriggers(user as unknown as AnyRecord, configAAF);
-                              }
+                              await that.runLoginPostSaveTriggers(user as unknown as AnyRecord, configAAF, 'onUpdate');
 
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onUpdate')) {
-                                that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, configAAF);
-                              }
-
-                              sails.log.verbose('Done, returning updated user:');
-                              sails.log.verbose(user);
                               const updatedUsers = user as AnyRecord[];
                               that
                                 .resolveLinkedUserCandidate(updatedUsers[0])
@@ -1257,7 +1243,6 @@ export namespace Services {
                         return done(err);
                       }); // end AAF disabled gate
                   } else {
-                    sails.log.verbose('At AAF Strategy verify, creating new user...');
                     // first time login, create with default role
                     const attrs = (jwt_payload[aafAttributes] ?? {}) as AnyRecord;
                     const normalizedUsername = String(userName);
@@ -1296,11 +1281,7 @@ export namespace Services {
                       surname: normalizedSurname,
                       type: 'aaf',
                       roles: aafDefRoles,
-                      lastLogin: new Date(),
                     };
-                    sails.log.verbose(
-                      `AAF prepared user create request for brand "${brandName}" and username "${aafUsername}"`
-                    );
 
                     const emailAuthorizedCheck = that.checkAuthorizedEmail(
                       String(userToCreate.email ?? ''),
@@ -1315,27 +1296,18 @@ export namespace Services {
                     if (that.hasPreSaveTriggerConfigured(configAAF, 'onCreate')) {
                       that
                         .triggerPreSaveTriggers(userToCreate, configAAF, 'onCreate')
-                        .then((userAdditionalInfo: AnyRecord) => {
+                        .then(async (userAdditionalInfo: AnyRecord) => {
                           const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                           if (success) {
                             userToCreate = userAdditionalInfo;
-                            User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                            User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                               if (err) {
-                                sails.log.error('Error creating new user:');
-                                sails.log.error(err);
+                                that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                                 return done(err, false);
                               }
 
-                              if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
+                              await that.runLoginPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
 
-                              if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                                that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                              }
-
-                              sails.log.verbose('Done, returning new user:');
-                              sails.log.verbose(newUser);
                               that
                                 .resolveLinkedUserCandidate(newUser)
                                 .then(resolvedUser => done(null, resolvedUser as AnyRecord))
@@ -1347,23 +1319,14 @@ export namespace Services {
                           }
                         });
                     } else {
-                      User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+                      User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                         if (err) {
-                          sails.log.error('Error creating new user:');
-                          sails.log.error(err);
+                          that.updateChronicle({ usersOperation: 'aafAuthInit', usersOutcome: 'failed' }, [err]);
                           return done(err, false);
                         }
 
-                        if (that.hasPostSaveTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
+                        await that.runLoginPostSaveTriggers(newUser as AnyRecord, configAAF, 'onCreate');
 
-                        if (that.hasPostSaveSyncTriggerConfigured(configAAF, 'onCreate')) {
-                          that.triggerPostSaveSyncTriggers(newUser as AnyRecord, configAAF, 'onCreate');
-                        }
-
-                        sails.log.verbose('Done, returning new user:');
-                        sails.log.verbose(newUser);
                         that
                           .resolveLinkedUserCandidate(newUser)
                           .then(resolvedUser => done(null, resolvedUser as AnyRecord))
@@ -1376,8 +1339,6 @@ export namespace Services {
               );
             })
           );
-        } else {
-          sails.log.verbose(`AAF strategy registration skipped because "aaf" is not in active providers.`);
         }
       });
     };
@@ -1385,10 +1346,10 @@ export namespace Services {
     protected openIdConnectAuth = () => {
       this.registerSailsHook('on', 'ready', async () => {
         const defAuthConfig = this.getAuthConfig(BrandingService.getDefault().name);
-        sails.log.verbose(`OIDC, checking if within active array: ${defAuthConfig.active}`);
+
         if (defAuthConfig.active != undefined && defAuthConfig.active.indexOf('oidc') != -1) {
           const that = this;
-          sails.log.verbose(`OIDC is active, configuring....`);
+
           let oidcConfigArray: OidcAuthConfig[] = [];
           if (Array.isArray(defAuthConfig.oidc)) {
             oidcConfigArray = defAuthConfig.oidc;
@@ -1410,7 +1371,7 @@ export namespace Services {
 
                 if (_.isString(oidcOpts.issuer)) {
                   const issuerUrl = String(oidcOpts.issuer).replace(/\/+$/, '');
-                  sails.log.verbose(`OIDC, using issuer URL for discovery: ${issuerUrl}`);
+
                   const discoveryOptions = issuerUrl.startsWith('http://')
                     ? { execute: [openIdClient.allowInsecureRequests] }
                     : undefined;
@@ -1422,8 +1383,6 @@ export namespace Services {
                     discoveryOptions
                   );
                 } else {
-                  sails.log.verbose(`OIDC, using issuer hardcoded configuration:`);
-                  sails.log.verbose(JSON.stringify(oidcOpts.issuer));
                   oidcClientConfig = new openIdClient.Configuration(oidcOpts.issuer, clientId, clientMetadata);
                   const configuredIssuer = String((oidcOpts.issuer as Record<string, unknown>)?.issuer ?? '');
                   if (configuredIssuer.startsWith('http://')) {
@@ -1432,8 +1391,7 @@ export namespace Services {
                 }
                 const serverMetadata = oidcClientConfig.serverMetadata();
                 configured = true;
-                sails.log.verbose(`OIDC, Got issuer config, after ${discoverAttemptsCtr} attempt(s).`);
-                sails.log.verbose(serverMetadata);
+
                 const verifyCallbackFn = async (req: AnyRecord, tokenSet: AnyRecord, done: DoneCallback) => {
                   try {
                     let userinfo: AnyRecord | undefined;
@@ -1492,8 +1450,7 @@ export namespace Services {
                 (sails.config.passport as PassportLike).use(passportIdentifier, strategy);
                 sails.log.info(`OIDC is active, client ${passportIdentifier} configured and ready.`);
               } catch (e) {
-                sails.log.error(`Failed to discover, attempt# ${discoverAttemptsCtr}:`);
-                sails.log.error(e);
+                this.updateChronicle({ usersOperation: 'openIdConnectAuth', usersOutcome: 'failed' }, [e]);
                 await this.sleep(oidcConfig.discoverFailureSleep ?? 1000);
               }
             }
@@ -1510,7 +1467,19 @@ export namespace Services {
       userinfo: AnyRecord | undefined = undefined,
       done: DoneCallback
     ) {
+      const originalDone = done;
+      let rejectionOutcome: string | undefined;
+      done = (error, user, info) => {
+        // The controller records errors passed to passport, including string rejections.
+        this.updateChronicle({
+          usersOperation: 'openIdConnectAuthVerifyCallback',
+          usersAuthOutcome: rejectionOutcome ?? (error ? 'failure' : user ? 'success' : 'rejected'),
+          usersAuthUserId: _.get(user, 'id'),
+        });
+        originalDone(error, user, info);
+      };
       const that = this;
+      this.updateChronicle({ usersAuthProvider: 'oidc', usersAuthOutcome: 'processing' });
       const session = (req.session ?? {}) as AnyRecord;
       const query = (req.query ?? {}) as AnyRecord;
       const logoutFromAuthServer = _.get(oidcConfig, 'logoutFromAuthServer', true);
@@ -1530,15 +1499,9 @@ export namespace Services {
         req.query = query;
       }
 
-      sails.log.verbose(`OIDC login success, tokenset: `);
-      sails.log.verbose(JSON.stringify(redactObject(tokenSet)));
-      sails.log.verbose(`Claims:`);
       const tokenClaims = typeof tokenSet.claims === 'function' ? tokenSet.claims() : {};
-      sails.log.verbose(JSON.stringify(redactObject(tokenClaims)));
-      if (!_.isUndefined(userinfo)) {
-        sails.log.verbose(`Userinfo:`);
-        sails.log.verbose(JSON.stringify(redactObject(userinfo)));
-      } else {
+
+      if (_.isUndefined(userinfo)) {
         userinfo = tokenClaims as AnyRecord;
       }
       if (oidcConfig.debugMode === true) {
@@ -1563,13 +1526,11 @@ export namespace Services {
       if (!_.isUndefined(claimsMappingOptions) && !_.isEmpty(claimsMappingOptions)) {
         usernameToLowercase = !!claimsMappingOptions['usernameToLowercase'];
       }
-      sails.log.verbose('usernameToLowercase ' + usernameToLowercase);
+
       if (usernameToLowercase) {
         userName = tmpUserName.toLowerCase();
-        sails.log.verbose('usernameToLowercase ' + userName);
       } else {
         userName = tmpUserName;
-        sails.log.verbose(userName);
       }
       const defAuthRole = RolesService.getDefAuthenticatedRole(brand);
       const defAuthRoleName = defAuthRole?.name ?? 'Researcher';
@@ -1577,6 +1538,8 @@ export namespace Services {
 
       // This can occur when the claim mappings are incorrect or a login was cancelled
       if (_.isEmpty(userName)) {
+        rejectionOutcome = 'missing-username';
+        this.updateChronicle({ usersAuthOutcome: 'missing-username' }, [new Error('OIDC username claim is missing.')]);
         return done(null, null, {
           message: 'Rejected as username does not have a value',
         });
@@ -1587,12 +1550,6 @@ export namespace Services {
           username: userName,
         },
         function (err: unknown, user: unknown) {
-          sails.log.verbose('At OIDC Strategy verify, payload:');
-          sails.log.verbose(redactObject(userinfo));
-          sails.log.verbose('User:');
-          sails.log.verbose(user);
-          sails.log.verbose('Error:');
-          sails.log.verbose(err);
           if (err) {
             return done(err, false);
           }
@@ -1601,9 +1558,8 @@ export namespace Services {
             // Gate disabled users
             that
               .assertAuthenticationAllowed(userObj)
-              .then(() => {
-                sails.log.error('At OIDC Strategy verify, updating new user...');
-                userObj.lastLogin = new Date();
+              .then(async () => {
+                that.updateChronicle({ usersUserUpdate: 'processing' });
                 const additionalAttributesMapping = claimsMappings['additionalAttributes'];
                 userObj.additionalAttributes = that.mapAdditionalAttributes(
                   userinfo,
@@ -1625,36 +1581,37 @@ export namespace Services {
                 if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
                   that
                     .triggerPreSaveTriggers(userObj, oidcConfig as AnyRecord)
-                    .then((userAdditionalInfo: AnyRecord) => {
+                    .then(async (userAdditionalInfo: AnyRecord) => {
                       const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                       if (success) {
                         User.update({
                           username: _.get(userAdditionalInfo, 'username'),
                         })
                           .set(userAdditionalInfo)
-                          .exec(function (err: unknown, user: unknown) {
+                          .exec(async function (err: unknown, user: unknown) {
                             if (err) {
-                              sails.log.error('Error updating user:');
-                              sails.log.error(err);
+                              that.updateChronicle(
+                                { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
+                                [err]
+                              );
                               return done(err, false);
                             }
                             if (_.isEmpty(user)) {
-                              sails.log.error('No user found');
+                              that.updateChronicle({
+                                usersOperation: 'openIdConnectAuthVerifyCallback',
+                                usersOutcome: 'failed',
+                              });
                               return done('No user found', false);
                             }
 
-                            if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                              that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                            }
-
-                            if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                              that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                            }
+                            await that.runLoginPostSaveTriggers(
+                              user as unknown as AnyRecord,
+                              oidcConfig as AnyRecord,
+                              'onUpdate'
+                            );
 
                             const updatedUsers = user as AnyRecord[];
-                            sails.log.verbose(
-                              `Done, returning updated user id=${String((updatedUsers[0] as AnyRecord)?.id ?? 'unknown')}`
-                            );
+
                             that
                               .resolveLinkedUserCandidate(updatedUsers[0])
                               .then(resolvedUser => done(null, resolvedUser as AnyRecord))
@@ -1670,27 +1627,28 @@ export namespace Services {
                     username: userObj.username,
                   })
                     .set(userObj)
-                    .exec(function (err: unknown, user: unknown) {
+                    .exec(async function (err: unknown, user: unknown) {
                       if (err) {
-                        sails.log.error('Error updating user:');
-                        sails.log.error(err);
+                        that.updateChronicle(
+                          { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
+                          [err]
+                        );
                         return done(err, false);
                       }
                       if (_.isEmpty(user)) {
-                        sails.log.error('No user found');
+                        that.updateChronicle({
+                          usersOperation: 'openIdConnectAuthVerifyCallback',
+                          usersOutcome: 'failed',
+                        });
                         return done('No user found', false);
                       }
 
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onUpdate')) {
-                        that.triggerPostSaveTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                      }
+                      await that.runLoginPostSaveTriggers(
+                        user as unknown as AnyRecord,
+                        oidcConfig as AnyRecord,
+                        'onUpdate'
+                      );
 
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onUpdate')) {
-                        that.triggerPostSaveSyncTriggers(user as unknown as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      sails.log.verbose('Done, returning updated user:');
-                      sails.log.verbose(user);
                       const updatedUsers = user as AnyRecord[];
                       that
                         .resolveLinkedUserCandidate(updatedUsers[0])
@@ -1707,7 +1665,6 @@ export namespace Services {
                 return done(err);
               }); // end OIDC disabled gate
           } else {
-            sails.log.verbose('At OIDC Strategy verify, creating new user...');
             let userToCreate: AnyRecord;
             try {
               const additionalAttributesMapping = claimsMappings['additionalAttributes'];
@@ -1729,15 +1686,11 @@ export namespace Services {
                 type: 'oidc',
                 roles: openIdConnectDefRoles,
                 additionalAttributes: additionalAttributes,
-                lastLogin: new Date(),
               };
             } catch (e) {
-              sails.log.error(`Failed to create new user:`);
-              sails.log.error(e);
+              that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [e]);
               return done(e, false);
             }
-            sails.log.verbose(`Creating user: `);
-            sails.log.verbose(userToCreate);
 
             const emailAuthorizedCheck = that.checkAuthorizedEmail(String(userToCreate.email ?? ''), brandName, 'oidc');
             if (!emailAuthorizedCheck) {
@@ -1747,27 +1700,20 @@ export namespace Services {
             if (that.hasPreSaveTriggerConfigured(oidcConfig, 'onCreate')) {
               that
                 .triggerPreSaveTriggers(userToCreate, oidcConfig as AnyRecord)
-                .then((userAdditionalInfo: AnyRecord) => {
+                .then(async (userAdditionalInfo: AnyRecord) => {
                   const success = that.checkAllTriggersSuccessOrFailure(userAdditionalInfo);
                   if (success) {
-                    User.create(userAdditionalInfo).exec(function (err: unknown, newUser: unknown) {
+                    User.create(userAdditionalInfo).exec(async function (err: unknown, newUser: unknown) {
                       if (err) {
-                        sails.log.error('Error creating new user:');
-                        sails.log.error(err);
+                        that.updateChronicle(
+                          { usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' },
+                          [err]
+                        );
                         return done(err, false);
                       }
 
-                      if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
+                      await that.runLoginPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord, 'onCreate');
 
-                      if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                        that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                      }
-
-                      sails.log.verbose(
-                        `Done, returning new user id=${String((newUser as AnyRecord)?.id ?? 'unknown')}`
-                      );
                       that
                         .resolveLinkedUserCandidate(newUser)
                         .then(resolvedUser => done(null, resolvedUser as AnyRecord))
@@ -1779,23 +1725,16 @@ export namespace Services {
                   }
                 });
             } else {
-              User.create(userToCreate).exec(function (err: unknown, newUser: unknown) {
+              User.create(userToCreate).exec(async function (err: unknown, newUser: unknown) {
                 if (err) {
-                  sails.log.error('Error creating new user:');
-                  sails.log.error(err);
+                  that.updateChronicle({ usersOperation: 'openIdConnectAuthVerifyCallback', usersOutcome: 'failed' }, [
+                    err,
+                  ]);
                   return done(err, false);
                 }
 
-                if (that.hasPostSaveTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
+                await that.runLoginPostSaveTriggers(newUser as AnyRecord, oidcConfig as AnyRecord, 'onCreate');
 
-                if (that.hasPostSaveSyncTriggerConfigured(oidcConfig, 'onCreate')) {
-                  that.triggerPostSaveSyncTriggers(newUser as AnyRecord, oidcConfig as AnyRecord);
-                }
-
-                sails.log.verbose('Done, returning new user:');
-                sails.log.verbose(newUser);
                 that
                   .resolveLinkedUserCandidate(newUser)
                   .then(resolvedUser => done(null, resolvedUser as AnyRecord))
@@ -1820,7 +1759,7 @@ export namespace Services {
               token: tokenHash,
             })
               .populate('roles')
-              .exec(function (err: unknown, user: unknown) {
+              .exec(async function (err: unknown, user: unknown) {
                 if (err) {
                   return done(err);
                 }
@@ -1830,7 +1769,7 @@ export namespace Services {
                 // Gate disabled users
                 that
                   .assertAuthenticationAllowed(user as UserAttributes)
-                  .then(() => {
+                  .then(async () => {
                     that
                       .resolveLinkedUserCandidate(user)
                       .then(resolvedUser =>
@@ -1876,7 +1815,7 @@ export namespace Services {
         if (authConfig.local?.default?.token) {
           defaultUser['token'] = crypto.createHash('sha256').update(authConfig.local.default.token).digest('base64');
         }
-        sails.log.verbose('Default user missing, creating...');
+
         return super.getObservable<UserModel>(User.create(defaultUser)).pipe(
           flatMap(defUser => {
             // START Sails 1.0 upgrade
@@ -1933,7 +1872,7 @@ export namespace Services {
     public addUserAuditEvent = (user: unknown, action: string, additionalContext: unknown) => {
       // ignore audit events for users with no user, which had crashed the app when user has already logged out
       if (_.isEmpty(user)) {
-        sails.log.verbose('No user to audit, ignoring: ' + action);
+        this.updateChronicle({ usersAuditAction: action, usersAuditOutcome: 'no-user' });
         return firstValueFrom(of(null));
       }
       const auditEvent: Record<string, unknown> = {};
@@ -1945,8 +1884,8 @@ export namespace Services {
       auditEvent['user'] = userObj;
       auditEvent['action'] = action;
       auditEvent['additionalContext'] = this.stringifyObject(additionalContext);
-      sails.log.verbose('Adding user audit event');
-      sails.log.verbose(auditEvent);
+      this.updateChronicle({ usersAuditAction: action, usersAuditUserId: userObj.id, usersAuditOutcome: 'submitted' });
+
       return firstValueFrom(super.getObservable<Record<string, unknown>>(UserAudit.create(auditEvent)));
     };
 
@@ -2008,7 +1947,6 @@ export namespace Services {
         }
     */
     public bootstrap = (defRoles: unknown) => {
-      sails.log.verbose('Bootstrapping users....');
       const defAdminRole = RolesService.getAdminFromRoles(defRoles as RoleModel[]);
       return of(defAdminRole).pipe(
         flatMap(defAdminRole => {
@@ -2048,13 +1986,13 @@ export namespace Services {
      * Retrieve all users that hold at least one role for the supplied brand.
      * @param brand The brand or brand id to scope the search to.
      */
-    public getUsersForBrand = (brand: BrandingModel | string): Observable<UserModel[]> => {
+    public getUsersForBrand = (brand: BrandingModel | string, signIn?: string): Observable<UserModel[]> => {
       const brandId = typeof brand === 'string' ? brand : _.get(brand, 'id');
       if (_.isEmpty(brandId)) {
         return of([]);
       }
 
-      return super.getObservable<UserModel[]>(User.find({}).populate('roles')).pipe(
+      return super.getObservable<UserModel[]>(User.find(signIn ? { type: signIn } : {}).populate('roles')).pipe(
         flatMap(async (users: UserModel[]) => {
           const activeLinks =
             typeof UserLink !== 'undefined' ? await UserLink.find({ brandId: brandId, status: 'active' }) : [];
@@ -2377,7 +2315,7 @@ export namespace Services {
                 token: uuidHash,
               }
             );
-            return this.getObservable<UserModel[]>(q, 'exec', 'simplecb').pipe(
+            return this.getObservable<UserModel[]>(q, 'exec', 'node').pipe(
               map((updatedUsers: UserModel[]) => updatedUsers[0] ?? user)
             );
           } else {
@@ -2430,19 +2368,93 @@ export namespace Services {
       );
     };
 
+    /** Only called after Passport has established an interactive sign-in session. */
+    public async recordSuccessfulLogin(user: { id?: unknown }): Promise<void> {
+      if (!user?.id) throw new Error('Missing sign-in user');
+      await User.update({ id: this.signInIdentities.get(user) ?? String(user.id) }).set({ lastLogin: new Date().toISOString() });
+    }
+
+    private async assertAdminRoleRetained(user: UserModel, newRoleIds: Array<string | number>): Promise<void> {
+      for (const role of user.roles ?? []) {
+        if (role.name !== 'Admin' || newRoleIds.map(String).includes(String(role.id))) continue;
+        const brandId = String((role.branding as unknown as AnyRecord)?.id ?? role.branding);
+        const members = await firstValueFrom(this.getUsersForBrand(brandId));
+        const enriched = await this.enrichUsersWithEffectiveDisabledState(members);
+        if (!enriched.some(member => String(member.id) !== String(user.id) &&
+          member.accountLinkState !== 'linked-alias' && !member.effectiveLoginDisabled &&
+          (member.roles as RoleModel[]).some(item => String(item.id) === String(role.id)))) {
+          throw new Error('The last active Admin cannot be removed');
+        }
+      }
+    }
+
+    public async updateUserRolesForBrand(brand: BrandingModel, userId: string, names: string[]): Promise<void> {
+      const user = await firstValueFrom(this.getUserWithId(userId));
+      if (!user || !this.hasRoleInBrand(user, brand.id) || user.accountLinkState === 'linked-alias') {
+        throw new Error('User not found in this brand or is a linked account');
+      }
+      const roles = await firstValueFrom(RolesService.getRolesWithBrand(brand));
+      if (!Array.isArray(names) || !names.length || names.some(name => !roles.some(role => role.name === name))) {
+        throw new Error('Please assign at least one valid role for this brand');
+      }
+      const foreignIds = (user.roles ?? []).filter(role => !this.getRolesForBrand(user as unknown as UserAttributes, brand.id).some(item => item.id === role.id)).map(role => role.id);
+      await firstValueFrom(this.updateUserRoles(userId, [...foreignIds, ...roles.filter(role => names.includes(role.name)).map(role => role.id)]));
+    }
+
+    /** Replace a sole brand membership by updating its junction row in one database write.
+     * Waterline replaceCollection deletes then inserts, so cannot provide this guarantee.
+     */
+    public async removeRoleForBrand(brand: BrandingModel, userId: string, roleId: string): Promise<RoleModel[]> {
+      const user = await firstValueFrom(this.getUserWithId(userId));
+      const current = this.getRolesForBrand(user as unknown as UserAttributes, brand.id);
+      if (!user || user.accountLinkState === 'linked-alias' || !current.some(role => String(role.id) === roleId)) {
+        throw new Error('User membership not found in this brand');
+      }
+      const remaining = current.filter(role => String(role.id) !== roleId);
+      const roles = await firstValueFrom(RolesService.getRolesWithBrand(brand));
+      if (!remaining.length) {
+        const defaultRole = RolesService.getDefUnathenticatedRole({ ...brand, roles });
+        if (!defaultRole || String(defaultRole.id) === roleId) {
+          throw new Error('Assign another role first; the only role is already the default role or the default is unavailable');
+        }
+        remaining.push(defaultRole as unknown as AnyRecord);
+      }
+      const newIds = [...(user.roles ?? []).filter(role => String(role.id) !== roleId).map(role => role.id), ...remaining.map(role => String(role.id))];
+      await this.assertAdminRoleRetained(user, newIds);
+      // Resolve generated junction/foreign-key names from Waterline rather than hard-coding Mongo names.
+      const userModel = User as unknown as { schema: Record<string, { referenceIdentity: string; on: string }> };
+      const association = userModel.schema.roles;
+      const junction = sails.models[association.referenceIdentity] as unknown as {
+        schema: Record<string, { columnName?: string; references?: string }>;
+        updateOne: (where: AnyRecord) => { set: (values: AnyRecord) => Promise<unknown> };
+        destroyOne: (where: AnyRecord) => Promise<unknown>;
+      };
+      const foreignKeys = Object.entries(junction.schema).filter(([, attr]) => attr.references);
+      const userKey = foreignKeys.find(([, attr]) => attr.columnName === association.on)?.[0];
+      const roleKey = foreignKeys.find(([key]) => key !== userKey)?.[0];
+      if (!userKey || !roleKey) throw new Error('Role membership storage is unavailable');
+      const where = { [userKey]: userId, [roleKey]: roleId };
+      const changed = current.length === 1
+        ? await junction.updateOne(where).set({ [roleKey]: remaining[0].id })
+        : await junction.destroyOne(where);
+      if (!changed) throw new Error('Membership changed; reload before retrying');
+      return roles.filter(role => remaining.some(item => String(item.id) === String(role.id)));
+    }
+
     public updateUserRoles = (userid: string | number, newRoleIds: Array<string | number>): Observable<UserModel> => {
       return this.getUserWithId(userid).pipe(
-        flatMap(user => {
+        flatMap(async user => {
           if (user) {
             if (_.isEmpty(newRoleIds) || newRoleIds.length == 0) {
-              return throwError(new Error('Please assign at least one role'));
+              throw new Error('Please assign at least one role');
             }
+            await this.assertAdminRoleRetained(user, newRoleIds);
             // START Sails 1.0 upgrade
             const q = User.replaceCollection(user.id, 'roles').members(newRoleIds);
             // END Sails 1.0 upgrade
-            return this.getObservable<UserModel>(q, 'exec', 'simplecb');
+            return await firstValueFrom(this.getObservable<UserModel>(q, 'exec', 'simplecb'));
           } else {
-            return throwError(new Error('No such user with id:' + userid));
+            throw new Error('No such user with id:' + userid);
           }
         })
       );
@@ -2454,19 +2466,16 @@ export namespace Services {
         username: userObj.username,
       })
         .set(userObj)
-        .exec(function (err: unknown, user: unknown) {
+        .exec((err: unknown, user: unknown) => {
           if (err) {
-            sails.log.error('Error updating user:');
-            sails.log.error(err);
+            this.updateChronicle({ usersOperation: 'updateUserAfterLogin', usersOutcome: 'failed' }, [err]);
             return done(err, false);
           }
           if (_.isEmpty(user)) {
-            sails.log.error('No user found');
+            this.updateChronicle({ usersOperation: 'updateUserAfterLogin', usersOutcome: 'failed' });
             return done('No user found', false);
           }
 
-          sails.log.verbose('Done, returning updated user:');
-          sails.log.verbose(user);
           const updatedUsers = user as AnyRecord[];
           return done(null, updatedUsers[0]);
         });
@@ -2544,12 +2553,9 @@ export namespace Services {
       });
       const recordsArr = records as unknown[];
       if (_.isEmpty(recordsArr)) {
-        sails.log.verbose(`UsersService::findAndAssignAccessToRecords() -> No pending records: ${pendingValue}`);
         return 0;
       }
-      sails.log.verbose(
-        `UsersService::findAndAssignAccessToRecords() -> Found ${recordsArr.length} records to assign permissions`
-      );
+
       let updated = 0;
       for (const record of recordsArr) {
         const recordObj = record as AnyRecord;
@@ -2575,73 +2581,13 @@ export namespace Services {
      * @private
      */
     public checkAuthorizedEmail(email: string, branding: string, authType: string): boolean {
-      // Must pass email.
-      if (!email) {
-        sails.log.error('No email address provided.');
-        return false;
-      }
-
-      // Assess email address.
-      const emailParts = email.includes('@') ? email.split('@') : [];
-      if (emailParts.length !== 2) {
-        sails.log.error(`Unexpected email format: ${email}.`);
-        return false;
-      }
-
-      // Get the configuration data.
-      const brandingAwareData = sails.config.brandingAware(branding);
-      const authorizedDomainsEmails = _.get(
-        brandingAwareData,
-        'authorizedDomainsEmails',
-        {}
-      ) as AuthorizedDomainsEmails;
-
-      if (authorizedDomainsEmails.enabled?.toString() !== 'true') {
-        sails.log.warn('Authorized email configuration is disabled.');
-        return true;
-      }
-
-      const domains = [];
-      const emails = [];
-      if (authType === 'aaf') {
-        domains.push(...(authorizedDomainsEmails.domainsAaf || []));
-        emails.push(...(authorizedDomainsEmails.emailsAaf || []));
-      } else if (authType === 'oidc') {
-        domains.push(...(authorizedDomainsEmails.domainsOidc || []));
-        emails.push(...(authorizedDomainsEmails.emailsOidc || []));
-      } else {
-        sails.log.error(`Authorized domains and emails config problem: any auth type '${authType}'`);
-        return false;
-      }
-
-      // Check configuration.
-      if (domains.length === 0) {
-        sails.log.verbose(`No authorized email domains configured for ${authType}.`);
-      }
-      if (emails.length === 0) {
-        sails.log.verbose(`No authorized email exceptions configured for ${authType}.`);
-      }
-      if (domains.length === 0 && emails.length === 0) {
-        return true;
-      }
-
-      // Assess domains and exceptions.
-      const emailDomain = emailParts[1];
-      const isAllowedDomain = domains.indexOf(emailDomain) !== -1;
-      if (isAllowedDomain) {
-        sails.log.verbose(`Authorized email domain: ${emailDomain}`);
-        return true;
-      }
-
-      const isAllowedException = emails.indexOf(email) !== -1;
-      if (isAllowedException) {
-        sails.log.verbose(`Authorized email exception: ${email}`);
-        return true;
-      }
-
-      // Checks did not pass, so email is not allowed.
-      sails.log.error(`Email is not authorized to login using ${authType}: ${email}.`);
-      return false;
+      const config = _.get(sails.config.brandingAware(branding), 'authorizedDomainsEmails', {}) as AuthorizedDomainsEmails;
+      const result = evaluateAuthorizedEmail(email, config, authType);
+      const details = result.reason === 'denied' ? { usersAuthProvider: authType } : {};
+      // Retain sign-in outcome logging; never log an address or the matched rule.
+      const level = result.reason === 'disabled' || !result.allowed ? 'warn' : 'debug';
+      this.updateChronicle({ usersEmailAccessOutcome: result.reason, ...details }, [], level);
+      return result.allowed;
     }
   }
 }

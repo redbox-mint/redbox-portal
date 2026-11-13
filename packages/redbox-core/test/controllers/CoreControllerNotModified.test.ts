@@ -1,3 +1,4 @@
+import { createSinonStubLogger } from '../logger.test';
 import assert from 'node:assert/strict';
 import * as sinon from 'sinon';
 
@@ -41,11 +42,7 @@ describe('CoreController bodyless not-modified responses', function () {
     priorSails = Reflect.get(globalThis, 'sails');
     Reflect.set(globalThis, 'sails', {
       config: {},
-      log: {
-        verbose: sinon.stub(),
-        error: sinon.stub(),
-        debug: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
   });
 

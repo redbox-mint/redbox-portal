@@ -3337,7 +3337,8 @@ describe('RecordSchemaService telemetry', function () {
       const throwingLoggerFactory = sinon.stub().throws(new Error(secret));
       Reflect.set(testSails.config, 'log', {
         createNamespaceLogger: throwingLoggerFactory,
-        customLogger: {},
+        // A pino-like parent logger, so the namespace logger factory is used.
+        customLogger: { level: 'info', child: sinon.stub(), info: sinon.stub() },
       });
       const baselineResult = await baselineSave.persistSaveUsageReference(saveRequest);
       const throwingResult = await throwingSave.persistSaveUsageReference(saveRequest);

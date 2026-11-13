@@ -1,4 +1,5 @@
-import { Context, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Layer from 'effect/Layer';
 import type { IntegrationAuditContext, Services as IntegrationAuditServices } from '../IntegrationAuditService';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../model/storage/IntegrationAuditModel';
 import type { OniRunContext } from './types';
@@ -15,7 +16,7 @@ export interface OniAuditService {
   fail(ctx: IntegrationAuditContext | null | undefined, error: unknown, details: Record<string, unknown>): void;
 }
 
-export const OniAuditServiceTag = Context.GenericTag<OniAuditService>('redbox/OniAuditService');
+export const OniAuditServiceTag = Context.Service<OniAuditService>('redbox/OniAuditService');
 
 type IntegrationAuditCollaborator = Pick<
   IntegrationAuditServices.IntegrationAuditService,

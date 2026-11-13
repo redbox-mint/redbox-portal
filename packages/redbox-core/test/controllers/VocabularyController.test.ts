@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import * as sinon from 'sinon';
@@ -26,8 +28,14 @@ describe('Ajax VocabularyController', () => {
           syncRvaVocabulary: sinon.stub().resolves({ created: 1, updated: 0, skipped: 0, lastSyncedAt: 'now' })
         }
       },
-      log: { error: sinon.stub(), verbose: sinon.stub(), debug: sinon.stub() }
+      log: createSinonStubLogger(sinon)
     };
+    (global as any).PathRulesService = {
+      getRulesFromPath: sinon.stub().returns([{}]),
+      canRead: sinon.stub().returns(true),
+      canWrite: sinon.stub().returns(true),
+    };
+    (global as any).Vocabulary = { findOne: sinon.stub().resolves({ id: 'v1', branding: 'default' }) };
     controller = new Controllers.Vocabulary();
     (global as any).BrandingService = (global as any).sails.services.brandingservice;
     (global as any).VocabularyService = (global as any).sails.services.vocabularyservice;
@@ -40,6 +48,8 @@ describe('Ajax VocabularyController', () => {
     delete (global as any).VocabularyService;
     delete (global as any).RvaImportService;
     delete (global as any).sails;
+    delete (global as any).Vocabulary;
+    delete (global as any).PathRulesService;
   });
 
   it('renders manager view', async () => {
@@ -53,7 +63,7 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('creates vocabulary', async () => {
-    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' }, params: { branding: 'default', portal: 'rdmp' }, method: 'POST', isAuthenticated: () => true } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 
@@ -63,7 +73,7 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('returns 500 with errors array when create throws unexpectedly', async () => {
-    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = { body: { name: 'Test', type: 'flat', source: 'local' }, session: { branding: 'default' }, params: { branding: 'default', portal: 'rdmp' }, method: 'POST', isAuthenticated: () => true } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
     (global as any).sails.services.vocabularyservice.create.rejects(new Error('database unavailable'));
@@ -78,7 +88,7 @@ describe('Ajax VocabularyController', () => {
   });
 
   it('lists vocabularies with wrapped data and meta', async () => {
-    const req = { param: sinon.stub().returns(undefined), session: { branding: 'default' } } as unknown as Sails.Req;
+    const req = { param: sinon.stub().returns(undefined), session: { branding: 'default' }, params: { branding: 'default', portal: 'rdmp' }, method: 'POST', isAuthenticated: () => true } as unknown as Sails.Req;
     const res = {} as Sails.Res;
     const sendResp = sinon.stub(controller as any, 'sendResp');
 

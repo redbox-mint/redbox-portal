@@ -1,3 +1,4 @@
+import { A11yModule } from '@angular/cdk/a11y';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -7,6 +8,7 @@ import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { BsDatepickerModule } from 'ngx-bootstrap/datepicker';
 import { RedboxPortalCoreModule, trimLastSlashFromUrl } from '@researchdatabox/portal-ng-common';
 import { ExportComponent } from './export.component';
+import { ExportService } from './export.service';
 
 @NgModule({
   declarations: [
@@ -14,12 +16,14 @@ import { ExportComponent } from './export.component';
   ],
   imports: [
     BrowserModule,
+    A11yModule,
     FormsModule,
     BrowserAnimationsModule,
     RedboxPortalCoreModule,
     BsDatepickerModule.forRoot()
   ],
   providers: [
+    ExportService,
     {
       provide: APP_BASE_HREF,
       useFactory: (s: PlatformLocation) => trimLastSlashFromUrl(s.getBaseHrefFromDOM()),

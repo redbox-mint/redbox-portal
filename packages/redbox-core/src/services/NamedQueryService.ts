@@ -18,6 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import { Services as services } from '../CoreService';
+import { normalizeRelatedReferences } from '../related-records/references';
+import { buildNamedQueryUsage, NamedQueryInUseError, NamedQueryUsage } from './named-query/usage';
 import type { NamedQueryDefinition, NamedQueryParam } from '../config/namedQuery.config';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -29,7 +31,9 @@ import { RecordModel } from '../model/storage/RecordModel';
 import type { RecordsService } from '../RecordsService';
 import { UserAttributes } from '../waterline-models/User';
 import { NamedQueryAttributes } from '../waterline-models/NamedQuery';
+import { NamedQueryExecutionBudget, NAMED_QUERY_PREVIEW_LIMITS, NamedQueryAssistanceError, previewDeadlineIssue } from '../utilities/NamedQueryPreview';
 import {handlebarsCompile} from "@researchdatabox/sails-ng-common";
+import { NamedQueryPreviewOutputLimitError, renderNamedQueryPreviewTemplate } from '../utilities/NamedQueryPreviewTemplate';
 
 export type NamedQueryResponseMetadata = Record<string, unknown> | string | number | boolean | null;
 
@@ -38,8 +42,8 @@ type BrandScope =
   | { type: 'field'; fieldPath: string }
   | { type: 'userRoles'; fieldPath: '' };
 type NativeRecordCollection = {
-  countDocuments: (criteria: Record<string, unknown>) => Promise<number>;
-  find: (criteria: Record<string, unknown>) => {
+  countDocuments: (criteria: Record<string, unknown>, options?: { maxTimeMS: number }) => Promise<number>;
+  find: (criteria: Record<string, unknown>, options?: { maxTimeMS: number }) => {
     sort: (sort: Record<string, 1 | -1>) => NativeRecordCursor;
     skip: (skip: number) => NativeRecordCursor;
     limit: (limit: number) => NativeRecordCursor;
@@ -115,6 +119,20 @@ const parseObjectParamValue = (queryParamKey: string, value: unknown): Record<st
   throw Error(`${queryParamKey} must be a valid JSON object`);
 };
 
+const containsOperatorKey = (value: unknown): boolean =>
+  Array.isArray(value)
+    ? value.some(containsOperatorKey)
+    : _.isPlainObject(value) &&
+      Object.entries(value as Record<string, unknown>).some(([key, item]) => key.startsWith('$') || containsOperatorKey(item));
+
+/**
+ * A request-supplied value for a non-object parameter is placed directly at a
+ * Mongo path, so a plain object would be interpreted as an operator document
+ * (e.g. `{ $ne: true }`). Only parameters declared as `object` may carry objects.
+ */
+const isUnsafeParameterValue = (value: unknown): boolean =>
+  _.isPlainObject(value) || (Array.isArray(value) && value.some(containsOperatorKey));
+
 const DEFAULT_BOOTSTRAP_DATA_PATH = 'bootstrap-data';
 
 export namespace Services {
@@ -126,18 +144,17 @@ export namespace Services {
    *
    */
   export class NamedQueryService extends services.Core.Service {
-
-
-
     protected override _exportedMethods: string[] = [
       "bootstrapData",
       "getNamedQueryConfig",
       "getSupportedCollections",
+      "resolveBrandScope",
       "performNamedQuery",
       "performNamedQueryFromConfig",
       "performNamedQueryFromConfigResults",
       "create",
       "list",
+      "getUsage",
       "update",
       "delete",
     ];
@@ -157,10 +174,9 @@ export namespace Services {
         const ioError = error as NodeJS.ErrnoException;
         if (ioError.code === 'ENOENT') {
           sails.log.verbose(`Named query bootstrap data path not found: ${bootstrapPath}`);
-          return;
+        } else {
+          sails.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`, error);
         }
-        sails.log.error(`Failed to read named query bootstrap data path: ${bootstrapPath}`, error);
-        return;
       }
 
       for (const fileName of fileNames) {
@@ -189,6 +205,23 @@ export namespace Services {
           sails.log.error(`Failed to bootstrap named query from file: ${fileName}`, error);
         }
       }
+
+      // File seeds run first. Config seeds never overwrite file or admin entries.
+      for (const [name, definition] of Object.entries(sails.config.namedQuery?.queries ?? {})) {
+        try {
+          if (!name || !definition || typeof definition.collectionName !== 'string' || !definition.collectionName.length) {
+            sails.log.error(`Skipping named query config seed with missing name or collectionName: ${name}`);
+            continue;
+          }
+          if (await NamedQuery.findOne({ key: `${defBrand.id}_${name}` })) {
+            sails.log.verbose(`Skipping existing named query bootstrap data: ${name}`);
+            continue;
+          }
+          await this.create(defBrand, name, definition);
+        } catch (error) {
+          sails.log.error(`Failed to bootstrap named query from config: ${name}`, error);
+        }
+      }
     }
 
     private getBootstrapDataPath(): string {
@@ -214,7 +247,7 @@ export namespace Services {
       return sails.models?.[collectionName] as AnyRecord | undefined;
     }
 
-    private resolveBrandScope(collectionName: string): BrandScope {
+    public resolveBrandScope(collectionName: string): BrandScope {
       if (_.isEmpty(collectionName)) {
         throw new Error('collectionName is required');
       }
@@ -249,11 +282,13 @@ export namespace Services {
       });
     }
 
-    private async getLinkedSecondaryUserIds(brandId: string): Promise<Set<string>> {
+    private async getLinkedSecondaryUserIds(brandId: string, budget?: NamedQueryExecutionBudget): Promise<Set<string>> {
       if (typeof UserLink === 'undefined') {
         return new Set<string>();
       }
-      const activeLinks = await UserLink.find({ brandId, status: 'active' }) as unknown as AnyRecord[];
+      const links = UserLink.find(budget ? { where: { brandId, status: 'active' }, limit: NAMED_QUERY_PREVIEW_LIMITS.scanRows + 1 } : { brandId, status: 'active' });
+      const activeLinks = (budget ? await budget.wait(links) : await links) as unknown as AnyRecord[];
+      budget?.scan(activeLinks.length);
       return new Set(
         _.map(activeLinks, (link: AnyRecord) => String(link.secondaryUserId ?? '')).filter((id: string) => id !== '')
       );
@@ -284,6 +319,20 @@ export namespace Services {
       } else {
         _.unset(mongoQuery, path);
       }
+    }
+
+    private unsetIgnoredQueryParameter(mongoQuery: Record<string, unknown>, queryParam: QueryParameterDefinition): void {
+      const existing = this.getMongoQueryValue(mongoQuery, queryParam.path);
+      if (queryParam.type === DataType.Date && queryParam.queryType && _.isPlainObject(existing)) {
+        // Date bounds can share a path. Remove only this parameter's comparison,
+        // retaining supplied sibling bounds and unrelated static operators.
+        const remaining = _.omit(existing as Record<string, unknown>, queryParam.queryType);
+        if (!_.isEmpty(remaining)) {
+          this.setMongoQueryValue(mongoQuery, queryParam.path, remaining);
+          return;
+        }
+      }
+      this.unsetMongoQueryValue(mongoQuery, queryParam.path);
     }
 
     private isQueryOperatorObject(value: Record<string, unknown>): boolean {
@@ -318,8 +367,14 @@ export namespace Services {
       return flattened;
     }
 
-    private toNativeMongoCriteria(criteria: Record<string, unknown>): Record<string, unknown> {
+    private toNativeMongoCriteria(
+      criteria: Record<string, unknown>,
+      queryParams: Record<string, QueryParameterDefinition>
+    ): Record<string, unknown> {
       const mongoCriteria: Record<string, unknown> = {};
+      const datePaths = new Set(Object.values(queryParams).filter(param => param.type === DataType.Date).map(param => param.path));
+      const dateComparisons: Record<string, unknown>[] = [];
+      const dateOperators = new Set(['$gt', '$gte', '$lt', '$lte', '$eq', '$ne']);
       const operatorMap: Record<string, string> = {
         '>': '$gt',
         '>=': '$gte',
@@ -330,24 +385,50 @@ export namespace Services {
         nin: '$nin',
       };
 
-      for (const [key, value] of Object.entries(criteria)) {
+      for (const [key, criterion] of Object.entries(criteria)) {
+        // A date parameter without queryType is an equality comparison. Leave
+        // null/undefined sentinels unchanged so omitted filters retain their meaning.
+        const value = datePaths.has(key) && criterion != null && !_.isPlainObject(criterion)
+          ? { $eq: criterion }
+          : criterion;
         if (_.isPlainObject(value)) {
           const mappedValue: Record<string, unknown> = {};
           for (const [operator, operatorValue] of Object.entries(value as Record<string, unknown>)) {
-            if (operator === 'contains') {
+            const nativeOperator = operatorMap[operator] ?? operator;
+            if (datePaths.has(key) && dateOperators.has(nativeOperator)) {
+              // Stored UTC strings and offset ISO strings must compare as instants.
+              // Conversion also accepts BSON dates without rewriting stored records.
+              dateComparisons.push({
+                $let: {
+                  vars: {
+                    stored: { $convert: { input: `$${key}`, to: 'date', onError: null, onNull: null } },
+                    bound: { $convert: { input: { $literal: operatorValue }, to: 'date', onError: null, onNull: null } },
+                  },
+                  in: {
+                    $and: [
+                      { $ne: ['$$stored', null] },
+                      { $ne: ['$$bound', null] },
+                      { [nativeOperator]: ['$$stored', '$$bound'] },
+                    ],
+                  },
+                },
+              });
+            } else if (operator === 'contains') {
               mappedValue.$regex = _.escapeRegExp(String(operatorValue ?? ''));
               mappedValue.$options = 'i';
             } else {
-              mappedValue[operatorMap[operator] ?? operator] = operatorValue;
+              mappedValue[nativeOperator] = operatorValue;
             }
           }
-          mongoCriteria[key] = mappedValue;
+          if (!_.isEmpty(mappedValue)) mongoCriteria[key] = mappedValue;
         } else {
           mongoCriteria[key] = value;
         }
       }
 
-      return mongoCriteria;
+      return dateComparisons.length > 0
+        ? { $and: [mongoCriteria, { $expr: { $and: dateComparisons } }] }
+        : mongoCriteria;
     }
 
     private toNativeMongoSort(sort: NamedQuerySortConfig | undefined): Record<string, 1 | -1> {
@@ -403,7 +484,6 @@ export namespace Services {
       })));
     }
 
-
     public async list(brand: BrandingModel): Promise<NamedQueryDefinition[]> {
       const records = (await NamedQuery.find({
         branding: brand.id
@@ -421,6 +501,25 @@ export namespace Services {
       })) as unknown as NamedQueryDefinition[];
     }
 
+    /** Constant number of brand-scoped reads, shared by the whole list. */
+    public async getUsage(brand: BrandingModel): Promise<NamedQueryUsage> {
+      const reports = (await RBReport.find({ branding: brand.id })) as AnyRecord[];
+      const dashboards = await DashboardConfiguration.findOne({ branding: String(brand.id) });
+      const dashboardTypes = (await DashboardType.find({ branding: brand.id })) as AnyRecord[];
+      const recordTypes = (await RecordType.find({ branding: brand.id })) as AnyRecord[];
+      const workflowSteps = recordTypes.length
+        ? (await WorkflowStep.find({ recordType: { in: recordTypes.map(type => String(type.id)) } })) as AnyRecord[] : [];
+      const forms = (await Form.find({ branding: brand.id })) as AnyRecord[];
+      // Use the same effective brand settings as runtime consumers: this includes
+      // defaults and excludes superseded duplicate rows, with secrets masked.
+      const appConfiguration = AppConfigService.getMaskedAppConfigurationForBrand(brand.name);
+      const appConfigs = Object.entries(appConfiguration && typeof appConfiguration === 'object' ? appConfiguration : {})
+        .map(([configKey, configData]) => ({ configKey, configData }));
+      return buildNamedQueryUsage({ reports, dashboards: dashboards?.configData, dashboardTypes,
+        recordTypes, workflowSteps, forms, appConfigs,
+        views: sails.config.dashboardview ?? {}, vocabularies: sails.config.vocab?.queries ?? {} });
+    }
+
     public async update(brand: BrandingModel, name: string, config: NamedQueryDefinition) {
       const key = `${brand.id}_${name}`;
       const existing = await NamedQuery.findOne({ key });
@@ -428,19 +527,28 @@ export namespace Services {
         throw new Error(`Named query '${name}' not found`);
       }
       const brandScope = this.resolveBrandScope(config.collectionName);
+      // The editor reads parsed JSON. Retain untouched source bytes, including
+      // bootstrap empty arrays and whitespace, when serializing that draft back.
+      const serialize = (stored: string | undefined, value: unknown, changed = JSON.stringify(value)) =>
+        stored && _.isEqual(parseSerializedValue(stored, undefined), value) ? stored : changed;
+      // Legacy user queries may store "branding", although execution resolves
+      // access through roles. Preserve an untouched value without accepting a
+      // client-selected scope or carrying it across a collection change.
+      const brandIdFieldPath = existing.collectionName === config.collectionName &&
+        existing.brandIdFieldPath === config.brandIdFieldPath ? existing.brandIdFieldPath : brandScope.fieldPath;
       const updated = await firstValueFrom(super.getObservable(NamedQuery.updateOne({ key }).set({
         name: name,
         branding: brand.id,
-        mongoQuery: JSON.stringify(config.mongoQuery),
-        queryParams: JSON.stringify(config.queryParams),
+        mongoQuery: serialize(existing.mongoQuery, config.mongoQuery),
+        queryParams: serialize(existing.queryParams, config.queryParams),
         collectionName: config.collectionName,
-        resultObjectMapping: JSON.stringify(config.resultObjectMapping),
-        brandIdFieldPath: brandScope.fieldPath,
-        sort: (config.sort !== undefined && Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : "",
+        resultObjectMapping: serialize(existing.resultObjectMapping, config.resultObjectMapping),
+        brandIdFieldPath,
+        sort: serialize(existing.sort, config.sort ?? [], (Array.isArray(config.sort) && config.sort.length > 0) ? JSON.stringify(config.sort) : ""),
         expandRelations: config.expandRelations === true,
-        relatedRecordFilters: (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
+        relatedRecordFilters: serialize(existing.relatedRecordFilters, config.relatedRecordFilters ?? [], (config.relatedRecordFilters !== undefined && Array.isArray(config.relatedRecordFilters) && config.relatedRecordFilters.length > 0)
           ? JSON.stringify(config.relatedRecordFilters)
-          : "",
+          : ""),
       })));
       if (!updated) {
         throw new Error(`Named query '${name}' not found`);
@@ -454,9 +562,10 @@ export namespace Services {
       if (!existing) {
         throw new Error(`Named query '${name}' not found`);
       }
+      const consumers = (await this.getUsage(brand))[name] ?? [];
+      if (consumers.length) throw new NamedQueryInUseError(consumers);
       return firstValueFrom(super.getObservable(NamedQuery.destroyOne({ key })));
     }
-
 
     async getNamedQueryConfig(brand: BrandingModel, namedQuery: string): Promise<NamedQueryConfig | null> {
       const nQDBEntry = await NamedQuery.findOne({
@@ -474,6 +583,99 @@ export namespace Services {
       return Array.isArray(collections) ? collections.filter((c): c is string => typeof c === 'string') : [];
     }
 
+    /** Declared filters are trusted configuration; parameters can only replace literal leaves. */
+    private async declaredRelationCriteria(
+      filters: RelatedRecordFilter[], collectionName: string, queryParams: Record<string, QueryParameterDefinition>,
+      paramMap: Record<string, unknown>, brand: BrandingModel, user: unknown, sort: NamedQuerySortConfig | undefined
+    ): Promise<Record<string, unknown>[]> {
+      const principal = user as { username?: string; roles?: Array<{ name: string; branding: unknown }> };
+      if (collectionName !== 'record' || !principal?.username || !Array.isArray(principal.roles)) {
+        throw new Error('Declared relation filters require an authenticated record query');
+      }
+      const safePath = (path: string) => typeof path === 'string' && path.length > 0 &&
+        _.toPath(path).every(token => /^[A-Za-z_][A-Za-z0-9_]*$/.test(token)) &&
+        _.toPath(path).join('.') === path;
+      for (const entry of sort ?? []) for (const [field, direction] of Object.entries(entry)) {
+        if (!safePath(field) || !(field === 'redboxOid' || field === 'lastSaveDate' || field === 'dateCreated' ||
+          field.startsWith('metadata.') || field.startsWith('metaMetadata.')) || !['ASC', 'DESC'].includes(direction)) {
+          throw new Error('Unsupported declared relation sort');
+        }
+      }
+      const roles = principal.roles.filter(role => {
+        const brandingId = typeof role.branding === 'object' ? (role.branding as { id?: unknown })?.id : role.branding;
+        return brandingId != null && String(brandingId) === String(brand.id);
+      }).map(role => role.name);
+      const acl = { $or: [
+        { 'authorization.view': principal.username }, { 'authorization.edit': principal.username },
+        { 'authorization.viewRoles': { $in: roles } }, { 'authorization.editRoles': { $in: roles } }
+      ] };
+      const criteria: Record<string, unknown>[] = [acl];
+      const groups = new Map<string, RelatedRecordFilter[]>();
+      for (const filter of filters) {
+        if (!filter.rootRecordType || !filter.relationId ||
+          Object.keys(filter).some(key => !['rootRecordType', 'relationId', 'mongoQuery', 'collectionName', 'localField', 'foreignField'].includes(key))) {
+          throw new Error('Unsupported declared relation filter');
+        }
+        const key = JSON.stringify([filter.rootRecordType, filter.relationId]);
+        groups.set(key, [...(groups.get(key) ?? []), filter]);
+      }
+      const native = await this.getNativeRecordCollection(this.getModel('record')!);
+      for (const group of groups.values()) {
+        const { rootRecordType, relationId } = group[0];
+        const summary = await (sails.services.recordsservice as unknown as { getRecordTypeSummary(brand: BrandingModel, type: string): Promise<{ relatedTo: import('../config/recordtype.config').RecordRelation[] } | null> }).getRecordTypeSummary(brand, rootRecordType!);
+        const relations = summary?.relatedTo.filter(relation => relation.id === relationId) ?? [];
+        if (relations.length !== 1) throw new Error('Unknown declared relation');
+        const relation = relations[0];
+        const local = relation.localField || 'redboxOid';
+        if (!safePath(local) || !safePath(relation.foreignField) || (relation.oidProperty && !safePath(relation.oidProperty))) {
+          throw new Error('Unsupported literal-field relation query path');
+        }
+        const predicates = group.map(filter => {
+          const predicate = _.cloneDeep(filter.mongoQuery);
+          const params = _.pickBy(queryParams, param => this.getMongoQueryValue(predicate, param.path) !== undefined);
+          this.setParamsInQuery(predicate, params, paramMap, undefined, true);
+          const validate = (value: unknown): void => {
+            if (Array.isArray(value)) { value.forEach(validate); return; }
+            if (!_.isPlainObject(value)) return;
+            for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+              if (key.startsWith('$') && !['$and', '$or', '$nor', '$eq', '$ne', '$in', '$nin', '$gt', '$gte', '$lt', '$lte', '$exists', '$not', '$regex', '$options', '$elemMatch'].includes(key)) {
+                throw new Error('Unsupported relation aggregation or predicate');
+              }
+              if (!key.startsWith('$') && !['>', '>=', '<', '<=', '!='].includes(key) && !safePath(key)) throw new Error('Unsupported literal-field query path');
+              validate(child);
+            }
+          };
+          validate(predicate);
+          return this.toNativeMongoCriteria(this.flattenDeepTargetCriteria(predicate), params);
+        });
+        const sources = await native.find({ $and: [
+          { 'metaMetadata.brandId': brand.id, 'metaMetadata.type': relation.recordType }, acl, ...predicates
+        ] }, { maxTimeMS: 10_000 }).limit(1001).toArray();
+        if (sources.length > 1000) throw new Error('Declared relation source ID limit exceeded');
+        const ids = _.uniq(sources.flatMap(source => {
+          // Mongo dotted paths traverse object arrays; Lodash get alone does not.
+          // Walk those arrays, then reuse the resolver's reference normalization.
+          const read = (value: unknown, tokens: string[]): unknown[] => {
+            if (!tokens.length) return [value];
+            if (Array.isArray(value)) return value.flatMap(item => read(item, tokens));
+            return read(_.get(value, [tokens[0]]), tokens.slice(1));
+          };
+          return read(source, _.toPath(relation.foreignField)).flatMap(value => {
+            const references = normalizeRelatedReferences(value);
+            if (references.invalidIndices.length) throw new Error('Unsupported relation identifier');
+            return references.values;
+          });
+        }));
+        if (ids.length > 1000) throw new Error('Declared relation source ID limit exceeded');
+        // Objects and scalar references share the same authorized source set.
+        const reference = relation.oidProperty
+          ? { $or: [{ [local]: { $in: ids } }, { [`${local}.${relation.oidProperty}`]: { $in: ids } }] }
+          : { [local]: { $in: ids } };
+        criteria.push({ 'metaMetadata.type': rootRecordType }, reference);
+      }
+      return criteria;
+    }
+
     async performNamedQuery(
       _brandIdFieldPath: string,
       resultObjectMapping: Record<string, unknown>,
@@ -487,22 +689,53 @@ export namespace Services {
       _user: unknown = undefined,
       sort: NamedQuerySortConfig | undefined = undefined,
       expandRelations: boolean = false,
-      relatedRecordFilters: RelatedRecordFilter[] = []
+      relatedRecordFilters: RelatedRecordFilter[] = [],
+      budget?: NamedQueryExecutionBudget
     ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = { enableExperimentalDeepTargets: true };
-      this.setParamsInQuery(mongoQuery, queryParams, paramMap);
+      // A response timer cannot cancel Waterline/populate or hook database operations.
+      // Refuse those paths before any I/O when running a draft preview budget.
+      // Declared relation filters are relatedRecordFilters, so they never reach the budget path.
+      if (budget && previewDeadlineIssue({ collectionName, expandRelations, relatedRecordFilters }))
+        throw new NamedQueryAssistanceError('PREVIEW_DEADLINE_UNSUPPORTED', 422);
+      const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
+      const declared = relatedRecordFilters.filter(filter => filter.rootRecordType !== undefined || filter.relationId !== undefined);
+      const declaredCriteria = declared.length ? await this.declaredRelationCriteria(declared, collectionName, queryParams, paramMap, brand, _user, sort) : [];
+      if (declared.length && !(sort ?? []).some(entry => 'redboxOid' in entry)) sort = [...(sort ?? []), { redboxOid: 'ASC' }];
+      const rootQueryParams = declared.length
+        ? _.pickBy(queryParams, param => this.getMongoQueryValue(mongoQuery, param.path) !== undefined)
+        : queryParams;
+      if (budget) budget.run(() => this.setParamsInQuery(mongoQuery, rootQueryParams, paramMap, budget, declared.length > 0));
+      else this.setParamsInQuery(mongoQuery, rootQueryParams, paramMap, undefined, declared.length > 0);
+      if (budget?.outputTruncated) return new ListAPIResponse<NamedQueryResponseRecord>();
 
       if (relatedRecordFilters && relatedRecordFilters.length > 0) {
-        for (const filter of relatedRecordFilters) {
+        for (const filter of relatedRecordFilters.filter(filter => !declared.includes(filter))) {
           const filterModel = sails.models[filter.collectionName];
           if (!filterModel) {
-            sails.log.warn(`Skipping related record filter: model '${filter.collectionName}' not found for collectionName='${filter.collectionName}', localField='${filter.localField}', foreignField='${filter.foreignField}'`);
+            this.updateChronicle(
+              { namedQueryFilterCollection: filter.collectionName, namedQueryFilterOutcome: 'model-missing' },
+              [],
+              'warn'
+            );
             continue;
           }
           const filterMongoQuery = _.cloneDeep(filter.mongoQuery);
           const filterQueryParams = _.pickBy(queryParams, (queryParam) => _.has(filterMongoQuery, queryParam.path));
-          this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap);
-          const relatedRecords = await filterModel.find({ where: filterMongoQuery, select: [filter.foreignField] }).meta(criteriaMeta) as unknown as AnyRecord[];
+          if (budget) budget.run(() => this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap, budget, declared.length > 0));
+          else this.setParamsInQuery(filterMongoQuery, filterQueryParams, paramMap, undefined, declared.length > 0);
+          if (budget) budget.run(() => budget.query(filterMongoQuery));
+          const scope = budget ? this.resolveBrandScope(filter.collectionName) : undefined;
+          const filterCriteria = budget ? this.flattenDeepTargetCriteria(filterMongoQuery) : filterMongoQuery;
+          if (scope?.type === 'field') this.setMongoQueryValue(filterCriteria, scope.fieldPath, brand.id);
+          let relatedRecords: AnyRecord[];
+          if (budget && scope?.type === 'userRoles') {
+            relatedRecords = await this.scopedUsers(filterCriteria, brand, undefined, budget);
+          } else {
+            const relatedOperation = filterModel.find({ where: filterCriteria, select: [filter.foreignField],
+              ...(budget ? { limit: NAMED_QUERY_PREVIEW_LIMITS.scanRows + 1 } : {}) }).meta(criteriaMeta);
+            relatedRecords = (budget ? await budget.wait(relatedOperation) : await relatedOperation) as unknown as AnyRecord[];
+          }
+          budget?.scan(relatedRecords.length);
           const relatedIds = _.uniq(relatedRecords.map((relatedRecord) => _.get(relatedRecord, filter.foreignField)).filter((id) => id != null && id !== ''));
           const existingLocalFieldFilter = this.getMongoQueryValue(mongoQuery, filter.localField);
           const existingRelatedIds = _.isPlainObject(existingLocalFieldFilter) ? _.get(existingLocalFieldFilter, '$in') : undefined;
@@ -516,15 +749,18 @@ export namespace Services {
         }
       }
 
+      if (budget) budget.run(() => budget.query(mongoQuery));
       const brandScope = this.resolveBrandScope(collectionName);
       const that = this;
       if (brandScope.type === 'userRoles') {
-        return this.performUserNamedQuery(resultObjectMapping, mongoQuery, brand, start, rows, sort);
+        return this.performUserNamedQuery(resultObjectMapping, mongoQuery, brand, start, rows, sort, budget);
       }
 
       this.setMongoQueryValue(mongoQuery, brandScope.fieldPath, brand.id);
       const waterlineQuery = this.flattenDeepTargetCriteria(mongoQuery);
-      sails.log.debug("Mongo query to be executed", waterlineQuery);
+      // Nested and dotted forms can collide during flattening. The final criterion is authoritative.
+      waterlineQuery[brandScope.fieldPath] = brand.id;
+      this.updateChronicle({ namedQueryCollection: collectionName, namedQueryStart: start, namedQueryRows: rows });
 
       // Get the total count of matching records
       let totalItems = 0;
@@ -532,18 +768,24 @@ export namespace Services {
       if (!model) {
         throw new Error(`Model ${collectionName} not found`);
       }
+      if (budget && typeof model.native !== 'function')
+        throw new NamedQueryAssistanceError('PREVIEW_DEADLINE_UNSUPPORTED', 422);
       let results: Array<RecordLike | UserLike> = [];
       if (collectionName === 'record') {
-        const nativeCollection = await this.getNativeRecordCollection(model);
-        const nativeCriteria = this.toNativeMongoCriteria(waterlineQuery);
-        totalItems = await nativeCollection.countDocuments(nativeCriteria);
+        const collectionOperation = this.getNativeRecordCollection(model);
+        const nativeCollection = budget ? await budget.wait(collectionOperation) : await collectionOperation;
+        const rootCriteria = this.toNativeMongoCriteria(waterlineQuery, queryParams);
+        const nativeCriteria = declaredCriteria.length ? { $and: [rootCriteria, ...declaredCriteria] } : rootCriteria;
+        const countOperation = nativeCollection.countDocuments(nativeCriteria, budget ? { maxTimeMS: budget.remaining() } : undefined);
+        totalItems = budget ? await budget.wait(countOperation) : await countOperation;
         if (totalItems > 0) {
-          let nativeQuery = nativeCollection.find(nativeCriteria);
+          let nativeQuery = nativeCollection.find(nativeCriteria, budget ? { maxTimeMS: budget.remaining() } : undefined);
           const nativeSort = this.toNativeMongoSort(sort);
           if (!_.isEmpty(nativeSort)) {
             nativeQuery = nativeQuery.sort(nativeSort);
           }
-          results = await nativeQuery.skip(start).limit(rows).toArray() as Array<RecordLike | UserLike>;
+          const resultsOperation = nativeQuery.skip(start).limit(rows).toArray();
+          results = (budget ? await budget.wait(resultsOperation) : await resultsOperation) as Array<RecordLike | UserLike>;
         }
       } else {
         const count = model.count;
@@ -551,7 +793,8 @@ export namespace Services {
           throw new Error(`Model ${collectionName} does not expose count`);
         }
         const countFn = count as (criteria: Record<string, unknown>) => { meta: (criteriaMeta: Record<string, unknown>) => Promise<number> };
-        totalItems = await countFn(waterlineQuery).meta(criteriaMeta);
+        const countOperation = countFn(waterlineQuery).meta(criteriaMeta);
+        totalItems = budget ? await budget.wait(countOperation) : await countOperation;
       }
 
       // Build query criteria
@@ -568,34 +811,42 @@ export namespace Services {
       }
 
       // Run query
-      sails.log.debug("Mongo query criteria", criteria);
+      this.updateChronicle({ namedQueryTotalItems: totalItems });
       if (collectionName !== 'record' && totalItems > 0) {
         const find = model.find;
         if (typeof find !== 'function') {
           throw new Error(`Model ${collectionName} does not expose find`);
         }
         const findFn = find as (findCriteria: { where: Record<string, unknown>; skip: number; limit: number; sort?: NamedQuerySortConfig }) => { meta: (criteriaMeta: Record<string, unknown>) => Promise<Array<RecordLike | UserLike>> };
-        results = await findFn(criteria).meta(criteriaMeta);
+        const resultsOperation = findFn(criteria).meta(criteriaMeta);
+        results = budget ? await budget.wait(resultsOperation) : await resultsOperation;
       }
 
       const responseRecords: NamedQueryResponseRecord[] = []
       const recordsService = sails.services.recordsservice as unknown as RecordsService | undefined;
       const expandRelationsActual = expandRelations === true && collectionName === 'record';
       if (expandRelations === true && collectionName !== 'record') {
-        sails.log.debug(`expandRelations is only supported for the 'record' collection; ignoring for '${collectionName}'`);
+        this.updateChronicle({ namedQueryRelationsIgnored: true });
       }
 
       // 'user' collections are scoped and rendered separately via performUserNamedQuery,
       // so anything reaching this loop is a record-like (record or scoped dynamic) model.
-      for (const record of results) {
+      budget?.scan(results.length);
+      for (const record of (budget ? results.slice(0, rows) : results)) {
+        budget?.remaining();
         const recordItem = record as RecordLike;
 
         if (expandRelationsActual && recordsService && recordItem.redboxOid) {
           try {
-            const relationships = await recordsService.getRelatedRecords(recordItem.redboxOid, brand);
+            const relationOperation = recordsService.getRelatedRecords(recordItem.redboxOid, brand);
+            const relationships = budget ? await budget.wait(relationOperation) : await relationOperation;
             recordItem.relationships = relationships;
           } catch (err) {
-            sails.log.warn(`Failed to fetch relationships for record ${recordItem.redboxOid}`, err);
+            if (budget && err instanceof NamedQueryAssistanceError) throw err;
+            this.updateChronicle(
+              { namedQueryRelationshipOid: recordItem.redboxOid, namedQueryRelationshipOutcome: 'failed' },
+              [err]
+            );
           }
         }
 
@@ -603,16 +854,26 @@ export namespace Services {
         const variables: Record<string, unknown> = { record: recordItem };
         if (!_.isEmpty(resultObjectMapping)) {
           const resultMetadata = _.cloneDeep(resultObjectMapping);
-          _.forOwn(resultObjectMapping, function (value: unknown, key: string) {
-            _.set(resultMetadata, key, that.runTemplate(value as string, variables));
-          });
+          for (const [key, value] of Object.entries(resultObjectMapping)) {
+            let mapped: unknown;
+            try {
+              mapped = budget ? budget.run(() => that.runTemplate(value as string, variables, budget)) : that.runTemplate(value as string, variables);
+            } catch (error) {
+              if (!budget || !(error instanceof NamedQueryPreviewOutputLimitError || error instanceof RangeError)) throw error;
+              budget.outputTruncated = true;
+              break;
+            }
+            if (budget && !budget.output({ [key]: mapped })) break;
+            _.set(resultMetadata, key, mapped);
+          }
           defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
-
         } else {
           defaultMetadata = collectionName === 'record'
             ? that.runTemplate('record.metadata', variables) as NamedQueryResponseMetadata
             : recordItem as unknown as NamedQueryResponseMetadata;
+          if (budget && !budget.output(defaultMetadata)) break;
         }
+        if (budget?.outputTruncated) break;
 
         const responseRecord: NamedQueryResponseRecord = new NamedQueryResponseRecord({
           oid: recordItem.redboxOid ?? getIdentifierProperty(recordItem, 'id') ?? '',
@@ -621,10 +882,10 @@ export namespace Services {
           lastSaveDate: recordItem.lastSaveDate ?? null,
           dateCreated: recordItem.dateCreated ?? null
         });
+        if (budget && !budget.output({ ...responseRecord, metadata: undefined })) break;
         responseRecords.push(responseRecord);
       }
       const response = new ListAPIResponse<NamedQueryResponseRecord>();
-
 
       const startIndex = start;
       const noItems = rows;
@@ -638,22 +899,20 @@ export namespace Services {
       return response;
     }
 
-    private async performUserNamedQuery(
-      resultObjectMapping: Record<string, unknown>,
-      mongoQuery: Record<string, unknown>,
-      brand: BrandingModel,
-      start: number,
-      rows: number,
-      sort: NamedQuerySortConfig | undefined = undefined
-    ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
-      const criteriaMeta = { enableExperimentalDeepTargets: true };
+    private async scopedUsers(
+      mongoQuery: Record<string, unknown>, brand: BrandingModel,
+      sort?: NamedQuerySortConfig, budget?: NamedQueryExecutionBudget
+    ): Promise<UserLike[]> {
+      const criteriaMeta = { enableExperimentalDeepTargets: true, ...(budget ? { maxTimeMS: budget.remaining() } : {}) };
       const model = this.getModel('user');
       if (!model) {
         throw new Error(`Invalid collectionName 'user': model not found`);
       }
       const userModel = model as { find: (criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig }) => unknown };
 
-      const criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig } = { where: mongoQuery };
+      const criteria: { where: Record<string, unknown>; sort?: NamedQuerySortConfig; limit?: number } = {
+        where: mongoQuery, ...(budget ? { limit: NAMED_QUERY_PREVIEW_LIMITS.scanRows + 1 } : {})
+      };
       if (sort !== undefined && Array.isArray(sort) && (sort?.length ?? 0) > 0) {
         criteria.sort = sort;
       }
@@ -662,25 +921,38 @@ export namespace Services {
       if (query && typeof query.populate === 'function') {
         query = query.populate('roles');
       }
-      const allUsers = query && typeof query.meta === 'function'
-        ? (await query.meta(criteriaMeta) as unknown as UserLike[])
-        : (await query as unknown as UserLike[]);
+      const usersOperation = query && typeof query.meta === 'function' ? query.meta(criteriaMeta) : query;
+      const allUsers = (budget ? await budget.wait(Promise.resolve(usersOperation)) : await usersOperation) as unknown as UserLike[];
+      budget?.scan(allUsers.length);
 
       const brandId = String(brand.id);
-      const linkedSecondaryUserIds = await this.getLinkedSecondaryUserIds(brandId);
-      const scopedUsers = allUsers
+      const linkedSecondaryUserIds = await this.getLinkedSecondaryUserIds(brandId, budget);
+      return allUsers
         .filter((user) => this.hasRoleInBrand(user, brandId) || linkedSecondaryUserIds.has(String(user.id ?? '')))
         .map((user) => this.sanitizeUserForNamedQuery(user));
+    }
+
+    private async performUserNamedQuery(
+      resultObjectMapping: Record<string, unknown>,
+      mongoQuery: Record<string, unknown>,
+      brand: BrandingModel,
+      start: number,
+      rows: number,
+      sort: NamedQuerySortConfig | undefined = undefined,
+      budget?: NamedQueryExecutionBudget
+    ): Promise<ListAPIResponse<NamedQueryResponseRecord>> {
+      const scopedUsers = await this.scopedUsers(mongoQuery, brand, sort, budget);
       const pagedUsers = scopedUsers.slice(start, start + rows);
       const responseRecords: NamedQueryResponseRecord[] = [];
 
       for (const userRecord of pagedUsers) {
+        budget?.remaining();
         let defaultMetadata: NamedQueryResponseMetadata = {};
         const variables: Record<string, unknown> = { record: userRecord };
         if (!_.isEmpty(resultObjectMapping)) {
           const resultMetadata = _.cloneDeep(resultObjectMapping);
           _.forOwn(resultObjectMapping, (value: unknown, key: string) => {
-            _.set(resultMetadata, key, this.runTemplate(value as string, variables));
+            _.set(resultMetadata, key, budget ? budget.run(() => this.runTemplate(value as string, variables)) : this.runTemplate(value as string, variables));
           });
           defaultMetadata = resultMetadata as NamedQueryResponseMetadata;
         } else {
@@ -710,12 +982,10 @@ export namespace Services {
       return response;
     }
 
-    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>) {
+    setParamsInQuery(mongoQuery: Record<string, unknown>, queryParams: Record<string, QueryParameterDefinition>, paramMap: Record<string, unknown>, budget?: NamedQueryExecutionBudget, literalParameters = false) {
       for (const queryParamKey in queryParams) {
-
         let value = paramMap[queryParamKey];
         const queryParam: QueryParameterDefinition = queryParams[queryParamKey];
-        sails.log.debug(`${queryParamKey} has value ${value}`);
 
         if (_.isUndefined(value) && queryParam.required === true) {
           throw Error(`${queryParamKey} is a required parameter`);
@@ -723,7 +993,7 @@ export namespace Services {
 
         if (_.isUndefined(value)) {
           if (queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
-            this.unsetMongoQueryValue(mongoQuery, queryParam.path);
+            this.unsetIgnoredQueryParameter(mongoQuery, queryParam);
             continue;
           }
 
@@ -733,7 +1003,17 @@ export namespace Services {
         }
 
         if (!_.isEmpty(queryParam.template)) {
-          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap });
+          value = this.runTemplate(queryParam.template, { value: value, queryParams: queryParams, paramMap: paramMap }, budget);
+          if (budget?.outputTruncated) return mongoQuery;
+        }
+
+        // Validate the evaluated template result, including values selected from
+        // undeclared request parameters, before coercion can hide its shape.
+        const primitive = (item: unknown): boolean => item == null ||
+          ['string', 'number', 'boolean', 'undefined'].includes(typeof item);
+        if (literalParameters && !(primitive(value) ||
+          (queryParam.type === DataType.Array && Array.isArray(value) && value.every(primitive)))) {
+          throw new Error('Relation parameters must be literal values of the declared type');
         }
 
         if (queryParam.type == DataType.Number) {
@@ -774,6 +1054,24 @@ export namespace Services {
           value = parseObjectParamValue(queryParamKey, value);
         }
 
+        // Checked after templates have selected the final value, so neither direct
+        // request values nor template-selected undeclared parameters can inject
+        // query operators. Relation-filter queries apply a stricter check below.
+        if (!literalParameters && queryParam.type != DataType.Object && isUnsafeParameterValue(value)) {
+          throw new Error(`${queryParamKey} must be a literal value of the declared type`);
+        }
+
+        if (literalParameters && value != null) {
+          const type = queryParam.type || DataType.String;
+          const valid = type === DataType.String ? typeof value === 'string' :
+            type === DataType.Number ? typeof value === 'number' && Number.isFinite(value) :
+            type === DataType.Boolean ? typeof value === 'boolean' :
+            type === DataType.Array ? Array.isArray(value) && value.every(primitive) :
+            type === DataType.Date ? typeof value === 'string' ||
+              (queryParam.format === NamedQueryFormatOptions.days && typeof value === 'number' && Number.isFinite(value)) : false;
+          if (!valid) throw new Error('Relation parameters must be literal values of the declared type');
+        }
+
         if (
           queryParam.type != DataType.Date &&
           !_.isEmpty(queryParam.queryType)
@@ -805,14 +1103,12 @@ export namespace Services {
 
             query[queryParam.queryType] = value;
             value = query;
-
           }
         }
 
         if (value == undefined && queryParam.whenUndefined == NamedQueryWhenUndefinedOptions.ignore) {
-          this.unsetMongoQueryValue(mongoQuery, queryParam.path);
+          this.unsetIgnoredQueryParameter(mongoQuery, queryParam);
         } else {
-
           const existingValue = this.getMongoQueryValue(mongoQuery, queryParam.path)
           if (_.isPlainObject(existingValue) && _.isPlainObject(value)) {
             _.merge(value, existingValue);
@@ -823,30 +1119,28 @@ export namespace Services {
       return mongoQuery;
     }
 
-    runTemplate(templateOrPath: string, variables: Record<string, unknown>): unknown {
+    runTemplate(templateOrPath: string, variables: Record<string, unknown>, budget?: NamedQueryExecutionBudget): unknown {
       const templateVars = { ...variables };
 
       if (templateOrPath && templateOrPath.indexOf('{{') != -1) {
         try {
+          if (budget) return renderNamedQueryPreviewTemplate(templateOrPath, templateVars, budget.remainingOutputBytes());
           const compiledTemplate = handlebarsCompile(templateOrPath, { noEscape: true });
           return compiledTemplate(templateVars);
         } catch (err) {
-          sails.log.error(`Template compilation failed for ${templateOrPath}`, err);
+          if (budget && (err instanceof NamedQueryPreviewOutputLimitError || err instanceof RangeError)) {
+            budget.outputTruncated = true;
+            return undefined;
+          }
+          this.updateChronicle({ namedQueryTemplateOutcome: 'failed' }, [err]);
           throw err;
         }
       }
       return _.get(templateVars, templateOrPath);
     }
 
-    public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown) {
-      sails.log.debug("performNamedQueryFromConfig with parameters", {
-        config: config,
-        paramMap: paramMap,
-        brand: brand,
-        start: start,
-        rows: rows,
-        user: user
-      });
+    public async performNamedQueryFromConfig(config: NamedQueryDefinition | NamedQueryConfig, paramMap: Record<string, unknown>, brand: BrandingModel, start: number, rows: number, user?: unknown, budget?: NamedQueryExecutionBudget) {
+      this.updateChronicle({ namedQueryBrandId: brand.id, namedQueryParameterCount: _.size(paramMap) });
       const collectionName = _.get(config, 'collectionName', '') ?? '';
       const resultObjectMapping = _.get(config, 'resultObjectMapping', {}) ?? {};
       const mongoQuery = _.cloneDeep(_.get(config, 'mongoQuery', {}) ?? {});
@@ -854,13 +1148,13 @@ export namespace Services {
       const sort = _.cloneDeep(_.get(config, 'sort', []) ?? []);
       const expandRelations = _.get(config, 'expandRelations', false) as boolean;
       const relatedRecordFilters = _.cloneDeep(_.get(config, 'relatedRecordFilters', []) ?? []) as RelatedRecordFilter[];
-      return await this.performNamedQuery('', resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters);
+      return await this.performNamedQuery('', resultObjectMapping, collectionName, mongoQuery, queryParams, paramMap, brand, start, rows, user, sort, expandRelations, relatedRecordFilters, budget);
     }
 
     public async performNamedQueryFromConfigResults(config: NamedQueryConfig, paramMap: Record<string, string>, brand: BrandingModel, queryName: string, start: number = 0, rows: number = 30, maxRecords: number = 100, user: unknown = undefined) {
       const records = [];
       let requestCount = 0;
-      sails.log.debug(`All named query results: start query with name '${queryName}' brand ${JSON.stringify(brand)} start ${start} rows ${rows} paramMap ${JSON.stringify(paramMap)}`);
+      this.updateChronicle({ namedQueryName: queryName, namedQueryMaxRecords: maxRecords });
 
       while (true) {
         // Keep going while there are more results.
@@ -870,12 +1164,12 @@ export namespace Services {
 
         if (!response) {
           // stop if there is no response
-          sails.log.warn(`All named query results: invalid query response for '${queryName}'`);
+          this.updateChronicle({ namedQueryOutcome: 'invalid-response' }, [], 'warn');
           break;
         }
 
         // add the new records to the collected records
-        sails.log.debug(`All named query results: add results for '${queryName}': start ${start} rows ${rows} new results ${response.records.length} summary ${JSON.stringify(response.summary)}`);
+        this.updateChronicle({ namedQueryPageResultCount: response.records.length });
         for (const record of response.records) {
           records.push(record);
         }
@@ -883,7 +1177,7 @@ export namespace Services {
         const currentRetrievedCount = start + rows;
         if (response.summary.numFound <= currentRetrievedCount) {
           // stop if the total count is less than or equal to the number of records retrieved so far
-          sails.log.debug(`All named query results: reached end of results for '${queryName}': start ${start} rows ${rows} total results ${records.length}`);
+          this.updateChronicle({ namedQueryOutcome: 'complete' });
           break;
         }
 
@@ -892,17 +1186,16 @@ export namespace Services {
 
         // Check the number of records and stop if it exceeds maxRecords.
         if (records.length > maxRecords) {
-          sails.log.warn(`All named query results: returning early before finished with ${records.length} results for '${queryName}' from ${requestCount} requests because the number of records is more than max records ${maxRecords}`);
+          this.updateChronicle({ namedQueryOutcome: 'limit-reached' }, [], 'warn');
           break;
         }
 
         // continue the while loop
       }
 
-      sails.log.debug(`All named query results: returning ${records.length} results for '${queryName}' from ${requestCount} requests`);
+      this.updateChronicle({ namedQueryResultCount: records.length, namedQueryRequestCount: requestCount });
       return records;
     }
-
   }
 }
 
@@ -939,6 +1232,8 @@ class QueryParameterDefinition {
 }
 
 export class RelatedRecordFilter {
+  rootRecordType?: string;
+  relationId?: string;
   collectionName: string = '';
   mongoQuery: Record<string, unknown> = {};
   localField: string = '';

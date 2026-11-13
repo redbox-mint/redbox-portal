@@ -7,10 +7,6 @@ export namespace Controllers {
   export class IntegrationAudit extends controllers.Core.Controller {
     protected override _exportedMethods: string[] = ['getAuditLog'];
 
-    private asError(error: unknown): Error {
-      return error instanceof Error ? error : new Error(String(error));
-    }
-
     private parsePositiveInt(value: unknown): number | null {
       if (_.isEmpty(value)) {
         return null;
@@ -21,10 +17,12 @@ export namespace Controllers {
 
     public async getAuditLog(req: Sails.Req, res: Sails.Res) {
       const oid = String(req.param('oid') ?? '').trim();
+      this.updateChronicle(req, {integrationAuditOid: oid});
       if (_.isEmpty(oid)) {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Record oid is required.' }],
+          chronicle: {integrationAuditIssue: 'missing-oid'},
         });
       }
 
@@ -37,6 +35,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Invalid status parameter.' }],
+            chronicle: {integrationAuditIssue: 'invalid-status'},
           });
         }
         params.status = status as IntegrationAuditParams['status'];
@@ -49,6 +48,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Invalid dateFrom parameter.' }],
+            chronicle: {integrationAuditIssue: 'invalid-dateFrom'},
           });
         }
         params.dateFrom = parsed;
@@ -61,6 +61,7 @@ export namespace Controllers {
           return this.sendResp(req, res, {
             status: 400,
             displayErrors: [{ detail: 'Invalid dateTo parameter.' }],
+            chronicle: {integrationAuditIssue: 'invalid-dateTo'},
           });
         }
         params.dateTo = parsed;
@@ -71,6 +72,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Invalid page parameter.' }],
+          chronicle: {integrationAuditIssue: 'invalid-page'},
         });
       }
 
@@ -79,6 +81,7 @@ export namespace Controllers {
         return this.sendResp(req, res, {
           status: 400,
           displayErrors: [{ detail: 'Invalid pageSize parameter.' }],
+          chronicle: {integrationAuditIssue: 'invalid-pageSize'},
         });
       }
 
@@ -91,11 +94,14 @@ export namespace Controllers {
         response.summary.numFound = audit.total;
         response.summary.page = params.page;
         response.records = audit.rows;
-        return this.sendResp(req, res, { data: response });
+        return this.sendResp(req, res, {
+          data: response,
+          chronicle: {integrationAuditRecordCount: audit.rows.length},
+        });
       } catch (error) {
         return this.sendResp(req, res, {
           status: 500,
-          errors: [this.asError(error)],
+          errors: [error],
           displayErrors: [{ detail: `Failed to list integration audit records for ${oid}.` }],
         });
       }

@@ -1,3 +1,4 @@
+import { text, flag, list, object, dictionary } from './IntegrationSchemas';
 /* oxlint-disable typescript/no-explicit-any */
 import { AppConfig } from './AppConfig.interface';
 
@@ -37,18 +38,79 @@ export interface RaidPublishingConfigData {
   mapping: Record<string, Record<string, RaidMappingField>>;
 }
 
+const raidReferenceSchema = object('type-reference', { id: text('id'), schemaUri: text('schema-uri') });
+const raidTypeDictionary = dictionary('types', raidReferenceSchema);
+export const RAID_TYPES_SCHEMA = {
+  ...dictionary('types', {}), // Custom JSONata type namespaces can contain arbitrary JSON.
+  properties: {
+    title: raidTypeDictionary, description: raidTypeDictionary, language: raidTypeDictionary,
+    access: raidTypeDictionary, subject: raidTypeDictionary,
+    organisation: object('organisation', { role: raidTypeDictionary }),
+    contributor: object('contributor', {
+      position: dictionary('positions', raidReferenceSchema),
+      flags: dictionary('flags', list('positions', text('position'))),
+      // Runtime's historical spelling is part of the persisted contract.
+      hiearchy: object('hierarchy', { position: list('positions', text('position')) }),
+      roles: object('roles', { schemaUri: text('schema-uri'), types: dictionary('types', text('role')) }),
+    }),
+  },
+};
+export const RAID_MAPPING_FIELD_SCHEMA = object('mapping-rule', {
+  dest: text('destination'), engine: text('mapping-engine', ['jsonata', 'handlebars']),
+  expression: text('expression'), template: text('template'), parseJson: flag('parse-json'), omitIfEmpty: flag('omit-if-empty'),
+  contributorMap: dictionary('contributor-mapping', object('contributor', {
+    fieldMap: object('field-map', { id: text('orcid-field') }, ['id']), position: text('position'),
+    role: text('role'), requireOrcid: flag('require-orcid'),
+  }, ['fieldMap', 'position', 'role'])),
+}, ['dest', 'engine']);
+
 export const RAID_PUBLISHING_SCHEMA = {
   type: 'object',
   required: ['enabled', 'connection', 'durableRetry', 'raidFieldName', 'orcidBaseUrl', 'types', 'mapping'],
   properties: {
-    enabled: { type: 'boolean' },
-    connection: { type: 'object' },
-    durableRetry: { type: 'object' },
-    saveBodyInMeta: { type: 'boolean' },
-    raidFieldName: { type: 'string' },
-    orcidBaseUrl: { type: 'string' },
-    types: { type: 'object' },
-    mapping: { type: 'object' }
+    enabled: { type: 'boolean', title: 'admin-config-label-enabled' },
+    connection: {
+      type: 'object', title: 'admin-config-label-connection',
+      properties: {
+        baseUrl: { type: 'string', title: 'admin-config-label-api-base-url' },
+        token: { type: 'string', title: 'admin-config-label-api-token' },
+        timeoutMs: { type: 'number', title: 'admin-config-label-request-timeout-ms' },
+        oauth: {
+          type: 'object', title: 'admin-config-label-oauth',
+          properties: {
+            url: { type: 'string', title: 'admin-config-label-token-url' },
+            clientId: { type: 'string', title: 'admin-config-label-client-id' },
+            username: { type: 'string', title: 'admin-config-label-username' },
+            password: { type: 'string', title: 'admin-config-label-password' },
+            timeoutMs: { type: 'number', title: 'admin-config-label-token-timeout-ms' },
+            expirySkewMs: { type: 'number', title: 'admin-config-label-expiry-skew-ms' }
+          }
+        },
+        retry: {
+          type: 'object', title: 'admin-config-label-retries',
+          properties: {
+            maxAttempts: { type: 'number', title: 'admin-config-label-max-attempts' },
+            baseDelayMs: { type: 'number', title: 'admin-config-label-base-delay-ms' },
+            maxDelayMs: { type: 'number', title: 'admin-config-label-max-delay-ms' },
+            jitter: { type: 'boolean', title: 'admin-config-label-jitter' },
+            retryOnStatusCodes: { type: 'array', title: 'admin-config-label-retry-on-status-codes', items: { type: 'integer' } }
+          }
+        }
+      }
+    },
+    durableRetry: {
+      type: 'object', title: 'admin-config-label-durable-retry-job',
+      properties: {
+        jobName: { type: 'string', title: 'admin-config-label-job-name' },
+        schedule: { type: 'string', title: 'admin-config-label-schedule' },
+        maxAttempts: { type: 'number', title: 'admin-config-label-max-attempts' }
+      }
+    },
+    saveBodyInMeta: { type: 'boolean', title: 'admin-config-label-save-request-body-in-record-metadata' },
+    raidFieldName: { type: 'string', title: 'admin-config-label-raid-field-name' },
+    orcidBaseUrl: { type: 'string', title: 'admin-config-label-orcid-base-url' },
+    types: RAID_TYPES_SCHEMA,
+    mapping: dictionary('field-mapping', dictionary('mapping-rules', RAID_MAPPING_FIELD_SCHEMA))
   }
 };
 

@@ -10,6 +10,8 @@ export const storage = {
       { key: { lastSaveDate: 1 } },
       { key: { lastSaveDate: -1 } },
       { key: { 'metaMetadata.brandId': 1 } },
+      // Email preview search scans one brand in stable OID order.
+      { key: { 'metaMetadata.brandId': 1, redboxOid: 1 } },
       { key: { 'metaMetadata.type': 1 } },
       { key: { 'metaMetadata.createdOn': 1 } },
       { key: { 'metaMetadata.createdOn': -1 } },
@@ -24,6 +26,8 @@ export const storage = {
     // keys; the brand is a filter on the single document the OID selects. The
     // lifecycle key supports scanning for interrupted staged operations.
     deletedRecordIndices: [
+      { key: { 'deletedRecordMetadata.metaMetadata.brandId': 1, dateDeleted: -1 } },
+      { key: { 'deletedRecordMetadata.metaMetadata.brandId': 1, 'deletedBy.brandId': 1, 'deletedBy.username': 1, dateDeleted: -1 } },
       { key: { redboxOid: 1 }, unique: true },
       { key: { lifecycleState: 1, 'lifecycleOperation.requestId': 1 } },
       { key: { 'deletedRecordMetadata.metaMetadata.brandId': 1, redboxOid: 1 } },

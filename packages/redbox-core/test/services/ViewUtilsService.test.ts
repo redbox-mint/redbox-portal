@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import fs from 'fs';
@@ -15,9 +17,7 @@ describe('ViewUtilsService', function() {
       config: {
         appPath: '/app'
       },
-      log: {
-        debug: sinon.stub()
-      }
+      log: createSinonStubLogger(sinon),
     });
     setupServiceTestGlobals(mockSails);
   });
@@ -42,7 +42,7 @@ describe('ViewUtilsService', function() {
           locals: {}
         }
       };
-      
+
       const result = viewUtils.displayValue('user.name', req, 'defaultName');
       expect(result).to.equal('defaultName');
     });
@@ -55,7 +55,7 @@ describe('ViewUtilsService', function() {
           }
         }
       };
-      
+
       const result = viewUtils.displayValue('username', req, 'default');
       expect(result).to.equal('testuser');
     });
@@ -68,7 +68,7 @@ describe('ViewUtilsService', function() {
           }
         }
       };
-      
+
       const result = viewUtils.displayValue('user.name', req, 'defaultName');
       expect(result).to.equal('defaultName');
     });
@@ -79,7 +79,7 @@ describe('ViewUtilsService', function() {
           locals: {}
         }
       };
-      
+
       const result = viewUtils.displayValue('nonexistent', req);
       expect(result).to.equal('');
     });
@@ -135,7 +135,7 @@ describe('ViewUtilsService', function() {
         path.join(appPath, 'views', 'template.ejs'),
         false
       );
-      
+
       expect(result).to.equal('partial.ejs');
     });
 
@@ -151,7 +151,7 @@ describe('ViewUtilsService', function() {
         templatePath,
         false
       );
-      
+
       expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
     });
 
@@ -167,7 +167,7 @@ describe('ViewUtilsService', function() {
         templatePath,
         false
       );
-      
+
       expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
     });
 
@@ -183,7 +183,7 @@ describe('ViewUtilsService', function() {
         templatePath,
         false
       );
-      
+
       expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
     });
 
@@ -199,7 +199,7 @@ describe('ViewUtilsService', function() {
         templatePath,
         false
       );
-      
+
       expect(result).to.equal('../../partial.ejs');
       expect(path.resolve(path.dirname(templatePath), result)).to.equal(partialPath);
     });
@@ -217,7 +217,7 @@ describe('ViewUtilsService', function() {
         layoutDirectory,
         true
       );
-      
+
       expect(path.resolve(layoutDirectory, result)).to.equal(hookPartialPath);
     });
   });
@@ -225,15 +225,8 @@ describe('ViewUtilsService', function() {
   describe('exports', function() {
     it('should export displayValue and resolvePartialPath methods', function() {
       // Need to update sails.log to have error function for this test
-      (global as any).sails.log = {
-        verbose: () => {},
-        debug: () => {},
-        info: () => {},
-        warn: () => {},
-        error: () => {},
-        trace: () => {}
-      };
-      
+      (global as any).sails.log = createSinonStubLogger(sinon);
+
       const { Services } = require('../../src/services/ViewUtilsService');
       const viewUtils = new Services.ViewUtils();
       const exported = viewUtils.exports();

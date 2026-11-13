@@ -19,10 +19,10 @@
 
 import { Injectable, Inject} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Subject, firstValueFrom } from 'rxjs';
-import { mergeMap } from 'rxjs/operators';
+import { Subject, ReplaySubject, firstValueFrom, of } from 'rxjs';
+import { mergeMap, map } from 'rxjs/operators';
 import { get as _get, isEmpty as _isEmpty, isUndefined as _isUndefined } from 'lodash-es';
-import { APP_BASE_HREF } from '@angular/common';
+import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { Service } from './service.interface';
 /**
  * Loads Global client-side configuration.
@@ -36,19 +36,20 @@ import { Service } from './service.interface';
 export class ConfigService implements Service {
   protected config: any;
   protected initSubject: any;
+  private loading = false;
   public csrfToken: any;
   public configUrl: string = '';
   public csrfTokenUrl: string = '';
 
-  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string) {
-    this.initSubject = new Subject();
+  constructor (@Inject(HttpClient) protected http: any, @Inject(APP_BASE_HREF) public rootContext: string, @Inject(DOCUMENT) private document: Document) {
+    this.initSubject = new ReplaySubject(1);
     if (_isEmpty(this.rootContext)) {
       this.rootContext = ""
     }
     this.configUrl = `${this.rootContext}/dynamic/apiClientConfig?v=${new Date().getTime()}`;
     this.csrfTokenUrl = `${this.rootContext}/csrfToken`;
     // start the async init of this service
-    this.initConfig();
+    this.initConfig(true);
   }
 
   /**
@@ -69,19 +70,83 @@ export class ConfigService implements Service {
     }
   }
 
-  initConfig(): void {
-    this.http.get(this.csrfTokenUrl)
+  /** Explicit retries fetch both configuration and the current session's CSRF token. */
+  async refreshConfig(): Promise<any> {
+    this.initConfig();
+    return firstValueFrom(this.getInitSubject());
+  }
+
+  initConfig(usePageToken = false): void {
+    if (this.loading) {
+      return;
+    }
+    // A failed subject is terminal. Replace it for a new attempt, retaining the
+    // error for late subscribers until an explicit retry is requested.
+    this.initSubject = new ReplaySubject(1);
+    this.config = undefined;
+    this.loading = true;
+    // The initial HTML and Angular bootstrap share a session. Reuse Sails'
+    // escaped, page-scoped token without a second round trip. Explicit retries
+    // must fetch the current session token instead of reusing this snapshot.
+    const pageToken = usePageToken
+      ? this.document.querySelector<HTMLMetaElement>('meta[name="rb-csrf-token"]')?.content
+      : undefined;
+    // Legacy/hook layouts can omit this snapshot. Invalid snapshots also fall
+    // back to the public endpoint; explicit refreshes always bypass page data.
+    let pageConfig: any;
+    if (usePageToken) {
+      try {
+        const snapshot = this.document.querySelector<HTMLMetaElement>('meta[name="rb-client-config"]')?.content;
+        const parsed = snapshot ? JSON.parse(snapshot) : undefined;
+        if (this.isClientConfig(parsed)) pageConfig = parsed;
+      } catch { /* Fetch the endpoint if a hook supplied malformed page data. */ }
+    }
+    const csrfResponse = typeof pageToken === 'string'
+      ? of({ _csrf: pageToken })
+      : this.http.get(this.csrfTokenUrl);
+    csrfResponse
     .pipe(
       mergeMap((csrfRes:any) => {
-        this.csrfToken = _get(csrfRes, '_csrf');
-        return this.http.get(this.configUrl);
+        const token = _get(csrfRes, '_csrf');
+        // Sails returns { _csrf: '' } when CSRF protection is disabled.
+        // Require a string payload so login HTML and malformed responses still
+        // fail initialization and remain recoverable through an explicit retry.
+        if (typeof token !== 'string') {
+          throw new Error('Invalid CSRF response. Sign in again and retry.');
+        }
+        this.csrfToken = token;
+        return pageConfig ? of(pageConfig) : this.http.get(this.configUrl);
+      }),
+      map((config: any) => {
+        // apiClientConfig.ejs supplies these URL components to HttpClientService,
+        // translations and template loaders. An empty base URL is valid for
+        // same-origin requests; branding and portal must name route segments.
+        if (!this.isClientConfig(config)) {
+          throw new Error('Invalid configuration response. Sign in again and retry.');
+        }
+        return config;
       })
-    ).subscribe((config:any) => {
-      this.config = config;
-      this.config['csrfToken'] = this.csrfToken;
-      this.config['rootContext'] = this.rootContext;
-      this.emitConfig();
+    ).subscribe({
+      next: (config: any) => {
+        this.config = config;
+        this.config['csrfToken'] = this.csrfToken;
+        this.config['rootContext'] = this.rootContext;
+        this.loading = false;
+        this.emitConfig();
+      },
+      error: (error: unknown) => {
+        this.loading = false;
+        this.config = undefined;
+        this.initSubject.error(error);
+      }
     });
+  }
+
+  private isClientConfig(config: any): boolean {
+    return !!config && typeof config === 'object' && !Array.isArray(config)
+      && typeof config.baseUrl === 'string'
+      && typeof config.branding === 'string' && !!config.branding.trim()
+      && typeof config.portal === 'string' && !!config.portal.trim();
   }
 
   public getInitSubject(): Subject<any> {

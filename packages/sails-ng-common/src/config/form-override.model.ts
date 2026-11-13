@@ -22,7 +22,7 @@ import {
 } from './component/radio-input.outline';
 import { DateInputComponentName, DateInputFormComponentDefinitionOutline } from './component/date-input.outline';
 import { DefaultTransformsType, KnownTransformsType } from './form-override.outline';
-import { cloneDeep as _cloneDeep, merge as _merge, mergeWith as _mergeWith } from 'lodash';
+import { cloneDeep as _cloneDeep, isPlainObject as _isPlainObject, merge as _merge, mergeWith as _mergeWith } from 'lodash';
 
 import {
   DropdownInputComponentName,
@@ -34,7 +34,7 @@ import { ReusableComponentName, ReusableFormComponentDefinitionFrame } from './c
 import { FormModesConfig } from './shared.outline';
 import { isTypeFormComponentDefinitionName, isTypeReusableComponent } from './form-types.outline';
 import { PropertiesHelper } from './visitor/common.model';
-import { ILogger } from '../logger.interface';
+import { ILogger } from '../logger.model';
 import { ContentFieldComponentConfig } from './component/content.model';
 import {
   QuestionTreeFieldComponentDefinitionOutline,
@@ -83,6 +83,11 @@ import { SimpleInputFormComponentDefinitionFrame } from './component/simple-inpu
 import { LineagePaths } from './names/naming-helpers';
 import {QuestionTreeHelper} from "./component/question-tree.helper";
 
+
+/** Server-only provenance for projecting saved values after a view transform.
+ * Symbol properties survive the internal deep clones but are never serialized.
+ */
+export const viewMetadataSource = Symbol('viewMetadataSource');
 
 export class FormOverride {
     private logName = "FormOverride";
@@ -368,6 +373,9 @@ export class FormOverride {
     reusableFormDefs: ReusableFormDefinitions,
     visitedReusableFormNames: Set<string> = new Set<string>()
   ): AvailableFormComponentDefinitionFrames[] {
+    if (item.relatedDisplay !== undefined) {
+      throw new Error('Declare relatedDisplay on the effective reusable field or group, not on a ReusableComponent usage.');
+    }
     const reusableFormName = item?.overrides?.reusableFormName ?? '';
 
     if (visitedReusableFormNames.has(reusableFormName)) {
@@ -557,6 +565,12 @@ export class FormOverride {
     // Apply the transform.
     const hasTransform = !!transformComponentClassName && !!transformFunc;
     const result = hasTransform ? transformFunc.call(this, original, formMode) : original;
+    if (original.relatedDisplay !== undefined) {
+      result.relatedDisplay = { ...original.relatedDisplay };
+    }
+    if (formMode === 'view' && hasTransform && result.component?.class === ContentComponentName) {
+      Object.assign(result, { [viewMetadataSource]: original });
+    }
     if (
       formMode === 'view' &&
       hasTransform &&
@@ -590,7 +604,7 @@ export class FormOverride {
     }
 
     if (isTransformExpected) {
-      this.logger.info(
+      this.logger.verbose(
         `Component '${source?.name}' ${hasTransform ? 'transformed' : 'unmodified'} ` +
         `from '${originalComponentClassName}' to '${transformComponentClassName}'.`
       );
@@ -1317,13 +1331,15 @@ export class FormOverride {
 
   private pruneGroupValue(
     value: unknown,
-    componentDefinitions: AllFormComponentDefinitionOutlines[]
+    componentDefinitions: AllFormComponentDefinitionOutlines[],
+    keepEmptyFields = false
   ): Record<string, unknown> | undefined {
-    if (!value || typeof value !== 'object' || this.isDeepEmpty(value as Record<string, unknown>)) {
+    if (!_isPlainObject(value) || (!keepEmptyFields && this.isDeepEmpty(value as Record<string, unknown>))) {
       return undefined;
     }
     const result: Record<string, unknown> = {};
-    const renderableDefs = componentDefinitions.filter(c => this.isViewRenderableComponent(c));
+    const renderableDefs = componentDefinitions.filter(c => this.isViewRenderableComponent(c) &&
+      (c.component?.class !== ContentComponentName || !!(c as { [viewMetadataSource]?: { model?: unknown } })[viewMetadataSource]?.model));
     const childNames = new Set(renderableDefs.map(c => c.name).filter((n): n is string => typeof n === 'string'));
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
       if (!childNames.has(key)) {
@@ -1332,7 +1348,7 @@ export class FormOverride {
       const childDef = renderableDefs.find(c => c.name === key);
       const childIsGroup = childDef?.component?.class === GroupFieldComponentName;
       const childIsRepeatable = childDef?.component?.class === RepeatableComponentName;
-      if (childIsGroup && val && typeof val === 'object' && !Array.isArray(val)) {
+      if (childIsGroup) {
         const childChildren = (childDef?.component?.config as { componentDefinitions?: AllFormComponentDefinitionOutlines[] } | undefined)
           ?.componentDefinitions ?? [];
         const nestedPruned = this.pruneGroupValue(val, childChildren);
@@ -1375,7 +1391,8 @@ export class FormOverride {
       target.component.config.content =
         prunedValue && !this.isDeepEmpty(prunedValue)
           ? prunedValue
-          : this.extractDescendantValues(source);
+          : // Empty permitted fields still describe the shape used by repeatable templates.
+            this.pruneGroupValue(this.extractDescendantValues(source), children, true) ?? {};
       target.component.config.template = this.generateTemplateForComponent(source, 'content');
     }
     return target;
@@ -1987,6 +2004,12 @@ export class FormOverride {
       );
     }
 
+    // Only rules written for saved data may run in view mode; others would read an empty formData.
+    target.expressions = (source.expressions ?? []).filter(expression =>
+      expression.config?.runInViewMode === true
+      && 'target' in expression.config
+      && ['layout.visible', 'component.visible', 'field.visible'].includes(String(expression.config?.target)));
+
     target.component.config = new ContentFieldComponentConfig();
 
     // TODO: does it make sense to copy all shared properties? The css classes might need to be different?
@@ -2051,4 +2074,20 @@ export class FormOverride {
       );
     }
   }
+}
+
+/** Reusable values without a name inherit their usage wrapper's metadata identity.
+ * Shared by canonical metadata contract compilers; explicit expanded names win.
+ */
+export function effectiveReusableComponents<T extends import('./form-component.outline').FormComponentDefinitionFrame>(
+  wrapper: import('./form-component.outline').FormComponentDefinitionFrame,
+  expanded: readonly T[]
+): T[] {
+  return expanded.map(component => {
+    if (component.name || !wrapper.name || component.overrides?.replaceName === '') return component;
+    const overrides = { ...component.overrides };
+    delete overrides.replaceName;
+    return { ...component, name: wrapper.name,
+      overrides: Object.keys(overrides).length ? overrides : undefined };
+  });
 }
