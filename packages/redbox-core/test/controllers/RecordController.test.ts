@@ -1649,6 +1649,86 @@ describe('RecordController getWorkflowSteps', () => {
     expect(createArgs[2]).to.equal(form);
   });
 
+  describe('generation create-form metadata', () => {
+    const generationSession = {
+      runId: 'run-1', bindingKey: 'draft-from-source', autoOpen: true,
+      initialValues: [{ metadataPointer: '/source', value: 'source-1' }],
+    };
+    const generationLaunches = [{ bindingKey: 'draft-from-source', sourcePointer: '/source' }];
+    let resolveTargetSession: sinon.SinonStub;
+    let resolveCreateLaunches: sinon.SinonStub;
+    let sendResp: sinon.SinonStub;
+
+    beforeEach(() => {
+      const form = {
+        id: 'form-1', name: 'dataset-draft', branding: 'brand-1',
+        configuration: { type: 'dataset', componentDefinitions: [] },
+      };
+      resolveTargetSession = sinon.stub().resolves(generationSession);
+      resolveCreateLaunches = sinon.stub().resolves(generationLaunches);
+      Object.assign(sails.config, {
+        generation: { enabled: true }, reusableFormDefinitions: {}, validators: { definitions: [] },
+      });
+      Reflect.set(sails, 'services', {
+        formpayloadprehydrateservice: { build: sinon.stub().resolves({}) },
+        generationbindingservice: {
+          resolveActions: sinon.stub().resolves([]), resolveTargetSession, resolveCreateLaunches,
+        },
+      });
+      (FormsService.getFormByStartingWorkflowStep as sinon.SinonStub).returns(of(form));
+      (FormsService.buildClientFormConfig as sinon.SinonStub).resolves(form.configuration);
+      (FormsService.discoverValidationOperations as sinon.SinonStub).resolves([]);
+      (RecordTypesService.get as sinon.SinonStub).returns(of({ name: 'dataset' }));
+      Reflect.set(WorkflowStepsService, 'getFirst', sinon.stub().returns(of({ name: 'draft', config: { form: 'dataset-draft' } })));
+      Reflect.set(controller.recordsService, 'getRecordFormFingerprint', sinon.stub().returns('form-fingerprint-1'));
+      sendResp = sinon.stub(controller, 'sendResp');
+    });
+
+    const request = (query: Record<string, string>): Sails.Req => ({
+      param: sinon.stub().callsFake((name: string) => name === 'name' ? 'dataset' : name === 'formName' ? 'dataset-draft' : undefined),
+      query, session: { branding: 'default' },
+      user: { id: 'user-1', username: 'alice', roles: [{ name: 'Researcher' }] },
+    } as unknown as Sails.Req);
+
+    it('includes authorized launch definitions with the target session so an unsaved draft can restart', async () => {
+      await controller.getForm(request({ edit: 'true', generationRunId: ' run-1 ' }), {} as Sails.Res);
+
+      expect(sendResp.calledOnce).to.equal(true);
+      expect(sendResp.firstCall.args[2].meta).to.deep.include({ generationSession, generationLaunches });
+      expect(resolveTargetSession.firstCall.args.slice(1)).to.deep.equal(['run-1', 'dataset', 'dataset-draft']);
+      expect(resolveCreateLaunches.calledOnce).to.equal(true);
+      expect(resolveCreateLaunches.firstCall.args).to.deep.equal([
+        resolveTargetSession.firstCall.args[0], 'dataset', 'dataset-draft',
+      ]);
+    });
+
+    it('keeps launch definitions available for an ordinary editable create form', async () => {
+      await controller.getForm(request({ edit: 'true' }), {} as Sails.Res);
+
+      expect(sendResp.firstCall.args[2].meta.generationLaunches).to.deep.equal(generationLaunches);
+      expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationSession');
+      expect(resolveTargetSession.called).to.equal(false);
+    });
+
+    it('does not expose create launches for a read-only target form', async () => {
+      await controller.getForm(request({ edit: 'false', generationRunId: 'run-1' }), {} as Sails.Res);
+
+      expect(sendResp.firstCall.args[2].meta.generationSession).to.deep.equal(generationSession);
+      expect(sendResp.firstCall.args[2].meta).not.to.have.property('generationLaunches');
+      expect(resolveCreateLaunches.called).to.equal(false);
+    });
+
+    it('does not resolve or expose launch definitions when target-session authorization fails', async () => {
+      resolveTargetSession.rejects(new Error('Session is not authorized'));
+      await controller.getForm(request({ edit: 'true', generationRunId: 'run-1' }), {} as Sails.Res);
+
+      expect(sendResp.calledOnce).to.equal(true);
+      expect(sendResp.firstCall.args[2].status).to.equal(500);
+      expect(sendResp.firstCall.args[2]).not.to.have.property('meta');
+      expect(resolveCreateLaunches.called).to.equal(false);
+    });
+  });
+
   for (const roleNames of [undefined, [], ['Researcher'], ['Admin', 'Librarians']]) {
     for (const { editable, edit } of [
       { editable: true, edit: 'true' },

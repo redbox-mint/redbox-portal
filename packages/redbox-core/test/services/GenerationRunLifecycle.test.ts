@@ -27,7 +27,7 @@ describe('Generation run lifecycle', () => {
         if ('<=' in value) return row[key] <= value['<='];
         if ('>=' in value) return row[key] >= value['>='];
       }
-      return row[key] === value;
+      return value === null ? row[key] == null : row[key] === value;
     });
   }
 
@@ -146,12 +146,82 @@ describe('Generation run lifecycle', () => {
     expect(buildTargetUrl.firstCall.args[0].targetFormName).to.equal('summary-special');
   });
 
+  for (const maxRetries of [0, 1]) {
+    it(`stops advertising retries after the final allowed attempt with maxRetries=${maxRetries}`, async () => {
+      const runtime = Reflect.get(globalThis, 'sails');
+      runtime.config.generation.provider.maxRetries = maxRetries;
+      runtime.services.agendaqueueservice.now.rejects(new Error('queue unavailable'));
+      await service.launch({ actor, brand: {} as any, user: {} as any, bindingKey: binding.key });
+      const input = {
+        actor, brand: {} as any, user: {} as any, runId: 'run-1', answers: [],
+        targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' as const }, targetDraft: {},
+      };
+      for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        const result = await service.execute(input);
+        expect(result.status).to.equal('failed');
+        expect(result.attemptCount).to.equal(attempt);
+        expect(result.retryable).to.equal(attempt <= maxRetries);
+        expect(result.error?.retryable).to.equal(attempt <= maxRetries);
+      }
+      // The stored error remains transient, but this creation intent has no attempts left.
+      expect(rows[0].retryable).to.equal(true);
+      const polled = await service.getForActor(actor, 'run-1');
+      expect(polled.retryable).to.equal(false);
+      expect(polled.error?.retryable).to.equal(false);
+      let rejection: unknown;
+      try { await service.execute(input); } catch (error) { rejection = error; }
+      expect(rejection).to.have.property('code', 'GENERATION_INVALID_STATE');
+      expect(runtime.services.agendaqueueservice.now.callCount).to.equal(maxRetries + 1);
+    });
+  }
+
   for (const status of ['queued', 'running', 'validating', 'cancelRequested']) {
     it(`settles an expired ${status} run whose worker was lost`, async () => {
       rows.push({ id: 'lost-run', brandId: actor.brandId, status, attemptCount: 1, artifactExpiresAt: past });
       await service.expireAbandonedRuns();
       expect(rows[0].status).to.equal(status === 'cancelRequested' ? 'cancelled' : 'expired');
       expect(rows[0].retryable).to.equal(false);
+    });
+  }
+
+  for (const commitLeaseExpiresAt of [undefined, past]) {
+    it(`expires abandoned commits with ${commitLeaseExpiresAt ? 'expired' : 'missing'} leases after the artifact deadline`, async () => {
+      rows.push({ id: 'commit-run', brandId: actor.brandId, status: 'committing', attemptCount: 1,
+        artifactExpiresAt: past, commitToken: 'old-commit', commitLeaseExpiresAt });
+      await service.expireAbandonedRuns();
+      expect(rows[0]).to.include({ status: 'expired', retryable: false });
+    });
+  }
+
+  it('keeps an abandoned commit recoverable before the artifact deadline', async () => {
+    rows.push({ id: 'commit-run', brandId: actor.brandId, status: 'committing', attemptCount: 1,
+      artifactExpiresAt: future, commitToken: 'old-commit', commitLeaseExpiresAt: past });
+    await service.expireAbandonedRuns();
+    expect(rows[0].status).to.equal('committing');
+  });
+
+  it('preserves a live commit lease after its artifact deadline', async () => {
+    rows.push({ id: 'commit-run', brandId: actor.brandId, status: 'committing', attemptCount: 1,
+      artifactExpiresAt: past, commitToken: 'live-commit', commitLeaseExpiresAt: future });
+    await service.expireAbandonedRuns();
+    expect(rows[0].status).to.equal('committing');
+  });
+
+  for (const change of ['token', 'lease', 'attempt', 'artifact', 'finalizing']) {
+    it(`does not expire a commit after its ${change} changes concurrently`, async () => {
+      rows.push({ id: 'commit-run', brandId: actor.brandId, status: 'committing', attemptCount: 1,
+        artifactExpiresAt: past, commitToken: 'old-commit', commitLeaseExpiresAt: past });
+      beforeUpdate = () => {
+        if (change === 'token') rows[0].commitToken = 'replacement-commit';
+        if (change === 'lease') rows[0].commitLeaseExpiresAt = future;
+        if (change === 'attempt') rows[0].attemptCount = 2;
+        if (change === 'artifact') rows[0].artifactExpiresAt = future;
+        if (change === 'finalizing' && rows[0].status === 'completed') {
+          rows[0].status = 'committing'; rows[0].commitToken = 'replacement-commit';
+        }
+      };
+      await service.expireAbandonedRuns();
+      expect(rows[0].status).to.equal('committing');
     });
   }
 

@@ -143,11 +143,12 @@ export namespace Services {
       const result = run.status === 'completed' || run.status === 'committing' || run.status === 'committed'
         ? payload?.candidate ?? null : null;
       const profile = await GenerationProfileVersion.findOne({ id: run.profileVersionId, brandId: actor.brandId });
+      const retryable = run.retryable && run.attemptCount < sails.config.generation.provider.maxRetries + 1;
       return {
         runId: run.id, status: run.status, phase: run.phase, attemptCount: run.attemptCount,
-        retryable: run.retryable, questions: payload?.questions ?? [], result,
+        retryable, questions: payload?.questions ?? [], result,
         ...(result ? { completionValues: payload?.completionValues ?? [] } : {}),
-        ...(run.errorCode ? { error: { code: run.errorCode, messageKey: `generation-error-${run.errorCode.toLowerCase().replaceAll('_', '-')}`, retryable: run.retryable } } : {}),
+        ...(run.errorCode ? { error: { code: run.errorCode, messageKey: `generation-error-${run.errorCode.toLowerCase().replaceAll('_', '-')}`, retryable } } : {}),
         artifactExpiresAt: run.artifactExpiresAt,
         ...(profile?.definition.documentSources ? {
           documentPolicy: profile.definition.documentSources,
@@ -327,13 +328,31 @@ export namespace Services {
       const runs = requireWaterlineRows<GenerationRunAttributes>(
         await GenerationRun.find({
           artifactExpiresAt: { '<=': expiredAt },
-          status: { in: ['draft', 'queued', 'running', 'validating', 'cancelRequested', 'completed', 'failed'] },
+          status: { in: ['draft', 'queued', 'running', 'validating', 'cancelRequested', 'completed', 'committing', 'failed'] },
         }),
         'GenerationRun',
       );
       const persistence = requireService<PersistenceLike>('generationpersistenceservice', ['transitionRun']);
       for (const run of runs) {
         try {
+          if (run.status === 'committing') {
+            if (run.commitLeaseExpiresAt && !(Date.parse(run.commitLeaseExpiresAt) <= Date.parse(expiredAt))) continue;
+            // The commit may renew or change ownership after this snapshot. Fence both
+            // legal transitions by the exact observed lease, token, and attempt.
+            const criteria = {
+              id: run.id, brandId: run.brandId, attemptCount: run.attemptCount,
+              artifactExpiresAt: { '<=': expiredAt },
+              commitToken: run.commitToken ?? null,
+              commitLeaseExpiresAt: run.commitLeaseExpiresAt ?? null,
+            };
+            const released = await GenerationRun.updateOne({ ...criteria, status: 'committing' })
+              .set({ status: 'completed', retryable: false });
+            if (released) {
+              await GenerationRun.updateOne({ ...criteria, status: 'completed' })
+                .set({ status: 'expired', retryable: false });
+            }
+            continue;
+          }
           const interrupted = run.status === 'running' || run.status === 'validating';
           // A queue lock can expire during a live provider call. Only the existing
           // operational artifact deadline makes this work unusable and safe to settle.
