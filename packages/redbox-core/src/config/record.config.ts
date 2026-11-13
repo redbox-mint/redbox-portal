@@ -5,6 +5,17 @@
 
 export interface RecordAuditingConfig {
   enabled: boolean;
+  /** Maximum wait for a direct audit write in milliseconds; defaults to 5000. */
+  writeTimeoutMs?: number;
+  /** Maximum actual audit inserts in flight per RecordsService instance, including timed-out writes. */
+  maxConcurrentWrites?: number;
+  /** Total short direct-write attempts before durable recovery; defaults to 3. */
+  writeAttempts?: number;
+  /** Initial Effect retry delay in milliseconds, with exponential backoff and jitter. */
+  retryDelayMs?: number;
+  /** Separate recovery job so failed new audits do not join the legacy audit backlog. */
+  recordAuditRecoveryJobName?: string;
+  /** Legacy Agenda job name retained for outstanding audit jobs; new audits write directly to storage. */
   recordAuditJobName: string;
 }
 
@@ -29,6 +40,18 @@ export interface RecordContextVariableConfig {
 
 export interface RecordExportConfig {
   maxRecords: number;
+  background?: RecordExportBackgroundConfig;
+}
+
+export interface RecordExportBackgroundConfig {
+  /** Name of a private disk from storage.disks. */
+  diskName?: string;
+  /** Download availability, measured from successful completion. */
+  retentionHours?: number;
+  /** Maximum time spent preparing a CSV after a worker claims it. */
+  maxRunMinutes?: number;
+  /** Maximum acknowledged queue wait before failing a request, independently of worker execution. */
+  maxQueueMinutes?: number;
 }
 
 export interface RecordTransferConfig {
@@ -42,6 +65,12 @@ export interface RecordSearchConfig {
 
 export interface RecordAttachmentsConfig {
   path: string;
+  /**
+   * Maximum body bytes per TUS PATCH or creation-with-upload request, across all
+   * internal storage parts (buffered at up to 8 MiB each). Defaults to
+   * record.maxUploadSize. Must be a positive safe integer.
+   */
+  maxChunkSize?: number;
   store?: 'file' | 's3';
   file?: {
     directory: string;
@@ -87,6 +116,11 @@ export interface RecordConfig {
 export const record: RecordConfig = {
   auditing: {
     enabled: true,
+    writeTimeoutMs: 5000,
+    maxConcurrentWrites: 8,
+    writeAttempts: 3,
+    retryDelayMs: 100,
+    recordAuditRecoveryJobName: 'RecordsService-RecoverRecordAudit',
     recordAuditJobName: 'RecordsService-StoreRecordAudit',
   },
   baseUrl: {
@@ -158,6 +192,12 @@ export const record: RecordConfig = {
   },
   export: {
     maxRecords: 20,
+    background: {
+      diskName: 'exports',
+      retentionHours: 24,
+      maxRunMinutes: 60,
+      maxQueueMinutes: 24 * 60,
+    },
   },
   transfer: {
     maxRecordsPerPage: 1000000,

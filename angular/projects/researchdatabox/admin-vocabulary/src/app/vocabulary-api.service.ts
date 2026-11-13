@@ -17,6 +17,7 @@ export interface VocabularySummary {
   type: 'flat' | 'tree';
   source: VocabularySource;
   sourceId?: string;
+  lastSyncedAt?: string | null;
 }
 
 export interface VocabularyEntry {

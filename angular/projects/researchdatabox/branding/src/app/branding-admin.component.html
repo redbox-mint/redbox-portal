@@ -1,142 +1,365 @@
-<div class="px-3 px-lg-4" *ngIf="initialized">
-  <div class="row mx-0">
-    <!-- Draft Configuration Card - Full Width -->
-    <div class="col-12 px-0 mb-4">
-      <div class="card panel-style panel-default">
-        <div class="card-header">
-          <h5 class="card-title mb-0">
-            {{ 'branding-configuration-title' | i18next }}
-          </h5>
-        </div>
-        <div class="card-body">
-          <!-- Color Variables -->
-          <div class="mb-4">
-            <ng-container *ngFor="let group of colourGroups; let i = index">
-              <div class="mb-3">
-                <h6 class="text-secondary mb-2">{{ group.name }}</h6>
-                <div class="alert alert-info py-2 px-3 mb-3" role="alert">
-                  <span [innerHTML]="group.help"></span>
+<div class="branding-admin" *ngIf="initialized">
+  <div [attr.inert]="pendingAction || pendingRestoreId ? '' : null">
+    <div class="rb-admin-save-content">
+    <nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next">
+      <ol>
+        <li>
+          <a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a>
+        </li>
+        <li>{{ 'admin-nav-site' | i18next }}</li>
+        <li>
+          <span aria-current="page">{{ 'admin-nav-branding' | i18next }}</span>
+        </li>
+      </ol>
+    </nav>
+    <header class="rb-admin-page-header">
+      <div>
+        <h1>{{ 'admin-nav-branding' | i18next }}</h1>
+        <p>{{ 'admin-branding-description' | i18next }}</p>
+      </div>
+      <div class="rb-admin-page-actions">
+        <span class="badge" [class.rb-admin-badge-warning]="hasDraft" [class.rb-admin-badge-success]="!hasDraft">{{
+          (hasDraft ? 'admin-branding-unpublished-count' : 'admin-branding-published') | i18next: { count: draftChangeCount }
+        }}</span>
+        <button
+          type="button"
+          class="btn btn-outline-secondary branding-generate"
+          (click)="createPreview()"
+          [disabled]="!state || isUnavailable('preview') || customIncomplete || invalidColours"
+        >
+          {{
+            (isBusy('preview') ? 'branding-generate-preview-generating' : 'admin-branding-generate-preview') | i18next
+          }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary branding-publish"
+          aria-describedby="branding-publish-help"
+          (click)="pendingAction = 'publish'"
+          [disabled]="!state || isUnavailable('publish') || customIncomplete || invalidColours"
+        >
+          {{ (isBusy('publish') ? 'branding-publish-publishing' : 'branding-publish-button') | i18next }}
+        </button>
+      </div>
+    </header>
+    <p class="rb-admin-hint" id="branding-publish-help">{{ 'admin-branding-draft-publish-help' | i18next }}</p>
+    <div class="alert alert-success" *ngIf="message" role="status">{{ message }}</div>
+    <div class="alert alert-danger" *ngIf="error" role="alert">{{ error }}</div>
+    <div class="alert alert-warning" *ngIf="conflict" role="alert">
+      {{ 'branding-conflict-message' | i18next }}
+      <button type="button" class="btn btn-outline-secondary" (click)="reloadState()">
+        {{ 'branding-conflict-reload' | i18next }}
+      </button>
+    </div>
+    <div class="alert alert-warning" *ngIf="invalidColours" role="alert">
+      {{ 'admin-branding-invalid-hex' | i18next }}
+    </div>
+    <div>
+      <ul class="nav nav-tabs branding-tabs" role="tablist" rbAdminTabs [attr.aria-label]="'admin-branding-sections' | i18next">
+        <li class="nav-item" role="presentation" *ngFor="let tab of tabs">
+          <button
+            type="button"
+            class="nav-link" role="tab"
+            [id]="'branding-tab-' + tab"
+            [class.active]="activeTab === tab"
+            [attr.aria-selected]="activeTab === tab"
+            [attr.tabindex]="activeTab === tab ? 0 : -1"
+            [attr.aria-controls]="'branding-' + tab"
+            (click)="activeTab = tab"
+          >
+            {{ 'admin-branding-tab-' + tab | i18next }}
+            <span class="badge rb-admin-badge-info" *ngIf="tab === 'history'">{{ versions.length }}</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+    <div id="branding-colours" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'colours'" aria-labelledby="branding-tab-colours">
+      <div class="rb-admin-split branding-colour-layout">
+        <nav class="rb-admin-section-rail" [attr.aria-label]="'admin-branding-colour-groups' | i18next">
+          <a
+            *ngFor="let group of colourGroups; let i = index"
+            [href]="'#branding-group-' + i"
+            [attr.aria-current]="selectedGroup === i ? 'location' : null"
+            (click)="$event.preventDefault(); selectedGroup = i"
+            >{{ group.name }}</a
+          >
+        </nav>
+        <div class="rb-admin-split-main" *ngIf="colourGroups[selectedGroup] as group">
+          <section class="rb-admin-form-section" [id]="'branding-group-' + selectedGroup">
+            <div class="rb-admin-form-section-header">
+              <div>
+                <h2 class="h3">{{ group.name }}</h2>
+                <p [innerHTML]="group.help"></p>
+              </div>
+            </div>
+            <div class="rb-admin-form-section-body branding-colour-fields">
+              <div class="rb-admin-field" *ngFor="let variable of group.variables">
+                <label [for]="variable.key + '-hex'">{{ variable.label }}</label>
+                <div class="branding-colour-row">
+                  <input
+                    type="color"
+                    class="form-control form-control-color"
+                    [id]="variable.key"
+                    [value]="normaliseHex(getColourValue(variable)) || '#000000'"
+                    (input)="updateVariable(variable.key, $event)"
+                    [attr.aria-label]="variable.label"
+                    [disabled]="isUnavailable('save-draft')"
+                  />
+                  <input
+                    type="text"
+                    class="form-control branding-hex"
+                    [id]="variable.key + '-hex'"
+                    [value]="getColourValue(variable)"
+                    (input)="updateVariable(variable.key, $event)"
+                    [attr.aria-invalid]="!normaliseHex(getColourValue(variable))"
+                    [attr.aria-describedby]="variable.key + '-help'"
+                    [disabled]="isUnavailable('save-draft')"
+                    spellcheck="false"
+                  />
                 </div>
-                <div class="row g-3">
-                  <div class="col-lg-3 col-md-4 col-sm-6" *ngFor="let colourVar of group.variables">
-                    <div class="mb-3">
-                      <label [for]="colourVar.key" class="form-label small">
-                        {{ colourVar.label }}
-                        <i
-                          *ngIf="colourVar.help"
-                          class="fas fa-question-circle ms-1 text-muted"
-                          tabindex="0"
-                          data-bs-toggle="tooltip"
-                          [attr.data-bs-title]="colourVar.help"
-                          [attr.aria-label]="colourVar.help"
-                        ></i>
-                      </label>
-                      <div class="input-group input-group-sm">
-                        <input
-                          type="color"
-                          class="form-control form-control-colour colour-picker-narrow"
-                          [id]="colourVar.key"
-                          [value]="draftConfig[colourVar.key] || colourVar.default"
-                          (input)="updateVariable(colourVar.key, $event)"
-                        />
-                        <input
-                          type="text"
-                          class="form-control"
-                          [value]="draftConfig[colourVar.key] || colourVar.default"
-                          (input)="updateVariable(colourVar.key, $event)"
-                          placeholder="#000000"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                <span class="rb-admin-hint" [id]="variable.key + '-help'">{{ variable.help }}</span>
+              </div>
+              <div class="branding-contrast" aria-live="polite">
+                <p class="rb-admin-hint">{{ 'admin-branding-contrast-help' | i18next }}</p>
+                <div *ngFor="let check of contrastChecks" class="branding-contrast-check">
+                  <span>{{ check.label }}</span
+                  ><span
+                    class="badge"
+                    [class.rb-admin-badge-success]="check.ratio !== null && check.ratio >= 4.5"
+                    [class.rb-admin-badge-warning]="check.ratio === null || check.ratio < 4.5"
+                    >{{
+                      check.ratio === null
+                        ? ('admin-branding-contrast-invalid' | i18next)
+                        : (check.ratio | number: '1.2-2') +
+                          ':1 · ' +
+                          ((check.ratio >= 4.5 ? 'admin-branding-contrast-ok' : 'admin-branding-contrast-warn')
+                            | i18next)
+                    }}</span
+                  >
                 </div>
               </div>
-            </ng-container>
+            </div>
+            <div class="card-footer">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                (click)="resetGroup()"
+                [disabled]="isUnavailable('save-draft')"
+              >
+                {{ 'admin-branding-reset-group' | i18next }}
+              </button>
+            </div>
+          </section>
+        </div>
+        <aside
+          class="rb-admin-split-side branding-draft-preview"
+          [attr.aria-label]="'admin-branding-draft-preview' | i18next"
+        >
+          <h2>{{ 'admin-branding-draft-preview' | i18next }}</h2>
+          <div class="branding-miniature">
+            <div
+              class="branding-mini-utility"
+              [class.branding-highlight]="selectedGroup === 0"
+              [style.background-color]="colour('header-branding-background-color')"
+              [style.color]="colour('header-branding-text-color')"
+            >
+              {{ 'admin-branding-preview-welcome' | i18next }} ·
+              <span [style.color]="colour('header-branding-link-color')">{{
+                'admin-branding-preview-logout' | i18next
+              }}</span>
+            </div>
+            <div
+              class="branding-mini-band"
+              [class.branding-highlight]="selectedGroup === 1"
+              [style.background-color]="colour('site-branding-area-background-color')"
+              [style.color]="colour('logo-heading-text-color')"
+            >
+              <img *ngIf="logoUrl" [src]="logoUrl" [alt]="'admin-branding-draft-logo-preview' | i18next" /><span>{{
+                'admin-branding-preview-portal' | i18next
+              }}</span>
+            </div>
+            <div
+              class="branding-mini-menu"
+              [class.branding-highlight]="selectedGroup === 2 || selectedGroup === 1"
+              [style.background-color]="colour('main-menu-branding-background-color')"
+            >
+              <span
+                [style.background-color]="colour('main-menu-active-item-background-color')"
+                [style.color]="colour('main-menu-active-item-color')"
+                >{{ 'admin-branding-preview-home' | i18next }}</span
+              ><span
+                *ngFor="let label of ['plan', 'manage', 'admin']"
+                [style.background-color]="colour('main-menu-inactive-item-background-color')"
+                [style.color]="colour('main-menu-inactive-item-color')"
+                >{{ 'admin-branding-preview-' + label | i18next }}</span
+              >
+            </div>
+            <div
+              class="branding-mini-content"
+              [class.branding-highlight]="selectedGroup === 3"
+              [style.background-color]="colour('body-background-color')"
+              [style.color]="colour('body-text-color')"
+            >
+              <div
+                class="branding-mini-sidebar"
+                *ngIf="selectedGroup === 6"
+                [class.branding-highlight]="true"
+                [style.color]="colour('admin-sidebar-text-color')"
+              >
+                {{ 'admin-nav-site' | i18next }} · {{ 'admin-nav-branding' | i18next }}
+              </div>
+              <div
+                class="branding-mini-panel"
+                [class.branding-highlight]="selectedGroup === 5"
+                [style.border-color]="colour('panel-branding-border-color')"
+              >
+                <div
+                  class="branding-mini-panel-heading"
+                  [style.background-color]="colour('panel-branding-background-color')"
+                  [style.color]="colour('panel-branding-color')"
+                >
+                  {{ 'admin-branding-preview-heading' | i18next }}
+                </div>
+                <div class="branding-mini-panel-body">
+                  {{ 'admin-branding-preview-body' | i18next }}
+                  <span
+                    class="branding-mini-link"
+                    [class.branding-highlight]="selectedGroup === 4"
+                    [style.color]="colour('anchor-color')"
+                    >{{ 'admin-branding-preview-link' | i18next }}</span
+                  >
+                </div>
+              </div>
+              <div class="branding-mini-status" [class.branding-highlight]="selectedGroup === 8">
+                <span
+                  *ngFor="let context of contexts"
+                  [style.background-color]="colour(context)"
+                  [style.color]="colour(context + '-text-color')"
+                  >{{ 'admin-branding-preview-' + context | i18next }}</span
+                >
+              </div>
+            </div>
+            <div
+              class="branding-mini-footer"
+              [class.branding-highlight]="selectedGroup === 7"
+              [style.background-color]="colour('footer-bottom-area-branding-background-color')"
+              [style.color]="colour('footer-bottom-area-branding-color')"
+            >
+              {{ 'branding-footer-name' | i18next }}
+            </div>
           </div>
-
-          <!-- Typography -->
-          <div class="mb-4" *ngIf="state">
-            <h6 class="text-secondary mb-2">{{ 'branding-typography-title' | i18next }}</h6>
-            <p class="text-muted small">{{ 'branding-typography-help' | i18next }}</p>
-            <div class="alert alert-warning py-2 px-3 mb-3" role="alert" *ngIf="state.healthWarnings?.length">
-              <strong>{{ 'branding-health-warnings-title' | i18next }}</strong>
-              <ul class="mb-0 mt-1">
-                <li *ngFor="let warning of state.healthWarnings">
-                  {{ 'branding-health-warning-face' | i18next }}: {{ warning.slot || '–' }} ({{ warning.code }})
-                </li>
-              </ul>
+          <p class="rb-admin-hint">{{ 'admin-branding-preview-help' | i18next }}</p>
+        </aside>
+      </div>
+    </div>
+    <section id="branding-assets" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'assets'" aria-labelledby="branding-tab-assets">
+      <div class="alert alert-info" role="status">{{ 'admin-branding-assets-draft' | i18next }}</div>
+      <div class="rb-admin-form-grid">
+        <section class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header">
+            <h2 class="h3">{{ 'admin-branding-logo' | i18next }}</h2>
+            <span class="badge rb-admin-badge-info">{{ 'branding-optional' | i18next }}</span>
+          </div>
+          <div class="rb-admin-form-section-body">
+            <div class="branding-upload-preview">
+              <img *ngIf="logoUrl" [src]="logoUrl" [alt]="'admin-branding-draft-logo-preview' | i18next" />
             </div>
-            <div class="alert alert-secondary py-2 px-3 mb-3" role="status">
-              <span *ngIf="draftTypefaceMode === 'default'">{{ 'branding-typography-state-default' | i18next }}</span>
-              <span *ngIf="draftTypefaceMode === 'custom'">{{ 'branding-typography-state-custom' | i18next }}</span>
+            <p class="badge rb-admin-badge-warning" *ngIf="state?.draft?.dirty?.logo">{{ 'admin-branding-draft-logo' | i18next }}</p>
+            <label for="logoUpload" class="form-label">{{ 'branding-logo-upload-label' | i18next }}</label
+            ><input
+              type="file"
+              class="form-control"
+              id="logoUpload"
+              accept="image/*"
+              (change)="uploadLogo($event)"
+              [disabled]="isUnavailable('logo')"
+              aria-describedby="logo-help"
+            />
+            <p class="rb-admin-hint" id="logo-help">{{ 'admin-branding-logo-help' | i18next }}</p>
+          </div>
+        </section>
+        <section class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header">
+            <h2 class="h3">{{ 'admin-branding-favicon' | i18next }}</h2>
+            <span class="badge rb-admin-badge-info">{{ 'branding-optional' | i18next }}</span>
+          </div>
+          <div class="rb-admin-form-section-body">
+            <div class="branding-upload-preview branding-favicon">
+              <img *ngIf="faviconUrl" [src]="faviconUrl" [alt]="'admin-branding-draft-favicon-preview' | i18next" />
             </div>
-            <div class="alert alert-warning py-2 px-3 mb-3" role="alert" *ngIf="customIncomplete">
-              {{ 'branding-typography-incomplete' | i18next }}
-            </div>
-            <div class="row g-3">
-              <div class="col-lg-3 col-md-6" *ngFor="let card of typefaceSlots">
-                <div class="card h-100" [attr.aria-label]="card.label | i18next">
-                  <div class="card-body">
-                    <h6 class="card-title">
-                      {{ card.label | i18next }}
-                      <span class="badge bg-danger ms-1" *ngIf="card.required">{{
-                        'branding-required' | i18next
-                      }}</span>
-                      <span class="badge bg-secondary ms-1" *ngIf="!card.required">{{
-                        'branding-optional' | i18next
-                      }}</span>
-                    </h6>
-                    <p class="card-text small text-muted">{{ card.hint | i18next }}</p>
-                    <ng-container *ngIf="faceFor(card.slot) as face; else emptySlot">
-                      <dl class="small mb-2">
-                        <dt>{{ 'branding-face-file' | i18next }}</dt>
-                        <dd class="text-break">{{ face.originalFilename }}</dd>
-                        <dt>{{ 'branding-face-size' | i18next }}</dt>
-                        <dd>{{ face.sizeBytes }}</dd>
-                        <dt *ngIf="face.inspection?.family || face.inspection?.subfamily">
-                          {{ 'branding-face-metadata' | i18next }}
-                        </dt>
-                        <dd *ngIf="face.inspection?.family || face.inspection?.subfamily">
-                          {{ face.inspection.family }} {{ face.inspection.subfamily }}
-                        </dd>
-                      </dl>
-                      <div
-                        class="alert alert-warning py-1 px-2 small"
-                        role="alert"
-                        *ngFor="let warning of face.warnings"
-                      >
-                        {{ warning }}
-                      </div>
-                      <div class="d-flex flex-wrap gap-2">
-                        <label class="form-label mb-0">
-                          {{ 'branding-face-replace' | i18next }}
-                          <input
-                            type="file"
-                            class="form-control form-control-sm"
-                            accept=".woff2,font/woff2"
-                            (change)="uploadFace(card.slot, $event)"
-                            [disabled]="isUnavailable('face-' + card.slot)"
-                            [attr.aria-label]="card.label | i18next"
-                          />
-                        </label>
-                        <button
-                          class="btn btn-sm btn-outline-danger"
-                          (click)="removeFace(card.slot)"
-                          [disabled]="isUnavailable('face-' + card.slot)"
-                        >
-                          <span
-                            *ngIf="isBusy('face-' + card.slot)"
-                            class="spinner-border spinner-border-sm me-1"
-                            role="status"
-                          ></span>
-                          {{ 'branding-face-remove' | i18next }}
-                        </button>
-                      </div>
-                    </ng-container>
-                    <ng-template #emptySlot>
-                      <p class="text-muted small">{{ 'branding-face-empty' | i18next }}</p>
+            <p class="badge rb-admin-badge-warning" *ngIf="state?.draft?.dirty?.favicon">{{ 'admin-branding-draft-favicon' | i18next }}</p>
+            <label for="faviconUpload" class="form-label">{{ 'branding-favicon-upload-label' | i18next }}</label
+            ><input
+              type="file"
+              class="form-control"
+              id="faviconUpload"
+              accept="image/png,image/svg+xml,image/x-icon,.ico"
+              (change)="uploadFavicon($event)"
+              [disabled]="isUnavailable('favicon')"
+              aria-describedby="favicon-help"
+            />
+            <p class="rb-admin-hint" id="favicon-help">{{ 'branding-favicon-upload-help' | i18next }}</p>
+          </div>
+        </section>
+      </div>
+    </section>
+    <section id="branding-typography" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'typography'" aria-labelledby="branding-tab-typography">
+      <section class="rb-admin-form-section">
+        <div class="rb-admin-form-section-header">
+          <div>
+            <h2 class="h3">{{ 'branding-typography-title' | i18next }}</h2>
+            <p>{{ 'branding-typography-help' | i18next }}</p>
+          </div>
+        </div>
+        <div class="rb-admin-form-section-body">
+          <div class="alert alert-warning py-2 px-3 mb-3" role="alert" *ngIf="state?.healthWarnings?.length">
+            <strong>{{ 'branding-health-warnings-title' | i18next }}</strong>
+            <ul class="mb-0 mt-1">
+              <li *ngFor="let warning of state?.healthWarnings">
+                {{ 'branding-health-warning-face' | i18next }}: {{ warning.slot || '–' }} ({{ warning.code }})
+              </li>
+            </ul>
+          </div>
+          <div class="alert alert-info py-2 px-3 mb-3" role="status">
+            <span *ngIf="draftTypefaceMode === 'default'">{{ 'branding-typography-state-default' | i18next }}</span>
+            <span *ngIf="draftTypefaceMode === 'custom'">{{ 'branding-typography-state-custom' | i18next }}</span>
+          </div>
+          <div class="alert alert-warning py-2 px-3 mb-3" role="alert" *ngIf="customIncomplete">
+            {{ 'branding-typography-incomplete' | i18next }}
+          </div>
+          <div class="rb-admin-form-grid">
+            <div class="branding-face" *ngFor="let card of typefaceSlots">
+              <div class="rb-admin-form-section h-100" [attr.aria-label]="card.label | i18next">
+                <div class="rb-admin-form-section-body">
+                  <h3 class="card-title h6">
+                    {{ card.label | i18next }}
+                    <span class="badge rb-admin-badge-warning ms-1" *ngIf="card.required">{{
+                      'branding-required' | i18next
+                    }}</span>
+                    <span class="badge rb-admin-badge-info ms-1" *ngIf="!card.required">{{
+                      'branding-optional' | i18next
+                    }}</span>
+                  </h3>
+                  <p class="card-text small text-muted">{{ card.hint | i18next }}</p>
+                  <ng-container *ngIf="faceFor(card.slot) as face; else emptySlot">
+                    <dl class="small mb-2">
+                      <dt>{{ 'branding-face-file' | i18next }}</dt>
+                      <dd class="text-break">{{ face.originalFilename }}</dd>
+                      <dt>{{ 'branding-face-size' | i18next }}</dt>
+                      <dd>{{ face.sizeBytes }}</dd>
+                      <dt *ngIf="face.inspection?.family || face.inspection?.subfamily">
+                        {{ 'branding-face-metadata' | i18next }}
+                      </dt>
+                      <dd *ngIf="face.inspection?.family || face.inspection?.subfamily">
+                        {{ face.inspection.family }} {{ face.inspection.subfamily }}
+                      </dd>
+                    </dl>
+                    <div class="alert alert-warning py-1 px-2 small" role="alert" *ngFor="let warning of face.warnings">
+                      {{ warning }}
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
                       <label class="form-label mb-0">
-                        {{ 'branding-face-upload' | i18next }}
+                        {{ 'branding-face-replace' | i18next }}
                         <input
                           type="file"
                           class="form-control form-control-sm"
@@ -146,255 +369,261 @@
                           [attr.aria-label]="card.label | i18next"
                         />
                       </label>
-                      <span
-                        *ngIf="isBusy('face-' + card.slot)"
-                        class="spinner-border spinner-border-sm ms-2"
-                        role="status"
-                      ></span>
-                    </ng-template>
-                  </div>
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        (click)="removeFace(card.slot)"
+                        [disabled]="isUnavailable('face-' + card.slot)"
+                      >
+                        <span
+                          *ngIf="isBusy('face-' + card.slot)"
+                          class="spinner-border spinner-border-sm me-1"
+                          role="status"
+                        ></span>
+                        {{ 'branding-face-remove' | i18next }}
+                      </button>
+                    </div>
+                  </ng-container>
+                  <ng-template #emptySlot>
+                    <p class="text-muted small">{{ 'branding-face-empty' | i18next }}</p>
+                    <label class="form-label mb-0">
+                      {{ 'branding-face-upload' | i18next }}
+                      <input
+                        type="file"
+                        class="form-control form-control-sm"
+                        accept=".woff2,font/woff2"
+                        (change)="uploadFace(card.slot, $event)"
+                        [disabled]="isUnavailable('face-' + card.slot)"
+                        [attr.aria-label]="card.label | i18next"
+                      />
+                    </label>
+                    <span
+                      *ngIf="isBusy('face-' + card.slot)"
+                      class="spinner-border spinner-border-sm ms-2"
+                      role="status"
+                    ></span>
+                  </ng-template>
                 </div>
               </div>
             </div>
-            <div class="d-flex flex-wrap gap-2 mt-3">
-              <button
-                class="btn btn-outline-secondary"
-                (click)="useDefaultTypography()"
-                [disabled]="isUnavailable('use-default')"
-              >
-                <span *ngIf="isBusy('use-default')" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                {{ 'branding-use-default-typography' | i18next }}
-              </button>
-              <button
-                class="btn btn-outline-secondary"
-                (click)="revertTypefaceDraft()"
-                [disabled]="isUnavailable('revert-typeface')"
-              >
-                <span
-                  *ngIf="isBusy('revert-typeface')"
-                  class="spinner-border spinner-border-sm me-2"
-                  role="status"
-                ></span>
-                {{ 'branding-revert-typeface' | i18next }}
-              </button>
-            </div>
           </div>
-          <div class="row mt-3 border-top">
-            <div class="col-md-6 mt-3">
-              <div class="mb-3">
-                <label for="logoUpload" class="form-label">
-                  <i class="fas fa-image me-2"></i>
-                  {{ 'branding-logo-upload-label' | i18next }}
-                </label>
-                <input
-                  type="file"
-                  class="form-control"
-                  id="logoUpload"
-                  [disabled]="isUnavailable('logo')"
-                  (change)="uploadLogo($event)"
-                  accept="image/*"
-                />
-              </div>
-            </div>
-            <div class="col-md-6 mt-3">
-              <div class="mb-3">
-                <label for="faviconUpload" class="form-label">
-                  <i class="fas fa-star me-2"></i>
-                  {{ 'branding-favicon-upload-label' | i18next }}
-                </label>
-                <input
-                  type="file"
-                  class="form-control"
-                  id="faviconUpload"
-                  [disabled]="isUnavailable('favicon')"
-                  (change)="uploadFavicon($event)"
-                  accept="image/png,image/svg+xml,image/x-icon,.ico"
-                />
-                <div class="form-text">{{ 'branding-favicon-upload-help' | i18next }}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row mt-3 border-top pt-3">
-            <div class="col-12">
-              <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-primary" (click)="saveDraft()" [disabled]="isUnavailable('save-draft')">
-                  <i class="fas fa-save me-2"></i>
-                  <span *ngIf="!isBusy('save-draft')">{{ 'branding-save-draft-button' | i18next }}</span>
-                  <span *ngIf="isBusy('save-draft')">
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    {{ 'branding-save-draft-saving' | i18next }}
-                  </span>
-                </button>
-                <button
-                  class="btn btn-info"
-                  (click)="createPreview()"
-                  [disabled]="isUnavailable('preview') || customIncomplete"
-                >
-                  <i class="fas fa-eye me-2"></i>
-                  <span *ngIf="!isBusy('preview')">{{ 'branding-generate-preview-button' | i18next }}</span>
-                  <span *ngIf="isBusy('preview')">
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    {{ 'branding-generate-preview-generating' | i18next }}
-                  </span>
-                </button>
-                <button
-                  class="btn btn-success"
-                  (click)="publish()"
-                  [disabled]="isUnavailable('publish') || customIncomplete"
-                >
-                  <i class="fas fa-rocket me-2"></i>
-                  <span *ngIf="!isBusy('publish')">{{ 'branding-publish-button' | i18next }}</span>
-                  <span *ngIf="isBusy('publish')">
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    {{ 'branding-publish-publishing' | i18next }}
-                  </span>
-                </button>
-                <button class="btn btn-outline-secondary" (click)="resetDraft()">
-                  <i class="fas fa-undo me-2"></i>
-                  {{ 'branding-reset-draft-button' | i18next }}
-                </button>
-              </div>
-            </div>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <button
+              class="btn btn-outline-secondary"
+              (click)="useDefaultTypography()"
+              [disabled]="isUnavailable('use-default')"
+            >
+              <span *ngIf="isBusy('use-default')" class="spinner-border spinner-border-sm me-2" role="status"></span>
+              {{ 'admin-branding-use-default-typography' | i18next }}
+            </button>
+            <button
+              class="btn btn-outline-secondary"
+              (click)="revertTypefaceDraft()"
+              [disabled]="isUnavailable('revert-typeface')"
+            >
+              <span
+                *ngIf="isBusy('revert-typeface')"
+                class="spinner-border spinner-border-sm me-2"
+                role="status"
+              ></span>
+              {{ 'admin-branding-revert-typeface' | i18next }}
+            </button>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Status Messages -->
-  <div class="row mx-0" *ngIf="message || error || conflict">
-    <div class="col-12 px-0">
-      <div class="alert alert-success alert-dismissible fade show" *ngIf="message" role="alert">
-        <i class="fas fa-check-circle me-2"></i>
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
-      </div>
-      <div class="alert alert-danger alert-dismissible fade show" *ngIf="error" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i>
-        {{ error }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close alert"></button>
-      </div>
-      <div class="alert alert-warning fade show" *ngIf="conflict" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        {{ 'branding-conflict-message' | i18next }}
-        <button class="btn btn-sm btn-warning ms-2" (click)="reloadState()">
-          {{ 'branding-conflict-reload' | i18next }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Preview -->
-  <div class="row mx-0" *ngIf="previewCssUrl">
-    <div class="col-12 px-0">
-      <div class="card panel-default panel-style">
+      </section>
+    </section>
+    <section id="branding-history" role="tabpanel" tabindex="0" [hidden]="activeTab !== 'history'" aria-labelledby="branding-tab-history">
+      <div class="card">
         <div class="card-header">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-eye me-2"></i>
-            {{ 'branding-preview-title' | i18next }}
-            <span class="badge bg-info ms-2" *ngIf="previewKind === 'version'">{{
-              'branding-preview-version' | i18next
-            }}</span>
-          </h5>
+          <h2>{{ 'admin-branding-tab-history' | i18next }}</h2>
         </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <label for="previewSampleText" class="form-label">{{ 'branding-preview-sample-label' | i18next }}</label>
-            <input
-              type="text"
-              class="form-control"
-              id="previewSampleText"
-              [(ngModel)]="sampleText"
-              [attr.aria-label]="'branding-preview-sample-label' | i18next"
-            />
-            <div class="form-text">{{ 'branding-preview-sample-help' | i18next }}</div>
-          </div>
-          <branding-preview
-            *ngIf="previewCssUrl"
-            [baseCssHref]="previewBaseCssUrl"
-            [cssHref]="previewCssUrl"
-            [logoSrc]="logoUrl"
-            [sampleText]="sampleText"
-          ></branding-preview>
+        <div class="rb-admin-empty" *ngIf="!versions.length">
+          <i class="fa fa-history" aria-hidden="true"></i>
+          <h3>{{ 'branding-history-empty' | i18next }}</h3>
+          <p>{{ 'admin-branding-history-help' | i18next }}</p>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Version history -->
-  <div class="row mx-0" *ngIf="state">
-    <div class="col-12 px-0">
-      <div class="card panel-default panel-style">
-        <div class="card-header">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-history me-2"></i>
-            {{ 'branding-history-title' | i18next }}
-          </h5>
-        </div>
-        <div class="card-body">
-          <p class="text-muted" *ngIf="versions.length === 0">{{ 'branding-history-empty' | i18next }}</p>
-          <ul class="list-group" *ngIf="versions.length > 0">
-            <li class="list-group-item" *ngFor="let version of versions">
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <strong>v{{ version.version }}</strong>
-                <span class="badge bg-success" *ngIf="version.version === state.active.version">{{
-                  'branding-history-active' | i18next
-                }}</span>
-                <span class="text-muted small">{{ version.dateCreated }}</span>
-                <span class="small" *ngIf="version.actorDisplayName">{{ version.actorDisplayName }}</span>
-                <span class="small text-muted">{{ typefaceSummary(version.typeface) }}</span>
-                <span class="ms-auto d-flex flex-wrap gap-2">
-                  <button
-                    class="btn btn-sm btn-outline-info"
-                    (click)="previewVersionEntry(version)"
-                    [disabled]="isUnavailable('preview-' + version.id)"
-                  >
-                    {{ 'branding-history-preview' | i18next }}
-                  </button>
-                  <ng-container *ngIf="pendingRestoreId !== version.id; else confirmRestoreTpl">
+        <div class="table-responsive" *ngIf="versions.length">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'admin-branding-version' | i18next }}</th>
+                <th scope="col">{{ 'admin-branding-published-date' | i18next }}</th>
+                <th scope="col">{{ 'admin-branding-published-by' | i18next }}</th>
+                <th scope="col">{{ 'branding-typography-title' | i18next }}</th>
+                <th scope="col" class="rb-admin-actions-col text-end">{{ 'admin-branding-actions' | i18next }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let version of versions">
+                <td>
+                  <strong>v{{ version.version }}</strong>
+                  <span class="badge rb-admin-badge-success" *ngIf="version.version === state?.active?.version">{{
+                    'branding-history-active' | i18next
+                  }}</span>
+                </td>
+                <td>{{ version.dateCreated | adminDate }}</td>
+                <td>{{ version.actorDisplayName || version.actorId || '–' }}</td>
+                <td>{{ typefaceSummary(version.typeface) }}</td>
+                <td class="rb-admin-actions-col text-end">
+                  <div class="rb-admin-page-actions">
                     <button
-                      class="btn btn-sm btn-outline-warning"
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      (click)="previewVersionEntry(version)"
+                      [disabled]="isUnavailable('preview-' + version.id)"
+                    >
+                      {{ 'branding-history-preview' | i18next }}</button
+                    ><button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger"
                       (click)="confirmRestore(version.id)"
                       [disabled]="isUnavailable('restore-' + version.id)"
                     >
                       {{ 'branding-history-restore' | i18next }}
                     </button>
-                  </ng-container>
-                  <ng-template #confirmRestoreTpl>
-                    <span class="small text-danger">{{ 'branding-restore-confirm' | i18next }}</span>
-                    <button
-                      class="btn btn-sm btn-warning"
-                      (click)="restoreVersion(version)"
-                      [disabled]="isUnavailable('restore-' + version.id)"
-                    >
-                      <span
-                        *ngIf="isBusy('restore-' + version.id)"
-                        class="spinner-border spinner-border-sm me-1"
-                        role="status"
-                      ></span>
-                      {{ 'branding-restore-confirm-yes' | i18next }}
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary" (click)="cancelRestore()">
-                      {{ 'branding-restore-confirm-no' | i18next }}
-                    </button>
-                  </ng-template>
-                </span>
-              </div>
-            </li>
-          </ul>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <!-- Preview -->
+    <div class="row mx-0" *ngIf="previewCssUrl">
+      <div class="col-12 px-0">
+        <div class="rb-admin-form-section">
+          <div class="rb-admin-form-section-header">
+            <h2 class="card-title h5 mb-0">
+              <i class="fa fa-eye me-2"></i>
+              {{ 'branding-preview-title' | i18next }}
+              <span class="badge rb-admin-badge-info ms-2" *ngIf="previewKind === 'version'">{{
+                'branding-preview-version' | i18next
+              }}</span>
+            </h2>
+          </div>
+          <div class="rb-admin-form-section-body">
+            <div class="mb-3">
+              <label for="previewSampleText" class="form-label">{{ 'branding-preview-sample-label' | i18next }}</label>
+              <input
+                type="text"
+                class="form-control"
+                id="previewSampleText"
+                [(ngModel)]="sampleText"
+                [attr.aria-label]="'branding-preview-sample-label' | i18next"
+              />
+              <div class="form-text">{{ 'branding-preview-sample-help' | i18next }}</div>
+            </div>
+            <branding-preview
+              *ngIf="previewCssUrl"
+              [baseCssHref]="previewBaseCssUrl"
+              [cssHref]="previewCssUrl"
+              [logoSrc]="previewLogoUrl"
+              [faviconSrc]="previewFaviconUrl"
+              [sampleText]="sampleText"
+            ></branding-preview>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Loading State -->
-<div class="d-flex justify-content-center align-items-center loading-min-height" *ngIf="!initialized">
-  <div class="text-center">
-    <div class="spinner-border text-primary spinner-lg" role="status">
-      <span class="visually-hidden"></span>
     </div>
-    <p class="mt-3 text-muted"></p>
+    <div class="rb-admin-save-bar">
+      <span class="rb-admin-save-state" [class.branding-dirty]="localChangeCount > 0" aria-live="polite"
+        ><i
+          class="fa"
+          [class.fa-circle]="localChangeCount > 0"
+          [class.fa-check-circle]="!localChangeCount"
+          aria-hidden="true"
+        ></i
+        >{{
+          (isBusy('save-draft')
+            ? 'branding-save-draft-saving'
+            : localChangeCount
+              ? 'admin-branding-unsaved'
+              : 'admin-branding-saved'
+          ) | i18next
+        }}</span
+      >
+      <div class="rb-admin-page-actions">
+        <button
+          type="button"
+          class="btn btn-outline-danger"
+          (click)="pendingAction = 'reset'"
+          [disabled]="(!hasDraft && !localChangeCount) || isUnavailable('reset-draft')"
+        >
+          {{ 'admin-branding-reset-draft' | i18next }}</button
+        ><button
+          type="button"
+          class="btn btn-primary"
+          (click)="saveDraft()"
+          [disabled]="!state || !localChangeCount || isUnavailable('save-draft') || invalidColours"
+        >
+          {{ 'admin-branding-save-draft' | i18next }}
+        </button>
+      </div>
+    </div>
   </div>
+  <ng-container *ngIf="pendingRestoreId">
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" role="alertdialog" aria-modal="true" aria-labelledby="branding-restore-title" aria-describedby="branding-restore-help" (keydown.escape)="cancelRestore()">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture><div class="modal-content">
+        <div class="modal-header"><h2 id="branding-restore-title" class="modal-title">{{ 'branding-history-restore' | i18next }}</h2><button type="button" class="btn-close" [attr.aria-label]="'admin-config-close' | i18next" (click)="cancelRestore()"></button></div>
+        <div class="modal-body"><p id="branding-restore-help">{{ 'branding-restore-confirm' | i18next }}</p></div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="cancelRestore()">{{ 'branding-restore-confirm-no' | i18next }}</button><button type="button" class="btn rb-admin-danger-confirm" (click)="confirmVersionRestore()">{{ 'branding-restore-confirm-yes' | i18next }}</button></div>
+      </div></div>
+    </div>
+  </ng-container>
+  <ng-container *ngIf="pendingAction">
+    <div class="modal-backdrop fade show"></div>
+    <div
+      class="modal d-block"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="branding-dialog-title"
+      aria-describedby="branding-dialog-help"
+      (keydown.escape)="pendingAction = null"
+    >
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title" id="branding-dialog-title">
+              {{
+                (pendingAction === 'publish' ? 'admin-branding-publish-title' : 'admin-branding-reset-all-title') | i18next
+              }}
+            </h2>
+            <button
+              type="button"
+              class="btn-close"
+              [attr.aria-label]="'admin-config-close' | i18next"
+              (click)="pendingAction = null"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p id="branding-dialog-help">
+              {{
+                (pendingAction === 'publish' ? 'admin-branding-publish-all-help' : 'admin-branding-reset-all-help') | i18next
+              }}
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" cdkFocusInitial (click)="pendingAction = null">
+              {{ 'admin-navigation-cancel' | i18next }}</button
+            ><button
+              type="button"
+              class="btn"
+              [class.btn-primary]="pendingAction === 'publish'"
+              [class.rb-admin-danger-confirm]="pendingAction === 'reset'"
+              (click)="confirmAction()"
+            >
+              {{ (pendingAction === 'publish' ? 'branding-publish-button' : 'admin-branding-reset-draft') | i18next }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+<div class="alert alert-danger" *ngIf="!initialized && error" role="alert">{{ error }}</div>
+<div class="branding-loading" *ngIf="!initialized && !error" role="status">
+  <span class="spinner-border"></span><span>{{ 'admin-branding-loading' | i18next }}</span>
 </div>

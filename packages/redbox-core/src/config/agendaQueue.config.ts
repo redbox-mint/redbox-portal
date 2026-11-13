@@ -1,3 +1,5 @@
+import type { BackoffStrategy } from 'agenda';
+
 /**
  * Agenda Queue Config Interface
  * (sails.config.agendaQueue)
@@ -55,6 +57,8 @@ export interface AgendaQueueSqsOptions {
 }
 
 export interface AgendaJobOptions {
+    /** Durable automatic retry policy, persisted by the configured Agenda backend. */
+    backoff?: BackoffStrategy;
     /** Lock lifetime in milliseconds */
     lockLifetime?: number;
     /** Maximum number of locks */
@@ -88,8 +92,12 @@ export interface AgendaQueueOptions {
     backend?: AgendaQueueBackend;
     /** MongoDB connection string */
     db?: string;
+    /** Mongo client limits for Agenda's own connection; both default to 30000ms. */
+    mongoOptions?: { socketTimeoutMS?: number; waitQueueTimeoutMS?: number };
     /** MongoDB collection name */
     collection?: string;
+    /** Backend connection deadline in milliseconds (default 30000). */
+    connectionTimeoutMs?: number;
     /** Default lock lifetime */
     defaultLockLifetime?: number;
     /** Process every interval */
@@ -107,6 +115,11 @@ export interface AgendaQueueConfig {
     jobs: AgendaJobsConfig;
 }
 
+export const HARVEST_HISTORY_RETENTION_JOB_NAME = 'HarvestRunService-PruneHistory';
+
+export const EXPORT_GENERATE_JOB_NAME = 'ExportService-GenerateCsv';
+export const EXPORT_MAINTENANCE_JOB_NAME = 'ExportService-Maintenance';
+
 export const RECORD_POST_COMMIT_RECONCILIATION_JOB_NAME = 'RecordsService-ReconcilePostCommitSave';
 
 /** Daily orphan reconciliation for content-addressed brand typeface assets (design.md section 12). */
@@ -121,6 +134,30 @@ export const agendaQueue: AgendaQueueConfig = {
         historyRetentionHours: parseAgendaHistoryRetentionHours(process.env['sails__agendaQueue_options_historyRetentionHours'], 'sails__agendaQueue_options_historyRetentionHours') ?? 25,
     },
     jobs: {
+        [EXPORT_GENERATE_JOB_NAME]: {
+            fnName: 'exportservice.generateCsvJob',
+            options: { lockLifetime: 120000, lockLimit: 1, concurrency: 1 }
+        },
+        [EXPORT_MAINTENANCE_JOB_NAME]: {
+            fnName: 'exportservice.maintenanceJob',
+            backend: 'mongodb',
+            options: { lockLifetime: 120000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '5 minutes', opts: { skipImmediate: true } }
+        },
+        [HARVEST_HISTORY_RETENTION_JOB_NAME]: {
+            fnName: 'harvestrunservice.pruneHistoryJob',
+            backend: 'mongodb',
+            options: {
+                lockLifetime: 10 * 60 * 1000,
+                lockLimit: 1,
+                concurrency: 1
+            },
+            schedule: {
+                method: 'every',
+                intervalOrSchedule: '1 day',
+                opts: { skipImmediate: true }
+            }
+        },
         'SolrSearchService-CreateOrUpdateIndex': {
             fnName: 'solrsearchservice.solrAddOrUpdate',
             options: {
@@ -137,6 +174,19 @@ export const agendaQueue: AgendaQueueConfig = {
                 concurrency: 1
             }
         },
+        'RecordsService-RecoverRecordAudit': {
+            fnName: 'recordsservice.recoverRecordAudit',
+            options: {
+                lockLifetime: 30 * 1000,
+                lockLimit: 1,
+                concurrency: 1,
+                // Sails may reload the worker module, so constructor identity is not stable here.
+                // Permanent failures are paused by the worker; transient failures keep retrying.
+                backoff: ({ attempt, error }) => error.name === 'PermanentAuditWriteError' ? null
+                    : Math.min(300000, 1000 * 2 ** Math.min(Math.max(attempt - 1, 0), 9))
+            }
+        },
+        // Retained to drain audit snapshots queued before RecordsService began writing audits directly.
         'RecordsService-StoreRecordAudit': {
             fnName: 'recordsservice.storeRecordAudit',
             options: {
@@ -176,6 +226,21 @@ export const agendaQueue: AgendaQueueConfig = {
                 intervalOrSchedule: '5 minutes'
             }
         },
+        'Figshare-Vocabulary-Schedules': {
+            fnName: 'figsharevocabularyservice.scheduledSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '5 minutes', opts: { skipImmediate: true } },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 30 * 60 * 1000 }
+        },
+        'Figshare-SyncRecord': {
+            fnName: 'figshareservice.syncRecordJob',
+            backend: 'mongodb',
+            options: { concurrency: 4, lockLimit: 4, lockLifetime: 120000 }
+        },
+        'Figshare-Dispatch': {
+            fnName: 'figshareservice.dispatchSyncJob', backend: 'mongodb',
+            schedule: { method: 'every', intervalOrSchedule: '30 seconds' },
+            options: { concurrency: 1, lockLimit: 1, lockLifetime: 120000 }
+        },
         'Figshare-PublishAfterUpload-Service': {
             fnName: 'figshareservice.publishAfterUploadFilesJob',
             options: {
@@ -191,6 +256,12 @@ export const agendaQueue: AgendaQueueConfig = {
                 lockLimit: 1,
                 concurrency: 1
             }
+        },
+        'Branding-Images-Reconcile': {
+            fnName: 'brandinglogoservice.reconcileAssets',
+            backend: 'mongodb',
+            options: { lockLifetime: 10 * 60 * 1000, lockLimit: 1, concurrency: 1 },
+            schedule: { method: 'every', intervalOrSchedule: '1 day', opts: { skipImmediate: true } }
         },
         [BRANDING_TYPEFACE_RECONCILE_JOB_NAME]: {
             fnName: 'brandingtypefaceservice.reconcileAssets',

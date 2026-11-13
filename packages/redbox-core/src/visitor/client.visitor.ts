@@ -1,4 +1,5 @@
 import { cloneDeep as _cloneDeep } from 'lodash';
+import { projectViewMetadata } from '../ViewFormMetadata';
 import { FormConfigOutline } from '@researchdatabox/sails-ng-common';
 import {
   SimpleInputFieldComponentDefinitionOutline,
@@ -208,6 +209,7 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   private formModeProvided: boolean;
   private userRoles: string[];
   private reusableFormDefs: ReusableFormDefinitions;
+  private relatedViewPhase?: 'defer' | 'complete';
 
   private constraintPath: FormConstraintConfig[];
 
@@ -245,12 +247,15 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     formMode?: FormModesConfig;
     userRoles?: string[];
     reusableFormDefs?: ReusableFormDefinitions;
+    /** Keep only server-marked related models until authorized source hydration. */
+    deferRelatedViewTransforms?: boolean;
   }) {
     this.clientFormConfig = options.form;
     this.formMode = options.formMode ?? 'view';
     this.formModeProvided = options.formMode !== undefined;
     this.userRoles = options.userRoles ?? [];
     this.reusableFormDefs = options.reusableFormDefs ?? {};
+    this.relatedViewPhase = options.deferRelatedViewTransforms ? 'defer' : undefined;
 
     this.constraintPath = [];
     this.formPathHelper.reset();
@@ -259,6 +264,13 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.applyPostPruningViewModeTransforms();
 
     return this.clientFormConfig;
+  }
+
+  /** Finish deferred fields without visiting already-rendered custom view widgets again. */
+  completeRelatedViewTransforms(): void {
+    this.relatedViewPhase = 'complete';
+    this.applyPostPruningViewModeTransforms();
+    this.relatedViewPhase = undefined;
   }
 
   protected applyPostPruningViewModeTransforms(): void {
@@ -271,6 +283,35 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.clientFormConfig.componentDefinitions = this.applyPostPruningTransforms(
       this.clientFormConfig.componentDefinitions
     );
+    this.clientFormConfig.componentDefinitions.forEach(item => this.pruneRetainedViewGroupValues(item));
+  }
+
+  private pruneRetainedViewGroupValues(item: AvailableFormComponentDefinitionOutlines): void {
+    const config = item.component?.config as {
+      componentDefinitions?: AvailableFormComponentDefinitionOutlines[];
+      tabs?: AvailableFormComponentDefinitionOutlines[];
+      panels?: AvailableFormComponentDefinitionOutlines[];
+      elementTemplate?: AvailableFormComponentDefinitionOutlines;
+    } | undefined;
+    if (item.component?.class === GroupFieldComponentName) {
+      const group = item as GroupFormComponentDefinitionOutline;
+      const value = group.model?.config?.value;
+      if (group.model?.config) {
+        if (!value || typeof value !== 'object' || Array.isArray(value) ||
+          ![Object.prototype, null].includes(Object.getPrototypeOf(value))) {
+          delete group.model.config.value;
+        } else {
+          // Retained groups also deliver a model. Filter it through the final view
+          // definitions, including children that have become ContentComponents.
+          group.model.config.value = projectViewMetadata(value, {
+            componentDefinitions: config?.componentDefinitions ?? [],
+          });
+        }
+      }
+    }
+    [...(config?.componentDefinitions ?? []), ...(config?.tabs ?? []), ...(config?.panels ?? [])]
+      .forEach(child => this.pruneRetainedViewGroupValues(child));
+    if (config?.elementTemplate) this.pruneRetainedViewGroupValues(config.elementTemplate);
   }
 
   protected applyPostPruningTransforms(
@@ -280,7 +321,9 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
       .filter(item => !this.isExplicitlyDisallowedByFormMode(item))
       .map(item => {
         const result = this.applyPostPruningTransformToComponent(item);
-        this.removeServerOnlyProperties(result);
+        if (!(this.relatedViewPhase === 'defer' && this.isDeferredRelatedView(result))) {
+          this.removeServerOnlyProperties(result);
+        }
         return result;
       });
   }
@@ -293,6 +336,28 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
   protected applyPostPruningTransformToComponent(
     item: AvailableFormComponentDefinitionOutlines
   ): AvailableFormComponentDefinitionOutlines {
+    const deferred = this.isDeferredRelatedView(item);
+    if ((this.relatedViewPhase === 'defer' && deferred) || (this.relatedViewPhase === 'complete' && !deferred)) {
+      this.applyPostPruningTransformsToNestedChildren(item);
+      return item;
+    }
+    if (this.relatedViewPhase === 'complete' && deferred) {
+      const overrides = item.overrides as Record<string, any> | undefined;
+      const original = overrides?.__relatedViewOriginal;
+      if (overrides) {
+        delete overrides.__relatedViewOriginal;
+        const hidden = (item.component.config as { visible?: boolean; type?: string })?.visible === false &&
+          (item.component.config as { type?: string })?.type === 'hidden';
+        const visibleInputIdentity = original?.component === item.component.class && !hidden &&
+          !['GroupComponent', 'RepeatableComponent'].includes(item.component.class);
+        if (original && !visibleInputIdentity) overrides.formModeClasses.view = original;
+        else delete overrides.formModeClasses?.view;
+        // View-only declarations must not keep visible edit controls for linked
+        // display fields. Explicit hidden carriers and custom widgets remain valid.
+        overrides.__forceViewTransform = true;
+      }
+      delete (item.component.config as Record<string, unknown>).relatedViewPreserved;
+    }
     const className = item?.component?.class;
     const shouldSkipActionRowGroupTransform =
       className === GroupFieldComponentName && item?.layout?.class === ActionRowLayoutName;
@@ -324,6 +389,10 @@ export class ClientFormConfigVisitor extends FormConfigVisitor {
     this.applyPostPruningTransformsToNestedChildren(item);
     this.removeServerOnlyProperties(item);
     return item;
+  }
+
+  private isDeferredRelatedView(item: AvailableFormComponentDefinitionOutlines): boolean {
+    return (item.component?.config as Record<string, unknown> | undefined)?.relatedViewPreserved === true;
   }
 
   protected isInlineVocabOptionComponent(item: AvailableFormComponentDefinitionOutlines): boolean {

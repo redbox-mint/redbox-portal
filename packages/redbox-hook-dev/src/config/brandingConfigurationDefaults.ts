@@ -11,6 +11,7 @@ import type {
     BrandingHomePanelsConfig,
     BrandingConfigurationDefaultsConfig,
 } from '@researchdatabox/redbox-core';
+import { relatedPlanDoiProfile } from './related-record-examples';
 import { createDefaultBinding, type DoiPublishingConfigData } from '@researchdatabox/redbox-core';
 
 const demoMenuConfig: BrandingMenuConfig = {
@@ -271,5 +272,5 @@ const demoDoiPublishingConfig: Partial<DoiPublishingConfigData> = {
 export const brandingConfigurationDefaults: Partial<BrandingConfigurationDefaultsConfig> = {
     menu: demoMenuConfig,
     homePanels: demoHomePanelsConfig,
-    doiPublishing: demoDoiPublishingConfig as DoiPublishingConfigData,
+    doiPublishing: { ...demoDoiPublishingConfig, profiles: { ...demoDoiPublishingConfig.profiles, 'related-plan': relatedPlanDoiProfile } } as DoiPublishingConfigData,
 };

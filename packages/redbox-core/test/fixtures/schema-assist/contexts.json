@@ -1,0 +1,80 @@
+{
+  "metadataSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "title": {
+        "type": "string",
+        "title": "Title"
+      },
+      "budget": {
+        "type": "number"
+      },
+      "published": {
+        "type": "string"
+      },
+      "dc:accessRights": {
+        "type": "string",
+        "enum": ["open", "restricted"]
+      },
+      "authors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "required": ["title"]
+  },
+  "storedRecord": {
+    "redboxOid": "fixture-oid",
+    "dateCreated": "2026-01-01T00:00:00.000Z",
+    "lastSaveDate": "2026-02-01T00:00:00.000Z",
+    "metaMetadata": {
+      "type": "rdmp",
+      "brandId": "a"
+    },
+    "metadata": {
+      "title": "Project",
+      "budget": 125,
+      "published": "2026-01-01",
+      "dc:accessRights": "open",
+      "authors": [
+        {
+          "name": "Ada"
+        },
+        {
+          "name": "Grace"
+        }
+      ]
+    }
+  },
+  "mapping": {
+    "projectTitle": "record.metadata.title",
+    "cost": "record.metadata.budget",
+    "renderedCost": "{{record.metadata.budget}}",
+    "team": "record.metadata.authors",
+    "published": "record.metadata.published",
+    "dynamic": "record.hookValue",
+    "dotted.alias": "record.metadata.title"
+  },
+  "resultMetadata": {
+    "projectTitle": "Project",
+    "cost": 125,
+    "renderedCost": "125",
+    "team": [
+      {
+        "name": "Ada"
+      },
+      {
+        "name": "Grace"
+      }
+    ],
+    "published": "2026-01-01"
+  }
+}

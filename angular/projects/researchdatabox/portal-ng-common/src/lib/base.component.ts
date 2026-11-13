@@ -17,8 +17,9 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { ConfigService } from './config.service';
 import { Initable } from './initable.interface';
-import { ApplicationRef, ChangeDetectorRef, Component, NgZone, inject } from '@angular/core';
+import { ApplicationRef, ChangeDetectorRef, Component, NgZone, Injector, inject } from '@angular/core';
 import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
 /**
  * Base component class for ReDBox Portal.
@@ -34,6 +35,11 @@ import { BehaviorSubject, Subject, firstValueFrom, filter } from 'rxjs';
     standalone: false
 })
 export abstract class BaseComponent implements Initable {
+  private readonly injector = inject(Injector);
+  public loadError = '';
+  public loadPending = false;
+  private retryLoadAction?: () => Promise<unknown>;
+
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly ngZone = inject(NgZone);
   private readonly appRef = inject(ApplicationRef);
@@ -56,20 +62,58 @@ export abstract class BaseComponent implements Initable {
    */
   ngOnInit() {
     this.wrapAsyncComponentMethodsForRender();
-    (async () => {
-      // really it is just for dependencies
+    void this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    this.loadPending = true;
+    this.loadError = '';
+    try {
       await this.waitForDeps();
-      // call this to inform child class to begin own init
       await this.initComponent();
       this.ngZone.run(() => {
         this.isReady = true;
-        // inform interested parties in RXJS-land
-        this.initSubject.next(this.isReady);
-        // Some embeds initialise while hidden (for example inside Bootstrap collapses).
-        // Trigger an explicit render after async init so template control flow reflects `isReady`.
-        this.flushRender();
+        this.initSubject.next(true);
       });
-    })();
+    } catch (error) {
+      this.showLoadError(error, () => this.initialize());
+      this.initSubject.error(error);
+    } finally {
+      this.loadPending = false;
+      this.requestRender();
+    }
+  }
+
+  protected showLoadError(error: unknown, retry: () => Promise<unknown>): void {
+    const status = (error as { status?: number } | null)?.status;
+    this.loadError = status === 401 || status === 403
+      ? 'Unable to load data. Your session may have expired or access was denied. Sign in again, then retry.'
+      : 'Unable to load data. Check your connection and retry. You may need to sign in again. If the problem continues, reload the page or contact support.';
+    this.retryLoadAction = retry;
+  }
+
+  public async retryLoad(): Promise<void> {
+    if (this.loadPending || !this.retryLoadAction) {
+      return;
+    }
+    const retry = this.retryLoadAction;
+    this.loadPending = true;
+    this.loadError = '';
+    if (this.initSubject.hasError) {
+      this.initSubject = new BehaviorSubject(false);
+    }
+    try {
+      await this.injector.get(ConfigService).refreshConfig();
+      await retry();
+    } catch (error) {
+      this.showLoadError(error, retry);
+      if (!this.isReady) {
+        this.initSubject.error(error);
+      }
+    } finally {
+      this.loadPending = false;
+      this.requestRender();
+    }
   }
 
   ngOnDestroy() {

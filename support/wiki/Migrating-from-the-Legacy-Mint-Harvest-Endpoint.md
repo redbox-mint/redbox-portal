@@ -1,4 +1,4 @@
-# Migrating from the Legacy Mint Harvest Endpoint
+# Migrating from the legacy Mint harvest endpoint
 
 This guide explains how to move integrations off the legacy Mint-compatible harvest endpoint and onto the new harvest endpoints introduced with harvest run tracking.
 
@@ -17,7 +17,7 @@ The new implementation introduces two migration targets:
 1. A compatibility endpoint that keeps batch-style harvesting but uses the new ReDBox payload shape.
 2. A tracked harvest workflow that records runs, chunks, and per-record events and can be monitored through new read endpoints and the admin UI.
 
-## Endpoint Mapping
+## Endpoint mapping
 
 | Use case | Endpoint | Notes |
 | --- | --- | --- |
@@ -25,11 +25,12 @@ The new implementation introduces two migration targets:
 | New compatibility harvest | `POST /:branding/:portal/api/records/harvest/:recordType` | Same batch submission pattern, but with the new request format. |
 | List harvest runs | `GET /:branding/:portal/api/harvest-runs` | Admin-only read endpoint for run summaries. |
 | Get one harvest run | `GET /:branding/:portal/api/harvest-runs/:id` | Returns run, chunk, event, and aggregate details. |
+| List chunks for a run | `GET /:branding/:portal/api/harvest-runs/:id/chunks` | Admin-only paginated chunk summaries. |
 | List events for a run | `GET /:branding/:portal/api/harvest-runs/:id/events` | Admin-only paginated event feed for per-record outcomes. |
 
 The `:branding`, `:portal`, and `:recordType` path parameters do not change.
 
-## What Changes
+## What changes
 
 ### 1. URL change
 
@@ -100,7 +101,7 @@ Supported `updateMode` values are:
 - `ignore`: Skip updates when the record already exists.
 - `create`: Always create a new record instead of updating an existing harvested record.
 
-## Migration Paths
+## Migration paths
 
 ### Option 1: Move to the new compatibility endpoint first
 
@@ -225,7 +226,7 @@ Tracked response example:
 
 For per-record outcomes, query the harvest run event endpoints rather than relying on the submission response body.
 
-## Monitoring and Admin API
+## Monitoring and admin API
 
 Tracked harvesting is intended to be observable after submission.
 
@@ -254,9 +255,17 @@ GET /:branding/:portal/api/harvest-runs/:id
 This returns:
 
 - the run summary;
-- all chunks recorded for the run;
-- the latest event rows included in the detail response;
+- the first 20 chunks and first 20 events;
+- `chunksTotal` and `eventsTotal`, which count the retained detail rows;
 - aggregate counts for processed, created, updated, deleted, unchanged, failed, and duplicate chunks.
+
+### List run chunks
+
+```text
+GET /:branding/:portal/api/harvest-runs/:id/chunks
+```
+
+Use `page` and `pageSize` to retrieve further chunks. Pages start at 1; the default page size is 20 and the maximum is 100. The event endpoint uses the same pagination rules.
 
 ### List run events
 
@@ -266,6 +275,7 @@ GET /:branding/:portal/api/harvest-runs/:id/events
 
 Supported filters:
 
+- `chunkId`
 - `outcome`
 - `operation`
 - `harvestId`
@@ -273,18 +283,20 @@ Supported filters:
 - `page`
 - `pageSize`
 
-These read endpoints are admin-only and are the same endpoints used by the harvest runs admin UI added in this feature branch.
+These read endpoints are admin-only and restrict results to the authenticated brand. `harvestId` is an exact-match filter within the selected run.
 
-## Recommended Rollout
+For the admin UI, deployment checks, and history retention settings, see [Harvest run administration](https://github.com/redbox-mint/redbox-portal/wiki/Harvest-Run-Administration). Use a new `sourceRunId` for each harvest run. Once retention removes detail from a run, further submissions to it return HTTP 409.
+
+## Recommended rollout
 
 1. Move callers from `POST /api/mint/harvest/:recordType` to `POST /api/records/harvest/:recordType` using the compatibility payload.
 2. Replace legacy field names with `harvestId` and `recordRequest.metadata`.
 3. Replace `merge=true` with `updateMode=merge` where needed.
 4. Once that is stable, introduce tracked chunk submissions by adding `sourceRunId`, `sourceName`, and `chunk.index`.
 5. Mark the last chunk with `finalChunk=true` so the run can be closed cleanly.
-6. Update operational monitoring to use `GET /api/harvest-runs`, `GET /api/harvest-runs/:id`, and `GET /api/harvest-runs/:id/events`.
+6. Update operational monitoring to use `GET /api/harvest-runs`, `GET /api/harvest-runs/:id`, `GET /api/harvest-runs/:id/chunks`, and `GET /api/harvest-runs/:id/events`.
 
-## When to Keep Using the Legacy Endpoint
+## When to keep using the legacy endpoint
 
 The legacy Mint endpoint should only remain as a temporary compatibility bridge while upstream harvesters are being upgraded. It is still useful when:
 

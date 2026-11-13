@@ -377,16 +377,16 @@ describe('Branding public font delivery and layouts', function () {
     expect(service.hasActiveCustomTypeface('unknown')).to.equal(false);
   });
 
-  it('conditions Google fonts on Default Typography with a single Regular preload', function () {
+  it('conditions self-hosted default font preloads on Default Typography with a single custom Regular preload', function () {
     for (const file of LAYOUTS) {
       const content = fs.readFileSync(repoPath(file), 'utf8');
       expect(content, file).to.contain('getActiveTypefaceFontInfo');
-      expect(content, file).to.contain('fonts.googleapis.com');
-      const googleIndex = content.indexOf('fonts.googleapis.com');
+      expect(content, file).not.to.contain('fonts.googleapis.com');
+      const defaultsIndex = content.indexOf('layout/default-fonts.ejs');
       const ifIndex = content.indexOf('if (__brandTypefaceFont)');
       const elseIndex = content.indexOf('} else {', ifIndex);
       expect(ifIndex, `${file} conditional`).to.be.greaterThan(-1);
-      expect(googleIndex, `${file} google links in else branch`).to.be.greaterThan(elseIndex);
+      expect(defaultsIndex, `${file} default font preloads in else branch`).to.be.greaterThan(elseIndex);
       const preloads =
         content.match(/rel="preload"[\s\S]*?as="font"[\s\S]*?type="font\/woff2"[\s\S]*?crossorigin/g) || [];
       expect(preloads.length, `${file} preloads`).to.equal(1);
@@ -398,6 +398,32 @@ describe('Branding public font delivery and layouts', function () {
     }
     const remaining = [...LAYOUTS, ...PARTIALS];
     void remaining;
+  });
+
+  it('preloads the bundled font URLs under the deployment root context', function () {
+    const ejs = require('ejs');
+    const template = fs.readFileSync(repoPath('views/default/default/layout/default-fonts.ejs'), 'utf8');
+    for (const rootContext of ['', '/redbox']) {
+      const bundled = ejs.render(template, { BrandingService: { getRootContext: () => rootContext } });
+      const urls = [...bundled.matchAll(/href="([^"]+)"/g)].map(match => match[1]);
+      expect(urls).to.have.lengthOf(2);
+      expect(urls.every(url => url.startsWith(`${rootContext}/fonts/google/`))).to.equal(true);
+      // The standalone reference uses an unbundled stylesheet with brand-relative URLs.
+      const standalonePath = `${rootContext}/default/rdmp/fonts/google`;
+      const standalone = ejs.render(template, { fontPath: standalonePath });
+      expect(standalone).to.contain(`href="${standalonePath}/titillium-web-400-latin-`);
+    }
+  });
+
+  it('omits the unused public Open Sans stylesheet from admin Parties', function () {
+    const ejs = require('ejs');
+    const template = fs.readFileSync(repoPath('views/default/rdmp/dashboard.ejs'), 'utf8').split('<% let appName=')[0];
+    const locals = {
+      req: {},
+      BrandingService: { hasActiveCustomTypeface: () => false, getBrandNameFromReq: () => 'default' },
+    };
+    expect(ejs.render(template, locals)).to.contain('fonts.googleapis.com');
+    expect(ejs.render(template, { ...locals, adminParties: true })).not.to.contain('fonts.googleapis.com');
   });
 
   it('keeps hook CSS after the generated theme stylesheet', function () {
@@ -414,10 +440,11 @@ describe('Branding public font delivery and layouts', function () {
     }
   });
 
-  it('recognises public font paths as static assets with same-origin font CSP', function () {
+  it('leaves font caching to the font controller and allows same-origin font CSP', function () {
     const httpConfig = require('../../src/config/http.config');
     const sha = 'a'.repeat(64);
-    expect(httpConfig.isImmutableAssetPath(`/fonts/branding/default/${sha}.woff2`)).to.equal(true);
+    // Font delivery verifies the hash and sets its own immutable cache headers.
+    expect(httpConfig.isImmutableAssetPath(`/fonts/branding/default/${sha}.woff2`)).to.equal(false);
     const { csp } = require('../../src/config/csp.config');
     expect(csp.directives['font-src']).to.include("'self'");
   });
@@ -442,6 +469,8 @@ describe('Branding public font delivery and layouts', function () {
       }
     }
     const brandingStyles = fs.readFileSync(path.join(appsRoot, 'branding', 'src', 'styles.scss'), 'utf8');
-    expect(brandingStyles).to.contain('var(--rb-brand-font-family, Arial, Helvetica, sans-serif)');
+    // The editor inherits the portal default as well as published brand fonts.
+    // A brand-variable fallback on body would replace Titillium Web when unset.
+    expect(brandingStyles).not.to.match(/(?:^|\n)\s*(?:body|html)\s*\{[^}]*font-family/);
   });
 });

@@ -1,4 +1,4 @@
-import { cloneDeep as _cloneDeep, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
+import { cloneDeep as _cloneDeep, cloneDeepWith as _cloneDeepWith, get as _get, mergeWith as _mergeWith, set as _set } from 'lodash';
 import { FormConfig, isLikelyNaturalLanguage, ValidatorsSupport } from '@researchdatabox/sails-ng-common';
 
 import { FormConfigVisitor } from '@researchdatabox/sails-ng-common';
@@ -449,9 +449,16 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     removeOverrides?: boolean;
     preserveDefaultValues?: boolean;
     translate?: (key: string) => string;
+    /** Internal: data has already passed descriptor-scoped server view preparation. */
+    relatedViewPrepared?: boolean;
   }): Promise<FormConfigOutline> {
-    this.data = _cloneDeep(options.data);
-    this.reusableFormDefs = options.reusableFormDefs ?? {};
+    // Authored markers must not change disabled-control registration in legacy forms.
+    const stripMarker = (value: unknown) => value && typeof value === 'object'
+      && Object.prototype.hasOwnProperty.call(value, 'relatedViewPreserved')
+      ? _cloneDeepWith(Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'relatedViewPreserved')), stripMarker)
+      : undefined;
+    this.data = options.relatedViewPrepared ? _cloneDeep(options.data) : _cloneDeepWith(options.data, stripMarker);
+    this.reusableFormDefs = _cloneDeepWith(options.reusableFormDefs ?? {}, stripMarker);
     this.formMode = options.formMode ?? 'view';
     this.translate = options.translate;
 
@@ -626,11 +633,13 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     const config = currentData.config;
     item.config = new RelatedObjectDataFieldComponentConfig();
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
-    for (const prop of ['template', 'content', 'contentIsTranslationCode', 'translationContentFormat', 'outputFormat', 'dataPath', 'oidProperty', 'relatedFields'] as const) {
+    for (const prop of ['template', 'content', 'contentIsTranslationCode', 'translationContentFormat', 'outputFormat', 'dataPath', 'oidProperty', 'relatedFields', 'relationId', 'required'] as const) {
       this.sharedProps.setPropOverride(prop, item.config, config);
     }
-    item.config.oidProperty ??= 'id';
-    item.config.relatedFields ??= [];
+    if (!item.config.relationId) {
+      item.config.oidProperty ??= 'id';
+      item.config.relatedFields ??= [];
+    }
     item.config.template ??= '{{#each relatedObjects}}<div>{{#if title}}{{title}}{{else}}{{oid}}{{/if}}</div>{{/each}}';
   }
 
@@ -785,6 +794,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, config);
     this.sharedProps.setPropOverride('includeTabLabel', item.config, config);
     this.sharedProps.setPropOverride('showWhenValid', item.config, config);
+    this.sharedProps.setPropOverride('deferErrorsOnNewRecord', item.config, config);
   }
 
   async visitValidationSummaryFormComponentDefinition(
@@ -1272,6 +1282,10 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('operation', item.config, config);
     this.sharedProps.setPropOverride('targetStep', item.config, config);
     this.sharedProps.setPropOverride('forceSave', item.config, config);
+    this.sharedProps.setPropOverride('confirmationMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmationTitle', item.config, config);
+    this.sharedProps.setPropOverride('cancelButtonMessage', item.config, config);
+    this.sharedProps.setPropOverride('confirmButtonMessage', item.config, config);
     this.sharedProps.setPropOverride('labelSaving', item.config, config);
     this.sharedProps.setPropOverride('buttonCssClasses', item.config, config);
     this.sharedProps.setPropOverride('enabledValidationGroups', item.config, config);
@@ -1861,6 +1875,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('booleanMode', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('enabledOptionValues', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
@@ -1998,6 +2013,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('enabledOptionValues', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
@@ -2135,6 +2151,7 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
     this.sharedProps.setPropOverride('options', item.config, config);
     this.sharedProps.setPropOverride('vocabRef', item.config, config);
     this.sharedProps.setPropOverride('inlineVocab', item.config, config);
+    this.sharedProps.setPropOverride('enabledOptionValues', item.config, config);
     this.sharedProps.setPropOverride('historicalVocabMode', item.config, config);
   }
 
@@ -2215,7 +2232,8 @@ export class ConstructFormConfigVisitor extends FormConfigVisitor {
         `Invalid ${QuestionTreeComponentName} at '${this.formPathHelper.formPath.formConfig}': ${JSON.stringify(currentData)}`
       );
     }
-    const configFrame = currentData?.config ?? { availableOutcomes: [], questions: [], componentDefinitions: [] };
+    // Keep generated children reachable through the form paths on the visitor-owned clone.
+    const configFrame = (currentData.config ??= { availableOutcomes: [], questions: [], componentDefinitions: [] });
 
     item.config = new QuestionTreeFieldComponentConfig();
     this.sharedProps.sharedPopulateFieldComponentConfig(item.config, configFrame);

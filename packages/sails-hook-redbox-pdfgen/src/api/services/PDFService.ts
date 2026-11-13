@@ -230,6 +230,16 @@ export namespace Services {
           });
           break;
       }
+      if (this.getOption<boolean>(brand, options, 'waitForRelatedData', false)) {
+        await page.waitForFunction(`(() => {
+          const forms = Array.from(document.querySelectorAll('redbox-form[data-rb-related-state]'));
+          if (!forms.length) return false;
+          if (forms.some(form => form.getAttribute('data-rb-related-state') === 'error')) {
+            throw new Error('Required related data unavailable');
+          }
+          return forms.every(form => form.getAttribute('data-rb-related-state') === 'ready');
+        })()`, { timeout, polling: 100 });
+      }
     }
 
     private attemptPDFGeneration(
@@ -414,6 +424,12 @@ export namespace Services {
         yield* Effect.sync(() => {
           sails.log.verbose(`PDFService::sourceUrlBase ${sourceUrlBase}`);
           sails.log.verbose(`PDFService::sails.config.pdfgen.appUrlOverride ${pdfgenAppUrlOverride}`);
+        });
+
+        // Prepare responsive canvases in print layout before navigation/readiness.
+        yield* Effect.tryPromise({
+          try: () => page.emulateMediaType('print'),
+          catch: (cause) => new BrowserError(oid, currentURL, cause)
         });
 
         yield* this.logDebug(`PDFService::Chromium loading page: ${currentURL}`);

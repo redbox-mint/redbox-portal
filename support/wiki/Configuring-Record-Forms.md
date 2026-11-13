@@ -181,6 +181,49 @@ The settings in this section control the behaviour of the entire form.
 | viewCssClasses          | The CSS classes to apply to each element for styling. These are used in view mode                                                                                                                                                | Yes                      | row col-md-12                        |
 | < message-code >        | A set of key value pairs containing messages to show to the user                                                                                                                                                                 | Yes                      | "saveSuccess": "Saved successfully." |
 
+## Validation summary
+
+`ValidationSummaryComponent` lists the form's blocking validation errors in edit
+mode. Its `component.config` accepts these options:
+
+| Key | Default | Behaviour |
+| --- | --- | --- |
+| `includeTabLabel` | `false` | Include tab labels in summary field labels. Group labels are always included. |
+| `showWhenValid` | `false` | Show an informational message when the form has no blocking validation errors. |
+| `deferErrorsOnNewRecord` | `false` | Hide both the error summary and the informational message on a new record until the first field edit or touch, save request, or save failure. |
+
+For example, to defer the summary on a new record:
+
+```ts
+{
+  name: 'validation_summary',
+  component: {
+    class: 'ValidationSummaryComponent',
+    config: { deferErrorsOnNewRecord: true },
+  },
+}
+```
+
+With `deferErrorsOnNewRecord: true`, a new record has no oid and its summary
+stays hidden while the form is pristine and untouched. Editing or touching any
+field, requesting a save, or receiving a save failure reveals it. Once revealed,
+it stays visible according to the current validation errors and `showWhenValid`,
+even if the form becomes pristine and untouched again.
+
+Existing records show the summary from load as usual. After the first successful
+save assigns an oid to a new record, the same existing-record behaviour applies.
+Leaving the flag out or setting it to `false` keeps the current behaviour on all
+records.
+
+Save buttons stay disabled while the form is invalid. The summary returns on the
+first interaction so the user can see which fields need attention. Deferring the
+summary does not change field-level errors or form validation.
+
+The summary treats any dirty or touched state as an interaction, whatever its
+source. A form that marks itself dirty while loading, for example a behaviour
+that sets a value on form ready, or a typeahead with an on-select config that
+starts with a selected item, reveals the summary straight away.
+
 ## Authoritative server validation operations
 
 Every metadata-changing save is validated by the server against the complete
@@ -368,6 +411,99 @@ fields: [
     }
   },
 ```
+
+## Aggregate maximum-length validation
+
+Use `maxLength` for a single text input. For a repeatable field whose values will
+be combined into one string, use `aggregateMaxLength` on the **repeatable model**.
+`maxLength` on an array counts rows; `aggregateMaxLength` counts characters in the
+normalized, joined value, including separators.
+
+```ts
+{
+  name: 'names',
+  model: {
+    class: 'RepeatableModel',
+    config: {
+      validators: [{
+        class: 'aggregateMaxLength',
+        config: {
+          maxLength: 250,
+          valuePath: 'name',
+          separator: ', ',
+          trim: true,
+          ignoreEmpty: true,
+          distinct: false
+        }
+      }]
+    }
+  },
+  component: {
+    class: 'RepeatableComponent',
+    config: {
+      elementTemplate: {
+        name: '',
+        model: { class: 'GroupModel' },
+        component: {
+          class: 'GroupComponent',
+          config: {
+            componentDefinitions: [{
+              name: 'name',
+              model: { class: 'SimpleInputModel' },
+              component: { class: 'SimpleInputComponent' }
+            }]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Attach the validator to the control that holds the array, rather than to each
+row. For primitive arrays, omit `valuePath` and use a `SimpleInputModel` /
+`SimpleInputComponent` as the element template. For object rows, `valuePath`
+selects a property in each row; nested paths such as `person.name` and array
+indices such as `names[0]` are supported.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `maxLength` | Required | Non-negative integer maximum; equality is valid. |
+| `valuePath` | `''` | Property path within each row; empty uses the row itself. |
+| `separator` | `', '` | Text between retained values; `''` joins without separators. |
+| `trim` | `true` | Remove leading and trailing whitespace from each value. |
+| `ignoreEmpty` | `true` | Remove empty values after trimming. |
+| `distinct` | `false` | Remove duplicate normalized strings, with case-sensitive comparison. |
+
+The validator extracts values, converts strings/numbers/booleans to text, trims,
+filters empty values, removes duplicates when requested, then joins. Null,
+undefined, missing properties and non-primitive values become empty strings.
+With `ignoreEmpty: false`, these empty slots still contribute separators.
+For example, `[' ab ', '', 'cd']` becomes `'ab, cd'` by default and has length 6.
+Character length uses JavaScript UTF-16 string length, as `maxLength` does.
+The original values are never changed.
+
+Absent aggregates and empty arrays pass, as do arrays that normalize to an empty
+string. Non-array control values are ignored; this validator does not enforce
+type or presence. Add `required` separately if needed.
+
+Adding, editing or removing a row recalculates the aggregate. Errors appear next
+to the repeatable field and in a configured `ValidationSummaryComponent`, using
+the standard ReDBox error shape:
+
+```ts
+{
+  aggregateMaxLength: {
+    message: '@validator-error-aggregate-max-length',
+    params: { requiredLength: 250, actualLength: 263 }
+  }
+}
+```
+
+The default message shows both lengths. A validator-level `message` can override
+the translation key and use the same `requiredLength` and `actualLength` parameters.
+This is form validation and feedback; it does not configure downstream publishing,
+API or persistence validation.
 
 ## Adding and Configuring Tabs
 

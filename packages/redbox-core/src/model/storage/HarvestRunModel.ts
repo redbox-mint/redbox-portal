@@ -1,3 +1,11 @@
+/** Global, brand-scoped statistics over retained harvest run summaries. */
+export interface HarvestRunStatistics {
+  runsLast7Days: number;
+  failedLast7Days: number;
+  runningNow: number;
+  lastSuccessfulRun: { completedAt: string; sourceName: string } | null;
+}
+
 export enum HarvestRunStatus {
   running = 'running',
   completed = 'completed',
@@ -38,7 +46,15 @@ export type HarvestCounterSummary = {
 
 export type HarvestRunMetadata = Record<string, unknown>;
 
+export type HarvestHistoryRetention = {
+  prunedAt: string;
+  successfulDays: number;
+  failedDays: number;
+  complete: boolean;
+};
+
 export class HarvestRunModel {
+  historyRetention?: HarvestHistoryRetention;
   id?: string;
   sourceRunId = '';
   brandId = '';
@@ -129,7 +145,18 @@ export type HarvestRunListQuery = {
   pageSize: number;
 };
 
+export type HarvestRunChunksQuery = {
+  page: number;
+  pageSize: number;
+};
+
+export type HarvestRunChunksResult = {
+  rows: HarvestRunChunkModel[];
+  total: number;
+};
+
 export type HarvestRunEventsQuery = {
+  chunkId?: string;
   runId: string;
   brandId: string;
   outcome?: string;
@@ -153,7 +180,11 @@ export type HarvestRunEventsResult = {
 export type HarvestRunDetailResult = {
   run: HarvestRunModel;
   chunks: HarvestRunChunkModel[];
+  /** Total chunks, including those beyond the first 20 in chunks. */
+  chunksTotal: number;
   events: HarvestRecordEventModel[];
+  /** Total persisted events, including those beyond the first 20 in events. */
+  eventsTotal: number;
   aggregateCounts: HarvestCounterSummary & {
     chunksProcessed: number;
     duplicateChunks: number;

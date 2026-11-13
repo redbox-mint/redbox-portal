@@ -1,3 +1,9 @@
+import { updateFigshareSourceRoute } from './groups/figshare-source-update';
+import { partyImportApiRoutes } from './groups/party-import';
+import { dashboardRecordsApiRoutes } from './groups/dashboard-records';
+import { adminTranslationApiRoutes } from './groups/admin-translation';
+import { adminUsersApiRoutes } from './groups/admin-users';
+import { deletedRecordsApiRoutes } from './groups/deleted-records';
 import { buildApiBlueprint } from './apib';
 import { buildOpenApiDocument } from './openapi';
 import { buildSailsRouteConfig, ensureUniqueApiRoutes, isRecord, toRouteMap, validateApiRouteConsistency } from './helpers';
@@ -13,6 +19,7 @@ import { formApiRoutes } from './groups/forms';
 import { harvestRunApiRoutes } from './groups/harvest-runs';
 import { integrationAuditApiRoutes } from './groups/integration-audit';
 import { notificationApiRoutes } from './groups/notifications';
+import { relatedRecordsApiRoutes } from './groups/related-records';
 import { recordApiRoutes } from './groups/records';
 import { recordSchemaApiRoutes } from './groups/record-schemas';
 import { recordTypeApiRoutes } from './groups/recordtypes';
@@ -31,13 +38,19 @@ const apiDocumentInfo = {
 
 const coreApiRouteGroups = [
   recordApiRoutes,
+  relatedRecordsApiRoutes,
+  partyImportApiRoutes,
+  dashboardRecordsApiRoutes,
+  deletedRecordsApiRoutes,
   recordSchemaApiRoutes,
   userApiRoutes,
+  adminUsersApiRoutes,
   searchApiRoutes,
   formApiRoutes,
   harvestRunApiRoutes,
   vocabularyApiRoutes,
   figshareVocabularyApiRoutes,
+  [updateFigshareSourceRoute],
   figshareCrosswalkApiRoutes,
   recordTypeApiRoutes,
   adminApiRoutes,
@@ -45,6 +58,7 @@ const coreApiRouteGroups = [
   brandingApiRoutes,
   dashboardConfigApiRoutes,
   translationApiRoutes,
+  adminTranslationApiRoutes,
   reportsApiRoutes,
   integrationAuditApiRoutes,
   exportApiRoutes,

@@ -36,11 +36,16 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 import { Services as services } from '../CoreService';
 import { QueueService } from '../QueueService';
-import type { AgendaJobConfig, AgendaJobDefinition, AgendaJobsConfig, AgendaQueueBackend, AgendaQueueOptions } from '../config/agendaQueue.config';
-import type { Agenda, Job, JobsQueryOptions, JobsResult } from 'agenda';
+import type {
+  AgendaJobConfig,
+  AgendaJobDefinition,
+  AgendaJobsConfig,
+  AgendaQueueBackend,
+  AgendaQueueOptions,
+} from '../config/agendaQueue.config';
+import type { Agenda, AgendaBackend, Job, JobsQueryOptions, JobsResult } from 'agenda';
 import type { Db } from '@agendajs/mongo-backend';
 
 type AgendaJobHandler = (job: Job) => Promise<void>;
@@ -50,7 +55,11 @@ type LegacyAgendaJobsQuery = {
 };
 type AgendaQueueMongoCollection = {
   find: (filter: Record<string, unknown>) => { toArray: () => Promise<Record<string, unknown>[]> };
-  replaceOne: (filter: Record<string, unknown>, doc: Record<string, unknown>, options: { upsert: boolean }) => Promise<unknown>;
+  replaceOne: (
+    filter: Record<string, unknown>,
+    doc: Record<string, unknown>,
+    options: { upsert: boolean }
+  ) => Promise<unknown>;
   deleteOne: (filter: Record<string, unknown>) => Promise<unknown>;
   deleteMany: (filter: Record<string, unknown>) => Promise<unknown>;
 };
@@ -65,7 +74,6 @@ export class AgendaQueueUnsupportedFeatureError extends Error {
   }
 }
 
-
 export namespace Services {
   const EXTERNAL_SCHEDULER_GUIDANCE = 'Use an external scheduler for SQS-backed recurring jobs.';
 
@@ -77,12 +85,13 @@ export namespace Services {
     protected override _exportedMethods: string[] = [
       'every',
       'schedule',
+      'scheduleUnique',
       'now',
       'jobs',
       'sampleFunctionToDemonstrateHowToDefineAJobFunction',
       'defineJob',
       'moveCompletedJobsToHistory',
-      'init'
+      'init',
     ];
 
     protected agenda?: Agenda;
@@ -91,6 +100,12 @@ export namespace Services {
     protected jobBackendByName = new Map<string, AgendaQueueBackend>();
     private readyInitPromise?: Promise<void>;
     private queueInitialized = false;
+    private queueInitPromise?: Promise<void>;
+    private readySeen = false;
+    private stopping = false;
+    private startedAgendas = new WeakSet<Agenda>();
+    private agendaBackends = new WeakMap<Agenda, AgendaBackend>();
+    private completedStartupSchedules = new Set<string>();
 
     constructor() {
       super();
@@ -104,14 +119,38 @@ export namespace Services {
      */
     public override async init() {
       const that = this;
+      this.registerSailsHook('on', 'lower', async () => {
+        this.stopping = true;
+        const results = await Promise.allSettled(
+          Object.values(this.agendas).map(async agenda => {
+            if (!agenda) return;
+            // stop(false) also handles processors, but is a no-op for producer-only instances.
+            try {
+              await agenda.stop(false);
+            } finally {
+              const backend = this.agendaBackends.get(agenda);
+              if (backend && backend.ownsConnection !== false) await backend.disconnect();
+            }
+          })
+        );
+        for (const result of results) {
+          if (result.status === 'rejected') sails.log.error('AgendaQueue:: Shutdown failed:', result.reason);
+        }
+      });
       this.registerSailsHook('on', 'ready', async function () {
-        await that.handleReady();
+        try {
+          await that.handleReady();
+        } catch (error) {
+          // Sails emits ready without awaiting async listeners.
+          sails.log.error('AgendaQueue:: Failed to initialize queue at Sails ready:', error);
+        }
       });
     }
 
     protected async handleReady() {
+      this.readySeen = true;
       if (_.isNil(this.readyInitPromise)) {
-        this.readyInitPromise = this.handleReadyInternal().catch((err) => {
+        this.readyInitPromise = this.handleReadyInternal().catch(err => {
           this.readyInitPromise = undefined;
           throw err;
         });
@@ -120,7 +159,27 @@ export namespace Services {
     }
 
     private async handleReadyInternal() {
-      this.queueInitialized = false;
+      if (process.env.REDBOX_FIGSHARE_ADMIN === 'true') return;
+      await this.ensureQueueInitialized();
+      if (this.stopping) throw new Error('AgendaQueue:: Queue is shutting down.');
+      const activeAgendas = Object.values(this.agendas).filter((agenda): agenda is Agenda => !_.isNil(agenda));
+      const results = await Promise.allSettled(
+        activeAgendas.map(async agenda => {
+          if (this.startedAgendas.has(agenda)) return;
+          await agenda.start();
+          if (this.stopping) {
+            await agenda.stop(false);
+            throw new Error('AgendaQueue:: Queue is shutting down.');
+          }
+          this.startedAgendas.add(agenda);
+        })
+      );
+      const failed = results.find(result => result.status === 'rejected');
+      if (failed?.status === 'rejected') throw failed.reason;
+      await this.runConfiguredStartupSchedules(this.normalizeJobDefinitions(sails.config.agendaQueue.jobs));
+    }
+
+    private async initializeQueue() {
       const queueConfig = sails.config.agendaQueue;
       const queueOptions = queueConfig.options ?? {};
       const jobs = this.normalizeJobDefinitions(queueConfig.jobs);
@@ -131,50 +190,49 @@ export namespace Services {
       this.jobBackendByName = new Map<string, AgendaQueueBackend>();
       _.each(jobs, (job: AgendaJobDefinition) => {
         const backend = this.getBackendForJob(job);
+        if (job.name === 'Figshare-SyncRecord' && backend !== 'mongodb') {
+          throw new AgendaQueueUnsupportedFeatureError("AgendaQueue:: Figshare-SyncRecord requires backend 'mongodb' to bound pending deliveries. Other jobs can use SQS.");
+        }
         this.jobBackendByName.set(job.name, backend);
         requiredBackends.add(backend);
       });
       if (requiredBackends.size === 0) {
         requiredBackends.add(this.defaultBackend);
       }
-      this.agendas = {};
-
-      if (requiredBackends.has('mongodb')) {
+      // Keep successfully created backends if another backend or index setup fails.
+      if (requiredBackends.has('mongodb') && !this.agendas.mongodb) {
         this.agendas.mongodb = await this.createAgendaForBackend('mongodb', queueOptions, dbManager);
+        this.registerAgendaEvents(this.agendas.mongodb, 'mongodb');
       }
-      if (requiredBackends.has('sqs')) {
+      if (requiredBackends.has('sqs') && !this.agendas.sqs) {
         this.agendas.sqs = await this.createAgendaForBackend('sqs', queueOptions, dbManager);
+        this.registerAgendaEvents(this.agendas.sqs, 'sqs');
       }
 
       this.agenda = this.agendas.mongodb ?? this.agendas[this.defaultBackend] ?? this.agendas.sqs;
-      this.queueInitialized = true;
       this.defineJobs(jobs, this);
       sails.log.verbose('AgendaQueue:: All jobs defined.');
 
-      const activeAgendas = Object.values(this.agendas).filter((agenda): agenda is Agenda => !_.isNil(agenda));
       if (this.agendas.mongodb) {
-        this.registerAgendaEvents(this.agendas.mongodb, 'mongodb');
+        try {
+          await this.createMongoIndexes(dbManager, queueOptions);
+        } catch (error) {
+          // These auxiliary indexes improve performance; the backend's required index is separate.
+          sails.log.warn('AgendaQueue:: Auxiliary index setup failed; queue remains available:', error);
+        }
       }
-      if (this.agendas.sqs) {
-        this.registerAgendaEvents(this.agendas.sqs, 'sqs');
-      }
-      await Promise.all(activeAgendas.map((agenda) => agenda.start()));
-
-      if (this.agendas.mongodb) {
-        await this.createMongoIndexes(dbManager, queueOptions);
-      }
-
-      this.runConfiguredStartupSchedules(jobs);
-    }
-
-    private hasQueueRuntimeState() {
-      return this.queueInitialized || this.jobBackendByName.size > 0 || Object.keys(this.agendas).length > 0;
+      this.queueInitialized = true;
     }
 
     private async ensureQueueInitialized() {
-      if (!this.hasQueueRuntimeState()) {
-        await this.handleReady();
-      }
+      if (this.stopping) throw new Error('AgendaQueue:: Queue is shutting down.');
+      if (this.queueInitialized) return;
+      // Routes alone are not readiness: concurrent calls must await backend creation too.
+      this.queueInitPromise ??= this.initializeQueue().catch(error => {
+        this.queueInitPromise = undefined;
+        throw error;
+      });
+      await this.queueInitPromise;
     }
 
     private normalizeJobDefinitions(jobs: AgendaJobsConfig | AgendaJobDefinition[] | undefined): AgendaJobDefinition[] {
@@ -186,7 +244,7 @@ export namespace Services {
       }
       return Object.entries(jobs).map(([name, jobConfig]: [string, AgendaJobConfig]) => ({
         name,
-        ...jobConfig
+        ...jobConfig,
       }));
     }
 
@@ -217,7 +275,11 @@ export namespace Services {
           if (_.isEmpty(job.options)) {
             agenda.define(job.name, serviceFn as (job: Job) => Promise<void>);
           } else {
-            agenda.define(job.name, serviceFn as (job: Job) => Promise<void>, job.options as Parameters<Agenda['define']>[2]);
+            agenda.define(
+              job.name,
+              serviceFn as (job: Job) => Promise<void>,
+              job.options as Parameters<Agenda['define']>[2]
+            );
           }
           sails.log.verbose(`AgendaQueue:: Defined job:`);
           sails.log.verbose(JSON.stringify(job));
@@ -242,10 +304,10 @@ export namespace Services {
     }
 
     /**
-     * 
-     * There are significant slowdowns with Agenda when the jobs collection grows large. This function moves all completed jobs to a history collection so we still have the data but it doesn't affect the peformance of the job processor. 
-     * 
-     * @param job 
+     *
+     * There are significant slowdowns with Agenda when the jobs collection grows large. This function moves all completed jobs to a history collection so we still have the data but it doesn't affect the peformance of the job processor.
+     *
+     * @param job
      */
     public async moveCompletedJobsToHistory(_job: Job) {
       const historyRetentionHours = sails.config.agendaQueue.options?.historyRetentionHours ?? 25;
@@ -254,17 +316,29 @@ export namespace Services {
       const collectionName = String(_.get(sails.config.agendaQueue, 'options.collection', 'agendaJobs'));
       const jobsCollection = dbManager.collection(collectionName);
       const historyCollection = dbManager.collection(`${collectionName}History`);
-      const completedJobs = await jobsCollection.find({ nextRunAt: null }).toArray();
+      const finishedFilter = {
+        nextRunAt: null,
+        lockedAt: null,
+        disabled: { $ne: true },
+        lastFinishedAt: { $type: 'date' },
+      };
+      const completedJobs = await jobsCollection.find(finishedFilter).toArray();
 
       for (const doc of completedJobs) {
         await historyCollection.replaceOne({ _id: (doc as { _id?: unknown })._id }, doc, { upsert: true });
-        await jobsCollection.deleteOne({ _id: (doc as { _id?: unknown })._id });
+        await jobsCollection.deleteOne({
+          ...finishedFilter,
+          _id: (doc as { _id?: unknown })._id,
+          lastFinishedAt: doc['lastFinishedAt'],
+        });
       }
 
       const historyCutoff = new Date(Date.now() - historyRetentionMs);
       await historyCollection.deleteMany({ lastFinishedAt: { $lt: historyCutoff } });
 
-      sails.log.verbose(`moveCompletedJobsToHistory:: Moved completed jobs to history and removed history older than ${historyRetentionHours} hours`);
+      sails.log.verbose(
+        `moveCompletedJobsToHistory:: Moved completed jobs to history and removed history older than ${historyRetentionHours} hours`
+      );
     }
 
     private getDefaultBackend(options: AgendaQueueOptions): AgendaQueueBackend {
@@ -281,7 +355,9 @@ export namespace Services {
     private getBackendForJobName(jobName: string): AgendaQueueBackend {
       const backend = this.jobBackendByName.get(jobName);
       if (_.isNil(backend)) {
-        throw new Error(`AgendaQueue:: Unknown job '${jobName}'. Define it in sails.config.agendaQueue.jobs before queuing it.`);
+        throw new Error(
+          `AgendaQueue:: Unknown job '${jobName}'. Define it in sails.config.agendaQueue.jobs before queuing it.`
+        );
       }
       return backend;
     }
@@ -300,7 +376,9 @@ export namespace Services {
 
     private ensureRecurringScheduleSupported(jobName: string) {
       if (this.getBackendForJobName(jobName) === 'sqs') {
-        throw new AgendaQueueUnsupportedFeatureError(`AgendaQueue:: every() is not supported for SQS-backed job '${jobName}'. ${EXTERNAL_SCHEDULER_GUIDANCE}`);
+        throw new AgendaQueueUnsupportedFeatureError(
+          `AgendaQueue:: every() is not supported for SQS-backed job '${jobName}'. ${EXTERNAL_SCHEDULER_GUIDANCE}`
+        );
       }
     }
 
@@ -328,7 +406,7 @@ export namespace Services {
       seen.add(value);
 
       if (Array.isArray(value)) {
-        return value.map((item) => this.toSerializableJobData(item, seen));
+        return value.map(item => this.toSerializableJobData(item, seen));
       }
 
       return Object.fromEntries(
@@ -354,29 +432,56 @@ export namespace Services {
       }
     }
 
-    private async createAgendaForBackend(backend: AgendaQueueBackend, options: AgendaQueueOptions, dbManager: unknown): Promise<Agenda> {
-      const { Agenda: AgendaConstructor } = await import('agenda');
+    private async createAgendaForBackend(
+      backend: AgendaQueueBackend,
+      options: AgendaQueueOptions,
+      dbManager: unknown
+    ): Promise<Agenda> {
       const agendaOptions: {
         backend: unknown;
         defaultLockLifetime?: number;
         processEvery?: string;
       } = {
-        backend: undefined
+        backend: undefined,
       };
       this.applyCommonAgendaOptions(agendaOptions, options);
 
       if (backend === 'mongodb') {
-        const { MongoBackend } = await import('@agendajs/mongo-backend');
+        const { MongoBackend, MongoJobRepository } = await import('@agendajs/mongo-backend');
         const datastoreUrl = _.get(sails.config, 'datastores.mongodb.url');
-        const address = typeof options.db === 'string' && options.db.length > 0
-          ? options.db
-          : typeof datastoreUrl === 'string' && datastoreUrl.length > 0
-            ? datastoreUrl
-            : undefined;
-        agendaOptions.backend = !_.isNil(address)
-          ? new MongoBackend({ address, collection: options.collection })
+        const address =
+          typeof options.db === 'string' && options.db.length > 0
+            ? options.db
+            : typeof datastoreUrl === 'string' && datastoreUrl.length > 0
+              ? datastoreUrl
+              : undefined;
+        const mongoBackend = !_.isNil(address)
+          ? new MongoBackend({
+              address,
+              collection: options.collection,
+              options: {
+                socketTimeoutMS: 30000,
+                waitQueueTimeoutMS: 30000,
+                ...options.mongoOptions,
+                serverSelectionTimeoutMS: this.getConnectionTimeoutMs(options),
+                connectTimeoutMS: this.getConnectionTimeoutMs(options),
+              },
+            })
           : new MongoBackend({ mongo: dbManager as Db, collection: options.collection });
-        return new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
+        const repository = mongoBackend.repository;
+        if (!(repository instanceof MongoJobRepository)) {
+          throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: Pending delivery uniqueness requires MongoJobRepository.');
+        }
+        // Use the queue's actual connection, which may differ from the records datastore.
+        // Legacy jobs have no deliveryKey, so an existing backlog does not prevent this index.
+        agendaOptions.backend = mongoBackend;
+        const mongoAgenda = await this.createConnectedAgenda(mongoBackend, agendaOptions, options);
+        await repository.collection.createIndex({ name: 1, 'data.deliveryKey': 1 }, {
+          name: 'agenda_pending_delivery', unique: true,
+          timeoutMS: 0, maxTimeMS: 0,
+          partialFilterExpression: { 'data.deliveryKey': { $type: 'string' }, nextRunAt: { $type: 'date' } }
+        });
+        return mongoAgenda;
       }
 
       const sqsOptions = options.sqs;
@@ -391,25 +496,80 @@ export namespace Services {
         waitTimeSeconds: sqsOptions.waitTimeSeconds,
         receiveBatchSize: sqsOptions.maxMessagesPerPoll,
         visibilityTimeoutSeconds: sqsOptions.visibilityTimeout,
-        fifo: sqsOptions.queueType === 'fifo'
-          ? {
-            enabled: true,
-            messageGroupId: sqsOptions.fifoMessageGroupId,
-            deduplicationIdStrategy: 'job-id'
-          }
-          : undefined
+        fifo:
+          sqsOptions.queueType === 'fifo'
+            ? {
+                enabled: true,
+                messageGroupId: sqsOptions.fifoMessageGroupId,
+                deduplicationIdStrategy: 'job-id',
+              }
+            : undefined,
       });
 
-      return new AgendaConstructor(agendaOptions as ConstructorParameters<typeof AgendaConstructor>[0]);
+      return this.createConnectedAgenda(agendaOptions.backend as AgendaBackend, agendaOptions, options);
+    }
+
+    private getConnectionTimeoutMs(options: AgendaQueueOptions): number {
+      const configured = Number(options.connectionTimeoutMs);
+      return Number.isFinite(configured) && configured > 0 ? Math.ceil(configured) : 30000;
+    }
+
+    private async createConnectedAgenda(
+      backend: AgendaBackend,
+      agendaOptions: { backend: unknown; defaultLockLifetime?: number; processEvery?: string },
+      options: AgendaQueueOptions
+    ): Promise<Agenda> {
+      const { Agenda: AgendaConstructor } = await import('agenda');
+      let discarded = false;
+      let deadline: ReturnType<typeof setTimeout> | undefined;
+      const connecting = Promise.resolve().then(async () => {
+        try {
+          await backend.connect();
+        } finally {
+          // A timed-out connection may open resources before failing later.
+          // Clean up both outcomes once the discarded attempt settles.
+          if (discarded) await backend.disconnect();
+        }
+      });
+      try {
+        await Promise.race([
+          connecting,
+          new Promise<never>((_resolve, reject) => {
+            deadline = setTimeout(
+              () => reject(new Error('AgendaQueue:: Backend connection timed out.')),
+              this.getConnectionTimeoutMs(options)
+            );
+          }),
+        ]);
+        if (this.stopping) throw new Error('AgendaQueue:: Queue is shutting down.');
+        // Agenda 6 starts connect() in its constructor without a rejection handler.
+        // Give it the already-successful connection, not another fallible attempt.
+        backend.connect = () => connecting;
+        const agenda = new AgendaConstructor({ ...agendaOptions, backend });
+        this.agendaBackends.set(agenda, backend);
+        await agenda.ready;
+        if (this.stopping) throw new Error('AgendaQueue:: Queue is shutting down.');
+        return agenda;
+      } catch (error) {
+        discarded = true;
+        void Promise.resolve()
+          .then(() => backend.disconnect())
+          .catch(cleanupError => {
+            sails.log.error('AgendaQueue:: Failed to close discarded backend:', cleanupError);
+          });
+        throw error;
+      } finally {
+        clearTimeout(deadline);
+      }
     }
 
     private registerAgendaEvents(agenda: Agenda, backend: AgendaQueueBackend) {
       agenda.on('ready', () => {
         sails.log.verbose(`AgendaQueue:: Started ${backend} backend.`);
       });
-      agenda.on('error', (err) => {
+      agenda.on('error', err => {
         sails.log.error(`AgendaQueue:: ${backend} backend error:`);
-        sails.log.error(err instanceof Error ? err.stack ?? err.message : JSON.stringify(err));
+        sails.log.error(err instanceof Error ? (err.stack ?? err.message) : JSON.stringify(err));
       });
       agenda.on('start', (job: Job) => {
         sails.log.verbose(`AgendaQueue:: [${backend}] Job ${job.attrs.name} starting`);
@@ -423,41 +583,47 @@ export namespace Services {
       });
     }
 
-    private async createMongoIndexes(dbManager: { collection: (name: string) => { createIndex: (query: Record<string, number>) => Promise<unknown> } }, options: AgendaQueueOptions) {
+    private async createMongoIndexes(
+      dbManager: {
+        collection: (name: string) => {
+          createIndex: (
+            query: Record<string, number>,
+            options?: { socketTimeoutMS: number; maxTimeMS: number }
+          ) => Promise<unknown>;
+        };
+      },
+      options: AgendaQueueOptions
+    ) {
       const collectionName = String(options.collection ?? 'agendaJobs');
-      await dbManager.collection(collectionName).createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 });
-      await dbManager.collection(collectionName).createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 });
+      const indexBuildOptions = { socketTimeoutMS: 0, maxTimeMS: 0 };
+      await dbManager
+        .collection(collectionName)
+        .createIndex({ name: 1, disabled: 1, lockedAt: 1, nextRunAt: 1 }, indexBuildOptions);
+      await dbManager
+        .collection(collectionName)
+        .createIndex({ name: -1, disabled: -1, lockedAt: -1, nextRunAt: -1 }, indexBuildOptions);
     }
 
-    private runConfiguredStartupSchedules(jobs: AgendaJobDefinition[]) {
-      _.each(jobs, (job: AgendaJobDefinition) => {
-        if (_.isEmpty(job.schedule)) {
-          return;
+    private async runConfiguredStartupSchedules(jobs: AgendaJobDefinition[]) {
+      for (const job of jobs) {
+        if (_.isEmpty(job.schedule) || this.completedStartupSchedules.has(job.name)) continue;
+        try {
+          const { method, intervalOrSchedule, data, opts } = job.schedule!;
+          if (method === 'now') {
+            // Startup is already inside handleReady; avoid recursively waiting on it.
+            await this.submitNow(job.name, data);
+          } else if (method === 'every' && intervalOrSchedule) {
+            await this.every(job.name, intervalOrSchedule, data, opts);
+          } else if (method === 'schedule' && intervalOrSchedule) {
+            await this.schedule(job.name, intervalOrSchedule, data);
+          } else {
+            throw new Error('Incorrect job schedule definition.');
+          }
+          this.completedStartupSchedules.add(job.name);
+        } catch (error) {
+          sails.log.error(`AgendaQueue:: Failed to configure startup schedule '${job.name}':`, error);
         }
-
-        const method = job.schedule?.method;
-        const intervalOrSchedule = job.schedule?.intervalOrSchedule;
-        const data = job.schedule?.data;
-        const opts = job.schedule?.opts;
-
-        if (method === 'now') {
-          this.now(job.name, data);
-          return;
-        }
-
-        if (method === 'every' && intervalOrSchedule) {
-          this.every(job.name, intervalOrSchedule, data, opts);
-          return;
-        }
-
-        if (method === 'schedule' && intervalOrSchedule) {
-          this.schedule(job.name, intervalOrSchedule, data);
-          return;
-        }
-
-        sails.log.error('AgendaQueue:: incorrect job schedule definition, method not found:');
-        sails.log.error(JSON.stringify(job));
-      });
+      }
     }
 
     private ensureScheduleSupported(jobName: string, schedule: string, data: unknown) {
@@ -474,7 +640,9 @@ export namespace Services {
 
       const delayMs = nextRunAt.getTime() - Date.now();
       if (delayMs > 15 * 60 * 1000) {
-        throw new AgendaQueueUnsupportedFeatureError(`AgendaQueue:: schedule() only supports delays up to 15 minutes for SQS-backed job '${jobName}'.`);
+        throw new AgendaQueueUnsupportedFeatureError(
+          `AgendaQueue:: schedule() only supports delays up to 15 minutes for SQS-backed job '${jobName}'.`
+        );
       }
     }
 
@@ -492,14 +660,19 @@ export namespace Services {
         const structuredNameQuery = nameQuery as { $in?: unknown } & Record<string, unknown>;
         const supportedKeys = ['$in'];
         const nameQueryKeys = Object.keys(structuredNameQuery);
-        const hasOnlySupportedKeys = nameQueryKeys.length > 0 && nameQueryKeys.every((key) => supportedKeys.includes(key));
+        const hasOnlySupportedKeys =
+          nameQueryKeys.length > 0 && nameQueryKeys.every(key => supportedKeys.includes(key));
         if (!hasOnlySupportedKeys) {
-          throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.');
+          throw new AgendaQueueUnsupportedFeatureError(
+            'AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.'
+          );
         }
 
         const inNames = structuredNameQuery.$in;
         if (!Array.isArray(inNames) || !inNames.every((name: unknown) => _.isString(name))) {
-          throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.');
+          throw new AgendaQueueUnsupportedFeatureError(
+            'AgendaQueue:: jobs() only supports name queries using an exact string or $in when SQS-backed jobs are configured.'
+          );
         }
 
         return inNames.some((name: string) => this.jobBackendByName.get(name) === 'sqs');
@@ -525,23 +698,76 @@ export namespace Services {
       sails.log.info(JSON.stringify(job));
     }
 
-    public every(jobName: string, interval: string, data: unknown = undefined, options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined) {
+    public every(
+      jobName: string,
+      interval: string,
+      data: unknown = undefined,
+      options: { timezone?: string; skipImmediate?: boolean; forkMode?: boolean } | undefined = undefined
+    ) {
       this.ensureRecurringScheduleSupported(jobName);
-      void this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options);
+      return this.getAgendaForJobName(jobName).every(interval, jobName, this.toSerializableJobData(data), options);
     }
 
     public schedule(jobName: string, schedule: string, data: unknown = undefined) {
       this.ensureScheduleSupported(jobName, schedule, data);
-      void this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
+      return this.getAgendaForJobName(jobName).schedule(schedule, jobName, this.toSerializableJobData(data));
+    }
+
+    /**
+     * MongoDB only: coalesce wake-ups per job name/key at the earliest requested time.
+     * Preserve an existing pending job's original payload and lock. Callers must keep
+     * changing work in durable state; later data does not replace the pending payload.
+     * Running and completed deliveries allow a successor to be queued.
+     */
+    public async scheduleUnique(jobName: string, schedule: string | Date, data: Record<string, unknown>, deliveryKey: string): Promise<unknown> {
+      await this.ensureQueueInitialized();
+      if (this.getBackendForJobName(jobName) !== 'mongodb') {
+        throw new AgendaQueueUnsupportedFeatureError(`AgendaQueue:: scheduleUnique() requires a MongoDB-backed job: '${jobName}'.`);
+      }
+      const agenda = this.getAgendaForJobName(jobName);
+      const { MongoJobRepository } = await import('@agendajs/mongo-backend');
+      const repository = agenda.db;
+      if (!(repository instanceof MongoJobRepository)) {
+        throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: Pending delivery uniqueness requires MongoJobRepository.');
+      }
+      const job = agenda.create(jobName, this.toSerializableJobData({ ...data, deliveryKey }))
+        .schedule(schedule)
+        // One-time Agenda jobs set nextRunAt=null when they start. Matching only pending
+        // jobs avoids completed history suppressing future work, or a finishing worker
+        // overwriting a reschedule. Never modify the existing pending job's lock or data.
+        .unique({ 'data.deliveryKey': deliveryKey, nextRunAt: { $type: 'date' } }, { insertOnly: true });
+      // save() replaces nextRunAt with the existing delivery's date, so capture the request first.
+      const nextRunAt = job.attrs.nextRunAt;
+      let saved: Job | undefined;
+      try { saved = await job.save(); }
+      catch (error) {
+        // Concurrent upserts can race on the partial unique index. Also advance the winner
+        // when this request needs an earlier delivery than the competing enqueue.
+        if (!(error instanceof Error && 'code' in error && error.code === 11000 && error.message.includes('agenda_pending_delivery'))) throw error;
+      }
+      if (nextRunAt) {
+        // This update cannot postpone work or revive a job that started between save and update.
+        // Matching the key also handles an insert race without rewriting the winner's payload or lock.
+        await repository.collection.updateOne({ name: jobName, 'data.deliveryKey': deliveryKey, nextRunAt: { $type: 'date', $gt: nextRunAt } }, {
+          $min: { nextRunAt }
+        });
+      }
+      return saved;
     }
 
     public async now(jobName: string, data: unknown = undefined) {
-      if (!this.hasQueueRuntimeState()) {
+      await this.ensureQueueInitialized();
+      if (this.readySeen && process.env.REDBOX_FIGSHARE_ADMIN !== 'true') {
+        // A failed ready event must not leave a producer silently accumulating unprocessed jobs.
         await this.handleReady();
       }
-      sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`)
+      return this.submitNow(jobName, data);
+    }
+
+    private async submitNow(jobName: string, data: unknown) {
+      sails.log.verbose(`AgendaQueue:: Starting job: '${jobName}' now!`);
       const queuedJob = this.getAgendaForJobName(jobName).now(jobName, this.toSerializableJobData(data));
-      queuedJob.catch((e) => {
+      queuedJob.catch(e => {
         sails.log.error(`AgendaQueue:: Failed to start job now: ${jobName}`);
         sails.log.error(e);
       });
@@ -550,7 +776,9 @@ export namespace Services {
 
     public async jobs(query?: LegacyAgendaJobsQuery): Promise<JobsResult> {
       if (_.isNil(this.agendas.mongodb)) {
-        throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: jobs() is only supported when a MongoDB-backed agenda is configured.');
+        throw new AgendaQueueUnsupportedFeatureError(
+          'AgendaQueue:: jobs() is only supported when a MongoDB-backed agenda is configured.'
+        );
       }
       if (this.queryTargetsSqsJobs(query)) {
         throw new AgendaQueueUnsupportedFeatureError('AgendaQueue:: jobs() is not supported for SQS-backed jobs.');

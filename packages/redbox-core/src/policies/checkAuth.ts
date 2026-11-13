@@ -1,6 +1,7 @@
 import * as BrandingServiceModule from '../services/BrandingService';
 import * as RolesServiceModule from '../services/RolesService';
 import * as PathRulesServiceModule from '../services/PathRulesService';
+import { safeChronicleText } from '../utilities/RequestChronicle';
 import {
   buildRecordSchemaForbiddenProblem,
   RECORD_SCHEMA_PROBLEM_MEDIA_TYPE,
@@ -79,7 +80,7 @@ function applyCheckAuth(
         return;
       } else {
         const contentTypeHeader = req.headers['content-type'] == null ? '' : req.headers['content-type'];
-        if (contentTypeHeader.indexOf('application/json') !== -1) {
+        if (/(?:^|\/)api(?:\/|$)/.test(req.path) || contentTypeHeader.indexOf('application/json') !== -1) {
           res.status(403).json({ message: 'Access Denied' });
           return;
         } else {
@@ -89,7 +90,7 @@ function applyCheckAuth(
       }
     }
   } else {
-    sails.log.verbose('No rules for path:' + req.path);
+    sails.log.verbose('No rules for path:' + safeChronicleText(req.path, 500));
   }
 
   // no rules can proceed...

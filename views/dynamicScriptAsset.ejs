@@ -13,7 +13,7 @@ export function evaluate(key, context, extra) {
 
     switch (key) {
     <% for (const entry of entries) { %>
-        case "<%= entry.key?.toString() %>":
+        case <%- JSON.stringify(entry.key?.toString() ?? '') %>:
             return <%- entry.value %>;
     <% } %>
         default:

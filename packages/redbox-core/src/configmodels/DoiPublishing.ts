@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { AppConfig } from './AppConfig.interface';
 
 
+/** Bindings may read record.relatedMetadata when operation options opt in to related resolution. */
 export interface PathBinding {
   kind: 'path';
   path: string;
@@ -359,28 +360,28 @@ const VALUE_BINDING_EDITOR_WIDGET = {
 
 const VALUE_BINDING_SCHEMA = {
   type: 'object',
-  title: 'Binding',
+  title: 'admin-config-label-binding',
   properties: {
     kind: {
       type: 'string',
-      title: 'Binding Type',
+      title: 'admin-config-label-binding-type',
       enum: ['path', 'handlebars', 'jsonata'],
       default: 'path'
     },
     path: {
       type: 'string',
-      title: 'Record Path'
+      title: 'admin-config-label-record-path'
     },
     template: {
       type: 'string',
-      title: 'Handlebars Template'
+      title: 'admin-config-label-handlebars-template'
     },
     expression: {
       type: 'string',
-      title: 'JSONata Expression'
+      title: 'admin-config-label-jsonata-expression'
     },
     defaultValue: {
-      title: 'Default Value'
+      title: 'admin-config-label-default-value'
     }
   },
   required: ['kind'],
@@ -389,7 +390,7 @@ const VALUE_BINDING_SCHEMA = {
 
 const NAME_IDENTIFIER_SCHEMA = {
   type: 'object',
-  title: 'Name Identifier',
+  title: 'admin-config-label-name-identifier',
   properties: {
     nameIdentifier: VALUE_BINDING_SCHEMA,
     nameIdentifierScheme: VALUE_BINDING_SCHEMA,
@@ -399,7 +400,7 @@ const NAME_IDENTIFIER_SCHEMA = {
 
 const AFFILIATION_SCHEMA = {
   type: 'object',
-  title: 'Affiliation',
+  title: 'admin-config-label-affiliation',
   properties: {
     name: VALUE_BINDING_SCHEMA,
     affiliationIdentifier: VALUE_BINDING_SCHEMA,
@@ -410,12 +411,12 @@ const AFFILIATION_SCHEMA = {
 
 const CREATOR_SCHEMA = {
   type: 'object',
-  title: 'Creator',
+  title: 'admin-config-label-creator',
   properties: {
-    sourcePath: { type: 'string', title: 'Source Path' },
+    sourcePath: { type: 'string', title: 'admin-config-label-source-path' },
     itemMode: {
       type: 'string',
-      title: 'Item Mode',
+      title: 'admin-config-label-item-mode',
       enum: ['array'],
       default: 'array'
     },
@@ -425,13 +426,13 @@ const CREATOR_SCHEMA = {
     familyName: VALUE_BINDING_SCHEMA,
     affiliations: {
       type: 'array',
-      title: 'Affiliations',
+      title: 'admin-config-label-affiliations',
       items: AFFILIATION_SCHEMA,
       default: []
     },
     nameIdentifiers: {
       type: 'array',
-      title: 'Name Identifiers',
+      title: 'admin-config-label-name-identifiers',
       items: NAME_IDENTIFIER_SCHEMA,
       default: []
     }
@@ -441,12 +442,12 @@ const CREATOR_SCHEMA = {
 
 const CONTRIBUTOR_SCHEMA = {
   type: 'object',
-  title: 'Contributor',
+  title: 'admin-config-label-contributor',
   properties: {
-    sourcePath: { type: 'string', title: 'Source Path' },
+    sourcePath: { type: 'string', title: 'admin-config-label-source-path' },
     itemMode: {
       type: 'string',
-      title: 'Item Mode',
+      title: 'admin-config-label-item-mode',
       enum: ['array'],
       default: 'array'
     },
@@ -456,13 +457,13 @@ const CONTRIBUTOR_SCHEMA = {
     familyName: VALUE_BINDING_SCHEMA,
     affiliations: {
       type: 'array',
-      title: 'Affiliations',
+      title: 'admin-config-label-affiliations',
       items: AFFILIATION_SCHEMA,
       default: []
     },
     nameIdentifiers: {
       type: 'array',
-      title: 'Name Identifiers',
+      title: 'admin-config-label-name-identifiers',
       items: NAME_IDENTIFIER_SCHEMA,
       default: []
     },
@@ -472,12 +473,12 @@ const CONTRIBUTOR_SCHEMA = {
 };
 
 const OPTIONAL_ARRAY_SOURCE_PROPERTIES = {
-  sourcePath: { type: 'string', title: 'Source Path' }
+  sourcePath: { type: 'string', title: 'admin-config-label-source-path' }
 };
 
 const TITLE_SCHEMA = {
   type: 'object',
-  title: 'Title',
+  title: 'admin-config-label-title',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     title: VALUE_BINDING_SCHEMA,
@@ -489,7 +490,7 @@ const TITLE_SCHEMA = {
 
 const SUBJECT_SCHEMA = {
   type: 'object',
-  title: 'Subject',
+  title: 'admin-config-label-subject',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     subject: VALUE_BINDING_SCHEMA,
@@ -504,7 +505,7 @@ const SUBJECT_SCHEMA = {
 
 const DATE_SCHEMA = {
   type: 'object',
-  title: 'Date',
+  title: 'admin-config-label-date',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     date: VALUE_BINDING_SCHEMA,
@@ -516,7 +517,7 @@ const DATE_SCHEMA = {
 
 const IDENTIFIER_SCHEMA = {
   type: 'object',
-  title: 'Alternate Identifier',
+  title: 'admin-config-label-alternate-identifier',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     identifier: VALUE_BINDING_SCHEMA,
@@ -527,7 +528,7 @@ const IDENTIFIER_SCHEMA = {
 
 const RELATED_IDENTIFIER_SCHEMA = {
   type: 'object',
-  title: 'Related Identifier',
+  title: 'admin-config-label-related-identifier',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     relatedIdentifier: VALUE_BINDING_SCHEMA,
@@ -543,7 +544,7 @@ const RELATED_IDENTIFIER_SCHEMA = {
 
 const RIGHTS_SCHEMA = {
   type: 'object',
-  title: 'Rights',
+  title: 'admin-config-label-rights',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     rights: VALUE_BINDING_SCHEMA,
@@ -557,7 +558,7 @@ const RIGHTS_SCHEMA = {
 
 const DESCRIPTION_SCHEMA = {
   type: 'object',
-  title: 'Description',
+  title: 'admin-config-label-description',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     description: VALUE_BINDING_SCHEMA,
@@ -569,7 +570,7 @@ const DESCRIPTION_SCHEMA = {
 
 const GEOLOCATION_POINT_SCHEMA = {
   type: 'object',
-  title: 'Geo Location Point',
+  title: 'admin-config-label-geo-location-point',
   properties: {
     pointLongitude: VALUE_BINDING_SCHEMA,
     pointLatitude: VALUE_BINDING_SCHEMA
@@ -579,7 +580,7 @@ const GEOLOCATION_POINT_SCHEMA = {
 
 const GEOLOCATION_BOX_SCHEMA = {
   type: 'object',
-  title: 'Geo Location Box',
+  title: 'admin-config-label-geo-location-box',
   properties: {
     westBoundLongitude: VALUE_BINDING_SCHEMA,
     eastBoundLongitude: VALUE_BINDING_SCHEMA,
@@ -591,7 +592,7 @@ const GEOLOCATION_BOX_SCHEMA = {
 
 const GEOLOCATION_PLACE_SCHEMA = {
   type: 'object',
-  title: 'Geo Location Place',
+  title: 'admin-config-label-geo-location-place',
   properties: {
     geoLocationPlace: VALUE_BINDING_SCHEMA
   },
@@ -600,7 +601,7 @@ const GEOLOCATION_PLACE_SCHEMA = {
 
 const GEOLOCATION_SCHEMA = {
   type: 'object',
-  title: 'Geo Location',
+  title: 'admin-config-label-geo-location',
   properties: {
     geoLocationPoint: GEOLOCATION_POINT_SCHEMA,
     geoLocationBox: GEOLOCATION_BOX_SCHEMA,
@@ -610,7 +611,7 @@ const GEOLOCATION_SCHEMA = {
 
 const FUNDING_REFERENCE_SCHEMA = {
   type: 'object',
-  title: 'Funding Reference',
+  title: 'admin-config-label-funding-reference',
   properties: {
     ...OPTIONAL_ARRAY_SOURCE_PROPERTIES,
     funderName: VALUE_BINDING_SCHEMA,
@@ -625,19 +626,19 @@ const FUNDING_REFERENCE_SCHEMA = {
 
 const RELATED_ITEM_SCHEMA = {
   type: 'object',
-  title: 'Related Item',
+  title: 'admin-config-label-related-item',
   properties: {
     relationType: VALUE_BINDING_SCHEMA,
     relatedItemType: VALUE_BINDING_SCHEMA,
     titles: {
       type: 'array',
-      title: 'Titles',
+      title: 'admin-config-label-titles',
       items: TITLE_SCHEMA,
       default: []
     },
     creators: {
       type: 'array',
-      title: 'Creators',
+      title: 'admin-config-label-creators',
       items: CREATOR_SCHEMA,
       default: []
     },
@@ -651,7 +652,7 @@ const RELATED_ITEM_SCHEMA = {
     edition: VALUE_BINDING_SCHEMA,
     contributors: {
       type: 'array',
-      title: 'Contributors',
+      title: 'admin-config-label-contributors',
       items: CONTRIBUTOR_SCHEMA,
       default: []
     }
@@ -661,7 +662,7 @@ const RELATED_ITEM_SCHEMA = {
 
 const TYPE_SCHEMA = {
   type: 'object',
-  title: 'Types',
+  title: 'admin-config-label-types',
   properties: {
     resourceTypeGeneral: VALUE_BINDING_SCHEMA,
     resourceType: VALUE_BINDING_SCHEMA,
@@ -675,20 +676,20 @@ const TYPE_SCHEMA = {
 
 const WRITE_BACK_SCHEMA = {
   type: 'object',
-  title: 'Write Back',
+  title: 'admin-config-label-write-back',
   properties: {
-    citationUrlPath: { type: 'string', title: 'Citation URL Path' },
-    citationDoiPath: { type: 'string', title: 'Citation DOI Path' },
-    generatedCitationPath: { type: 'string', title: 'Generated Citation Path' },
+    citationUrlPath: { type: 'string', title: 'admin-config-label-citation-url-path' },
+    citationDoiPath: { type: 'string', title: 'admin-config-label-citation-doi-path' },
+    generatedCitationPath: { type: 'string', title: 'admin-config-label-generated-citation-path' },
     citationString: VALUE_BINDING_SCHEMA,
     extraFields: {
       type: 'array',
-      title: 'Extra Fields',
+      title: 'admin-config-label-extra-fields',
       items: {
         type: 'object',
         properties: {
-          sourcePath: { type: 'string', title: 'Source Path' },
-          targetPath: { type: 'string', title: 'Target Path' }
+          sourcePath: { type: 'string', title: 'admin-config-label-source-path' },
+          targetPath: { type: 'string', title: 'admin-config-label-target-path' }
         },
         required: ['sourcePath', 'targetPath']
       },
@@ -699,31 +700,31 @@ const WRITE_BACK_SCHEMA = {
 
 const VALIDATION_SCHEMA = {
   type: 'object',
-  title: 'Validation',
+  title: 'admin-config-label-validation',
   widget: {
     formlyConfig: {
       hide: true
     }
   },
   properties: {
-    requireUrl: { type: 'boolean', title: 'Require Url', default: true },
-    requirePublisher: { type: 'boolean', title: 'Require Publisher', default: true },
-    requirePublicationYear: { type: 'boolean', title: 'Require Publication Year', default: true },
-    requireCreators: { type: 'boolean', title: 'Require Creators', default: true },
-    requireTitles: { type: 'boolean', title: 'Require Titles', default: true }
+    requireUrl: { type: 'boolean', title: 'admin-config-label-require-url', default: true },
+    requirePublisher: { type: 'boolean', title: 'admin-config-label-require-publisher', default: true },
+    requirePublicationYear: { type: 'boolean', title: 'admin-config-label-require-publication-year', default: true },
+    requireCreators: { type: 'boolean', title: 'admin-config-label-require-creators', default: true },
+    requireTitles: { type: 'boolean', title: 'admin-config-label-require-titles', default: true }
   }
 };
 
 const PROFILE_SCHEMA = {
   type: 'object',
-  title: 'Profile',
+  title: 'admin-config-label-profile',
   properties: {
-    name: { type: 'string', title: 'Profile Name' },
-    enabled: { type: 'boolean', title: 'Enabled', default: true },
-    label: { type: 'string', title: 'Label' },
+    name: { type: 'string', title: 'admin-config-label-profile-name' },
+    enabled: { type: 'boolean', title: 'admin-config-label-enabled', default: true },
+    label: { type: 'string', title: 'admin-config-label-label' },
     metadata: {
       type: 'object',
-      title: 'Metadata',
+      title: 'admin-config-label-metadata',
       properties: {
         doi: VALUE_BINDING_SCHEMA,
         prefix: VALUE_BINDING_SCHEMA,
@@ -737,73 +738,73 @@ const PROFILE_SCHEMA = {
         sizes: VALUE_BINDING_SCHEMA,
         creators: {
           type: 'array',
-          title: 'Creators',
+          title: 'admin-config-label-creators',
           items: CREATOR_SCHEMA,
           default: []
         },
         titles: {
           type: 'array',
-          title: 'Titles',
+          title: 'admin-config-label-titles',
           items: TITLE_SCHEMA,
           default: []
         },
         subjects: {
           type: 'array',
-          title: 'Subjects',
+          title: 'admin-config-label-subjects',
           items: SUBJECT_SCHEMA,
           default: []
         },
         contributors: {
           type: 'array',
-          title: 'Contributors',
+          title: 'admin-config-label-contributors',
           items: CONTRIBUTOR_SCHEMA,
           default: []
         },
         dates: {
           type: 'array',
-          title: 'Dates',
+          title: 'admin-config-label-dates',
           items: DATE_SCHEMA,
           default: []
         },
         alternateIdentifiers: {
           type: 'array',
-          title: 'Alternate Identifiers',
+          title: 'admin-config-label-alternate-identifiers',
           items: IDENTIFIER_SCHEMA,
           default: []
         },
         relatedIdentifiers: {
           type: 'array',
-          title: 'Related Identifiers',
+          title: 'admin-config-label-related-identifiers',
           items: RELATED_IDENTIFIER_SCHEMA,
           default: []
         },
         rightsList: {
           type: 'array',
-          title: 'Rights List',
+          title: 'admin-config-label-rights-list',
           items: RIGHTS_SCHEMA,
           default: []
         },
         descriptions: {
           type: 'array',
-          title: 'Descriptions',
+          title: 'admin-config-label-descriptions',
           items: DESCRIPTION_SCHEMA,
           default: []
         },
         geoLocations: {
           type: 'array',
-          title: 'Geo Locations',
+          title: 'admin-config-label-geo-locations',
           items: GEOLOCATION_SCHEMA,
           default: []
         },
         fundingReferences: {
           type: 'array',
-          title: 'Funding References',
+          title: 'admin-config-label-funding-references',
           items: FUNDING_REFERENCE_SCHEMA,
           default: []
         },
         relatedItems: {
           type: 'array',
-          title: 'Related Items',
+          title: 'admin-config-label-related-items',
           items: RELATED_ITEM_SCHEMA,
           default: []
         },
@@ -819,27 +820,27 @@ const PROFILE_SCHEMA = {
 
 const PROFILES_SCHEMA = {
   type: 'array',
-  title: 'Profiles',
+  title: 'admin-config-label-profiles',
   items: PROFILE_SCHEMA,
   default: []
 };
 
 const CONNECTION_RETRY_SCHEMA = {
   type: 'object',
-  title: 'Retry Policy',
+  title: 'admin-config-label-retry-policy',
   properties: {
-    maxAttempts: { type: 'integer', title: 'Max Attempts', default: 3 },
-    baseDelayMs: { type: 'integer', title: 'Base Delay (ms)', default: 500 },
-    maxDelayMs: { type: 'integer', title: 'Max Delay (ms)', default: 4000 },
+    maxAttempts: { type: 'integer', title: 'admin-config-label-max-attempts', default: 3 },
+    baseDelayMs: { type: 'integer', title: 'admin-config-label-base-delay-ms', default: 500 },
+    maxDelayMs: { type: 'integer', title: 'admin-config-label-max-delay-ms', default: 4000 },
     retryOnStatusCodes: {
       type: 'array',
-      title: 'Retry On Status Codes',
+      title: 'admin-config-label-retry-on-status-codes',
       items: { type: 'integer' },
       default: [408, 429, 500, 502, 503, 504]
     },
     retryOnMethods: {
       type: 'array',
-      title: 'Retry On Methods',
+      title: 'admin-config-label-retry-on-methods',
       items: { type: 'string' },
       default: ['get', 'put', 'patch', 'delete']
     }
@@ -848,28 +849,28 @@ const CONNECTION_RETRY_SCHEMA = {
 
 const OPERATIONS_SCHEMA = {
   type: 'object',
-  title: 'Operations',
+  title: 'admin-config-label-operations',
   properties: {
     createEvent: {
       type: 'string',
-      title: 'Create Event',
+      title: 'admin-config-label-create-event',
       enum: ['draft', 'register', 'publish'],
       default: 'publish'
     },
     updateEvent: {
       type: 'string',
-      title: 'Update Event',
+      title: 'admin-config-label-update-event',
       enum: ['draft', 'register', 'publish', 'hide'],
       default: 'publish'
     },
     allowDeleteDraft: {
       type: 'boolean',
-      title: 'Allow Delete Draft',
+      title: 'admin-config-label-allow-delete-draft',
       default: true
     },
     allowStateChange: {
       type: 'boolean',
-      title: 'Allow State Change',
+      title: 'admin-config-label-allow-state-change',
       default: true
     }
   }
@@ -910,16 +911,16 @@ export class DoiPublishing extends AppConfig implements DoiPublishingConfigData 
 export const DOI_PUBLISHING_SCHEMA = {
   type: 'object',
   properties: {
-    enabled: { type: 'boolean', title: 'Enabled', default: false },
-    defaultProfile: { type: 'string', title: 'Default Profile', default: '' },
+    enabled: { type: 'boolean', title: 'admin-config-label-enabled', default: false },
+    defaultProfile: { type: 'string', title: 'admin-config-label-default-profile', default: '' },
     connection: {
       type: 'object',
-      title: 'Connection',
+      title: 'admin-config-label-connection',
       properties: {
-        baseUrl: { type: 'string', title: 'Base URL' },
-        username: { type: 'string', title: 'Username' },
-        password: { type: 'string', title: 'Password' },
-        timeoutMs: { type: 'number', title: 'Timeout (ms)' },
+        baseUrl: { type: 'string', title: 'admin-config-label-base-url' },
+        username: { type: 'string', title: 'admin-config-label-username' },
+        password: { type: 'string', title: 'admin-config-label-password' },
+        timeoutMs: { type: 'number', title: 'admin-config-label-timeout-ms' },
         retry: CONNECTION_RETRY_SCHEMA
       }
     },

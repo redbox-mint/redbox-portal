@@ -5,6 +5,9 @@ import path from 'path';
 import { z } from 'zod';
 import {
   ApiRouteDefinition,
+  cancelExportJobRoute,
+  bulkDeletedRecordsRoute,
+  deletedRecordSessionListRoute,
   buildApiBlueprint,
   buildCoreApiRouteConfig,
   buildCoreApiOpenApiDocument,
@@ -74,6 +77,7 @@ import {
   getDeletedRecordRoute,
   getMetaRoute,
   getPermissionsRoute,
+  getDataStreamRoute,
   listRecordsRoute,
   restoreRecordRoute,
   transitionWorkflowRoute,
@@ -86,7 +90,7 @@ import {
   resolveCreateRecordSchemaRoute,
   resolveUpdateRecordSchemaRoute,
 } from '../../src/api-routes/groups/record-schemas';
-import { objectField, stringField } from '../../src/api-routes/schemas/common';
+import { booleanField, integerField, objectField, stringField } from '../../src/api-routes/schemas/common';
 import {
   buildContractApiPolicies,
   mergeContractApiPolicies,
@@ -169,6 +173,124 @@ function responseStatuses(route: { responses?: Record<number, unknown> }): numbe
 
 describe('API routes contract layer', function () {
   this.timeout(10_000);
+  it('registers cancellation as an Admin-scoped CSRF-protected session contract', async function () {
+    expect(cancelExportJobRoute.csrf).to.equal(true);
+    expect(cancelExportJobRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(buildCoreApiRouteConfig()['post /:branding/:portal/export/jobs/:id/cancel']).to.deep.equal({
+      controller: 'ExportController', action: 'cancelJob', csrf: true,
+    });
+    expect(cancelExportJobRoute.request?.params?.safeParse({ id: 'not-a-uuid' }).success).to.equal(false);
+    const document = buildCoreApiOpenApiDocument();
+    const operation = document.paths['/{branding}/{portal}/export/jobs/{id}/cancel'].post;
+    expect(operation).to.have.property('responses');
+    expect(JSON.stringify(operation)).to.include('cancelled');
+    await SwaggerParser.validate(document as never);
+  });
+
+  it('routes datastream filenames with extensions to the protected download action', function () {
+    const routes = buildSailsRouteConfig([getDataStreamRoute]);
+    expect(routes['get /:branding/:portal/api/records/datastreams/:oid/:datastreamId']).to.include({
+      controller: 'webservice/RecordController',
+      action: 'getDataStream',
+      skipAssets: false,
+    });
+  });
+  it('preserves named-query string filters and rejects structured filter values', function () {
+    const request = (query: Record<string, unknown>) =>
+      ({ params: {}, query, headers: {}, body: {} }) as unknown as Sails.Req;
+    const query = {
+      queryName: 'listRecordNotificationLogs',
+      start: '0',
+      rows: '10',
+      oid: 'synthetic-log',
+      dateFrom: '2026-10-01',
+      empty: '',
+      numeric: '123',
+      boolean: 'true',
+      json: '{"$ne":null}',
+    };
+    const result = validateApiRouteRequest(request(query), executeNamedQueryRoute);
+    expect(result.valid).to.equal(true);
+    if (!result.valid) throw new Error('Expected named-query filters to pass validation');
+    expect(result.query).to.deep.equal(query);
+    for (const value of [{ $ne: null }, ['a', 'b'], null, 123, true]) {
+      const invalid = validateApiRouteRequest(
+        request({ queryName: query.queryName, oid: value }),
+        executeNamedQueryRoute
+      );
+      expect(invalid.valid, JSON.stringify(value)).to.equal(false);
+      if (invalid.valid) throw new Error('Expected structured or non-string filters to fail validation');
+      expect(invalid.issues.some(issue => issue.path === 'query.oid')).to.equal(true);
+    }
+  });
+
+  for (const [name, field, raw, expected, type] of [
+    ['integer', integerField(), '42', 42, 'integer'],
+    ['boolean', booleanField(), 'true', true, 'boolean'],
+    ['nested', objectField({ count: integerField() }, ['count']), { count: '3' }, { count: 3 }, 'object'],
+    [
+      'nested catchall',
+      objectField({}, [], undefined, booleanField()),
+      { enabled: 'false' },
+      { enabled: false },
+      'object',
+    ],
+  ] as const) {
+    it(`coerces typed ${name} additional properties like declared fields and documents their schema`, function () {
+      const schema = objectField({ declared: field }, ['declared'], 'Typed values', field);
+      const route = apiRoute('post', '/typed-values', 'TestController', 'typedValues', {
+        query: schema,
+        body: { content: { 'application/json': { schema } } },
+      });
+      const req = {
+        query: { declared: raw, configured: raw },
+        body: { declared: raw, configured: raw },
+      } as unknown as Sails.Req;
+      const validated = validateApiRouteRequest(req, route);
+      expect(validated.valid).to.equal(true);
+      if (!validated.valid) throw new Error(JSON.stringify(validated.issues));
+      expect(validated.body).to.deep.equal({ declared: expected, configured: expected });
+      expect(validated.query).to.deep.equal({ declared: expected, configured: expected });
+
+      const document = buildOpenApiDocument([route], { title: 'Typed values', version: '1.0.0' });
+      const operation = asOpenApiOperation(document.paths['/typed-values'].post);
+      const body = operation.requestBody?.content?.['application/json']?.schema;
+      expect(body?.additionalProperties).to.deep.equal(body?.properties?.declared);
+      expect(body?.additionalProperties).to.have.property('type', type);
+      expect(
+        operation.parameters?.find(parameter => parameter.name === 'additionalQueryParams')?.schema?.additionalProperties
+      ).to.deep.equal(body?.additionalProperties);
+    });
+  }
+
+  it('preserves unknown passthrough values without coercion and strips disallowed extras', function () {
+    const configured = { count: '3', enabled: 'true', values: [1, 'two'] };
+    for (const additionalProperties of [true, false] as const) {
+      const schema = objectField({ count: integerField() }, ['count'], undefined, additionalProperties);
+      const req = { query: { count: '3', configured } } as unknown as Sails.Req;
+      const validated = validateApiRouteRequest(
+        req,
+        apiRoute('get', '/values', 'TestController', 'values', { query: schema })
+      );
+      expect(validated.valid).to.equal(true);
+      if (!validated.valid) throw new Error(JSON.stringify(validated.issues));
+      expect(validated.query).to.deep.equal(additionalProperties ? { count: 3, configured } : { count: 3 });
+    }
+  });
+
+  it('documents configured named-query filters as exploded top-level string parameters', async function () {
+    const document = buildOpenApiDocument([executeNamedQueryRoute], { title: 'Reports', version: '1.0.0' });
+    const operation = asOpenApiOperation(document.paths['/{branding}/{portal}/api/report/namedQuery'].get);
+    const extras = operation.parameters?.find(parameter => parameter.name === 'additionalQueryParams');
+    expect(extras).to.include({ in: 'query', style: 'form', explode: true, required: false });
+    expect(extras?.schema).to.include({ type: 'object' });
+    expect(extras?.schema?.additionalProperties).to.include({ type: 'string' });
+    expect(operation.parameters?.find(parameter => parameter.name === 'queryName')).to.include({ required: true });
+    expect(buildApiBlueprint([executeNamedQueryRoute])).to.include('Each filter value must be a scalar string');
+    expect(buildApiBlueprint([executeNamedQueryRoute])).to.include('Objects and arrays are rejected');
+    await SwaggerParser.validate(JSON.parse(JSON.stringify(document)));
+  });
+
   it('should specialize the OpenAPI paths for the requested branding and portal', async function () {
     const document = buildCoreApiOpenApiDocument({ branding: 'default', portal: 'rdmp' });
 
@@ -187,6 +309,22 @@ describe('API routes contract layer', function () {
     const operation = document.paths['/{branding}/{portal}/api/users']?.get as Record<string, unknown>;
 
     expect(operation['x-redbox-roles']).to.deep.equal(['Admin']);
+  });
+
+  it('documents the default and effective session cookie names', function () {
+    const globalWithSails = globalThis as typeof globalThis & { sails?: { config?: Record<string, unknown> } };
+    const previousSails = globalWithSails.sails;
+    try {
+      delete globalWithSails.sails;
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('redbox.sid');
+      globalWithSails.sails = { config: { redboxSession: { name: 'custom.sid' } } };
+      expect(buildOpenApiDocument([], { title: 'test', version: '1' }).components.securitySchemes.sessionAuth.name)
+        .to.equal('custom.sid');
+    } finally {
+      if (previousSails === undefined) delete globalWithSails.sails;
+      else globalWithSails.sails = previousSails;
+    }
   });
 
   it('should derive x-redbox-roles from runtime auth rules', function () {
@@ -632,8 +770,33 @@ describe('API routes contract layer', function () {
       if (route.controller === 'webservice/RecordSchemaController') continue;
 
       const controllerPolicies = policies[route.controller] as Record<string, unknown>;
-      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expectedPolicies);
+      const expected =
+        (route.controller === 'webservice/NamedQueryController' &&
+        ['createQuery', 'updateQuery', 'deleteQuery'].includes(route.action)) ||
+        (route.controller === 'webservice/ReportController' && ['createConfig', 'updateConfig', 'deleteConfig'].includes(route.action))
+          ? expectedPolicies.flatMap(policy =>
+              policy === 'isWebServiceAuthenticated' ? ['namedQueryMutationCsrf', policy] : [policy]
+            )
+          : expectedPolicies;
+      expect(controllerPolicies[route.action], `${route.controller}.${route.action}`).to.deep.equal(expected);
     }
+  });
+
+  it('should retain attachment authentication when browser record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    const defaultPolicies = recordPolicies['*'];
+
+    expect(recordPolicies.doAttachment).to.deep.equal(
+      defaultPolicies.flatMap(policy => policy === 'checkAuth' ? ['companionAttachmentUploadAuth', policy] : [policy])
+    );
+    expect(recordPolicies.resolveRelatedMetadata).to.deep.equal([...defaultPolicies, 'validateApiContractRequest']);
+  });
+
+  it('should retain Companion attachment authorization when record contracts are registered', function () {
+    const recordPolicies = policies.RecordController as Record<string, string[]>;
+    expect(recordPolicies.doAttachment).to.include('companionAttachmentUploadAuth');
+    expect(recordPolicies.doAttachment.indexOf('companionAttachmentUploadAuth')).to.be.lessThan(recordPolicies.doAttachment.indexOf('checkAuth'));
+    expect(recordPolicies.bulkDeletedRecords).to.include('validateApiContractRequest');
   });
 
   it('should build and merge contract validation policies for hook API routes', function () {
@@ -1241,7 +1404,9 @@ describe('API routes contract layer', function () {
           duplicateChunks: 0,
         },
         chunks: [],
+        chunksTotal: 0,
         events: [],
+        eventsTotal: 0,
         aggregateCounts: {
           totalProcessed: 1,
           created: 1,
@@ -1445,6 +1610,11 @@ describe('API routes contract layer', function () {
     expect(asOpenApiSchema(legacyVariant?.items).properties).to.have.property('harvestId');
     expect(trackedVariant?.properties).to.have.property('run');
 
+    const statisticsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/summary']?.get);
+    expect((statisticsRoute as Record<string, unknown>)['x-redbox-roles']).to.deep.equal(['Admin']);
+    const statisticsSchema = asOpenApiSchema(statisticsRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(statisticsSchema.properties).to.have.keys('runsLast7Days', 'failedLast7Days', 'runningNow', 'lastSuccessfulRun');
+
     const harvestRunsRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs']?.get);
     const harvestRunsSchema = asOpenApiSchema(
       harvestRunsRoute.responses?.['200']?.content?.['application/json']?.schema
@@ -1457,6 +1627,13 @@ describe('API routes contract layer', function () {
     );
     expect(harvestRunDetailSchema.properties).to.have.property('run');
     expect(harvestRunDetailSchema.properties).to.have.property('chunks');
+    expect(harvestRunDetailSchema.properties).to.have.property('chunksTotal');
+    expect(harvestRunDetailSchema.properties).to.have.property('eventsTotal');
+
+    const chunksRoute = asOpenApiOperation(document.paths['/{branding}/{portal}/api/harvest-runs/{id}/chunks']?.get);
+    const chunksSchema = asOpenApiSchema(chunksRoute.responses?.['200']?.content?.['application/json']?.schema);
+    expect(asOpenApiSchema(chunksSchema.properties?.records).items?.properties).to.have.property('chunkIndex');
+    expect(chunksRoute.responses).to.have.property('404');
 
     const harvestRunEventsRoute = asOpenApiOperation(
       document.paths['/{branding}/{portal}/api/harvest-runs/{id}/events']?.get
@@ -1736,6 +1913,16 @@ describe('API routes contract layer', function () {
         meta: { outcome: 'not-saved' },
       }).success
     ).to.equal(false);
+  });
+
+  it('keeps deleted-record bulk actions on session Admin/CSRF contracts with bounded item input', () => {
+    expect(bulkDeletedRecordsRoute.csrf).to.equal(true);
+    expect(bulkDeletedRecordsRoute.extensions?.['x-redbox-roles']).to.deep.equal(['Admin']);
+    expect(deletedRecordSessionListRoute.csrf).to.equal(true);
+    const request: any = { params: {}, query: {}, headers: { 'content-type': 'application/json' }, body: { action: 'restore', items: [] } };
+    expect(validateApiRouteRequest(request, bulkDeletedRecordsRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: ['7', '30'] } }, deletedRecordSessionListRoute).valid).to.equal(false);
+    expect(validateApiRouteRequest({ ...request, query: { deletedWithin: '7', deletedBy: 'alice', start: '0', rows: '10' } }, deletedRecordSessionListRoute).valid).to.equal(true);
   });
 
   it('should document vocabulary creation as a 201 response', function () {

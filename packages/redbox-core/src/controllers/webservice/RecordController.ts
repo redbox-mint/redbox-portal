@@ -1,3 +1,7 @@
+import { RBValidationError } from '../../model/RBValidationError';
+import { relatedHttpCandidate, RelatedHttpError } from '../../related-records/http';
+import { withinRelatedResolutionDeadline } from '../../related-records/resolver';
+import { relatedMetadataSchema } from '../../api-routes/groups/related-records';
 // Copyright(c) 2017 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -17,6 +21,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { deletedRecordSummary } from '../../DeletedRecordSummary';
+import { pipeline } from 'node:stream/promises';
 import { firstValueFrom, from } from 'rxjs';
 import * as path from 'path';
 import {
@@ -126,6 +132,7 @@ export namespace Controllers {
       'updateMeta',
       'updateObjectMeta',
       'getMeta',
+      'getResolved',
       'getRecordAudit',
       'getObjectMeta',
       'addUserEdit',
@@ -808,13 +815,37 @@ export namespace Controllers {
       }
     }
 
+    public async getResolved(req: Sails.Req, res: Sails.Res) {
+      const startedAt = Date.now();
+      const headers = { 'Cache-Control': 'private, no-store' };
+      try {
+        if (!req.user) throw new RelatedHttpError(403);
+        const validated = getValidatedApiRequest(req);
+        const context = { brand: BrandingService.getBrand(req.session.branding!), user: req.user as unknown as UserModel, audience: 'api' as const };
+        const relations = String(validated.query.relations).split(',').map(value => value.trim());
+        const { root, options } = await relatedHttpCandidate({ oid: validated.params.oid as string, relations }, context, this.RecordsService, startedAt);
+        const relatedMetadata = relatedMetadataSchema.parse(await withinRelatedResolutionDeadline(() =>
+          this.RecordsService.resolveRelatedMetadata(root, context, {
+            relations: relations.map(relationId => ({ relationId })),
+          }, options), startedAt));
+        if (Object.values(relatedMetadata).some(entry => entry.issues.some(issue => issue.code === 'configuration-error')))
+          throw new RelatedHttpError(500);
+        const data = { redboxOid: root.redboxOid, metadata: root.metadata,
+          metaMetadata: { type: String(root.metaMetadata.type), brandId: String(root.metaMetadata.brandId) }, relatedMetadata };
+        return this.sendResp(req, res, { data, headers });
+      } catch (error) {
+        return this.sendResp(req, res, { status: error instanceof RelatedHttpError ? error.status : 500,
+          displayErrors: [{ detail: 'Related metadata could not be resolved.' }], headers });
+      }
+    }
+
     public async getMeta(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
       const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
 
       try {
-        const record = await this.requireRecordInBrand(oid, brand);
+        let record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
           return this.sendResp(req, res, {
             status: 404,
@@ -825,6 +856,9 @@ export namespace Controllers {
           return this.sendResp(req, res, { status: 403 });
         }
         const representation = recordRepresentationConcurrency(record);
+        if (validated.query.consumerView === 'true') {
+          record = await this.RecordsService.getConsumerView(record as unknown as globalThis.Record<string, unknown>, brand, req.user) as unknown as typeof record;
+        }
         const headers = await this.recordReadDiscoveryHeaders(req, brand, oid, representation.headers);
         if (!this.shouldIncludeRelationships(req)) {
           return this.sendResp(req, res, {
@@ -859,6 +893,7 @@ export namespace Controllers {
     public async getRecordAudit(req: Sails.Req, res: Sails.Res) {
       const validated = getValidatedApiRequest(req);
       const oid = validated.params.oid as string;
+      const brand: BrandingModel = BrandingService.getBrand(req.session.branding!);
       const dateFrom = validated.query.dateFrom as string | undefined;
       const dateTo = validated.query.dateTo as string | undefined;
       const params: { oid: string; dateFrom: Date | null; dateTo: Date | null } = { oid, dateFrom: null, dateTo: null };
@@ -871,6 +906,14 @@ export namespace Controllers {
       }
 
       try {
+        // Audit history alone cannot establish access to a missing or purged record.
+        const record = await this.requireRecordInBrand(oid, brand);
+        if (!record) {
+          return this.sendResp(req, res, { status: 404 });
+        }
+        if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
+          return this.sendResp(req, res, { status: 403 });
+        }
         const audit = await this.RecordsService.getRecordAudit(params);
         const response: ListAPIResponse<unknown> = new ListAPIResponse<unknown>();
         response.summary.numFound = _.size(audit);
@@ -984,6 +1027,9 @@ export namespace Controllers {
         }
         return this.sendSaveFailure(req, res, result, 'Update Metadata failed');
       } catch (err) {
+        if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(err) && RBValidationError.classify(err) === 'validation') {
+          return this.sendResp(req, res, { status: 400, displayErrors: err.displayErrors });
+        }
         return this.sendResp(req, res, {
           errors: [this.asError(err)],
           displayErrors: [{ detail: 'Update Metadata failed' }],
@@ -1156,6 +1202,9 @@ export namespace Controllers {
                 }
               },
               (error: unknown) => {
+                if (this.getApiVersion(req) !== '1.0' && RBValidationError.isRBValidationError(error) && RBValidationError.classify(error) === 'validation') {
+                  return this.sendResp(req, res, { status: 400, displayErrors: error.displayErrors });
+                }
                 return this.sendResp(req, res, {
                   errors: [this.asError(error)],
                   displayErrors: [{ detail: 'Create Record failed' }],
@@ -1184,10 +1233,10 @@ export namespace Controllers {
         // ignores the request context, so this is the only view-access check.
         const record = await this.requireRecordInBrand(oid, brand);
         if (!record) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'error-404-heading' }] });
         }
         if (!this.hasViewAccess(brand, req.user ?? {}, record)) {
-          return this.sendResp(req, res, { status: 403 });
+          return this.sendResp(req, res, { status: 403, displayErrors: [{ code: 'edit-error-no-permissions' }] });
         }
         let found: globalThis.Record<string, unknown> | null = null;
         const attachments = await this.RecordsService.getAttachments(oid, undefined, {
@@ -1200,7 +1249,7 @@ export namespace Controllers {
         }
 
         if (!found) {
-          return this.sendResp(req, res, { status: 404 });
+          return this.sendResp(req, res, { status: 404, displayErrors: [{ code: 'attachment-not-found' }] });
         }
         let mimeType = found.mimeType;
         if (_.isEmpty(mimeType)) {
@@ -1226,20 +1275,32 @@ export namespace Controllers {
             username: String(req.user?.username ?? '') || undefined,
           });
           if (response.readstream) {
-            response.readstream.on('error', () => {
-              sails.log.error('record_datastream_stream_failed', {
-                event: 'record_datastream_stream_failed',
-              });
+            // The client may have disconnected while getDatastream was pending.
+            if (res.destroyed) {
+              if ('destroy' in response.readstream && typeof response.readstream.destroy === 'function') {
+                response.readstream.destroy();
+              } else {
+                response.readstream.resume();
+              }
               return;
-            });
-            response.readstream.pipe(res);
+            }
+            await pipeline(response.readstream, res);
           } else {
             const body = response.body ?? '';
             const buffer = Buffer.isBuffer(body) ? body : Buffer.from(body);
             res.end(buffer, 'binary');
           }
           return;
-        } catch {
+        } catch (error) {
+          if (res.destroyed) {
+            const code = error instanceof Error && 'code' in error ? error.code : undefined;
+            if (code !== 'ERR_STREAM_PREMATURE_CLOSE' && code !== 'ABORT_ERR') {
+              sails.log.error('record_datastream_stream_failed', {
+                event: 'record_datastream_stream_failed',
+              });
+            }
+            return;
+          }
           return this.sendResp(req, res, {
             status: 500,
             displayErrors: [{ detail: 'There was a problem with the upstream request.' }],
@@ -1559,7 +1620,8 @@ export namespace Controllers {
       packageType: unknown = undefined,
       sort: unknown = undefined,
       fieldNames: unknown = undefined,
-      filterString: unknown = undefined
+      filterString: unknown = undefined,
+      deletionFilters?: { deletedWithin?: string; deletedBy?: string }
     ) {
       const username = (user as globalThis.Record<string, unknown>).username;
       if (!_.isUndefined(recordType) && !_.isEmpty(recordType)) {
@@ -1586,7 +1648,9 @@ export namespace Controllers {
         packageType,
         sort,
         fieldNames,
-        filterString
+        filterString,
+        undefined,
+        deletionFilters
       );
       sails.log.debug(results);
       const apiReponse: ListAPIResponse<unknown> = new ListAPIResponse();
@@ -1607,6 +1671,7 @@ export namespace Controllers {
         const item: { [key: string]: unknown } = {};
         const deletedRecord = (doc['deletedRecordMetadata'] ?? {}) as globalThis.Record<string, unknown>;
         const deletedRecordMetadata = (deletedRecord['metadata'] ?? {}) as globalThis.Record<string, unknown>;
+        Object.assign(item, deletedRecordSummary(doc, (brand as BrandingModel).id, key => TranslationService.t(key)));
         item['oid'] = doc['redboxOid'];
         item['revision'] = recordRepresentationRevision(doc);
         item['lifecycleState'] = doc['lifecycleState'] ?? 'deleted';
@@ -2331,7 +2396,7 @@ export namespace Controllers {
       let filterFields: string[] | undefined = undefined;
 
       if (!_.isEmpty(filterFieldString)) {
-        filterFields = filterString!.split(',');
+        filterFields = (filterFieldString as string).split(',');
       } else {
         filterString = undefined;
       }
@@ -2351,7 +2416,8 @@ export namespace Controllers {
           packageType,
           sort,
           filterFields,
-          filterString
+          filterString,
+          { deletedWithin: query.deletedWithin as string | undefined, deletedBy: query.deletedBy as string | undefined }
         )
           .then(response => {
             this.sendResp(req, res, { data: response });

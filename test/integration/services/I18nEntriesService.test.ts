@@ -162,6 +162,57 @@ describe('I18nEntriesService', function () {
     expect(bundle).to.be.ok;
   });
 
+  for (const normalise of [false, true]) {
+    it(`non-overwriting object sync merges missing keys into stored data (normalise=${normalise})`, async function () {
+      const objectNs = `${ns}-merge-${normalise}`;
+      const stored = await I18nEntriesService.setBundle(
+        branding, locale, objectNs,
+        { section: { title: 'Custom', storedOnly: 'Retained' } },
+        undefined, { splitToEntries: false }
+      );
+      await I18nEntriesService.setEntry(branding, locale, objectNs, 'section.title', 'Custom');
+      const data = {
+        section: { title: 'Default', added: normalise ? null : 'Added' },
+        ...(normalise ? {
+          html: '<p onclick="bad()">Safe</p>',
+          _meta: { html: { contentFormat: 'html' } },
+        } : {}),
+      };
+
+      await I18nEntriesService.syncEntriesFromBundle({
+        id: stored.id, branding, locale, namespace: objectNs, data,
+      }, false);
+
+      const bundle = await I18nEntriesService.getBundle(branding, locale, objectNs);
+      expect(bundle.data.section).to.deep.equal({
+        title: 'Custom', storedOnly: 'Retained', added: normalise ? 'section.added' : 'Added',
+      });
+      const added = await I18nEntriesService.getEntry(branding, locale, objectNs, 'section.added');
+      expect(added.value).to.equal(bundle.data.section.added);
+      expect(String(added.bundle)).to.equal(String(stored.id));
+      if (normalise) {
+        expect(bundle.data.html).to.equal('<p>Safe</p>');
+        const html = await I18nEntriesService.getEntry(branding, locale, objectNs, 'html');
+        expect(html.value).to.equal('<p>Safe</p>');
+        expect(html.contentFormat).to.equal('html');
+      }
+    });
+  }
+
+  it('non-overwriting sync creates a missing bundle and links all entries without a supplied id', async function () {
+    const objectNs = `${ns}-new-object`;
+    await I18nEntriesService.syncEntriesFromBundle({
+      branding, locale, namespace: objectNs, data: { title: 'New', empty: '', nullish: null },
+    }, false);
+
+    const bundle = await I18nEntriesService.getBundle(branding, locale, objectNs);
+    expect(bundle.data).to.deep.equal({ title: 'New', empty: '', nullish: 'nullish' });
+    const entries = await I18nEntriesService.listEntries(branding, locale, objectNs);
+    expect(entries).to.have.length(3);
+    expect(entries.every(entry => String(entry.bundle) === String(bundle.id))).to.equal(true);
+    expect(entries.every(entry => entry.uid === `${branding.id}:${locale}:${objectNs}:${entry.key}`)).to.equal(true);
+  });
+
   it('deleteEntry removes an entry', async function () {
   // Re-create the key (it may have been pruned during syncEntriesFromBundle overwrite phase)
   await I18nEntriesService.setEntry(branding, locale, ns, 'other.test', 'X');

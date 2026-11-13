@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{host}}/default/rdmp/api/vocabulary/{{invalidVocabularyId}}/sync
+  url: {{host}}/default/rdmp/api/vocabulary/000000000000000000000000/sync
   body: json
   auth: none
 }
@@ -19,7 +19,7 @@ body:json {
 }
 
 tests {
-  test("Status code is 400 for invalid vocabulary id", function () {
-    expect(res.getStatus()).to.equal(400);
+  test("Status code is 404 for missing vocabulary id", function () {
+    expect(res.getStatus()).to.equal(404);
   });
 }

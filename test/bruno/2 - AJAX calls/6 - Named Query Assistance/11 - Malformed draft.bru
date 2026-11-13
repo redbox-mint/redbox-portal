@@ -1,0 +1,41 @@
+meta {
+  name: Named queries - Malformed draft
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{host}}/default/rdmp/api/named-query/editor/preview
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{queryEditorCsrf}}
+}
+
+body:json {
+  {
+    "definition": {
+      "collectionName": "missing-model"
+    }
+  }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "queryEditorCookie" });
+}
+
+tests {
+  test("Returns blocking diagnostics and no results", () => {
+    expect(res.getStatus()).to.equal(200);
+    const data = res.getBody().data;
+    expect(data.valid).to.equal(false);
+    expect(data.records).to.deep.equal([]);
+    expect(data.diagnostics.some(item => item.severity === "error")).to.equal(true);
+  });
+}

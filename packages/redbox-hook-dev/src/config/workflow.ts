@@ -31,6 +31,26 @@ export const workflow: WorkflowConfig = {
             starting: true
         }
     },
+    'related-plan': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'related-plan-1.0-draft'
+            }
+        }
+    },
+    'related-activity': {
+        draft: {
+            starting: true,
+            config: {
+                workflow: { stage: 'draft', stageLabel: 'Draft' },
+                authorization: { viewRoles: ['Admin', 'Librarians'], editRoles: ['Admin', 'Librarians'] },
+                form: 'related-activity-1.0-draft'
+            }
+        }
+    },
     "rdmp": {
         "draft": {
             config: {
@@ -202,7 +222,7 @@ export const workflow: WorkflowConfig = {
                     viewRoles: ['Admin', 'Librarians'],
                     editRoles: ['Admin', 'Librarians']
                 },
-                form: 'generated-view-only',
+                form: 'party-1.0-draft',
                 dashboard: {
                     table: {
                         rowConfig: [

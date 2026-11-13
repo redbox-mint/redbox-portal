@@ -70,6 +70,15 @@ describe('CsrfInterceptor', () => {
     expect(req.request.headers.get('Content-Type')).toBe('application/json;charset=utf-8');
   });
 
+  it('uses a refreshed token for existing opted-in contexts after rotation', () => {
+    const context = new HttpContext().set(RB_HTTP_INTERCEPTOR_AUTH_CSRF, 'old');
+    configService.csrfToken = 'rotated';
+    httpClient.get('/rotated', { context }).subscribe();
+    const request = httpTestingController.expectOne('/rotated');
+    expect(request.request.headers.get('X-CSRF-Token')).toBe('rotated');
+    request.flush({});
+  });
+
   it('when CSRF Token is not set, should not insert the csrf header, but insert the rest', () => {
     const httpContext = new HttpContext();
     httpClient.get('/any-url', {context: httpContext}).subscribe(() => {

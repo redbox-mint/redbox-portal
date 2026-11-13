@@ -13,7 +13,7 @@ import {ClientFormConfigVisitor} from './client.visitor';
 import {AttachmentFieldsVisitor} from './attachment-fields.visitor';
 import {reusableFormDefinitions} from '../config';
 import {cloneDeep as _cloneDeep} from 'lodash';
-import {QuestionTreeHelper} from "@researchdatabox/sails-ng-common/dist/src/config/component/question-tree.helper";
+import {QuestionTreeHelper} from "@researchdatabox/sails-ng-common";
 
 
 export async function migrateFormConfigVerify(formConfig: FormConfigFrame, logger: ILogger) {

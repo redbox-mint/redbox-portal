@@ -1,4 +1,5 @@
-import { debounceTime, Observable, Subscription } from 'rxjs';
+import { RelatedDataWorkScope } from '../related-records/related-data-state.service';
+import { debounceTime, filter, groupBy, mergeMap, Observable, Subscription, tap } from 'rxjs';
 import {
   ExpressionsConditionKind,
   FieldPathKind,
@@ -41,6 +42,8 @@ export class BehaviourHandler {
   private readonly logicalFieldEntries = new Map<string, FormFieldCompMapEntry>();
   private readonly permanentlySkippedActions = new Set<string>();
   private readonly metadataCache = new Map<string, unknown>();
+  private readonly work = new RelatedDataWorkScope();
+  private isActive = true;
   private isProcessingFormReadyExecution = false;
   private hasExecutedFormReady = false;
   private compiledItems?: BehaviourCompiledItemsModule;
@@ -65,20 +68,50 @@ export class BehaviourHandler {
    * hook extension point, or processor-specific debounce exists yet.
    */
   activate(): void {
+    if (!this.isActive) return;
     this.validateActions('actions', this.behaviour.actions ?? []);
     this.validateActions('onError', this.behaviour.onError ?? []);
 
-    const observable = this.getEventObservable();
+    const observable = this.getEventObservable().pipe(
+      filter(event => !event.formScopeId || event.formScopeId === this.ctx.formComponent.eventScopeId)
+    );
     const debounceMs = this.behaviour.debounceMs ?? 0;
-    const source$ = debounceMs > 0 ? observable.pipe(debounceTime(debounceMs)) : observable;
+    const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
+    const isJSONataInitializer =
+      this.behaviour.runOnFormReady === true &&
+      (conditionKind === ExpressionsConditionKind.JSONata || conditionKind === ExpressionsConditionKind.JSONataQuery);
+    // Reserve before debounce as well as before any pipeline await. Replaced
+    // debounce events release only their own reservation.
+    const waiting = new Map<boolean, () => void>();
+    const tracked$ = observable.pipe(tap(event => {
+      const key = isJSONataInitializer && event.type === FormComponentEventType.FORM_DEFINITION_READY;
+      waiting.get(key)?.();
+      waiting.set(key, this.work.begin(this.ctx.formComponent.relatedDataState));
+    }));
+    const source$ = debounceMs > 0
+      ? isJSONataInitializer
+        ? tracked$.pipe(
+            // Initial field notifications and later status events must not displace
+            // native readiness. Both streams still share the once-only reservation.
+            groupBy((event): boolean => event.type === FormComponentEventType.FORM_DEFINITION_READY),
+            mergeMap(events => events.pipe(debounceTime(debounceMs)))
+          )
+        : tracked$.pipe(debounceTime(debounceMs))
+      : tracked$;
     this.subscriptions.push(
       source$.subscribe(event => {
-        void this.execute(event);
+        const key = isJSONataInitializer && event.type === FormComponentEventType.FORM_DEFINITION_READY;
+        const release = waiting.get(key)!;
+        waiting.delete(key);
+        void this.execute(event).finally(release);
       })
     );
   }
 
   destroy(): void {
+    // In-flight processors and templates must also stop when the record is replaced.
+    this.isActive = false;
+    this.work.cancel();
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions.length = 0;
     this.logicalFieldEntries.clear();
@@ -95,7 +128,7 @@ export class BehaviourHandler {
     const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
     if (conditionKind === ExpressionsConditionKind.JSONPointer) {
       const pointerCondition = getEventJSONPointerCondition(this.behaviour.condition || '');
-      if (pointerCondition.event !== '*' && pointerCondition.event !== FormComponentEventType.FORM_DEFINITION_READY) {
+      if (pointerCondition.event !== '*') {
         return this.ctx.eventBus.select$(pointerCondition.event as keyof FormComponentEventMap);
       }
     }
@@ -112,6 +145,7 @@ export class BehaviourHandler {
    * 4. on failure, run `onError` actions and halt the normal pipeline
    */
   private async execute(event: FormComponentEvent): Promise<void> {
+    if (!this.isActive || event.isCurrent?.() === false) return;
     // Explicit emitEvent actions can form A -> B -> A cycles. Keep each
     // behaviour to one execution per causal chain while allowing cascades.
     if (event.behaviourChain?.includes(this.handlerId)) {
@@ -147,6 +181,7 @@ export class BehaviourHandler {
       const condition = this.behaviour.condition;
       const conditionKind = this.behaviour.conditionKind ?? ExpressionsConditionKind.JSONPointer;
       const compiledTemplateEvaluator = await this.getCompiledTemplateEvaluator();
+      if (!this.isActive || event.isCurrent?.() === false) return;
       const requestParams = (this.ctx.formComponent.requestParams?.() ?? {}) as Record<string, unknown>;
 
       const matches = await matchBehaviourCondition(condition, conditionKind, event, this.behaviour, {
@@ -157,8 +192,17 @@ export class BehaviourHandler {
         querySource: this.getEventQuerySource(event),
       });
 
-      if (!matches) {
+      if (!this.isActive || event.isCurrent?.() === false || !matches || (runsOnlyOnFormReady && this.hasExecutedFormReady)) {
         return;
+      }
+      // Condition evaluation and processors may await. Reserve a ready-only
+      // JSONata match (native ready or an initial field notification) before
+      // actions so the two notification paths cannot start duplicate pipelines.
+      // JSONPointer field subscriptions retain their existing per-field scope.
+      const isJSONata =
+        conditionKind === ExpressionsConditionKind.JSONata || conditionKind === ExpressionsConditionKind.JSONataQuery;
+      if (runsOnlyOnFormReady && (isFormReadyEvent || isJSONata)) {
+        this.hasExecutedFormReady = true;
       }
 
       let value = (event as { value?: unknown }).value;
@@ -171,6 +215,7 @@ export class BehaviourHandler {
           logger: this.ctx.logger,
           metadataCache: this.metadataCache,
         });
+        if (!this.isActive || event.isCurrent?.() === false) return;
       }
 
       await this.executeActions('actions', this.behaviour.actions ?? [], value, event);
@@ -178,6 +223,7 @@ export class BehaviourHandler {
         this.hasExecutedFormReady = true;
       }
     } catch (error) {
+      if (!this.isActive || event.isCurrent?.() === false) return;
       this.ctx.logger.error('BehaviourHandler: Behaviour execution failed.', {
         error,
         behaviour: this.behaviour.name,
@@ -211,6 +257,7 @@ export class BehaviourHandler {
   ): Promise<void> {
     const state = { value, extras: {} as Record<string, unknown> };
     for (const [actionIndex, action] of actions.entries()) {
+      if (!this.isActive || event.isCurrent?.() === false) return;
       const actionKey = this.buildActionKey(listName, actionIndex);
       if (this.permanentlySkippedActions.has(actionKey)) {
         continue;
@@ -225,7 +272,10 @@ export class BehaviourHandler {
         eventBus: this.ctx.eventBus,
         compiledTemplateEvaluator: this.compiledTemplateEvaluator,
         logger: this.ctx.logger,
-        broadcastFormStatus: () => this.ctx.formComponent.broadcastFormStatus(),
+        isActive: () => this.isActive && event.isCurrent?.() !== false,
+        broadcastFormStatus: () => {
+          if (this.isActive && event.isCurrent?.() !== false) this.ctx.formComponent.broadcastFormStatus();
+        },
         fieldResolverContext: { formComponent: this.ctx.formComponent },
         getLogicalFieldEntry: (targetListName, targetActionIndex, targetEntryIndex) =>
           this.logicalFieldEntries.get(this.buildActionKey(targetListName, targetActionIndex, targetEntryIndex)),

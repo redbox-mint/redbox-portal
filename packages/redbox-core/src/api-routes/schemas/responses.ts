@@ -126,9 +126,30 @@ export const apiHarvestResponseSchema = withOpenApi(
   { description: 'Legacy harvest response envelope' }
 );
 
+export const harvestRunStatisticsSchema = withOpenApi(
+  z.object({
+    runsLast7Days: z.number().int().nonnegative(),
+    failedLast7Days: z.number().int().nonnegative(),
+    runningNow: z.number().int().nonnegative(),
+    lastSuccessfulRun: z.object({ completedAt: z.string(), sourceName: z.string() }).nullable(),
+  }),
+  {
+    description:
+      'Global brand statistics over retained run summaries. Seven-day counts use startedAt within the inclusive rolling seven-day window. Running and failed match those exact statuses; success means completed. Latest success is ordered by completedAt across all retained history. List filters and pagination do not apply.',
+  }
+);
+
 export const harvestRunSummarySchema = withOpenApi(
   z.object({
     id: z.string().optional(),
+    historyRetention: z
+      .object({
+        prunedAt: z.string(),
+        successfulDays: z.number().int(),
+        failedDays: z.number().int(),
+        complete: z.boolean(),
+      })
+      .optional(),
     sourceRunId: z.string(),
     brandId: z.string().optional(),
     recordType: z.string(),
@@ -240,7 +261,9 @@ export const harvestRunDetailResponseSchema = withOpenApi(
   z.object({
     run: harvestRunSummarySchema,
     chunks: z.array(harvestRunChunkSummarySchema),
+    chunksTotal: z.number().int().nonnegative(),
     events: z.array(harvestRunEventSchema),
+    eventsTotal: z.number().int().nonnegative(),
     aggregateCounts: harvestRunAggregateCountsSchema,
   }),
   { description: 'Harvest run detail response' }
@@ -659,6 +682,7 @@ export const brandingDraftResponseSchema = withOpenApi(
 
 export const brandingPreviewResponseSchema = withOpenApi(
   z.object({
+    images: z.object({ logo: z.string().nullable(), favicon: z.string().nullable() }).optional(),
     token: z.string(),
     url: z.string(),
     hash: z.string(),
@@ -737,6 +761,11 @@ export const brandingTypefaceStateSchema = withOpenApi(
   { description: 'Brand typeface state (default typography or custom faces)' }
 );
 
+export const brandingImagesSchema = z.object({
+  logo: jsonObjectSchema.nullable(),
+  favicon: jsonObjectSchema.nullable(),
+});
+
 export const brandingVersionEntrySchema = withOpenApi(
   z
     .object({
@@ -749,6 +778,7 @@ export const brandingVersionEntrySchema = withOpenApi(
       restoredFromVersion: z.number().int().optional(),
       variables: jsonObjectSchema.optional(),
       typeface: brandingTypefaceStateSchema.optional(),
+      images: brandingImagesSchema.optional(),
     })
     .passthrough(),
   { description: 'Retained branding version' }
@@ -764,6 +794,7 @@ export const brandingAdminStateSchema = withOpenApi(
           hash: z.string(),
           variables: jsonObjectSchema.optional(),
           typeface: brandingTypefaceStateSchema.optional(),
+          images: brandingImagesSchema.optional(),
         })
         .passthrough(),
       draft: z
@@ -771,7 +802,10 @@ export const brandingAdminStateSchema = withOpenApi(
           revision: z.number().int(),
           variables: jsonObjectSchema.optional(),
           typeface: brandingTypefaceStateSchema.optional(),
-          dirty: z.object({ colours: z.boolean(), typeface: z.boolean() }).passthrough(),
+          images: brandingImagesSchema.optional(),
+          dirty: z
+            .object({ colours: z.boolean(), typeface: z.boolean(), logo: z.boolean(), favicon: z.boolean() })
+            .passthrough(),
         })
         .passthrough(),
       versions: z.array(brandingVersionEntrySchema),
@@ -1127,6 +1161,9 @@ export const deletedRecordListItemSchema = withOpenApi(
         .optional(),
       title: z.string().optional(),
       deletedRecord: jsonObjectSchema,
+      recordType: z.string(),
+      recordTypeLabel: z.string().optional(),
+      deletedBy: z.object({ id: z.string().optional(), username: z.string().optional() }).nullable(),
       dateCreated: dateTimeSchema.optional(),
       dateModified: dateTimeSchema.optional(),
       dateDeleted: dateTimeSchema.optional(),

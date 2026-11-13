@@ -1,4 +1,6 @@
-import { Context, Effect, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import type { DoiPublishing, DoiOperationResult, DoiRunContext } from './types';
 import { DoiClientTag, makeClientLayer } from './http';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
@@ -6,8 +8,8 @@ import { completeDoiAudit, failDoiAudit, startDoiAudit } from './audit';
 import { IntegrationAuditAction } from '../../model/storage/IntegrationAuditModel';
 import { runEffectProgram } from '../integration-v2/runtime';
 
-export const DoiConfigTag = Context.GenericTag<DoiPublishing>('redbox/DoiConfig');
-export const DoiRunContextTag = Context.GenericTag<DoiRunContext>('redbox/DoiRunContext');
+export const DoiConfigTag = Context.Service<DoiPublishing>('redbox/DoiConfig');
+export const DoiRunContextTag = Context.Service<DoiRunContext>('redbox/DoiRunContext');
 
 type DoiRuntimeAuditOptions = {
   auditContext?: IntegrationAuditContext | null;

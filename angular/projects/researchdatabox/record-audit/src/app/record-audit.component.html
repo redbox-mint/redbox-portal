@@ -1,3 +1,10 @@
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-default" [disabled]="loadPending" (click)="retryLoad()">Retry</button>
+  </div>
+}
+@if (isReady) {
 <div class="record-audit-app">
   <!-- Page heading -->
   <div class="rb-page-heading">
@@ -590,7 +597,12 @@
                                 {{ event.status }}
                               </span>
                             </td>
-                            <td class="rb-message-cell">{{ event.message || event.errorDetail || '-' }}</td>
+                            <td class="rb-message-cell">
+                              <div>{{ event.message || event.errorDetail || '-' }}</div>
+                              <div *ngIf="event.errorDetail && event.errorDetail !== event.message && event.message" class="mt-1">
+                                {{ event.errorDetail }}
+                              </div>
+                            </td>
                             <td>
                               <button
                                 type="button"
@@ -658,3 +670,5 @@
     </div>
   </section>
 </div>
+
+}

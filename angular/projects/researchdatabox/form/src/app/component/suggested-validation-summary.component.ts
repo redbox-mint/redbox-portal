@@ -12,12 +12,12 @@ import { ValidationSummaryFieldComponent } from './validation-summary.component'
   selector: 'redbox-suggested-validation-summary-field',
   template: `
     @let validationList = (validationErrorsDisplay$ | async) ?? [];
-    @if (validationList.length === 0 && showWhenValid) {
+    @if (formComponent.editMode() && validationList.length === 0 && showWhenValid) {
       <div class="alert alert-info" role="alert">
         {{ '@dmpt-form-suggested-validation-summary-complete' | i18next }}
       </div>
     }
-    @if (validationList.length > 0) {
+    @if (formComponent.editMode() && validationList.length > 0) {
       <div class="alert alert-warning suggested-validation-summary mt-3" role="alert">
         <i class="fa-solid fa-circle-info suggested-validation-summary__icon" aria-hidden="true"></i>
         <div class="suggested-validation-summary__content">

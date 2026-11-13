@@ -61,7 +61,7 @@ export async function executeBehaviourProcessor(
     case FormBehaviourProcessorType.JSONataTransform:
       return executeJSONataTransform(processor, pipelineContext, ctx);
     case FormBehaviourProcessorType.FetchMetadata:
-      return executeFetchMetadata(pipelineContext.value, ctx);
+      return executeFetchMetadata(pipelineContext.value, ctx, processor.config?.consumerView);
     default:
       return pipelineContext.value;
   }
@@ -114,7 +114,7 @@ async function executeJSONataTransform(
  * - repeated executions must re-fetch so explicit refresh actions can observe
  *   external changes made after the initial load
  */
-async function executeFetchMetadata(value: unknown, ctx: BehaviourProcessorExecutionContext): Promise<unknown> {
+async function executeFetchMetadata(value: unknown, ctx: BehaviourProcessorExecutionContext, consumerView = false): Promise<unknown> {
   if (typeof value !== 'string') {
     return value;
   }
@@ -126,7 +126,9 @@ async function executeFetchMetadata(value: unknown, ctx: BehaviourProcessorExecu
 
   // Explicit refresh is expected to observe newly saved server state, including
   // saves made from another browser tab.
-  const metadata = await ctx.recordService.getRecordMeta(oid);
+  const metadata = consumerView
+    ? await ctx.recordService.getRecordMeta(oid, { consumerView: true })
+    : await ctx.recordService.getRecordMeta(oid);
   const payload =
     typeof metadata === 'object' && metadata !== null
       ? { ...(metadata as Record<string, unknown>), oid }

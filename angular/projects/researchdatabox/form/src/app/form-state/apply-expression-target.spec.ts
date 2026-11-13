@@ -47,6 +47,26 @@ describe('applyExpressionTarget', () => {
     expect(host.model.formControl.pristine).toBeTrue();
   });
 
+  it('prevents a superseded asynchronous custom setter from overwriting a newer value', async () => {
+    let current = true;
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const control = host.model.formControl as FormControl & { setCustomValue?: (value: unknown, options?: any) => Promise<void> };
+    control.setCustomValue = async (value, options) => {
+      await gate;
+      control.setValue(value, options);
+    };
+    ctx.isActive = () => current;
+    ctx.cause = { isCurrent: () => current };
+    const previous = applyExpressionTarget('model.value', 'previous source', host, ctx);
+    current = false;
+    control.setValue('current source');
+    release();
+    await previous;
+    expect(control.value).toBe('current source');
+    expect(broadcastFormStatus).not.toHaveBeenCalled();
+  });
+
   it('does not re-emit structurally equal populated values', async () => {
     host.model.formControl.setValue({ name: 'Researcher' });
     const changed = jasmine.createSpy('dependent field');

@@ -1,3 +1,5 @@
+import { RelatedDisplayWriteError } from '../../../src/related-records/normalize-display-writes';
+import { createSinonStubLogger } from '../../logger.test';
 import assert from 'node:assert/strict';
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
@@ -6,12 +8,14 @@ import * as sinon from 'sinon';
 import { of } from 'rxjs';
 
 import { Controllers } from '../../../src/controllers/webservice/RecordController';
+import { ListAPIResponse } from '../../../src/model/ListAPIResponse';
 import type { RecordSchemaService } from '../../../src';
 import type { BuildResponseType } from '../../../src/model';
 import { isRecordSaveContext, type RecordSaveContext, RecordSaveResponse } from '../../../src/RecordSaveResponse';
 import { formatRecordEntityTag } from '../../../src/RecordEntityTag';
 import {
   createRecordRoute,
+  getRecordAuditRoute,
   RECORD_SCHEMA_WRITE_PRECONDITION_HEADER,
   transitionWorkflowRoute,
   updateMetaRoute,
@@ -236,6 +240,7 @@ describe('Webservice RecordController body source', () => {
   let originalHarvestRunService: any;
   let recordsService: {
     getMeta: sinon.SinonStub;
+    getRecordAudit: sinon.SinonStub;
     getDeletedRecord: sinon.SinonStub;
     getDeletedRecordMeta: sinon.SinonStub;
     updateMeta: sinon.SinonStub;
@@ -274,14 +279,7 @@ describe('Webservice RecordController body source', () => {
           },
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        error: sinon.stub(),
-        warn: sinon.stub(),
-        info: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any)._ = require('lodash');
     (global as any).BrandingService = {
@@ -313,6 +311,7 @@ describe('Webservice RecordController body source', () => {
     controller = new Controllers.Record();
     recordsService = {
       getMeta: sinon.stub(),
+      getRecordAudit: sinon.stub().resolves([]),
       getDeletedRecord: sinon.stub(),
       getDeletedRecordMeta: sinon.stub(),
       updateMeta: sinon.stub(),
@@ -331,6 +330,117 @@ describe('Webservice RecordController body source', () => {
     controller.DatastreamService = {
       addDatastreams: sinon.stub(),
     } as never;
+  });
+
+  describe('getRecordAudit authorization', () => {
+    function auditRequest(query: Record<string, unknown> = {}): Sails.Req {
+      return makeValidatedRequest(
+        getRecordAuditRoute,
+        {
+          params: { branding: 'default', portal: 'default', oid: 'record-1' },
+          query,
+          headers: {},
+          body: {},
+        },
+        { user: { username: 'tester', roles: [{ name: 'Admin', branding: 'brand-1' }] } }
+      );
+    }
+
+    const inaccessibleRecords = [
+      { name: 'a foreign-brand record for a local Admin', record: { metaMetadata: { brandId: 'brand-2' } } },
+      { name: 'a record without an authoritative brand', record: { metaMetadata: {} } },
+      { name: 'a missing record', record: null },
+      { name: 'a purged record with retained history', record: undefined },
+    ];
+
+    for (const { name, record } of inaccessibleRecords) {
+      it(`denies audit access to ${name} before reading history`, async () => {
+        recordsService.getMeta.resolves(record);
+        recordsService.getRecordAudit.resolves([
+          { redboxOid: 'record-1', record: { metadata: { secret: 'history' } } },
+        ]);
+        const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+        await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+        sinon.assert.notCalled(recordsService.getRecordAudit);
+        sinon.assert.calledOnceWithExactly(recordsService.getMeta, 'record-1');
+        sinon.assert.notCalled(recordsService.hasViewAccess);
+        sinon.assert.notCalled(recordsService.getDeletedRecordMeta);
+        assert.deepEqual(sendResp.firstCall.args[2], { status: 404 });
+      });
+    }
+
+    it('denies a same-brand caller without record view permission before reading history', async () => {
+      recordsService.getMeta.resolves({ metaMetadata: { brandId: 'brand-1' } });
+      recordsService.hasViewAccess.returns(false);
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+      sinon.assert.calledOnce(recordsService.hasViewAccess);
+      sinon.assert.notCalled(recordsService.getRecordAudit);
+      assert.deepEqual(sendResp.firstCall.args[2], { status: 403 });
+    });
+
+    it('fails closed when the active brand cannot establish ownership', async () => {
+      (global as { BrandingService?: unknown }).BrandingService = { getBrand: () => undefined };
+      recordsService.getMeta.resolves({ metaMetadata: { brandId: 'brand-1' } });
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+      sinon.assert.notCalled(recordsService.getRecordAudit);
+      assert.deepEqual(sendResp.firstCall.args[2], { status: 404 });
+    });
+
+    it('fails closed when the authoritative record lookup fails', async () => {
+      recordsService.getMeta.rejects(new Error('Storage unavailable'));
+      const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+
+      await controller.getRecordAudit(auditRequest(), {} as Sails.Res);
+
+      sinon.assert.notCalled(recordsService.getRecordAudit);
+      assert.deepEqual(sendResp.firstCall.args[2], { status: 404 });
+    });
+
+    const dateFilters = [
+      {},
+      { dateFrom: '2026-01-01' },
+      { dateTo: '2026-02-01' },
+      { dateFrom: '2026-01-01', dateTo: '2026-02-01' },
+    ];
+    for (const query of dateFilters) {
+      it(`preserves authorized audit results and date filters ${JSON.stringify(query)}`, async () => {
+        const record = { redboxOid: 'record-1', metaMetadata: { brandId: 'brand-1' } };
+        const audit = [{ redboxOid: 'record-1', action: 'updated', record: { metadata: { title: 'Earlier title' } } }];
+        recordsService.getMeta.resolves(record);
+        recordsService.getRecordAudit.resolves(audit);
+        const sendResp = sinon.stub(exposeRecordControllerTestSeam(controller), 'sendResp');
+        const req = auditRequest(query);
+
+        await controller.getRecordAudit(req, {} as Sails.Res);
+
+        sinon.assert.calledOnceWithExactly(
+          recordsService.hasViewAccess,
+          { id: 'brand-1', name: 'default' },
+          req.user,
+          req.user?.roles,
+          record
+        );
+        sinon.assert.callOrder(recordsService.getMeta, recordsService.hasViewAccess, recordsService.getRecordAudit);
+        sinon.assert.calledOnceWithExactly(recordsService.getRecordAudit, {
+          oid: 'record-1',
+          dateFrom: query.dateFrom ? new Date(query.dateFrom) : null,
+          dateTo: query.dateTo ? new Date(query.dateTo) : null,
+        });
+        const response = sendResp.firstCall.args[2]?.data;
+        assert.ok(response instanceof ListAPIResponse);
+        assert.equal(response.summary.numFound, 1);
+        assert.equal(response.summary.page, 1);
+        assert.deepEqual(response.records, audit);
+      });
+    }
   });
 
   describe('save response schema discovery', function () {
@@ -1381,6 +1491,33 @@ describe('Webservice RecordController body source', () => {
       expect(envelope.v1).to.deep.equal({ message: 'Update Object Metadata failed' });
     });
 
+    for (const apiVersion of ['1.0', '2.0'] as const) {
+      for (const action of ['update', 'create']) {
+        for (const code of ['related-display-field-not-writable', 'related-display-contract-invalid']) {
+          it(`maps ${action} ${code} on API ${apiVersion} without leaking source data`, async () => {
+            recordsService.getMeta.resolves({ metadata: {}, metaMetadata: { attachmentFields: [], brandId: 'brand-1' } });
+            recordsService.updateMeta.rejects(new RelatedDisplayWriteError(code));
+            recordsService.create.rejects(new RelatedDisplayWriteError(code));
+            const req = makeThrowingRequest({ params: { oid: 'record-1', recordType: 'dataset' }, query: {},
+              body: action === 'create' ? { metadata: { title: 'PRIVATE' } } : { title: 'PRIVATE' }, files: {} },
+              { headers: { 'x-redbox-api-version': apiVersion } } as Partial<Sails.Req>);
+            const send = sinon.stub(controller as any, 'sendResp');
+            if (action === 'create') { await controller.create(req, {} as Sails.Res); await flushPromises(); }
+            else await controller.updateMeta(req, {} as Sails.Res);
+            const envelope = send.firstCall.args[2];
+            if (apiVersion === '2.0' && code === 'related-display-field-not-writable') {
+              expect(envelope.status).to.equal(400);
+              expect(envelope.displayErrors[0].code).to.equal(code);
+            } else {
+              // API v1 keeps its existing contract: non-conflict save failures are server errors.
+              expect(envelope.status ?? 500).to.equal(500);
+            }
+            expect(JSON.stringify(envelope)).not.to.include('PRIVATE');
+          });
+        }
+      }
+    }
+
     it('uses req.apiRequest body in create', async () => {
       const body = {
         validationBypass: { mode: 'bypass' },
@@ -2102,7 +2239,10 @@ describe('Webservice RecordController body source', () => {
         });
 
         await testCase.invoke(readRequest(testCase.name === 'list'));
-        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 404 });
+        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({
+          status: 404,
+          ...(testCase.name === 'download' ? { displayErrors: [{ code: 'error-404-heading' }] } : {}),
+        });
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
         expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
 
@@ -2116,7 +2256,10 @@ describe('Webservice RecordController body source', () => {
         sendResp.resetHistory();
 
         await testCase.invoke(readRequest(testCase.name === 'list'));
-        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({ status: 403 });
+        expect(sendResp.firstCall.args[2], testCase.name).to.deep.equal({
+          status: 403,
+          ...(testCase.name === 'download' ? { displayErrors: [{ code: 'edit-error-no-permissions' }] } : {}),
+        });
         expect(recordsService.getAttachments.notCalled, testCase.name).to.equal(true);
         expect(JSON.stringify(sendResp.firstCall.args[2]), testCase.name).not.to.include('must-not-return');
       });
@@ -2731,14 +2874,7 @@ describe('Webservice RecordController getMeta', () => {
           hasViewAccess: sinon.stub().returns(true),
         },
       },
-      log: {
-        verbose: sinon.stub(),
-        debug: sinon.stub(),
-        info: sinon.stub(),
-        warn: sinon.stub(),
-        error: sinon.stub(),
-        trace: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     };
     (global as any).BrandingService = {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'default' }),

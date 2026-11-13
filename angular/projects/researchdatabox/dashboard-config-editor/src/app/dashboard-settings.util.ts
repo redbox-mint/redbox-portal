@@ -7,13 +7,13 @@ import { DashboardCopyGroup, DashboardCopySelection, DashboardGroupChange, Dashb
  */
 export const COPY_GROUPS: Array<{ id: DashboardCopyGroup; label: string; description: string }> = [
   { id: 'columnsAndActions', label: 'Columns and row actions', description: 'Columns, headings, templates, column sorting and named row action rule sets.' },
-  { id: 'filtersAndSearch', label: 'Filters, sorting and search', description: 'Record filter, search filter fields, overall sort, search box and stage title visibility.' },
+  { id: 'filtersAndSearch', label: 'Filters, sorting and search', description: 'Record filter, search filter fields, overall sort, search box, stage title visibility and rows per page.' },
   { id: 'grouping', label: 'Grouping and group rows', description: 'Group by, group levels, group row columns and group row rules.' }
 ];
 
 export const COPY_GROUP_FIELDS: Record<DashboardCopyGroup, string[]> = {
   columnsAndActions: ['tableConfig.rowConfig', 'tableConfig.rowRulesConfig'],
-  filtersAndSearch: ['tableConfig.formatRules.filterBy', 'tableConfig.formatRules.queryFilters', 'tableConfig.formatRules.sortBy', 'searchable', 'showStageTitle'],
+  filtersAndSearch: ['tableConfig.formatRules.filterBy', 'tableConfig.formatRules.queryFilters', 'tableConfig.formatRules.sortBy', 'searchable', 'showStageTitle', 'rowsPerPage'],
   grouping: ['tableConfig.formatRules.groupBy', 'tableConfig.formatRules.sortGroupBy', 'tableConfig.groupRowConfig', 'tableConfig.groupRowRulesConfig']
 };
 
@@ -95,7 +95,8 @@ export function describeGroupChanges(before: DashboardSettings, after: Dashboard
         item('Search filters', summarise(b.formatRules.queryFilters), summarise(a.formatRules.queryFilters)),
         item('Overall sort', summarise(b.formatRules.sortBy), summarise(a.formatRules.sortBy)),
         item('Search box', before.searchable ? 'shown' : 'hidden', after.searchable ? 'shown' : 'hidden'),
-        item('Stage title', before.showStageTitle ? 'shown' : 'hidden', after.showStageTitle ? 'shown' : 'hidden')
+        item('Stage title', before.showStageTitle ? 'shown' : 'hidden', after.showStageTitle ? 'shown' : 'hidden'),
+        item('admin-dashboard-rows-per-page', String(before.rowsPerPage ?? 10), String(after.rowsPerPage ?? 10))
       ];
     } else {
       items = [

@@ -1,10 +1,21 @@
+import type {
+  HarvestHistoryRetentionOptions,
+  HarvestHistoryRetentionResult,
+} from './utilities/HarvestHistoryRetention';
+export type {
+  HarvestHistoryRetentionOptions,
+  HarvestHistoryRetentionResult,
+} from './utilities/HarvestHistoryRetention';
 import { APIHarvestResponse, BrandingModel, RecordTypeModel, UserModel } from './model';
 import {
   HarvestRunDetailResult,
+  HarvestRunChunksQuery,
+  HarvestRunChunksResult,
   HarvestRunEventsQuery,
   HarvestRunEventsResult,
   HarvestRunListQuery,
   HarvestRunListResult,
+  HarvestRunStatistics,
   HarvestRunChunkModel,
   HarvestRunModel,
 } from './model/storage/HarvestRunModel';
@@ -58,6 +69,14 @@ export class HarvestRunServiceError extends Error {
 }
 
 export interface HarvestRunService {
+  init(): Promise<void>;
+  pruneHistory(options?: HarvestHistoryRetentionOptions): Promise<HarvestHistoryRetentionResult>;
+  pruneHistoryJob(job?: { touch: () => Promise<unknown> }): Promise<void>;
+  listRunChunks(
+    brand: BrandingModel,
+    runId: string,
+    params: Partial<HarvestRunChunksQuery>
+  ): Promise<HarvestRunChunksResult>;
   submitCompatibilityRecords(
     brand: BrandingModel,
     recordTypeModel: RecordTypeModel,
@@ -81,6 +100,7 @@ export interface HarvestRunService {
     user: UserModel,
     context?: RecordSaveContext
   ): Promise<HarvestTrackedChunkResponse>;
+  getStatistics(brand: BrandingModel): Promise<HarvestRunStatistics>;
   listRuns(brand: BrandingModel, params: Partial<HarvestRunListQuery>): Promise<HarvestRunListResult>;
   getRun(brand: BrandingModel, runId: string): Promise<HarvestRunDetailResult | null>;
   runExists(brand: BrandingModel, runId: string): Promise<boolean>;

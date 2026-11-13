@@ -132,6 +132,28 @@ describe('ReportService testing', () => {
     reportResReq.flush(mockReportResult);    
   });
  
+  it('round-trips filters through the actual HTTP URL while preserving the report endpoint and pagination', async () => {
+    const params = {
+      title: 'R&D + #研究 "quoted"',
+      dateObjectModifiedRange_fromDate: '2028-06-20T00:00:00.000+10:00',
+      dateObjectModifiedRange_toDate: '2028-06-21T23:59:59.999+10:00',
+    };
+    const reportName = 'mock-report';
+    const result = reportService.getReportResult(reportName, 3, params, 25);
+    const request = httpTestingController.expectOne(req =>
+      req.url.startsWith(`${reportService.brandingAndPortalUrl}/admin/getReportResults?`));
+    expect(request.request.method).toBe('GET');
+    const url = new URL(request.request.urlWithParams, 'https://example.invalid');
+    expect(url.pathname).toBe('/base/default/rdmp/admin/getReportResults');
+    expect(url.hash).toBe('');
+    const decoded: Record<string, string> = {};
+    url.searchParams.forEach((value, key) => { decoded[key] = value; });
+    expect(decoded).toEqual({ name: reportName, start: '50', rows: '25', ...params });
+    const response = { records: [], total: 0, pageNum: 3, recordsPerPage: 25 };
+    request.flush(response);
+    expect(await result).toEqual(response);
+  });
+
   afterEach(() => {
     httpTestingController.verify();
   });

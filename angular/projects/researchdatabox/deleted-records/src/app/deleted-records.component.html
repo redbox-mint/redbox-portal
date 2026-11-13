@@ -1,90 +1,61 @@
-@if (isReady) {
-  <div class="row">
-    <div class="col-xs-12">
-      <h1 class="text-center" >
-        {{ 'deleted-records-heading' | i18next }}
-      </h1>
-    </div>
+@if (loadError) {
+  <div class="alert alert-danger" role="alert">
+    {{ loadError }}
+    <button type="button" class="btn btn-outline-secondary" [disabled]="loadPending || actionPending || (isReady && !initTracker.resultsReturned)" (click)="retryLoad()">{{ 'admin-retry' | i18next: { defaultValue: 'Retry' } }}</button>
   </div>
-  <!-- Render the filter UI elements -->
-  @if (filters != null) {
-    <div class="row">
-      <div class="panel panel-default">
-        <div class="panel-body">
-          <div class="row">
-            <div class="text-center h4-header mb-2">
-              {{ 'deleted-records-filters-heading' | i18next }}
-            </div>
-          </div>
-          @for (filter of filters; track filter) {
-            <!-- Text filter -->
-            @if (filter.type == 'text') {
-              <div class="row">
-                <div class="col-md-2"></div>
-                <div class="col-xs-2">
-                  <label [attr.for]="filter.paramName" class="form-label">{{ filter.message }}</label>
-                </div>
-                <div class="col-xs-6">
-                  <input [id]="filter.paramName" type="text" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
-                </div>
-                <div class="col-md-2"></div>
-              </div>
-            }
-            <!-- Dropdown filter -->
-            @if (filter.type == 'drop-down') {
-              <div class="row mt-2">
-                <div class="col-md-2"></div>
-                <div class="col-xs-2">
-                  <label [for]="filter.paramName" class="form-label">{{filter.message}}</label>
-                </div>
-                <div class="col-xs-6">
-                  <select [id]="filter.paramName" class="form-control" [(ngModel)]="filterParams[ filter['paramName']]">
-                    @for (item of dropDownProperties[filter['paramName']]; track item; let isFirst = $first) {
-                      <option [value]="item.value" [defaultSelected]="isFirst">
-                        {{ item.title }}
-                      </option>
-                    }
-                  </select>
-                </div>
-                <div class="col-md-2"></div>
-              </div>
-            }
+}
+@if (isReady) {
+<div [attr.inert]="isDestroyRecordModalShown ? '' : null">
+<nav class="rb-admin-crumbs" [attr.aria-label]="'admin-breadcrumb-label' | i18next"><ol>
+  <li><a [href]="brandingAndPortalUrl + '/admin'">{{ 'menu-admin' | i18next }}</a></li>
+  <li>{{ 'admin-nav-records' | i18next }}</li><li><span aria-current="page">{{ 'admin-deleted-title' | i18next }}</span></li>
+</ol></nav>
+<header class="rb-admin-page-header"><div><h1>{{ 'admin-deleted-title' | i18next }}</h1><p>{{ 'admin-deleted-description' | i18next }}</p></div></header>
+  @if (actionMessage && !isDestroyRecordModalShown) {
+    <div class="alert alert-warning action-feedback" role="alert">
+      {{ actionMessage }} {{ actionRefreshError }}
+      @if (bulkResults.length) {
+        <ul class="mb-0">
+          @for (item of bulkResults; track item.oid) {
+            @if (item.status !== 'succeeded') { <li>{{ item.oid }} — {{ ('admin-deleted-reason-' + item.reason) | i18next }}</li> }
           }
-          <div class="row">
-            <div class="col-xs-2"></div>
-            <div class="col-xs-8 pt-2 text-end">
-              <a class="btn btn-large btn-primary" (click)="filter()">
-                <span class="glyphicon glyphicon-search"></span>
-                {{ 'deleted-records-filter-button' | i18next }}
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+        </ul>
+      }
+      @if (canRetryRestore) {
+        <button type="button" class="btn btn-outline-secondary retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">{{ 'admin-deleted-retry-restore' | i18next }}</button>
+      }
+      @if (actionNeedsRefresh) {
+        <button type="button" class="btn btn-outline-secondary refresh-actions" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="refreshActionList()">{{ 'admin-deleted-refresh' | i18next }}</button>
+      }
     </div>
   }
-  <!-- Result overview  -->
-  @if (initTracker) {
-    <div class="row">
-      <div class="col-xs-2">
-        @if (initTracker.resultsReturned === false) {
-          <span>
-            <span class="fa fa-spinner fa-spin fa-fw"></span>
-            {{ 'deleted-records-retrieving-results' | i18next }}
-          </span>
-        }
-        @else {
-          <span
-            [innerHTML]='"deleted-records-results-returned" | i18next: { count: deletedRecordsResult.total }'>
-          </span>
-        }
+  <section class="card">
+    <div class="card-header"><h2>{{ 'admin-deleted-title' | i18next }}</h2><span role="status" aria-live="polite">{{ deletedRecordsResult.total | adminCount: 'record' }}</span></div>
+    <form *ngIf="deletedRecordsResult.total > 0 || hasFilters" class="rb-admin-filter-bar" rbAdminAutoFilter (rbAdminFilter)="filter()" (ngSubmit)="filter()">
+      <div class="rb-admin-field rb-admin-field-grow"><label for="title">{{ 'admin-deleted-title-filter' | i18next }}</label><input id="title" name="title" type="search" class="form-control" [placeholder]="'admin-deleted-any-title' | i18next" [(ngModel)]="filterParams.title"></div>
+      <div class="rb-admin-field"><label for="recordType">{{ 'export-record-type' | i18next }}</label>
+        <select id="recordType" name="recordType" class="form-select" [(ngModel)]="filterParams.recordType">
+          @for (item of dropDownProperties['recordType']; track item.value) { <option [value]="item.value">{{ (item.value ? item.value + '-title' : 'admin-all-record-types') | i18next }}</option> }
+        </select>
       </div>
-      <div class="col-xs-8"></div>
-      <div class="col-xs-2"></div>
-    </div>
-  }
+      <div class="rb-admin-field"><label for="deletedWithin">{{ 'admin-deleted-within' | i18next }}</label>
+        <select id="deletedWithin" name="deletedWithin" class="form-select" [(ngModel)]="filterParams.deletedWithin">
+          @for (item of dropDownProperties['deletedWithin']; track item.value) { <option [value]="item.value">{{ item.title | i18next }}</option> }
+        </select>
+      </div>
+      <div class="rb-admin-field"><label for="deletedBy">{{ 'admin-deleted-by' | i18next }}</label><input id="deletedBy" name="deletedBy" class="form-control" [(ngModel)]="filterParams.deletedBy" [placeholder]="'admin-deleted-any-user' | i18next" maxlength="256"></div>
+      <div class="rb-admin-page-actions"><button *ngIf="hasFilters" class="btn rb-admin-ghost" type="button" [disabled]="loadPending || actionPending" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button></div>
+    </form>
+    @if (!initTracker.resultsReturned) { <div class="deleted-loading" role="status"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> {{ 'deleted-records-retrieving-results' | i18next }}</div> }
+    @if (selectedRecords.size) {
+      <div class="rb-admin-filter-bar rb-admin-bulk-bar" role="region" [attr.aria-label]="'admin-deleted-bulk-actions' | i18next">
+        <strong aria-live="polite">{{ 'admin-deleted-selected' | i18next: { count: selectedRecords.size } }}</strong>
+        <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="selectionDisabled" (click)="runBulk('restore')">{{ 'action-restore' | i18next }}</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" [disabled]="selectionDisabled" (click)="showBulkDestroy()">{{ 'admin-deleted-permanent' | i18next }}</button>
+      </div>
+    }
   <!-- Result details -->
-  <record-table
+  <record-table [plainTextColumns]="true" [selectionHeaderTemplate]="selectPage" [selectionTemplate]="selectRow" [cellTemplates]="{ recordType: typeCell, deletedBy: actorCell }" [adminPresentation]="true" [actionTemplate]="rowActions" [paginationDisabled]="loadPending || actionPending || !initTracker.resultsReturned"
     [columnConfig]="tableHeaders"
     [dataSource]="this"
     [optTemplateData]="optTemplateData"
@@ -92,35 +63,59 @@
     [paginationMaxSize]="paginationMaxSize"
     [showActions]="showActions"
     [enableSort]="true"
-    [enableActions]="true">
+    [enableActions]="!loadPending && initTracker.resultsReturned && !actionPending && !actionNeedsRefresh && !isDestroyRecordModalShown">
   </record-table>
+    @if (initTracker.resultsReturned && deletedRecordsResult.total === 0 && !loadError) {
+      <div class="rb-admin-empty"><i class="fa fa-2x fa-trash-can" aria-hidden="true"></i><h3>{{ (hasFilters ? 'admin-no-filter-results' : 'admin-deleted-empty') | i18next }}</h3>@if (hasFilters) { <button class="btn btn-outline-secondary" type="button" (click)="clearFilters()">{{ 'admin-report-clear' | i18next }}</button> } @else { <p>{{ 'admin-deleted-empty-help' | i18next }}</p> }</div>
+    }
+  </section>
+  <ng-template #selectPage><input type="checkbox" class="form-check-input" [attr.aria-label]="'admin-deleted-select-page' | i18next" [checked]="allSelected" [indeterminate]="selectedRecords.size > 0 && !allSelected" [disabled]="selectionDisabled" (change)="togglePage($any($event.target).checked)"></ng-template>
+  <ng-template #selectRow let-record><input type="checkbox" class="form-check-input" [attr.aria-label]="'admin-deleted-select-record' | i18next: { title: record.title }" [checked]="selectedRecords.has(record.oid)" [disabled]="selectionDisabled" (change)="toggleRecord(record, $any($event.target).checked)"></ng-template>
+  <ng-template #typeCell let-record><span class="badge rb-admin-badge-primary">{{ record.recordTypeLabel || record.recordType || ('admin-deleted-unknown' | i18next) }}</span></ng-template>
+  <ng-template #actorCell let-record>{{ record.deletedBy?.username || record.deletedBy?.id || ('admin-deleted-unknown' | i18next) }}</ng-template>
+  <ng-template #rowActions let-record>
+    <div class="rb-admin-row-actions">
+      <button class="btn btn-sm btn-outline-secondary restore-record" type="button" (click)="recordTableAction($event, record, 'restore')">{{ 'action-restore' | i18next }}</button>
+      <details rbAdminOverflow class="rb-admin-overflow" #actions><summary class="btn btn-sm rb-admin-ghost" [attr.aria-label]="'admin-more-actions' | i18next: { name: record.title }">⋯</summary>
+        <div><button class="btn btn-sm btn-outline-danger destroy-record" type="button" (click)="recordTableAction($event, record, 'destroy'); actions.open = false">{{ 'admin-deleted-permanent' | i18next }}</button></div>
+      </details>
+    </div>
+  </ng-template>
+</div>
   <!-- Modal -->
   @if (isDestroyRecordModalShown) {
-    <div
-      [config]="{backdrop: 'static', show: true}"
-      (onHidden)="onDestroyRecordModalHidden()"
-      bsModal
-      #destroyRecordModal="bs-modal"
-      class="modal fade"
-      tabindex="-1"
-      role="dialog"
-      aria-labelledby="deleted-records-confirm-modal-label">
-      <div class="modal-dialog modal-md">
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+      aria-labelledby="deleted-records-confirm-modal-label" aria-describedby="deleted-records-confirm-modal-description"
+      (keydown.escape)="hideDestroyRecordModal()">
+      <div class="modal-dialog modal-dialog-centered" rbAdminModal cdkTrapFocus cdkTrapFocusAutoCapture>
         <div class="modal-content">
           <div class="modal-header">
-            <span class="modal-title h4-header" id="deleted-records-confirm-modal-label">
-              {{ 'deleted-records-item-confirm-delete-title' | i18next }}
-            </span>
+            <h2 class="modal-title" id="deleted-records-confirm-modal-label">
+              {{ 'admin-deleted-confirm-title' | i18next }}
+            </h2>
+            <button type="button" class="btn-close" [disabled]="actionPending" [attr.aria-label]="'named-query-close' | i18next" (click)="hideDestroyRecordModal()"></button>
           </div>
-          <div class="modal-body">
-            {{ 'deleted-records-item-confirm-delete-message' | i18next }}
+          <div class="modal-body" id="deleted-records-confirm-modal-description">
+            @if (bulkDestroy) { {{ 'admin-deleted-bulk-confirm' | i18next: { count: selectedRecords.size } }} } @else { <p>{{ 'admin-deleted-confirm-target' | i18next: { title: currentDestroyRecordModalTitle } }}</p><code class="rb-admin-code-wrap">{{ currentDestroyRecordModalOid }}</code><p class="mt-3">{{ 'admin-deleted-confirm-message' | i18next }}</p> }
           </div>
+          @if (actionMessage) {
+            <div class="alert alert-warning action-feedback" role="alert">
+              {{ actionMessage }} {{ actionRefreshError }}
+              @if (canRetryRestore) {
+                <button type="button" class="btn btn-outline-secondary retry-restore" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="retryRestore()">{{ 'admin-deleted-retry-restore' | i18next }}</button>
+              }
+              @if (actionNeedsRefresh) {
+                <button type="button" class="btn btn-outline-secondary refresh-actions" [disabled]="actionPending || loadPending || !initTracker.resultsReturned" (click)="refreshActionList()">{{ 'admin-deleted-refresh' | i18next }}</button>
+              }
+            </div>
+          }
           <div class="modal-footer">
-            <button type="button" class="btn btn-default"
-              (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
+            <button type="button" class="btn btn-outline-secondary"
+              cdkFocusInitial [disabled]="actionPending" (click)="hideDestroyRecordModal()">{{ '@cancel-button' | i18next }}
             </button>
-            <button type="button" class="btn btn-primary"
-              (click)="confirmDestroyRecordModal($event)">{{ 'deleted-records-item-confirm-delete-confirm' | i18next }}
+            <button type="button" class="btn rb-admin-danger-confirm"
+              [disabled]="actionPending || actionNeedsRefresh || loadPending || !initTracker.resultsReturned" (click)="confirmDestroyRecordModal($event)">{{ actionMessage && !actionNeedsRefresh ? ('admin-deleted-retry-destroy' | i18next) : ('admin-deleted-confirm' | i18next) }}
             </button>
           </div>
         </div>

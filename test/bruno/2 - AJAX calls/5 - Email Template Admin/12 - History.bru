@@ -1,0 +1,31 @@
+meta {
+  name: Email templates - History
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{host}}/default/rdmp/app/email-templates/templates/test/history
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  Content-Type: application/json
+  Accept: application/json
+  X-CSRF-Token: {{emailAdminCsrf}}
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "emailAdminCookie" });
+
+}
+
+tests {
+  test("Returns a marked live history entry", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().versions[0].version).to.equal(bru.getVar("emailAdminPublishedVersion"));
+    expect(res.getBody().versions[0].live).to.equal(true);
+  });
+}

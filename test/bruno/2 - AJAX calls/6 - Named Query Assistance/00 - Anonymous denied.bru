@@ -1,0 +1,22 @@
+meta {
+  name: Named queries - Anonymous denied
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/default/rdmp/api/named-query/editor/schema-targets
+  body: none
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+  Accept: application/json
+}
+
+tests {
+  test("Denies anonymous discovery", () => expect(res.getStatus()).to.equal(403));
+}

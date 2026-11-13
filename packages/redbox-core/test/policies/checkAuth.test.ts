@@ -1,3 +1,6 @@
+import * as sinon from 'sinon';
+import { createSinonStubLogger } from '../logger.test';
+
 let expect: Chai.ExpectStatic;
 import('chai').then(mod => (expect = mod.expect));
 import { checkAuth, checkRecordSchemaAuth } from '../../src/policies/checkAuth';
@@ -16,9 +19,7 @@ import {
       defaultPortal: 'portal',
     },
   },
-  log: {
-    verbose: () => {},
-  },
+  log: createSinonStubLogger(sinon),
   getActions: () => ({
     'user/redirlogin': (req: any, res: any) => {
       res._redirectedToLogin = true;
@@ -58,9 +59,7 @@ describe('checkAuth policy', function () {
           defaultPortal: 'portal',
         },
       },
-      log: {
-        verbose: () => {},
-      },
+      log: createSinonStubLogger(sinon),
       getActions: () => ({
         'user/redirlogin': (req: any, res: any) => {
           res._redirectedToLogin = true;
@@ -207,6 +206,18 @@ describe('checkAuth policy', function () {
     expect(nextCalled).to.be.false;
     expect(getStatus()).to.equal(403);
     expect(getJson()).to.deep.equal({ message: 'Access Denied' });
+  });
+
+  it('should deny anonymous API requests without redirecting, regardless of content type', function () {
+    (global as any).PathRulesService.getRulesFromPath = () => ({ someRule: true });
+    (global as any).PathRulesService.canRead = () => false;
+    const { req, res, getStatus, getJson } = createMockReqRes({
+      authenticated: false, path: '/default/rdmp/api/named-query', contentType: 'text/html',
+    });
+    checkAuth(req, res, () => expect.fail('Anonymous API request was allowed'));
+    expect(getStatus()).to.equal(403);
+    expect(getJson()).to.deep.equal({ message: 'Access Denied' });
+    expect(res._redirectedToLogin).to.be.false;
   });
 
   it('should redirect to login for unauthenticated HTML request', function () {

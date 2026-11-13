@@ -11,12 +11,25 @@ execution change. Commands are run from the repository root.
   with `sudo -n docker exec development-rbportal-mount-1 node --version` while
   `npm run dev:run` is running.
 
+## Effect 4 compatibility
+
+Core pins Effect to `4.0.2`. Native Effect hooks and custom publishing layers
+must use Effect 4 as well; Effect 3 values belong to a different runtime.
+Promise, Observable, and plain-value hook interfaces retain their existing
+behavior. The PDF hook still uses its own Effect 3 runtime internally and
+returns an Observable at the record-hook boundary.
+
+The migration follows the [upstream Effect 4 migration guide](https://github.com/Effect-TS/effect/blob/effect%404.0.2/MIGRATION.md).
+Service keys use `Context.Service`, timeout fallbacks use
+`Effect.timeoutOrElse`, and callback adapters use `Effect.callback`.
+Retry schedules retain bounded attempts and capped exponential delays, and
+logger adapters read annotations from the executing fiber.
+
 ## Focused checks
 
-Run the packages' own test scripts. Do not substitute a narrowed
-`--no-config` / `TS_NODE_TRANSPILE_ONLY=true` invocation: transpile-only skips
-type checking, and `--no-config` bypasses `.mocharc.js`, so a focused run can
-report passing tests while `npm test` cannot load the suite at all.
+Run the packages' own test scripts so their Mocha setup is applied. Core's
+`.mocharc.js` loads tests through ts-node in transpile-only mode; run the
+focused type check separately to check the Effect callers and their fixtures.
 
 ```sh
 npm run compile:core
@@ -24,9 +37,8 @@ cd packages/sails-hook-redbox-storage-mongo
 node_modules/.bin/tsc -p tsconfig.json
 cd ../..
 
-# Type-checks src only. Test files are covered by test/tsconfig.json, which
-# ts-node applies per loaded file during the run below.
 cd packages/redbox-core
+npm run typecheck:effect
 npm test
 cd ../..
 
@@ -34,12 +46,6 @@ cd packages/sails-hook-redbox-storage-mongo
 npm test
 cd ../..
 ```
-
-A type error in any loaded test file makes ts-node fail to compile it; mocha
-then retries the file as ESM and the run aborts with a misleading
-`ERR_MODULE_NOT_FOUND` naming an imported module rather than the real type
-error. If that appears, run `node_modules/.bin/tsc --noEmit -p test/tsconfig.json`
-and look for errors in the files this change touches.
 
 The action-execution and RecordsService suites cover legacy characterization,
 deterministic retry scheduling, native Effect actions, supervised teardown,

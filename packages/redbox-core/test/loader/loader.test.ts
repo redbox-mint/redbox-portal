@@ -102,6 +102,236 @@ describe('redbox-loader', function () {
     });
 
     describe('mergeRedboxConfig', function () {
+        describe('auth.rules', function () {
+            const coreRules = [
+                { path: '/:branding/:portal/workspaces(/*)', role: 'Admin', can_update: true },
+                { path: '/:branding/:portal/workspaces(/*)', role: 'Librarians', can_update: true },
+                { path: '/:branding/:portal/workspaces(/*)', role: 'Researcher', can_update: true }
+            ];
+            const supportRules = [
+                { path: '/:branding/:portal/admin/supportAgreement(/*)', role: 'Admin', can_read: true },
+                { path: '/:branding/:portal/ws/supportAgreement(/*)', role: 'Researcher', can_read: true },
+                { path: '/:branding/:portal/supportAgreement(/*)', role: 'Guest', can_read: true }
+            ];
+            const catalogRules = [
+                { path: '/:branding/:portal/ws/catalog(/*)', role: 'Researcher', can_update: true }
+            ];
+
+            it('appends one hook without losing core rules or inheriting flags by index', function () {
+                const merged = redboxLoader.mergeRedboxConfig('auth', { rules: coreRules }, { rules: supportRules });
+                expect(merged.rules).to.deep.equal([...coreRules, ...supportRules]);
+            });
+
+            it('preserves all core and two hooks rules in layer order', function () {
+                const merged = redboxLoader.mergeRedboxConfig('auth',
+                    { rules: coreRules }, { rules: catalogRules }, { rules: supportRules });
+                expect(merged.rules).to.deep.equal([...coreRules, ...catalogRules, ...supportRules]);
+            });
+
+            it('keeps an explicit replacement list exactly, including the existing combined-list workaround', function () {
+                const combinedRules = [...coreRules, ...catalogRules, ...supportRules];
+                const merged = redboxLoader.mergeRedboxConfig('auth',
+                    { rules: coreRules }, { rules: catalogRules }, { rules: supportRules },
+                    { _dontMerge: ['rules'], rules: combinedRules });
+                expect(merged).to.deep.equal({ rules: combinedRules });
+                expect(redboxLoader.mergeRedboxConfig('auth', { rules: coreRules }, {
+                    _dontMerge: ['rules'], rules: [supportRules[0], supportRules[0]]
+                })).to.deep.equal({ rules: [supportRules[0], supportRules[0]] });
+                expect(redboxLoader.mergeRedboxConfig('auth', { rules: coreRules }, {
+                    _dontMerge: ['rules'], rules: []
+                })).to.deep.equal({ rules: [] });
+            });
+
+            it('appends later hooks after an explicit replacement', function () {
+                const merged = redboxLoader.mergeRedboxConfig('auth', { rules: coreRules }, {
+                    _dontMerge: ['rules'], rules: catalogRules
+                }, { rules: supportRules });
+                expect(merged.rules).to.deep.equal([...catalogRules, ...supportRules]);
+            });
+
+            it('removes exact duplicates within and across ordinary layers regardless of property order', function () {
+                const duplicate = { can_read: true, role: 'Admin', path: supportRules[0].path };
+                const merged = redboxLoader.mergeRedboxConfig('auth',
+                    { rules: [...coreRules, coreRules[0]] },
+                    { rules: [...coreRules, ...supportRules, duplicate] },
+                    { rules: supportRules });
+                expect(merged.rules).to.deep.equal([...coreRules, ...supportRules]);
+            });
+
+            it('retains distinct flags, branding and roles without overriding or merging grants', function () {
+                const rule = { path: '/shared', role: 'Researcher', can_read: true };
+                const distinct = [
+                    { ...rule, can_read: false, can_update: true },
+                    { ...rule, branding: 'institution' },
+                    { ...rule, role: 'Librarians' },
+                    { ...rule, can_update: false }
+                ];
+                const merged = redboxLoader.mergeRedboxConfig('auth', { rules: [rule] }, { rules: distinct });
+                expect(merged.rules).to.deep.equal([rule, ...distinct]);
+            });
+
+            it('leaves rules alone when a layer omits them and merges other auth keys normally', function () {
+                const merged = redboxLoader.mergeRedboxConfig('auth', {
+                    rules: coreRules, roles: [{ name: 'Admin' }, { name: 'Guest' }],
+                    default: { local: { enabled: true, usernameField: 'username' } }
+                }, {
+                    _dontMerge: ['rules'], roles: [{ name: 'InstitutionAdmin' }],
+                    default: { local: { usernameField: 'email' } }
+                }, {});
+                expect(merged).to.deep.equal({
+                    rules: coreRules, roles: [{ name: 'InstitutionAdmin' }, { name: 'Guest' }],
+                    default: { local: { enabled: true, usernameField: 'email' } }
+                });
+                expect(redboxLoader.mergeRedboxConfig('auth', { loginPath: 'user/login' }, {}))
+                    .to.deep.equal({ loginPath: 'user/login' });
+            });
+
+            it('does not mutate or alias input rules or replacement directives', function () {
+                const core = { rules: coreRules };
+                const hook = { rules: supportRules };
+                const replacement = { _dontMerge: ['rules'], rules: catalogRules };
+                const before = JSON.stringify([core, hook, replacement]);
+                const appended = redboxLoader.mergeRedboxConfig('auth', core, hook);
+                const replaced = redboxLoader.mergeRedboxConfig('auth', core, replacement);
+                expect(appended.rules).to.deep.equal([...coreRules, ...supportRules]);
+                expect(replaced.rules).to.deep.equal(catalogRules);
+                (appended.rules as typeof coreRules)[0].can_update = false;
+                (appended.rules as typeof supportRules)[coreRules.length].can_read = false;
+                (replaced.rules as typeof catalogRules)[0].path = '/changed';
+                expect(JSON.stringify([core, hook, replacement])).to.equal(before);
+                expect(redboxLoader.mergeRedboxConfig('auth', core, hook).rules)
+                    .to.deep.equal([...coreRules, ...supportRules]);
+            });
+        });
+
+        it('ignores optional nullish configuration layers for each merge mode', () => {
+            for (const name of ['vocab', 'agendaQueue', 'brandingConfigurationDefaults']) {
+                const layers = [{ queries: { core: true } }, undefined, null, { queries: { hook: true } }];
+                const merged = redboxLoader.mergeRedboxConfig(name, ...layers as any[]);
+                expect(merged.queries).to.deep.equal({ core: true, hook: true });
+            }
+        });
+
+        it('preserves runtime plugin instances while cloning plain config containers', async function () {
+            class InstitutionPlugin {
+                #enabled = true;
+                apply(compiler: import('webpack').Compiler): void {
+                    if (this.#enabled) {
+                        compiler.hooks.done.tap('InstitutionPlugin', () => {});
+                    }
+                }
+            }
+            const plugin = new InstitutionPlugin();
+            const core = { config: [{ mode: 'none', plugins: [plugin] }] };
+            const merged = redboxLoader.mergeRedboxConfig('webpack', core, {});
+            const config = (merged.config as import('webpack').Configuration[])[0];
+            expect(config.plugins![0]).to.equal(plugin);
+            expect(merged.config).not.to.equal(core.config);
+            expect(config).not.to.equal(core.config[0]);
+            expect(config.plugins).not.to.equal(core.config[0].plugins);
+            const compiler = (require('webpack') as typeof import('webpack'))(config)!;
+            await new Promise<void>((resolve, reject) => compiler.close(error => error ? reject(error) : resolve()));
+        });
+
+        it('replaces only declared siblings, including nested objects and array values', function () {
+            const merged = redboxLoader.mergeRedboxConfig('vocab', {
+                queries: { core: true },
+                nested: { queries: { core: true }, keep: true },
+                values: ['core', 'tail'],
+                ordinary: ['core', 'tail']
+            }, {
+                _dontMerge: ['queries', 'values'],
+                queries: {},
+                values: ['hook'],
+                ordinary: ['hook'],
+                nested: { _dontMerge: ['queries'], queries: { hook: true } }
+            });
+            expect(merged).to.deep.equal({
+                queries: {}, values: ['hook'], ordinary: ['hook', 'tail'],
+                nested: { queries: { hook: true }, keep: true }
+            });
+        });
+
+        it('scopes directives to one layer and does not mutate or alias config inputs', function () {
+            const core = { templates: { core: { enabled: true } }, keep: true };
+            const hook = { _dontMerge: ['templates'], templates: { hook: { enabled: true } } };
+            const before = JSON.stringify([core, hook]);
+            const result = redboxLoader.mergeRedboxConfig('emailnotification', core, hook, {
+                templates: { later: { enabled: true } }
+            });
+            expect(result).to.deep.equal({
+                templates: { hook: { enabled: true }, later: { enabled: true } }, keep: true
+            });
+            (result.templates as typeof hook.templates).hook.enabled = false;
+            expect(JSON.stringify([core, hook])).to.equal(before);
+            expect(redboxLoader.mergeRedboxConfig('emailnotification', core, hook)).to.deep.equal({
+                templates: { hook: { enabled: true } }, keep: true
+            });
+        });
+
+        it('applies directives at each location when a hook reuses a nested config object', function () {
+            const shared = { _dontMerge: ['options'], options: {} };
+            const result = redboxLoader.mergeRedboxConfig('example', {
+                first: { options: { old: true } }, second: { options: { old: true } }
+            }, { first: shared, second: shared });
+            expect(result).to.deep.equal({ first: { options: {} }, second: { options: {} } });
+            expect(shared._dontMerge).to.deep.equal(['options']);
+        });
+
+        it('clears arrays with an empty replacement', function () {
+            expect(redboxLoader.mergeRedboxConfig('example', { values: ['core'] }, {
+                _dontMerge: ['values'], values: []
+            })).to.deep.equal({ values: [] });
+        });
+
+        it('handles scalar replacements, absent siblings, literal names and malformed directives', function () {
+            expect(redboxLoader.mergeRedboxConfig('example', {
+                absent: true, nullable: { core: true }, scalar: { core: true },
+                'a.b': { core: true }, a: { b: true }, nested: { keep: true }
+            }, {
+                _dontMerge: ['absent', 'nullable', 'scalar', 'a.b', 123],
+                nullable: null, scalar: false, 'a.b': {},
+                nested: { _dontMerge: 'keep', extra: true }
+            })).to.deep.equal({
+                absent: true, nullable: null, scalar: false, 'a.b': {},
+                a: { b: true }, nested: { keep: true, extra: true }
+            });
+        });
+
+        it('preserves Agenda job normalization and supports replacing jobs and nested job options', function () {
+            const core = { jobs: [{ name: 'core', options: { old: true } }, { name: 'shared', options: { old: true } }] };
+            expect(redboxLoader.mergeRedboxConfig('agendaQueue', core, {
+                jobs: { shared: { _dontMerge: ['options'], options: { hook: true } } }
+            })).to.deep.equal({ jobs: { core: { options: { old: true } }, shared: { options: { hook: true } } } });
+            expect(redboxLoader.mergeRedboxConfig('agendaQueue', core, {
+                _dontMerge: ['jobs'], jobs: [{ name: 'hook', fnName: 'hook.run' }]
+            })).to.deep.equal({ jobs: { hook: { fnName: 'hook.run' } } });
+        });
+
+        it('applies directives within named job maps and array entries without touching prototypes', function () {
+            expect(redboxLoader.mergeRedboxConfig('agendaQueue', { jobs: { shared: { old: true } } }, {
+                jobs: { _dontMerge: ['shared'], shared: { hook: true } }
+            })).to.deep.equal({ jobs: { shared: { hook: true } } });
+            expect(redboxLoader.mergeRedboxConfig('example', {
+                entries: [{ options: { old: true }, keep: true }]
+            }, { entries: [{ _dontMerge: ['options'], options: {} }] })).to.deep.equal({
+                entries: [{ options: {}, keep: true }]
+            });
+            const malicious = JSON.parse('{"__proto__":{"_dontMerge":["toString"],"toString":null}}');
+            redboxLoader.mergeRedboxConfig('example', {}, malicious);
+            expect(Object.prototype.toString).to.be.a('function');
+        });
+
+        it('combines branding replacement directives with its existing array replacement rule without aliasing', function () {
+            const hook = { _dontMerge: ['settings'], settings: {}, menu: [{ id: 'hook' }] };
+            const result = redboxLoader.mergeRedboxConfig('brandingConfigurationDefaults', {
+                settings: { core: true }, menu: [{ id: 'core', extra: true }, { id: 'tail' }]
+            }, hook);
+            expect(result).to.deep.equal({ settings: {}, menu: [{ id: 'hook' }] });
+            (result.menu as typeof hook.menu)[0].id = 'changed';
+            expect(hook.menu[0].id).to.equal('hook');
+        });
+
         it('replaces brandingConfigurationDefaults arrays from hook config', function () {
             const merged = redboxLoader.mergeRedboxConfig(
                 'brandingConfigurationDefaults',
@@ -375,6 +605,73 @@ describe('redbox-loader', function () {
         beforeEach(async function () {
             configDir = path.join(sandboxDir, 'config');
             await fsPromises.mkdir(configDir, { recursive: true });
+        });
+
+        it('executes discovered hook config shims with replacement directives in hook priority order', async function () {
+            const low = 'redbox-hook-low';
+            const high = 'redbox-hook-high';
+            await fsPromises.writeFile(path.join(sandboxDir, 'package.json'), JSON.stringify({
+                dependencies: { [low]: '1.0.0', [high]: '1.0.0' }, hookLoadPriority: [high, low]
+            }));
+            await createHookModule(sandboxDir, low, { name: low, main: 'index.js', sails: { hasConfig: true } },
+                `module.exports.registerRedboxConfig = () => ({
+                    emailnotification: { templates: { low: true } }, vocab: { queries: { low: true } }
+                });`);
+            await createHookModule(sandboxDir, high, { name: high, main: 'index.js', sails: { hasConfig: true } },
+                `const config = {
+                    emailnotification: { _dontMerge: ['templates'], templates: { high: true } },
+                    vocab: { _dontMerge: ['queries'], queries: {} }
+                }; module.exports.registerRedboxConfig = () => config;`);
+            const { hookConfigs } = await redboxLoader.findAndRegisterHookConfigs(sandboxDir);
+            expect(hookConfigs.map(hook => hook.name)).to.deep.equal([low, high]);
+            await redboxLoader.generateConfigShims(configDir, hookConfigs);
+            for (const [name, field, expected] of [
+                ['emailnotification', 'templates', { high: true }], ['vocab', 'queries', {}]
+            ] as const) {
+                const content = await fsPromises.readFile(path.join(configDir, `${name}.js`), 'utf8');
+                const core = { [name]: { [field]: { core: true }, keep: true } };
+                const shim = { exports: {} as Record<string, unknown> };
+                const runtimeRequire = (id: string) => id === '@researchdatabox/redbox-core'
+                    ? { Config: core, mergeRedboxConfig: redboxLoader.mergeRedboxConfig }
+                    : require(require.resolve(id, { paths: [sandboxDir] }));
+                new vm.Script(content).runInNewContext({ module: shim, require: runtimeRequire });
+                expect(shim.exports[name]).to.deep.equal({ [field]: expected, keep: true });
+                expect(core[name][field]).to.deep.equal({ core: true });
+                const registered = runtimeRequire(high).registerRedboxConfig();
+                expect(registered[name]._dontMerge).to.deep.equal([field]);
+            }
+        });
+
+        it('exports the same auth rules in the pre-lift snapshot as the generated shim merges', async function () {
+            const first = 'redbox-hook-a-rules';
+            const second = 'redbox-hook-b-settings';
+            await fsPromises.writeFile(path.join(sandboxDir, 'package.json'), JSON.stringify({
+                dependencies: { [first]: '1.0.0', [second]: '1.0.0' }, hookLoadPriority: [second, first]
+            }));
+            // An explicit replacement keeps its duplicates; a later hook without rules must not collapse them.
+            await createHookModule(sandboxDir, first, { name: first, main: 'index.js', sails: { hasConfig: true } },
+                `module.exports.registerRedboxConfig = () => ({ auth: { _dontMerge: ['rules'], rules: [
+                    { path: '/a', role: 'Admin', can_read: true }, { path: '/a', role: 'Admin', can_read: true }
+                ] } });`);
+            await createHookModule(sandboxDir, second, { name: second, main: 'index.js', sails: { hasConfig: true } },
+                `module.exports.registerRedboxConfig = () => ({ auth: { defaultPortal: 'other' } });`);
+            const { hookConfigs } = await redboxLoader.findAndRegisterHookConfigs(sandboxDir);
+            expect(hookConfigs.map(hook => hook.name)).to.deep.equal([first, second]);
+            const { Config } = require('../../src');
+            const layers = hookConfigs.map(hook =>
+                require(require.resolve(hook.module, { paths: [sandboxDir] })).registerRedboxConfig().auth);
+            const runtime = redboxLoader.mergeRedboxConfig('auth', Config.auth, ...layers);
+            expect(runtime.rules).to.have.length(2);
+
+            process.env.EXPORT_BOOTSTRAP_CONFIG_JSON = 'true';
+            const resolved = hookConfigs.map(hook => ({
+                ...hook, module: require.resolve(hook.module, { paths: [sandboxDir] })
+            }));
+            await redboxLoader.generatePreLiftSnapshot(sandboxDir, resolved);
+            const snapshot = JSON.parse(await fsPromises.readFile(
+                path.join(sandboxDir, 'support', 'debug-config', 'pre-lift-config.json'), 'utf8'));
+            expect(snapshot.auth.rules).to.deep.equal(runtime.rules);
+            expect(snapshot.auth.defaultPortal).to.equal('other');
         });
 
         it('should sanitize package names with dots when generating config shims', async function () {

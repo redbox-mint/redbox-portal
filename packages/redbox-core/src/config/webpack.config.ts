@@ -31,12 +31,13 @@ export interface WebpackConfig {
 export const webpack: WebpackConfig = {
     config: [
         {
+            name: 'portal-assets',
             stats: {
                 loggingDebug: ["sass-loader"],
             },
             mode: isDevelopmentAssetMode ? 'development' : 'production',
             devtool: isDevelopmentAssetMode ? 'inline-cheap-source-map' : undefined,
-            entry: './assets/default/default/js/client-script.js',
+            entry: ['./assets/default/default/styles/default-fonts.css', './assets/default/default/js/client-script.js'],
             output: {
                 filename: './default/default/js/index.bundle.js',
                 path: outputDir,
@@ -74,10 +75,6 @@ export const webpack: WebpackConfig = {
                         {
                             from: './node_modules/jquery/dist/jquery.min.js',
                             to: './default/default/js/'
-                        },
-                        {
-                            from: './node_modules/redoc/bundles/redoc.standalone.js',
-                            to: './default/default/js/'
                         }
                     ],
                 }),
@@ -92,10 +89,16 @@ export const webpack: WebpackConfig = {
                         include: [path.resolve(topDir, './assets/styles'), path.resolve(topDir, './assets/default/default/styles')]
                     },
                     {
+                        // Keep content-versioned default font URLs predictable for EJS preloads.
+                        test: /fonts[\\/]google[\\/].*\.woff2$/,
+                        type: 'asset/resource',
+                        generator: { filename: 'fonts/google/[name][ext]', publicPath: '../' },
+                    },
+                    {
                         // Compile referenced font files referenced in entry file to a separate file and exports the URL
                         test: /\.(woff2?|ttf|otf|eot|svg)$/,
                         type: 'asset/resource',
-                        exclude: /\.\.\/angular/
+                        exclude: [/\.\.\/angular/, /fonts[\\/]google[\\/]/]
                     },
                     {
                         // extract inline svg files to separate resources (needed for bootstrap and the redbox loading svg)
@@ -125,6 +128,27 @@ export const webpack: WebpackConfig = {
                     module: /sass-loader/,
                 }
             ],
+        },
+        {
+            name: 'api-docs',
+            experiments: { outputModule: true },
+            module: {
+                rules: [{
+                    test: /[\\/]redoc[\\/]bundles[\\/]redoc\.js$/,
+                    use: path.resolve(__dirname, '../../browser/redoc-library-loader.cjs'),
+                }],
+            },
+            dependencies: ['portal-assets'],
+            // The published library also embeds its own older DOMPurify.
+            // Bundle the library with our pinned dependencies so security fixes
+            // also reach the API documentation asset served by the portal.
+            mode: isDevelopmentAssetMode ? 'development' : 'production',
+            entry: path.resolve(__dirname, '../../browser/redoc-standalone.js'),
+            output: {
+                filename: './default/default/js/redoc.standalone.js',
+                path: outputDir,
+                library: { type: 'module' },
+            },
         }
     ],
     watch: false,

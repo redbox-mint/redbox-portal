@@ -21,6 +21,7 @@ There are several configuration items that are specific to the ReDBox Portal:
 7. [RAiD publishing AppConfig](Configuring-RAiD-Publishing) manages brand-specific credentials, mapping, retry, and audit behaviour for RAiD minting
 8. [`recordValidation`](Server-Side-Form-Validation-Operations) controls authoritative form-validation timeout, bounded shadow reporting, and global/operation rollout modes
 9. [`recordSchema`](Record-Schema-Contract-Operations) controls the default-disabled record-schema contract feature, unknown-property policy, compiler/cache limits, retention, and integration pins
+10. [Background admin CSV exports](Admin-CSV-Exports) configures the StorageManager disk, download retention, generation deadline, and cleanup for admin exports
 
 ## Configuration Defaults (redbox-core)
 
@@ -96,6 +97,14 @@ module.exports.registerRedboxConfig = function() {
 
 Hook configurations are merged with core defaults using the installation's root `package.json` `hookLoadPriority` list when present. The first hook listed has the highest precedence, so config shims process lower-precedence hooks first and the first listed hook wins conflicting values. Hooks not listed in `hookLoadPriority` are processed before listed hooks and keep the previous deterministic package-name fallback behavior.
 
+Hook `auth.rules` arrays append after core rules in hook processing order, with
+exact duplicate rule objects removed. Rules with different permission flags or
+branding remain separate, even when path and role match. A hook can supply a
+complete replacement with `auth: { _dontMerge: ['rules'], rules: [...] }`; that
+list is retained exactly. Other auth settings keep their normal merge behavior.
+See [Extending authorization rules](Redbox-Loader#extending-authorization-rules)
+for examples and database seeding behavior.
+
 ## Environment variables
 
 It is possible to use environment variables to modify configuration, this is particularly useful when running the portal in a containerised environment such as Docker. Please see [Sails configuration documentation for more information](https://sailsjs.com/documentation/concepts/configuration#?setting-sailsconfig-values-directly-using-environment-variables).
@@ -159,3 +168,7 @@ Compare these files to identify where a setting is being overwritten.
 - [Using a Sails Hook to customise ReDBox](Using-a-Sails-Hook-to-customise-ReDBox) - Adding config via hooks
 - [Configuring Solr](Configuring-Solr) - Solr connection, schema, and pre-index mapping options
 - [Record Schema Contract Operations](Record-Schema-Contract-Operations) - Record-schema configuration, rollout, storage, retention, diagnostics, telemetry, and troubleshooting
+
+## AppConfig secret storage
+
+[AppConfig secrets in AWS Secrets Manager](AppConfig-Secrets) describes optional AWS storage for branding-aware password and token fields, deployment setup, and migration behavior.

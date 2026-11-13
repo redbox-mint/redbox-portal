@@ -1,5 +1,6 @@
 x-rbportal-env: &rbportal-env
   NODE_ENV: docker
+  STARTUP_TIMING: '${STARTUP_TIMING:-false}'
   PORT: 1500
   WEBPACK_SKIP: 'true'
   sails__datastores__mongodb__url: mongodb://mongodb:27017/redbox-portal
@@ -100,7 +101,7 @@ services:
     volumes: *rbportal-volumes
   mongodb:
     #image: mvertes/alpine-mongo:latest
-    image: mongo:latest@sha256:5d7043a4ffe02b9ed1b6e0bab057546981af5ca0a79107e9c461e49bc44c0a7b
+    image: mongo:latest@sha256:dc28ed5a9d0fc616903c3f463bb1e53b92b49f441721b91926e87d90bf957ce8
     volumes:
       - './devdata:/devdata:delegated'
       - './.dev/mongo/data/db:/data/db:delegated'
@@ -112,7 +113,7 @@ services:
     ports:
       - '27017:27017'
   solr:
-    image: solr:latest@sha256:d5d3e2445d6ecf634d81259f1d0c25ba7fd3d297bc31f0032aca16cdc6cbd8e5
+    image: solr:latest@sha256:81e75780e0f3a3ea2d38eafdb6ec16b2028af9374f6c0b85485f8f2e5dd97beb
     expose:
       - '8983'
     ports:

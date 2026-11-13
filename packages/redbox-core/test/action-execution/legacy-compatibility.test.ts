@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { expect } from 'chai';
 import { Observable, of } from 'rxjs';
-import { createActionExecutionOperation } from '../../src/action-execution/index';
+import { ActionTransientFailure, createActionExecutionOperation } from '../../src/action-execution/index';
 import { RecordHookCoordinator } from '../../src/services/record-hooks/coordinator';
 
 type AnyRecord = Record<string, unknown>;
@@ -27,6 +27,34 @@ function tick(): Promise<void> {
 }
 
 describe('record-hook legacy compatibility characterization', function () {
+  it('passes immutable server operation context without shifting legacy arguments or trusting candidate context', async function () {
+    const actor = { username: 'user' };
+    const record = { operation: 'create', metadata: { operation: 'create' } };
+    const options = { operation: 'create', retained: true };
+    for (const [operationMode, hookMode, expected] of [
+      ['onCreate', 'onTransitionWorkflow', 'create'],
+      ['onUpdate', 'onUpdate', 'update'],
+      ['onTransitionWorkflow', 'onTransitionWorkflow', 'update'],
+      ['onDelete', 'onDelete', 'delete'],
+    ] as const) {
+      const calls: unknown[][] = [];
+      const instance = new RecordHookCoordinator({
+        operation: createActionExecutionOperation(operationMode),
+        resolveHook: () => (...args: unknown[]) => {
+          calls.push(args);
+          return args[1];
+        },
+      });
+      await instance.runPre('oid-1', record, {
+        hooks: { [hookMode]: { pre: [{ function: 'capture', options }] } },
+      }, hookMode, actor);
+      expect(calls).to.have.length(1);
+      expect(calls[0].slice(0, 5)).to.deep.equal(['oid-1', record, options, actor, undefined]);
+      expect(calls[0][5]).to.deep.equal({ operation: expected });
+      expect(Object.isFrozen(calls[0][5])).to.equal(true);
+    }
+  });
+
   it('preserves plain, Promise, Observable, and native Effect pre-hook values', async function () {
     const values = await Promise.all([
       coordinator(() => () => 'plain').runPre(
@@ -133,6 +161,188 @@ describe('record-hook legacy compatibility characterization', function () {
       workspaceData: { linked: true },
     });
     expect(result.response).not.to.have.property('secret');
+  });
+
+  it('tracks the highest applied postSync record revision without changing hook replacements', async function () {
+    const values: AnyRecord[] = [
+      { revision: 3, earlierOnly: true },
+      { revision: 9, authorization: { edit: [] } },
+      { revision: 4 },
+      ...[-1, 1.5, '99', NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined].map(revision => ({ revision })),
+      { revision: 100 },
+      { metadata: { partial: true } },
+    ];
+    const seen: unknown[] = [];
+    const result = await coordinator(hook => (_oid, record) => {
+      seen.push(record);
+      return values[Number(hook.function)];
+    }).runPostSync(
+      'oid-1',
+      { revision: 1 },
+      {
+        hooks: {
+          onUpdate: {
+            postSync: values.map((_value, index) => ({
+              function: String(index),
+              ...(index === values.length - 2 ? { options: { returnType: 'response' } } : {}),
+            })),
+          },
+        },
+      },
+      'onUpdate',
+      {},
+      {}
+    );
+
+    expect(result.committedRevision).to.equal(9);
+    expect(result.committedRecord).to.deep.equal({
+      revision: 9,
+      authorization: { edit: [] },
+      metadata: { partial: true },
+    });
+    expect(result.record).to.equal(values.at(-1));
+    expect(result.record).not.to.have.property('revision');
+    expect(seen[values.length - 1]).to.equal(values[values.length - 3]);
+  });
+
+  it('does not adopt absent or invalid revisions or response hook revisions', async function () {
+    for (const revision of [undefined, -1, 1.5, '9', NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      const result = await coordinator(
+        hook => () => (hook.function === 'record' ? { revision } : { revision: 99 })
+      ).runPostSync(
+        'oid-1',
+        { revision: 50 },
+        {
+          hooks: {
+            onUpdate: {
+              postSync: [{ function: 'record' }, { function: 'response', options: { returnType: 'response' } }],
+            },
+          },
+        },
+        'onUpdate',
+        {},
+        {}
+      );
+      expect(result.committedRevision).to.equal(undefined);
+      expect(result.committedRecord).to.equal(undefined);
+    }
+  });
+
+  it('tracks only the final applied value after a postSync hook retries', async function () {
+    let attempts = 0;
+    const result = await coordinator(() => (_oid, record) => {
+      attempts += 1;
+      if (attempts === 1) {
+        // A failed attempt may mutate its input, but has no applied result.
+        (record as AnyRecord).revision = 99;
+        throw new ActionTransientFailure('retry before applying');
+      }
+      return { revision: 4 };
+    }).runPostSync(
+      'oid-1',
+      { revision: 1 },
+      {
+        hooks: {
+          onUpdate: {
+            postSync: [
+              {
+                function: 'retry',
+                execution: { retry: { maxAttempts: 2, idempotent: true } },
+              },
+            ],
+          },
+        },
+      },
+      'onUpdate',
+      {},
+      {}
+    );
+
+    expect(attempts).to.equal(2);
+    expect(result.report.actions[0].attempts).to.equal(2);
+    expect(result.committedRevision).to.equal(4);
+    expect(result.committedRecord).to.deep.equal({ revision: 4 });
+    expect(result.record).to.deep.equal({ revision: 4 });
+  });
+
+  it('isolates the committed base from hook inputs, response hooks, and failed retry mutations', async function () {
+    const committed = { revision: 7, authorization: { edit: [] as string[] }, metadata: { saved: true } };
+    const partial = { metadata: { later: true } };
+    const final = { custom: { applied: true } };
+    const seen: unknown[] = [];
+    let attempts = 0;
+    const result = await coordinator(hook => (_oid, record) => {
+      seen.push(record);
+      if (hook.function === 'commit') return committed;
+      if (hook.function === 'partial') {
+        committed.authorization.edit.push('input-mutation');
+        return partial;
+      }
+      if (hook.function === 'response') {
+        partial.metadata.later = false;
+        return { revision: 99, authorization: { edit: ['response'] }, metadata: { response: true } };
+      }
+      attempts += 1;
+      if (attempts === 1) {
+        Reflect.set(record as AnyRecord, 'revision', 100);
+        Reflect.set(partial.metadata, 'failedAttempt', true);
+        throw new ActionTransientFailure('unapplied mutation');
+      }
+      return final;
+    }).runPostSync(
+      'oid-1',
+      { revision: 1 },
+      {
+        hooks: {
+          onUpdate: {
+            postSync: [
+              { function: 'commit' },
+              { function: 'partial' },
+              { function: 'response', options: { returnType: 'response' } },
+              { function: 'retry', execution: { retry: { maxAttempts: 2, idempotent: true } } },
+            ],
+          },
+        },
+      },
+      'onUpdate',
+      {},
+      {}
+    );
+
+    expect(result.committedRevision).to.equal(7);
+    expect(result.committedRecord).to.deep.equal({
+      revision: 7,
+      authorization: { edit: [] },
+      metadata: { later: true },
+      custom: { applied: true },
+    });
+    expect(result.record).to.equal(final);
+    expect(seen[1]).to.equal(committed);
+    expect(seen[2]).to.equal(partial);
+    expect(seen[3]).to.equal(partial);
+    final.custom.applied = false;
+    expect(result.committedRecord?.custom).to.deep.equal({ applied: true });
+  });
+
+  it('keeps a committed base isolated when a later hook fails without an applied result', async function () {
+    const result = await coordinator(hook => (_oid, record) => {
+      if (hook.function === 'commit') return { revision: 7, metadata: { committed: true } };
+      Reflect.set(record as AnyRecord, 'metadata', { failed: true });
+      throw new Error('failed hook');
+    }).runPostSync(
+      'oid-1',
+      {},
+      {
+        hooks: { onUpdate: { postSync: [{ function: 'commit' }, { function: 'fail' }] } },
+      },
+      'onUpdate',
+      {},
+      {}
+    );
+    expect(result.terminalCause).not.to.equal(undefined);
+    expect(result.committedRevision).to.equal(7);
+    expect(result.committedRecord).to.deep.equal({ revision: 7, metadata: { committed: true } });
+    expect(result.record).to.deep.equal({ revision: 7, metadata: { failed: true } });
   });
 
   it('preserves detached invocation order, overlap, ignored returns, and swallowed failures', async function () {

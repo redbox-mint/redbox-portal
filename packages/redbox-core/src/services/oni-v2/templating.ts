@@ -1,5 +1,7 @@
 import _ from 'lodash';
-import { Context, Effect, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { handlebarsCompile, jsonataCompileAndEvaluate } from '@researchdatabox/sails-ng-common';
 import type { AnyRecord } from './types';
 import { validateSafeHandlebarsTemplate } from '../integration-v2/bindings';
@@ -10,7 +12,7 @@ export interface OniTemplatingService {
   jsonata(expression: string, context: AnyRecord): Effect.Effect<unknown, Error>;
 }
 
-export const OniTemplatingServiceTag = Context.GenericTag<OniTemplatingService>('redbox/OniTemplatingService');
+export const OniTemplatingServiceTag = Context.Service<OniTemplatingService>('redbox/OniTemplatingService');
 
 export const liveOniTemplatingService: OniTemplatingService = {
   path: (path, context, defaultValue) => Effect.sync(() => _.get(context, path, defaultValue)),

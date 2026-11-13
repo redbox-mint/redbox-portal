@@ -1,6 +1,13 @@
+import type { RelatedMetadata } from '@researchdatabox/sails-ng-common';
+import type { FigshareSourceIntent } from './FigshareSyncModel';
+
 export interface RecordModel {
   [key: string]: unknown;
   redboxOid: string;
+  /** Runtime-only detached enrichment; never canonical or persistable record data. */
+  relatedMetadata?: RelatedMetadata;
+  figshareSyncIntent?: FigshareSourceIntent;
+  recordVersion?: number;
   /** Server-owned monotonic aggregate revision. */
   revision?: number;
   /** Durable server-owned identity for this OID's lifecycle incarnation. */

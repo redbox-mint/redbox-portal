@@ -11,11 +11,11 @@ import {
 } from '@researchdatabox/sails-ng-common';
 import { FormFieldCompMapEntry, LoggerService } from '@researchdatabox/portal-ng-common';
 import { FormComponentEventBus } from '../events/form-component-event-bus.service';
-import { createFieldValueChangedEvent } from '../events/form-component-event.types';
+import { createFieldValueChangedEvent, FormComponentEvent } from '../events/form-component-event.types';
 import { applyExpressionTarget, ApplyExpressionTargetContext, ExpressionTargetHost } from '../apply-expression-target';
 import { BehaviourCompiledTemplateEvaluator } from './behaviour-compiled-template-evaluator';
 import { BehaviourPipelineContext } from './behaviour-processors';
-import { BehaviourFieldResolverContext, ResolvedField, resolveFieldByPointer } from './behaviour-field-resolver';
+import { BehaviourFieldResolverContext, ResolvedField, resolveComponentByPointer, resolveFieldByPointer } from './behaviour-field-resolver';
 
 /**
  * Dependencies shared by action execution.
@@ -40,6 +40,8 @@ export interface BehaviourActionExecutionContext {
   compiledTemplateEvaluator?: BehaviourCompiledTemplateEvaluator;
   logger: LoggerService;
   broadcastFormStatus?: () => void;
+  /** False once the owning handler is destroyed, including while an action awaits a template. */
+  isActive?: () => boolean;
   fieldResolverContext: BehaviourFieldResolverContext;
   getLogicalFieldEntry: (
     listName: 'actions' | 'onError',
@@ -65,6 +67,7 @@ export async function executeBehaviourAction(
   pipelineContext: BehaviourPipelineContext,
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
+  if (ctx.isActive?.() === false) return;
   switch (action.type) {
     case FormBehaviourActionType.SetValue:
       await executeSetValueEntry(action.config, ACTION_CONFIG_KEY_PATH, undefined, pipelineContext, ctx);
@@ -103,12 +106,14 @@ async function executeSetValueEntry(
   pipelineContext: BehaviourPipelineContext,
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
+  if (ctx.isActive?.() === false) return;
   const fieldPathKind = entryConfig.fieldPathKind ?? FieldPathKind.ComponentJsonPointer;
   const resolved =
     fieldPathKind === FieldPathKind.Logical
       ? resolveLogicalField(ctx, entryIndex)
       : await resolveDynamicField(entryConfig, configKeyPath, pipelineContext, ctx, fieldPathKind);
 
+  if (ctx.isActive?.() === false) return;
   if (!resolved) {
     ctx.logger.warn('Behaviour action setValue: target field did not resolve.', {
       behaviourIndex: ctx.behaviourIndex,
@@ -121,8 +126,11 @@ async function executeSetValueEntry(
   }
 
   const value = await resolveActionValue(entryConfig, configKeyPath, pipelineContext, ctx);
+  if (ctx.isActive?.() === false) return;
   resolved.control.setValue(value, { emitEvent: false });
-  resolved.control.markAsDirty();
+  if (!ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(resolved.control)) {
+    resolved.control.markAsDirty();
+  }
   ctx.broadcastFormStatus?.();
 }
 
@@ -137,6 +145,7 @@ async function executeSetValuesAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   for (const [entryIndex, entry] of (action.config.values ?? []).entries()) {
+    if (ctx.isActive?.() === false) return;
     if (ctx.isEntrySkipped?.(ctx.listName, ctx.actionIndex, entryIndex)) {
       continue;
     }
@@ -157,12 +166,14 @@ async function executeEmitEventAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   const value = await resolveActionValue(action.config, ACTION_CONFIG_KEY_PATH, pipelineContext, ctx);
+  if (ctx.isActive?.() === false) return;
   ctx.eventBus.publish(
     createFieldValueChangedEvent({
       fieldId: action.config.fieldId,
       sourceId: action.config.sourceId,
       value,
       behaviourChain: ctx.behaviourChain,
+      ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     })
   );
@@ -198,6 +209,7 @@ async function executeRunTemplateAction(
     [ctx.listName, ctx.actionIndex, 'config', 'template'],
     pipelineContext
   );
+  if (ctx.isActive?.() === false) return;
 
   if (config.resultKey) {
     ctx.setPipelineContextKey?.(config.resultKey, result);
@@ -237,6 +249,7 @@ async function applyRunTemplateInstructions(
   }
 
   for (const [instructionIndex, candidate] of instructions.entries()) {
+    if (ctx.isActive?.() === false) return;
     const instruction = (typeof candidate === 'object' && candidate !== null ? candidate : undefined) as
       | FormBehaviourFieldAssignmentInstruction
       | undefined;
@@ -271,8 +284,10 @@ async function applyRunTemplateInstructions(
     }
 
     await applyExpressionTarget(target, instruction.value, host, buildTargetContext(pipelineContext, ctx));
+    if (ctx.isActive?.() === false) return;
     if (target === FormExpressionsTargetModelValue) {
-      host.model?.formControl?.markAsDirty();
+      const control = host.model?.formControl;
+      if (control && !ctx.fieldResolverContext.formComponent.isActiveRelatedDisplayControl?.(control)) control.markAsDirty();
     }
   }
 }
@@ -307,6 +322,7 @@ async function executeSetUIPropertiesAction(
   ctx: BehaviourActionExecutionContext
 ): Promise<void> {
   for (const [entryIndex, entry] of (action.config.properties ?? []).entries()) {
+    if (ctx.isActive?.() === false) return;
     if (ctx.isEntrySkipped?.(ctx.listName, ctx.actionIndex, entryIndex)) {
       continue;
     }
@@ -344,11 +360,20 @@ async function applySingleUIProperty(
   let host: ExpressionTargetHost = {};
   if (entry.target !== FormExpressionsTargetValidationGroups) {
     const fieldPathKind = fieldPathConfig.fieldPathKind ?? FieldPathKind.ComponentJsonPointer;
-    const resolved =
-      fieldPathKind === FieldPathKind.Logical
-        ? resolveLogicalField(ctx, logicalEntryIndex)
-        : await resolveDynamicField(fieldPathConfig, fieldPathKeyPath, pipelineContext, ctx, fieldPathKind);
-    if (!resolved) {
+    // UI-only targets do not require a FormControl. In particular Save and
+    // Delete buttons have no model but still need workflow/context guards.
+    let fieldPath = fieldPathConfig.fieldPath;
+    if (fieldPathKind === FieldPathKind.JSONata && fieldPathConfig.hasFieldPathTemplate && ctx.compiledTemplateEvaluator) {
+      const evaluated = await ctx.compiledTemplateEvaluator.evaluate(
+        ctx.behaviourIndex, [ctx.listName, ctx.actionIndex, ...fieldPathKeyPath, 'fieldPath'], pipelineContext);
+      fieldPath = typeof evaluated === 'string' ? evaluated : undefined;
+    }
+    const lockedEntry = fieldPathKind === FieldPathKind.Logical
+      ? ctx.getLogicalFieldEntry(ctx.listName, ctx.actionIndex, logicalEntryIndex) : undefined;
+    if (fieldPathKind === FieldPathKind.Logical) fieldPath = lockedEntry?.lineagePaths?.angularComponentsJsonPointer;
+    const componentEntry = fieldPath ? resolveComponentByPointer(fieldPath, ctx.fieldResolverContext) : undefined;
+    if (ctx.isActive?.() === false) return;
+    if (!componentEntry) {
       ctx.logger.warn('Behaviour action setUIProperty: target field did not resolve.', {
         behaviourIndex: ctx.behaviourIndex,
         actionIndex: ctx.actionIndex,
@@ -358,10 +383,11 @@ async function applySingleUIProperty(
       });
       return;
     }
-    host = buildTargetHost(resolved.entry);
+    host = buildTargetHost(componentEntry);
   }
 
   const value = await resolveActionValue(entry, valueKeyPath, pipelineContext, ctx, { allowLiteralValue: true });
+  if (ctx.isActive?.() === false) return;
   await applyExpressionTarget(entry.target, value, host, buildTargetContext(pipelineContext, ctx));
 }
 
@@ -378,12 +404,14 @@ function buildTargetContext(
   ctx: BehaviourActionExecutionContext
 ): ApplyExpressionTargetContext {
   return {
+    isActive: ctx.isActive,
     eventBus: ctx.eventBus,
     logger: ctx.logger,
     broadcastFormStatus: ctx.broadcastFormStatus,
     eventFieldId: (pipelineContext.event as { fieldId?: string } | undefined)?.fieldId,
     cause: {
       behaviourChain: ctx.behaviourChain,
+      ...((pipelineContext.event as FormComponentEvent | undefined)?.isCurrent ? { isCurrent: ctx.isActive } : {}),
       ...(ctx.expressionChain ? { expressionChain: ctx.expressionChain } : {}),
     },
   };
@@ -456,6 +484,7 @@ async function resolveDynamicField(
       [ctx.listName, ctx.actionIndex, ...configKeyPath, 'fieldPath'],
       pipelineContext
     );
+    if (ctx.isActive?.() === false) return undefined;
     fieldPath = typeof evaluatedFieldPath === 'string' ? evaluatedFieldPath : '';
   }
 

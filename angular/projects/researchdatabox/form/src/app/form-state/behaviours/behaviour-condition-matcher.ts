@@ -4,7 +4,7 @@ import {
   FormBehaviourConfigFrame,
   getObjectWithJsonPointer,
 } from '@researchdatabox/sails-ng-common';
-import { FormComponentEvent } from '../events/form-component-event.types';
+import { FormComponentEvent, FormComponentEventType } from '../events/form-component-event.types';
 import {
   FormComponentEventQuerySource,
   getEventJSONPointerCondition,
@@ -63,7 +63,10 @@ function matchJSONPointerCondition(
   if (!querySource) {
     return false;
   }
-  if (event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady === false) {
+  if (
+    (event.type === FormComponentEventType.FORM_DEFINITION_READY || event.sourceId === 'form.definition.ready') &&
+    behaviourConfig.runOnFormReady === false
+  ) {
     return false;
   }
 
@@ -79,17 +82,23 @@ function matchJSONPointerCondition(
     eventFieldId.startsWith(pointerCondition.jsonPointer + '/');
   const hasBroadcastMatch = (event.sourceId === '*' || isRunOnFormReady) && hasPointerMatch;
 
-  return hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch);
+  // These native lifecycle publishers omit field/source IDs. Only an exact
+  // root subscription opts in; ordinary and wildcard field scopes stay intact.
+  const isNativeLifecycle =
+    (event.type === FormComponentEventType.FORM_DEFINITION_READY ||
+      event.type === FormComponentEventType.FORM_SAVE_SUCCESS) &&
+    event.sourceId === undefined &&
+    event.fieldId === undefined;
+  const hasLifecycleMatch =
+    isNativeLifecycle && pointerCondition.jsonPointer === '' && pointerCondition.event === event.type;
+
+  return hasMatchedTargetEvent && (hasScopedMatch || hasBroadcastMatch || hasLifecycleMatch);
 }
 
 /**
- * Applies the broadcast-only JSONata gating rule from the existing expression
- * runtime. This is deliberate: JSONata conditions are evaluated against richer
- * runtime context and are not intended to run for every scoped field event.
- *
- * Future work could broaden this contract, but doing so would change behaviour
- * semantics and performance characteristics, so v1 keeps parity with existing
- * expression matching rules.
+ * Retains JSONata broadcast/initial-field gating and adds native readiness
+ * only for explicit runOnFormReady initializers. Originating-field predicates
+ * still select a single field notification; scoped field events remain excluded.
  */
 async function matchJSONataCondition(
   event: FormComponentEvent,
@@ -97,7 +106,14 @@ async function matchJSONataCondition(
   ctx: BehaviourConditionMatchContext,
   includeQuerySource: boolean
 ): Promise<boolean> {
-  const isRunOnFormReady = event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false;
+  // Native readiness is an explicit opt-in. Unset behaviours retain their
+  // existing field-ready/broadcast triggers, avoiding a second initialization.
+  const isRunOnFormReady =
+    (event.sourceId === 'form.definition.ready' && behaviourConfig.runOnFormReady !== false) ||
+    (event.type === FormComponentEventType.FORM_DEFINITION_READY &&
+      event.sourceId === undefined &&
+      event.fieldId === undefined &&
+      behaviourConfig.runOnFormReady === true);
   // A runOnFormReady behaviour must only fire for the form-ready event itself.
   // Without this guard, any later broadcast event (sourceId="*") would also
   // pass the gate, re-evaluate the condition, and restart the pipeline in a loop.

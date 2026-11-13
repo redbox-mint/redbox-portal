@@ -1,5 +1,6 @@
 import { Controllers as controllers } from '../CoreController';
 import { APIActionResponse } from '../model/APIActionResponse';
+import { EmailTemplateError } from '../services/EmailTemplateService';
 import { Services } from '../services/EmailService';
 import { getValidatedApiRequest } from '../api-routes/validation';
 
@@ -48,20 +49,20 @@ export namespace Controllers {
             const body = validated.body as Record<string, unknown>;
 
             if (!body.to) {
-                sails.log.error("No email recipient in email notification request!");
                 this.sendResp(req, res, {
                     status: 400,
                     displayErrors: [{ title: "An error has occurred", detail: "No email recipient in email notification request!" }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailPropMissing: 'recipient'},
                 });
                 return;
             }
             if (!body.template) {
-                sails.log.error("No template specified in email notification request!");
                 this.sendResp(req, res, {
                     status: 400,
                     displayErrors: [{ title: "An error has occurred", detail: "No template specified in email notification request!" }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailPropMissing: 'template'},
                 });
                 return;
             }
@@ -75,18 +76,31 @@ export namespace Controllers {
                 subject: body.subject,
                 template: body.template,
             };
+            this.updateChronicle(req, {emailOptionFormat: options.format, emailOptionTemplate: options.template});
+            // HTTP callers may only supply replyTo, never arbitrary nodemailer options.
+            const replyTo = _.get(body, 'otherSendOptions.replyTo');
+            // Layer replyTo over configured defaults so deployment send options are kept.
+            const otherSendOptions = typeof replyTo === 'string'
+                ? { ..._.get(sails.config.emailnotification, 'defaults.otherSendOptions', {}), replyTo }
+                : undefined;
             const config = {};
             const templateDate = body.data;
 
             let emailProperties;
             try {
-                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined);
+                // The route policies resolve locals.branding. Never use body.brandId,
+                // body.branding, or data.brandId to choose the template tenant.
+                const brandName = req.options?.locals?.branding ?? req.params?.branding;
+                const brand = typeof brandName === 'string' ? BrandingService.getBrand(brandName) : undefined;
+                if (!brand) throw new EmailTemplateError('UNKNOWN_BRAND', 'No resolved request brand for email notification.');
+                emailProperties = this.emailService.evaluateProperties(options, config, templateDate as Record<string, unknown> | undefined, { brandId: brand.id });
             } catch (error) {
-                sails.log.error("Failed to evaluate email template properties", error);
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
+                    errors: [new Error(error instanceof EmailTemplateError ? `Email failure: ${error.code}` : 'Email rendering failed.')],
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailProcessStepFailed: 'evaluate properties'},
                 });
             }
             // const format = emailProperties.format;
@@ -107,7 +121,8 @@ export namespace Controllers {
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailProcessStepFailed: 'evaluate template'},
                 });
             }
 
@@ -116,17 +131,20 @@ export namespace Controllers {
                     return this.sendResp(req, res, {
                         status: 500,
                         displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                        headers: this.getNoCacheHeaders()
+                        headers: this.getNoCacheHeaders(),
+                        chronicle: {emailProcessStepFailed: 'build template', emailBuildStatus: buildResult['status']},
                     });
                 } else {
+                    this.updateChronicle(req, {emailSendOptionFormat: formatRendered});
                     const sendResponse = this.emailService.sendMessage(
                         toRendered,
                         buildResult['body'] as string,
-                        subjectRendered,
+                        (buildResult['subject'] as string | undefined) ?? subjectRendered,
                         fromRendered,
-                        formatRendered,
+                        (buildResult['format'] as string | undefined) ?? formatRendered,
                         ccRendered,
                         bccRendered,
+                        otherSendOptions,
                     );
 
                     return sendResponse.subscribe((sendResult: globalThis.Record<string, unknown>) => {
@@ -134,19 +152,32 @@ export namespace Controllers {
                             return this.sendResp(req, res, {
                                 status: 500,
                                 displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
-                                headers: this.getNoCacheHeaders()
+                                headers: this.getNoCacheHeaders(),
+                                chronicle: {emailProcessStepFailed: 'send', emailSendMessage: sendResult['msg']},
                             });
                         } else {
-                            return this.apiRespond(req, res, new APIActionResponse(String(sendResult['msg'] ?? '')), 200);
+                            return this.sendResp(req, res, {
+                                data: new APIActionResponse(String(sendResult['msg'] ?? '')),
+                                status: 200,
+                                headers: this.getNoCacheHeaders(),
+                                chronicle: {emailSent: true},
+                            });
                         }
-                    });
+                    }, (error: unknown) => this.sendResp(req, res, {
+                        status: 500,
+                        displayErrors: [{ title: "An error has occurred", detail: "Failed to send email notification." }],
+                        headers: this.getNoCacheHeaders(),
+                        chronicle: { emailProcessStepFailed: 'send',
+                            emailErrorCode: error instanceof EmailTemplateError ? error.code : 'RENDER_FAILED' },
+                    }));
                 }
             }, (error: unknown) => {
-                sails.log.error("Failed to render email template", error);
                 return this.sendResp(req, res, {
                     status: 500,
                     displayErrors: [{ title: "An error has occurred", detail: "Failed to render email template." }],
-                    headers: this.getNoCacheHeaders()
+                    errors: [new Error(error instanceof EmailTemplateError ? `Email failure: ${error.code}` : 'Email rendering failed.')],
+                    headers: this.getNoCacheHeaders(),
+                    chronicle: {emailProcessStepFailed: 'render template'},
                 });
             });
 

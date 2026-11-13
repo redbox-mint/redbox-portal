@@ -2,7 +2,9 @@ import type { OniPublishingSiteConfig } from '../../configmodels/OniPublishing';
 import type { DatastreamService } from '../../DatastreamService';
 import type { Services as StorageManagerServices } from '../StorageManagerService';
 import { Readable } from 'node:stream';
-import { Context, Effect, Layer } from 'effect';
+import * as Context from 'effect/Context';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import {
   OcflModuleAdapter,
   OcflStorageAdapter,
@@ -15,7 +17,7 @@ import { createStorageManagerOcflStoreClass } from './flydriveOcflStore';
 import { createRootCollectionCrate } from './crate';
 import { runEffectProgram } from '../integration-v2/runtime';
 
-export const OniDatastreamServiceTag = Context.GenericTag<DatastreamService>('redbox/OniDatastreamService');
+export const OniDatastreamServiceTag = Context.Service<DatastreamService>('redbox/OniDatastreamService');
 
 export function makeOniDatastreamLayer(service: DatastreamService) {
   return Layer.succeed(OniDatastreamServiceTag, service);

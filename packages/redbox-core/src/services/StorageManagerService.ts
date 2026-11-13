@@ -51,6 +51,8 @@ export namespace Services {
    * compile-time while preserving type-safety for callers.
    */
   export interface IDisk {
+    /** Optional cleanup-only discovery; unfinished uploads are not readable disk objects. */
+    listIncompleteUploads?(prefix: string): Promise<{ key: string; lastModified: Date }[]>;
     exists(key: string): Promise<boolean>;
     get(key: string): Promise<string>;
     getStream(key: string): Promise<import('node:stream').Readable>;
@@ -217,6 +219,9 @@ export namespace Services {
         const driver = this.createDriver(name, diskConf);
         if (this._DiskConstructor) {
           const disk = new this._DiskConstructor(driver);
+          if (driver instanceof GridFSDriver) {
+            disk.listIncompleteUploads = driver.listIncompleteUploads.bind(driver);
+          }
           disks.set(name, disk);
         } else {
           throw new Error('StorageManagerService: Flydrive Disk constructor unavailable');

@@ -17,7 +17,7 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { Injectable, Inject } from '@angular/core';
 import { APP_BASE_HREF } from '@angular/common';
 import {
@@ -43,29 +43,48 @@ import {
   isNumber as _isNumber,
 } from 'lodash-es';
 import { DashboardRuntimeSettings, RecordResponseTable } from './dashboard-models';
+// Use the packaged modules directly: the CommonJS root eagerly loads the
+// server template/compiler stack even when an admin app only needs contracts.
+import type { RelatedMetadata } from '@researchdatabox/sails-ng-common/dist/src/related-records.model';
 import {
   emptyRecordSaveCompletion,
+  isRecordSaveComplete,
+  isRecordSaveOutcome,
+  isRecordSaveProblemKind,
+  isRecordSaveRequestId,
+  type RecordSaveLifecyclePhase,
+  type RecordSaveIssue,
+  type RecordSaveProblem,
+  type RecordSaveResult,
+  sanitizeRecordSaveIssue,
+} from '@researchdatabox/sails-ng-common/dist/src/record-save.model';
+import {
   isRecordConcurrencyProblemCode,
   isRecordConcurrencyResolution,
   isRecordEntityTag,
   isRecordFormFingerprint,
   isRecordRevision,
-  isRecordSaveComplete,
-  isRecordSaveOutcome,
-  isRecordSaveProblemKind,
-  isRecordSaveRequestId,
   recordEntityTagRevision,
-  RecordAttachment,
-  RecordConcurrentModificationConfig,
-  RecordConcurrencyMetadata,
-  RecordConcurrencyResolution,
-  RecordSaveLifecyclePhase,
-  RecordSaveIssue,
-  RecordSaveProblem,
-  RecordSaveResult,
+  type RecordConcurrentModificationConfig,
+  type RecordConcurrencyMetadata,
+  type RecordConcurrencyResolution,
   sanitizeRecordConcurrencyMetadata,
-  sanitizeRecordSaveIssue,
-} from '@researchdatabox/sails-ng-common';
+} from '@researchdatabox/sails-ng-common/dist/src/record-concurrency.model';
+import {
+  type RecordAttachment,
+} from '@researchdatabox/sails-ng-common/dist/src/config/component/pdf-list.outline';
+
+/** Select declared relations and optionally replace their unsaved reference values. */
+export type RelatedMetadataRefreshRequest =
+  | { oid: string; relations: string[]; references?: Record<string, unknown> }
+  | { recordType: string; relations: string[]; references: Record<string, unknown> };
+
+export interface ResolvedRecord {
+  redboxOid: string;
+  metadata: Record<string, unknown>;
+  metaMetadata: { type: string; brandId: string };
+  relatedMetadata: RelatedMetadata;
+}
 
 /** Per-request options for a record save. */
 interface SaveRequestOptions {
@@ -329,11 +348,32 @@ export class RecordService extends HttpClientService {
     return result;
   }
 
-  public async getRecordMeta(oid: string) {
+  /** Errors reject; an unavailable optional source is a successful typed result. */
+  public async resolveRelatedMetadata(request: RelatedMetadataRefreshRequest): Promise<RelatedMetadata> {
+    const options = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+    const response = await firstValueFrom(this.http.post<{ data: { relatedMetadata: RelatedMetadata } }>(
+      `${this.brandingAndPortalUrl}/record/relatedMetadata/resolve`, request,
+      { ...options, headers: (options.headers ?? new HttpHeaders()).set('X-ReDBox-Api-Version', '2.0'), observe: 'body' as const, responseType: 'json' as const }
+    ).pipe(timeout(30_000)));
+    return response.data.relatedMetadata;
+  }
+
+  public async getRecordWithRelatedMetadata(oid: string, relations: string[]): Promise<ResolvedRecord> {
+    const options = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+    const response = await firstValueFrom(this.http.get<{ data: ResolvedRecord }>(
+      `${this.brandingAndPortalUrl}/api/records/resolved/${encodeURIComponent(oid)}`,
+      { ...options, headers: (options.headers ?? new HttpHeaders()).set('X-ReDBox-Api-Version', '2.0'), observe: 'body' as const, responseType: 'json' as const,
+        params: new HttpParams().set('relations', relations.join(',')) }
+    ).pipe(timeout(30_000)));
+    return response.data;
+  }
+
+  public async getRecordMeta(oid: string, options: { consumerView?: boolean } = {}) {
     // Cache-bust metadata reads so publication refreshes do not reuse a stale
     // browser response after the related record has been saved elsewhere.
     const ts = Date.now();
     let url = `${this.brandingAndPortalUrl}/record/metadata/${oid}?ts=${ts}`;
+    if (options.consumerView) url += '&consumerView=true';
     const result$ = this.http.get(url).pipe(map(res => res));
     let result = await firstValueFrom(result$);
     return result;
@@ -627,9 +667,9 @@ export class RecordService extends HttpClientService {
     filterFields: string = '',
     filterString: string = '',
     filterMode: string = '',
-    secondarySort: string = ''
+    secondarySort: string = '',
+    rows: number = 10
   ) {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {
@@ -671,9 +711,11 @@ export class RecordService extends HttpClientService {
     sort: string = '',
     filterFields: string = '',
     filterString: string = '',
-    filterMode: string = ''
+    filterMode: string = '',
+    rows: number = 10,
+    deletedWithin: string = '',
+    deletedBy: string = ''
   ): Promise<RecordResponseTable> {
-    let rows = 10;
     let start = (pageNumber - 1) * rows;
 
     const items = {
@@ -686,6 +728,8 @@ export class RecordService extends HttpClientService {
       filterMode: filterMode,
       start: start,
       rows: rows,
+      deletedWithin,
+      deletedBy,
     };
 
     const listDeletedRecordsUrl = new URL(`${this.brandingAndPortalUrl}/listDeletedRecords`);
@@ -701,9 +745,45 @@ export class RecordService extends HttpClientService {
       }
     }
 
-    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(map(res => res));
+    // Bound verification reads so stalled requests release the UI for recovery.
+    // Unsubscription cancels the client request; mutation timeouts remain uncertain.
+    const result$ = this.http.get(listDeletedRecordsUrl.toString()).pipe(timeout(30_000), map(res => res));
     let result: any = await firstValueFrom(result$);
     return result;
+  }
+
+  public async bulkDeletedRecords(action: 'restore' | 'destroy', records: { oid: string; revision: number }[]): Promise<any> {
+    const results: { oid: string; status: string; reason: string }[] = [];
+    const items: { oid: string; entityTag: string }[] = [];
+    if (!records.length || records.length > 100) throw new TypeError('Invalid batch size');
+    for (const record of records) {
+      try {
+        const resolved = await this.resolveListMutationConcurrency(record.oid, 'deleted', { revision: record.revision }, createSaveRequestId());
+        if (resolved instanceof RecordActionResult || !resolved.entityTag) {
+          results.push({ oid: record.oid, status: 'failed', reason: 'record-changed' });
+        } else {
+          items.push({ oid: record.oid, entityTag: resolved.entityTag });
+        }
+      } catch {
+        results.push({ oid: record.oid, status: 'failed', reason: 'preflight-failed' });
+      }
+    }
+    if (items.length) {
+      try {
+        const options = this.getHttpOptions() as { headers?: HttpHeaders; context?: HttpContext };
+        const response = await firstValueFrom(this.http.post<any>(`${this.brandingAndPortalUrl}/admin/deletedRecords/bulk`, { action, items }, { headers: options.headers, context: options.context, observe: 'body', responseType: 'json' }).pipe(timeout(120_000)));
+        const body = response?.data ?? response;
+        for (const item of items) {
+          const result = Array.isArray(body?.results) ? body.results.find((result: any) => result.oid === item.oid) : undefined;
+          results.push(result && ['succeeded', 'failed', 'unknown'].includes(result.status)
+            ? result : { oid: item.oid, status: 'unknown', reason: 'outcome-unknown' });
+        }
+      } catch (error) {
+        const refused = error instanceof HttpErrorResponse && [400, 401, 403].includes(error.status);
+        results.push(...items.map(item => ({ oid: item.oid, status: refused ? 'failed' : 'unknown', reason: refused ? 'request-refused' : 'outcome-unknown' })));
+      }
+    }
+    return { results };
   }
 
   public async restoreDeletedRecord(
@@ -936,11 +1016,23 @@ export class RecordService extends HttpClientService {
       const httpOptions = this.getSaveHttpOptions(requestId, '', undefined, resolved, true);
       const response =
         method === 'PUT'
-          ? await firstValueFrom(this.http.put<unknown>(url, undefined, httpOptions))
-          : await firstValueFrom(this.http.delete<unknown>(url, httpOptions));
+          ? await firstValueFrom(this.http.put<unknown>(url, undefined, httpOptions).pipe(timeout(30_000)))
+          : await firstValueFrom(this.http.delete<unknown>(url, httpOptions).pipe(timeout(30_000)));
       return RecordActionResult.fromHttpResponse(response, requestId);
     } catch (error) {
-      return RecordActionResult.fromHttpError(error, requestId);
+      const result = RecordActionResult.fromHttpError(error instanceof TimeoutError ? new HttpErrorResponse({ status: 0, error }) : error, requestId);
+      // v1 display errors remain useful when an older endpoint returns a 500.
+      // Preserve bounded plain text without turning an uncertain write into a refusal.
+      if (error instanceof HttpErrorResponse && error.status >= 500) {
+        const body = error.error;
+        if (body && typeof body === 'object' && !Array.isArray(body)
+            && typeof body.message === 'string' && typeof body.details === 'string') {
+          const message = body.message.slice(0, 500).trim();
+          const generic = /^(an error (has occurred|occurred)|internal server error)[.!]?$/i;
+          result.message = [generic.test(message) ? '' : message, body.details.slice(0, 500).trim()].filter(Boolean).join(': ');
+        }
+      }
+      return result;
     }
   }
 
@@ -977,7 +1069,7 @@ export class RecordService extends HttpClientService {
         context: base.context,
         observe: 'response',
         responseType: 'json',
-      })
+      }).pipe(timeout(30_000))
     );
     const current = RecordActionResult.readConcurrency(response.body, response.headers);
     if (
@@ -1331,7 +1423,9 @@ export class RecordActionResult implements RecordSaveResult {
       return conflictCodes.has('record-lifecycle-operation-conflict') ? 'stale' : null;
     }
     if (status === 403 && outcome === 'not-saved') {
-      return problems.some(problem => problem.kind === 'authorization') ? 'authorization-lost' : 'none';
+      return problems.some(problem => problem.kind === 'authorization' && problem.issues.some(
+        issue => issue.code === 'record-validation-edit-unauthorized'
+      )) ? 'authorization-lost' : 'none';
     }
     return 'none';
   }

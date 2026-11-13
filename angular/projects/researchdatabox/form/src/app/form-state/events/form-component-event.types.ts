@@ -27,6 +27,8 @@ export interface FormComponentEventBase {
   readonly behaviourChain?: readonly number[];
   /** Expressions whose value writes caused this event; each expression skips events it caused. */
   readonly expressionChain?: readonly string[];
+  /** An asynchronous source can invalidate a notification superseded by a newer result. */
+  readonly isCurrent?: () => boolean;
   /** Identifies the form instance that owns the event. */
   readonly formScopeId?: string;
   readonly fieldId?: string;

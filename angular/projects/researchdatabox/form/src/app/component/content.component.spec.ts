@@ -1,5 +1,7 @@
+import { By } from '@angular/platform-browser';
 import {FormConfigFrame, handlebarsCompile, handlebarsInstance, handlebarsTemplate} from '@researchdatabox/sails-ng-common';
 import {ContentComponent} from "./content.component";
+import { FormService } from "../form.service";
 import {SimpleInputComponent} from "./simple-input.component";
 import {createFormAndWaitForReady, createTestbedModule, DynamicAssetOptions, setUpDynamicAssets} from "../helpers.spec";
 import {TestBed} from "@angular/core/testing";
@@ -10,7 +12,12 @@ import { UtilityService, HandlebarsTemplateService, TranslationService } from "@
 describe('ContentComponent', () => {
   let utilityService: UtilityService;
   let translationService: any;
-  let lastTemplateContext: any;
+  let lastTemplateContext: {
+    content?: unknown;
+    outputFormat?: string;
+    translationService?: Pick<TranslationService, 't'>;
+    runtimeContext?: { record?: { hasEditAccess?: boolean } };
+  } | undefined;
   let dynamicAssetOptions: DynamicAssetOptions
   const mockHandlebarsTemplateService = {};
 
@@ -55,6 +62,57 @@ describe('ContentComponent', () => {
         }
       }]
     };
+  });
+
+  for (const hasEditAccess of [undefined, false, true]) {
+    it(`renders the authoritative record-edit context (${hasEditAccess}) without changing view mode`, async () => {
+      const template = '{{#if runtimeContext.record.hasEditAccess}}<a href="/record/edit/{{oid}}">Edit</a>{{/if}}';
+      const formConfig: FormConfigFrame = {
+        name: 'testing', componentDefinitions: [
+          { name: 'edit_link', component: { class: 'ContentComponent', config: { content: {}, template } } }
+        ]
+      };
+      // Supply API metadata before child components render, as a real form load does.
+      const service = TestBed.inject(FormService);
+      const createMap = service.createFormComponentsMap.bind(service);
+      spyOn(service, 'createFormComponentsMap').and.callFake((config, paths, meta, mode, concurrency) =>
+        createMap(config, paths, {
+          ...meta,
+          runtimeContext: { user: { roles: ['Researcher', 'Admin'] }, record: { hasEditAccess } }
+        }, mode, concurrency));
+      const assets: DynamicAssetOptions = { entries: [{
+        urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-',
+        callable: (_keyString, _key, context) => {
+          lastTemplateContext = context;
+          return handlebarsCompile(template)(context);
+        }
+      }] };
+      const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, undefined, undefined, assets);
+      const link = (fixture.nativeElement as HTMLElement).querySelector('a');
+      expect(lastTemplateContext?.runtimeContext?.record?.hasEditAccess).toBe(hasEditAccess);
+      expect(!!link).toBe(hasEditAccess === true);
+      expect(formComponent.editMode()).toBeFalse();
+      if (hasEditAccess) expect(link?.getAttribute('href')).toContain(formComponent.oid());
+    });
+  }
+
+  it('awaits explicit content refresh without a form control change', async () => {
+    const config: FormConfigFrame = { name: 'testing', componentDefinitions: [{ name: 'content',
+      component: { class: 'ContentComponent', config: { content: 'before', template: '{{content}}' } } }] };
+    const assets: DynamicAssetOptions = { entries: [{
+      urlKeyStart: 'http://localhost/default/rdmp/dynamicAsset/formCompiledItems/rdmp/oid-generated-',
+      callable: (_key, _path, context) => handlebarsCompile('{{content}}')(context),
+    }] };
+    const { fixture } = await createFormAndWaitForReady(config, undefined, undefined, assets);
+    const component = fixture.debugElement.query(By.directive(ContentComponent)).componentInstance as ContentComponent;
+    (component.componentDefinition!.config as { content: string }).content = 'after';
+    await (component as any).refreshContent();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('after');
+    component.ngOnDestroy();
+    (component.componentDefinition!.config as { content: string }).content = 'late';
+    await (component as any).refreshContent();
+    expect(component.content).toBe('after');
   });
 
   it('should create component', () => {

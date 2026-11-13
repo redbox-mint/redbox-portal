@@ -1,3 +1,4 @@
+import { createSinonStubLogger } from '../../logger.test';
 import assert from 'node:assert/strict';
 import type { Response } from 'express';
 import { of } from 'rxjs';
@@ -54,10 +55,7 @@ describe('Webservice RecordTypeController schema discovery', function () {
 
     Reflect.set(globalThis, 'sails', {
       config: { http: { rootContext: '' }, recordSchema: { enabled: true } },
-      log: {
-        verbose: sinon.stub(),
-        error: sinon.stub(),
-      },
+      log: createSinonStubLogger(sinon),
     });
     Reflect.set(globalThis, 'BrandingService', {
       getBrand: sinon.stub().returns({ id: 'brand-1', name: 'internal-brand' }),

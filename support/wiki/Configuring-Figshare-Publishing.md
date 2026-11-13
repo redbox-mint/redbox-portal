@@ -6,6 +6,8 @@ This guide explains the Figshare publishing AppConfig screen at:
 
 It is written for administrators and implementers who need to configure how Redbox publishes records to Figshare.
 
+For durable worker processing, migration, impersonation and recovery, see [Queued Figshare synchronisation](Figshare-Queued-Synchronisation.md).
+
 ## Before You Start
 
 - You need an admin login for the portal.
@@ -92,7 +94,7 @@ This section controls how Redbox creates and publishes the Figshare article itse
 |---|---|
 | `Item Type` | Figshare item type to create, such as `dataset`, `figure`, `paper`, or `code`. |
 | `Group ID` | Optional Figshare group id. Leave blank if not needed. |
-| `Publish Mode` | Controls when the article is published. `immediate` publishes during the main sync, `afterUploadsComplete` uses a queue follow-up for attachment-heavy records, and `manual` never auto-publishes. |
+| `Publish Mode` | Controls when the article is published. `immediate` and `afterUploadsComplete` publish in the durable worker after confirmed uploads; `manual` never auto-publishes. |
 | `Republish On Metadata Change` | Allows already-published records to republish when metadata changes. |
 | `Republish On Asset Change` | Allows already-published records to republish when assets change. |
 
@@ -102,7 +104,7 @@ This section controls how Redbox creates and publishes the Figshare article itse
 |---|---|
 | `Enabled` | Turns curation-lock protection on. |
 | `Status Field` | Name of the Figshare article field to inspect, for example `status`. |
-| `Target Value` | Value that blocks further metadata changes when curation lock is enabled, for example `public`. |
+| `Target Value` | Value that blocks all remote mutations when curation lock is enabled, for example `public`. |
 
 Use curation lock when you want Redbox to stop updating an article once it reaches a curated/public state in Figshare.
 
@@ -116,7 +118,7 @@ These settings tell Redbox where to store figshare-related state inside a record
 | `Data Locations Path` | Path to the record's file/link array used for asset sync. |
 | `Status Path` | Path where sync status such as `syncing`, `published`, or `failed` is written. |
 | `Error Path` | Path where the last error message is stored. |
-| `Sync State Path` | Path where detailed sync-state JSON is stored. |
+| `Sync State Path` | Legacy state projection path; authoritative state is now in FigshareSync. |
 | `All Files Uploaded Path` | Optional path that is set to `yes` after uploaded Redbox attachments have been replaced with Figshare URLs. |
 
 Defaults shown in the current screen:
@@ -351,7 +353,7 @@ This section controls file and URL handling.
 |---|---|
 | `Storage Disk` | StorageManager disk that staged attachments are written to. Defaults to `figshare-staging`. |
 | `Storage Key Prefix` | Key prefix applied to staged objects on that disk. Defaults to `figshare/`. |
-| `Cleanup Policy` | `deleteAfterSuccess` removes staged files after upload; `retainForRetry` keeps them for a later retry. |
+| `Cleanup Policy` | Legacy staging policy. The queued worker removes temporary staged copies after each attempt and retains source attachment bytes for reconciliation. |
 
 Recommendation:
 

@@ -7,8 +7,9 @@ import type {
   ILogger,
   ReusableFormDefinitions,
 } from '@researchdatabox/sails-ng-common';
-import { FormOverride } from '@researchdatabox/sails-ng-common';
+import { FormOverride, nothingLogger, effectiveReusableComponents } from '@researchdatabox/sails-ng-common';
 import { performance } from 'perf_hooks';
+import { compileRelatedDisplayContract } from '../related-records/display-descriptors';
 
 import type { RecordSchemaLimitsConfig } from '../config/recordSchema.config';
 import { RECORD_SCHEMA_PROBLEM_CODES } from './codes';
@@ -42,21 +43,7 @@ import { snapshotRecordContractPublicContext, type RecordContractEffectiveForm }
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
-const noopFormOverrideLog = (): void => undefined;
-const FORM_OVERRIDE_LOGGER: ILogger = Object.freeze({
-  silly: noopFormOverrideLog,
-  verbose: noopFormOverrideLog,
-  trace: noopFormOverrideLog,
-  debug: noopFormOverrideLog,
-  log: noopFormOverrideLog,
-  info: noopFormOverrideLog,
-  warn: noopFormOverrideLog,
-  error: noopFormOverrideLog,
-  crit: noopFormOverrideLog,
-  fatal: noopFormOverrideLog,
-  silent: noopFormOverrideLog,
-  blank: noopFormOverrideLog,
-});
+const FORM_OVERRIDE_LOGGER: ILogger = Object.freeze({ ...nothingLogger });
 
 export interface RecordContractCompileRequest {
   readonly form: RecordContractEffectiveForm;
@@ -95,6 +82,7 @@ interface CompilerState {
   readonly fieldOwners: Record<string, ContractOwner>;
   readonly validatorSummaries: RecordContractValidationSummary[];
   readonly activeDefinitions: Set<string>;
+  displayTargets?: ReadonlyMap<string, string>;
   propertyCount: number;
   partial: boolean;
 }
@@ -106,6 +94,7 @@ function forkCompilerState(state: CompilerState): CompilerState {
     fieldOwners: { ...state.fieldOwners },
     validatorSummaries: [...state.validatorSummaries],
     activeDefinitions: new Set(state.activeDefinitions),
+    ...(state.displayTargets ? { displayTargets: state.displayTargets } : {}),
     propertyCount: state.propertyCount,
     partial: state.partial,
   };
@@ -457,6 +446,17 @@ export class RecordContractCompiler {
 
     try {
       const snapshot = snapshotCompileRequest(request);
+      // Compile the authoritative declarations before edit-mode/role filtering.
+      // RR-08 returns immediately for legacy forms without reachable opt-ins.
+      const displayContract = compileRelatedDisplayContract(
+        snapshot.form as FormConfigFrame,
+        snapshot.reusableFormDefinitions as ReusableFormDefinitions | undefined
+      );
+      if (displayContract) {
+        state.displayTargets = new Map(
+          displayContract.displayTargets.map(target => [target.metadataPointer, target.relationId])
+        );
+      }
       this.assertDepth(0, recordContractPointer(''));
       const root = await this.compileChildren(
         snapshot.form.componentDefinitions ?? [],
@@ -683,6 +683,37 @@ export class RecordContractCompiler {
         componentType
       );
     }
+    // Reference activation is evaluated from the merged candidate by the save
+    // normalizer, not from a possibly partial update delta. Keep the local shape
+    // and validator summaries intact; describe the conditional rule explicitly.
+    const relationId = state.displayTargets?.get(pointer);
+    if (relationId !== undefined) {
+      const annotations = contribution.node.annotations;
+      contribution = {
+        ...contribution,
+        node: {
+          ...contribution.node,
+          annotations: {
+            ...annotations,
+            description: [
+              annotations?.description,
+              'While the declared relation has a selected reference in the merged candidate, this field is a transient display target and is not a required persisted input. The server preserves its stored value or absence; an equal stored-value echo is accepted and discarded from the submission, but a changed submitted value is rejected with related-display-field-not-writable. Loading, unavailable, and invalid nonempty references do not make it writable. With no selected reference, the ordinary local type and validators apply. On unlink, explicitly submitted local input is accepted; omission clears retained display data. Explicit null is distinct from absence.',
+            ]
+              .filter(Boolean)
+              .join(' '),
+            extensions: {
+              ...annotations?.extensions,
+              'x-redbox-related-display': {
+                relationId,
+                activation: 'merged-candidate-reference',
+                linked: { writable: false, required: false },
+                unlinked: { writable: true, validation: 'ordinary-local' },
+              },
+            },
+          },
+        },
+      };
+    }
     try {
       this.validateNodeBounds(contribution.node, depth, pointer);
       this.assertNullability(contributor.nullability, contribution.node, contributor.key, pointer);
@@ -750,24 +781,21 @@ export class RecordContractCompiler {
         [component as AvailableFormComponentDefinitionFrames],
         reusableFormDefinitions
       );
-      const effectiveComponents = expanded.map(expandedComponent => {
-        if (expandedComponent.name || !component.name) {
-          return expandedComponent;
-        }
-        const overrides = { ...expandedComponent.overrides };
-        delete overrides.replaceName;
-        return {
-          ...expandedComponent,
-          name: component.name,
-          ...(Object.keys(overrides).length > 0 ? { overrides } : { overrides: undefined }),
-        };
-      });
+      const effectiveComponents = effectiveReusableComponents(component, expanded);
       const compiled = await this.compileChildren(effectiveComponents, parent, depth + 1, request, state);
       return Object.entries(compiled.properties).map(([propertyName, node]) => {
         if (node.definitionKey) {
           return [propertyName, node] as const;
         }
-        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}`;
+        const propertyPointer = appendRecordContractPointer(parent, recordContractPointerFromTokens([propertyName]));
+        // A reusable's structure can have different transient display rules per usage.
+        // Scope the definition by relative targets so equivalent usages still share it.
+        const displays = [...(state.displayTargets ?? [])]
+          .filter(([path]) => path === propertyPointer || path.startsWith(propertyPointer + '/'))
+          .map(([path, relationId]) => [path.slice(propertyPointer.length), relationId])
+          .sort(([left], [right]) => left.localeCompare(right));
+        const displayKey = displays.length ? `:display:${JSON.stringify(displays)}` : '';
+        const definitionKey = `reusable:${JSON.stringify(name)}:property:${JSON.stringify(propertyName)}${displayKey}`;
         const referencedNode: ContractNode = { ...node, definitionKey };
         const prior = state.definitions[definitionKey];
         if (prior && JSON.stringify(prior) !== JSON.stringify(referencedNode)) {
@@ -814,11 +842,7 @@ export class RecordContractCompiler {
     const priorComponents = roleFilteredComponents.get(fieldName) ?? [];
     const isDuplicate = priorComponents.some(priorComponent => {
       const priorRoles = priorComponent.constraints?.authorization?.allowRoles;
-      return (
-        Array.isArray(priorRoles) &&
-        priorRoles.length > 0 &&
-        allowRoles.every(role => !priorRoles.includes(role))
-      );
+      return Array.isArray(priorRoles) && priorRoles.length > 0 && allowRoles.every(role => !priorRoles.includes(role));
     });
     priorComponents.push(component);
     roleFilteredComponents.set(fieldName, priorComponents);

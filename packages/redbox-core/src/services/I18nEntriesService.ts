@@ -17,15 +17,16 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+import { createHash } from 'node:crypto';
+import { translationImportMaxBytes, translationImportValues } from '../api-routes/groups/admin-translation';
 import { Services as services } from '../CoreService';
 import { BrandingModel } from '../model/storage/BrandingModel';
 import { PopulateExportedMethods } from '../decorator/PopulateExportedMethods.decorator';
 import { I18nBundleAttributes } from '../waterline-models/I18nBundle';
 import { I18nTranslationAttributes } from '../waterline-models/I18nTranslation';
-
+import { sanitizeTranslationHtml } from '../utilities/TranslationHtml';
 
 export namespace Services {
-
   export type Bundle = I18nBundleAttributes;
   type I18nData = Record<string, unknown>;
   type TranslationContentFormat = 'plain' | 'html';
@@ -44,8 +45,6 @@ export namespace Services {
    */
   @PopulateExportedMethods
   export class I18nEntries extends services.Core.Service {
-
-
     /**
      * Seed default i18n bundles into DB from language-defaults for the default brand.
      * - Only creates bundles if none exist (no overwrite).
@@ -66,10 +65,12 @@ export namespace Services {
         } else {
           if (fs.existsSync(localesDir)) {
             const entries = fs.readdirSync(localesDir, { withFileTypes: true });
-            supported.push(...entries
-              .filter(d => d.isDirectory())
-              .filter(d => namespaces.some(ns => fs.existsSync(path.join(localesDir, d.name, `${ns}.json`))))
-              .map(d => d.name));
+            supported.push(
+              ...entries
+                .filter(d => d.isDirectory())
+                .filter(d => namespaces.some(ns => fs.existsSync(path.join(localesDir, d.name, `${ns}.json`))))
+                .map(d => d.name)
+            );
           }
 
           // Fallback to config if no directories found
@@ -88,7 +89,6 @@ export namespace Services {
         for (const lng of supported) {
           for (const ns of namespaces) {
             try {
-
               const filePath = path.join(localesDir, lng, `${ns}.json`);
               if (!fs.existsSync(filePath)) {
                 continue; // nothing to seed/sync for this pair
@@ -98,7 +98,10 @@ export namespace Services {
               const existing = await this.getBundle(defaultBrand, lng, ns);
               if (!existing) {
                 // First-time seed: create bundle and split to entries (no overwrite)
-                await this.setBundle(defaultBrand, lng, ns, json, undefined, { splitToEntries: true, overwriteEntries: false });
+                await this.setBundle(defaultBrand, lng, ns, json, undefined, {
+                  splitToEntries: true,
+                  overwriteEntries: false,
+                });
                 this.logger.debug(`Seeded bundle ${defaultBrand.id}:${lng}:${ns}`);
               } else {
                 const existingFlat = this.flatten(existing.data || {});
@@ -120,12 +123,17 @@ export namespace Services {
                 }
 
                 const mergedData = _.cloneDeep(existing.data || {});
-                _.defaultsDeep(mergedData, json);
+                for (const key of Object.keys(defaultFlat)) {
+                  if (!Object.prototype.hasOwnProperty.call(existingFlat, key)) this.setNested(mergedData, key, defaultFlat[key]);
+                }
+                if (json._meta) mergedData._meta = _.defaultsDeep(_.cloneDeep(mergedData._meta || {}), json._meta);
                 const updatedBundle = await I18nBundle.updateOne({ id: existing.id }).set({ data: mergedData });
                 const bundleToSync = updatedBundle || { ...existing, data: mergedData };
                 const createdCount = await this.addMissingDefaultEntriesFromBundle(bundleToSync, json);
 
-                this.logger.debug(`Merged defaults and added ${createdCount} entries for ${defaultBrand.id}:${lng}:${ns}`);
+                this.logger.debug(
+                  `Merged defaults and added ${createdCount} entries for ${defaultBrand.id}:${lng}:${ns}`
+                );
               }
             } catch (e) {
               this.logger.debug('Skipping seed/sync for', lng, ns, 'due to error:', (e as Error)?.message || e);
@@ -152,92 +160,216 @@ export namespace Services {
       return out;
     }
 
-    // Minimal unflatten utility for dot-notation keys that i18next uses
+    // i18next accepts flat dotted keys as well as nested objects. Keep a whole
+    // root flat when nesting it would overwrite a value that is also a prefix.
     private unflatten(flatObj: I18nData): I18nData {
       const result: I18nData = {};
-      for (const flatKey of Object.keys(flatObj || {})) {
-        const parts = flatKey.split('.');
-        let poisoned = false;
-        for (const part of parts) {
-          if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-            poisoned = true;
-            break;
-          }
+      const keys = Object.keys(flatObj || {}).filter(key =>
+        !key.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part)));
+      const keySet = new Set(keys);
+      const flatRoots = new Set<string>();
+      for (const key of keys) {
+        const parts = key.split('.');
+        for (let i = 1; i < parts.length; i++) {
+          if (keySet.has(parts.slice(0, i).join('.'))) flatRoots.add(parts[0]);
         }
-        if (poisoned) continue;
-        let cursor: I18nData = result;
-        for (let i = 0; i < parts.length; i++) {
-          const p = parts[i];
-          if (i === parts.length - 1) {
-            cursor[p] = flatObj[flatKey];
-          } else {
-            if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-            cursor = cursor[p] as I18nData;
-          }
+      }
+      for (const key of keys) {
+        const parts = key.split('.');
+        if (flatRoots.has(parts[0])) {
+          result[key] = flatObj[key];
+          continue;
         }
+        let cursor = result;
+        for (const part of parts.slice(0, -1)) {
+          cursor[part] ??= {};
+          cursor = cursor[part] as I18nData;
+        }
+        cursor[parts[parts.length - 1]] = flatObj[key];
       }
       return result;
     }
 
-    // Minimal setter for dot-notation keys inside an object
     private setNested(obj: I18nData, dottedKey: string, value: unknown): void {
-      if (!obj) return;
-      const parts = String(dottedKey).split('.');
-      for (const part of parts) {
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-          return;
-        }
-      }
-      let cursor: I18nData = obj;
-      for (let i = 0; i < parts.length; i++) {
-        const p = parts[i];
-        const isLast = i === parts.length - 1;
-        if (isLast) {
-          cursor[p] = value;
-        } else {
-          if (cursor[p] == null || typeof cursor[p] !== 'object') cursor[p] = {};
-          cursor = cursor[p] as I18nData;
-        }
-      }
+      if (!obj || dottedKey.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part))) return;
+      const { _meta, ...values } = obj;
+      const flat = this.flatten(values);
+      flat[dottedKey] = value;
+      const data = this.unflatten(flat);
+      Object.keys(obj).forEach(key => delete obj[key]);
+      Object.assign(obj, data);
+      if (_meta !== undefined) obj._meta = _meta;
     }
 
-    // Remove a dot-notation key from an object (best-effort, leaves empty parent objects in place)
     private removeNested(obj: I18nData, dottedKey: string): void {
-      if (!obj) return;
-      const parts = String(dottedKey).split('.');
-      for (const part of parts) {
-        if (part === '__proto__' || part === 'constructor' || part === 'prototype') {
-          return;
-        }
-      }
-      let cursor: I18nData = obj;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i];
-        if (cursor[p] == null || typeof cursor[p] !== 'object') return;
-        cursor = cursor[p] as I18nData;
-      }
-      delete cursor[parts[parts.length - 1]];
+      if (!obj || dottedKey.split('.').some(part => ['__proto__', 'constructor', 'prototype'].includes(part))) return;
+      const { _meta, ...values } = obj;
+      const flat = this.flatten(values);
+      delete flat[dottedKey];
+      const data = this.unflatten(flat);
+      Object.keys(obj).forEach(key => delete obj[key]);
+      Object.assign(obj, data);
+      if (_meta !== undefined) obj._meta = _meta;
     }
 
-    private sanitizeTranslationValue(value: unknown): unknown {
-      if (typeof value === 'string') {
-        return DomSanitizerService.sanitizeWithProfile(value, 'html');
-      }
-      if (Array.isArray(value)) {
-        return value.map(item => this.sanitizeTranslationValue(item));
-      }
-      if (value && typeof value === 'object') {
-        const sanitized: I18nData = {};
-        for (const [key, nestedValue] of Object.entries(value)) {
-          if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
-          sanitized[key] = this.sanitizeTranslationValue(nestedValue);
+    /** Effective installation defaults: English keys, then locale-specific values. */
+    public async defaultValues(locale: string, namespace: string): Promise<Record<string, string>> {
+      if (![locale, namespace].every(value => /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(value))) throw new Error('Invalid translation target');
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const values: Record<string, string> = {};
+      for (const code of new Set(['en', locale])) {
+        let data: I18nData;
+        try {
+          data = JSON.parse(await fs.readFile(path.join(sails.config.appPath, 'language-defaults', code, `${namespace}.json`), 'utf8'));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+          throw error;
         }
-        return sanitized;
+        for (const [key, value] of Object.entries(this.flatten(data))) {
+          if (!key.startsWith('_meta.') && key !== '_meta' && typeof value === 'string') values[key] = value;
+        }
       }
-      return value;
+      return values;
     }
 
-    private resolveBrandingId(branding: BrandingModel | string | { id?: string | number; _id?: string | number } | null | undefined): string {
+    private editorRows(data: I18nData, defaults: Record<string, string>, entries: I18nTranslationAttributes[] = []) {
+      const values = this.flatten(data);
+      const metadata = new Map(entries.map(entry => [entry.key, entry]));
+      return Array.from(new Set([...Object.keys(defaults), ...Object.keys(values)]))
+        .filter(key => key !== '_meta' && !key.startsWith('_meta.'))
+        .sort().map(key => {
+          const value = typeof values[key] === 'string' ? values[key] as string : '';
+          const hasDefault = Object.prototype.hasOwnProperty.call(defaults, key);
+          const provenance = hasDefault && !value.trim() ? 'missing' : hasDefault && value === defaults[key] ? 'default' : 'override';
+          const entry = metadata.get(key);
+          return { key, value, category: entry?.category ?? undefined, description: entry?.description ?? undefined,
+            contentFormat: entry?.contentFormat ?? undefined, provenance, hasDefault };
+        });
+    }
+
+    public async editorEntries(branding: BrandingModel, locale: string, namespace: string) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const defaults = await this.defaultValues(locale, namespace);
+      const entries = await this.listEntries(branding, locale, namespace);
+      return this.editorRows(bundle.data || {}, defaults, entries);
+    }
+
+    public async languageSummaries(branding: BrandingModel) {
+      const bundles = (await this.listBundles(branding)).filter(bundle => bundle.namespace === 'translation');
+      const codes = new Set([...(sails.config.i18n?.next?.init?.supportedLngs || []), ...bundles.map(bundle => bundle.locale)]);
+      const result = [];
+      const names = await this.loadLanguageNames();
+      for (const code of codes) {
+        const bundle = bundles.find(b => b.locale === code);
+        const rows = this.editorRows(bundle?.data || {}, await this.defaultValues(code, 'translation'));
+        result.push({ code, displayName: bundle?.displayName || names[code] || code, enabled: bundle?.enabled !== false,
+          translated: rows.filter(row => row.value.trim().length > 0).length, total: rows.length });
+      }
+      return result.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    }
+
+    public async revertEntry(branding: BrandingModel, locale: string, namespace: string, key: string) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const defaults = await this.defaultValues(locale, namespace);
+      if (!Object.prototype.hasOwnProperty.call(defaults, key)) return null;
+      // Keep stored content-format metadata and its existing sanitization rules.
+      return this.setEntry(branding, locale, namespace, key, defaults[key]);
+    }
+
+    public async exportBundle(branding: BrandingModel, locale: string, namespace: string, overridesOnly = false) {
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) return null;
+      const rows = this.editorRows(bundle.data || {}, await this.defaultValues(locale, namespace));
+      const stored = this.flatten(bundle.data || {});
+      return Object.fromEntries(rows.filter(row => typeof stored[row.key] === 'string' &&
+        (!overridesOnly || row.provenance === 'override')).map(row => [row.key, row.value]));
+    }
+
+    private importError(message: string, status = 400): never {
+      throw Object.assign(new Error(message), { status });
+    }
+
+    private async importPlan(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown: boolean) {
+      if (typeof json !== 'string' || Buffer.byteLength(json, 'utf8') > translationImportMaxBytes) {
+        this.importError('Import exceeds 2 MiB', 413);
+      }
+      let parsed: unknown;
+      try { parsed = JSON.parse(json); } catch (_error) { this.importError('Invalid JSON'); }
+      const validated = translationImportValues.safeParse(parsed);
+      if (!validated.success) this.importError('Expected a flat JSON object of string values with valid keys (maximum 10000 keys)');
+      const bundle = await this.getBundle(branding, locale, namespace);
+      if (!bundle) this.importError('Bundle not found', 404);
+      const defaults = await this.defaultValues(locale, namespace);
+      const stored = this.flatten(bundle.data || {});
+      const entries = await this.listEntries(branding, locale, namespace);
+      const metadata = new Map(entries.map(entry => [entry.key, entry]));
+      const centralizedMeta = await this.loadCentralizedMeta();
+      const fileMeta = bundle.data?._meta as MetaMap || {};
+      const counts = { added: 0, changed: 0, unchanged: 0, unknown: 0, ignored: 0 };
+      const items = Object.keys(validated.data).sort().map(key => {
+        const hasStored = Object.prototype.hasOwnProperty.call(stored, key);
+        const unknown = !hasStored && !Object.prototype.hasOwnProperty.call(defaults, key);
+        if (unknown) counts.unknown++;
+        const entry = metadata.get(key);
+        const format = this.normalizeContentFormat(entry?.contentFormat) ??
+          this.normalizeContentFormat(fileMeta[key]?.contentFormat ?? centralizedMeta[key]?.contentFormat);
+        const after = this.sanitizeHtmlValue(validated.data[key], format) as string;
+        const before = typeof stored[key] === 'string' ? stored[key] as string : null;
+        const action = unknown && !keepUnknown ? 'ignored' : !hasStored ? 'added' : before === after ? 'unchanged' : 'changed';
+        counts[action]++;
+        return { key, before, after, action, format };
+      });
+      // This token binds the language, brand, input, unknown-key choice and the
+      // exact values/defaults/formats used in the preview. No preview is persisted.
+      const previewToken = createHash('sha256').update(JSON.stringify([
+        this.resolveBrandingId(branding), locale, namespace, bundle.data, defaults, keepUnknown, items,
+      ])).digest('hex');
+      const sample = items.filter(item => item.action !== 'unchanged').slice(0, 20)
+        .map(({ key, before, after, action }) => ({ key, before, after, action }));
+      return { counts, sample, previewToken, items, bundleId: String(bundle.id) };
+    }
+
+    public async previewImport(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown = false) {
+      const { counts, sample, previewToken } = await this.importPlan(branding, locale, namespace, json, keepUnknown);
+      return { counts, sample, previewToken };
+    }
+
+    public async applyImport(branding: BrandingModel, locale: string, namespace: string, json: string, keepUnknown: boolean, previewToken: string) {
+      const plan = await this.importPlan(branding, locale, namespace, json, keepUnknown);
+      if (previewToken !== plan.previewToken) this.importError('Preview is stale; preview again', 409);
+      const results: Array<{ key: string; status: string; message?: string }> = [];
+      for (const item of plan.items) {
+        if (item.action === 'ignored' || item.action === 'unchanged') {
+          results.push({ key: item.key, status: item.action });
+          continue;
+        }
+        try {
+          const saved = await this.setEntry(branding, locale, namespace, item.key, item.after, {
+            bundleId: plan.bundleId, contentFormat: item.format, noReload: true, strictBundleSync: true,
+          });
+          if (!saved) throw new Error('Entry not saved');
+          results.push({ key: item.key, status: 'applied' });
+        } catch (_error) {
+          results.push({ key: item.key, status: 'failed', message: 'Entry or bundle write failed; preview again before retrying' });
+        }
+      }
+      await TranslationService.reloadResources(this.resolveBrandingId(branding));
+      return { counts: plan.counts, results, applied: results.filter(item => item.status === 'applied').length,
+        failed: results.filter(item => item.status === 'failed').length };
+    }
+
+    public async updateDisplayName(branding: BrandingModel, locale: string, namespace: string, displayName: string) {
+      // One metadata-only write: no entry reads, bundle sync or resource reload.
+      const bundle = await I18nBundle.updateOne({ branding: this.resolveBrandingId(branding), locale, namespace }).set({ displayName });
+      return bundle ? { locale: bundle.locale, namespace: bundle.namespace, displayName: bundle.displayName } : null;
+    }
+
+    private resolveBrandingId(
+      branding: BrandingModel | string | { id?: string | number; _id?: string | number } | null | undefined
+    ): string {
       if (!branding) return 'global';
       if (typeof branding === 'string') return branding;
       if (typeof branding === 'object' && branding !== null) {
@@ -253,7 +385,12 @@ export namespace Services {
       return `${brandingPart}:${locale}:${ns}:${key}`;
     }
 
-    public async getEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<I18nTranslationAttributes | null> {
+    public async getEntry(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      key: string
+    ): Promise<I18nTranslationAttributes | null> {
       const uid = this.buildUid(branding, locale, namespace, key);
       return await I18nTranslation.findOne({ uid });
     }
@@ -264,27 +401,36 @@ export namespace Services {
       namespace: string,
       key: string,
       value: unknown,
-      options?: { bundleId?: string; category?: string; contentFormat?: unknown; description?: string; noReload?: boolean }
+      options?: {
+        bundleId?: string;
+        category?: string;
+        contentFormat?: unknown;
+        description?: string;
+        noReload?: boolean;
+        strictBundleSync?: boolean;
+      }
     ): Promise<I18nTranslationAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const existing = await this.getEntry(branding, locale, namespace, key);
-      const sanitizedValue = this.sanitizeTranslationValue(value);
+      const contentFormat = this.normalizeContentFormat(options?.contentFormat);
+      const sanitizedValue = this.sanitizeHtmlValue(value, contentFormat ?? existing?.contentFormat);
       const updates: Partial<I18nTranslationAttributes> = {
         value: sanitizedValue,
         branding: brandingId,
         locale,
         namespace,
-        key
+        key,
       };
       if (options?.bundleId) updates.bundle = options.bundleId;
       if (options?.category !== undefined) updates.category = options.category;
       if (options?.description !== undefined) updates.description = options.description;
-      const contentFormat = this.normalizeContentFormat(options?.contentFormat);
       if (contentFormat !== undefined) updates.contentFormat = contentFormat;
 
-      const saved = (existing
-        ? await I18nTranslation.updateOne({ id: existing.id }).set(updates)
-        : await I18nTranslation.create(updates)) as I18nTranslationAttributes | null;
+      const saved = (
+        existing
+          ? await I18nTranslation.updateOne({ id: existing.id }).set(updates)
+          : await I18nTranslation.create(updates)
+      ) as I18nTranslationAttributes | null;
 
       // Keep I18nBundle.data in sync for this branding/locale/namespace
       try {
@@ -292,7 +438,12 @@ export namespace Services {
         if (!bundle) {
           // Create a minimal bundle containing this key
           const data = this.unflatten({ [key]: sanitizedValue });
-          bundle = await I18nBundle.create({ data, branding: brandingId, locale, namespace }) as unknown as I18nBundleAttributes;
+          bundle = (await I18nBundle.create({
+            data,
+            branding: brandingId,
+            locale,
+            namespace,
+          })) as unknown as I18nBundleAttributes;
           // Backfill the entry's bundle relation if not set via options
           if (!options?.bundleId && saved?.id) {
             await I18nTranslation.updateOne({ id: saved.id }).set({ bundle: bundle.id });
@@ -300,20 +451,33 @@ export namespace Services {
         } else {
           const data = bundle.data || {};
           this.setNested(data, key, sanitizedValue);
-          await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          const updatedBundle = await I18nBundle.updateOne({ id: bundle.id }).set({ data });
+          if (options?.strictBundleSync && !updatedBundle) throw new Error('Bundle no longer exists');
         }
       } catch (e) {
+        if (options?.strictBundleSync) throw e;
         this.logger.warn('Bundle sync failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
       }
 
       // Trigger i18next cache refresh (best-effort) unless suppressed (e.g., batch operations)
       if (!options?.noReload) {
-        try { (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+        try {
+          (
+            global as { TranslationService?: { reloadResources?: (id: string) => void } }
+          ).TranslationService?.reloadResources?.(brandingId);
+        } catch (_e) {
+          /* ignore */
+        }
       }
       return saved ?? null;
     }
 
-    public async deleteEntry(branding: BrandingModel, locale: string, namespace: string, key: string): Promise<boolean> {
+    public async deleteEntry(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      key: string
+    ): Promise<boolean> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = this.buildUid(branding, locale, namespace, key);
       const deleted = await I18nTranslation.destroyOne({ uid });
@@ -326,23 +490,39 @@ export namespace Services {
             await I18nBundle.updateOne({ id: bundle.id }).set({ data: bundle.data });
           }
         } catch (e) {
-          this.logger.warn('Bundle sync (remove) failed for', brandingId, locale, namespace, key, (e as Error)?.message || e);
+          this.logger.warn(
+            'Bundle sync (remove) failed for',
+            brandingId,
+            locale,
+            namespace,
+            key,
+            (e as Error)?.message || e
+          );
         }
       }
       return !!deleted;
     }
 
-    public async listEntries(branding: BrandingModel, locale: string, namespace: string, keyPrefix?: string): Promise<I18nTranslationAttributes[]> {
+    public async listEntries(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string,
+      keyPrefix?: string
+    ): Promise<I18nTranslationAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
       const where: Record<string, unknown> = { branding: brandingId, locale, namespace };
       if (keyPrefix) {
         // Mongo-specific regex for prefix match
         where.key = { startsWith: keyPrefix };
       }
-      return await I18nTranslation.find({ where }).sort('key ASC') as unknown as I18nTranslationAttributes[];
+      return (await I18nTranslation.find({ where }).sort('key ASC')) as unknown as I18nTranslationAttributes[];
     }
 
-    public async getBundle(branding: BrandingModel, locale: string, namespace: string): Promise<I18nBundleAttributes | null> {
+    public async getBundle(
+      branding: BrandingModel,
+      locale: string,
+      namespace: string
+    ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
       const uid = `${brandingId}:${locale}:${namespace || 'translation'}`;
       return await I18nBundle.findOne({ uid });
@@ -350,19 +530,22 @@ export namespace Services {
 
     public async listBundles(branding: BrandingModel): Promise<I18nBundleAttributes[]> {
       const brandingId = this.resolveBrandingId(branding);
-      return await I18nBundle.find({ branding: brandingId }) as unknown as I18nBundleAttributes[];
+      return (await I18nBundle.find({ branding: brandingId })) as unknown as I18nBundleAttributes[];
     }
 
     private async addMissingDefaultEntriesFromBundle(
       bundle: I18nBundleAttributes,
       defaultData: I18nData
     ): Promise<number> {
-      const brandingId = this.resolveBrandingId(bundle.branding as BrandingModel | string | { id?: string | number; _id?: string | number });
+      const brandingId = this.resolveBrandingId(
+        bundle.branding as BrandingModel | string | { id?: string | number; _id?: string | number }
+      );
       const locale = bundle.locale ?? 'en';
       const namespace = bundle.namespace ?? 'translation';
       const bundleId = bundle.id != null ? String(bundle.id) : undefined;
       const centralizedMeta = await this.loadCentralizedMeta();
-      const fileMeta: MetaMap = (defaultData && typeof defaultData._meta === 'object') ? (defaultData._meta as MetaMap) : {};
+      const fileMeta: MetaMap =
+        defaultData && typeof defaultData._meta === 'object' ? (defaultData._meta as MetaMap) : {};
       const meta = { ...centralizedMeta, ...fileMeta };
       const flatAll = this.flatten(defaultData || {});
       const flat: I18nData = {};
@@ -372,7 +555,11 @@ export namespace Services {
         flat[key] = flatAll[key];
       });
 
-      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale, namespace }) as unknown as I18nTranslationAttributes[];
+      const existingEntries = (await I18nTranslation.find({
+        branding: brandingId,
+        locale,
+        namespace,
+      })) as unknown as I18nTranslationAttributes[];
       const existingKeys = new Set(existingEntries.map(entry => entry.key));
       const records: Partial<I18nTranslationAttributes>[] = [];
 
@@ -390,7 +577,7 @@ export namespace Services {
           key,
           locale,
           namespace,
-          value
+          value,
         };
 
         if (meta[key]?.category !== undefined) record.category = meta[key].category;
@@ -426,33 +613,60 @@ export namespace Services {
       options?: BundleSetOptions
     ): Promise<I18nBundleAttributes | null> {
       const brandingId = this.resolveBrandingId(branding);
-      const sanitizedData = this.sanitizeTranslationValue(data) as I18nData;
+      // Validate before writing the bundle, including imports that do not split to entries.
+      const centralizedMeta = await this.loadCentralizedMeta();
+      const fileMeta: MetaMap = data && typeof data._meta === 'object' ? (data._meta as MetaMap) : {};
+      const meta = { ...centralizedMeta, ...fileMeta };
+      const existingEntries = await this.listEntries(branding, locale, namespace);
+      const entriesByKey = new Map(existingEntries.map(entry => [entry.key, entry]));
+      const shouldSplitToEntries = options?.splitToEntries ?? true;
+      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
+      data = _.cloneDeep(data);
+      const sanitizeValues = (object: I18nData, prefix = ''): void => {
+        for (const [part, value] of Object.entries(object)) {
+          const key = prefix ? `${prefix}.${part}` : part;
+          if (['__proto__', 'constructor', 'prototype'].includes(part)) {
+            delete object[part];
+            continue;
+          }
+          if (key === '_meta' || key.startsWith('_meta.')) continue;
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            sanitizeValues(value as I18nData, key);
+          } else {
+            const format = this.resolveBundleContentFormat(
+              entriesByKey.get(key),
+              meta[key]?.contentFormat,
+              shouldSplitToEntries && shouldOverwriteEntries
+            );
+            object[part] = this.sanitizeHtmlValue(value, format);
+          }
+        }
+      };
+      sanitizeValues(data);
+      const sanitizedData = data;
 
       // Use provided display name or get default for the language
-      const finalDisplayName = displayName || await this.getLanguageDisplayName(locale);
+      const finalDisplayName = displayName || (await this.getLanguageDisplayName(locale));
 
       const existing = await this.getBundle(branding, locale, namespace);
       let bundle: I18nBundleAttributes | null;
       if (existing) {
-        bundle = await I18nBundle.updateOne({ id: existing.id }).set({
+        bundle = (await I18nBundle.updateOne({ id: existing.id }).set({
           data: sanitizedData,
           branding: brandingId,
           locale,
           namespace,
-          displayName: finalDisplayName
-        }) as I18nBundleAttributes | null;
+          displayName: finalDisplayName,
+        })) as I18nBundleAttributes | null;
       } else {
-        bundle = await I18nBundle.create({
+        bundle = (await I18nBundle.create({
           data: sanitizedData,
           branding: brandingId,
           locale,
           namespace,
-          displayName: finalDisplayName
-        }) as unknown as I18nBundleAttributes;
+          displayName: finalDisplayName,
+        })) as unknown as I18nBundleAttributes;
       }
-      const shouldSplitToEntries = options?.splitToEntries ?? true;
-      const shouldOverwriteEntries = options?.overwriteEntries ?? true;
-
       // Keep full-update behaviour by default, but allow bootstrap to seed without overwriting.
       try {
         if (bundle && shouldSplitToEntries) {
@@ -462,7 +676,13 @@ export namespace Services {
         this.logger.warn('Entry sync failed for', brandingId, locale, namespace, (e as Error)?.message || e);
       }
       // After full bundle update & sync, refresh translations
-      try { (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId); } catch (_e) { /* ignore */ }
+      try {
+        (
+          global as { TranslationService?: { reloadResources?: (id: string) => void } }
+        ).TranslationService?.reloadResources?.(brandingId);
+      } catch (_e) {
+        /* ignore */
+      }
       return bundle ?? null;
     }
 
@@ -474,11 +694,11 @@ export namespace Services {
     ): Promise<I18nBundleAttributes> {
       const brandingId = this.resolveBrandingId(branding);
 
-      const bundle = await I18nBundle.updateOne({
+      const bundle = (await I18nBundle.updateOne({
         branding: brandingId,
         locale,
-        namespace
-      }).set({ enabled }) as I18nBundleAttributes | null;
+        namespace,
+      }).set({ enabled })) as I18nBundleAttributes | null;
 
       if (!bundle) {
         throw new Error(`Bundle not found for branding: ${brandingId}, locale: ${locale}, namespace: ${namespace}`);
@@ -495,16 +715,24 @@ export namespace Services {
       return this.unflatten(flat);
     }
 
-    public async syncEntriesFromBundle(bundleOrId: I18nBundleAttributes | string | number, overwrite = false): Promise<void> {
-      const bundle = isBundle(bundleOrId)
-        ? bundleOrId
-        : await I18nBundle.findOne({ id: bundleOrId });
+    /**
+     * Copy bundle values into translation entries and prune keys absent from the source.
+     * Non-overwriting syncs retain custom entries and persist normalised bundle values
+     * before inserting missing entries in a batch.
+     */
+    public async syncEntriesFromBundle(
+      bundleOrId: I18nBundleAttributes | string | number,
+      overwrite = false
+    ): Promise<void> {
+      const bundle = isBundle(bundleOrId) ? bundleOrId : await I18nBundle.findOne({ id: bundleOrId });
       if (!bundle) throw new Error('Bundle not found');
 
       const { branding, locale, namespace, id: bundleId } = bundle;
       const safeLocale = locale ?? 'en';
       const safeNamespace = namespace ?? 'translation';
-      const brandingId = this.resolveBrandingId(branding as BrandingModel | string | { id?: string | number; _id?: string | number });
+      const brandingId = this.resolveBrandingId(
+        branding as BrandingModel | string | { id?: string | number; _id?: string | number }
+      );
       const data: I18nData = bundle.data || {};
 
       // Load centralized metadata
@@ -512,7 +740,7 @@ export namespace Services {
 
       // Extract optional metadata map at root level: { [keyPath]: { category?, description? } }
       // File-specific _meta overrides centralized meta
-      const fileMeta: MetaMap = (data && typeof data._meta === 'object') ? (data._meta as MetaMap) : {};
+      const fileMeta: MetaMap = data && typeof data._meta === 'object' ? (data._meta as MetaMap) : {};
 
       // Merge centralized meta with file-specific meta (file-specific takes precedence)
       const meta = { ...centralizedMeta, ...fileMeta };
@@ -527,31 +755,82 @@ export namespace Services {
       const keys = Object.keys(flat);
 
       // Ensure we have a BrandingModel for downstream calls
-      const brandingModel: BrandingModel = (BrandingService.getBrandById(brandingId)
-        || BrandingService.getBrand(brandingId)
-        || ({ id: brandingId } as BrandingModel));
+      const brandingModel: BrandingModel =
+        BrandingService.getBrandById(brandingId) ||
+        BrandingService.getBrand(brandingId) ||
+        ({ id: brandingId } as BrandingModel);
 
       // Track existing keys to detect removals
-      const existingEntries = await I18nTranslation.find({ branding: brandingId, locale: safeLocale, namespace: safeNamespace }) as unknown as I18nTranslationAttributes[];
-      const existingKeysSet = new Set(existingEntries.map((e: I18nTranslationAttributes) => e.key as string));
+      const existingEntries = (await I18nTranslation.find({
+        branding: brandingId,
+        locale: safeLocale,
+        namespace: safeNamespace,
+      })) as unknown as I18nTranslationAttributes[];
+      const entriesByKey = new Map(existingEntries.map(entry => [entry.key, entry]));
+      const existingKeysSet = new Set(entriesByKey.keys());
+      const newEntries: Array<Partial<I18nTranslationAttributes> & { key: string }> = [];
 
       for (const key of keys) {
         let val: unknown = flat[key];
         existingKeysSet.delete(key); // still present
-        const existing = await this.getEntry(brandingModel, safeLocale, safeNamespace, key);
+        const existing = overwrite
+          ? await this.getEntry(brandingModel, safeLocale, safeNamespace, key)
+          : entriesByKey.get(key);
 
         if (existing && !overwrite) continue;
 
         if (val === null || val === undefined) {
           val = key; // preserve intentional empty strings, but avoid nullish bundle values
         }
+        if (!overwrite) {
+          // Seed missing entries in one write, preserving existing translations.
+          const contentFormat = this.resolveBundleContentFormat(existing, meta[key]?.contentFormat, false);
+          const sanitizedValue = this.sanitizeHtmlValue(val, contentFormat);
+          newEntries.push({
+            branding: brandingId,
+            bundle: bundleId != null ? String(bundleId) : undefined,
+            key,
+            locale: safeLocale,
+            namespace: safeNamespace,
+            value: sanitizedValue,
+            category: meta[key]?.category,
+            contentFormat,
+            description: meta[key]?.description,
+          });
+          continue;
+        }
         await this.setEntry(brandingModel, safeLocale, safeNamespace, key, val, {
           bundleId: bundleId != null ? String(bundleId) : undefined,
           category: meta?.[key]?.category,
-          contentFormat: meta?.[key]?.contentFormat,
+          contentFormat: this.resolveBundleContentFormat(existing, meta?.[key]?.contentFormat, overwrite),
           description: meta?.[key]?.description,
-          noReload: true
+          noReload: true,
         });
+      }
+      if (newEntries.length > 0) {
+        // Public callers may supply a bundle-like object whose data or id differs
+        // from storage. Merge only missing entries into the current stored bundle.
+        let storedBundle = await this.getBundle(brandingModel, safeLocale, safeNamespace);
+        const mergedData: I18nData = _.cloneDeep(storedBundle?.data || {});
+        for (const entry of newEntries) {
+          this.setNested(mergedData, entry.key, entry.value);
+        }
+        // Persist normalisation first so a partially failed entry batch can be
+        // retried without leaving unsafe HTML or nullish values in the bundle.
+        if (!storedBundle) {
+          storedBundle = await I18nBundle.create({
+            branding: brandingId,
+            locale: safeLocale,
+            namespace: safeNamespace,
+            data: mergedData,
+          });
+        } else if (!_.isEqual(mergedData, storedBundle.data)) {
+          await I18nBundle.updateOne({ id: storedBundle.id }).set({ data: mergedData });
+        }
+        for (const entry of newEntries) {
+          entry.bundle = String(storedBundle.id);
+        }
+        await I18nTranslation.createEach(newEntries);
       }
       for (const obsoleteKey of existingKeysSet) {
         try {
@@ -562,29 +841,46 @@ export namespace Services {
       }
       // Bulk operation complete; reload once
       try {
-        (global as { TranslationService?: { reloadResources?: (id: string) => void } }).TranslationService?.reloadResources?.(brandingId);
+        (
+          global as { TranslationService?: { reloadResources?: (id: string) => void } }
+        ).TranslationService?.reloadResources?.(brandingId);
       } catch (_e) {
         // ignore reload failures after the write has completed
       }
+    }
+
+    private resolveBundleContentFormat(
+      existing: I18nTranslationAttributes | null | undefined,
+      metadataFormat: unknown,
+      overwrite: boolean
+    ): TranslationContentFormat | undefined {
+      // Bundle-only imports and non-overwriting syncs retain entry metadata. Defaults must not
+      // bypass HTML validation (or rewrite literal plain text) when that format stays unchanged.
+      const storedFormat = this.normalizeContentFormat(existing?.contentFormat);
+      return existing && !overwrite ? storedFormat : (this.normalizeContentFormat(metadataFormat) ?? storedFormat);
+    }
+
+    private sanitizeHtmlValue(value: unknown, format?: TranslationContentFormat): unknown {
+      if (format !== 'html' || typeof value !== 'string') return value;
+      return sanitizeTranslationHtml(value, sails.config.i18n?.editor?.allowedClasses);
     }
 
     private normalizeContentFormat(value: unknown): TranslationContentFormat | undefined {
       return value === 'html' || value === 'plain' ? value : undefined;
     }
 
-
     /**
-    * Load centralized metadata from language-defaults/meta.json.
-    * This metadata provides additional context and information about 
-    * the translation keys and their usage, and is only used for 
-    * bootstrapping default values into the database.
-    *
-    * The file itself is fairly large, so instead of storing it in 
-    * `sails.config.[...]` for the lifetime of the app, it is read 
-    * directly from disk at the time it is needed.
-    *
-    * See README for more details on how this file is used.
-    */
+     * Load centralized metadata from language-defaults/meta.json.
+     * This metadata provides additional context and information about
+     * the translation keys and their usage, and is only used for
+     * bootstrapping default values into the database.
+     *
+     * The file itself is fairly large, so instead of storing it in
+     * `sails.config.[...]` for the lifetime of the app, it is read
+     * directly from disk at the time it is needed.
+     *
+     * See README for more details on how this file is used.
+     */
     public async loadCentralizedMeta(): Promise<MetaMap> {
       try {
         const fs = await import('node:fs');

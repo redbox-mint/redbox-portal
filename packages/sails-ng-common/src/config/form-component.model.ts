@@ -39,6 +39,7 @@ export class FormConstraintAuthorizationConfig implements FormConstraintAuthoriz
  */
 export abstract class FormComponentDefinition implements FormComponentDefinitionOutline {
     public name: string = "";
+    public relatedDisplay?: { relationId: string };
     public abstract component: FieldComponentDefinitionOutline;
     public abstract model?: FieldModelDefinitionOutline<unknown>;
     public abstract layout?: FieldLayoutDefinitionOutline;

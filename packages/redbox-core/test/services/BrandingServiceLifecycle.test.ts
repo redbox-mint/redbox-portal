@@ -85,7 +85,7 @@ describe('BrandingService lifecycle', function () {
   let disk: FakeDisk;
   let brands: FakeRow[];
   let histories: FakeRow[];
-  let previews: Map<string, { data: Record<string, unknown> }>;
+  let previews: Map<string, { data: Record<string, unknown>; ts_added: number }>;
   let brandWrites = 0;
   let historyWrites = 0;
   let transactionCalls = 0;
@@ -98,6 +98,10 @@ describe('BrandingService lifecycle', function () {
     hasActiveCustomTypeface(branding: string): boolean;
     getAdminState(branding: string): Promise<Record<string, unknown>>;
     listVersions(branding: string): Promise<Array<Record<string, unknown>>>;
+    uploadImage(input: Record<string, unknown>): Promise<any>;
+    resetDraft(input: Record<string, unknown>): Promise<any>;
+    draftImage(branding: string, kind: string): Promise<any>;
+    previewImage(branding: string, portal: string, token: string, kind: string): Promise<any>;
     saveDraft(input: Record<string, unknown>): Promise<Record<string, unknown>>;
     uploadTypefaceFace(input: Record<string, unknown>): Promise<Record<string, unknown>>;
     removeTypefaceFace(input: Record<string, unknown>): Promise<Record<string, unknown>>;
@@ -149,6 +153,8 @@ describe('BrandingService lifecycle', function () {
     let historySeq = 100;
 
     (global as unknown as Record<string, unknown>).StorageManagerService = { primaryDisk: () => disk };
+    const logoModule = require('../../src/services/BrandingLogoService');
+    (global as any).BrandingLogoService = new logoModule.Services.BrandingLogo();
     const themeCss = require('../../src/services/BrandingThemeCssService');
     (global as unknown as Record<string, unknown>).BrandingThemeCssService = new themeCss.Services.BrandingThemeCss();
     const typeface = require('../../src/services/BrandingTypefaceService');
@@ -207,6 +213,13 @@ describe('BrandingService lifecycle', function () {
       },
       findOne: (criteria: Record<string, unknown>) =>
         Promise.resolve(histories.find(row => matches(row, criteria)) ?? null),
+      updateOne: (criteria: Record<string, unknown>) => ({
+        set: async (patch: Record<string, unknown>) => {
+          const row = histories.find(row => matches(row, criteria));
+          if (row) Object.assign(row, patch);
+          return row;
+        },
+      }),
       create: async (values: Record<string, unknown>) => {
         if (failNextHistoryCreate === 'unique') {
           failNextHistoryCreate = null;
@@ -231,13 +244,17 @@ describe('BrandingService lifecycle', function () {
       },
     };
     (global as unknown as Record<string, unknown>).CacheEntry = {
-      create: async (values: { name: string; data: Record<string, unknown> }) => {
-        previews.set(values.name, { data: values.data });
+      create: async (values: { name: string; data: Record<string, unknown>; ts_added: number }) => {
+        previews.set(values.name, { data: values.data, ts_added: values.ts_added });
         return values;
       },
       findOne: async (criteria: { name: string }) =>
         previews.has(criteria.name)
-          ? { id: criteria.name, ts_added: Math.floor(Date.now() / 1000), data: previews.get(criteria.name)?.data }
+          ? {
+              id: criteria.name,
+              ts_added: previews.get(criteria.name)?.ts_added,
+              data: previews.get(criteria.name)?.data,
+            }
           : null,
       destroy: async (criteria: { id: string }) => {
         previews.delete(criteria.id);
@@ -249,6 +266,7 @@ describe('BrandingService lifecycle', function () {
 
   afterEach(function () {
     cleanupServiceTestGlobals();
+    delete (global as unknown as Record<string, unknown>).BrandingLogoService;
     delete (global as unknown as Record<string, unknown>).BrandingConfig;
     delete (global as unknown as Record<string, unknown>).BrandingConfigHistory;
     delete (global as unknown as Record<string, unknown>).CacheEntry;
@@ -292,6 +310,265 @@ describe('BrandingService lifecycle', function () {
     };
   }
 
+  it('isolates both image drafts, previews draft bytes and versions image-only publications and restores', async function () {
+    brands[0].logo = {
+      storageKey: 'legacy-logo',
+      sha256: require('crypto').createHash('sha256').update('live').digest('hex'),
+      contentType: 'image/png',
+    };
+    disk.objects.set('legacy-logo', Buffer.from('live'));
+    const initial = (await service.getAdminState('default')) as any;
+    expect(initial.active.images.logo).to.deep.equal(brands[0].logo);
+    for (const kind of ['logo', 'favicon']) {
+      await service.uploadImage({
+        branding: 'default',
+        kind,
+        fileBuffer: Buffer.from('draft-' + kind),
+        contentType: 'image/png',
+        expectedDraftRevision: kind === 'logo' ? 0 : 1,
+      });
+    }
+    expect(disk.objects.get('legacy-logo')?.toString()).to.equal('live');
+    expect((brands[0].logo as any).storageKey).to.equal('legacy-logo');
+    expect(brands[0].favicon).to.equal(undefined);
+    const state = (await service.getAdminState('default')) as any;
+    expect(state.draft.dirty).to.include({ logo: true, favicon: true });
+    expect((await service.draftImage('default', 'logo')).buffer.toString()).to.equal('draft-logo');
+    expect((service as any)._exportedMethods).to.include('previewImage');
+    const preview = (await service.preview('default', 'portal', 2)) as any;
+    expect(preview.images.logo).to.equal(`/default/portal/app/branding/draft/images/logo?preview=${preview.token}`);
+    await service.fetchPreview(preview.token); // CSS consumption must not consume images.
+    expect((await service.previewImage('default', 'portal', preview.token, 'logo')).buffer.toString()).to.equal(
+      'draft-logo'
+    );
+    for (const [brand, portal] of [
+      ['other', 'portal'],
+      ['default', 'other'],
+    ]) {
+      try {
+        await service.previewImage(brand, portal, preview.token, 'logo');
+        throw new Error('expected rejection');
+      } catch (error) {
+        expect((error as Error).message).to.contain('Preview image not found');
+      }
+    }
+    const first = (await service.publish(
+      'default',
+      'portal',
+      {},
+      { expectedVersion: 0, expectedDraftRevision: 2 }
+    )) as any;
+    expect(first.state.active.images).to.deep.equal(state.draft.images);
+    expect(first.state.versions[0].images).to.deep.equal(state.draft.images);
+    const firstHash = first.hash;
+    await service.uploadImage({
+      branding: 'default',
+      kind: 'logo',
+      fileBuffer: Buffer.from('next'),
+      contentType: 'image/png',
+      expectedDraftRevision: 3,
+    });
+    const second = (await service.publish(
+      'default',
+      'portal',
+      {},
+      { expectedVersion: 1, expectedDraftRevision: 4 }
+    )) as any;
+    expect(second.version).to.equal(2); // Same CSS, different logo must publish.
+    expect(second.hash).to.equal(firstHash);
+    const restored = (await service.restore({
+      branding: 'default',
+      versionId: first.state.versions[0].id,
+      expectedVersion: 2,
+      expectedDraftRevision: 5,
+    })) as any;
+    expect(restored.state.active.images).to.deep.equal(state.draft.images);
+    expect(restored.state.draft.dirty.logo).to.equal(false);
+    expect(restored.state.versions[0].images).to.deep.equal(state.draft.images);
+    const versionPreview = (await service.previewVersion({
+      branding: 'default',
+      portal: 'portal',
+      versionId: first.state.versions[0].id,
+    })) as any;
+    expect((await service.previewImage('default', 'portal', versionPreview.token, 'logo')).buffer.toString()).to.equal(
+      'draft-logo'
+    );
+    await service.resetDraft({ branding: 'default', expectedVersion: 3, expectedDraftRevision: 6 });
+    expect((await service.previewImage('default', 'portal', preview.token, 'logo')).buffer.toString()).to.equal(
+      'draft-logo'
+    );
+    (previews.get(`branding-preview-images:${preview.token}`) as any).ts_added = 0;
+    try {
+      await service.previewImage('default', 'portal', preview.token, 'logo');
+      throw new Error('expected expiry');
+    } catch (error) {
+      expect((error as Error).message).to.contain('Preview image expired');
+    }
+  });
+
+  it('resets every saved draft field atomically, survives a storage partial failure and retries cleanup', async function () {
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    const published = structuredClone(brands[0]);
+    await service.uploadTypefaceFace({
+      branding: 'default',
+      slot: 'regular',
+      bytes: buildWoff2(),
+      expectedDraftRevision: 1,
+    });
+    await service.saveDraft({ branding: 'default', variables: { primary: '#abcdef' }, expectedDraftRevision: 2 });
+    const staged = await service.uploadImage({
+      branding: 'default',
+      kind: 'logo',
+      fileBuffer: Buffer.from('draft'),
+      contentType: 'image/png',
+      expectedDraftRevision: 3,
+    });
+    const key = staged.draft.images.logo.storageKey;
+    updateError = {};
+    let failure: any;
+    try {
+      await service.resetDraft({ branding: 'default', expectedVersion: 1, expectedDraftRevision: 4 });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure.message).to.equal('update failed');
+    expect(brands[0].variables).to.deep.equal({ primary: '#abcdef' });
+    expect((brands[0].draftTypeface as any).mode).to.equal('custom');
+    expect((brands[0].draftImages as any).logo.storageKey).to.equal(key);
+    expect(disk.objects.has(key)).to.equal(true);
+    updateError = undefined;
+    const remove = disk.delete.bind(disk);
+    disk.delete = async () => {
+      throw new Error('storage temporarily unavailable');
+    };
+    const reset = await service.resetDraft({ branding: 'default', expectedVersion: 1, expectedDraftRevision: 4 });
+    expect(reset.draft.variables).to.deep.equal(published.variables);
+    expect(reset.draft.typeface.mode).to.equal('default');
+    expect(reset.draft.images).to.deep.equal(reset.active.images);
+    expect(reset.draft.dirty).to.deep.equal({ colours: false, typeface: false, logo: false, favicon: false });
+    expect(brands[0].imageCleanup).to.include(key);
+    expect(brands[0].css).to.equal(published.css);
+    expect(histories).to.have.lengthOf(1);
+    disk.delete = remove;
+    await service.resetDraft({ branding: 'default', expectedVersion: 1, expectedDraftRevision: 5 });
+    expect(disk.objects.has(key)).to.equal(false);
+    expect(brands[0].imageCleanup).to.deep.equal([]);
+  });
+
+  it('retries a committed reset after its response is lost without advancing revision again', async function () {
+    await service.uploadImage({
+      branding: 'default',
+      kind: 'logo',
+      fileBuffer: Buffer.from('draft'),
+      contentType: 'image/png',
+      expectedDraftRevision: 0,
+    });
+    updateError = { commit: true };
+    try {
+      await service.resetDraft({ branding: 'default', expectedVersion: 0, expectedDraftRevision: 1 });
+    } catch (error) {
+      expect((error as Error).message).to.equal('response lost');
+    }
+    expect(brands[0].draftRevision).to.equal(2);
+    updateError = undefined;
+    const retry = await service.resetDraft({ branding: 'default', expectedVersion: 0, expectedDraftRevision: 1 });
+    expect(retry.draft.revision).to.equal(2);
+    expect(retry.draft.dirty.logo).to.equal(false);
+    expect(disk.objects.size).to.equal(0);
+  });
+
+  it('refuses image publication and restore if persisted bytes are missing or corrupt', async function () {
+    const staged = await service.uploadImage({
+      branding: 'default',
+      kind: 'logo',
+      fileBuffer: Buffer.from('draft'),
+      contentType: 'image/png',
+      expectedDraftRevision: 0,
+    });
+    const key = staged.draft.images.logo.storageKey;
+    // Prime the reader cache: publish must still verify persisted bytes freshly.
+    await service.draftImage('default', 'logo');
+    disk.objects.set(key, Buffer.from('corrupt'));
+    let failure: any;
+    try {
+      await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 1 });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure.code).to.equal('branding-invalid');
+    expect(histories).to.have.lengthOf(0);
+    expect(brands[0].version).to.equal(0);
+    disk.objects.set(key, Buffer.from('draft'));
+    const published = (await service.publish(
+      'default',
+      'portal',
+      {},
+      { expectedVersion: 0, expectedDraftRevision: 1 }
+    )) as any;
+    disk.objects.delete(key);
+    try {
+      await service.restore({
+        branding: 'default',
+        versionId: published.state.versions[0].id,
+        expectedVersion: 1,
+        expectedDraftRevision: 2,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure.code).to.equal('branding-invalid');
+    expect(brands[0].version).to.equal(1);
+    expect(histories).to.have.lengthOf(1);
+  });
+
+  it('keeps image mutations brand-scoped and rejects stale counters before storing', async function () {
+    brands.push(brandFixture({ id: 'brand-2', name: 'other' }));
+    const other = structuredClone(brands[1]);
+    const failed = await conflictOf(
+      service.uploadImage({
+        branding: 'default',
+        kind: 'logo',
+        fileBuffer: Buffer.from('draft'),
+        contentType: 'image/png',
+        expectedDraftRevision: 4,
+      })
+    );
+    expect(failed.code).to.equal('branding-conflict');
+    expect(disk.objects.size).to.equal(0);
+    await service.uploadImage({
+      branding: 'default',
+      kind: 'favicon',
+      fileBuffer: Buffer.from('draft'),
+      contentType: 'image/png',
+      expectedDraftRevision: 0,
+    });
+    await service.resetDraft({ branding: 'default', expectedVersion: 0, expectedDraftRevision: 1 });
+    expect(brands[1]).to.deep.equal(other);
+  });
+
+  it('captures existing live images in a legacy active version before promotion', async function () {
+    brands[0].version = 1;
+    brands[0].logo = { storageKey: 'legacy-logo', contentType: 'image/png' };
+    disk.objects.set('legacy-logo', Buffer.from('live'));
+    histories.push(historyFixture(1));
+    await service.uploadImage({
+      branding: 'default',
+      kind: 'logo',
+      fileBuffer: Buffer.from('draft'),
+      contentType: 'image/png',
+      expectedDraftRevision: 0,
+    });
+    await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 1 });
+    expect((histories[0].images as any).logo.storageKey).to.equal('legacy-logo');
+    await service.restore({
+      branding: 'default',
+      versionId: histories[0].id,
+      expectedVersion: 2,
+      expectedDraftRevision: 2,
+    });
+    expect((brands[0].logo as any).storageKey).to.equal('legacy-logo');
+  });
+
   it('increments revision once per colour mutation and rejects stale or missing revisions', async function () {
     const state = adminStateOf(
       await service.saveDraft({ branding: 'default', variables: { primary: '#ffffff' }, expectedDraftRevision: 0 })
@@ -306,6 +583,39 @@ describe('BrandingService lifecycle', function () {
     expect(brands[0].variables).to.deep.equal({ primary: '#ffffff' });
     const missing = await conflictOf(service.saveDraft({ branding: 'default', variables: {} }));
     expect(missing.code).to.equal('branding-conflict');
+  });
+
+  it('saves, previews, publishes and restores contextual text colours and older drafts', async function () {
+    const oldPreview = await service.preview('default', 'portal', 0);
+    const oldSnapshot = await service.fetchPreview(String(oldPreview.token));
+    expect(oldSnapshot.css).to.not.contain('--bs-btn-color:');
+    expect(oldSnapshot.css).to.not.contain('--bs-btn-disabled-');
+    await service.publish('default', 'portal', {}, { expectedVersion: 0, expectedDraftRevision: 0 });
+    expect(brands[0].css).to.equal(oldSnapshot.css);
+    const oldVersion = histories[0].id;
+    await service.saveDraft({
+      branding: 'default',
+      variables: { info: '#003087', 'info-text-colour': '#FFF' },
+      expectedDraftRevision: 1,
+    });
+    expect(brands[0].variables).to.deep.equal({ info: '#003087', 'info-text-color': '#ffffff' });
+    const preview = await service.preview('default', 'portal', 2);
+    const snapshot = await service.fetchPreview(String(preview.token));
+    expect(snapshot.css).to.contain('--rb-info-text-color: #ffffff;');
+    for (const state of ['color', 'hover-color', 'active-color', 'disabled-color']) {
+      expect(snapshot.css).to.contain(`--bs-btn-${state}: var(--rb-info-text-color);`);
+    }
+    expect(snapshot.css).to.contain('--bs-btn-disabled-bg: var(--rb-info);');
+    expect(snapshot.css).to.contain('--bs-btn-disabled-border-color: var(--rb-info);');
+    expect(snapshot.css).to.not.contain('--bs-btn-color: var(--rb-secondary-text-color);');
+    await service.publish('default', 'portal', {}, { expectedVersion: 1, expectedDraftRevision: 2 });
+    expect(histories[1].variables).to.deep.equal(brands[0].variables);
+    expect(brands[0].css).to.contain('--rb-info-text-color: #ffffff;');
+    expect(brands[0].css).to.equal(snapshot.css);
+    await service.restore({ branding: 'default', versionId: oldVersion, expectedVersion: 2, expectedDraftRevision: 3 });
+    expect(brands[0].variables).to.deep.equal({ primary: '#112233' });
+    expect(brands[0].css).to.contain('--rb-info-text-color: #000000;');
+    expect(brands[0].css).to.equal(oldSnapshot.css);
   });
 
   it('treats equivalent generated colour CSS as unchanged and aligns the draft', async function () {
@@ -461,7 +771,7 @@ describe('BrandingService lifecycle', function () {
     const state = adminStateOf(await service.getAdminState('default'));
     expect(state.active.version).to.equal(1);
     expect(state.draft.revision).to.equal(1);
-    expect(state.draft.dirty).to.deep.equal({ colours: false, typeface: false });
+    expect(state.draft.dirty).to.deep.equal({ colours: false, typeface: false, logo: false, favicon: false });
     const second = await service.publish('default', 'portal', actor, { expectedVersion: 1, expectedDraftRevision: 1 });
     expect(second.version).to.equal(1);
     expect(second.idempotent).to.equal(true);
@@ -615,7 +925,7 @@ describe('BrandingService lifecycle', function () {
     const state = adminStateOf(await service.getAdminState('default'));
     expect(state.active.version).to.equal(3);
     expect(state.draft.revision).to.equal(4);
-    expect(state.draft.dirty).to.deep.equal({ colours: false, typeface: false });
+    expect(state.draft.dirty).to.deep.equal({ colours: false, typeface: false, logo: false, favicon: false });
     // Restoring the currently active snapshot still creates an audited version.
     const activeId = histories.find(row => row.version === 3)?.id as string;
     const repeat = await service.restore({

@@ -23,6 +23,11 @@ export interface FigshareSourceSummary {
   vocabularyName: string;
   lastSyncedAt: string | null;
   archived: boolean;
+  syncSchedule?: 'manual' | 'daily' | 'weekly';
+  nextSyncAt?: string | null;
+  settingsRevision?: number;
+  lastScheduleStatus?: string | null;
+  lastScheduleAttemptAt?: string | null;
   mirroredCount: number;
   historicalCount: number;
   crosswalkCount: number;
@@ -265,8 +270,12 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigshareTaxonomySummary[]>(response as ApiResponse<FigshareTaxonomySummary[]>) ?? [];
   }
 
-  public async listSources(scope?: string): Promise<PagedResult<FigshareSourceSummary>> {
-    const params: Record<string, string> = {};
+  public async updateSource(sourceId: string, draft: { expectedRevision: number; displayName: string; scope: string; archived: boolean; syncSchedule: string }): Promise<FigshareSourceSummary> {
+    return this.unwrap(await firstValueFrom(this.http.put(`${this.figshareUrl}/sources/${encodeURIComponent(sourceId)}`, draft, this.getJsonRequestOptions())) as any);
+  }
+
+  public async listSources(scope?: string, paging: { limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareSourceSummary>> {
+    const params: Record<string, string> = this.toParams(paging);
     if (scope) {
       params['scope'] = scope;
     }
@@ -382,7 +391,7 @@ export class FigshareVocabularyApiService extends HttpClientService {
     return this.unwrap<FigshareApplyResult>(response as ApiResponse<FigshareApplyResult>);
   }
 
-  public async listCrosswalks(query: { status?: string; sourceId?: string; localVocabularyId?: string } = {}): Promise<PagedResult<FigshareCrosswalkSummary>> {
+  public async listCrosswalks(query: { status?: string; sourceId?: string; localVocabularyId?: string; limit?: number; offset?: number } = {}): Promise<PagedResult<FigshareCrosswalkSummary>> {
     const params: Record<string, string> = {};
     for (const [key, value] of Object.entries(query)) {
       if (value) {

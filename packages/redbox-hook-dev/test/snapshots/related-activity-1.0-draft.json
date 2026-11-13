@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "defaults": {
+    "recordSchemaEnabled": false,
+    "recordValidationMode": "shadow",
+    "unknownProperties": "allow"
+  },
+  "representativeCompilation": {
+    "enforcement": "shadow",
+    "unknownProperties": "allow"
+  },
+  "bounds": {
+    "maxForms": 20,
+    "maxSchemas": 40,
+    "maxFindings": 200,
+    "maxReportBytes": 65536
+  },
+  "summary": {
+    "formsChecked": 1,
+    "schemasChecked": 2,
+    "completeSchemas": 2,
+    "partialSchemas": 0,
+    "unsupportedComponents": 0,
+    "schemaWarnings": 2,
+    "unknownPropertyProbesAccepted": 2
+  },
+  "limitHeadroom": {
+    "cacheEntries": {
+      "limit": 128,
+      "observedMaximum": 2,
+      "remaining": 126
+    },
+    "maxDepth": {
+      "limit": 64,
+      "observedMaximum": 1,
+      "remaining": 63
+    },
+    "maxProperties": {
+      "limit": 10000,
+      "observedMaximum": 3,
+      "remaining": 9997
+    },
+    "maxDocumentBytes": {
+      "limit": 1048576,
+      "observedMaximum": 730,
+      "remaining": 1047846
+    },
+    "maxDiagnostics": {
+      "limit": 1000,
+      "observedMaximum": 0,
+      "remaining": 1000
+    },
+    "contributorTimeoutMs": {
+      "limit": 1000,
+      "breaches": 0
+    }
+  },
+  "unsupportedComponents": [],
+  "schemaDiagnostics": [],
+  "schemas": [
+    {
+      "form": "dev-hook/related-activity-1.0-draft",
+      "kind": "create",
+      "digest": "bd514d3301dde30e35251eedc92c0794a9eed55cb8fd8d8860d5f97250f20948",
+      "completeness": "complete",
+      "byteLength": 730,
+      "observedNodeDepth": 1,
+      "observedProperties": 3,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": [
+        "record-schema.type"
+      ]
+    },
+    {
+      "form": "dev-hook/related-activity-1.0-draft",
+      "kind": "update",
+      "digest": "9267ef9eef6fba525964ba5f1328b8f929eb93ed0789e6f6832b0c2fbeb29469",
+      "completeness": "complete",
+      "byteLength": 730,
+      "observedNodeDepth": 1,
+      "observedProperties": 3,
+      "diagnosticCount": 0,
+      "diagnosticCodes": [],
+      "unknownPropertyProbe": "accepted",
+      "shadowWarningCodes": [
+        "record-schema.type"
+      ]
+    }
+  ]
+}

@@ -100,6 +100,15 @@ describe('BrandingPreviewComponent', () => {
     const host: HTMLElement = fixture.nativeElement as HTMLElement;
     const root = host.shadowRoot as ShadowRoot;
     expect(root).toBeTruthy();
+    // Typography samples must retain their styling under the portal's nonce-only CSP.
+    const bold = root.querySelector('.preview-sample-bold') as HTMLElement;
+    const italic = root.querySelector('.preview-sample-italic') as HTMLElement;
+    const boldItalic = root.querySelector('.preview-sample-bold-italic') as HTMLElement;
+    expect(root.querySelector('[style]')).toBeNull();
+    expect(getComputedStyle(bold).fontWeight).toBe('700');
+    expect(getComputedStyle(italic).fontStyle).toBe('italic');
+    expect(getComputedStyle(boldItalic).fontWeight).toBe('700');
+    expect(getComputedStyle(boldItalic).fontStyle).toBe('italic');
 
     const btn = (cls: string) => root.querySelector(`button.btn.${cls}`) as HTMLButtonElement | null;
     expect(btn('btn-primary')).withContext('primary button').not.toBeNull();

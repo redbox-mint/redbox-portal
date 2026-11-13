@@ -1,4 +1,4 @@
-import { ILogger } from '../../logger.interface';
+import { ILogger } from '../../logger.model';
 import { FieldLayoutConfigFrame } from '../field-layout.outline';
 import { FieldComponentConfigFrame } from '../field-component.outline';
 import { FieldModelConfigFrame } from '../field-model.outline';
@@ -75,6 +75,9 @@ export class PropertiesHelper {
     // Set the simple properties
     item.name = currentData.name;
     item.module = currentData.module;
+    if (currentData.relatedDisplay !== undefined) {
+      item.relatedDisplay = { ...currentData.relatedDisplay };
+    }
 
     // Set the constraints
     item.constraints = new FormConstraintConfig();
@@ -143,6 +146,7 @@ export class PropertiesHelper {
    */
   public sharedPopulateFieldComponentConfig(item: FieldComponentConfigFrame, config?: FieldComponentConfigFrame) {
     this.setPropOverride('readonly', item, config);
+    this.setPropOverride('relatedViewPreserved', item, config);
     this.setPropOverride('visible', item, config);
     this.setPropOverride('editMode', item, config);
     this.setPropOverride('label', item, config);
@@ -392,7 +396,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['componentDefinitions', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -404,7 +408,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'componentDefinitions', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -416,7 +420,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'tabs', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -428,7 +432,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'componentDefinitions', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -440,7 +444,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'panels', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -452,7 +456,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'componentDefinitions', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -461,7 +465,7 @@ export class FormPathHelper {
   public lineagePathsForRepeatableFieldComponentDefinition(item: FormComponentDefinitionOutline): LineagePathsPartial {
     return {
       formConfig: ['config', 'elementTemplate'],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -473,7 +477,7 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'componentDefinitions', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
@@ -485,13 +489,14 @@ export class FormPathHelper {
   ): LineagePathsPartial {
     return {
       formConfig: ['config', 'componentDefinitions', index.toString()],
-      dataModel: this.getFormPathDataModel(item),
+      dataModel: FormPathHelper.metadataTokensForComponent(item),
       angularComponents: this.getFormPathAngularComponents(item),
       layout: this.getFormPathLayout(item),
     };
   }
 
-  private getFormPathDataModel(item: FormComponentDefinitionOutline): string[] {
+  /** Metadata lineage shared by canonical descriptor compilation and visitors. */
+  public static metadataTokensForComponent(item: FormComponentDefinitionOutline): string[] {
     const itemName = item?.name ?? '';
     const className = item?.component?.class ?? '';
 

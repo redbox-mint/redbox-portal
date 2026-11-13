@@ -3,7 +3,9 @@ import {
   apiErrorResponseSchema,
   harvestRunDetailResponseSchema,
   harvestRunEventSchema,
+  harvestRunChunkSummarySchema,
   harvestRunSummarySchema,
+  harvestRunStatisticsSchema,
   idParams,
   listApiResponseSchema,
   objectField,
@@ -15,6 +17,22 @@ const badRequestResponse = responseField(apiErrorResponseSchema, 'Bad request');
 const internalServerErrorResponse = responseField(apiErrorResponseSchema, 'Internal server error');
 const notFoundResponse = responseField(apiErrorResponseSchema, 'Harvest run not found');
 const bodyFallback = ['body'] as const;
+
+export const getHarvestRunStatisticsRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/harvest-runs/summary',
+  'webservice/HarvestRunController',
+  'getStatistics',
+  {},
+  {
+    tags: ['Harvest Runs'],
+    summary: 'Get global harvest run statistics for the current brand (Admin only)',
+    responses: {
+      200: responseField(harvestRunStatisticsSchema, 'Global harvest run statistics'),
+      500: internalServerErrorResponse,
+    },
+  }
+);
 
 export const listHarvestRunsRoute = apiRoute(
   'get',
@@ -80,6 +98,7 @@ export const listHarvestRunEventsRoute = apiRoute(
   {
     params: idParams,
     query: objectField({
+      chunkId: stringField('Chunk identifier filter'),
       outcome: stringField('Event outcome filter'),
       operation: stringField('Event operation filter'),
       harvestId: stringField('Harvest identifier filter'),
@@ -88,6 +107,7 @@ export const listHarvestRunEventsRoute = apiRoute(
       pageSize: stringField('Page size'),
     }),
     legacyParamFallbacks: {
+      chunkId: bodyFallback,
       outcome: bodyFallback,
       operation: bodyFallback,
       harvestId: bodyFallback,
@@ -108,4 +128,32 @@ export const listHarvestRunEventsRoute = apiRoute(
   }
 );
 
-export const harvestRunApiRoutes = [listHarvestRunsRoute, getHarvestRunRoute, listHarvestRunEventsRoute];
+export const listHarvestRunChunksRoute = apiRoute(
+  'get',
+  '/:branding/:portal/api/harvest-runs/:id/chunks',
+  'webservice/HarvestRunController',
+  'listRunChunks',
+  {
+    params: idParams,
+    query: objectField({ page: stringField('Page number'), pageSize: stringField('Page size') }),
+    legacyParamFallbacks: { page: bodyFallback, pageSize: bodyFallback },
+  },
+  {
+    tags: ['Harvest Runs'],
+    summary: 'List harvest run chunks',
+    responses: {
+      200: responseField(listApiResponseSchema(harvestRunChunkSummarySchema), 'Harvest run chunk list'),
+      400: badRequestResponse,
+      404: notFoundResponse,
+      500: internalServerErrorResponse,
+    },
+  }
+);
+
+export const harvestRunApiRoutes = [
+  getHarvestRunStatisticsRoute,
+  listHarvestRunsRoute,
+  getHarvestRunRoute,
+  listHarvestRunEventsRoute,
+  listHarvestRunChunksRoute,
+];

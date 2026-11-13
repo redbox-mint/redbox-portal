@@ -1,6 +1,9 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 import { companionAttachmentUploadAuth } from '../../src/policies/companionAttachmentUploadAuth';
+import * as sinon from "sinon";
 
 describe('companionAttachmentUploadAuth policy', function () {
     let originalSails: unknown;
@@ -16,9 +19,7 @@ describe('companionAttachmentUploadAuth policy', function () {
                     attachmentLocalOnly: true,
                 }
             },
-            log: {
-                warn: () => undefined
-            }
+            log: createSinonStubLogger(sinon),
         };
     });
 

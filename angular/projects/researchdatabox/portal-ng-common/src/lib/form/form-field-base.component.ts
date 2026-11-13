@@ -8,20 +8,22 @@ import {
 import { LoggerService } from '../logger.service';
 import {  isEmpty as _isEmpty, get as _get, set as _set } from 'lodash-es';
 import { UtilityService } from "../utility.service";
-import {
+import type {
   FormComponentDefinitionFrame,
-  FormFieldComponentStatus,
   LineagePaths,
   JSONataQuerySourceProperty,
   FormExpressionsConfigOutline,
   FormFieldComponentOrLayoutDefinition,
-  toBoolean,
 } from '@researchdatabox/sails-ng-common';
+import { FormFieldComponentStatus } from '@researchdatabox/sails-ng-common/dist/src/status.model';
+import { toBoolean } from '@researchdatabox/sails-ng-common/dist/src/config/helpers';
 
 export interface FormFieldFocusRequestOptions {
   scroll?: boolean;
   scrollOptions?: ScrollIntoViewOptions;
 }
+
+let nextLabelableControlId = 0;
 
 /**
  * Base class for form components. Data binding to a form field is optional.
@@ -46,6 +48,16 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
   @ViewChild('afterContainer', { read: ViewContainerRef, static: false }) protected afterContainer?: ViewContainerRef | null;
 
   public expressions: any = {};
+
+  /** The layout and input share one runtime map entry, including repeated fields. */
+  public get labelableControlId(): string | undefined {
+    const entry = this.formFieldCompMapEntry;
+    const component = entry?.compConfigJson.component;
+    if (!entry || (component?.class !== 'SimpleInputComponent' && component?.class !== 'TextAreaComponent') ||
+        (component.class === 'SimpleInputComponent' && component.config &&
+          'type' in component.config && component.config.type === 'hidden')) return undefined;
+    return entry.labelableControlId ??= `redbox-input-${nextLabelableControlId++}`;
+  }
 
   protected utilityService = inject(UtilityService);
   protected loggerService: LoggerService = inject(LoggerService);
@@ -415,6 +427,8 @@ export class FormFieldBaseComponent<ValueType> implements AfterViewInit {
  * @interface FormFieldCompMapEntry
  */
 export interface FormFieldCompMapEntry {
+  /** Runtime DOM identity only; never part of form config or record metadata. */
+  labelableControlId?: string;
   name?: string;
   modelClass?: typeof FormFieldModel<unknown>;
   layoutClass?: typeof FormFieldBaseComponent<unknown>;

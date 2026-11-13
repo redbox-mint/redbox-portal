@@ -1,6 +1,7 @@
 import { trace, SpanStatusCode, type Attributes } from '@opentelemetry/api';
 import { FigshareRunContext } from './types';
 import { redactObject } from '../../utilities/RedactionUtils';
+import { logAtLevel } from '@researchdatabox/sails-ng-common';
 
 export { redactObject, redactSecret } from '../../utilities/RedactionUtils';
 
@@ -30,12 +31,16 @@ export function withSpan<T>(name: string, runContext: FigshareRunContext, attrib
 }
 
 export function logEvent(level: string, message: string, runContext: FigshareRunContext, payload: unknown = {}): void {
-  const logger = sails.log[level] || sails.log.info;
-  logger({
-    recordOid: runContext.recordOid,
-    brandName: runContext.brandName,
-    correlationId: runContext.correlationId,
-    triggerSource: runContext.triggerSource,
-    payload: redactObject(payload)
-  }, message);
+  logAtLevel(
+    sails.log,
+    level,
+    {
+      recordOid: runContext.recordOid,
+      brandName: runContext.brandName,
+      correlationId: runContext.correlationId,
+      triggerSource: runContext.triggerSource,
+      payload: redactObject(payload)
+    },
+    message
+  );
 }

@@ -9,6 +9,7 @@ import { SuggestedValidationSummaryFieldComponent } from './suggested-validation
 import { GroupFieldComponent } from './group.component';
 import { TabComponent, TabComponentLayout, TabContentComponent } from './tab.component';
 import { ValidationSummaryFieldComponent } from './validation-summary.component';
+import { TranslationService } from '@researchdatabox/portal-ng-common';
 
 describe('SuggestedValidationSummaryFieldComponent', () => {
   beforeEach(async () => {
@@ -31,11 +32,35 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     expect(fixture.componentInstance).toBeDefined();
   });
 
+  it('renders HTML lineage and field labels as plain text without nested links', async () => {
+    const translations = TestBed.inject(TranslationService) as any;
+    translations.translationMap['@recommended-field-label'] = 'See <a href="https://example.org" target="_blank">DFAT &amp; Australia&#39;s partners</a>';
+    const { fixture } = await createFormAndWaitForReady({
+      name: 'suggested-html-labels',
+      componentDefinitions: [
+        {
+          name: 'group',
+          model: { class: 'GroupModel', config: { defaultValue: {} } },
+          layout: { class: 'DefaultLayout', config: { label: '<b>Research</b>' } },
+          component: { class: 'GroupComponent', config: { componentDefinitions: [
+            recommendedFieldDefinition('', { include: ['recommended'], exclude: ['all'] }),
+          ] } },
+        },
+        suggestedSummaryDefinition(),
+      ],
+    }, { editMode: true });
+    const link = (fixture.nativeElement as HTMLElement).querySelector('.validation-summary-item a');
+    expect(link?.textContent).toBe("Research - See DFAT & Australia's partners");
+    expect(link?.querySelector('a')).toBeNull();
+    expect(link?.textContent).not.toContain('<a href');
+    expect(link?.getAttribute('data-suggested-validation-summary-message')).toBe('@recommended-field-label');
+  });
+
   it('should render no panel when no suggestion failures exist and showWhenValid is false', async () => {
     const { fixture } = await createFormAndWaitForReady(baseSuggestedFormConfig({
       suggestedValue: 'complete',
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
-    }));
+    }), { editMode: true });
 
     const nativeEl: HTMLElement = fixture.nativeElement;
     expect(nativeEl.querySelector('div.alert-warning')).toBeNull();
@@ -47,7 +72,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
       suggestedValue: 'complete',
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
       suggestedSummaryConfig: { showWhenValid: true },
-    }));
+    }), { editMode: true });
 
     const panel = fixture.nativeElement.querySelector('div.alert-info');
 
@@ -59,7 +84,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const { fixture } = await createFormAndWaitForReady(baseSuggestedFormConfig({
       suggestedValue: '',
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
-    }));
+    }), { editMode: true });
 
     const nativeEl: HTMLElement = fixture.nativeElement;
     const panel = nativeEl.querySelector('div.alert-warning');
@@ -77,7 +102,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const { fixture, formComponent } = await createFormAndWaitForReady(baseSuggestedFormConfig({
       suggestedValue: '',
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
-    }));
+    }), { editMode: true });
 
     const recommendedEntry = fixture.componentInstance.componentDefArr[0];
     const control = recommendedEntry.model?.formControl;
@@ -95,7 +120,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const saveConfig = config.componentDefinitions[2].component?.config as Record<string, unknown>;
     saveConfig['operation'] = 'submit';
     saveConfig['enabledValidationGroups'] = ['all', 'submit'];
-    const { fixture, formComponent } = await createFormAndWaitForReady(config);
+    const { fixture, formComponent } = await createFormAndWaitForReady(config, { editMode: true });
     const eventBus = TestBed.inject(FormComponentEventBus);
     const events: any[] = [];
     const sub = eventBus
@@ -163,7 +188,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
         },
         suggestedSummaryDefinition({ includeTabLabel: true }),
       ],
-    });
+    }, { editMode: true });
 
     const link = fixture.nativeElement.querySelector('a[data-suggested-validation-summary-id="form-item-id-recommended-field"]');
     expect(link?.textContent).toContain('@details-tab-label');
@@ -173,7 +198,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const { fixture } = await createFormAndWaitForReady(baseSuggestedFormConfig({
       suggestedValue: '',
       suggestedGroups: { include: ['otherRecommendation'], exclude: ['all'] },
-    }));
+    }), { editMode: true });
 
     expect(fixture.nativeElement.querySelector('div.alert-warning')).toBeNull();
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
@@ -187,7 +212,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     });
     config.componentDefinitions[0].model!.config!.disabled = true;
 
-    const { fixture } = await createFormAndWaitForReady(config);
+    const { fixture } = await createFormAndWaitForReady(config, { editMode: true });
 
     const control = fixture.componentInstance.componentDefArr[0].model?.formControl;
     const summaryComponent = fixture.componentInstance.componentDefArr[1].component as SuggestedValidationSummaryFieldComponent;
@@ -201,7 +226,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
     const { fixture } = await createFormAndWaitForReady(baseSuggestedFormConfig({
       suggestedValue: '',
       suggestedGroups: { include: ['recommended'], exclude: ['all'] },
-    }));
+    }), { editMode: true });
     const formService = TestBed.inject(FormService);
     const validatorsSupport = (formService as unknown as {
       validatorsSupport: { createFormValidatorInstancesFromMapping: (...args: unknown[]) => unknown };
@@ -234,7 +259,7 @@ describe('SuggestedValidationSummaryFieldComponent', () => {
       },
     ];
 
-    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig);
+    const { fixture, formComponent } = await createFormAndWaitForReady(formConfig, { editMode: true });
 
     // Trigger 'queueValidationErrorsRefresh' by making a change to the form.
     const control = fixture.componentInstance.componentDefArr[0].model?.formControl;

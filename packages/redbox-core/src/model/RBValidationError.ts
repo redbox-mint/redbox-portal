@@ -1,6 +1,6 @@
-import { Services } from "../services/TranslationService";
-import type { RecordSaveProblemKind } from "@researchdatabox/sails-ng-common";
-import { ErrorResponseItemV2 } from "./api";
+import { Services } from '../services/TranslationService';
+import type { RecordSaveProblemKind } from '@researchdatabox/sails-ng-common';
+import { ErrorResponseItemV2 } from './api';
 
 // Define ErrorOptions locally for ES6 target compatibility
 interface RBErrorOptions {
@@ -25,12 +25,14 @@ interface ClassifiableError {
 const authorizationCodePattern = /^(unauthori[sz]ed|forbidden|access[-_]?denied|not[-_]?authori[sz]ed)$/i;
 
 function hasFieldEvidence(displayErrors: readonly ErrorResponseItemV2[]): boolean {
-  return displayErrors.some((displayError) => {
+  return displayErrors.some(displayError => {
     const meta = displayError.meta as Record<string, unknown> | undefined;
     const field = (displayError as ErrorResponseItemV2 & { field?: unknown }).field;
-    return typeof displayError.source?.pointer === 'string'
-      || typeof field === 'string'
-      || Array.isArray(meta?.errorFieldList);
+    return (
+      typeof displayError.source?.pointer === 'string' ||
+      typeof field === 'string' ||
+      Array.isArray(meta?.errorFieldList)
+    );
   });
 }
 
@@ -49,8 +51,15 @@ export class RBValidationError extends Error {
    * @param build.options The error options. This is only used internally and not sent to the end user.
    * @param build.displayErrors The display errors. These are sent to the end user.
    */
-  constructor(build: { message?: string, options?: RBErrorOptions, displayErrors?: ErrorResponseItemV2[], problemKind?: RBValidationProblemKind } = {}) {
-    super(build.message ?? "", build.options ?? {});
+  constructor(
+    build: {
+      message?: string;
+      options?: RBErrorOptions;
+      displayErrors?: ErrorResponseItemV2[];
+      problemKind?: RBValidationProblemKind;
+    } = {}
+  ) {
+    super(build.message ?? '', build.options ?? {});
     this.name = RBValidationError.errorName;
     this._displayErrors = build.displayErrors ?? [];
     this._problemKind = build.problemKind;
@@ -59,7 +68,7 @@ export class RBValidationError extends Error {
   /**
    * Convenient way to access the name of this error.
    */
-  public static readonly errorName = "RBValidationError";
+  public static readonly errorName = 'RBValidationError';
 
   /**
    * Check if item is an instance of RBValidationError.
@@ -67,7 +76,36 @@ export class RBValidationError extends Error {
    * @returns True if item is an instance of RBValidationError, otherwise false.
    */
   public static isRBValidationError(item: unknown): item is RBValidationError {
-    return item instanceof RBValidationError || (item instanceof Error && item?.name === RBValidationError.errorName);
+    return RBValidationError.isError(item, RBValidationError.errorName);
+  }
+
+  /**
+   * Check if item is an instance of Error.
+   * @param item The item to check.
+   * @param name The expected error name. Returns false if the name is provided and does not match.
+   * @returns True if item is an instance of Error, and matches optional name, otherwise false.
+   */
+  public static isError(item: unknown, name?: string): item is Error {
+    if (item === undefined || item === null || !(item instanceof Error)) {
+      return false;
+    }
+    if (name !== undefined) {
+      return item.name === name;
+    }
+    return true;
+  }
+
+  /**
+   * Convert item to an Error.
+   * @param item The item to convert.
+   * @return An Error instance representing item.
+   */
+  public static asError(item: unknown): Error {
+    if (RBValidationError.isError(item)) {
+      return item;
+    }
+
+    return new Error(String(item));
   }
 
   /**
@@ -75,15 +113,19 @@ export class RBValidationError extends Error {
    * @param errors The initial array of Error instances.
    * @param displayErrors The initial array of display errors.
    */
-  public static collectErrors(errors: Error[], displayErrors: ErrorResponseItemV2[]): {
-    errors: Error[],
+  public static collectErrors(
+    errors: (Error | unknown)[],
     displayErrors: ErrorResponseItemV2[]
+  ): {
+    errors: Error[];
+    displayErrors: ErrorResponseItemV2[];
   } {
     // Collect and process the errors recursively
     const collectedErrors: Error[] = [];
-    const collectedDisplayErrors: ErrorResponseItemV2[] = [...displayErrors ?? []];
+    const collectedDisplayErrors: ErrorResponseItemV2[] = [...(displayErrors ?? [])];
 
-    const errorsToProcess = [...errors ?? []];
+    const errorsToProcess = [...(errors ?? [])];
+    const seen = new Set<Error>();
     while (errorsToProcess.length > 0) {
       // remove the first error in the array and process it
       const error = errorsToProcess.shift();
@@ -91,7 +133,15 @@ export class RBValidationError extends Error {
         continue;
       }
 
-      collectedErrors.push(error);
+      if (RBValidationError.isError(error)) {
+        if (seen.has(error)) {
+          continue;
+        }
+        seen.add(error);
+        collectedErrors.push(error);
+      } else {
+        collectedErrors.push(RBValidationError.asError(error));
+      }
 
       // Extract and store displayErrors from any RBValidationErrors
       const maybeDisplayErrors = (error as RBValidationError)?.displayErrors;
@@ -115,30 +165,40 @@ export class RBValidationError extends Error {
    *       and thrown or returned from the service to the controller / caller service.
    *       This approach is reasonable for API v1 in controllers.
    */
-  public static displayMessage(options: {
-    t?: Services.Translation,
-    errors?: Error[],
-    displayErrors?: ErrorResponseItemV2[],
-    defaultMessage?: string
-  } = {}): string {
+  public static displayMessage(
+    options: {
+      t?: Services.Translation;
+      errors?: (Error | unknown)[];
+      displayErrors?: ErrorResponseItemV2[];
+      defaultMessage?: string;
+    } = {}
+  ): string {
     const t = options?.t?.t;
     if (!t) {
       throw new Error("Must provide TranslationService as 't' to RBValidationError.displayMessage.");
     }
-    const { displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(options?.errors ?? [], options?.displayErrors ?? []);
-    const displayMessages = (collectedDisplayErrors ?? [{ title: options?.defaultMessage ?? t("An error occurred") }])
-      ?.map(displayError => {
-        const code = displayError.code?.toString()?.trim() ?? "";
-        const title = displayError.title?.toString()?.trim() || code;
-        const detail = displayError.detail?.toString()?.trim() || code;
-        // Translate the unique non-empty values, then combine into a string.
-        const items = Array.from(new Set([title, detail])).filter(i => !!i).map(i => t(i));
-        return items.join(': ');
-      });
-    return displayMessages.map(i => {
-      const trimmed = i?.trim();
-      return trimmed.endsWith('.') ? trimmed : trimmed + '.';
-    }).join(' ');
+    const { displayErrors: collectedDisplayErrors } = RBValidationError.collectErrors(
+      options?.errors ?? [],
+      options?.displayErrors ?? []
+    );
+    const displayMessages = (
+      collectedDisplayErrors ?? [{ title: options?.defaultMessage ?? t('An error occurred') }]
+    )?.map(displayError => {
+      const code = displayError.code?.toString()?.trim() ?? '';
+      const title = displayError.title?.toString()?.trim() || code;
+      const detail = displayError.detail?.toString()?.trim() || code;
+      // Translate the unique non-empty values, then combine into a string.
+      const items = Array.from(new Set([title, detail]))
+        .filter(i => !!i)
+        .map(i => t(i));
+      return items.join(': ');
+    });
+    return displayMessages
+      .map(i => {
+        const trimmed = i?.trim();
+        return trimmed.endsWith('.') ? trimmed : trimmed + '.';
+      })
+      .join(' ');
   }
 
   /**

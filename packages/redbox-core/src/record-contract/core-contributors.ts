@@ -19,7 +19,12 @@ import type {
 import { joinRecordContractPointer } from './json-pointer';
 
 export type CoreRecordContractComponentClassification =
-  'scalar' | 'object' | 'array' | 'specialized' | 'container' | 'non-persisting';
+  | 'scalar'
+  | 'object'
+  | 'array'
+  | 'specialized'
+  | 'container'
+  | 'non-persisting';
 
 /** Closed inventory used by startup/CI coverage checks. */
 export const CORE_RECORD_CONTRACT_COMPONENT_INVENTORY = {
@@ -472,16 +477,23 @@ export function createCoreRecordContractContributors(): readonly RecordContractC
     nonPersisting('DeleteButtonComponent'),
     componentContributor('DropdownInputComponent', 'nullable', context => choiceContribution(context, true)),
     componentContributor('FileUploadComponent', 'configuration', attachmentArrayContribution),
-    componentContributor('GroupComponent', 'configuration', async context => ({
-      kind: 'node',
-      node: {
-        ...(await context.compileChildren(
-          childComponents(componentConfig(context.component).componentDefinitions),
-          context.pointer
-        )),
-        nullable: nullableFromDefault(context.component),
-      },
-    })),
+    componentContributor('GroupComponent', 'configuration', async context =>
+      !context.component.name && context.component.overrides?.replaceName === ''
+        ? {
+            kind: 'non-persisting',
+            children: childComponents(componentConfig(context.component).componentDefinitions),
+          }
+        : {
+            kind: 'node',
+            node: {
+              ...(await context.compileChildren(
+                childComponents(componentConfig(context.component).componentDefinitions),
+                context.pointer
+              )),
+              nullable: nullableFromDefault(context.component),
+            },
+          }
+    ),
     nonPersisting('IntegrationStatusComponent'),
     componentContributor('MapComponent', 'configuration', mapContribution),
     componentContributor('PDFListComponent', 'configuration', pdfListContribution),

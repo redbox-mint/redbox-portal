@@ -3,17 +3,22 @@ import { firstValueFrom } from 'rxjs';
 import { Services } from '../../src/services/PathRulesService';
 import { checkAuth } from '../../src/policies/checkAuth';
 import { BrandingModel } from '../../src/model/storage/BrandingModel';
+import { auth } from '../../src/config/auth.config';
 
 describe('Path-rule routing authorization', () => {
   const brand = Object.assign(new BrandingModel(), { id: 'brand-1', name: 'default' });
   const admin = { id: 'admin-1' };
   const researcher = { id: 'researcher-1' };
+  const librarian = { id: 'librarian-1' };
   const guest = { id: 'guest-1' };
+  const recordRoles = { Researcher: researcher, Librarians: librarian };
   const rules = [
     { path: '/:branding/:portal/admin(/*)', role: admin, branding: brand, can_update: true },
     { path: '/:branding/:portal/user/genKey', role: admin, branding: brand, can_update: true },
     { path: '/:branding/:portal/user/revokeKey', role: admin, branding: brand, can_update: true },
     { path: '/:branding/:portal/home/', role: guest, branding: brand, can_read: true },
+    ...auth.rules.filter(rule => ['/:branding/:portal/record(/*)', '/:branding/:portal/recordmeta(/*)'].includes(rule.path))
+      .map(rule => ({ ...rule, branding: brand, role: recordRoles[rule.role as keyof typeof recordRoles] })),
   ];
   let service: Services.PathRules;
   let savedGlobals: Record<string, unknown>;
@@ -92,6 +97,22 @@ describe('Path-rule routing authorization', () => {
     const otherBrand = Object.assign(new BrandingModel(), { id: 'brand-2', name: 'other' });
     assert.equal(service.getRulesFromPath('/other/rdmp/ADMIN/users/get', otherBrand), null);
   });
+
+  for (const [roleName, role, expected] of [['Librarians', librarian, true], ['Researcher', researcher, true], ['Guest', guest, false]] as const) {
+    it(`uses the configured ${roleName} permission for metadata PUT before record-specific checks`, () => {
+      let nextCalled = false;
+      let status: number | undefined;
+      const req = {
+        method: 'PUT', path: '/default/rdmp/recordmeta/record-1', query: { targetStep: 'draft' },
+        headers: { 'content-type': 'application/json' }, session: { branding: brand.name },
+        isAuthenticated: () => true, user: { roles: [role] },
+      } as unknown as Sails.Req;
+      const response = { status: (value: number) => { status = value; return response; }, send: () => response };
+      checkAuth(req, response as unknown as Sails.Res, () => { nextCalled = true; });
+      assert.equal(nextCalled, expected);
+      assert.equal(status, expected ? undefined : 403);
+    });
+  }
 
   it('matches configured trailing slashes and preserves public access', () => {
     for (const path of ['/default/rdmp/home', '/default/rdmp/HOME/']) {

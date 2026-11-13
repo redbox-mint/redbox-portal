@@ -39,6 +39,7 @@ describe('PDFService Unit Tests', () => {
     mockPage = {
       setRequestInterception: sinon.stub().resolves(),
       on: sinon.stub(),
+      emulateMediaType: sinon.stub().resolves(),
       mainFrame: sinon.stub().returns({}),
       url: sinon.stub().callsFake(() => mockPage.goto.lastCall.args[0]),
       goto: sinon.stub().callsFake(async (url: string) => navigationResponse(url)),
@@ -503,6 +504,100 @@ describe('PDFService Unit Tests', () => {
     expect(mockPage.waitForNetworkIdle.called).to.be.true;
     expect(globalAny.sails.log.warn.calledWithMatch(/Unknown readinessStrategy/)).to.be.true;
   });
+
+  it('awaits print media before loading and waiting for the printable form', async () => {
+    let finishEmulation!: () => void;
+    mockPage.emulateMediaType.returns(new Promise<void>((resolve) => {
+      finishEmulation = resolve;
+    }));
+    const generation = Effect.runPromise(pdfService.attemptPDFGeneration(
+      'oid-print', { metaMetadata: { brandId: 1 } },
+      { readinessStrategy: 'networkIdle+selector', waitForSelector: '#ready' },
+      { name: 'default' }, 1
+    ));
+
+    await waitForAssertion(() => {
+      expect(mockPage.emulateMediaType.calledOnceWithExactly('print')).to.be.true;
+    });
+    expect(mockPage.goto.called).to.be.false;
+    expect(mockPage.waitForNetworkIdle.called).to.be.false;
+    finishEmulation();
+    await generation;
+
+    sinon.assert.callOrder(mockPage.emulateMediaType, mockPage.goto,
+      mockPage.waitForNetworkIdle, mockPage.waitForSelector, mockPage.pdf);
+  });
+
+  it('cleans up without rendering if print media cannot be prepared', async () => {
+    mockPage.emulateMediaType.rejects(new Error('Print emulation failed'));
+    const exit = await Effect.runPromiseExit(pdfService.attemptPDFGeneration(
+      'oid-print-failed', { metaMetadata: { brandId: 1 } }, {}, { name: 'default' }, 1
+    ));
+
+    expect(exit._tag).to.equal('Failure');
+    const failure = Cause.failureOption(exit.cause);
+    expect(failure._tag).to.equal('Some');
+    expect(failure.value._tag).to.equal('BrowserError');
+    expect(failure.value.cause.message).to.equal('Print emulation failed');
+    expect(mockPage.goto.called).to.be.false;
+    expect(mockPage.pdf.called).to.be.false;
+    expect(mockPage.close.calledOnce).to.be.true;
+    expect(mockBrowser.close.calledOnce).to.be.true;
+  });
+
+  it('does not require a related marker by default', async () => {
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-legacy', {}, {}, { name: 'default' }, 1));
+    expect(mockPage.waitForFunction.called).to.be.false;
+  });
+
+  it('waits for related rendering after existing readiness and checks all markers', async () => {
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-related', {},
+      { waitForRelatedData: true, readinessTimeout: 1234 }, { name: 'default' }, 1));
+    expect(mockPage.waitForNetworkIdle.calledBefore(mockPage.waitForFunction)).to.be.true;
+    const [predicate, options] = mockPage.waitForFunction.firstCall.args;
+    expect(options).to.deep.equal({ timeout: 1234, polling: 100 });
+    const evaluate = (states: string[]) => require('vm').runInNewContext(predicate, {
+      document: { querySelectorAll: () => states.map(state => ({ getAttribute: () => state })) },
+    });
+    expect(evaluate([])).to.equal(false);
+    expect(evaluate(['pending'])).to.equal(false);
+    expect(evaluate(['ready', 'pending'])).to.equal(false);
+    expect(evaluate(['ready', 'ready'])).to.equal(true);
+    expect(() => evaluate(['error'])).to.throw('Required related data unavailable');
+  });
+
+  it('renders a form without related sources when waiting is enabled for the branding', async () => {
+    globalAny.sails.config.brandingAware = () => ({ pdfgen: { token: 'test-token', waitForRelatedData: true } });
+    let state = 'pending';
+    mockPage.waitForFunction.callsFake(async (predicate: string) => {
+      const evaluate = () => require('vm').runInNewContext(predicate, {
+        document: { querySelectorAll: () => [{ getAttribute: () => state }] },
+      });
+      expect(evaluate()).to.equal(false);
+      expect(mockPage.pdf.called).to.be.false;
+      // FormComponent publishes ready after loading a form with no related sources.
+      state = 'ready';
+      expect(evaluate()).to.equal(true);
+    });
+    await Effect.runPromise(pdfService.attemptPDFGeneration('oid-legacy', {}, {}, { name: 'default' }, 1));
+    sinon.assert.callOrder(mockPage.waitForNetworkIdle, mockPage.waitForFunction, mockPage.pdf);
+    expect(mockPage.pdf.calledOnce).to.be.true;
+  });
+
+  for (const message of ['Waiting failed: timeout exceeded (missing marker)', 'Waiting failed: timeout exceeded (pending)', 'Required related data unavailable']) {
+    it(`maps related readiness failure to BrowserError: ${message}`, async () => {
+      mockPage.waitForFunction.rejects(new Error(message));
+      const exit = await Effect.runPromiseExit(pdfService.attemptPDFGeneration('oid-related-failure', {},
+        { waitForRelatedData: true }, { name: 'default' }, 1));
+      expect(exit._tag).to.equal('Failure');
+      const failure = Cause.failureOption(exit.cause);
+      expect(failure.value._tag).to.equal('BrowserError');
+      expect(failure.value.cause.message).to.equal(message);
+      expect(mockPage.pdf.called).to.be.false;
+      expect(mockPage.close.calledOnce).to.be.true;
+      expect(mockBrowser.close.calledOnce).to.be.true;
+    });
+  }
 
   it('should use selector strategy', async () => {
     const record = { metaMetadata: { brandId: 1 } };

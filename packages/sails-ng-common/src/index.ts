@@ -1,9 +1,12 @@
 // top
+export type { RelatedDisplayDescriptor, RelatedReferenceDescriptor, RelatedSourceDescriptor, RelatedFormDescriptors, RelatedResolutionStatus, RelatedMetadataRecord, RelatedResolutionIssue, RelatedMetadataEntry, RelatedMetadata, RelatedMetadataSelection, RelatedMetadataRequest } from './related-records.model';
+
 export * from './record.model';
 export * from './record-concurrency.model';
 export * from './record-diff';
 export * from './record-save.model';
 export * from './report.model';
+export * from './export.model';
 export * from './status.model';
 export * from './template.outline';
 export * from './date-format-helpers';
@@ -46,7 +49,7 @@ export * from './config/names/naming-helpers';
 export * from './config/visitor/base.outline';
 export * from './config/visitor/base.model';
 export * from './config/visitor/common.model';
-export * from './logger.interface';
+export * from './logger.model';
 // config/component
 export * from './config/component/checkbox-input.model';
 export * from './config/component/checkbox-input.outline';
@@ -136,3 +139,18 @@ export * from './validation/record-validation.model';
 export * from './validation/validation-groups';
 export * from './validation/validators';
 export * from './validation/validators-support';
+export * from './translation-html';
+
+export * from './related-display-projection';
+export * from './related-reference-values';
+
+export * from './email-template-admin.model';
+
+export * from './email-context-json';
+
+export * from './schema-assist.model';
+export * from './schema-utils';
+export * from './template-path';
+export * from './schema-fields';
+export * from './query-report-context';
+export * from './named-query-assist.model';

@@ -1,0 +1,32 @@
+meta {
+  name: Background Exports - Reject invalid range
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/default/rdmp/export/jobs
+  body: json
+  auth: none
+}
+
+headers {
+  X-Source: jsclient
+  X-ReDBox-Api-Version: 2.0
+  Content-Type: application/json
+}
+
+body:json {
+  { "format": "csv", "recType": "rdmp", "before": "2026-01-01T00:00:00.000Z", "after": "2026-02-01T00:00:00.000Z" }
+}
+
+script:pre-request {
+  require("./bruno-helpers.js").setCookies({ bru, req, bruCookieVar: "backgroundExportCookie" });
+}
+
+tests {
+  test("Invalid ranges fail before export creation", function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody().errors).to.be.an("array").that.is.not.empty;
+  });
+}

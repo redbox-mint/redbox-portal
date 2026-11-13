@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import * as Effect from 'effect/Effect';
 import * as Cause from 'effect/Cause';
 
 export async function runEffectProgram<A>(program: Effect.Effect<A, unknown, never>): Promise<A> {
@@ -7,9 +7,9 @@ export async function runEffectProgram<A>(program: Effect.Effect<A, unknown, nev
     return exit.value;
   }
 
-  const failure = Cause.failureOrCause(exit.cause);
-  if (failure._tag === 'Left') {
-    throw failure.left;
+  const failure = Cause.findErrorOption(exit.cause);
+  if (failure._tag === 'Some') {
+    throw failure.value;
   }
-  throw Cause.squash(failure.right);
+  throw Cause.squash(exit.cause);
 }

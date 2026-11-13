@@ -1,9 +1,16 @@
+import { AdminModalDirective } from '@researchdatabox/portal-ng-common';
+import { NO_ERRORS_SCHEMA, Pipe, PipeTransform } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { A11yModule } from '@angular/cdk/a11y';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardConfigEditorComponent } from './dashboard-config-editor.component';
 import { DashboardConfigApiService, DashboardCopyPreview, DashboardTargetInfo, DashboardTargetSettings, DashboardValidationResult } from './dashboard-config-api.service';
 import { LoggerService, TranslationService, ConfigService, UtilityService } from '@researchdatabox/portal-ng-common';
 import { HttpClient } from '@angular/common/http';
 import { APP_BASE_HREF } from '@angular/common';
+
+@Pipe({ name: 'i18next', standalone: false })
+class MockI18NextPipe implements PipeTransform { transform(key: string, options?: any) { return key; } }
 
 class MockLoggerService {
   warn() {}
@@ -36,13 +43,18 @@ function settingsWithColumn(title: string): DashboardTargetSettings['settings'] 
 describe('DashboardConfigEditorComponent', () => {
   let component: DashboardConfigEditorComponent;
   let fixture: ComponentFixture<DashboardConfigEditorComponent>;
+  const initialUrl = window.location.href;
+  afterEach(() => window.history.replaceState(null, '', initialUrl));
+
   let api: jasmine.SpyObj<DashboardConfigApiService>;
 
   beforeEach(async () => {
-    api = jasmine.createSpyObj<DashboardConfigApiService>('DashboardConfigApiService', ['applyCopy', 'getSettings', 'getFields', 'validate', 'save']);
+    api = jasmine.createSpyObj<DashboardConfigApiService>('DashboardConfigApiService', ['applyCopy', 'getSettings', 'getFields', 'validate', 'save', 'getTargets']);
     api.getFields.and.resolveTo({ status: 'complete', recordType: 'rdmp', fields: [], openPrefixes: [] });
     await TestBed.configureTestingModule({
-      declarations: [DashboardConfigEditorComponent],
+      declarations: [DashboardConfigEditorComponent, MockI18NextPipe],
+      imports: [AdminModalDirective, FormsModule, A11yModule],
+      schemas: [NO_ERRORS_SCHEMA],
       providers: [
         { provide: DashboardConfigApiService, useValue: api },
         { provide: LoggerService, useClass: MockLoggerService },
@@ -56,6 +68,86 @@ describe('DashboardConfigEditorComponent', () => {
 
     fixture = TestBed.createComponent(DashboardConfigEditorComponent);
     component = fixture.componentInstance;
+    spyOn(component, 'waitForDeps').and.resolveTo();
+  });
+
+  it('keeps a labelled loading state until translations and target navigation are ready together', async () => {
+    const dependencies = deferred<void>();
+    (component.waitForDeps as jasmine.Spy).and.returnValue(dependencies.promise);
+    const metadata = deferred<any>();
+    api.getTargets.and.returnValue(metadata.promise);
+    component.loadingLabel = 'Loading content';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('Loading content');
+    expect(fixture.nativeElement.querySelector('.dc-layout')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rb-admin-page-header')).toBeNull();
+
+    dependencies.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    fixture.detectChanges();
+    expect(api.getTargets).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.dc-layout')).toBeNull();
+
+    metadata.resolve({ targets: [], catalogueFingerprint: 'empty' });
+    await component.waitForInit();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.dc-layout')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h2').textContent).toContain('admin-dashboard-pick');
+  });
+
+  it('humanizes untranslated target IDs while preserving the raw identifier', () => {
+    const workflow: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'concurrencyTest', stage: 'draft' }, key: 'test', ownerLabel: 'concurrencyTest', stepLabel: 'draft', hidden: false, recordType: 'concurrencyTest', queryFilterKeys: [] };
+    expect(component.targetLabel(workflow)).toBe('Concurrency test · Draft');
+    expect(component.targetId(workflow)).toBe('concurrencyTest');
+    expect(component.targetLabel({ ...workflow, target: { kind: 'view', view: 'existing-locations', step: 'draft' }, ownerLabel: 'existing-locations' })).toBe('Existing locations · Draft');
+    const translations = TestBed.inject(TranslationService) as any;
+    translations.t = (key: string) => key === 'concurrencyTest-name' ? 'Concurrency checks' : key;
+    expect(component.targetLabel(workflow)).toBe('Concurrency checks · Draft');
+  });
+
+  it('selects the first target by default while respecting an explicit target hash', async () => {
+    const first: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'first', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    const second = { ...first, key: 'second' };
+    component.targets = [first, second];
+    const select = spyOn(component, 'selectTarget').and.resolveTo();
+    window.history.replaceState(null, '', window.location.pathname);
+    await component.selectFromHash();
+    expect(select).toHaveBeenCalledWith(first);
+    window.history.replaceState(null, '', '#target=second');
+    await component.selectFromHash();
+    expect(select).toHaveBeenCalledWith(second);
+    select.calls.reset();
+    window.history.replaceState(null, '', '#target=missing');
+    await component.selectFromHash();
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it('focuses and scrolls to the selected editor on tablet screens', async () => {
+    const target: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    spyOn(window, 'matchMedia').and.returnValue({ matches: true } as MediaQueryList);
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    api.getSettings.and.resolveTo({ target: target.target, settings: settingsWithColumn('Title'), revision: 1, schemaVersion: 1, hidden: false });
+    await component.selectTarget(target, false, true);
+    fixture.detectChanges();
+    const heading = fixture.nativeElement.querySelector('.dc-target-card h2');
+    expect(heading.tabIndex).toBe(-1);
+    expect(document.activeElement).toBe(heading);
+    expect(scroll).toHaveBeenCalledWith({ block: 'start' });
+  });
+
+  it('preserves focus and scroll on initial tablet selection', async () => {
+    const target: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    spyOn(window, 'matchMedia').and.returnValue({ matches: true } as MediaQueryList);
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    api.getSettings.and.resolveTo({ target: target.target, settings: settingsWithColumn('Title'), revision: 1, schemaVersion: 1, hidden: false });
+    await component.selectTarget(target);
+    fixture.detectChanges();
+    const heading = fixture.nativeElement.querySelector('.dc-target-card h2');
+    expect(heading.tabIndex).toBe(-1);
+    expect(document.activeElement).not.toBe(heading);
+    expect(scroll).not.toHaveBeenCalled();
   });
 
   it('should create', () => {
@@ -281,5 +373,88 @@ describe('DashboardConfigEditorComponent', () => {
     api.validate.and.rejectWith(new Error('stale revision'));
     await component.save();
     expect(api.validate).toHaveBeenCalledWith(source, 5, component.draft);
+  });
+
+  it('shows the legacy default without dirtying the draft and saves a numeric page size', async () => {
+    const info: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'Plan', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    const original = settingsWithColumn('Title');
+    api.getSettings.and.resolveTo({ target: info.target, settings: original, revision: 2, schemaVersion: 1, hidden: false });
+    api.getTargets.and.resolveTo({ targets: [info], catalogueFingerprint: 'f' });
+    await component['initComponent']();
+    await component.selectTarget(info, true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const select: HTMLSelectElement = fixture.nativeElement.querySelector('#dc-rows-per-page');
+    expect(fixture.nativeElement.querySelector('rb-admin-save-shortcut').nextElementSibling.classList).toContain('rb-admin-save-bar');
+    expect(select.options[select.selectedIndex].textContent).toBe('10');
+    expect(component.isDirty).toBeFalse();
+    expect(Object.hasOwn(component.draft!, 'rowsPerPage')).toBeFalse();
+    select.selectedIndex = 1;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(component.draft?.rowsPerPage).toBe(25);
+    expect(component.isDirty).toBeTrue();
+    api.validate.and.resolveTo({ errors: [], warnings: [], validationFingerprint: 'v' } as any);
+    api.save.and.resolveTo({ target: info.target, settings: { ...original, rowsPerPage: 25 }, revision: 3, schemaVersion: 1, hidden: false });
+    await component.save();
+    expect(api.save.calls.mostRecent().args[1].settings.rowsPerPage).toBe(25);
+    expect(api.save.calls.mostRecent().args[1].expectedRevision).toBe(2);
+    expect(component.isDirty).toBeFalse();
+  });
+
+  it('starts with a choice of targets and does not load or save an arbitrary dashboard', async () => {
+    window.history.replaceState(null, '', window.location.pathname);
+    api.getTargets.and.resolveTo({ targets: [], catalogueFingerprint: 'targets' });
+    await component['initComponent']();
+    expect(component.selected).toBeNull();
+    expect(api.getSettings).not.toHaveBeenCalled();
+    expect(api.save).not.toHaveBeenCalled();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.rb-admin-empty h2')?.textContent).toContain('admin-dashboard-pick');
+    expect(fixture.nativeElement.querySelectorAll('h1').length).toBe(1);
+  });
+
+  it('retries metadata loading after a failure', async () => {
+    window.history.replaceState(null, '', window.location.pathname);
+    api.getTargets.and.rejectWith(new Error('Metadata unavailable'));
+    await component['initComponent']();
+    expect(component.targetsError).toContain('Metadata unavailable');
+    expect(component.targetsLoading).toBeFalse();
+    api.getTargets.and.resolveTo({ targets: [], catalogueFingerprint: 'targets' });
+    await component.retry();
+    expect(component.targetsError).toBe('');
+    expect(api.getTargets).toHaveBeenCalledTimes(2);
+  });
+
+  it('discards only local edits and protects navigation while dirty', () => {
+    component.draft = settingsWithColumn('Saved title');
+    component['savedJson'] = JSON.stringify(component.draft);
+    component.draft.tableConfig.rowConfig[0].title = 'Edited title';
+    component.draft.tableConfig['extraSetting'] = { preserve: true };
+    expect(component.isDirty).toBeTrue();
+    const unload = new Event('beforeunload', { cancelable: true }) as BeforeUnloadEvent;
+    component.onBeforeUnload(unload);
+    expect(unload.defaultPrevented).toBeTrue();
+    const anchor = document.createElement('a');
+    anchor.href = '/admin';
+    const event = new MouseEvent('click', { cancelable: true, button: 0 });
+    Object.defineProperty(event, 'target', { value: anchor });
+    component.confirmNavigation(event);
+    expect(event.defaultPrevented).toBeTrue();
+    expect(component.pendingLeave).toBe(anchor.href);
+    component.cancelLeave();
+    component.discard();
+    expect(component.draft?.tableConfig.rowConfig[0].title).toBe('Saved title');
+    expect(component.isDirty).toBeFalse();
+    expect(api.save).not.toHaveBeenCalled();
+  });
+
+  it('keeps the editor path when selecting a target under the portal base href', () => {
+    const target: DashboardTargetInfo = { target: { kind: 'workflow', recordType: 'rdmp', stage: 'draft' }, key: 'draft', ownerLabel: 'RDMP', stepLabel: 'Draft', hidden: false, recordType: 'rdmp', queryFilterKeys: [] };
+    window.history.replaceState(null, '', '/default/rdmp/admin/dashboard-config');
+    expect(component.targetHash(target)).toBe('/default/rdmp/admin/dashboard-config#target=draft');
   });
 });

@@ -55,8 +55,46 @@ form fingerprints, and the typed 409/412/428 response variants. Run both
 `npm run validate:api-routes` and `npm run docs:audit` after changing these
 contracts.
 
+The REST reference also describes the named-query editor's target discovery,
+field guidance, draft validation/description/preview and saved-query description
+routes, plus the report-owned query description and report validation/preview
+routes. Their descriptions distinguish advisory guidance from execution paths,
+list server-owned preview limits/refusals and explain `deadlineEnforced` for
+native record reads versus compatible saved custom queries. Regenerate the REST
+reference with `npm run doc:api` before composing it with `npm run docs:generate`.
+
 The TypeDoc reflection model is an internal intermediate under `.tmp/documentation-intermediate` and is not published.
 
 ## CI and publication
 
 Branch and pull-request builds generate the documentation-health JSON and Markdown as CircleCI artifacts. Findings are advisory and do not fail the build. On `master`, CircleCI generates both documentation products, composes the complete site, records the source commit and generation timestamp, and publishes `.tmp/generated-docs-site` to `gh-pages` using the repository-pinned publishing dependency.
+
+## Related-record resolution reference
+
+After changing related-record contracts, generate the independent REST reference
+**before** composing the site:
+
+```bash
+npm run validate:api-routes
+npm run doc:api
+npm run docs:generate
+npm run docs:audit
+```
+
+The REST registry supplies the resolved GET and unsaved-reference refresh POST,
+strict request bodies, safe status/result schemas and private/no-store responses.
+The extension reference derives the three RecordsService related-metadata helper
+signatures; the form schema derives `relatedDisplay` from current contracts.
+`RelatedObjectDataComponent` is currently reported as unclassified (no lifecycle
+tag), so its dedicated generated contract page and member documentation are not
+published. Its implemented `relationId`/`required` configuration is documented in
+the wiki recipe; regeneration alone does not repair that source classification gap. Internal bootstrap/view markers are not user
+configuration. Runtime limits and deployment instructions remain in
+[Configuring Related Records](Configuring-Related-Records.md), with
+[form expressions and transient displays](Form-Configuration-Recipe-Populate-From-Related-Record.md)
+and [consumer examples](Services-Architecture.md#related-record-consumers).
+
+Generated output is evidence of the current source contracts, not a replacement
+for runtime permission, transition or persistence tests. Health findings remain
+advisory. Review any source documentation gaps in the health report; do not change
+unrelated packages or mark untested runtime behavior complete during regeneration.

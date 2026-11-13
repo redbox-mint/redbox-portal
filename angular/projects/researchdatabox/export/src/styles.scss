@@ -1,1 +1,21 @@
 /* You can add global styles to this file, and also import other style files */
+
+// Only the export page: Bootstrap's full-width mobile columns must stack.
+// Keep table overflow inside the export app instead of shifting the whole page.
+@media (max-width: 767.98px) {
+  .admin-layout:has(> .admin-main-content > export) {
+    flex-wrap: wrap;
+
+    > .admin-main-content {
+      min-width: 0;
+      padding: 0 12px;
+    }
+
+    .admin-sidebar {
+      position: static;
+      margin-top: 0;
+      margin-bottom: 0;
+      height: auto;
+    }
+  }
+}

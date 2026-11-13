@@ -1,5 +1,6 @@
 /* oxlint-disable typescript/no-explicit-any */
-import { Effect, Layer } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { Services as services } from '../CoreService';
 import { RBValidationError } from '../model/RBValidationError';
 import type { RecordModel } from '../model/storage/RecordModel';

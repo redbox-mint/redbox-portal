@@ -1,5 +1,7 @@
+import {ILogger} from "@researchdatabox/sails-ng-common";
+
 export interface RunWithOptionalTransactionOptions {
-  logger?: Pick<Sails.Log, 'warn'>;
+  logger?: Pick<ILogger, 'warn'>;
   unsupportedAdapterWarning?: string;
 }
 

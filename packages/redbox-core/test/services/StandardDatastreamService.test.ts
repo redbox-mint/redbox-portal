@@ -119,6 +119,27 @@ describe('StandardDatastreamService', function () {
       expect(exported).to.have.property('addAndRemoveDatastreams');
       expect(exported).to.have.property('getDatastream');
       expect(exported).to.have.property('listDatastreams');
+      expect(exported).to.have.property('getDatastreamFingerprint');
+    });
+  });
+
+  describe('getDatastreamFingerprint', function () {
+    it('identifies stored bytes from primary disk metadata without reading them', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      mockPrimaryDisk.getMetaData.resolves({ contentLength: 9, etag: 'etag-1', lastModified: new Date('2026-01-01T00:00:00.000Z') });
+      expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal('etag-1:9:2026-01-01T00:00:00.000Z');
+      expect(mockPrimaryDisk.getMetaData.calledWith('attachments/oid-123/file-1')).to.be.true;
+      expect(mockPrimaryDisk.getStream.called).to.be.false;
+    });
+
+    it('reports no fingerprint without an ETag or before the attachment reaches the primary disk', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      mockPrimaryDisk.getMetaData.resolves({ contentLength: 9, etag: '', lastModified: new Date() });
+      expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal(undefined);
+      mockPrimaryDisk.getMetaData.rejects(Object.assign(new Error('not found'), { code: 'ENOENT' }));
+      expect(await service.getDatastreamFingerprint('oid-123', 'file-1')).to.equal(undefined);
     });
   });
 
@@ -559,6 +580,41 @@ describe('StandardDatastreamService', function () {
   });
 
   describe('getDatastream', function () {
+    it('does not open an S3 body while attachment metadata is still pending', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      let resolveMetadata!: (row: undefined) => void;
+      const findOneByStorageKey = sinon.stub().returns(new Promise(resolve => { resolveMetadata = resolve; }));
+      mockSails.services.attachmentmetadataservice = { findOneByStorageKey };
+
+      const reading = service.getDatastream('oid-123', 'file-123');
+      await waitFor(() => findOneByStorageKey.called);
+      const openedBeforeMetadata = mockPrimaryDisk.getStream.called;
+      resolveMetadata(undefined);
+      const result = await reading;
+
+      expect(openedBeforeMetadata).to.be.false;
+      expect(result.size).to.equal(1024);
+      expect(result).to.have.property('readstream');
+    });
+
+    it('does not leak an open body when attachment metadata lookup fails', async function () {
+      const { Services } = require('../../src/services/StandardDatastreamService');
+      const service = new Services.StandardDatastream();
+      const failure = new Error('metadata database unavailable');
+      mockSails.services.attachmentmetadataservice = {
+        findOneByStorageKey: sinon.stub().rejects(failure),
+      };
+
+      try {
+        await service.getDatastream('oid-123', 'file-123');
+        expect.fail('Expected metadata lookup failure');
+      } catch (error) {
+        expect(error).to.equal(failure);
+      }
+      expect(mockPrimaryDisk.getStream.called).to.be.false;
+    });
+
     it('should return an object with a readstream', async function () {
       const { Services } = require('../../src/services/StandardDatastreamService');
       const service = new Services.StandardDatastream();

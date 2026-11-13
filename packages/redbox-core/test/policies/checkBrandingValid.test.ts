@@ -1,3 +1,6 @@
+import * as sinon from "sinon";
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import("chai").then(mod => expect = mod.expect);
 
@@ -11,9 +14,7 @@ import("chai").then(mod => expect = mod.expect);
             defaultPortal: 'portal'
         }
     },
-    log: {
-        verbose: () => { }
-    }
+    log: createSinonStubLogger(sinon),
 };
 
 (global as any).BrandingService = {
@@ -21,6 +22,7 @@ import("chai").then(mod => expect = mod.expect);
 };
 
 import { checkBrandingValid } from '../../src/policies/checkBrandingValid';
+
 
 describe('checkBrandingValid policy', function () {
     let originalSails: any;
@@ -37,9 +39,7 @@ describe('checkBrandingValid policy', function () {
                     defaultPortal: 'portal'
                 }
             },
-            log: {
-                verbose: () => { }
-            }
+            log: createSinonStubLogger(sinon),
         };
 
         (global as any).BrandingService = {

@@ -7,7 +7,7 @@ import('chai').then(mod => (expect = mod.expect));
 declare const FormsService: FormsModule.Services.Forms;
 declare const BrandingService: BrandingModule.Services.Branding;
 declare const RecordType: any;
-declare const sails: any;
+declare const sails: Sails.Application;
 
 describe('The FormsService', function () {
   before(function (done) {
@@ -883,8 +883,8 @@ describe('The FormsService', function () {
       // ensure the formConfig has not been modified
       expect(JSON.stringify(formConfig)).to.eql(original);
 
-      // confirm the client form config looks as expected
-      expect(result).to.eql(expected);
+      // confirm the client form config looks as expected, as serialised for the client
+      expect(JSON.parse(JSON.stringify(result))).to.eql(expected);
     });
     it('should remove the components nested in repeatable and group components when the constraints are not met', async function () {
       const formConfig: FormConfigFrame = {

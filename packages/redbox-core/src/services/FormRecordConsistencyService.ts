@@ -1,3 +1,5 @@
+import { compileRelatedDisplayContract } from '../related-records/display-descriptors';
+import type { FormRecordAccessContext } from './FormsService';
 // Copyright (c) 2025 Queensland Cyber Infrastructure Foundation (http://www.qcif.edu.au/)
 //
 // GNU GENERAL PUBLIC LICENSE
@@ -31,6 +33,7 @@ import { DataValueFormConfigVisitor } from "../visitor/data-value.visitor";
 import { JsonTypeDefSchemaFormConfigVisitor } from "../visitor/json-type-def.visitor";
 import { TemplateFormConfigVisitor } from "../visitor/template.visitor";
 import { ConstructFormConfigVisitor } from "../visitor/construct.visitor";
+import { projectViewMetadata } from '../ViewFormMetadata';
 import { ClientFormConfigVisitor } from '../visitor/client.visitor';
 import { VocabInlineFormConfigVisitor } from '../visitor/vocab-inline.visitor';
 import { ContextVariablesFormConfigVisitor } from '../visitor/context-variables.visitor';
@@ -154,6 +157,11 @@ export namespace Services {
                 redboxOid: original?.redboxOid ?? "",
                 metadata: this.mergeRecordMetadataPermitted(originalMetadata, changedMetadata, permittedChanges, changes),
             }
+        }
+
+        /** Saved values for the fields in a view form that has already passed the role and mode checks. */
+        public metadataForViewForm(metadata: Record<string, unknown>, viewForm: FormConfigFrame): Record<string, unknown> {
+            return projectViewMetadata(metadata, viewForm);
         }
 
         /**
@@ -551,8 +559,19 @@ export namespace Services {
           formMode: FormModesConfig,
           userRoles?: string[],
           recordMetadata?: Record<string, unknown> | null,
-          reusableFormDefs?: ReusableFormDefinitions
+          reusableFormDefs?: ReusableFormDefinitions,
+          recordAccessContext?: FormRecordAccessContext
         ): Promise<TemplateCompileInput[]> {
+          // Compile the same authorized, hydrated view returned by getForm.
+          // Selection-dependent templates (for example empty vs selected options)
+          // must use current source values, not an unresolved placeholder.
+          if (formMode === 'view' && recordAccessContext && compileRelatedDisplayContract(item, reusableFormDefs)) {
+            const form = await FormsService.buildClientFormConfig(item, formMode, userRoles, recordMetadata,
+              reusableFormDefs, undefined, undefined, recordAccessContext);
+            // The client carrier strips behaviour templates; compile their raw definitions.
+            form.behaviours = _.cloneDeep(item.behaviours);
+            return await new TemplateFormConfigVisitor(this.logger).start({ form });
+          }
           const constructor = new ConstructFormConfigVisitor(this.logger);
           const constructedForm = await constructor.start({ data: item, reusableFormDefs, formMode, record: recordMetadata });
           const vocabVisitor = new VocabInlineFormConfigVisitor(this.logger);

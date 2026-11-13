@@ -18,10 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 import { from } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
-import { APP_BASE_HREF } from '@angular/common'; 
+import { APP_BASE_HREF, DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ConfigService } from './config.service';
+import { ReportService } from './report.service';
+import { UtilityService } from './utility.service';
+import { LoggerService } from './logger.service';
 
 /**
  * Config Service Testing 
@@ -51,7 +54,7 @@ describe('ConfigService testing', () => {
           provide: APP_BASE_HREF,
           useValue: ''
         },
-        ConfigService
+        ConfigService, ReportService, UtilityService, LoggerService
       ]
     });
     httpClient = TestBed.inject(HttpClient);
@@ -63,6 +66,7 @@ describe('ConfigService testing', () => {
   it('should have a valid config object', function (done:any) {
     const mockCsrfData = { _csrf: 'testCsrfValue' };
     const mockConfigData = {
+      baseUrl: '', branding: 'default', portal: 'rdmp',
       csrfToken: mockCsrfData._csrf, 
       rootContext: '', 
       someRandomKey: 'someRandomValue', 
@@ -95,8 +99,216 @@ describe('ConfigService testing', () => {
 
   });
 
+  for (const endpoint of ['csrf', 'config']) {
+    it(`rejects early and late waiters after a ${endpoint} failure and recovers`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejected();
+      const csrf = httpTestingController.expectOne(configService.csrfTokenUrl);
+      if (endpoint === 'csrf') {
+        csrf.error(new ProgressEvent('error'));
+      } else {
+        csrf.flush({ _csrf: 'old' });
+        httpTestingController.expectOne(configService.configUrl).flush('denied', { status: 403, statusText: 'Forbidden' });
+      }
+      await waiting;
+      await expectAsync(configService.waitForInit()).toBeRejected();
+      const recovered = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'rotated' });
+      httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+      expect((await recovered).csrfToken).toBe('rotated');
+      expect((await configService.waitForInit()).csrfToken).toBe('rotated');
+    });
+  }
+
+  it('loads and refreshes configuration when Sails returns an empty token with CSRF disabled', async () => {
+    const waiting = configService.waitForInit();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    expect((await waiting).csrfToken).toBe('');
+
+    const enabled = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'enabled' });
+    httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    expect((await enabled).csrfToken).toBe('enabled');
+
+    const disabled = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    expect((await disabled).csrfToken).toBe('');
+    expect(configService.csrfToken).toBe('');
+  });
+
+  for (const response of ['<html>Sign in</html>', null, [], {}, { _csrf: null }, { _csrf: 123 }, { message: 'Sign in' }]) {
+    it(`rejects malformed CSRF response ${JSON.stringify(response)} and permits explicit recovery`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejected();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush(response);
+      await waiting;
+      await expectAsync(configService.waitForInit()).toBeRejected();
+      httpTestingController.expectNone(configService.configUrl);
+
+      const retry = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'recovered' });
+      httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+      expect((await retry).csrfToken).toBe('recovered');
+    });
+  }
+
+  for (const response of ['<html>Sign in</html>', null, [], {}, { message: 'Sign in' },
+    { baseUrl: '', branding: 'default' }, { baseUrl: '', portal: 'rdmp' },
+    { branding: 'default', portal: 'rdmp' },
+    { baseUrl: null, branding: 'default', portal: 'rdmp' },
+    { baseUrl: '', branding: '', portal: 'rdmp' },
+    { baseUrl: '', branding: 'default', portal: '  ' }]) {
+    it(`rejects malformed configuration ${JSON.stringify(response)} and recovers with a fresh session token`, async () => {
+      const waiting = expectAsync(configService.waitForInit()).toBeRejectedWithError('Invalid configuration response. Sign in again and retry.');
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'old' });
+      httpTestingController.expectOne(configService.configUrl).flush(response);
+      await waiting;
+      await expectAsync(configService.getConfig()).toBeRejected();
+      expect(configService.isInitializing()).toBeTrue();
+
+      const retry = configService.refreshConfig();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'new-session' });
+      httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+      expect((await retry).csrfToken).toBe('new-session');
+      expect(configService.isInitializing()).toBeFalse();
+    });
+  }
+
+  it('blocks dependent URL construction until incomplete configuration is explicitly recovered', async () => {
+    const report = TestBed.inject(ReportService);
+    const waiting = expectAsync(report.waitForInit()).toBeRejected();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '' });
+    await waiting;
+    expect(report.brandingAndPortalUrl).toBe('');
+    await expectAsync(report.waitForInit()).toBeRejected();
+    httpTestingController.expectNone(req => req.url.includes('getReport'));
+
+    const refresh = configService.refreshConfig();
+    const dependent = report.waitForInit();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+    httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    await Promise.all([refresh, dependent]);
+    expect(report.brandingAndPortalUrl).toBe('/default/rdmp');
+    expect(report.baseUrlWithContext).toBe('');
+  });
+
+  for (const baseUrl of ['', '/', 'https://portal.example.edu', 'https://portal.example.edu/redbox']) {
+    it(`accepts the backend URL contract with baseUrl ${JSON.stringify(baseUrl)} and a root context`, async () => {
+      const waiting = configService.waitForInit();
+      httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: '' });
+      httpTestingController.expectOne(configService.configUrl).flush({ baseUrl, branding: 'default', portal: 'rdmp' });
+      const config = await waiting;
+      expect(config.baseUrl).toBe(baseUrl);
+      expect(config.rootContext).toBe('');
+      expect(config.csrfToken).toBe('');
+    });
+  }
+
+  it('shares an in-flight configuration refresh across concurrent retries', async () => {
+    const waiting = configService.waitForInit();
+    const concurrent = configService.refreshConfig();
+    const another = configService.refreshConfig();
+    httpTestingController.expectOne(configService.csrfTokenUrl).flush({ _csrf: 'shared-session' });
+    httpTestingController.expectOne(configService.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    const configs = await Promise.all([waiting, concurrent, another]);
+    expect(configs.every(config => config === configs[0])).toBeTrue();
+    expect(configs[0].csrfToken).toBe('shared-session');
+  });
+
   afterEach(() => {
     // After every test, assert that there are no more pending requests.
     httpTestingController.verify();
   });
+});
+
+
+describe('ConfigService page token bootstrap', () => {
+  let http: HttpTestingController;
+  let page: Document;
+  beforeEach(() => {
+    page = document.implementation.createHTMLDocument();
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [ConfigService, { provide: APP_BASE_HREF, useValue: '/portal' }, { provide: DOCUMENT, useValue: page }]
+    });
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => http.verify());
+
+  for (const token of ['page-session-token', '']) {
+    it(`reuses the page token ${JSON.stringify(token)} once and refreshes from the session on retry`, async () => {
+      const meta = page.createElement('meta');
+      meta.name = 'rb-csrf-token'; meta.content = token; page.head.appendChild(meta);
+      const service = TestBed.inject(ConfigService);
+      const waiting = service.waitForInit();
+      http.expectNone(service.csrfTokenUrl);
+      http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'custom', portal: 'records' });
+      expect((await waiting).csrfToken).toBe(token);
+      expect((await waiting).rootContext).toBe('/portal');
+
+      const retry = service.refreshConfig();
+      http.expectOne(service.csrfTokenUrl).flush({ _csrf: 'new-session-token' });
+      http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'custom', portal: 'records' });
+      expect((await retry).csrfToken).toBe('new-session-token');
+    });
+  }
+
+  it('propagates a config failure after page-token bootstrap and fetches a fresh token for recovery', async () => {
+    page.head.innerHTML = '<meta name="rb-csrf-token" content="old-session-token">';
+    const service = TestBed.inject(ConfigService);
+    const waiting = expectAsync(service.waitForInit()).toBeRejected();
+    http.expectNone(service.csrfTokenUrl);
+    http.expectOne(service.configUrl).flush({}, { status: 403, statusText: 'Forbidden' });
+    await waiting;
+    const retry = service.refreshConfig();
+    http.expectOne(service.csrfTokenUrl).flush({ _csrf: 'fresh-session-token' });
+    http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+    expect((await retry).csrfToken).toBe('fresh-session-token');
+  });
+});
+
+
+describe('ConfigService page configuration bootstrap', () => {
+  let http: HttpTestingController;
+  let page: Document;
+  beforeEach(() => {
+    page = document.implementation.createHTMLDocument();
+    page.head.innerHTML = '<meta name="rb-csrf-token" content="page-token">';
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [ConfigService, { provide: APP_BASE_HREF, useValue: '/portal' }, { provide: DOCUMENT, useValue: page }]
+    });
+    http = TestBed.inject(HttpTestingController);
+  });
+  afterEach(() => http.verify());
+
+  function snapshot(content: string) {
+    const meta = page.createElement('meta');
+    meta.name = 'rb-client-config'; meta.content = content; page.head.appendChild(meta);
+  }
+
+  it('initializes without requests and bypasses both page snapshots on explicit refresh', async () => {
+    snapshot(JSON.stringify({ baseUrl: '', branding: 'custom', portal: 'records', app: { test: { title: '<quoted "value">' } } }));
+    const service = TestBed.inject(ConfigService);
+    http.expectNone(service.configUrl); http.expectNone(service.csrfTokenUrl);
+    const config = await service.waitForInit();
+    expect(config.branding).toBe('custom');
+    expect(config.app.test.title).toBe('<quoted "value">');
+    expect(config.csrfToken).toBe('page-token'); expect(config.rootContext).toBe('/portal');
+    const retry = service.refreshConfig();
+    http.expectOne(service.csrfTokenUrl).flush({ _csrf: 'fresh-token' });
+    http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'new', portal: 'records' });
+    expect((await retry).branding).toBe('new'); expect((await retry).csrfToken).toBe('fresh-token');
+  });
+
+  for (const content of ['{', 'null', '[]', '{}', '{"baseUrl":"","branding":"custom"}']) {
+    it(`falls back to the endpoint for an invalid snapshot: ${content}`, async () => {
+      snapshot(content);
+      const service = TestBed.inject(ConfigService);
+      http.expectNone(service.csrfTokenUrl);
+      http.expectOne(service.configUrl).flush({ baseUrl: '', branding: 'default', portal: 'rdmp' });
+      expect((await service.waitForInit()).portal).toBe('rdmp');
+    });
+  }
 });

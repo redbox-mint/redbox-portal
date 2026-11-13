@@ -3,6 +3,8 @@
  * Auto-generated from config/i18n.js
  */
 
+import type { InitOptions } from 'i18next';
+
 export interface I18nDetectionConfig {
     order?: string[];
     lookupCookie?: string;
@@ -24,6 +26,8 @@ export interface I18nNextInitConfig {
     skipOnVariables: boolean;
     returnEmptyString: boolean;
     ns: string[];
+    /** Passed through to i18next, including namespace lists and false. */
+    defaultNS?: InitOptions['defaultNS'];
     detection: I18nDetectionConfig;
 }
 
@@ -37,6 +41,8 @@ export interface I18nConfig {
     updateFiles?: boolean;
     localesDirectory?: string;
     next: I18nNextConfig;
+    /** Exact CSS classes permitted per HTML tag. Hooks may extend core's presentation classes. */
+    editor?: { allowedClasses?: Record<string, string[]> };
 }
 
 export const i18n: I18nConfig = {

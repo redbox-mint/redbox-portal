@@ -1,3 +1,5 @@
+import {createSinonStubLogger} from "../logger.test";
+
 let expect: Chai.ExpectStatic;
 import * as sinon from 'sinon';
 import { Controllers } from '../../src/CoreController';
@@ -7,6 +9,7 @@ import { created } from '../../src/responses/created';
 import { forbidden } from '../../src/responses/forbidden';
 import { notFound } from '../../src/responses/notFound';
 import { serverError } from '../../src/responses/serverError';
+import { RequestChronicleHelper } from '../../src/utilities/RequestChronicle';
 
 before(async () => {
   expect = (await import('chai')).expect;
@@ -21,11 +24,7 @@ describe('Responses', function () {
   beforeEach(function () {
     originalTranslationService = (global as any).TranslationService;
     sailsStub = {
-      log: {
-        silly: sinon.stub(),
-        verbose: sinon.stub(),
-        error: sinon.stub()
-      },
+      log: createSinonStubLogger(sinon),
       config: {
         hooks: {
           views: true
@@ -40,6 +39,7 @@ describe('Responses', function () {
     };
 
     res = {
+      set: sinon.stub().returnsThis(),
       status: sinon.stub().returnsThis(),
       json: sinon.stub(),
       view: sinon.stub(),
@@ -190,6 +190,17 @@ describe('Responses', function () {
   });
 
   describe('notFound', function () {
+    for (const wantsJSON of [true, false]) {
+      it(`replaces upstream cache headers before sending ${wantsJSON ? 'JSON' : 'HTML'}`, function () {
+        req.wantsJSON = wantsJSON;
+        notFound.call({ req, res }, 'missing');
+        expect(res.set.calledWith('Cache-Control', 'no-cache, no-store, must-revalidate')).to.be.true;
+        expect(res.set.calledWith('Pragma', 'no-cache')).to.be.true;
+        expect(res.set.calledWith('Expires', '0')).to.be.true;
+        expect(res.set.calledBefore(res.status)).to.be.true;
+      });
+    }
+
     it('should preserve the JSON 404 response', function () {
       notFound.call({ req, res }, 'missing');
 
@@ -230,6 +241,26 @@ describe('Responses', function () {
       serverError.call({ req, res }, 'oops');
 
       expect(res.view.calledWith('500', { data: 'oops', title: 'Site' })).to.be.true;
+    });
+
+    it('logs the error immediately when there is no request chronicle', function () {
+      const error = new Error('router failure');
+      serverError.call({ req, res }, error);
+
+      expect(sailsStub.log.error.calledWith('Sending 500 ("Server Error") response: \n', error)).to.be.true;
+    });
+
+    it('records the error in the running request chronicle instead of a separate log', function () {
+      const rc = RequestChronicleHelper.fromReq(sailsStub.log, req, { generateRequestId: () => 'request-1' });
+      rc.start();
+      const error = new Error('body parser failure');
+
+      serverError.call({ req, res }, error);
+
+      expect(sailsStub.log.error.called).to.be.false;
+      expect(rc.data).to.deep.include({ responseHandler: 'serverError' });
+      expect(rc.data.errors?.[0]).to.include({ name: 'Error', message: 'body parser failure' });
+      expect(res.status.calledWith(500)).to.be.true;
     });
   });
 });

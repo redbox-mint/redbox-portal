@@ -1,4 +1,5 @@
-import { Effect, Layer } from 'effect';
+import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { IntegrationAuditAction, IntegrationAuditName } from '../../model/storage/IntegrationAuditModel';
 import type { IntegrationAuditContext } from '../IntegrationAuditService';
 import { RaidAuditTag, RaidRunContextTag } from './tags';
@@ -12,7 +13,7 @@ export interface AuditAdapter {
 export function makeAuditLayer(adapter?: AuditAdapter) {
   return Layer.effect(RaidAuditTag, Effect.gen(function* () {
     const context = yield* RaidRunContextTag;
-    const bestEffort = <A>(fn: () => A, fallback: A): Effect.Effect<A> => Effect.try({ try: fn, catch: () => fallback }).pipe(Effect.catchAll(() => Effect.succeed(fallback)));
+    const bestEffort = <A>(fn: () => A, fallback: A): Effect.Effect<A> => Effect.try({ try: fn, catch: () => fallback }).pipe(Effect.catch(() => Effect.succeed(fallback)));
     return {
       start(action: string, summary: Record<string, unknown> = {}, parent?: IntegrationAuditContext | null) {
         if (!adapter) return Effect.succeed(null);

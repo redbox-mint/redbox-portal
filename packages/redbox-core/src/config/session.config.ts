@@ -9,8 +9,8 @@ export interface SessionCookieConfig {
     /** Cookie max age in milliseconds */
     maxAge?: number;
 
-    /** Cookie secure flag (HTTPS only) */
-    secure?: boolean;
+    /** Cookie secure flag. Anything other than true is treated as 'auto' (secure over HTTPS). */
+    secure?: boolean | 'auto';
 
     /** Cookie httpOnly flag */
     httpOnly?: boolean;
