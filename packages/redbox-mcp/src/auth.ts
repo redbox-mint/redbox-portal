@@ -60,6 +60,7 @@ export class McpAuthenticator {
         error instanceof errors.JWTInvalid ||
         error instanceof errors.JWSInvalid ||
         error instanceof errors.JWSSignatureVerificationFailed ||
+        error instanceof errors.JOSENotSupported ||
         error instanceof errors.JOSEAlgNotAllowed ||
         error instanceof errors.JWKSNoMatchingKey
       )

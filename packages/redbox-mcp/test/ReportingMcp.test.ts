@@ -314,6 +314,34 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       assert.equal(resolved, false);
     }
   });
+  it('rejects unsupported critical headers while treating ambiguous JWKS keys as unavailable', async () => {
+    let mapped = false;
+    const resolve = async () => {
+      mapped = true;
+      return principal;
+    };
+    const unsupported = await new SignJWT({ scope: config.scope })
+      .setProtectedHeader({ alg: 'RS256', kid: 'test-key', typ: 'at+jwt', crit: ['custom'], custom: true })
+      .setIssuer(config.issuer)
+      .setAudience(config.resourceUrl)
+      .setSubject('alice')
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(privateKey, { crit: { custom: true } });
+    await assert.rejects(
+      new McpAuthenticator(config, resolve, keys).authenticate(`Bearer ${unsupported}`),
+      error => error instanceof McpAuthError && error.code === 'invalid_token'
+    );
+    assert.equal(mapped, false);
+    const pair = await generateKeyPair('RS256');
+    const key = { ...(await exportJWK(pair.publicKey)), kid: 'test-key', alg: 'RS256' };
+    const ambiguous = createLocalJWKSet({ keys: [key, { ...key }] });
+    await assert.rejects(
+      new McpAuthenticator(config, resolve, ambiguous).authenticate(`Bearer ${await token()}`),
+      errors.JWKSMultipleMatchingKeys
+    );
+    assert.equal(mapped, false);
+  });
   it('maps only existing OIDC usernames and uses their persisted ID for principal refresh', async () => {
     const names = ['User', 'BrandingService'];
     const previous = new Map(names.map(name => [name, Reflect.get(globalThis, name)]));
@@ -382,6 +410,19 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       assert.equal(response.status, 503);
       assert.equal(response.headers.get('www-authenticate'), null);
       assert.deepEqual(await response.json(), { error: 'unavailable' });
+      // Header rejection happens before the unavailable identity store is queried.
+      const parts = bearer.split('.');
+      parts[0] = Buffer.from(
+        JSON.stringify({ alg: 'RS256', kid: 'test-key', crit: ['custom'], custom: true })
+      ).toString('base64url');
+      const invalid = await fetch(`http://127.0.0.1:${port}/mcp`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${parts.join('.')}` },
+        body: '{}',
+      });
+      assert.equal(invalid.status, 401);
+      assert.ok(invalid.headers.get('www-authenticate')?.includes('invalid_token'));
+      assert.deepEqual(await invalid.json(), { error: 'invalid_token' });
     } finally {
       await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
     }
