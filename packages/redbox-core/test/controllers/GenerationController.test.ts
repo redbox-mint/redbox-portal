@@ -101,6 +101,28 @@ describe('GenerationController', () => {
     });
   });
 
+  for (const answer of [null, [], 'answer', 42, {}, { id: 42 }, { id: '' }, { id: '   ' }]) {
+    it(`rejects malformed answer ${JSON.stringify(answer)} before dispatch`, async () => {
+      const sendResp = sinon.stub(controller as any, 'sendResp');
+      await controller.execute(request({ id: 'run-1' }, {
+        answers: [answer], targetForm: { recordType: 'rdmp', mode: 'create' }, targetDraft: {},
+      }), {} as Sails.Res);
+      expect(runService.execute.called).to.equal(false);
+      expect(sendResp.firstCall.args[2].status).to.equal(400);
+      expect(sendResp.firstCall.args[2].data.error.code).to.equal('GENERATION_REQUEST_INVALID');
+    });
+  }
+
+  it('passes valid answer objects through to the run service', async () => {
+    const answers = [{ id: 'projectPurpose', value: 'Study wetlands' }, { id: 'sensitiveData', value: false }];
+    const sendResp = sinon.stub(controller as any, 'sendResp');
+    await controller.execute(request({ id: 'run-1' }, {
+      answers, targetForm: { recordType: 'rdmp', mode: 'create' }, targetDraft: {},
+    }), {} as Sails.Res);
+    expect(runService.execute.firstCall.args[0].answers).to.deep.equal(answers);
+    expect(sendResp.firstCall.args[2].status).to.equal(202);
+  });
+
   it('does not expose unexpected service errors in the response', async () => {
     runService.getForActor.rejects(new Error('provider response contained private project data'));
     const sendResp = sinon.stub(controller as any, 'sendResp');

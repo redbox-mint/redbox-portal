@@ -1,12 +1,12 @@
 # AI-assisted form generation
 
-Status: proposed
+Status: implemented POC in draft review; future administration extensions remain proposed
 
 Primary delivery target: customer-facing proof of concept
 
 Initial use case: Research Activity to institutional RDMP
 
-Initial model gateway: OpenRouter through the Vercel AI SDK
+Implemented model providers: OpenRouter and Amazon Bedrock through the Vercel AI SDK; deterministic fake adapter for development and tests
 
 This directory defines a generic ReDBox capability for generating validated form values from authorised records, uploaded project documents, researcher-reviewed context, and approved institutional guidance. Record data and uploaded documents must each work independently and together. The first vertical slice helps a researcher create a data management plan, but the platform concepts deliberately do not contain DMP-specific assumptions.
 
@@ -65,7 +65,7 @@ The exactly pinned dependencies `pdfjs-dist` and `mammoth` provide PDF and DOCX 
 
 The Docker mount suite ran in an isolated Compose project. Local setup required writable temporary storage, bypassing the already-built webpack step and coverage instrumentation, temporarily hiding the Redoc/Should packages from Sails module discovery, disabling live RVA bootstrap imports, and overriding the unrelated `concurrencyTest` fixture because the installed storage adapter lacks its strict-mode capability. These overrides were confined to the test runner; application configuration and the development containers were not changed.
 
-Authenticated browser verification uses the same Tailscale origin as `sails_appUrl`: `http://nam-oci-agent-2.tail4a7c3.ts.net:1500`. Restarting the development portal loaded the current core, and administrator login was confirmed by “Welcome Local Admin”. The separate `redbox-hook-demo` profile now opts into PDF/DOCX/TXT uploads and an optional Activity, with the new upload labels added to its local translation bundle.
+Authenticated browser verification uses the configured development portal origin from `sails_appUrl`. Restarting the development portal loaded the current core, and administrator login was confirmed by “Welcome Local Admin”. The separate `redbox-hook-demo` profile now opts into PDF/DOCX/TXT uploads and an optional Activity, with the new upload labels added to its local translation bundle.
 
 Browser checks passed for record-only launch with source defaults, document-only launch, real TXT/PDF/DOCX upload and extraction, page/paragraph previews, correction notes, review gating, document removal, unsupported-format errors, and selecting an Activity after uploads without losing them. Passage styling was moved into the form stylesheet to comply with the portal's Content Security Policy; the rebuilt form and computed browser styles were verified.
 
@@ -74,3 +74,13 @@ The reported failure for `Proposal-Example-2.pdf` was traced to the expired Bedr
 Bedrock and OpenRouter HTTP 401/403 responses now produce `GENERATION_PROVIDER_AUTH_FAILED` with an actionable credential/model-access message. They do not trigger automatic retries; a manual retry can reuse uploaded context and corrections within the existing expiry and retry limits. The Angular suite verifies this retention.
 
 Live generation is verified with the supplied PDF. Full browser generation/review/save/reload across every source combination remains a separate verification gate. The automated integration suite already covers those lifecycle operations for all source combinations and a second target form; it does not establish the factual accuracy of a live model's response.
+
+## Current runtime boundaries
+
+Ordinary forms request provenance automatically only when server metadata enables generation. Explicit authorised provenance requests remain available for durable audit history. A commit receipt contains the original candidate digest and the applied/reviewed field subsets; later edits retain the original generated-value hash and display as edited on reload. Saved values need not equal the generated values.
+
+Artifact expiry retains the ISO `expiresAt` API field and a lifecycle-managed BSON date companion, `expiresAtDate`, for MongoDB TTL deletion. Bootstrap migrates existing timestamps and replaces the legacy string-field TTL index. A committed receipt can retry sensitive-artifact cleanup without extending retention.
+
+Cancellation is acknowledged before provider invocation or after the call returns; an already-running provider call may continue until its response or configured timeout. Abandoned work settles at the operational artifact deadline. It is not automatically requeued after a heartbeat delay, because an original provider call may still be running.
+
+The current client polls at 750–4000 ms. `generation.polling.minMs`/`maxMs`, `outbound.allowedHosts`, `diagnostics.allowAdminDiagnostics`, and `queue.cleanupJobName` are reserved configuration in this POC. Providers enforce their fixed host policies, raw admin diagnostics are not exposed, and the cleanup schedule uses its registered job. These reserved settings do not override those behaviours.

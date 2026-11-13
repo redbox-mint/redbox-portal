@@ -18,7 +18,9 @@ export interface GenerationPatchApplicationResult {
 
 function pointerParts(pointer: string): string[] {
   if (!pointer.startsWith('/')) return [];
-  return pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
+  const parts = pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
+  if (parts.some((part) => part === '__proto__' || part === 'constructor' || part === 'prototype')) return [];
+  return parts;
 }
 
 function valueAt(value: unknown, pointer: string): unknown {
@@ -191,14 +193,7 @@ export class GenerationPatchApplierService {
         expectedValue: valueAt(executionSnapshot, pointer),
       };
     }
-    const fieldId = parts.at(-1);
-    if (!fieldId) return null;
-    const flatControl = form.get(fieldId);
-    return flatControl ? {
-      control: flatControl,
-      fieldId,
-      expectedValue: valueAt(executionSnapshot, `/${fieldId.replaceAll('~', '~0').replaceAll('/', '~1')}`),
-    } : null;
+    return null;
   }
 
   private resolveInitialValueChange(

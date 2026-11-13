@@ -4,7 +4,11 @@ export function decodeJsonPointer(pointer: string): string[] {
   if (!pointer.startsWith('/') || pointer.includes('..') || pointer.includes('\\')) {
     throw new GenerationError('GENERATION_PROFILE_INVALID', 'Invalid JSON pointer');
   }
-  return pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
+  const parts = pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
+  if (parts.some(part => part === '__proto__' || part === 'constructor' || part === 'prototype')) {
+    throw new GenerationError('GENERATION_PROFILE_INVALID', 'JSON pointer contains a reserved property');
+  }
+  return parts;
 }
 
 export function getJsonPointer(value: unknown, pointer: string): unknown {

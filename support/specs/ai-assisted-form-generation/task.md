@@ -1,6 +1,6 @@
 # Task List (With Tests and Skill Usage)
 
-Status: proposed
+Status: implemented POC in draft review; future administration extensions remain proposed
 
 Design: [design.md](design.md)
 

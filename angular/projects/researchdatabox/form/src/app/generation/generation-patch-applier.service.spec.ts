@@ -92,7 +92,7 @@ describe('GenerationPatchApplierService', () => {
     expect(result).toEqual({ changedFieldIds: [], conflictFieldIds: ['summary'] });
   });
 
-  it('applies a configuration-path target to its flat runtime form control', () => {
+  it('applies a canonical metadata pointer to its flat runtime form control', () => {
     const flatForm = new FormGroup({
       title: new FormControl<string | null>(null),
       'vivo:Dataset_dc_format': new FormControl<string | null>(null),
@@ -101,7 +101,7 @@ describe('GenerationPatchApplierService', () => {
       runId: 'run-flat', candidateDigest: 'candidate-flat', baseTargetDigest: 'base-flat',
       items: [{
         fieldId: 'dataFormat',
-        metadataPointer: '/mainTab/dataCollection/vivo:Dataset_dc_format',
+        metadataPointer: '/vivo:Dataset_dc_format',
         value: 'CSV and GeoPackage',
         operation: 'fill',
         valueHash: 'format-hash',
@@ -140,11 +140,11 @@ describe('GenerationPatchApplierService', () => {
       contributors: [],
     }, eventBus, [
       {
-        metadataPointer: '/mainTab/people/contributor_ci',
+        metadataPointer: '/contributor_ci',
         value: { text_full_name: 'Amelia Hartwell' },
       },
       {
-        metadataPointer: '/mainTab/people/contributors',
+        metadataPointer: '/contributors',
         value: copiedContributors,
       },
     ]);
@@ -159,6 +159,59 @@ describe('GenerationPatchApplierService', () => {
       correlationId: 'run-1',
     }));
   });
+
+  for (const segment of ['__proto__', 'constructor', 'prototype']) {
+    it(`rejects ${segment} before applying nested initial values or modifying prototypes`, () => {
+      const initialForm = new FormGroup({ group: new FormControl<Record<string, unknown>>({}) });
+      const pollutionKey = 'redboxGenerationPrototypePollution';
+      expect(Reflect.get(Object.prototype, pollutionKey)).toBeUndefined();
+      try {
+        service.applyInitialValues([
+          { metadataPointer: `/group/${segment}/${pollutionKey}`, value: 'polluted' },
+        ], initialForm, eventBus, 'unsafe-initial');
+
+        expect(initialForm.get('group')?.value).toEqual({});
+        expect(Reflect.get(Object.prototype, pollutionKey)).toBeUndefined();
+        expect(eventBus.publish).not.toHaveBeenCalled();
+      } finally {
+        Reflect.deleteProperty(Object.prototype, pollutionKey);
+      }
+    });
+
+    for (const origin of ['candidate', 'completion']) {
+      it(`rejects ${segment} in ${origin} pointers without writing a matching leaf control`, () => {
+        const target = new FormGroup({ summary: new FormControl('') });
+        const pointer = `/group/${segment}/summary`;
+        const patch = origin === 'candidate'
+          ? { ...candidate(), items: [{ ...candidate().items[0], metadataPointer: pointer }] }
+          : { ...candidate(), items: [] };
+        const completionValues = origin === 'completion' ? [{ metadataPointer: pointer, value: 'Unsafe replacement' }] : [];
+
+        const result = service.apply(patch, target, { summary: '' }, eventBus, completionValues);
+
+        expect(target.get('summary')?.value).toBe('');
+        expect(result.changedFieldIds).toEqual([]);
+        expect(result.conflictFieldIds.length).toBe(1);
+        expect(eventBus.publish).not.toHaveBeenCalledWith(jasmine.objectContaining({ type: 'field.value.changed' }));
+      });
+    }
+  }
+
+  for (const origin of ['candidate', 'completion']) {
+    it(`does not route a missing nested ${origin} target to an unrelated root leaf`, () => {
+      const target = new FormGroup({ summary: new FormControl('') });
+      const pointer = '/missingGroup/summary';
+      const patch = origin === 'candidate'
+        ? { ...candidate(), items: [{ ...candidate().items[0], metadataPointer: pointer }] }
+        : { ...candidate(), items: [] };
+      const completionValues = origin === 'completion' ? [{ metadataPointer: pointer, value: 'Misrouted replacement' }] : [];
+
+      const result = service.apply(patch, target, { summary: '' }, eventBus, completionValues);
+
+      expect(target.get('summary')?.value).toBe('');
+      expect(result).toEqual({ changedFieldIds: [], conflictFieldIds: ['summary'] });
+    });
+  }
 
   it('applies server-provided initial values as system-originated changes', () => {
     const initialForm = new FormGroup({ title: new FormControl('') });

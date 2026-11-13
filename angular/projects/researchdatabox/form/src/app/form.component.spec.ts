@@ -16,6 +16,7 @@ import {
   setUpDynamicAssets,
 } from "./helpers.spec";
 import { FormService } from './form.service';
+import { GenerationProvenanceStoreService } from './generation/generation-provenance-store.service';
 import { FormServerSyncService, ServerSyncResult } from './form-server-sync.service';
 import {
   FormComponentEventBus,
@@ -1571,6 +1572,33 @@ describe('FormComponent', () => {
       empty: ''
     });
   });
+
+  for (const scenario of [
+    { name: 'enabled for a saved record', meta: { generationEnabled: true }, oid: 'saved-record', loads: true },
+    { name: 'disabled for a saved record', meta: { generationEnabled: false }, oid: 'saved-record', loads: false },
+    { name: 'missing the capability flag', meta: {}, oid: 'saved-record', loads: false },
+    { name: 'enabled for an unsaved form', meta: { generationEnabled: true }, oid: '', loads: false },
+  ]) {
+    it(`gates automatic generation provenance when ${scenario.name}`, async () => {
+      const config: FormConfigFrame = { name: 'generation-provenance-gate', componentDefinitions: [] };
+      const { fixture, formComponent } = await createFormAndWaitForReady(config, { oid: scenario.oid });
+      const formService = TestBed.inject(FormService);
+      const provenance = TestBed.inject(GenerationProvenanceStoreService);
+      const map = await formService.createFormComponentsMap(config, formService.buildLineagePaths({
+        angularComponents: [], dataModel: [], formConfig: ['componentDefinitions'], layout: [],
+      }), scenario.meta);
+      spyOn(formService, 'downloadFormComponents').and.resolveTo(map);
+      const load = spyOn(provenance, 'load').and.resolveTo();
+      const clear = spyOn(provenance, 'clear');
+
+      await formComponent.downloadAndCreateFormComponents();
+
+      expect(clear).toHaveBeenCalled();
+      if (scenario.loads) expect(load).toHaveBeenCalledOnceWith('saved-record');
+      else expect(load).not.toHaveBeenCalled();
+      fixture.destroy();
+    });
+  }
 
   it('exposes server role names and the current oid independently of request parameters', async () => {
     const { formComponent } = await createFormAndWaitForReady({ name: 'runtime-context', componentDefinitions: [

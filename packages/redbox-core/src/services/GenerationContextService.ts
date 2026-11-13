@@ -1,5 +1,5 @@
 import { Services as services } from '../CoreService';
-import { canonicalHash, GenerationActorContext, GenerationError, GenerationEvidence, GenerationFrozenInput, GenerationProfileDefinitionV1 } from '../model/generation';
+import { canonicalHash, getJsonPointer, setJsonPointer, GenerationActorContext, GenerationError, GenerationEvidence, GenerationFrozenInput, GenerationProfileDefinitionV1 } from '../model/generation';
 import { requireService } from './generation/require-service';
 import type { GenerationDocument } from '@researchdatabox/sails-ng-common';
 
@@ -9,29 +9,6 @@ interface RecordsLike {
   hasViewAccess(brand: unknown, user: unknown, roles: unknown[], record: unknown): boolean;
 }
 
-function decodePointer(pointer: string): string[] {
-  if (!pointer.startsWith('/')) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Source mapping is not a JSON pointer');
-  return pointer.slice(1).split('/').map((part) => part.replaceAll('~1', '/').replaceAll('~0', '~'));
-}
-
-function pointerGet(value: unknown, pointer: string): unknown {
-  return decodePointer(pointer).reduce<unknown>((current, key) =>
-    current && typeof current === 'object' ? (current as Record<string, unknown>)[key] : undefined, value);
-}
-
-function pointerSet(target: Record<string, unknown>, pointer: string, value: unknown): void {
-  const parts = decodePointer(pointer);
-  let current = target;
-  parts.forEach((part, index) => {
-    if (index === parts.length - 1) current[part] = value;
-    else {
-      const child = current[part];
-      current[part] = child && typeof child === 'object' && !Array.isArray(child) ? child : {};
-      current = current[part] as Record<string, unknown>;
-    }
-  });
-}
-
 export namespace Services {
   export class GenerationContextService extends services.Core.Service {
     protected override _exportedMethods = ['projectAllowedPaths', 'buildQuestionDefaults', 'prepare'];
@@ -39,11 +16,11 @@ export namespace Services {
     public projectAllowedPaths(source: Record<string, unknown>, allowedPaths: string[], maxBytes: number): Record<string, unknown> {
       const projected: Record<string, unknown> = {};
       for (const pointer of allowedPaths) {
-        const value = pointerGet(source, pointer);
+        const value = getJsonPointer(source, pointer);
         if (value === undefined) continue;
         const valueBytes = Buffer.byteLength(JSON.stringify(value), 'utf8');
         if (valueBytes > maxBytes) throw new GenerationError('GENERATION_PROFILE_INVALID', `Source field '${pointer}' exceeds its context limit`);
-        pointerSet(projected, pointer, value);
+        setJsonPointer(projected, pointer, value);
       }
       return projected;
     }
@@ -52,7 +29,7 @@ export namespace Services {
       return definition.questions.map((question) => ({
         id: question.id,
         value: question.sourceDefaultExpression?.startsWith('/')
-          ? pointerGet(sources, question.sourceDefaultExpression)
+          ? getJsonPointer(sources, question.sourceDefaultExpression)
           : null,
       }));
     }
@@ -140,7 +117,7 @@ export namespace Services {
         const values = this.projectAllowedPaths(record.metadata ?? {}, slot.allowedPaths, slot.maxBytes);
         sourceValues.push({ slotId: slot.id, recordType: ref.recordType, oid: ref.oid, values });
         for (const pointer of slot.allowedPaths) {
-          const value = pointerGet(record.metadata ?? {}, pointer);
+          const value = getJsonPointer(record.metadata ?? {}, pointer);
           if (value === undefined) continue;
           const contentHash = canonicalHash(value);
           sourceEvidence.push({
@@ -174,8 +151,8 @@ export namespace Services {
     private projectTargetDraft(source: Record<string, unknown>, definition: GenerationProfileDefinitionV1): Record<string, unknown> {
       const projected: Record<string, unknown> = {};
       for (const field of definition.targetFields) {
-        const value = pointerGet(source, field.metadataPointer);
-        if (value !== undefined) pointerSet(projected, field.metadataPointer, value);
+        const value = getJsonPointer(source, field.metadataPointer);
+        if (value !== undefined) setJsonPointer(projected, field.metadataPointer, value);
       }
       return projected;
     }

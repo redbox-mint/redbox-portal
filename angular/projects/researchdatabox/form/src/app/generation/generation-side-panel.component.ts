@@ -14,6 +14,7 @@ import {
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import {
   GenerationCandidatePatch,
+  GenerationCommitRequest,
   GenerationDocument,
   GenerationLaunchDefinition,
   GenerationQuestion,
@@ -50,6 +51,8 @@ export class GenerationSidePanelComponent implements OnDestroy {
   readonly questions = signal<GenerationQuestion[]>([]);
   readonly run = signal<GenerationRunView | null>(null);
   readonly busy = signal(false);
+  readonly statusChecksPaused = signal(false);
+  readonly activeRun = computed(() => ['queued', 'running', 'validating', 'cancelRequested', 'committing'].includes(this.run()?.status ?? ''));
   readonly error = signal<string | null>(null);
   readonly conflicts = signal<string[]>([]);
   readonly candidate = signal<GenerationCandidatePatch | null>(null);
@@ -87,6 +90,12 @@ export class GenerationSidePanelComponent implements OnDestroy {
   private invalidatedSession: GenerationRuntimeSession | null | undefined;
   private destroyed = false;
   private operationRevision = 0;
+  private commitReceipt?: {
+    revision: number;
+    candidate: GenerationCandidatePatch;
+    request: GenerationCommitRequest;
+    state: 'pending' | 'retryable' | 'acknowledged';
+  };
   private pollDelay?: { timer: ReturnType<typeof setTimeout>; resolve: () => void };
   private executionSnapshot: Record<string, unknown> = {};
   private restoreFocusTo: HTMLElement | null = null;
@@ -157,8 +166,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
   public async generate(): Promise<void> {
     const currentSession = this.effectiveSession();
     const form = this.form();
-    const activeRun = ['queued', 'running', 'validating', 'cancelRequested', 'committing'].includes(this.run()?.status ?? '');
-    if (this.destroyed || !currentSession || !form || activeRun || this.busy() || this.completed() || this.questionForm.invalid || this.documentNotes.invalid ||
+    if (this.destroyed || !currentSession || !form || this.activeRun() || this.busy() || this.completed() || this.questionForm.invalid || this.documentNotes.invalid ||
       (this.documents().length > 0 && !this.documentsReviewed())) return;
     const revision = this.operationRevision;
     this.busy.set(true);
@@ -192,6 +200,23 @@ export class GenerationSidePanelComponent implements OnDestroy {
       if (this.isCurrentOperation(revision, form)) this.fail(error);
     } finally {
       if (this.isCurrentOperation(revision, form)) this.busy.set(false);
+    }
+  }
+
+  public async resumeStatusChecks(): Promise<void> {
+    const session = this.effectiveSession();
+    const form = this.form();
+    if (this.destroyed || !session || !form || this.busy() || !this.statusChecksPaused() ||
+      !this.activeRun() || this.run()?.runId !== session.runId) return;
+    const revision = this.operationRevision;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      await this.pollUntilSettled(session.runId, form, revision);
+    } catch (error) {
+      if (this.isCurrentOperation(revision, form, session.runId)) this.fail(error);
+    } finally {
+      if (this.isCurrentOperation(revision, form, session.runId)) this.busy.set(false);
     }
   }
 
@@ -307,7 +332,9 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.stopPollDelay();
     this.busy.set(true);
     this.candidate.set(null);
+    this.statusChecksPaused.set(false);
     this.appliedFieldIds = [];
+    this.commitReceipt = undefined;
     this.conflicts.set([]);
     this.restoreFocusTo = this.document.activeElement instanceof HTMLElement ? this.document.activeElement : null;
     this.provenance.clear();
@@ -394,7 +421,9 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.suppliedSession.set(null);
     this.run.set(null);
     this.candidate.set(null);
+    this.statusChecksPaused.set(false);
     this.appliedFieldIds = [];
+    this.commitReceipt = undefined;
     this.conflicts.set([]);
     this.questions.set([]);
     for (const question of Object.keys(this.questionForm.controls)) this.questionForm.removeControl(question);
@@ -431,17 +460,24 @@ export class GenerationSidePanelComponent implements OnDestroy {
   }
 
   private async pollUntilSettled(runId: string, form: FormGroup, revision: number): Promise<void> {
+    this.statusChecksPaused.set(false);
     let delayMs = 750;
-    for (let attempt = 0; attempt < 80 && this.isCurrentOperation(revision, form, runId); attempt += 1) {
-      const current = this.run();
-      if (!current || current.runId !== runId || ['completed', 'failed', 'cancelled', 'expired', 'committed'].includes(current.status)) break;
-      await this.waitForPoll(delayMs);
-      if (!this.isCurrentOperation(revision, form, runId)) return;
-      const next = await this.api.getRun(runId);
-      if (!this.isCurrentOperation(revision, form, runId)) return;
-      this.consumeRun(next, form);
-      if (next.result) break;
-      delayMs = Math.min(Math.round(delayMs * 1.45), 4000);
+    try {
+      for (let attempt = 0; attempt < 80 && this.isCurrentOperation(revision, form, runId); attempt += 1) {
+        const current = this.run();
+        if (!current || current.runId !== runId || ['completed', 'failed', 'cancelled', 'expired', 'committed'].includes(current.status)) break;
+        await this.waitForPoll(delayMs);
+        if (!this.isCurrentOperation(revision, form, runId)) return;
+        const next = await this.api.getRun(runId);
+        if (!this.isCurrentOperation(revision, form, runId)) return;
+        this.consumeRun(next, form);
+        if (next.result) break;
+        delayMs = Math.min(Math.round(delayMs * 1.45), 4000);
+      }
+    } finally {
+      if (this.isCurrentOperation(revision, form, runId)) {
+        this.statusChecksPaused.set(this.activeRun() && !this.completed());
+      }
     }
   }
 
@@ -452,6 +488,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
 
   private updateRun(run: GenerationRunView): void {
     this.run.set(run);
+    if (!this.activeRun()) this.statusChecksPaused.set(false);
     if (run.documents && ['draft', 'failed'].includes(run.status)) {
       const changed = this.documents().map((document) => document.id).join() !== run.documents.map((document) => document.id).join();
       this.documents.set(run.documents);
@@ -502,34 +539,55 @@ export class GenerationSidePanelComponent implements OnDestroy {
     const form = this.form();
     if (!candidate || !form || this.destroyed) return;
     const revision = this.operationRevision;
-    this.store.dispatch(GenerationActions.commitStarted());
-    const appliedFieldIds = [...this.appliedFieldIds];
-    const applied = new Set(appliedFieldIds);
-    const reviewedFieldIds = candidate.items
-      .filter((item) => {
-        if (!applied.has(item.fieldId) || !item.reviewRequired) return false;
-        const field = this.provenance.byPointer()[item.metadataPointer];
-        return field?.runId === candidate.runId && field.profileFieldId === item.fieldId && field.reviewRequired === false;
-      })
-      .map((item) => item.fieldId);
-    let lastError: unknown;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      if (!this.isCurrentOperation(revision, form)) return;
-      try {
-        await this.api.commit(candidate.runId, { targetOid, candidateDigest: candidate.candidateDigest, appliedFieldIds, reviewedFieldIds });
-        if (!this.isCurrentOperation(revision, form)) return;
-        this.store.dispatch(GenerationActions.commitFinished());
-        await this.provenance.load(targetOid);
-        return;
-      } catch (error) {
-        if (!this.isCurrentOperation(revision, form)) return;
-        lastError = error;
-        await new Promise<void>((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
-      }
+    let receipt = this.commitReceipt;
+    if (receipt?.revision !== revision || receipt.candidate !== candidate) {
+      const appliedFieldIds = [...this.appliedFieldIds];
+      const applied = new Set(appliedFieldIds);
+      const reviewedFieldIds = candidate.items
+        .filter((item) => {
+          if (!applied.has(item.fieldId) || !item.reviewRequired) return false;
+          const field = this.provenance.byPointer()[item.metadataPointer];
+          return field?.runId === candidate.runId && field.profileFieldId === item.fieldId && field.reviewRequired === false;
+        })
+        .map((item) => item.fieldId);
+      receipt = {
+        revision, candidate, state: 'retryable',
+        request: { targetOid, candidateDigest: candidate.candidateDigest, appliedFieldIds, reviewedFieldIds },
+      };
+      this.commitReceipt = receipt;
     }
-    if (!this.isCurrentOperation(revision, form)) return;
-    const message = lastError instanceof Error ? lastError.message : 'generation-commit-failed';
-    this.store.dispatch(GenerationActions.commitFailed({ error: message }));
+    if (receipt.state !== 'retryable') return;
+    receipt.state = 'pending';
+    this.store.dispatch(GenerationActions.commitStarted());
+    try {
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        if (!this.isCurrentOperation(revision, form)) return;
+        try {
+          await this.api.commit(candidate.runId, receipt.request);
+        } catch (error) {
+          if (!this.isCurrentOperation(revision, form)) return;
+          lastError = error;
+          await new Promise<void>((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+          continue;
+        }
+        if (!this.isCurrentOperation(revision, form)) return;
+        receipt.state = 'acknowledged';
+        this.store.dispatch(GenerationActions.commitFinished());
+        try {
+          await this.provenance.load(receipt.request.targetOid);
+        } catch {
+          // The durable receipt is already acknowledged. Keep local provenance
+          // until a later record load refreshes it without resending the receipt.
+        }
+        return;
+      }
+      if (!this.isCurrentOperation(revision, form)) return;
+      const message = lastError instanceof Error ? lastError.message : 'generation-commit-failed';
+      this.store.dispatch(GenerationActions.commitFailed({ error: message }));
+    } finally {
+      if (receipt.state === 'pending') receipt.state = 'retryable';
+    }
   }
 
   private fail(error: unknown): void {

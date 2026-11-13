@@ -133,7 +133,11 @@ export namespace Controllers {
       return this.respondGeneration(req, res, async (actor, user, brand) => {
         const body = asObject(req.body);
         const targetForm = asObject(body.targetForm);
-        if (!Array.isArray(body.answers) || asObject(body.targetDraft) !== body.targetDraft || targetForm.mode !== 'create') {
+        const validAnswers = Array.isArray(body.answers) && body.answers.every(answer => {
+          const item = asObject(answer);
+          return item === answer && typeof item.id === 'string' && !!item.id.trim();
+        });
+        if (!validAnswers || asObject(body.targetDraft) !== body.targetDraft || targetForm.mode !== 'create') {
           throw new GenerationError('GENERATION_REQUEST_INVALID', 'Generation execution request is invalid');
         }
         return {

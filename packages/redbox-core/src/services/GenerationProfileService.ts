@@ -1,5 +1,5 @@
 import { Services as services } from '../CoreService';
-import { canonicalHash, GenerationError, GenerationOutputType, GenerationProfileDefinitionV1 } from '../model/generation';
+import { canonicalHash, decodeJsonPointer, GenerationError, GenerationOutputType, GenerationProfileDefinitionV1 } from '../model/generation';
 import type { GenerationProfileAttributes } from '../waterline-models/GenerationProfile';
 import type { GenerationProfileVersionAttributes } from '../waterline-models/GenerationProfileVersion';
 import { requireWaterlineRows } from './generation/require-service';
@@ -198,8 +198,9 @@ export namespace Services {
     }
 
     private assertPointer(pointer: string, kind: string): void {
-      if (!pointer?.startsWith('/') || pointer.includes('..') || pointer.includes('\\')) {
-        throw new GenerationError('GENERATION_PROFILE_INVALID', `Invalid ${kind} JSON pointer '${pointer}'`);
+      try { decodeJsonPointer(pointer); }
+      catch {
+        throw new GenerationError('GENERATION_PROFILE_INVALID', `Invalid ${kind} JSON pointer`);
       }
     }
 
