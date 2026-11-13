@@ -226,6 +226,85 @@ import { principal, registry, storedRecord } from './fixtures';
         })
       ).to.deep.equal({ count: 3 });
     });
+    for (const { field, path, malformed, valid, groupable } of [
+      { field: 'faculty', path: 'metadata.faculty', malformed: [42, []], valid: ['', 'A'], groupable: true },
+      {
+        field: 'sensitiveData',
+        path: 'metadata.sensitiveData',
+        malformed: ['false', []],
+        valid: [false, true],
+        groupable: true,
+      },
+      { field: 'amount', path: 'metadata.amount', malformed: ['42', []], valid: [0, 42], groupable: false },
+      {
+        field: 'created',
+        path: 'metaMetadata.createdOn',
+        malformed: ['invalid', []],
+        valid: ['2026-01-02T00:00:00Z', new Date('2026-01-02')],
+        groupable: false,
+      },
+    ]) {
+      it(`reconciles ${field} missing filters with normalized scalar values and null groups`, async () => {
+        const isolated = client.db(dbName).collection(`scalar_missing_${field}`);
+        const cases: Array<[string, unknown]> = [
+          ['absent', undefined],
+          ['null', null],
+          ['malformed-0', malformed[0]],
+          ['malformed-1', malformed[1]],
+          ['valid-0', valid[0]],
+          ['valid-1', valid[1]],
+        ];
+        const [container, key] = path.split('.');
+        await isolated.insertMany(
+          cases.map(([id, value]) => {
+            const record = storedRecord(id);
+            const target = Reflect.get(record, container);
+            if (typeof target !== 'object' || target === null) throw new Error('Expected record field container');
+            if (value === undefined) Reflect.deleteProperty(target, key);
+            else Reflect.set(target, key, value);
+            return record;
+          })
+        );
+        const hidden = storedRecord('hidden-malformed');
+        const hiddenTarget = Reflect.get(hidden, container);
+        if (typeof hiddenTarget !== 'object' || hiddenTarget === null)
+          throw new Error('Expected record field container');
+        Reflect.set(hiddenTarget, key, malformed[0]);
+        hidden.authorization.view = ['bob'];
+        await isolated.insertOne(hidden);
+        const local = new MongoReportingProvider(isolated, registry);
+        if (groupable) {
+          const groups = await local.executeReporting(principal, {
+            operation: 'group',
+            recordType: 'rdmp',
+            groupBy: [field],
+          });
+          expect(groups)
+            .to.have.property('items')
+            .that.deep.includes({ dimensions: { [field]: null }, metrics: { count: 4 } });
+        }
+        const missing = { field, operator: 'missing' as const, value: true };
+        expect(
+          await local.executeReporting(principal, {
+            operation: 'count',
+            recordType: 'rdmp',
+            filters: [missing],
+          })
+        ).to.deep.equal({ count: 4 });
+        const page = await local.executeReporting(principal, {
+          operation: 'records',
+          recordType: 'rdmp',
+          filters: [missing],
+        });
+        expect(page).to.have.property('items').that.has.members(['absent', 'null', 'malformed-0', 'malformed-1']);
+        const present = await local.executeReporting(principal, {
+          operation: 'records',
+          recordType: 'rdmp',
+          filters: [{ ...missing, value: false }],
+        });
+        expect(present).to.have.property('items').that.has.members(['valid-0', 'valid-1']);
+      });
+    }
     it('reports pagination and empty results explicitly, and returns only authorized IDs for drilldown', async () => {
       const result = await provider.executeReporting(principal, {
         operation: 'group',

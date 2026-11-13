@@ -71,7 +71,8 @@ function filterMatch(filter: ReportingFilter, registry: ReportingRegistry): Docu
     if (field.array) {
       return { $expr: { [filter.value ? '$eq' : '$ne']: [categoryArrayValues(field.path), [null]] } };
     }
-    return { [field.path]: filter.value ? null : { $ne: null } };
+    const value = field.type === 'date' ? dateValue(field.path) : typedValue(field.path, field.type);
+    return { $expr: { [filter.value ? '$eq' : '$ne']: [value, null] } };
   }
   if (field.type === 'date') {
     const value = dateValue(field.path);

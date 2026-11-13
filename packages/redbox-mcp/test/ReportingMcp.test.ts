@@ -276,6 +276,41 @@ describe('MCP OAuth resource-server and HTTP boundary', () => {
       ['Researcher']
     );
   });
+  it('accepts case-insensitive JWT media types while requiring access-token markers', async () => {
+    let mapped = 0;
+    const auth = new McpAuthenticator(
+      config,
+      async () => {
+        mapped++;
+        return principal;
+      },
+      keys
+    );
+    for (const [typ, claims] of [
+      ['AT+JWT', {}],
+      ['application/AT+JWT', {}],
+      ['jwt', { typ: 'Bearer' }],
+      ['jwt', { token_use: 'access' }],
+    ] as const) {
+      assert.equal(
+        await auth.authenticate(`Bearer ${await token(claims, { alg: 'RS256', typ, kid: 'test-key' })}`),
+        principal
+      );
+    }
+    assert.equal(mapped, 4);
+    for (const [typ, claims] of [
+      ['jwt', {}],
+      ['AT+JWT', { token_use: 'id' }],
+      ['application/AT+JWT', { nonce: 'id-token' }],
+      ['ID+JWT', { token_use: 'access' }],
+    ] as const) {
+      await assert.rejects(
+        auth.authenticate(`Bearer ${await token(claims, { alg: 'RS256', typ, kid: 'test-key' })}`),
+        McpAuthError
+      );
+    }
+    assert.equal(mapped, 4);
+  });
   it('distinguishes invalid identities from identity-store and JWKS availability failures', async () => {
     const bearer = `Bearer ${await token()}`;
     for (const failure of [new Error('private database credentials'), new ReportingError('UNAVAILABLE')]) {

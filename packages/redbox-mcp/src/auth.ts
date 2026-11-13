@@ -34,11 +34,12 @@ export class McpAuthenticator {
         algorithms: this.config.algorithms,
         requiredClaims: ['iss', 'sub', 'aud', 'exp', 'iat'],
       });
-      // Explicitly reject ID tokens; this resource consumes access tokens only.
-      if (protectedHeader.typ && !['at+jwt', 'application/at+jwt', 'JWT'].includes(protectedHeader.typ))
+      // JOSE typ media types are case-insensitive; this resource consumes access tokens only.
+      const tokenType = protectedHeader.typ?.toLowerCase();
+      if (tokenType && !['at+jwt', 'application/at+jwt', 'jwt'].includes(tokenType))
         throw new McpAuthError('invalid_token');
       if (
-        !['at+jwt', 'application/at+jwt'].includes(protectedHeader.typ ?? '') &&
+        !['at+jwt', 'application/at+jwt'].includes(tokenType ?? '') &&
         payload.typ !== 'Bearer' &&
         payload.token_use !== 'access'
       )
