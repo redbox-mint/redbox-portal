@@ -513,6 +513,16 @@ jobs:
           name: Test reporting authorization, Mongo aggregates and MCP
           command: npm run test:reporting
       - run:
+          name: Upload reporting code coverage
+          command: |
+            sudo chmod -R a+rwX ./coverage/reporting
+            node support/unit-testing/codecov/prepare-report.cjs "./coverage/reporting/lcov.info"
+            /tmp/.codecov-cli/codecov --verbose upload-process --fail-on-error --disable-search \
+             --network-root-folder "$(git rev-parse --show-toplevel)" \
+             --token "${CODECOV_TOKEN}" --name "reporting-${CIRCLE_BUILD_NUM}-${CIRCLE_TAG:-$CIRCLE_BRANCH}" \
+             --flag "backend-reporting" --file "./coverage/reporting/lcov.info" --branch "${CIRCLE_TAG:-$CIRCLE_BRANCH}"
+          when: always
+      - run:
           name: Upload Mocha code coverage
           command: |
             sudo chmod -R a+rwX ./coverage
