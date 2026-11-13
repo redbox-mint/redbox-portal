@@ -5,6 +5,7 @@ import {
   SchemaTargetSelectorComponent,
 } from '@researchdatabox/portal-ng-common';
 import { of } from 'rxjs';
+import type { RelatedRecordFilterDefinition } from '@researchdatabox/sails-ng-common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Pipe, PipeTransform } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -51,6 +52,27 @@ describe('RelatedFilterEditorComponent', () => {
     });
     expect(component.filters.length).toBe(1);
     expect(component.filters[0].collectionName).toBe('c1');
+  });
+
+  it('preserves relation-based filters without legacy collection or join fields when editing their query', () => {
+    const relationFilter: RelatedRecordFilterDefinition = {
+      rootRecordType: 'rdmp', relationId: 'projects', mongoQuery: { status: 'active' },
+    };
+    component.relatedRecordFilters = [relationFilter];
+    component.ngOnChanges({ relatedRecordFilters: {
+      currentValue: component.relatedRecordFilters, previousValue: undefined,
+      firstChange: true, isFirstChange: () => true,
+    } });
+    let emitted: RelatedRecordFilterDefinition[] | undefined;
+    component.relatedRecordFiltersChange.subscribe(value => { emitted = value; });
+    fixture.detectChanges();
+    component.onMongoQueryJsonChange(component.filters[0], '{"status":"complete"}');
+    expect(emitted).toEqual([{ ...relationFilter, mongoQuery: { status: 'complete' } }]);
+    expect(Object.hasOwn(emitted![0], 'collectionName')).toBeFalse();
+    expect(Object.hasOwn(emitted![0], 'localField')).toBeFalse();
+    expect(Object.hasOwn(emitted![0], 'foreignField')).toBeFalse();
+    component.addFilter();
+    expect(emitted?.[0]).toEqual({ ...relationFilter, mongoQuery: { status: 'complete' } });
   });
 
   it('ignores change if same reference as last emitted', () => {

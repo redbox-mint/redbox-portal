@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { generation } from '../../src/config/generation.config';
+import { Services as BindingServices } from '../../src/services/GenerationBindingService';
 import { Services as RunServices } from '../../src/services/GenerationRunService';
 import { Services as PersistenceServices } from '../../src/services/GenerationPersistenceService';
 
@@ -179,6 +180,81 @@ describe('Generation run lifecycle', () => {
     expect(rejection).to.be.instanceOf(Error);
     expect(rows[0]).to.include({ status: 'queued', attemptCount: 1 });
     expect(artifacts).to.have.length(1);
+  });
+
+  async function installSourceBinding(sourceModes: Array<'view' | 'edit'>, canEdit: boolean) {
+    const runtime = Reflect.get(globalThis, 'sails');
+    runtime.config.generation.enabled = true;
+    Object.assign(binding, {
+      profileId: 'profile-1', sourceRecordType: 'activity', sourceModes,
+      sourceRelationship: { sourceSlotId: 'activity', metadataPointer: '/activity' }, action: {},
+    });
+    const profile = await GenerationProfileVersion.findOne({ id: 'profile-1' });
+    profile!.definition.sourceSlots = [{ id: 'activity', recordType: 'activity', allowedPaths: ['/summary'], maxBytes: 1024 }];
+    Reflect.set(globalThis, 'GenerationProfileVersion', { findOne: sinon.stub().resolves(profile) });
+    Reflect.set(globalThis, 'GenerationBinding', {
+      find: sinon.stub().resolves([binding]), findOne: sinon.stub().resolves(binding),
+    });
+    const records = {
+      getMeta: sinon.stub().callsFake(async oid => ({
+        redboxOid: oid, metaMetadata: { brandId: actor.brandId, type: 'activity', form: 'activity-edit' },
+        metadata: { summary: 'Current source' }, workflow: { stage: 'draft' },
+      })),
+      hasViewAccess: sinon.stub().returns(true), hasEditAccess: sinon.stub().returns(canEdit),
+    };
+    runtime.services.recordsservice = records;
+    runtime.services.generationprofileservice = { resolvePublished: sinon.stub().resolves(profile) };
+    const bindings = new BindingServices.GenerationBindingService();
+    runtime.services.generationbindingservice = bindings;
+    return { bindings, records, user: { id: actor.userId, roles: [{ name: 'Researcher' }] } as any };
+  }
+
+  for (const sourceModes of [['view'], ['view', 'edit'], ['edit']] as Array<Array<'view' | 'edit'>>) {
+    it(`launches and reselects a source through real bindings restricted to ${sourceModes.join('/')}`, async () => {
+      const { bindings, records, user } = await installSourceBinding(sourceModes, sourceModes.length === 1 && sourceModes[0] === 'edit');
+      const mode = sourceModes.includes('view') ? 'view' : 'edit';
+      const actions = await bindings.resolveActions({
+        actor, brand: {} as any, user, record: await records.getMeta('activity-1'), mode,
+      });
+      expect(actions).to.have.length(1);
+      const launched = await service.launch({ actor, brand: {} as any, user, bindingKey: actions[0].bindingKey, sourceOid: actions[0].sourceOid });
+      const result = await service.execute({
+        actor, brand: {} as any, user, runId: launched.runId, sourceOid: 'activity-2', answers: [],
+        targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' }, targetDraft: {},
+      });
+      expect(result.status).to.equal('queued');
+      expect(rows[0].sourceRefs[0].oid).to.equal('activity-2');
+    });
+  }
+
+  it('denies edit-only source bindings to a caller without current edit access', async () => {
+    const { user } = await installSourceBinding(['edit'], false);
+    let rejection: unknown;
+    try { await service.launch({ actor, brand: {} as any, user, bindingKey: binding.key, sourceOid: 'activity-1' }); }
+    catch (error) { rejection = error; }
+    expect(rejection).to.have.property('code', 'GENERATION_SOURCE_FORBIDDEN');
+    expect(rows).to.have.length(0);
+  });
+
+  it('rechecks edit-only source access before executing an already launched run', async () => {
+    const { records, user } = await installSourceBinding(['edit'], true);
+    const launched = await service.launch({ actor, brand: {} as any, user, bindingKey: binding.key, sourceOid: 'activity-1' });
+    records.hasEditAccess.returns(false);
+    let rejection: unknown;
+    try {
+      await service.execute({ actor, brand: {} as any, user, runId: launched.runId, answers: [],
+        targetForm: { recordType: 'projectSummary', formName: 'summary-1.0-draft', mode: 'create' }, targetDraft: {} });
+    } catch (error) { rejection = error; }
+    expect(rejection).to.have.property('code', 'GENERATION_SOURCE_FORBIDDEN');
+    expect(rows[0].status).to.equal('draft');
+  });
+
+  it('does not allow an explicit edit mode to bypass source edit permission', async () => {
+    const { bindings, user } = await installSourceBinding(['view', 'edit'], false);
+    let rejection: unknown;
+    try { await bindings.authorizeLaunch({ actor, brand: {} as any, user, bindingKey: binding.key, sourceOid: 'activity-1', mode: 'edit' }); }
+    catch (error) { rejection = error; }
+    expect(rejection).to.have.property('code', 'GENERATION_SOURCE_FORBIDDEN');
   });
 
   it('pins the starting workflow form for an omitted binding form and executes the resolved client target', async () => {
