@@ -26,22 +26,20 @@ class SidePanelHostComponent {
   closed = jasmine.createSpy('closed');
 }
 
-function expectTabbable(control: HTMLElement): void {
+function expectTabbable(control: HTMLElement): string {
   const checker = TestBed.inject(InteractivityChecker);
   const frame = window.frameElement as HTMLElement | null;
-  expect(checker.isTabbable(control))
-    .withContext(
-      JSON.stringify({
-        control: control.outerHTML,
-        focusable: checker.isFocusable(control),
-        tabIndex: control.tabIndex,
-        frame: frame?.outerHTML,
-        frameWidth: frame?.offsetWidth,
-        frameHeight: frame?.offsetHeight,
-        frameVisible: frame && checker.isVisible(frame),
-      })
-    )
-    .toBeTrue();
+  const context = JSON.stringify({
+    control: control.outerHTML,
+    focusable: checker.isFocusable(control),
+    tabIndex: control.tabIndex,
+    frame: frame?.outerHTML,
+    frameWidth: frame?.offsetWidth,
+    frameHeight: frame?.offsetHeight,
+    frameVisible: frame && checker.isVisible(frame),
+  });
+  expect(checker.isTabbable(control)).withContext(context).toBeTrue();
+  return context;
 }
 
 describe('Admin offcanvas focus management', () => {
@@ -76,12 +74,11 @@ describe('Admin offcanvas focus management', () => {
     expect(trigger.inert).toBeTrue();
     const close = dialog.querySelector('button')!;
     expect(document.activeElement).toBe(close);
-    expectTabbable(close);
     const anchors: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.cdk-focus-trap-anchor');
     expect(anchors.length).toBe(2);
     for (const anchor of Array.from(anchors)) {
       anchor.focus();
-      expect(document.activeElement).toBe(close);
+      expect(document.activeElement).withContext(expectTabbable(close)).toBe(close);
     }
     const closed = fixture.componentInstance.closed;
     fixture.componentInstance.busy = true;
@@ -108,17 +105,15 @@ describe('Admin offcanvas focus management', () => {
     const close = dialog.querySelector('button')!;
     const content = dialog.querySelector<HTMLButtonElement>('.panel-content')!;
     const footer = dialog.querySelector<HTMLButtonElement>('.panel-footer')!;
-    expectTabbable(close);
-    expectTabbable(footer);
     const anchors: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('.cdk-focus-trap-anchor');
     expect(anchors.length).toBe(2);
     expect(document.activeElement).toBe(close);
     content.focus();
     expect(document.activeElement).toBe(content);
     anchors[0].focus();
-    expect(document.activeElement).toBe(footer);
+    expect(document.activeElement).withContext(expectTabbable(footer)).toBe(footer);
     anchors[1].focus();
-    expect(document.activeElement).toBe(close);
+    expect(document.activeElement).withContext(expectTabbable(close)).toBe(close);
     trigger.focus();
     expect(document.activeElement).toBe(close);
     fixture.destroy();
