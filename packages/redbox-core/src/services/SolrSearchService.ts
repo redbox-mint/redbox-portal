@@ -467,7 +467,7 @@ export namespace Services {
       const params = new URLSearchParams({
         q: `full_text:${solrLiteral(text)}`,
         fl: 'redboxOid', start: String(start), rows: String(rows), wt: 'json',
-        sort: 'date_object_modified desc', timeAllowed: '5000',
+        sort: 'date_object_modified desc,storage_id asc', timeAllowed: '5000',
       });
       params.append('fq', `metaMetadata_brandId:${solrLiteral(principal.brand.id)}`);
       params.append('fq', `metaMetadata_type:${solrLiteral(recordType)}`);

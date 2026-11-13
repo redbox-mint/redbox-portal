@@ -114,6 +114,8 @@ describe('Reporting REST and Solr adapters', () => {
     expect(params.get('q')).to.equal('full_text:"machine learning\\" OR *:*"');
     expect(params.get('fl')).to.equal('redboxOid');
     expect(params.get('rows')).to.equal('21');
+    // Mongo's unique storage ID keeps timestamp ties stable across offset pages.
+    expect(params.get('sort')).to.equal('date_object_modified desc,storage_id asc');
     expect(params.getAll('fq')).to.include('metaMetadata_brandId:"brand-a"');
     expect(params.getAll('fq').at(-1)).to.include('authorization_viewRoles:("Reporter")');
     try {
