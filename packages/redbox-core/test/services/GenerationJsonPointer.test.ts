@@ -29,6 +29,13 @@ describe('Generation JSON Pointer prototype safety', () => {
     expect(Object.getPrototypeOf(target)).to.equal(Object.prototype);
     expect(Object.prototype.hasOwnProperty.call(target, 'admin')).to.equal(false);
   });
+  it('updates an existing array element without replacing the array or its siblings', () => {
+    const contributors = [{ name: 'A', role: 'Author' }, { name: 'B', role: 'Editor' }];
+    const target = { contributors };
+    setJsonPointer(target, '/contributors/0/name', 'Updated');
+    expect(target.contributors).to.equal(contributors);
+    expect(target).to.deep.equal({ contributors: [{ name: 'Updated', role: 'Author' }, { name: 'B', role: 'Editor' }] });
+  });
   it('preserves ordinary escaped names for reads and writes', () => {
     const target = {};
     const pointer = '/project~1name/part~0name';

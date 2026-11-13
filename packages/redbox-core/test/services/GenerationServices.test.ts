@@ -288,6 +288,24 @@ describe('Generation core primitives and services', () => {
     );
   });
 
+  for (const allowedPaths of [
+    ['/contributors', '/contributors/0/name'],
+    ['/contributors/0/name', '/contributors'],
+  ]) {
+    it(`preserves complete allowed source arrays when projecting overlapping paths ${allowedPaths.join(', ')}`, () => {
+      const service = new ContextServices.GenerationContextService();
+      const source = {
+        contributors: [{ name: 'A', role: 'Author' }, { name: 'B', role: 'Editor' }],
+        privateNotes: 'Excluded from context',
+      };
+      const original = structuredClone(source);
+      const projected = service.projectAllowedPaths(source, allowedPaths, 1024);
+      expect(projected).to.deep.equal({ contributors: original.contributors });
+      expect(Array.isArray(projected.contributors)).to.equal(true);
+      expect(source).to.deep.equal(original);
+    });
+  }
+
   it('minimises source and target context and validates reviewed answers', async () => {
     sails.services.recordsservice = {
       getMeta: sinon.stub().resolves({
