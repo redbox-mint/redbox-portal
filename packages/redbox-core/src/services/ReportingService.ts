@@ -145,9 +145,10 @@ export namespace Services {
           if (query.operation === 'get_record')
             return this.bounded(await this.read(principal, query.recordType, query.oid, registry), registry);
           if (query.operation === 'search') {
-            const page = query.pagination ?? {
-              limit: Math.min(20, registry.limits.maxSearchResults, registry.limits.maxPageSize),
-              offset: 0,
+            const page = {
+              limit:
+                query.pagination?.limit ?? Math.min(20, registry.limits.maxSearchResults, registry.limits.maxPageSize),
+              offset: query.pagination?.offset ?? 0,
             };
             const ids = await this.deps.search(
               principal,

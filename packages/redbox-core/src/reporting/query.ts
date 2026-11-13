@@ -21,7 +21,7 @@ export const reportingFilterSchema = z.discriminatedUnion('operator', [
 ]);
 const base = { recordType: reportingIdSchema, filters: z.array(reportingFilterSchema).max(20).optional() };
 export const reportingPaginationSchema = z.strictObject({
-  limit: z.number().int().min(1).max(100).default(20),
+  limit: z.number().int().min(1).max(100).optional(),
   offset: z.number().int().min(0).max(10_000).default(0),
 });
 export const reportingMetricSchema = z.discriminatedUnion('operation', [

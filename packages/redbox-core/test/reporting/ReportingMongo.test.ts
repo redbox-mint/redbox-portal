@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { MongoReportingProvider } from '../../src/reporting/mongo';
 import type { MongoReportingQuery } from '../../src/reporting/query';
 import { ReportingError } from '../../src/reporting/types';
+import { validateReportingQuery } from '../../src/reporting/registry';
 import { principal, registry, storedRecord } from './fixtures';
 
 // Use an isolated real database. This suite never touches portal records or existing test databases.
@@ -353,6 +354,50 @@ import { principal, registry, storedRecord } from './fixtures';
         }
       });
     }
+    it('clamps omitted Mongo page limits to configured caps while preserving offsets', async () => {
+      const isolated = client.db(dbName).collection('small_page_limits');
+      await isolated.insertMany(
+        ['A', 'B', 'C', 'D'].map((faculty, index) => {
+          const record = storedRecord(String(index));
+          record.metadata.faculty = faculty;
+          record.metaMetadata.createdOn = `2026-0${index + 1}-02T00:00:00Z`;
+          return record;
+        })
+      );
+      const fields = await registry();
+      const small = { ...fields, limits: { ...fields.limits, maxPageSize: 2, maxGroups: 1 } };
+      const local = new MongoReportingProvider(isolated, async () => small);
+      for (const operation of ['records', 'group', 'time_series'] as const) {
+        const input = {
+          operation,
+          recordType: 'rdmp',
+          groupBy: ['faculty'],
+          dateHistogram: { field: 'created', interval: 'month', start: '2026-01-01', end: '2027-01-01' },
+        };
+        const query =
+          operation === 'records'
+            ? { operation, recordType: 'rdmp' }
+            : operation === 'group'
+              ? { operation, recordType: 'rdmp', groupBy: input.groupBy }
+              : {
+                  operation,
+                  recordType: 'rdmp',
+                  dateHistogram: { ...input.dateHistogram, interval: 'month' as const },
+                };
+        for (const pagination of [undefined, {}, { offset: 1 }]) {
+          const parsed = validateReportingQuery({ ...query, pagination }, small);
+          if (parsed.operation === 'search' || parsed.operation === 'get_record')
+            throw new Error('Expected Mongo query');
+          const page = await local.executeReporting(principal, parsed);
+          expect(page).to.include({
+            returned: operation === 'records' ? 2 : 1,
+            offset: pagination?.offset ?? 0,
+            total: 4,
+            truncated: true,
+          });
+        }
+      }
+    });
     it('reports pagination and empty results explicitly, and returns only authorized IDs for drilldown', async () => {
       const result = await provider.executeReporting(principal, {
         operation: 'group',

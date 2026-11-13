@@ -110,9 +110,11 @@ export function compileReportingPipeline(
   matches.push(...(query.filters ?? []).map(filter => filterMatch(filter, registry)));
   const pipeline: Document[] = [{ $match: { $and: matches } }];
   if (query.operation === 'count') return [...pipeline, { $count: 'count' }];
-  const page = query.pagination ?? {
-    limit: Math.min(20, registry.limits.maxPageSize, query.operation === 'records' ? 100 : registry.limits.maxGroups),
-    offset: 0,
+  const page = {
+    limit:
+      query.pagination?.limit ??
+      Math.min(20, registry.limits.maxPageSize, query.operation === 'records' ? 100 : registry.limits.maxGroups),
+    offset: query.pagination?.offset ?? 0,
   };
   if (query.operation === 'records')
     return [

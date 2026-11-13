@@ -9,6 +9,7 @@ import {
 import { ReportingError } from '../../src/reporting/types';
 import { validateReportingQuery, resolveReportingRegistry, reportingDate } from '../../src/reporting/registry';
 import { compileReportingPipeline } from '../../src/reporting/mongo';
+import { reportingSearchInput } from '../../src/reporting/query';
 import { Services } from '../../src/services/ReportingService';
 import {
   principal,
@@ -186,18 +187,21 @@ describe('ReportingService safety and independent use', () => {
   const project = sinon.stub();
   const search = sinon.stub();
   const executeReporting = sinon.stub();
+  const resolveRegistry = sinon.stub();
   beforeEach(() => {
     restoreSails = installReportingTestSails();
     getMeta.reset();
     project.reset();
     search.reset();
     executeReporting.reset();
+    resolveRegistry.reset();
+    resolveRegistry.callsFake(registry);
     getMeta.resolves(structuredClone(record));
     project.resolves({ faculty: 'A' });
     search.resolves(['record-1']);
     executeReporting.resolves({ count: 10 });
     service = new Services.Reporting({
-      registry,
+      registry: resolveRegistry,
       provider: () => ({ executeReporting }),
       records: {
         getMeta,
@@ -250,6 +254,28 @@ describe('ReportingService safety and independent use', () => {
     await bad(() => service.getRecord(principal, { recordType: 'rdmp', oid: 'record-1' }), 'UNAVAILABLE');
     executeReporting.rejects(new Error('raw Mongo failure'));
     await bad(() => service.count(principal, { recordType: 'rdmp' }), 'UNAVAILABLE');
+  });
+  it('clamps omitted search limits to configured caps while preserving offsets', async () => {
+    const fields = await registry();
+    resolveRegistry.resolves({ ...fields, limits: { ...fields.limits, maxPageSize: 2, maxSearchResults: 1 } });
+    search.resolves(['record-1', 'record-2']);
+    for (const pagination of [undefined, {}, { offset: 5 }, { offset: 5, limit: 1 }]) {
+      const result = await service.search(
+        principal,
+        reportingSearchInput.parse({ recordType: 'rdmp', text: 'phrase', pagination })
+      );
+      expect(result).to.include({ returned: 1, offset: pagination?.offset ?? 0, truncated: true });
+      expect(search.lastCall.args.slice(-2)).to.deep.equal([pagination?.offset ?? 0, 2]);
+    }
+    await bad(
+      () =>
+        service.search(principal, {
+          recordType: 'rdmp',
+          text: 'phrase',
+          pagination: { limit: 2, offset: 0 },
+        }),
+      'LIMIT_EXCEEDED'
+    );
   });
   it('rechecks stale Solr hits and returns no index counts that include inaccessible records', async () => {
     getMeta.resolves({ ...record, authorization: { ...record.authorization, view: [] } });

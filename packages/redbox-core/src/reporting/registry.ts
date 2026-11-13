@@ -142,7 +142,7 @@ export function validateReportingQuery(input: unknown, registry: ReportingRegist
   if (
     'pagination' in query &&
     query.pagination &&
-    (query.pagination.limit > registry.limits.maxPageSize || query.pagination.offset > registry.limits.maxOffset)
+    ((query.pagination.limit ?? 0) > registry.limits.maxPageSize || query.pagination.offset > registry.limits.maxOffset)
   )
     throw new ReportingError('LIMIT_EXCEEDED');
   if (query.operation === 'group') {
