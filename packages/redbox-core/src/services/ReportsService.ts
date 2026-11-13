@@ -680,7 +680,7 @@ export namespace Services {
       return params;
     }
 
-    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10, caller?: ReadCaller, user: Sails.Req['user'] = caller?.user) {
+    public async getResults(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 10, user?: Sails.Req['user'], caller?: ReadCaller) {
       const reportModel = this.getReportModel();
       const reportObs = super.getObservable<ReportModel | null>(reportModel.findOne({
         key: brand.id + "_" + name
@@ -810,7 +810,7 @@ export namespace Services {
       return legacyReport;
     }
 
-    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000, caller?: ReadCaller, user: Sails.Req['user'] = caller?.user) {
+    public async getCSVResult(brand: BrandingModel, name = '', req: Sails.ReqParamProvider, start = 0, rows = 1000000000, user?: Sails.Req['user'], caller?: ReadCaller) {
       const reportModel = this.getReportModel();
       let report: ReportModel = await firstValueFrom(super.getObservable<ReportModel>(reportModel.findOne({
         key: brand.id + "_" + name

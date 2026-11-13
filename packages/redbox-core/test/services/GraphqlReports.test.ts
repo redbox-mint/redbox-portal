@@ -413,7 +413,7 @@ describe('GraphQL reports security and bounded export', () => {
       { param: () => undefined },
       0,
       undefined,
-      gridCaller
+      undefined, gridCaller
     );
     assert.equal(csv.trim().split('\n').length, 61);
     assert.match(csv, /00,00,Approved,2026-01-01/);
@@ -439,7 +439,7 @@ describe('GraphQL reports security and bounded export', () => {
       code('GRAPHQL_REPORT_PAGING_REQUIRED')
     );
     await assert.rejects(
-      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, gridCaller),
       code('GRAPHQL_REPORT_PAGING_REQUIRED')
     );
     await assert.rejects(preview(), code('GRAPHQL_REPORT_PAGING_REQUIRED'));
@@ -494,7 +494,7 @@ describe('GraphQL reports security and bounded export', () => {
   for (const legacy of [false, true]) {
     it(`runs page, CSV and preview with ${legacy ? 'an unchanged legacy' : 'a v2'} binding`, async () => {
       if (legacy) report.databaseQuery.queryVersion = legacyQueryVersion(query);
-      const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller);
+      const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, gridCaller);
       assert.equal(page.records.length, 25);
       const csv = await service.getCSVResult(
         gridCaller.brand,
@@ -502,7 +502,7 @@ describe('GraphQL reports security and bounded export', () => {
         { param: () => undefined },
         0,
         undefined,
-        gridCaller
+        undefined, gridCaller
       );
       assert.equal(csv.trim().split('\n').length, 61);
       assert.equal((await preview()).records.length, 25);
@@ -515,11 +515,11 @@ describe('GraphQL reports security and bounded export', () => {
         const conflict = (error: unknown) =>
           error instanceof GraphqlReportError && error.code === 'REPORT_QUERY_CHANGED' && error.status === 409;
         await assert.rejects(
-          service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller),
+          service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, gridCaller),
           conflict
         );
         await assert.rejects(
-          service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+          service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, gridCaller),
           conflict
         );
         await assert.rejects(preview(), conflict);
@@ -547,7 +547,7 @@ describe('GraphQL reports security and bounded export', () => {
       { param: () => undefined },
       0,
       undefined,
-      gridCaller
+      undefined, gridCaller
     );
     assert.equal(csv.trim().split('\n').length, 61);
   });
@@ -557,7 +557,7 @@ describe('GraphQL reports security and bounded export', () => {
     query.graphql.variables = { first: { ownership: 'fixed', value: 50 }, after: { ownership: 'fixed', value: null } };
     delete query.graphql.lookup;
     report = makeReport();
-    const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller);
+    const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, gridCaller);
     assert.equal(page.records.length, 25);
     const csv = await service.getCSVResult(
       gridCaller.brand,
@@ -565,14 +565,14 @@ describe('GraphQL reports security and bounded export', () => {
       { param: () => undefined },
       0,
       undefined,
-      gridCaller
+      undefined, gridCaller
     );
     assert.equal(csv.trim().split('\n').length, 61);
   });
   it('uses the viewer and actual per-record ACL filtering in rows and complete CSV', async () => {
     h.denied.add('01');
     h.denied.add('28');
-    const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller);
+    const page = await service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, gridCaller);
     assert.equal(page.total, null);
     assert.ok(!page.records.some(row => row.oid === '01'));
     const csv = await service.getCSVResult(
@@ -581,7 +581,7 @@ describe('GraphQL reports security and bounded export', () => {
       { param: () => undefined },
       0,
       undefined,
-      gridCaller
+      undefined, gridCaller
     );
     assert.equal(csv.trim().split('\n').length, 59);
     assert.ok(!/^01\r?$/m.test(csv));
@@ -597,11 +597,11 @@ describe('GraphQL reports security and bounded export', () => {
   ])
     it('fails closed without a complete trusted matching viewer context', async () => {
       await assert.rejects(
-        service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, caller),
+        service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, caller),
         code('GRAPHQL_CONTEXT_REQUIRED')
       );
       await assert.rejects(
-        service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, caller),
+        service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, caller),
         code('GRAPHQL_CONTEXT_REQUIRED')
       );
       assert.equal(execute.callCount, 0);
@@ -623,7 +623,7 @@ describe('GraphQL reports security and bounded export', () => {
     assert.equal(next.pagination.start, 2);
     assert.notDeepEqual(next.records, first.records);
     await assert.rejects(
-      service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 2, 2, gridCaller),
+      service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 2, 2, undefined, gridCaller),
       /REPORT_OFFSET_UNSUPPORTED/
     );
   });
@@ -709,7 +709,7 @@ describe('GraphQL reports security and bounded export', () => {
       { param: () => undefined },
       0,
       undefined,
-      gridCaller
+      undefined, gridCaller
     );
     assert.equal(csv.trim().split('\n').length, 61);
   });
@@ -717,7 +717,7 @@ describe('GraphQL reports security and bounded export', () => {
     sails.config.recordGraphql.reportExport!.timeoutMs = 10;
     Reflect.set(globalThis, 'RecordGraphqlService', { getReadSchema: () => new Promise(() => {}), execute });
     await assert.rejects(
-      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, gridCaller),
       code('REPORT_EXPORT_TIMEOUT')
     );
     assert.equal(execute.callCount, 0);
@@ -739,7 +739,7 @@ describe('GraphQL reports security and bounded export', () => {
       query = structuredClone(initialQuery);
       execute.resetHistory();
       await assert.rejects(
-        service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+        service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, gridCaller),
         code('REPORT_QUERY_CHANGED')
       );
       assert.equal(execute.callCount, changeOnPage);
@@ -766,7 +766,7 @@ describe('GraphQL reports security and bounded export', () => {
       { param: () => undefined },
       0,
       undefined,
-      gridCaller
+      undefined, gridCaller
     );
     assert.ok(!/^40,/m.test(csv));
     assert.match(csv, /^41,published\r?$/m);
@@ -793,14 +793,14 @@ describe('GraphQL reports security and bounded export', () => {
       }),
     });
     await assert.rejects(
-      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, gridCaller),
       code('REPORT_CURSOR_INVALID')
     );
   });
   it('requires version binding on persisted and previewed GraphQL reports', async () => {
     report.databaseQuery.queryVersion = 'old';
     await assert.rejects(
-      service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller),
+      service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, gridCaller),
       code('REPORT_QUERY_CHANGED')
     );
   });
@@ -809,11 +809,11 @@ describe('GraphQL reports security and bounded export', () => {
       getNamedQueryConfig: async () => ({ name: 'scoped', collection: 'record' }),
     });
     await assert.rejects(
-      service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, gridCaller),
+      service.getResults(gridCaller.brand, 'report', { param: () => undefined }, 0, 25, undefined, gridCaller),
       code('REPORT_QUERY_CHANGED')
     );
     await assert.rejects(
-      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, gridCaller),
+      service.getCSVResult(gridCaller.brand, 'report', { param: () => undefined }, 0, undefined, undefined, gridCaller),
       code('REPORT_QUERY_CHANGED')
     );
     assert.equal(execute.callCount, 0);
