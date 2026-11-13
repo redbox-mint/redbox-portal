@@ -595,6 +595,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
     }
     if (receipt.state !== 'retryable') return;
     receipt.state = 'pending';
+    this.error.set(null);
     this.store.dispatch(GenerationActions.commitStarted());
     try {
       let lastError: unknown;
@@ -621,6 +622,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
       }
       if (!this.isCurrentOperation(revision, form)) return;
       const message = lastError instanceof Error ? lastError.message : 'generation-commit-failed';
+      this.error.set('generation-commit-failed');
       this.store.dispatch(GenerationActions.commitFailed({ error: message }));
     } finally {
       if (receipt.state === 'pending') receipt.state = 'retryable';

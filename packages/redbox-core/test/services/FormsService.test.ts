@@ -38,6 +38,7 @@ describe('FormsService', function () {
   beforeEach(function () {
     mockSails = createMockSails({
       config: {
+        auth: { defaultPortal: 'rdmp' },
         appPath: '/app',
         appmode: {
           bootstrapAlways: false,
