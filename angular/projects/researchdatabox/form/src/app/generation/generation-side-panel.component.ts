@@ -54,6 +54,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
   readonly statusChecksPaused = signal(false);
   readonly activeRun = computed(() => ['queued', 'running', 'validating', 'cancelRequested', 'committing'].includes(this.run()?.status ?? ''));
   readonly error = signal<string | null>(null);
+  readonly reviewError = signal<string | null>(null);
   readonly conflicts = signal<string[]>([]);
   readonly candidate = signal<GenerationCandidatePatch | null>(null);
   private appliedFieldIds: string[] = [];
@@ -319,11 +320,16 @@ export class GenerationSidePanelComponent implements OnDestroy {
 
   public async markReviewed(fieldId: string, pointer: string): Promise<void> {
     const form = this.form();
-    if (!form) return;
+    if (!form || this.destroyed) return;
     const revision = this.operationRevision;
-    await this.provenance.markReviewed(pointer);
-    if (!this.isCurrentOperation(revision, form)) return;
-    this.store.dispatch(GenerationActions.fieldReviewed({ fieldId }));
+    this.reviewError.set(null);
+    try {
+      await this.provenance.markReviewed(pointer);
+      if (!this.isCurrentOperation(revision, form)) return;
+      this.store.dispatch(GenerationActions.fieldReviewed({ fieldId }));
+    } catch {
+      if (this.isCurrentOperation(revision, form)) this.reviewError.set('generation-review-failed');
+    }
   }
 
   private async initialise(session: GenerationRuntimeSession, form: FormGroup): Promise<void> {
@@ -332,6 +338,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.stopPollDelay();
     this.busy.set(true);
     this.candidate.set(null);
+    this.reviewError.set(null);
     this.statusChecksPaused.set(false);
     this.appliedFieldIds = [];
     this.commitReceipt = undefined;
@@ -421,6 +428,7 @@ export class GenerationSidePanelComponent implements OnDestroy {
     this.suppliedSession.set(null);
     this.run.set(null);
     this.candidate.set(null);
+    this.reviewError.set(null);
     this.statusChecksPaused.set(false);
     this.appliedFieldIds = [];
     this.commitReceipt = undefined;

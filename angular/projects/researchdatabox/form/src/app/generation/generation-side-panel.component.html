@@ -131,6 +131,9 @@
             <p>{{ 'generation-complete-body' | i18next }}</p>
           </div>
         </div>
+        @if (reviewError()) {
+          <div class="alert alert-danger" role="alert">{{ reviewError()! | i18next }}</div>
+        }
         @if (conflicts().length > 0) {
           <div class="alert alert-warning" role="alert">
             {{ 'generation-conflicts' | i18next }}: {{ conflicts().join(', ') }}

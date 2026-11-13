@@ -3,6 +3,7 @@ import { canonicalHash, GenerationDeploymentConfig, GenerationError, GenerationP
 import type { GenerationModelConnectionAttributes } from '../waterline-models/GenerationModelConnection';
 import type { GenerationModelDeploymentAttributes } from '../waterline-models/GenerationModelDeployment';
 import { requireService } from './generation/require-service';
+import { generationDeploymentContent } from '../waterline-models/generation-model-helpers';
 
 interface RegistryLike { get(id: string): GenerationProviderAdapter; }
 interface SecretResolverLike { resolve(secretRef: string): Promise<string>; status(secretRef: string): Promise<{ configured: boolean; scheme: string }>; }
@@ -40,7 +41,7 @@ export namespace Services {
     ): Promise<GenerationModelDeploymentAttributes> {
       const connection = await GenerationModelConnection.findOne({ id: input.connectionId, brandId });
       if (!connection) throw new GenerationError('GENERATION_DEPLOYMENT_INCOMPATIBLE', 'Generation model connection was not found');
-      const contentHash = canonicalHash({ ...input, brandId });
+      const contentHash = canonicalHash(generationDeploymentContent(input));
       return GenerationModelDeployment.create({ ...input, brandId, contentHash }).fetch();
     }
 

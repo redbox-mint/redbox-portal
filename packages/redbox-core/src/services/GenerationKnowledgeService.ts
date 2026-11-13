@@ -61,10 +61,13 @@ export namespace Services {
         await KnowledgeCollectionVersion.find({ brandId, collectionId }),
         'KnowledgeCollectionVersion',
       );
+      const manifestHash = canonicalHash(manifest);
+      const retryDraft = versions.find(item => item.status === 'draft' && canonicalHash(item.manifest) === manifestHash && item.retrievalStrategy === retrievalStrategy);
+      if (retryDraft) return retryDraft;
       const version = Math.max(0, ...versions.map((item) => Number(item.version))) + 1;
       const created = await KnowledgeCollectionVersion.create({
         brandId, collectionId, version, status: 'draft', manifest, retrievalStrategy,
-        contentHash: canonicalHash(manifest), createdBy: actorId,
+        contentHash: manifestHash, createdBy: actorId,
       }).fetch();
       await KnowledgeCollection.updateOne({ id: collectionId, brandId }).set({ latestVersionId: created.id, updatedBy: actorId });
       return created;
@@ -118,31 +121,59 @@ export namespace Services {
       documents: GenerationKnowledgeDocumentInput[],
       actorId: string,
     ): Promise<KnowledgeCollectionVersionAttributes> {
-      const version = await KnowledgeCollectionVersion.findOne({ id: versionId, brandId, status: 'draft' });
-      if (!version) throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft knowledge versions may be published');
+      const version = await KnowledgeCollectionVersion.findOne({ id: versionId, brandId });
+      if (!version || !['draft', 'published'].includes(version.status)) throw new GenerationError('GENERATION_INVALID_STATE', 'Only draft knowledge versions may be published');
       const documentKeys = documents.map((document) => document.documentKey);
       if (new Set(documentKeys).size !== documentKeys.length) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Knowledge document keys must be unique');
-      for (const [index, input] of documents.entries()) {
+      // Validate and chunk the complete input before creating durable rows.
+      const prepared = documents.map((input, index) => {
         if (!(input.authority in AUTHORITY_ORDER)) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Knowledge authority is invalid');
         if (input.effectiveFrom && input.effectiveTo && Date.parse(input.effectiveFrom) > Date.parse(input.effectiveTo)) {
           throw new GenerationError('GENERATION_PROFILE_INVALID', 'Knowledge effective date range is invalid');
         }
-        const document = await KnowledgeDocument.create({
-          ...input, brandId, collectionVersionId: versionId, mediaType: input.mediaType ?? 'text/markdown',
-          contentHash: canonicalHash(input.content), ordinal: input.ordinal ?? index,
-        }).fetch();
-        const chunks = this.chunkDocument(input, sails.config.generation.context.maxChunkBytes);
-        for (const chunk of chunks) {
-          await KnowledgeChunk.create({ ...chunk, brandId, collectionVersionId: versionId, documentId: document.id }).fetch();
-        }
-      }
-      const contentHash = canonicalHash({ manifest: version.manifest, documents });
-      const published = await KnowledgeCollectionVersion.updateOne({ id: versionId, brandId, status: 'draft' }).set({
-        status: 'published', contentHash, publishedBy: actorId, publishedAt: new Date().toISOString(),
+        return { input, index, chunks: this.chunkDocument(input, sails.config.generation.context.maxChunkBytes) };
       });
-      if (!published) throw new GenerationError('GENERATION_INVALID_STATE', 'Knowledge version changed concurrently');
-      await KnowledgeCollection.updateOne({ id: version.collectionId, brandId }).set({ publishedVersionId: versionId, updatedBy: actorId });
-      return published;
+      const contentHash = canonicalHash({ manifest: version.manifest, documents });
+      const identical = await KnowledgeCollectionVersion.findOne({
+        brandId, collectionId: version.collectionId, status: 'published', contentHash, retrievalStrategy: version.retrievalStrategy,
+      });
+      if (identical) {
+        // Publication may have succeeded before the collection pointer write failed.
+        await KnowledgeCollection.updateOne({ id: version.collectionId, brandId }).set({ publishedVersionId: identical.id, updatedBy: actorId });
+        return identical;
+      }
+      if (version.status !== 'draft') throw new GenerationError('GENERATION_INVALID_STATE', 'Published knowledge content cannot be changed');
+      const createdDocumentIds: string[] = [];
+      const createdChunkIds: string[] = [];
+      let published = false;
+      try {
+        for (const { input, index, chunks } of prepared) {
+          const document = await KnowledgeDocument.create({
+            ...input, brandId, collectionVersionId: versionId, mediaType: input.mediaType ?? 'text/markdown',
+            contentHash: canonicalHash(input.content), ordinal: input.ordinal ?? index,
+          }).fetch();
+          createdDocumentIds.push(document.id);
+          for (const chunk of chunks) {
+            const created = await KnowledgeChunk.create({ ...chunk, brandId, collectionVersionId: versionId, documentId: document.id }).fetch();
+            createdChunkIds.push(created.id);
+          }
+        }
+        const result = await KnowledgeCollectionVersion.updateOne({ id: versionId, brandId, status: 'draft' }).set({
+          status: 'published', contentHash, publishedBy: actorId, publishedAt: new Date().toISOString(),
+        });
+        if (!result) throw new GenerationError('GENERATION_INVALID_STATE', 'Knowledge version changed concurrently');
+        published = true;
+        await KnowledgeCollection.updateOne({ id: version.collectionId, brandId }).set({ publishedVersionId: versionId, updatedBy: actorId });
+        return result;
+      } catch (error) {
+        // A successful or concurrent publication owns its content permanently.
+        // Otherwise remove only rows this call created, never the whole version.
+        if (!published && !await KnowledgeCollectionVersion.findOne({ id: versionId, brandId, status: 'published' })) {
+          for (const id of createdChunkIds) await KnowledgeChunk.destroyOne({ id, brandId, collectionVersionId: versionId });
+          for (const id of createdDocumentIds) await KnowledgeDocument.destroyOne({ id, brandId, collectionVersionId: versionId });
+        }
+        throw error;
+      }
     }
 
     public async retrieve(

@@ -9,6 +9,7 @@ import type { GenerationModelConnectionAttributes } from '../waterline-models/Ge
 import type { GenerationModelDeploymentAttributes } from '../waterline-models/GenerationModelDeployment';
 import type { GenerationKnowledgeDocumentInput } from './GenerationKnowledgeService';
 import { requireService, requireWaterlineRows } from './generation/require-service';
+import { normalizedSlug } from '../waterline-models/generation-model-helpers';
 
 type Manifest = { kind: string; key: string; [key: string]: unknown };
 interface ModelServiceLike {
@@ -52,8 +53,9 @@ export namespace Services {
       for (const filename of files) {
         try {
           const parsed = JSON.parse(await fs.readFile(path.join(root, filename), 'utf8')) as Manifest;
-          if (!parsed.kind || !parsed.key) throw new Error('kind and key are required');
-          manifests.push({ filename, manifest: parsed });
+          const key = normalizedSlug(parsed.key);
+          if (!parsed.kind || !key) throw new Error('kind and a non-empty normalized key are required');
+          manifests.push({ filename, manifest: { ...parsed, key } });
         } catch (error) {
           this.logger.warn(`Skipped invalid generation bootstrap file '${filename}': ${error instanceof Error ? error.message : 'invalid JSON'}`);
         }
@@ -97,7 +99,7 @@ export namespace Services {
     }
 
     private async loadDeployment(brandId: string, manifest: Manifest, actor: string): Promise<void> {
-      const connection = await GenerationModelConnection.findOne({ brandId, key: String(manifest.connectionKey ?? '') });
+      const connection = await GenerationModelConnection.findOne({ brandId, key: normalizedSlug(manifest.connectionKey) });
       if (!connection) throw new Error('Referenced generation connection was not found');
       const version = Number(manifest.version ?? 1);
       const existing = await GenerationModelDeployment.findOne({ brandId, key: manifest.key, version });
@@ -141,9 +143,9 @@ export namespace Services {
 
     private async loadProfile(brandId: string, manifest: Manifest, actor: string): Promise<void> {
       const existing = await GenerationProfile.findOne({ brandId, key: manifest.key });
-      const deployment = await GenerationModelDeployment.findOne({ brandId, key: String(manifest.modelDeploymentKey ?? ''), status: 'published' });
+      const deployment = await GenerationModelDeployment.findOne({ brandId, key: normalizedSlug(manifest.modelDeploymentKey), status: 'published' });
       const knowledgeKeys = Array.isArray(manifest.knowledgeCollectionKeys)
-        ? manifest.knowledgeCollectionKeys.filter((key): key is string => typeof key === 'string')
+        ? manifest.knowledgeCollectionKeys.filter((key): key is string => typeof key === 'string').map(normalizedSlug)
         : [];
       const knowledge = requireWaterlineRows<KnowledgeCollectionAttributes>(
         await KnowledgeCollection.find({ brandId, key: { in: knowledgeKeys } }),
@@ -175,7 +177,7 @@ export namespace Services {
     }
 
     private async loadBinding(brandId: string, manifest: Manifest, actor: string): Promise<void> {
-      const profile = await GenerationProfile.findOne({ brandId, key: String(manifest.profileKey ?? '') });
+      const profile = await GenerationProfile.findOne({ brandId, key: normalizedSlug(manifest.profileKey) });
       if (!profile?.publishedVersionId) throw new Error('Binding profile is not published');
       const service = requireService<BindingServiceLike>('generationbindingservice', ['createOrUpdate']);
       const { kind: _kind, profileKey: _profileKey, ...value } = manifest;

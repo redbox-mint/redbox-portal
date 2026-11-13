@@ -7,6 +7,7 @@ import type { GenerationProfileVersionAttributes } from '../waterline-models/Gen
 import { firstValueFrom } from 'rxjs';
 import type { FormAttributes } from '../waterline-models/Form';
 import { requireService, requireWaterlineRows } from './generation/require-service';
+import { normalizedSlug } from '../waterline-models/generation-model-helpers';
 
 type RecordLike = { redboxOid?: string; metadata?: Record<string, unknown>; metaMetadata?: Record<string, unknown>; workflow?: Record<string, unknown> };
 interface RecordsLike {
@@ -89,8 +90,10 @@ export namespace Services {
           throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation source value mapping does not resolve to a separate editable target');
         }
       }
-      const values = { ...input, nameLower: input.name.trim().toLowerCase() };
-      const existing = await GenerationBinding.findOne({ brandId, key: input.key });
+      const key = normalizedSlug(input.key);
+      if (!key) throw new GenerationError('GENERATION_PROFILE_INVALID', 'Generation binding key must not be empty');
+      const values = { ...input, key, nameLower: input.name.trim().toLowerCase() };
+      const existing = await GenerationBinding.findOne({ brandId, key });
       if (existing) {
         const updated = await GenerationBinding.updateOne({ id: existing.id, brandId }).set(values);
         if (!updated) throw new GenerationError('GENERATION_INVALID_STATE', 'Generation binding changed concurrently');
@@ -171,7 +174,7 @@ export namespace Services {
       mode?: 'view' | 'edit';
     }): Promise<AuthorizedGenerationLaunch> {
       if (!sails.config.generation.enabled) throw new GenerationError('GENERATION_NOT_CONFIGURED', 'Generation is disabled');
-      const binding = await GenerationBinding.findOne({ brandId: input.actor.brandId, key: input.bindingKey, enabled: true });
+      const binding = await GenerationBinding.findOne({ brandId: input.actor.brandId, key: normalizedSlug(input.bindingKey), enabled: true });
       if (!binding) throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Generation action is not available');
       if (!binding.allowedRoles.some((role) => input.actor.roles.includes(role))) {
         throw new GenerationError('GENERATION_ACTION_NOT_AVAILABLE', 'Generation role is not available');

@@ -4,13 +4,16 @@ import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { createFormRuntimeActionInvokedEvent } from '../form-state/events/form-component-event.types';
-import { selectGenerationBusy, selectGenerationState } from './state/generation.selectors';
+import { selectGenerationBusy, selectGenerationError, selectGenerationState } from './state/generation.selectors';
 
 @Component({
   selector: 'redbox-form-runtime-actions',
   template: `
     @if (orderedActions().length > 0) {
       <nav class="rb-runtime-actions" [attr.aria-label]="'generation-actions-label' | i18next">
+        @if (error()) {
+          <div class="alert alert-danger" role="alert">{{ error()! | i18next }}</div>
+        }
         <div class="rb-runtime-actions__eyebrow">{{ 'generation-actions-eyebrow' | i18next }}</div>
         <div class="rb-runtime-actions__list">
           @for (action of orderedActions(); track action.id; let index = $index) {
@@ -39,6 +42,7 @@ export class FormRuntimeActionsComponent implements OnDestroy {
   readonly actions = input<FormRuntimeAction[]>([]);
   readonly orderedActions = computed(() => [...this.actions()].sort((left, right) => left.order - right.order || left.id.localeCompare(right.id)));
   readonly busy = this.store.selectSignal(selectGenerationBusy);
+  readonly error = this.store.selectSignal(selectGenerationError);
   private readonly lastInvokedIndex = signal<number | null>(null);
   private readonly subscriptions = new Subscription();
   @ViewChildren('actionButton') private buttons?: QueryList<ElementRef<HTMLButtonElement>>;

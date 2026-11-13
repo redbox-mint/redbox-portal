@@ -233,6 +233,19 @@ describe('GenerationSidePanelComponent', () => {
     expect(component.completed()).toBeTrue();
   });
 
+  it('ignores a failed field review after its form context is replaced', async () => {
+    let reject = (_error: Error) => {};
+    provenance.markReviewed.and.returnValue(new Promise((_resolve, rejectReview) => { reject = rejectReview; }));
+    const reviewing = component.markReviewed('summary', '/summary');
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('Replacement') }));
+    fixture.detectChanges();
+    reject(new Error('Old review failure'));
+    await expectAsync(reviewing).toBeResolved();
+
+    expect(component.reviewError()).toBeNull();
+    expect(TestBed.inject(Store).dispatch).not.toHaveBeenCalledWith(jasmine.objectContaining({ type: '[Generation] Field Reviewed' }));
+  });
+
   it('starts a document-only run in the same target form without a source record', async () => {
     fixture.componentRef.setInput('form', new FormGroup({ title: new FormControl('My draft') }));
     fixture.componentRef.setInput('launches', [{ bindingKey: 'documents', allowDocumentsOnly: true }]);
@@ -717,4 +730,58 @@ describe('Generation paused-status rendering', () => {
     expect(host.querySelector('.alert-info')).toBeNull();
     fixture.destroy();
   });
+  it('renders review failure on the completed panel and keeps the saved field unreviewed until retry succeeds', async () => {
+    const api = jasmine.createSpyObj<GenerationApiService>('GenerationApiService', ['provenance', 'review']);
+    const field: GenerationFieldProvenanceView = {
+      id: 'saved-summary', runId: 'review-run', profileFieldId: 'summary', metadataPointer: '/summary',
+      displayState: 'generated', groundingState: 'requiresReview', reviewRequired: true,
+      rationale: 'Review recommendation', evidence: [], generatedAt: new Date(0).toISOString(),
+    };
+    api.provenance.and.resolveTo({ recordOid: 'saved-record', fields: [field] });
+    api.review.and.rejectWith(new Error('Private review failure'));
+    const provenance = new GenerationProvenanceStoreService(api);
+    const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['select$', 'publish']);
+    eventBus.select$.and.returnValue(EMPTY);
+    const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'dispatch']);
+    store.selectSignal.and.returnValue(signal(true));
+    const applier = jasmine.createSpyObj<GenerationPatchApplierService>('GenerationPatchApplierService', ['applyInitialValues']);
+    await TestBed.configureTestingModule({
+      declarations: [GenerationSidePanelComponent],
+      imports: [ReactiveFormsModule, StatusTestTranslationPipe], schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        { provide: GenerationApiService, useValue: api },
+        { provide: FormComponentEventBus, useValue: eventBus },
+        { provide: Store, useValue: store },
+        { provide: GenerationPatchApplierService, useValue: applier },
+        { provide: GenerationProvenanceStoreService, useValue: provenance },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(GenerationSidePanelComponent);
+    const component = fixture.componentInstance;
+    fixture.componentRef.setInput('form', new FormGroup({ summary: new FormControl('Generated') }));
+    fixture.detectChanges();
+    await provenance.load('saved-record');
+    component.activeSession.set({ runId: field.runId, bindingKey: 'documents', initialValues: [], autoOpen: true });
+    component.candidate.set({ runId: field.runId, candidateDigest: 'digest', baseTargetDigest: 'base', items: [{
+      fieldId: 'summary', metadataPointer: '/summary', value: 'Generated', operation: 'fill', valueHash: 'hash',
+      groundingState: 'requiresReview', reviewRequired: true, rationale: field.rationale, evidence: [],
+    }] });
+    fixture.detectChanges();
+
+    await expectAsync(component.markReviewed('summary', '/summary')).toBeResolved();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('generation-review-failed');
+    expect(host.textContent).not.toContain('Private review failure');
+    expect(provenance.byPointer()['/summary'].reviewRequired).toBeTrue();
+    expect(store.dispatch).not.toHaveBeenCalledWith(jasmine.objectContaining({ type: '[Generation] Field Reviewed' }));
+    api.review.and.resolveTo({ ...field, reviewRequired: false });
+    await component.markReviewed('summary', '/summary');
+    fixture.detectChanges();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(provenance.byPointer()['/summary'].reviewRequired).toBeFalse();
+    expect(store.dispatch).toHaveBeenCalledWith(jasmine.objectContaining({ type: '[Generation] Field Reviewed', fieldId: 'summary' }));
+    fixture.destroy();
+  });
+
 });

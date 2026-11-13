@@ -1,4 +1,4 @@
-import { Component, NO_ERRORS_SCHEMA, Pipe, PipeTransform, signal } from '@angular/core';
+import { Component, computed, NO_ERRORS_SCHEMA, Pipe, PipeTransform, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -7,6 +7,8 @@ import { of } from 'rxjs';
 import { FormComponentEventBus } from '../form-state/events/form-component-event-bus.service';
 import { FormRuntimeActionsComponent } from './form-runtime-actions.component';
 import { generationInitialState } from './state/generation.state';
+import { generationReducer } from './state/generation.reducer';
+import { launchFailed, launchStarted } from './state/generation.actions';
 
 @Pipe({ name: 'i18next', standalone: false })
 class TranslationPipe implements PipeTransform {
@@ -75,4 +77,35 @@ describe('Form shell runtime actions', () => {
     }));
     fixture.destroy();
   });
+  for (const messageKey of ['generation-error-generation-rate-limited', 'generation-error-generation-target-forbidden']) {
+    it(`shows an accessible launch failure and clears it on the next attempt: ${messageKey}`, async () => {
+      const state = signal(generationInitialState);
+      const eventBus = jasmine.createSpyObj<FormComponentEventBus>('FormComponentEventBus', ['publish']);
+      const store = jasmine.createSpyObj<Store>('Store', ['selectSignal', 'select']);
+      store.selectSignal.and.returnValues(computed(() => state().busy), computed(() => state().error));
+      store.select.and.returnValue(of(generationInitialState));
+      await TestBed.configureTestingModule({
+        declarations: [FormShell, FormRuntimeActionsComponent, TranslationPipe],
+        schemas: [NO_ERRORS_SCHEMA],
+        providers: [
+          { provide: FormComponentEventBus, useValue: eventBus },
+          { provide: Store, useValue: store },
+        ],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(FormShell);
+      fixture.componentInstance.runtimeActions = [action];
+      fixture.detectChanges();
+      const host: HTMLElement = fixture.nativeElement;
+      state.set(generationReducer(state(), launchFailed({ error: messageKey })));
+      fixture.detectChanges();
+
+      expect(host.querySelector('redbox-form-runtime-actions [role="alert"]')?.textContent).toContain(messageKey);
+      state.set(generationReducer(state(), launchStarted()));
+      fixture.detectChanges();
+      expect(host.querySelector('redbox-form-runtime-actions [role="alert"]')).toBeNull();
+      expect(host.querySelector<HTMLButtonElement>('.rb-runtime-actions__button')?.disabled).toBeTrue();
+      fixture.destroy();
+    });
+  }
+
 });
